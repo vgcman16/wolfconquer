@@ -1,0 +1,273 @@
+using System.Buffers;
+using System.Net;
+using WolfConquer.Core.Data;
+using WolfConquer.Core.Networking;
+using WolfConquer.Core.Packets;
+using WolfConquer.Core.World;
+
+namespace WolfConquer.Tests;
+
+public sealed class LegacyPromotionMastersArcherSkillTests : IDisposable
+{
+    private const uint ArcherPromotionNpcId = 400;
+    private const long CharacterUid = 1_293_640;
+
+    private readonly string _root = Path.Combine(
+        Path.GetTempPath(),
+        "WolfConquer-LegacyPromotionMastersArcherSkillTests-" + Guid.NewGuid().ToString("N"));
+
+    public static TheoryData<byte, ushort, string, string> ArcherSkills => new()
+    {
+        { 70, 8_002, "XpFly", "NpcHandler.cs:49408-49446" },
+        { 13, 8_000, "RapidFire", "NpcHandler.cs:49603-49641" },
+        { 14, 8_003, "Fly", "NpcHandler.cs:49564-49602" },
+        { 15, 8_030, "ArrowRain", "NpcHandler.cs:49525-49563" },
+        { 16, 9_000, "Intensify", "NpcHandler.cs:49486-49524" },
+        { 17, 8_001, "ScatterFire", "NpcHandler.cs:49447-49485" },
+        { 20, 11_620, "PathOfShadow", "NpcHandler.cs:49347-49385" },
+        { 21, 11_610, "BladeFlurry", "NpcHandler.cs:49308-49346" },
+        { 22, 11_660, "MortalWound", "NpcHandler.cs:49269-49307" },
+        { 23, 11_590, "KineticSpark", "NpcHandler.cs:49230-49268" },
+        { 24, 11_650, "BlisteringWave", "NpcHandler.cs:49191-49229" },
+        { 25, 11_670, "SpiritFocus", "NpcHandler.cs:49152-49190" },
+        { 26, 11_600, "DaggerStorm", "NpcHandler.cs:49113-49151" },
+    };
+
+    [Theory]
+    [MemberData(nameof(ArcherSkills))]
+    public async Task ArcherSkillOptionLearnsSpellAndPersists(
+        byte optionId,
+        ushort spellId,
+        string spellName,
+        string sourceRange)
+    {
+        using var log = new StringWriter();
+        var sent = new List<byte[]>();
+        var connection = CreateSendingConnection(sent);
+        var spellsRoot = Path.Combine(_root, "success-" + optionId);
+        Directory.CreateDirectory(spellsRoot);
+        var session = CreateSession(level: 100);
+        var sessions = new WorldSessionStore();
+        sessions.Set(connection, session);
+
+        var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
+            new WorldPacketHandlerContext(
+                connection,
+                log,
+                Session: session,
+                Sessions: sessions,
+                PlayerSpellsRoot: spellsRoot),
+            session,
+            ArcherPromotionNpcId,
+            optionId,
+            CancellationToken.None);
+
+        Assert.True(handled);
+        Assert.True(sessions.TryGet(connection, out var updated));
+        Assert.NotNull(updated);
+        Assert.Equal([spellId], updated.PlayerSpells.SpellIds.ToArray());
+        Assert.Equal([spellId], new PlayerSpellSnapshotLoader(spellsRoot)
+            .LoadByCharacterUid(CharacterUid)
+            .SpellIds
+            .ToArray());
+
+        var spellPacket = Assert.Single(ParseSpellPackets(sent));
+        Assert.Equal(spellId, spellPacket.Id);
+        Assert.Contains(
+            ParseNpcReplies(sent),
+            reply => reply.Text == "Congratulation! You just have learned the skill " + spellName);
+
+        var logText = log.ToString();
+        Assert.Contains("WorldServer handled LegacyNpc PromotionMaster skill", logText);
+        Assert.Contains("source=NpcHandler.PromotionArcher", logText);
+        Assert.Contains("sourceRange=" + sourceRange, logText);
+        Assert.Contains("option=" + optionId, logText);
+        Assert.Contains("spellId=" + spellId, logText);
+        Assert.DoesNotContain("PARITY-GAP", logText);
+    }
+
+    [Fact]
+    public async Task ArcherSkillOptionAlreadyLearnedDoesNotDuplicate()
+    {
+        using var log = new StringWriter();
+        var sent = new List<byte[]>();
+        var connection = CreateSendingConnection(sent);
+        var spellsRoot = Path.Combine(_root, "duplicate-path-of-shadow");
+        Directory.CreateDirectory(spellsRoot);
+        var learned = new PlayerSpellSnapshot([Entry(11_620)]);
+        new PlayerSpellSnapshotLoader(spellsRoot).SaveByCharacterUid(CharacterUid, learned);
+        var session = CreateSession(level: 100, playerSpells: learned);
+        var sessions = new WorldSessionStore();
+        sessions.Set(connection, session);
+
+        var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
+            new WorldPacketHandlerContext(
+                connection,
+                log,
+                Session: session,
+                Sessions: sessions,
+                PlayerSpellsRoot: spellsRoot),
+            session,
+            ArcherPromotionNpcId,
+            optionId: 20,
+            CancellationToken.None);
+
+        Assert.True(handled);
+        Assert.Empty(ParseSpellPackets(sent));
+        Assert.Equal([11_620U], new PlayerSpellSnapshotLoader(spellsRoot)
+            .LoadByCharacterUid(CharacterUid)
+            .SpellIds
+            .ToArray());
+        Assert.Contains(ParseNpcReplies(sent), reply => reply.Text == "You`ve learned PathOfShadow!");
+        Assert.Contains("sourceRange=NpcHandler.cs:49347-49385", log.ToString());
+        Assert.Contains("spellId=11620; already learned", log.ToString());
+    }
+
+    [Fact]
+    public async Task ArcherSkillOptionRejectsBeforeLevelGate()
+    {
+        using var log = new StringWriter();
+        var sent = new List<byte[]>();
+        var connection = CreateSendingConnection(sent);
+        var spellsRoot = Path.Combine(_root, "level-gate-blistering-wave");
+        Directory.CreateDirectory(spellsRoot);
+        new PlayerSpellSnapshotLoader(spellsRoot).SaveByCharacterUid(CharacterUid, PlayerSpellSnapshot.Empty);
+        var session = CreateSession(level: 99);
+        var sessions = new WorldSessionStore();
+        sessions.Set(connection, session);
+
+        var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
+            new WorldPacketHandlerContext(
+                connection,
+                log,
+                Session: session,
+                Sessions: sessions,
+                PlayerSpellsRoot: spellsRoot),
+            session,
+            ArcherPromotionNpcId,
+            optionId: 24,
+            CancellationToken.None);
+
+        Assert.True(handled);
+        Assert.Empty(ParseSpellPackets(sent));
+        Assert.Empty(new PlayerSpellSnapshotLoader(spellsRoot)
+            .LoadByCharacterUid(CharacterUid)
+            .SpellIds);
+        Assert.Contains(
+            ParseNpcReplies(sent),
+            reply => reply.Text == "You`re not strong enough to learn this skill. Keep practicing, and come back when you`re qualified.");
+
+        var logText = log.ToString();
+        Assert.Contains("sourceRange=NpcHandler.cs:49191-49229", logText);
+        Assert.Contains("option=24", logText);
+        Assert.Contains("level=99 requiredLevel=100; source level gate rejected", logText);
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_root))
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+    }
+
+    private static WorldSession CreateSession(
+        long level,
+        PlayerSpellSnapshot? playerSpells = null)
+    {
+        return new WorldSession(
+            AccountId: 100,
+            Username: "archer-promotion-skill-test",
+            Character: new CharacterSnapshot(
+                Uid: CharacterUid,
+                Name: "ArcherHero",
+                Body: 1003,
+                Face: 0,
+                Hair: 0,
+                Class: 4_002,
+                FirstClass: 4_000,
+                SecondClass: 0,
+                Reborn: 0,
+                Level: level,
+                Experience: 0,
+                MapId: 1_002,
+                X: 430,
+                Y: 378,
+                PreviousMapId: 1_002,
+                PreviousMapX: 430,
+                PreviousMapY: 378,
+                Strength: 0,
+                Agility: 0,
+                Vitality: 0,
+                Spirit: 0,
+                AttributePoints: 0,
+                MinHitPoints: 1,
+                MinMana: 0,
+                Money: 0,
+                ConquerPoints: 0,
+                BoundConquerPoints: 0,
+                BankConquerPoints: 0,
+                PkPoints: 0,
+                Online: 0,
+                SourceFile: "fixture",
+                Attributes: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                PaidNobility: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)),
+            PlayerItems: PlayerItemSnapshot.Empty,
+            PlayerSpells: playerSpells ?? PlayerSpellSnapshot.Empty,
+            PlayerProficiencies: PlayerProficiencySnapshot.Empty);
+    }
+
+    private static PlayerSpellSnapshotEntry Entry(ushort id)
+    {
+        return new PlayerSpellSnapshotEntry(
+            id,
+            Level: 0,
+            Experience: 0,
+            PreviousLevel: 0,
+            SoulLevel: 0,
+            UseSpellSoul: 0);
+    }
+
+    private static ConquerTcpConnection CreateSendingConnection(List<byte[]> sent)
+    {
+        return new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958), (frame, _) =>
+        {
+            sent.Add(frame.ToArray());
+            return ValueTask.CompletedTask;
+        });
+    }
+
+    private static IReadOnlyList<LegacyNpcReplyPacket> ParseNpcReplies(IEnumerable<byte[]> sent)
+    {
+        var packets = new List<LegacyNpcReplyPacket>();
+        foreach (var bytes in sent)
+        {
+            if (LegacyNpcReplyPacket.TryParse(ReadFrame(bytes), out var packet))
+            {
+                packets.Add(packet);
+            }
+        }
+
+        return packets;
+    }
+
+    private static IReadOnlyList<LegacySpellPacket> ParseSpellPackets(IEnumerable<byte[]> sent)
+    {
+        var packets = new List<LegacySpellPacket>();
+        foreach (var bytes in sent)
+        {
+            if (LegacySpellPacket.TryParse(ReadFrame(bytes), out var packet))
+            {
+                packets.Add(packet);
+            }
+        }
+
+        return packets;
+    }
+
+    private static PacketFrame ReadFrame(byte[] bytes)
+    {
+        Assert.True(PacketFrameDecoder.TryRead(new ReadOnlySequence<byte>(bytes), out var frame, out _, out _));
+        return frame;
+    }
+}
