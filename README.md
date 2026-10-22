@@ -44,8 +44,9 @@ $env:WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH = $taskPwsh
 $env:WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH_SHA256 = (Get-FileHash -LiteralPath $taskPwsh -Algorithm SHA256).Hash
 ```
 
-This does not start or log into a game client. The legacy `MySql.Data` package
-currently emits NU1701 compatibility warnings; see [dependency limits](DEPENDENCIES.md).
+This does not start or log into a game client. The legacy `MySql.Data` and
+native-compatible `protobuf-net` packages emit NU1701 compatibility warnings;
+see [dependency limits](DEPENDENCIES.md).
 
 ## Projects
 

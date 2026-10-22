@@ -1,10 +1,12 @@
 #nullable disable
+using ProtoBuf;
 using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
 // Native MsgAirPowerUp model and Process. Encoding projects its source-registered
-// concrete contract; no CQ.Load registration lifecycle or host adoption is installed.
+// concrete contract; registration is owned by the CQ table, not host adoption.
+[ProtoContract]
 internal class LegacyNativeMsgAirPowerUp
 {
     [Flags]

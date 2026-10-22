@@ -4,8 +4,9 @@ using System.Collections.Generic;
 
 namespace WolfConquer.Core.Data;
 
-// Native CQ_COMBAT_GEAR row/cache and lookup only. Load/registration is not ported.
-internal class LegacyNativeCombatGearTable
+// Native CQ_COMBAT_GEAR row/cache/lookup; Load and registration are in adjacent partials.
+// No host startup adoption is implied by the source's mutable m_Load flag.
+internal partial class LegacyNativeCombatGearTable
 {
     public class CQ
     {

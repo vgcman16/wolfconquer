@@ -1,6 +1,7 @@
 #nullable disable
 
 using System;
+using ProtoBuf;
 
 namespace WolfConquer.Core.World;
 
@@ -14,7 +15,7 @@ internal class LegacyNativeMsgCombatGearSkin
         HolyOmen = 2
     }
 
-    // Native ProtoContract metadata is represented by the fixed typed wire contract, not a runtime model.
+    [ProtoContract]
     public class WeaponInfo
     {
         public uint ID;

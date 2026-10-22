@@ -9,9 +9,19 @@
 
   <ItemGroup>
     <PackageReference Include="MySqlConnector" Version="2.5.0" />
+    <!-- Pin the native-compatible desktop asset, not the distinct netcore45 DLL. -->
+    <PackageReference Include="protobuf-net" Version="2.0.0.668" GeneratePathProperty="true" ExcludeAssets="all" />
     <PackageReference Include="MySql.Data" Version="6.3.6" />
     <PackageReference Include="System.IO.Pipelines" Version="9.0.0" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67">
+      <HintPath>$(Pkgprotobuf-net)\lib\net40\protobuf-net.dll</HintPath>
+      <SpecificVersion>true</SpecificVersion>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 
 </Project>

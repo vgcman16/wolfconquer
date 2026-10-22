@@ -29,4 +29,12 @@
     <ProjectReference Include="..\..\src\WolfConquer.WorldServer\WolfConquer.WorldServer.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67">
+      <HintPath>$(NuGetPackageRoot)protobuf-net\2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
+      <SpecificVersion>true</SpecificVersion>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
 </Project>

@@ -1,5 +1,32 @@
 # Publication validation
 
+## Genuine combat-gear table loading and registration
+
+The complete native table Load now calls all three metadata loaders, registers
+12 real message types/67 required fields in the genuine pinned protobuf model,
+parses all19 gear columns and then loads ranks. Exact raw prefixes, current
+culture, duplicate-first rows, caught faults and partial publication remain.
+
+Private Debug and independent public Release verification each passed316
+focused cases, zero failures/skips (17 new isolated loader cases plus299
+retained gear/metadata/rank cases). The
+first313/3 run exposed incorrect test assumptions, not a production defect:
+unfrozen repeated/conflicting registrations append duplicate fields and fail
+later during serializer preparation. Corrected cases assert every134/68 field,
+retained owners, rank-creation faults and genuine deferred exceptions. No test
+was disabled. Fresh child processes isolate the real global model; they run
+under the measured PowerShell7 runtime, separately from the.NET9 parent tests.
+Independent cold read-only component probes also loaded preserved data under
+.NET9.0.16 and.NET10.0.11 without modifying five held inputs or assigning m_Load.
+Those private data/binaries are not part of this publication.
+
+The package's explicit net40 asset is byte-identical to the reference serializer;
+the different netcore45 asset is not selected. Existing and new NU1701 warnings
+remain. These narrow checks do not establish general framework compatibility,
+production/security suitability, host startup, SQL/full-player persistence or
+new client acceptance. Implicit packet conversions still use separate concrete
+projections at this checkpoint; genuine object-packet integration is next.
+
 ## Native dictionary lottery and combat-gear operations
 
 The complete native MsgDictLottery and MsgCombatGearOpt model/Process families
