@@ -1,5 +1,27 @@
 # Publication validation
 
+## Native dictionary lottery and combat-gear operations
+
+The complete native MsgDictLottery and MsgCombatGearOpt model/Process families
+passed **235 focused cases** in private Debug and independently in this public
+Release tree, zero failures/skips:65 new cases (30 lottery/35 operations) plus170
+retained gear/air/DaoQi cases. Existing compiler/dependency warnings remain;
+this is not a new whole-suite or live-client run.
+
+Real gear-add, jade, points, flags and metadata owners back the branches. Tests
+preserve native prices/free flags, true local randomness, unchecked costs/rewards,
+current-level lookups, request/collection aliases, response order and partial
+faults. Separate pinned-library checks observed nine lottery and ten operation
+payloads using the exact source-shaped registered contracts; literal frame tests
+retain required zeros, signed enum varints, unpacked arrays and list/array null
+differences. They do not prove the missing generic registration lifecycle.
+
+The first public lottery compile exposed an omitted existing AddItem dependency;
+its complete implementation and retained tests were then included, and the
+public lottery rerun passed200/200 before the final235/235 combined run. No
+test/branch was disabled. Native startup, SQL/full-player persistence, receive
+adoption, current-commit deployment and fresh-client acceptance remain unfinished.
+
 ## Native combat-gear ranking file persistence
 
 Complete source-shaped rank Load/Save and the native database Write/Mode owners

@@ -4,7 +4,7 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Fixed projection of the eight explicitly registered CQ_COMBAT_GEAR contracts, NOT
+// Fixed projection of the twelve explicitly registered CQ_COMBAT_GEAR contracts, NOT
 // a generic serializer or proof that native metadata Load/registration completed.
 // Native m_Load is only a wire gate, never inferred readiness or a host binding.
 internal static partial class LegacyNativeCombatGearWire
