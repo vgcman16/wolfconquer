@@ -1,5 +1,34 @@
 # Publication validation
 
+## Complete native quest definitions and message primitives
+
+The complete QuestInfo owner (physical rows, INI loader, eligibility and NPC
+queries), quest-list declarations and all seven native quest message primitives
+are implemented without installing startup or receive dispatch. Native duplicate
+publication, partial parse/fault state, profession normalization, reserved-list
+reader behavior, ignored arguments and special mission payload tails remain.
+
+Private Debug and independent public Release each passed 1,816 focused cases,
+zero failures/skips: 29 new metadata and 19 new packet cases with 1,768 retained.
+Tests use GUID-owned UTF16 INI files, actual Windows INI reads, initialized real
+packet buffers, literal byte controls and exact global restoration. They do not
+execute original assemblies or touch original saves. Unsafe oversized/wrapping
+buffer loops and file-fault resource cleanup are not established by these cases.
+
+Full quest gameplay, experience and guarded message-box dependencies, rewards,
+native receive dispatch and complete login/save callers remain unfinished. This
+does not establish a new live-client milestone or revised parity estimate.
+
+## Full Windows check on public b7c182a6
+
+Run 39860953525 completed successfully on b7c182a6ababe953a0b9ae09e898cc43939c5286,
+receipt runId 20261022T215514515Z-fe7f24d9. All eight stages passed. Core tests:
+16,617 passed, 166 skipped, zero failed (16,783 total). Updater tests: 259 passed.
+Windows launcher: 49 passed. Synthetic receipt parsers: 20 and 13 cases passed.
+Solution build: 111 warnings, zero errors; launcher build: zero warnings/errors.
+The 166 skips remain unverified, not passes. This validates that earlier published
+snapshot, not later quest/nobility changes, deployment or actual-client behavior.
+
 ## Genuine BinaryFile and complete mail components
 
 Complete native BinaryFile, mail save/load, physical records/conversions,

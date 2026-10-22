@@ -22,7 +22,7 @@
     },
     {
       "id": "progression", "title": "NPCs, shops, progression and housing", "status": "partial",
-      "implemented": "Main dispatch, shops, forging, skill learning and several durable progression/reward paths exist.",
+      "implemented": "Main dispatch, shops, forging, skill learning and several durable progression/reward paths exist. Complete native quest definition loading, eligibility queries and seven message primitives have focused proof; full quest gameplay and callers remain unfinished.",
       "remaining": "Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle."
     },
     {
