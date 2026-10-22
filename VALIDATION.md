@@ -1,5 +1,25 @@
 # Publication validation
 
+## Complete native dialogs and level-experience table loading
+
+Full native Dialog methods, NpcReply declarations and both codecs, static-message
+declarations/primitives, the genuine mutable LevelInfo field and whole LoadExpInfo
+are implemented. NPC replay currently supplies only its exact Mode enum; the
+full replay/query family is separate. Full Player.MessageBox/Quests/GainExpBall/
+UpdateLevel and host/startup/receiver adoption remain unfinished.
+
+Private Debug and independent public Release each passed 1,960 focused cases,
+zero failures/skips: 22 new dialog/wire and 27 new level-table cases with 1,911 retained.
+Checks cover real queue copies, exact payloads/seal/defaults, safe initialized
+packet truncation/length-wrap controls, literal paths/culture/BOM, add-only rows,
+parse/fault prefixes and actual file-reader disposal, using only owned fixtures.
+
+Dialog.Exists is signature-checked only, NEVER executed, including null input.
+It retains the native SQL reader/builder whose identity MySqlEscape is unsafe for
+untrusted input. No host exposes it; a separate parameterized boundary is required
+before exposure. No original database/files/services were accessed or changed.
+These proofs do not establish deployed quests, actual-client acceptance or full parity.
+
 ## Complete native nobility components
 
 The complete Nobility owner and ranking, real Player/member rank propagation and
