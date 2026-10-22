@@ -14,6 +14,22 @@ test scheduling/observation dependencies; repairs are under review without
 changing production retry budgets, removing assertions or accepting save failure.
 Current source is NOT full-check green, deployed, or actual-client accepted.
 
+## Native pipe item transport and inventory queries
+
+Private Debug and independent public Release each passed2,076focused cases,
+zero failures/skips,29s and30s:58new native pipe/query cases,2,010retained,
+and8TCPcases. Complete native pipe instance storage/constructors/Send/Disconnect,
+socket client reference, full item-to-pipe send and three stack/meteor queries
+are implemented. Actual queue copies/cipher continuation, item-before-extra bytes,
+raw interserver refinery IDs, liveness/fault prefixes and same-item aliases are
+covered with owned buffers/objects only. Socket Create/connect/pump and full
+PipeClient static login/transfer/receive lifecycle remain absent and unwired.
+
+The TCP test now waits for the real final error writer before retaining all old
+diagnostic assertions. Production TCP logging is unchanged. Full Inventory.Add/
+Update, genuine SQL/login/save worker integration, host adoption and live-client
+acceptance remain unfinished; the latest full Windows rejection still applies.
+
 ## Portable receiver and updater fixture repairs
 
 Private Debug and independent sanitized-public Release each passed all2,010

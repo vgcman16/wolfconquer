@@ -2,7 +2,8 @@ using System.Net.Sockets;
 
 namespace WolfConquer.Core.Networking;
 
-// Only native SecuritySocket's two-callback constructor, Send and Disconnect prefix.
+// Native SecuritySocket storage and two-callback constructor; separate partials
+// implement Send and the complete native Disconnect method.
 // Create, host binding, receive dispatch and scheduling/send-pump ownership are absent.
 internal partial class LegacyNativeSecuritySocket
 {

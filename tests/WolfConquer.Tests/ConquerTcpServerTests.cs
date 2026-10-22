@@ -119,6 +119,11 @@ public sealed class ConquerTcpServerTests
         using var client = await ConnectAsync(server);
         await client.GetStream().WriteAsync(new PacketWriter(1010, payloadLength: 0).ToArray());
 
+        // The error writer is the final publication in LogClientException. Seeing
+        // the earlier summary writer does not mean this independent writer ran yet.
+        var errorLog = await WaitForLogAsync(
+            error,
+            static text => text.Contains("InvalidOperationException: handler exploded", StringComparison.Ordinal));
         var log = await WaitForLogAsync(
             output,
             static text => text.Contains("PARITY-GAP category=runtime severity=error gap=tcp-client-exception", StringComparison.Ordinal));
@@ -130,7 +135,7 @@ public sealed class ConquerTcpServerTests
         Assert.Contains("wireMode=Modern", log);
         Assert.Contains("PARITY-BUG tcp client exception", log);
         Assert.Contains("exception=InvalidOperationException: handler exploded", log);
-        Assert.Contains("InvalidOperationException: handler exploded", error.ToString());
+        Assert.Contains("InvalidOperationException: handler exploded", errorLog);
     }
 
     [Fact]
