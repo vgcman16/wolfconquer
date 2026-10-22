@@ -19,6 +19,13 @@ linked ancestor remain refusals. Missing or incorrectly cased exclusions and
 exact approval/exclusion conflicts are rejected. The generated plan contains no
 link entries; staging and publishing keep their ordinary-file-only rules.
 
+Legacy `AutoP.exe` / `._cache_AutoP.exe` names are also quarantined by this
+project's filename policy, even under an approved asset directory. The owned
+updater replaces that legacy bootstrap chain. Explicitly exclude those entries;
+do not rename them to evade review. This conservative name rule is not a malware
+verdict or proof that any other file is clean. Direct staging plans receive the
+same existing quarantine check before any copies.
+
 Unknown top-level entries—and unknown siblings in partially selected folders—require explicit approval or exclusion. A review-required report is written, the command throws, and no publisher plan is created. It never silently approves an unknown item. A selected private/generated path blocks the plan until explicitly excluded. Private-key extensions, credentials, accounts/profiles, logs, caches, screenshots, temporary/debug/backup files, Git metadata and updater-control/trust files are conservatively quarantined by name anywhere. False positives require separate human review/curation; there is no bypass switch. Excluded/quarantined directories are not traversed.
 
 Only names, attributes and file lengths are inspected; client/configuration contents are not opened or hashed. The policy itself is read as strict JSON. Name filtering cannot detect a secret renamed to an innocent asset name or hidden inside an approved file. Keep the source quiescent during review; this metadata scan is not a security/content audit or immutable snapshot.

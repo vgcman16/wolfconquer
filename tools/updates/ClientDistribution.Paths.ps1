@@ -117,6 +117,12 @@ function Assert-CdExactExcludedLeaf([string]$Source, [string]$Relative) {
 
 function Get-CdRisk([string]$Relative) {
     foreach ($segment in $Relative.Split('/')) {
+        # This project replaces the legacy AutoP chain with its own updater.
+        # The preserved AutoP sample fails the existing launcher-risk scan.
+        # A filename quarantine is not a malware verdict or a clean-file scan.
+        if ($segment -in 'AutoP.exe', '._cache_AutoP.exe') {
+            return 'legacy-autop-bootstrap-requires-separate-curation'
+        }
         if ($segment -match '(?i)^(accounts?|profiles?|users?|userdata|user[-_]?data|logs?|cache|caches|screenshots?|screen[-_]?shots|temp|tmp|debug|backups?|crashdumps?|\.git|\.svn|\.hg|\.vs|obj|bin|\.wolfconquer-updates|\.wolfconquer-cache)($|[._-])') {
             return 'private-local-or-control-path'
         }

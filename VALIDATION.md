@@ -1,5 +1,18 @@
 # Publication validation
 
+## Exact 7a4675ba Windows follow-up
+
+[Windows run39806247831](https://github.com/vgcman16/wolfconquer/actions/runs/39806247831)
+completed successfully on exact7a4675ba. Its eight-stage receipt finished at
+2026-10-22T15:39:48.6732772Z:15,089 server/tool tests passed/166 skipped,
+259 updater tests passed and49 launcher tests passed, all zero failures;
+the two receipt parser suites passed20 and13 cases. Release build retained
+74 warnings, zero errors. This is not deployment, SQL or real-client proof.
+
+The later conservative AutoP filename quarantine passed eight synthetic exclusion
+groups locally, including direct staging-plan refusal before any copies. It
+does not classify every binary or certify a client package as safe.
+
 ## Portable DX8 layout follow-up
 
 The metadata-only planner's explicit excluded-leaf follow-up passed nine baseline
