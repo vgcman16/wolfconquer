@@ -27,7 +27,7 @@ internal partial class LegacyNativeGuildRuntime
 
     public class Member
     {
-        // Native UnionMem reference is absent until the genuine Union owner is ported.
+        public LegacyNativeUnionMember UnionMem;
 
         public uint UID;
 

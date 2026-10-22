@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace WolfConquer.Core.World;
 
-// BinaryFile Open/Success/Close + count, DBItem and Perfection read/write shapes.
+// BinaryFile Open/Success/Close + count, item, perfection, spell and proficiency I/O.
 // Caller owns every buffer. False reads do not clear or repair caller storage.
 // Native Perfection is fresh per postlude iteration; reused count lifetime is separate.
 // Not the loader loop, route owner, serializer or full BinaryFile API.
@@ -94,7 +94,7 @@ internal sealed partial class LegacyNativeItemRecordFile
         return readHandle;
     }
 
-    // All three buffers are blittable and passed by reference, never through an out
+    // These existing buffers are blittable and passed by reference, never through an out
     // record, fresh byte array, retrying Stream.ReadExactly or DTO conversion.
     // ReadFile's int return is ignored, exactly as BinaryFile.Read ignores it.
     [DllImport("kernel32.dll", EntryPoint = "ReadFile", SetLastError = true)]

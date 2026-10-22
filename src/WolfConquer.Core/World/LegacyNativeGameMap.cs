@@ -5,7 +5,7 @@ namespace WolfConquer.Core.World;
 
 // Native GameMap constructor/storage prefix only (GameMap.cs485..491).
 // LoadMap and its View publication are not implemented; no host map is adopted.
-internal class LegacyNativeGameMap
+internal partial class LegacyNativeGameMap
 {
     public Size bounds;
 

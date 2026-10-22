@@ -1,5 +1,33 @@
 # Publication validation
 
+## Native queued file, spell and proficiency persistence
+
+Complete native guild/union/clan member updates, race record, spouse operations,
+AllowCreate and GenerateDate now use genuine physical state and Windows INI/
+packet owners. Complete spell/proficiency file load/save methods use actual
+typed Windows file I/O, native12/20-byte aligned records and one physical cached
+handle/cursor. Rune spell lookup, real proficiency storage/constructor and
+CheckProf are included; no host/client-constructor initialization was invented.
+
+Private Debug and independent public Release each passed602 focused cases,
+zero failures/skips,90new/512retained. New cases cover exact owned INI content,
+queued spouse bytes, current physical metadata, raw UID/path/date behavior,
+record layout/padding, real save/reload, reused truncated/EOF records, duplicate
+admission, actual value IDs, Rune/job gates and partial writes/fault ordering.
+Tests explicitly close retained actual file owners after native fault phases;
+no fake file provider, production cleanup fallback or GC recovery is involved.
+
+Native quirks remain, including the kick branch retaining Treasury, ignored
+binary read/write booleans, spell metadata Count>Level gate, and broad spell-load
+catch versus uncaught proficiency/save faults. Complete opened-file phases keep
+the same loop bodies and fault order; successful paths close normally.
+
+This is not full SaveClient, login/deletion/queue-worker lifecycle, DataCore/host
+birth, SQL integration, restart recovery, current-client acceptance or deployment.
+Full inventory mutations and proficiency progression/send remain unfinished.
+Warnings remain, including unsupported native Thread.Abort. The last full
+Windows run below predates this batch; these are focused component checks only.
+
 ## Native inventory transport and queue prerequisites
 
 Complete native item framing/log text, lock and extra-effect sends now use the

@@ -12,7 +12,7 @@
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Concrete item records, container and equipment work, durable managed snapshots, pickup roundtrip work and bounded native load/save components exist. Native item framing, lock/extra sends, usage codecs and queue prerequisites have focused component proof.",
+      "implemented": "Concrete item records, container and equipment work, durable managed snapshots, pickup roundtrip work and bounded native load/save components exist. Native item transport/queue prerequisites, queued member/map/spouse file updates and complete spell/proficiency binary load/save have focused component proof.",
       "remaining": "Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery."
     },
     {
