@@ -51,10 +51,17 @@ public sealed partial class LegacyNativeAirPowerTests
     }
 
     [Theory]
-    [InlineData(701U)]
-    [InlineData(702U)]
-    [InlineData(703U)]
-    public void PurchaseDebitsNativeMultiplierAndAddsOnlyTheSelectedRandomPower(uint kind)
+    [InlineData(701U, 1U, 750U, 1250U)]
+    [InlineData(702U, 1U, 750U, 1250U)]
+    [InlineData(703U, 1U, 750U, 1250U)]
+    [InlineData(701U, 2U, 1500U, 2501U)]
+    [InlineData(702U, 2U, 1500U, 2501U)]
+    [InlineData(703U, 2U, 1500U, 2501U)]
+    [InlineData(701U, 3U, 2250U, 3752U)]
+    [InlineData(702U, 3U, 2250U, 3752U)]
+    [InlineData(703U, 3U, 2250U, 3752U)]
+    public void PurchaseDebitsNativeMultiplierAndAddsOnlyTheSelectedRandomPower(
+        uint kind, uint multiplier, uint minimum, uint maximum)
     {
         using var load = new LoadScope(true);
         var gear = new Gear();
@@ -62,10 +69,12 @@ public sealed partial class LegacyNativeAirPowerTests
         powers.SenseLevel = powers.ArmedLevel = powers.OverLoadLevel = 1;
         powers.Points = 5000;
 
-        var packet = Read(Assert.Single(Air.Process(Practice(kind, 2), gear, 91)));
+        var packet = Read(Assert.Single(Air.Process(Practice(kind, multiplier), gear, 91)));
 
-        Assert.Equal(3000U, powers.Points);
-        Assert.InRange(SelectedPower(powers, kind), 1500U, 2500U);
+        Assert.Equal(5000U - 1000U * multiplier, powers.Points);
+        // Native Next(750*m,1251*m) has an EXCLUSIVE upper bound:
+        // the inclusive maximum is1251*m-1, not1250*m when m>1.
+        Assert.InRange(SelectedPower(powers, kind), minimum, maximum);
         if (kind != 701) Assert.Equal(0U, powers.SenseAipPower);
         if (kind != 702) Assert.Equal(0U, powers.ArmedAipPower);
         if (kind != 703) Assert.Equal(0U, powers.OverLoadAipPower);

@@ -1,5 +1,32 @@
 # Publication validation
 
+## Native subclass and guild-skill profile components
+
+Fourteen complete subclass record/status/study/learning/send methods, genuine
+Player state, metadata Load/GetDamage/AllowUpdate, four primitive codecs and the
+complete guild-skill record owner/member/explicit unwired slot are implemented.
+
+Private Debug and independent public Release each passed 1,024 focused cases,
+zero failures/skips: 72 subclass cases, 12 guild-skill cases, six additional
+AirPower multiplier controls and 934 retained cases. Metadata tests use real
+Windows INI reads over owned UTF-16 fixtures covering all 70 rows, not a fake
+metadata provider or a claim about preserved production-file encoding. Actual
+record reloads, stat mutations, byte queues, reserved fields, cursor/disposal and
+partial-fault ordering are covered.
+
+An initial subclass run exposed 11 genuine modern-runtime saturation differences
+against independently observed source-shaped Framework/x86 controls. Scoped
+hash-term conversion preserves old low32 wrapping/large-term zero behavior;
+the controls were not weakened. A later retained AirPower test rejected legal
+2,501: native Next(750*m,1251*m) has an exclusive upper bound, so only the test
+was corrected/expanded for multipliers 1/2/3. Production AirPower is unchanged.
+
+Subclass SetPhrase/SetLevelss, equipment recalculation and receive Process remain
+absent. Native count>=256 byte-counter wrap is not run in-process or silently
+repaired. No full profile SaveClient/login caller, production birth, current-client
+acceptance or deployment is claimed. Warnings remain; these focused runs are not
+a new full Windows CI result or a revised parity estimate.
+
 ## Native exchange-shop profile and goods-table components
 
 The complete native shop owner and all nine methods, both 13/11-field goods-table
