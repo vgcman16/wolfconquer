@@ -12,7 +12,7 @@
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Concrete item records, container and equipment work, durable managed snapshots, pickup roundtrip work and bounded native load/save components exist. Native item transport/queue prerequisites, queued member/map/spouse updates, complete spell/proficiency binary persistence and title/security profile record helpers have focused component proof, including genuine progression and title mutation through record save and fresh-owner reload. Full SaveClient and production callers remain unfinished.",
+      "implemented": "Concrete item records, container and equipment work, durable managed snapshots, pickup roundtrip work and bounded native load/save components exist. Native item transport/queue prerequisites, queued member/map/spouse updates, complete spell/proficiency binary persistence, title/security record helpers and EpicTrojan state/reset/save/load have focused component proof, including genuine progression and profile mutation through record save and fresh-owner reload. Full SaveClient and production callers remain unfinished.",
       "remaining": "Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery."
     },
     {

@@ -1,5 +1,24 @@
 # Publication validation
 
+## Native EpicTrojan profile state and persistence
+
+All 17 physical fields and complete Reset/Save/Load methods retain the native
+four mutable uint[2] arrays, scalar defaults, exact 20-token slash record and
+trailing delimiter. Reset preserves array references and content. GhostReaver is
+reset but intentionally omitted from save/load, matching the reference behavior.
+
+Private Debug and independent sanitized-public Release each passed 789 focused
+cases, zero failures/skips: 24 new and 765 retained in each run. Coverage includes
+actual Player -> record -> fresh-Player reload, exact widths and current-culture
+parsing, malformed/missing defaults, array alias/tail behavior and precise partial
+state before null/short-array faults. Genuine existing DbLine owners are reused;
+no alternate record provider or quest implementation was substituted.
+
+These are component checks, not full SaveClient/login/deletion integration, quest
+action support, worker/host birth, current-client acceptance or deployment. Original
+saves, database, running client and services were not changed. Warnings remain;
+this is not a new full Windows CI run or a revised overall parity percentage.
+
 ## Native title and secondary-password profile components
 
 Complete title metadata loading, required protobuf fields/enums/codecs, five
