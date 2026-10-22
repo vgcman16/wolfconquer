@@ -1,5 +1,30 @@
 # Publication validation
 
+## Complete native collection profile and outgoing message components
+
+Complete CollectionStorage fields/constructor/record Load/ToString and Load-send,
+physical client member/Player property and explicit unwired constructor slot are
+implemented. Complete required message fields, optional UserID, local-clock time
+helpers and packet conversion preserve native arithmetic and disposal-before-return.
+
+Private Debug and independent public Release each passed 848 focused cases, zero
+failures/skips: 59 new and 789 retained. New coverage includes 39 record/send/time
+cases, 18 independently observed Framework/x86 serializer controls, one complete
+contract/default/enum check and one actual constructor-slot assignment. Queued
+packet bytes, physical ID/key drift, default/partial records, fresh-owner reload,
+retained state and null-fault order are covered without fake send/record providers.
+
+Read-only decompilation of the preserved SystemExtensions dependency established
+that its IDictionary Add overwrites via the indexer. The complete actual helper
+is ported: duplicate collection keys overwrite, unlike ordinary Dictionary.Add.
+Native INI caller buffer limits are not silently repaired by these record methods.
+
+No collection receive Process, packet attributes, production caller/host birth,
+full SaveClient/login/deletion integration, original-save/database change, current
+client acceptance or deployment is claimed. Warnings remain, including a native
+lowercase type name. This is focused component proof, not a new full Windows CI
+result or a revised project-wide parity percentage.
+
 ## Native EpicTrojan profile state and persistence
 
 All 17 physical fields and complete Reset/Save/Load methods retain the native
