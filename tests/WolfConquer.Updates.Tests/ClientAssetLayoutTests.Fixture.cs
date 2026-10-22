@@ -12,10 +12,13 @@ public sealed partial class ClientAssetLayoutTests
     // Independent fixed-layout expectation, not copied from the production collection at runtime.
     private static readonly string[] Assets = ["ani", "c3", "data", "data2", "Font", "Help", "ini", "map", "Script", "sound", "video"];
     private const string Preset = "legacy-dx8-v1";
-    private const string Engine = "Env_DX8/FixtureClient.exe";
+    private const string ConfigurationEngine = "Env_DX8/FixtureClient.exe";
 
     private sealed class LayoutFixture : IDisposable
     {
+        // These signed synthetic bytes are never launched. Do not share a process name
+        // with the separate pipeline fixtures that really launch a copied Windows cmd.
+        internal string Engine { get; } = "Env_DX8/WolfLayoutFixture-" + Guid.NewGuid().ToString("N") + ".exe";
         internal string Root { get; } = Directory.CreateTempSubdirectory("wolf-layout-" + Guid.NewGuid().ToString("N") + "-").FullName;
         internal string Client => Path.Combine(Root, "client");
         internal string State => Path.Combine(Client, ".wolfconquer-updates", "state.json");

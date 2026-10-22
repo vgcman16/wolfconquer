@@ -42,7 +42,7 @@ public sealed partial class ClientAssetLayoutTests
     {
         using var f = new LayoutFixture(); await f.Install();
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var files = f.Installed.Manifest.Files.Where(file => file.Path != Engine).ToArray();
+        var files = f.Installed.Manifest.Files.Where(file => file.Path != f.Engine).ToArray();
         Assert.Equal(11, files.Length);
         var now = DateTimeOffset.UtcNow;
         var manifest = new UpdateManifest(1, "layout-fixture", "preview", 1, now.AddMinutes(-1), now.AddHours(1),
@@ -69,7 +69,7 @@ public sealed partial class ClientAssetLayoutTests
     [WindowsFact]
     public void ExplicitPresetAndLegacyUnconfiguredModeRemainDistinct()
     {
-        ClientAssetLayout.ValidateConfiguration(Preset, Engine, "Env_DX8");
+        ClientAssetLayout.ValidateConfiguration(Preset, ConfigurationEngine, "Env_DX8");
         ClientAssetLayout.ValidateConfiguration(null, "FixtureClient.exe", null);
     }
 }

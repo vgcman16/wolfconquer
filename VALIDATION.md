@@ -1,5 +1,33 @@
 # Publication validation
 
+## Portable receiver and updater fixture repairs
+
+Private Debug and independent sanitized-public Release each passed all2,010
+focused core cases, zero failures/skips,28s and29s respectively, after replacing
+MagicPray's ignored private seed dependency with exact bounded native Pray1100
+and Island1015 metadata. All original real-handler/receiver-swap/HP/order/state
+assertions remain, with added row/map identity, learned-level and mana-cost checks.
+Reviver uses test-only scheduling of the actual player/global timer callbacks;
+raw frames and the original HP assertions are not filtered or relaxed.
+
+The full public updater check passed262/262,zero failures/skips,1m18s. Three new
+real owned-command controls verify per-fixture executable identity and genuine
+process-guard/recovery behavior. Production runtime and guard code are unchanged.
+Full Windows validation on this repair is pending; no live-client proof is added.
+
+### Preserved first public repair rejection
+
+The reviewed test-only updater isolation repair passed all262 public Release
+tests, zero failures/skips,1m18s (updater-layout-isolation-public-v1.trx).
+Production process attribution remains fail-closed and unchanged.
+
+The paired core repair check ended2,008passed/2failed,zero skips,18s
+(runtime-frame-stability-public-v1.trx). Both MagicPray visibility cases fail
+before handler execution because an ignored private seed manifest is absent.
+This is a test-portability failure, not evidence of a MagicPray gameplay defect.
+The bounded source-backed correction above resolves this focused rejection;
+the original failed TRX remains. No new full Windows acceptance is claimed yet.
+
 ## Latest full Windows rejection on public 0a06f4ad
 
 Run 39864294474 failed on 0a06f4ade3e2b426a9dc2acdb699b821807253c1.

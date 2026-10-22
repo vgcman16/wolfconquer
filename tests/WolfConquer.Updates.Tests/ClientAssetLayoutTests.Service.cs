@@ -18,7 +18,7 @@ public sealed partial class ClientAssetLayoutTests
         AssertSameFiles(before, f.Snapshot());
         Assert.Equal(state, File.ReadAllBytes(f.State));
         Assert.True(f.Guard.Calls.Count >= 12, "A stopped-client check must precede acquisition and every link mutation.");
-        foreach (var call in f.Guard.Calls) Assert.Equal(new[] { f.PathOf(Engine) }, call);
+        foreach (var call in f.Guard.Calls) Assert.Equal(new[] { f.PathOf(f.Engine) }, call);
         foreach (string name in Assets)
         {
             Assert.True(ClientDirectoryJunction.IsExact(f.Alias(name), f.Target(name)));
@@ -71,7 +71,7 @@ public sealed partial class ClientAssetLayoutTests
         var denied = new RecordingGuard(_ => throw new IOException("Synthetic stopped-client refusal."));
         await Assert.ThrowsAsync<IOException>(() => f.Prepare(denied));
         Assert.Single(denied.Calls);
-        Assert.Equal(new[] { f.PathOf(Engine) }, denied.Calls[0]);
+        Assert.Equal(new[] { f.PathOf(f.Engine) }, denied.Calls[0]);
         Assert.All(Assets, name => Assert.False(Directory.Exists(f.Alias(name))));
         AssertSameFiles(before, f.Snapshot());
     }

@@ -9,15 +9,13 @@ namespace WolfConquer.Tests;
 
 public sealed partial class WorldServerFrameHandlerTests
 {
-    [Theory(Skip = "Requires external game fixtures omitted from the public source snapshot.")]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task NativeFlag6SupplementMagicPrayRetainsReceiverAcrossFirstMaximumSend(bool originalVisible)
     {
         var model = new Flag6PublicReceiverSupplementModel(originalVisible);
-        var seedPath = Path.Combine(FindRepositoryRoot(), ".setup_work", "seed-json");
-        Assert.True(File.Exists(Path.Combine(seedPath, "manifest.json")),
-            "Required source-backed magic world seed is absent; this receiver test must not silently return.");
+        var worldData = CreateFlag6MagicPrayCatalog();
         var dbRoot = Path.Combine(_usersRoot, "flag6-pray-model");
         var usersRoot = Path.Combine(dbRoot, "Users");
         var spellsRoot = Path.Combine(dbRoot, "PlayersSpells");
@@ -31,7 +29,6 @@ public sealed partial class WorldServerFrameHandlerTests
                 extraCharacterLines: "XPCount=88\r\nStamina=12\r\n");
             File.WriteAllBytes(Path.Combine(spellsRoot, "1293600.bin"),
                 PlayerSpellSnapshotLoaderTests.BuildPlayerSpells([1100]));
-            var worldData = await new JsonWorldDataLoader(new WorldDataOptions(seedPath)).LoadAsync();
             var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
             var casterTicket = handoff.Issue(1_293_600, "flag6-pray-caster", ConquerRuntimeDefaults.WorldServer);
             var targetTicket = handoff.Issue(1_293_601, "flag6-pray-target", ConquerRuntimeDefaults.WorldServer);
@@ -67,6 +64,10 @@ public sealed partial class WorldServerFrameHandlerTests
                 ReadFrame(new InternalWorldEnterRequestPacket(targetTicket.Token).ToFrameBytes()));
             Assert.Equal(0, GetSession(handler, target).Character.MinHitPoints);
             Assert.Same(model.Original, GetSession(handler, target).NativePlayer);
+            var casterBefore = GetSession(handler, caster);
+            var learnedPray = Assert.Single(casterBefore.PlayerSpells.Spells.Where(spell => spell.Id == 1100));
+            Assert.Equal((ushort)0, learnedPray.Level);
+            Assert.Equal(5000, casterBefore.Character.MinMana);
             var targetStart = targetFrames.Count;
             var casterStart = casterFrames.Count;
             armed = true;
@@ -113,6 +114,7 @@ public sealed partial class WorldServerFrameHandlerTests
             Assert.Equal((long)max, revived.Character.MinHitPoints);
             Assert.Equal("0", revived.Character.Attributes["XPCount"]);
             Assert.Equal("100", revived.Character.Attributes["Stamina"]);
+            Assert.Equal(4000, GetSession(handler, caster).Character.MinMana); // Genuine native Pray mana cost, not a free fixture cast.
             Assert.Contains("WorldServer handled legacy revive magic", log.ToString());
             model.AssertRetained(revived);
             GC.KeepAlive(new[] { caster, target });
@@ -153,11 +155,12 @@ public sealed partial class WorldServerFrameHandlerTests
         var ticket = handoff.Issue(1_293_600, "flag6-guard-target", ConquerRuntimeDefaults.WorldServer);
         using var log = new RuntimeThreadSafeStringWriter();
         using var cancel = new CancellationTokenSource();
+        var clock = new Flag6ReviverScheduledTickClock(deathAt.AddSeconds(2));
         var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot,
             playerItemsRoot: null, playerSpellsRoot: null, playerProficienciesRoot: null,
             playersCombatGearRoot: null, playerQuestsRoot: null), handoff, world,
             new LegacyRuntimeUpdateLoopOptions(Enabled: true, TimeSpan.FromMilliseconds(20),
-                new AnchoredRuntimeTimeProvider(deathAt.AddSeconds(2))), log);
+                clock), log);
         var captureGate = new object();
         var sent = new List<byte[]>();
         var callbackErrors = new System.Collections.Concurrent.ConcurrentQueue<Exception>();
@@ -223,6 +226,33 @@ public sealed partial class WorldServerFrameHandlerTests
             await handler.HandleFrameAsync(connection,
                 ReadFrame(new InternalWorldEnterRequestPacket(ticket.Token).ToFrameBytes()), cancel.Token);
             Assert.Equal(1, Volatile.Read(ref startupPrestateObserved));
+
+            // RuntimeTicks starts player first, then global. Earn that ownership from
+            // real output/next-delay completion; never remove an interleaved frame.
+            await clock.RegisteredAsync(1).WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.Equal(2, clock.RegisteredCount);
+            int warmupStart;
+            lock (captureGate) warmupStart = sent.Count;
+            clock.FireScheduled(0);
+            await clock.RegisteredAsync(2).WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.Equal(3, clock.RegisteredCount);
+            byte[][] warmup;
+            lock (captureGate) warmup = sent.Skip(warmupStart).ToArray();
+            var earnedXp = Assert.Single(warmup.Where(bytes =>
+                LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out var packet) &&
+                packet.Uid == 1_293_600 && packet.Updates.Count == 1 &&
+                packet.Updates[0].Type == LegacyMsgUpdateDataType.XPCircle));
+            AssertSingleUpdate(earnedXp, 1_293_600, LegacyMsgUpdateDataType.XPCircle, 1);
+            Assert.Equal(LegacyMsgUpdatePacket.CreateLegacyRuntimeXPCircleTickUpdate(1_293_600, 1).ToFrameBytes(), earnedXp);
+            Assert.Equal("1", GetSession(handler, connection).Character.Attributes["XPCount"]);
+            Assert.Equal(0, GetSession(handler, connection).Character.MinHitPoints);
+            Assert.Same(model.Original, GetSession(handler, connection).NativePlayer);
+            Assert.Equal(0, Volatile.Read(ref matchingSends));
+            Assert.False(clock.IsScheduled(0));
+            Assert.True(clock.IsScheduled(1)); // Actual global delay has not run.
+            Assert.True(clock.IsScheduled(2)); // Actual player loop completed its first full tick.
+            clock.FireScheduled(1); // Only this genuine global tick owns the selected Reviver sequence.
+
             var frames = await publication.Task.WaitAsync(TimeSpan.FromSeconds(2));
             await model.Swapped.WaitAsync(TimeSpan.FromSeconds(2));
             // The terminal callback closes a wire window, NOT the complete Reviver operation.
@@ -240,10 +270,12 @@ public sealed partial class WorldServerFrameHandlerTests
             await handler.HandleFrameAsync(connection, ReadFrame(new MsgActionPacket
                 { ObjId = 1_293_600, Timestamp = 1234, Type = MsgActionType.SetLocation }.ToFrameBytes()), cancel.Token);
             await cancel.CancelAsync();
+            await WaitForTargetLockRuntimeGlobalStopAsync(handler);
             Assert.Empty(callbackErrors); // Includes callbacks during post-completion SetLocation/cancel.
 
             var phase = Volatile.Read(ref reviveFrameIndex);
             Assert.True(phase >= 0);
+            Assert.Contains(frames.Take(phase), bytes => bytes.SequenceEqual(earnedXp));
             Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(frames[phase]), out var maximum));
             var max = Assert.Single(maximum.Updates).Value;
             Assert.True(max > 0);
