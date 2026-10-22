@@ -1,5 +1,31 @@
 # Publication validation
 
+## Native title and secondary-password profile components
+
+Complete title metadata loading, required protobuf fields/enums/codecs, five
+Player title score/add/send/activate/remove methods and title/security record
+helpers now use genuine native state and packet/record owners. Title qualification
+and receive dispatch remain absent, not substituted by successful no-op handlers.
+
+Private Debug and independent sanitized-public Release each passed765 focused
+cases, zero failures/skips:64new/701retained. New coverage comprises39 metadata/
+record/player/decoder,13 literal contract/frame,10 secondary-password record and
+two actual title mutation -> record -> fresh-owner reload/send/remove flows.
+Twelve independent Framework/x86 preserved-serializer title controls match,
+including required zero fields, unknown enum sign extension and nested/null forms.
+
+A separate read-only private probe invoked the actual integrated metadata Load
+against270 preserved rows and compared every field; all270 matched. The12,302-byte
+ASCII input hash was unchanged and DbLocation restored. This external fixture is
+not included in the public repository; non-ASCII legacy encodings were not proven.
+
+Native duplicate list order, metadata key versus physical ID, activation boundary,
+unchecked score wrap, exact four-frame removal and mutation-before-fault behavior
+are preserved. Synthetic security records cover expiry, defaults and partial faults
+without using real credentials. This is not full SaveClient/login/deletion, host
+birth, worker/socket adoption, current-client acceptance or deployment. Warnings
+remain; this focused run is not a new full Windows CI result.
+
 ## Complete native proficiency behavior and system messages
 
 Every native Proficiency method now uses genuine gem/status fields, native
