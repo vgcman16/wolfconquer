@@ -4,9 +4,9 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Fixed projection of the twelve explicitly registered CQ_COMBAT_GEAR contracts, NOT
-// a generic serializer or proof that native metadata Load/registration completed.
-// Native m_Load is only a wire gate, never inferred readiness or a host binding.
+// Native framing plus a separate fixed projection of twelve CQ_COMBAT_GEAR contracts.
+// Implicit message conversions use the genuine owner in the Object partial; typed
+// Encode projections remain contract-test controls, not readiness or host adoption.
 internal static partial class LegacyNativeCombatGearWire
 {
     internal static byte[] Encode(LegacyNativeMsgCombatGear message, ushort opcode)
@@ -37,7 +37,7 @@ internal static partial class LegacyNativeCombatGearWire
     }
 
     // Native TQCombatGear.Packet31..43 MemoryStream overload. Its input already
-    // contains its own header; the object overload below instead reserves four bytes.
+    // contains its own header; object framing instead reserves four bytes.
     internal static byte[] WrapStream(MemoryStream stream)
     {
         if (!LegacyNativeCombatGearTable.m_Load)

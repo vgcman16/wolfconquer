@@ -5,7 +5,8 @@ using ProtoBuf;
 
 namespace WolfConquer.Core.World;
 
-// Literal native mutable message/builders; only the registered typed wire projection is used.
+// Native mutable message/builders using the genuine object-typed packet owner.
+// CQ table registration is separate from host startup adoption.
 internal class LegacyNativeMsgCombatGearSkin
 {
     [Flags]
@@ -43,7 +44,7 @@ internal class LegacyNativeMsgCombatGearSkin
 
     public static implicit operator byte[](LegacyNativeMsgCombatGearSkin obj)
     {
-        return LegacyNativeCombatGearWire.Encode(obj, 2422);
+        return LegacyNativeCombatGearWire.EncodeObject(obj, 2422);
     }
 
     public static byte[] Create(LegacyNativeCombatGear.Weapon Item)

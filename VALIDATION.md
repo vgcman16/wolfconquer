@@ -1,5 +1,27 @@
 # Publication validation
 
+## Genuine object-packet serialization
+
+All six native gear-family implicit packet conversions now use the actual
+object-typed pinned serializer and Default model. The false load gate precedes
+null/type handling; genuine missing/duplicate model failures propagate, and
+native header lengths/opcodes/TQServer framing remain unchanged. Manual typed
+projections stay separate as independent contract controls.
+
+Private Debug verification passed671 focused cases; independent public Release
+passed585, both zero failures/skips. Both include ten new fresh-process lifecycle
+controls; retained inventories differ661/575. Cold children
+cover all six gates, five unregistered failures, attribute-only empty Air,
+registered full-frame literals, nulls and duplicate-registration faults. Parent
+tests invoke the real registrar once via an explicit test collection fixture;
+it neither loads files nor changes m_Load/cache owners. Earlier35-case prestate
+verification was24pass/11fail because those old tests had only set the flag;
+the test precondition was corrected without changing expected packet bytes or
+introducing a production fallback. Existing compiler/dependency warnings remain.
+
+This is not receive/host binding, native generic Packet reads/writes, deployment,
+SQL/full-player persistence, a new whole-suite run or actual-client acceptance.
+
 ## Genuine combat-gear table loading and registration
 
 The complete native table Load now calls all three metadata loaders, registers

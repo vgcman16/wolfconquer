@@ -12,7 +12,8 @@ public sealed partial class LegacyNativeCombatGearWireTests
 {
     // Literal payloads observed by Root with the preserved protobuf-net2.0.0.668,
     // exact source-shaped objects/object-typed Serialize and six runtime registrations.
-    // These prove registered contracts, not the missing native registration lifecycle.
+    // These remain independent fixed-projection controls; fresh-child loader/object
+    // tests separately exercise the genuine registration and serialization lifecycle.
     [Theory]
     [InlineData("gear-null-items", "08001011")]
     [InlineData("gear-empty", "08001000")]

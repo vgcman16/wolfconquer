@@ -4,7 +4,8 @@ using System;
 
 namespace WolfConquer.Core.World;
 
-// Literal native mutable message/builders; only the registered typed wire projection is used.
+// Native mutable message/builders using the genuine object-typed packet owner.
+// CQ table registration is separate from host startup adoption.
 internal class LegacyNativeMsgCombatGear
 {
     [Flags]
@@ -52,7 +53,7 @@ internal class LegacyNativeMsgCombatGear
 
     public static implicit operator byte[](LegacyNativeMsgCombatGear obj)
     {
-        return LegacyNativeCombatGearWire.Encode(obj, 2420);
+        return LegacyNativeCombatGearWire.EncodeObject(obj, 2420);
     }
 
     public static byte[] Create(uint UserID, LegacyNativeCombatGear.Weapon Item, TypeID Type)

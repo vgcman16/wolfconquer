@@ -2,8 +2,8 @@
 
 namespace WolfConquer.Core.World;
 
-// Native mutable MsgCombatGearOpt model; the concrete wire projection does not
-// install the RuntimeTypeModel registration or adopt a host receive path.
+// Native mutable MsgCombatGearOpt model and genuine object-typed packet conversion.
+// CQ table owns metadata registration; no host receive adoption is implied.
 internal partial class LegacyNativeMsgCombatGearOpt
 {
     [Flags]
@@ -40,6 +40,6 @@ internal partial class LegacyNativeMsgCombatGearOpt
 
     public static implicit operator byte[](LegacyNativeMsgCombatGearOpt obj)
     {
-        return LegacyNativeCombatGearWire.Encode(obj, 2421);
+        return LegacyNativeCombatGearWire.EncodeObject(obj, 2421);
     }
 }

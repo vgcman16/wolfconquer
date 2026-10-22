@@ -2,8 +2,8 @@
 
 namespace WolfConquer.Core.World;
 
-// Complete native MsgDaoQi mutable state and its fixed registered-contract wire conversion.
-// This is not generic metadata registration, a handler or host adoption.
+// Native MsgDaoQi mutable state and genuine object-typed packet conversion.
+// CQ table owns metadata registration; no handler or host adoption is implied.
 internal partial class LegacyNativeMsgDaoQi
 {
     [Flags]
@@ -46,6 +46,6 @@ internal partial class LegacyNativeMsgDaoQi
 
     public static implicit operator byte[](LegacyNativeMsgDaoQi obj)
     {
-        return LegacyNativeCombatGearWire.Encode(obj, 2451);
+        return LegacyNativeCombatGearWire.EncodeObject(obj, 2451);
     }
 }

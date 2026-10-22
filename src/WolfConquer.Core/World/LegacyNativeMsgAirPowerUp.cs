@@ -4,8 +4,8 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Native MsgAirPowerUp model and Process. Encoding projects its source-registered
-// concrete contract; registration is owned by the CQ table, not host adoption.
+// Native MsgAirPowerUp model/Process and genuine object-typed packet conversion.
+// CQ table owns metadata registration; no host startup adoption is implied.
 [ProtoContract]
 internal class LegacyNativeMsgAirPowerUp
 {
@@ -41,7 +41,7 @@ internal class LegacyNativeMsgAirPowerUp
 
     public static implicit operator byte[](LegacyNativeMsgAirPowerUp obj)
     {
-        return LegacyNativeCombatGearWire.Encode(obj, 2464);
+        return LegacyNativeCombatGearWire.EncodeObject(obj, 2464);
     }
 
     public static List<byte[]> Process(LegacyNativeMsgAirPowerUp Info,

@@ -3,8 +3,8 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Complete native MsgDictLottery state/process. Its typed wire projection is not
-// the missing RuntimeTypeModel registration or a host receive binding.
+// Native MsgDictLottery state/process and genuine object-typed packet conversion.
+// CQ table owns metadata registration; no host receive binding is implied.
 internal class LegacyNativeMsgDictLottery
 {
     public class Lottery
@@ -19,7 +19,7 @@ internal class LegacyNativeMsgDictLottery
 
     public static implicit operator byte[](LegacyNativeMsgDictLottery obj)
     {
-        return LegacyNativeCombatGearWire.Encode(obj, 2465);
+        return LegacyNativeCombatGearWire.EncodeObject(obj, 2465);
     }
 
     public static List<byte[]> Process(LegacyNativeMsgDictLottery Info, LegacyNativeCombatGear user, uint userid, uint count)

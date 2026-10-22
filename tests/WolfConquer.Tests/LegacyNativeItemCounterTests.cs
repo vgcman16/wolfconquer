@@ -5,7 +5,7 @@ namespace WolfConquer.Tests;
 // The native field is intentionally shared and unsynchronized. Serializing these tests
 // isolates their declared MODEL substitutions; it does NOT add a runtime counter lock.
 [CollectionDefinition("NativeItemCounterSourcePrerequisite", DisableParallelization = true)]
-public sealed class NativeItemCounterSourcePrerequisiteCollection
+public sealed class NativeItemCounterSourcePrerequisiteCollection : ICollectionFixture<NativeCombatGearRegisteredTestContext>
 {
 }
 
