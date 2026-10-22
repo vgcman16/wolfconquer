@@ -12,7 +12,7 @@
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Concrete items/containers and managed snapshots exist. Focused native proof covers queues, member/map updates, spell/proficiency progression and persistence, title/security/EpicTrojan/collection/exchange/guild-skill records, and subclass metadata, stats, study messages and saved records. Genuine packet/record owners and fresh-owner reloads are tested; full SaveClient and production callers remain unfinished.",
+      "implemented": "Concrete items/containers and managed snapshots exist. Focused native proof covers queues, member/map updates, spell/proficiency progression and persistence, title/security/EpicTrojan/collection/exchange/guild-skill/AnimaSkin records, and subclass metadata, stats, study messages and saved records. Genuine packet/record owners and fresh-owner reloads are tested; full SaveClient and production callers remain unfinished.",
       "remaining": "Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery."
     },
     {

@@ -1,5 +1,30 @@
 # Publication validation
 
+## Complete native AnimaSkin profile/storage/send components
+
+The complete native AnimaSkin owner (state, constructor, equipped-skin getter,
+add/remove, slash records and Loading), four-optional-field DragonSkin contract,
+two primitive codecs, physical client member and explicit unwired constructor
+slot are implemented. The held external IDictionary Remove method is also ported;
+the previously recovered Add method is unchanged.
+
+Private Debug and independent public Release each passed 1,059 focused cases,
+zero failures/skips: 35 new and 1,024 retained. New coverage includes 13 record/
+storage, ten actual queued-message/disposal cases, one explicit slot, eight
+source-shaped Framework/x86 serializer/primitive controls, full contract checks,
+fresh-out-before-fault and real dictionary-removal dispatch. No behavior repair
+or assertion weakening was needed.
+
+Zero-ID exclusion, first equipped physical value, duplicate/no-clear behavior,
+mutable recipient, optional-default omission, unknown signed flags and removal
+before a later scan fault remain native. Loading takes a recycled packet before
+scanning, disposes it even on failure, and does not set the Load flag. The native
+unused local remains visible as a warning; no warning suppression was added.
+
+The inventory-dependent receiver, full SaveClient/login callers and production
+birth remain absent. No current-client acceptance, original save/database change,
+deployment, new full Windows CI result or revised parity estimate is claimed.
+
 ## Native subclass and guild-skill profile components
 
 Fourteen complete subclass record/status/study/learning/send methods, genuine
