@@ -9,12 +9,21 @@ namespace WolfConquer.Tests;
 // restore/build/test, service process, SQL database, game client or deployment.
 public sealed class LocalDevelopmentToolsTests : IDisposable
 {
+    private const string SolutionMarker = "Synthetic marker; must never be built.";
+    private const string LauncherProjectMarker = "<Project><!-- Synthetic plan-only metadata; must never be built or executed. --></Project>";
     private readonly string _root = Path.Combine(Path.GetTempPath(), "wolf local-tools ;$ " + Guid.NewGuid().ToString("N"));
+    private readonly DateTime _solutionWriteTime;
+    private readonly DateTime _launcherWriteTime;
+    private string LauncherProject => Path.Combine(_root, "tests", "WolfConquer.Launcher.Tests", "WolfConquer.Launcher.Tests.csproj");
 
     public LocalDevelopmentToolsTests()
     {
         Directory.CreateDirectory(_root);
-        File.WriteAllText(Path.Combine(_root, "WolfConquer.sln"), "Synthetic marker; must never be built.");
+        File.WriteAllText(Path.Combine(_root, "WolfConquer.sln"), SolutionMarker);
+        Directory.CreateDirectory(Path.GetDirectoryName(LauncherProject)!);
+        File.WriteAllText(LauncherProject, LauncherProjectMarker);
+        _solutionWriteTime = File.GetLastWriteTimeUtc(Path.Combine(_root, "WolfConquer.sln"));
+        _launcherWriteTime = File.GetLastWriteTimeUtc(LauncherProject);
     }
 
     [Theory]
@@ -27,30 +36,72 @@ public sealed class LocalDevelopmentToolsTests : IDisposable
             "-PowerShellPath", pwsh);
         using var json = ParseSuccess(result);
         var plan = json.RootElement;
+        Assert.Equal("windows-local-v2", plan.GetProperty("suite").GetString());
         Assert.Equal("plan", plan.GetProperty("mode").GetString());
         Assert.Equal("not-run", plan.GetProperty("outcome").GetString());
         Assert.Equal(_root, plan.GetProperty("repositoryRoot").GetString());
         var commands = plan.GetProperty("commands").EnumerateArray().ToArray();
-        Assert.Equal(new[] { "restore", "build", "test" }, commands.Select(value => value.GetProperty("name").GetString()));
-        Assert.All(commands, command => Assert.Equal(Path.Combine(_root, "WolfConquer.sln"),
+        Assert.Equal(8, commands.Length);
+        Assert.Equal(new[] { "restore", "build", "test", "launcher-restore", "launcher-build", "launcher-test",
+            "updater-status-test", "updater-smoke-parser-test" }, commands.Select(value => value.GetProperty("name").GetString()));
+        Assert.All(commands.Take(3), command => Assert.Equal(Path.Combine(_root, "WolfConquer.sln"),
             command.GetProperty("arguments")[1].GetString()));
+        Assert.All(commands.Skip(3).Take(3), command => Assert.Equal(LauncherProject,
+            command.GetProperty("arguments")[1].GetString()));
+        Assert.Equal(new[] { "restore", "build", "test", "restore", "build", "test" },
+            commands.Take(6).Select(command => command.GetProperty("arguments")[0].GetString()));
         Assert.Contains("--no-restore", commands[1].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()));
         Assert.Contains("--no-build", commands[2].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()));
+        Assert.Contains("--no-restore", commands[4].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()));
+        Assert.Contains("--no-build", commands[5].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()));
+        foreach (var index in new[] { 1, 2, 4, 5 })
+            Assert.Equal("Release", commands[index].GetProperty("arguments")[3].GetString());
+        foreach (var index in new[] { 2, 5 })
+        {
+            var arguments = commands[index].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()).ToArray();
+            Assert.Contains("--no-restore", arguments);
+            Assert.Equal(new[] { "--logger", "trx" }, arguments.Skip(7).Take(2));
+        }
+        var solutionArguments = commands[2].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()).ToArray();
+        Assert.Equal(10, solutionArguments.Length);
+        Assert.DoesNotContain("--results-directory", solutionArguments);
+        const string isolationProperty = "-p:WolfConquerLocalResultsId=";
+        Assert.StartsWith(isolationProperty, solutionArguments[9]!, StringComparison.Ordinal);
+        var runId = solutionArguments[9]![isolationProperty.Length..];
+        Assert.Matches("^[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$", runId);
+        Assert.Equal(Path.Combine(_root, ".artifacts", "local-dev", runId + "-solution-results"),
+            plan.GetProperty("updaterSmokeSource").GetString());
+        Assert.Equal("project/target-framework", plan.GetProperty("solutionResultsLayout").GetString());
+        Assert.Equal("--results-directory", commands[5].GetProperty("arguments")[9].GetString());
+        Assert.Equal(Path.Combine(_root, ".artifacts", "local-dev", runId + "-launcher-results"),
+            commands[5].GetProperty("arguments")[10].GetString());
+        Assert.Equal("WolfConquer.Updates.Tests.dll", plan.GetProperty("updaterSmokeAssembly").GetString());
+        Assert.Equal(2, commands.Count(command => command.GetProperty("arguments")[0].GetString() == "test"));
+        Assert.DoesNotContain(commands, command => command.GetProperty("arguments").EnumerateArray()
+            .Any(value => value.GetString()!.EndsWith("WolfConquer.Updates.Tests.csproj", StringComparison.OrdinalIgnoreCase)));
+        for (var index = 6; index < 8; index++)
+        {
+            Assert.Equal(pwsh, commands[index].GetProperty("executable").GetString());
+            Assert.Equal(new[] { "-NoProfile", "-File", ScriptPath(index == 6 ? "Test-UpdaterStatus.ps1" : "Test-UpdaterSmokeResult.ps1") },
+                commands[index].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()));
+        }
         var environment = plan.GetProperty("environment");
         Assert.Equal(pwsh, environment.GetProperty("WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH").GetString());
         Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(pwsh))),
             environment.GetProperty("WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH_SHA256").GetString());
-        Assert.Single(Directory.GetFileSystemEntries(_root));
+        AssertPlanFixtureUnchanged();
     }
 
     [Fact]
     public async Task PlanDoesNotOverwriteAnExistingStatusOrCreateLogs()
     {
         var path = WriteStatus("retained non-JSON sentinel");
+        var entries = EntryPaths();
         using var json = ParseSuccess(await RunAsync("Invoke-LocalCheck.ps1", "-RepositoryRoot", _root,
             "-Plan", "-PowerShellPath", PowerShellPath(), "-Configuration", "Debug"));
         Assert.Equal("retained non-JSON sentinel", File.ReadAllText(path));
         Assert.Single(Directory.GetFiles(Path.GetDirectoryName(path)!));
+        Assert.Equal(entries, EntryPaths());
         Assert.Contains("Debug", json.RootElement.GetProperty("commands")[1].GetProperty("arguments")
             .EnumerateArray().Select(value => value.GetString()));
     }
@@ -62,9 +113,14 @@ public sealed class LocalDevelopmentToolsTests : IDisposable
         Directory.CreateDirectory(scripts);
         var copied = Path.Combine(scripts, "Invoke-LocalCheck.ps1");
         File.Copy(ScriptPath("Invoke-LocalCheck.ps1"), copied);
+        var entries = EntryPaths();
+        var scriptHash = SHA256.HashData(File.ReadAllBytes(copied));
         using var json = ParseSuccess(await RunPathAsync(copied, "-Plan", "-PowerShellPath", PowerShellPath()));
         Assert.Equal(_root, json.RootElement.GetProperty("repositoryRoot").GetString()!.TrimEnd(Path.DirectorySeparatorChar));
         Assert.False(Directory.Exists(Path.Combine(_root, ".artifacts")));
+        Assert.Equal(entries, EntryPaths());
+        Assert.Equal(scriptHash, SHA256.HashData(File.ReadAllBytes(copied)));
+        Assert.Equal(LauncherProjectMarker, File.ReadAllText(LauncherProject));
     }
 
     [Fact]
@@ -74,7 +130,7 @@ public sealed class LocalDevelopmentToolsTests : IDisposable
         var result = await RunAsync("Invoke-LocalCheck.ps1", "-RepositoryRoot", _root, "-Plan");
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("WolfConquer.sln", result.Error);
-        Assert.Empty(Directory.GetFileSystemEntries(_root));
+        AssertPlanFixtureUnchanged(includeSolution: false);
     }
 
     [Fact]
@@ -84,7 +140,7 @@ public sealed class LocalDevelopmentToolsTests : IDisposable
         Assert.Equal("unknown", json.RootElement.GetProperty("lastCheck").GetProperty("state").GetString());
         Assert.Equal("unknown", json.RootElement.GetProperty("services").GetProperty("state").GetString());
         Assert.Empty(json.RootElement.GetProperty("services").GetProperty("items").EnumerateArray());
-        Assert.Single(Directory.GetFileSystemEntries(_root));
+        AssertPlanFixtureUnchanged();
     }
 
     [Fact]
@@ -171,6 +227,24 @@ public sealed class LocalDevelopmentToolsTests : IDisposable
             ["stderrLog"] = $".artifacts/local-dev/synthetic-{name}.stderr.log",
         }).ToArray(),
     };
+
+    private string[] EntryPaths() => Directory.GetFileSystemEntries(_root, "*", SearchOption.AllDirectories)
+        .Select(path => Path.GetRelativePath(_root, path)).Order(StringComparer.Ordinal).ToArray();
+
+    private void AssertPlanFixtureUnchanged(bool includeSolution = true)
+    {
+        var expected = new List<string> { "tests", Path.Combine("tests", "WolfConquer.Launcher.Tests"),
+            Path.GetRelativePath(_root, LauncherProject) };
+        if (includeSolution)
+        {
+            expected.Add("WolfConquer.sln");
+            Assert.Equal(SolutionMarker, File.ReadAllText(Path.Combine(_root, "WolfConquer.sln")));
+            Assert.Equal(_solutionWriteTime, File.GetLastWriteTimeUtc(Path.Combine(_root, "WolfConquer.sln")));
+        }
+        Assert.Equal(expected.Order(StringComparer.Ordinal), EntryPaths());
+        Assert.Equal(LauncherProjectMarker, File.ReadAllText(LauncherProject));
+        Assert.Equal(_launcherWriteTime, File.GetLastWriteTimeUtc(LauncherProject));
+    }
 
     private string WriteStatus(string content)
     {

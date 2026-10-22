@@ -19,6 +19,13 @@ The current update has 166 explicitly skipped external-fixture methods; the init
 
 No game content, production credentials, or original private history should be added to this repository. Keep externally supplied client files, loader payloads, database data, and local configuration outside the source tree or in ignored directories.
 
+The optional Windows launcher includes newly created original wolf artwork, not
+art or binary assets extracted from the game client. The standalone update tools
+and their synthetic tests do not include a full-client release, signing keys or
+deployment configuration. The public server's default display brand is now
+WolfConquer, while its portable loopback endpoints and operator-supplied settings
+remain separate from any private working deployment.
+
 Additional public-only differences: original deployment keys/promotional endpoints
 are empty configuration fields; the legacy Execute2 database path no longer
 overrides caller configuration with embedded credentials and rejects missing

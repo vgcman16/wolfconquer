@@ -60,9 +60,9 @@ public sealed class ServerStartupModeTests
     }
 
     [Fact]
-    public void StartupModeDefaultsRemainRayzoWithKnownEndpointPorts()
+    public void StartupModeUsesWolfConquerWithUnchangedEndpointPorts()
     {
-        Assert.Equal("TestSrv", ConquerRuntimeDefaults.ServerName);
+        Assert.Equal("WolfConquer", ConquerRuntimeDefaults.ServerName);
         Assert.Equal("127.0.0.1", ConquerRuntimeDefaults.ServerAddress);
         Assert.Equal(9960, ConquerRuntimeDefaults.AccountServer.Port);
         Assert.Equal(2021, ConquerRuntimeDefaults.Gateway.Port);

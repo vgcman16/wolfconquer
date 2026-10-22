@@ -1,6 +1,43 @@
 # Publication validation
 
-## 2026-10-22 update
+## 2026-10-22 launcher and updater intake
+
+The sanitized public working tree passed the full sequential Windows local check
+`20261022T142329063Z-05ad322c`, finished at `2026-10-22T14:26:09.9030331Z`.
+This is local evidence for the reviewed source, not a GitHub check, deployment,
+full-client download, or real-game login result.
+
+| Check | Result |
+|---|---|
+| Solution restore and Release build | Passed; 74 warnings; zero errors |
+| Server/tool tests | 15,089 passed; zero failed; 166 skipped |
+| Update engine and CLI tests | 219 passed; zero failed; zero skipped |
+| Separate Windows launcher tests | 43 passed; zero failed; zero skipped |
+| Dashboard status parser | 20 synthetic cases passed; no network/service probes |
+| Saved updater-test result parser | 13 synthetic cases passed |
+| Explicit client-file planner | Nine synthetic cases passed separately |
+| Launcher-only ZIP packager | 62 synthetic assertions passed separately |
+
+The eight-stage `Invoke-LocalCheck.ps1` restores/builds/tests the solution, then
+the Windows-only launcher test project, and finally both receipt parsers.
+Updater tests execute once in the solution run. Opt-in per-project/framework TRX
+directories prevent two assemblies finishing in the same second from overwriting
+each other's report. Receipts are derived from actual terminal test results.
+
+Initial runs found four outdated local-tool fixture assumptions and one old
+default-brand assertion, then a test-only immediate process-module identity race
+and a TRX filename collision. These were genuine failed runs. Fixtures and result
+isolation were repaired; the owned command probe now checks identity using its
+retained process handle and waits for natural exit. No test was skipped or killed
+to manufacture success. The 166 external-fixture skips remain excluded coverage.
+
+Working-directory tests launch only an explicitly attributed copy of the Windows
+command executable, not the game. Packaging tests use synthetic files and never
+execute their contents. The planner's filename quarantine is not a content or
+redistribution-rights audit. No official full-client package/feed is published.
+The original launcher artwork is newly created, not extracted game artwork.
+
+## Earlier 2026-10-22 server/tool snapshot (historical)
 
 Validated on Windows x64, SDK 9.0.314, Release, with a measured PowerShell 7
 executable for native child probes. These results apply to the sanitized public

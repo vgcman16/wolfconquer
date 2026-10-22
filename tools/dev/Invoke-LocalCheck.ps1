@@ -24,6 +24,7 @@ function Resolve-Application([string]$ExplicitPath, [string[]]$Names) {
 function Assert-ArtifactPath([string]$Path) {
     $relative = [IO.Path]::GetRelativePath($root, $Path)
     if ([IO.Path]::IsPathRooted($relative) -or $relative.StartsWith('..')) { throw 'Artifact path escaped repository.' }
+    if ((Get-Item -LiteralPath $root -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Repository root cannot be a reparse point.' }
     $current = $root
     foreach ($segment in $relative.Split([IO.Path]::DirectorySeparatorChar)) {
         $current = Join-Path $current $segment
@@ -41,6 +42,16 @@ function Save-Status {
     [IO.File]::Move($temporary, $statusPath, $true)
 }
 
+function Save-UpdaterSmoke {
+    # This consumes the solution test's terminal TRX; it never reruns Updates.Tests.
+    $receipt = & (Join-Path $PSScriptRoot 'Read-UpdaterSmokeResult.ps1') -ResultsDirectory $solutionResults
+    $path = Join-Path $artifactRoot 'last-updater-smoke.json'
+    Assert-ArtifactPath $path
+    $temporary = Join-Path $artifactRoot ('smoke-' + [guid]::NewGuid().ToString('N') + '.tmp')
+    [IO.File]::WriteAllText($temporary, ($receipt | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+    [IO.File]::Move($temporary, $path, $true)
+}
+
 $lease = $null
 $status = $null
 $finalExit = 1
@@ -48,6 +59,8 @@ try {
     $root = [IO.Path]::GetFullPath($RepositoryRoot)
     $solution = Join-Path $root 'WolfConquer.sln'
     if (-not (Test-Path -LiteralPath $solution -PathType Leaf)) { throw 'RepositoryRoot must contain WolfConquer.sln.' }
+    $launcher = Join-Path $root 'tests/WolfConquer.Launcher.Tests/WolfConquer.Launcher.Tests.csproj'
+    if (-not (Test-Path -LiteralPath $launcher -PathType Leaf)) { throw 'Windows checks require the separate launcher test project.' }
     $dotnet = Resolve-Application $DotNetPath @('dotnet.exe', 'dotnet')
     $pwsh = Resolve-Application $PowerShellPath @('pwsh.exe', 'pwsh')
     $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($pwsh)
@@ -58,27 +71,46 @@ try {
         WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH = $pwsh
         WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH_SHA256 = (Get-FileHash -LiteralPath $pwsh -Algorithm SHA256).Hash
     }
-    $commands = @(
-        [ordered]@{ name = 'restore'; arguments = @('restore', $solution, '--nologo') },
-        [ordered]@{ name = 'build'; arguments = @('build', $solution, '--configuration', $Configuration, '--no-restore', '--nologo') },
-        [ordered]@{ name = 'test'; arguments = @('test', $solution, '--configuration', $Configuration, '--no-build', '--no-restore', '--nologo') }
-    )
     $artifactRoot = Join-Path $root '.artifacts/local-dev'
     $statusPath = Join-Path $artifactRoot 'last-check.json'
+    $runId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
+    $solutionResults = Join-Path $artifactRoot ($runId + '-solution-results')
+    $launcherResults = Join-Path $artifactRoot ($runId + '-launcher-results')
+    $commands = @(
+        [ordered]@{ name = 'restore'; executable = $dotnet; arguments = @('restore', $solution, '--nologo') },
+        [ordered]@{ name = 'build'; executable = $dotnet; arguments = @('build', $solution, '--configuration', $Configuration, '--no-restore', '--nologo') },
+        [ordered]@{ name = 'test'; executable = $dotnet; arguments = @('test', $solution, '--configuration', $Configuration, '--no-build', '--no-restore', '--nologo', '--logger', 'trx', "-p:WolfConquerLocalResultsId=$runId") },
+        [ordered]@{ name = 'launcher-restore'; executable = $dotnet; arguments = @('restore', $launcher, '--nologo') },
+        [ordered]@{ name = 'launcher-build'; executable = $dotnet; arguments = @('build', $launcher, '--configuration', $Configuration, '--no-restore', '--nologo') },
+        [ordered]@{ name = 'launcher-test'; executable = $dotnet; arguments = @('test', $launcher, '--configuration', $Configuration, '--no-build', '--no-restore', '--nologo', '--logger', 'trx', '--results-directory', $launcherResults) },
+        [ordered]@{ name = 'updater-status-test'; executable = $pwsh; arguments = @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'Test-UpdaterStatus.ps1')) },
+        [ordered]@{ name = 'updater-smoke-parser-test'; executable = $pwsh; arguments = @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'Test-UpdaterSmokeResult.ps1')) }
+    )
     if ($Plan) {
-        [ordered]@{ schemaVersion = 1; mode = 'plan'; outcome = 'not-run'; repositoryRoot = $root
-            executable = $dotnet; commands = $commands; environment = $probeEnvironment; statusPath = $statusPath } |
+        [ordered]@{ schemaVersion = 1; suite = 'windows-local-v2'; mode = 'plan'; outcome = 'not-run'; repositoryRoot = $root
+            executable = $dotnet; commands = $commands; environment = $probeEnvironment; statusPath = $statusPath
+            updaterSmokeSource = $solutionResults; updaterSmokeAssembly = 'WolfConquer.Updates.Tests.dll'
+            solutionResultsLayout = 'project/target-framework' } |
             ConvertTo-Json -Depth 8
         exit 0
     }
 
+    # Without this opt-in import, omitting --results-directory would fall back to
+    # project-local TestResults outside the owned run's artifact directory.
+    if (-not (Test-Path -LiteralPath (Join-Path $root 'Directory.Build.targets') -PathType Leaf)) {
+        throw 'Local checks require the repository Directory.Build.targets results-isolation import.'
+    }
     Assert-ArtifactPath $artifactRoot
     [IO.Directory]::CreateDirectory($artifactRoot) | Out-Null
     $lockPath = Join-Path $artifactRoot 'check.lock'
     Assert-ArtifactPath $lockPath
     $lease = [IO.File]::Open($lockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-    $runId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
-    $status = [ordered]@{ schemaVersion = 1; repositoryRoot = $root; configuration = $Configuration
+    foreach ($results in @($solutionResults, $launcherResults)) {
+        Assert-ArtifactPath $results
+        if (Test-Path -LiteralPath $results) { throw 'Fresh local-check results directory already exists.' }
+        [IO.Directory]::CreateDirectory($results) | Out-Null
+    }
+    $status = [ordered]@{ schemaVersion = 1; suite = 'windows-local-v2'; repositoryRoot = $root; configuration = $Configuration
         runId = $runId; startedAtUtc = [DateTime]::UtcNow.ToString('O'); finishedAtUtc = $null
         outcome = 'running'; exitCode = $null; steps = @(); error = $null }
     Save-Status
@@ -87,7 +119,7 @@ try {
         $prefix = '.artifacts/local-dev/' + $runId + '-' + $command.name
         $stdoutPath = Join-Path $root ($prefix + '.stdout.log')
         $stderrPath = Join-Path $root ($prefix + '.stderr.log')
-        $start = [Diagnostics.ProcessStartInfo]::new($dotnet)
+        $start = [Diagnostics.ProcessStartInfo]::new($command.executable)
         $start.WorkingDirectory = $root
         $start.UseShellExecute = $false
         $start.CreateNoWindow = $true
@@ -100,7 +132,7 @@ try {
         $process = [Diagnostics.Process]::new()
         $process.StartInfo = $start
         try {
-            if (-not $process.Start()) { throw 'Could not start the .NET check process.' }
+            if (-not $process.Start()) { throw 'Could not start the local-check process.' }
             $stdout = $process.StandardOutput.ReadToEndAsync()
             $stderr = $process.StandardError.ReadToEndAsync()
             $process.WaitForExit()
@@ -114,6 +146,13 @@ try {
             stdoutLog = $prefix + '.stdout.log'; stderrLog = $prefix + '.stderr.log' }
         Save-Status
         Write-Host "$($command.name): exit $code; logs: $prefix.*.log"
+        if ($command.name -eq 'test') {
+            try { Save-UpdaterSmoke }
+            catch {
+                [Console]::Error.WriteLine('No complete updater TRX receipt could be saved; previous receipt was not replaced.')
+                if ($code -eq 0) { throw }
+            }
+        }
         if ($code -ne 0) { $finalExit = $code; break }
     }
     $status.outcome = $(if ($finalExit -eq 0) { 'passed' } else { 'failed' })

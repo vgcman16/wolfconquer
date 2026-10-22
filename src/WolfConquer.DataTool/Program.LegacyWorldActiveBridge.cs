@@ -314,7 +314,7 @@ internal static partial class Program
         Console.WriteLine($"$env:WOLFCONQUER_LEGACY_ACCOUNT_CAPTURE_IDENTIFIER = '{captureIdentifier}'");
         Console.WriteLine("$smokeUsername = '2'");
         Console.WriteLine("$smokePassword = '2'");
-        Console.WriteLine("$serverName = 'TestSrv'");
+        Console.WriteLine("$serverName = 'WolfConquer'");
         Console.WriteLine("$stopWolfAccountServer = \"Get-CimInstance Win32_Process | Where-Object { `$_.Name -eq 'dotnet.exe' -and `$_.CommandLine -like '*WolfConquer.AccountServer.dll*--listen*--port 9960*' } | ForEach-Object { Stop-Process -Id `$_.ProcessId -Force }\"");
         Console.WriteLine("1. Verify no stale client world sockets before opening the bridge:");
         Console.WriteLine(

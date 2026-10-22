@@ -3,7 +3,9 @@
 param(
     [string]$RepositoryRoot = (Join-Path $PSScriptRoot '../..'),
     [string]$ServiceRoot,
-    [switch]$SkipServiceProbe
+    [switch]$SkipServiceProbe,
+    [switch]$SkipUpdaterProbe,
+    [uri]$UpdaterHealthUri = 'http://127.0.0.1:48237/health'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -23,8 +25,14 @@ try {
         $saved = Get-Content -LiteralPath $statusPath -Raw | ConvertFrom-Json
         if ($saved.schemaVersion -ne 1 -or -not $root.Equals($saved.repositoryRoot, $comparison) -or
             $saved.outcome -notin @('running', 'passed', 'failed')) { throw 'Invalid status identity.' }
-        if ($saved.outcome -eq 'passed' -and ($saved.exitCode -ne 0 -or $saved.steps.Count -ne 3 -or
-            (($saved.steps.name -join ',') -ne 'restore,build,test') -or
+        $requiredSteps = @('restore', 'build', 'test')
+        $suiteProperty = $saved.PSObject.Properties['suite']
+        if ($null -ne $suiteProperty) {
+            if ($suiteProperty.Value -cne 'windows-local-v2') { throw 'Unknown local-check suite.' }
+            $requiredSteps += @('launcher-restore', 'launcher-build', 'launcher-test', 'updater-status-test', 'updater-smoke-parser-test')
+        }
+        if ($saved.outcome -eq 'passed' -and ($saved.exitCode -ne 0 -or $saved.steps.Count -ne $requiredSteps.Count -or
+            (($saved.steps.name -join ',') -cne ($requiredSteps -join ',')) -or
             @($saved.steps | Where-Object { $_.outcome -ne 'passed' -or $_.exitCode -ne 0 }).Count -ne 0)) {
             throw 'Incomplete checks cannot be reported as passed.'
         }
@@ -85,5 +93,6 @@ elseif ($IsWindows) {
     }
     catch { $services.reason = 'Process discovery unavailable; no service health was inferred.' }
 }
+$updater = & (Join-Path $PSScriptRoot 'Get-UpdaterStatus.ps1') -RepositoryRoot $root -SkipUpdaterProbe:$SkipUpdaterProbe -UpdaterHealthUri $UpdaterHealthUri
 [ordered]@{ schemaVersion = 1; observedAtUtc = [DateTime]::UtcNow.ToString('O'); repositoryRoot = $root; serviceRoot = $serviceRootPath
-    lastCheck = $check; services = $services } | ConvertTo-Json -Depth 8
+    lastCheck = $check; services = $services; updater = $updater } | ConvertTo-Json -Depth 8

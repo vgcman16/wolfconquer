@@ -8,8 +8,13 @@ WolfConquer is a C# implementation of server, packet, and data tooling for resea
 Windows-first [local development tools](docs/LOCAL-DEVELOPMENT.md) provide a
 sequential check command and read-only localhost dashboard. The game does not
 depend on GitHub to run. The workflow is manually requested on trusted `main` by
-the repository owner; it does not run outside pull requests on the local PC.
+the repository owner. Outside pull requests are never executed on the local PC.
 Badges report checks or static analysis, not full parity or production readiness.
+
+Experimental [client and source update tools](docs/CLIENT-UPDATES.md) provide
+signed, curated client releases and clean-checkout source updates. A separate
+Windows graphical launcher uses the same update engine. No official full-client
+download feed or game-client assets are included or published by this snapshot.
 
 ## Build and test
 
@@ -47,6 +52,15 @@ currently emits NU1701 compatibility warnings; see [dependency limits](DEPENDENC
 | `WolfConquer.LoginWeb` | Local HTTP service for explicitly configured loader responses |
 | `WolfConquer.DataTool` | Command-line data, diagnostics, and client-file utilities |
 | `WolfConquer.Tests` | Unit and integration tests using constructed fixtures |
+| `WolfConquer.Updates` | Signed manifests, transactional installation, curated publishing, and source updates |
+| `WolfConquer.Updater` | Standalone updater command-line entry point |
+| `WolfConquer.Updates.Tests` | Synthetic signed-release, loopback, recovery, and local Git tests |
+| `WolfConquer.Launcher` | Optional Windows WPF client/source updater with original artwork |
+| `WolfConquer.Launcher.Tests` | Windows-only launcher presentation and integration tests |
+
+The main solution includes the updater library, CLI, and updater tests. Build and
+test the Windows WPF projects separately as described in the
+[update-tool guide](docs/CLIENT-UPDATES.md#windows-launcher).
 
 Use the data tool's help command to see its commands:
 

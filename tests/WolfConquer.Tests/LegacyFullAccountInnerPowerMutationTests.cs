@@ -459,7 +459,7 @@ public sealed class LegacyFullAccountInnerPowerMutationTests : IDisposable
         Assert.Equal(LegacyMsgMessagePacket.WhiteColor, message.Color);
         Assert.Equal(LegacyMsgMessagePacket.TalkChatType, message.ChatType);
         Assert.Equal(
-            "Congratulations ! [ InnerPowerHero ] Has fixed his [InnerPower] For [ 10 ] ConquerPoints Enjoy With [ TestSrv ] !.",
+            "Congratulations ! [ InnerPowerHero ] Has fixed his [InnerPower] For [ 10 ] ConquerPoints Enjoy With [ WolfConquer ] !.",
             message.Content[3]);
     }
 

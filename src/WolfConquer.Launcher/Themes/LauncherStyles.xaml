@@ -1,0 +1,102 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <BooleanToVisibilityConverter x:Key="BoolVisibility" />
+  <SolidColorBrush x:Key="Jade" Color="#55DF9B" />
+  <SolidColorBrush x:Key="Muted" Color="#91A99C" />
+  <Style TargetType="TextBlock">
+    <Setter Property="Foreground" Value="#E4EFE8" />
+    <Setter Property="FontFamily" Value="Segoe UI" />
+  </Style>
+  <Style x:Key="Eyebrow" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="10" /><Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#82B198" />
+  </Style>
+  <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Eyebrow}">
+    <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+  <Style TargetType="TextBox">
+    <Setter Property="Background" Value="#D508120E" /><Setter Property="Foreground" Value="#DCE9E1" />
+    <Setter Property="BorderBrush" Value="#355443" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="9,5" /><Setter Property="FontSize" Value="12" />
+    <Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="CaretBrush" Value="#74EDB1" />
+    <Setter Property="SelectionBrush" Value="#377A56" /><Setter Property="MinHeight" Value="31" />
+    <Style.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="#67DB9D" /></Trigger></Style.Triggers>
+  </Style>
+  <Style x:Key="ActionButton" TargetType="Button">
+    <Setter Property="Background" Value="#D1162B20" /><Setter Property="Foreground" Value="#DCEDE1" />
+    <Setter Property="BorderBrush" Value="#3B6650" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="15,9" /><Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Cursor" Value="Hand" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Template">
+      <Setter.Value><ControlTemplate TargetType="Button">
+        <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+          <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#82E7AF" /></Trigger>
+          <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Opacity" Value="0.75" /></Trigger>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#B7FFCE" /></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Frame" Property="Opacity" Value="0.38" /><Setter Property="Cursor" Value="Arrow" /></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+    <Setter Property="Background" Value="#48D48C" /><Setter Property="Foreground" Value="#06170E" />
+    <Setter Property="BorderBrush" Value="#8AF2B5" /><Setter Property="Padding" Value="20,10" />
+  </Style>
+  <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+    <Setter Property="HorizontalContentAlignment" Value="Left" /><Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" /><Setter Property="Padding" Value="13,13" />
+    <Setter Property="Margin" Value="0,0,0,9" /><Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style x:Key="ClientNav" TargetType="Button" BasedOn="{StaticResource NavButton}">
+    <Style.Triggers><DataTrigger Binding="{Binding IsClientTab}" Value="True">
+      <Setter Property="Background" Value="#CC153C2A" /><Setter Property="BorderBrush" Value="#3C8A61" />
+      <Setter Property="Foreground" Value="#91F2B8" />
+    </DataTrigger></Style.Triggers>
+  </Style>
+  <Style x:Key="SourceNav" TargetType="Button" BasedOn="{StaticResource NavButton}">
+    <Style.Triggers><DataTrigger Binding="{Binding IsSourceTab}" Value="True">
+      <Setter Property="Background" Value="#CC153C2A" /><Setter Property="BorderBrush" Value="#3C8A61" />
+      <Setter Property="Foreground" Value="#91F2B8" />
+    </DataTrigger></Style.Triggers>
+  </Style>
+  <Style x:Key="Card" TargetType="Border">
+    <Setter Property="Background" Value="#DD0D1B14" /><Setter Property="BorderBrush" Value="#385442" />
+    <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="14,11" />
+  </Style>
+  <Style x:Key="JadeProgress" TargetType="ProgressBar">
+    <Setter Property="Height" Value="8" /><Setter Property="Minimum" Value="0" /><Setter Property="Maximum" Value="100" />
+    <Setter Property="Foreground" Value="#62E89E" /><Setter Property="Background" Value="#1B3929" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ProgressBar">
+      <Border Background="{TemplateBinding Background}" CornerRadius="4" ClipToBounds="True">
+        <Grid x:Name="PART_Track">
+          <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" CornerRadius="4" HorizontalAlignment="Left">
+            <Border.Effect><DropShadowEffect Color="#39D582" BlurRadius="8" ShadowDepth="0" Opacity="0.3" /></Border.Effect>
+          </Border>
+          <Border x:Name="Sweep" Background="#A2BEFFD6" Width="94" HorizontalAlignment="Left" Opacity="0">
+            <Border.RenderTransform><TranslateTransform X="-94" /></Border.RenderTransform>
+          </Border>
+        </Grid>
+      </Border>
+      <ControlTemplate.Triggers><Trigger Property="IsIndeterminate" Value="True">
+        <Setter TargetName="PART_Indicator" Property="Opacity" Value="0" />
+        <Setter TargetName="Sweep" Property="Opacity" Value="0.85" />
+        <Trigger.EnterActions><BeginStoryboard x:Name="BusySweep"><Storyboard RepeatBehavior="Forever">
+          <DoubleAnimation Storyboard.TargetName="Sweep" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                           From="-94" To="900" Duration="0:0:2.2" />
+        </Storyboard></BeginStoryboard></Trigger.EnterActions>
+        <Trigger.ExitActions><StopStoryboard BeginStoryboardName="BusySweep" /></Trigger.ExitActions>
+      </Trigger></ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="CheckBox">
+    <Setter Property="Foreground" Value="#ACC5B5" /><Setter Property="FontSize" Value="11" />
+    <Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="Cursor" Value="Hand" />
+  </Style>
+</ResourceDictionary>

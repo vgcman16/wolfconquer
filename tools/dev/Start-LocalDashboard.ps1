@@ -3,7 +3,8 @@
 param(
     [string]$RepositoryRoot = (Join-Path $PSScriptRoot '../..'),
     [string]$ServiceRoot,
-    [ValidateRange(1024, 65535)][int]$Port = 48236
+    [ValidateRange(1024, 65535)][int]$Port = 48236,
+    [uri]$UpdaterHealthUri = 'http://127.0.0.1:48237/health'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -53,8 +54,8 @@ try {
                 $taskPath = $Matches[1]
                 if ($taskPath -eq '/health') {
                     $taskBody = [Text.Encoding]::UTF8.GetBytes('ok')
-                } elseif ($taskPath -eq '/status.json') {
-                    $taskStatusArgs = @{ RepositoryRoot = $taskRoot }
+                } elseif ($taskPath -in @('/status.json', '/api/status')) {
+                    $taskStatusArgs = @{ RepositoryRoot = $taskRoot; UpdaterHealthUri = $UpdaterHealthUri }
                     if ($ServiceRoot) { $taskStatusArgs.ServiceRoot = $ServiceRoot }
                     $taskJson = & $taskStatusScript @taskStatusArgs
                     $taskType = 'application/json; charset=utf-8'

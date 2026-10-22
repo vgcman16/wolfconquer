@@ -15,7 +15,8 @@ pwsh -NoProfile -File ./tools/dev/Invoke-LocalCheck.ps1 -Plan
 ```
 
 `-DryRun` is an alias for `-Plan`. The JSON plan shows the exact executable and
-separate arguments for restore, build, then test. It measures the selected PS7
+separate arguments for solution restore/build/test, Windows launcher restore/build/test,
+then the two receipt-parser self-tests. It measures the selected PS7
 executable and SHA256 but starts none of those commands and writes no artifacts.
 Paths containing spaces or shell punctuation remain literal arguments.
 
@@ -27,7 +28,8 @@ pwsh -NoProfile -File ./tools/dev/Invoke-LocalCheck.ps1 -Configuration Release
 
 Both scripts default to the checkout two directories above their own location,
 not the current working directory. Supply `-RepositoryRoot 'D:/work/wolf checkout'`
-to select another root containing `WolfConquer.sln`. The check runner also accepts
+to select another root containing `WolfConquer.sln`, `Directory.Build.targets`, and
+the separate Windows launcher test project. The check runner also accepts
 `-DotNetPath` and `-PowerShellPath` as explicit executable paths. Otherwise it uses
 the first application found by `Get-Command` (`dotnet.exe`/`dotnet`,
 `pwsh.exe`/`pwsh`). PS7 file metadata and a freshly measured SHA256 supply the native
@@ -35,15 +37,25 @@ probe variables `WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH` and
 `WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH_SHA256` to child check processes only.
 
 Restore, build (`--no-restore`), and test (`--no-build --no-restore`) are sequential.
+The Windows-only launcher stays outside the portable main solution but is checked
+next through its own project. The updater tests run once, with the solution; their
+actual terminal TRX supplies the separate updater smoke receipt. No test count or
+finish time is guessed. The status/parser self-tests use owned synthetic files only.
+The generated run ID opts into per-project/framework TRX subdirectories through
+`Directory.Build.targets`; ordinary builds do not enable that setting. This avoids
+same-second report filename collisions without running the updater tests twice.
 The first nonzero child exit code stops the sequence and is returned unchanged.
 Tool/setup failures return 1. There is no retry that turns a failure into success.
 A file lease prevents two check runners from sharing the same artifact directory.
 
-Artifacts are confined to ignored `.artifacts/local-dev/`: `last-check.json`, an
-inert `check.lock` file, and per-run/per-step stdout/stderr logs. Logs are retained
+Artifacts are confined to ignored `.artifacts/local-dev/`: `last-check.json`,
+`last-updater-smoke.json`, fresh per-run TRX directories, an inert `check.lock`
+file, and per-run/per-step stdout/stderr logs. Logs are retained
 for local inspection and may contain build diagnostics; they are not published.
 The status file starts as `running`, then records actual step exits and the final
 outcome. An interrupted process may leave `running`; that is not a passing check.
+Current receipts name the eight-step `windows-local-v2` suite; historical three-step
+receipts remain readable but do not claim the newer launcher checks.
 Passing checks do not establish deployment, full parity, or live-client readiness.
 
 ## Read status
@@ -86,6 +98,11 @@ Only GET and a fixed asset list are supported; there are no run/stop/deploy/logi
 endpoints or log contents. Keep its PowerShell process running; Ctrl+C in its own
 terminal stops only this observer. It is not installed as a Windows service and
 does not automatically start at boot.
+
+The Updater card separately shows loopback HTTP health, signed-release metadata
+and bundle/launcher endpoint checks, and actual saved updater test results. Old
+receipts become stale after ten minutes; HTTP availability is not payload integrity
+or game-client proof. See the [update-tool guide](CLIENT-UPDATES.md).
 
 ## Trusted GitHub checks
 

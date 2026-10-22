@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "assetDirectories": ["data", "map"],
+  "files": ["SyntheticClient.exe", "ini/SyntheticLabels.ini"],
+  "excludePaths": ["data/cache", "logs", "screenshots"],
+  "publication": {
+    "publishRoot": "C:/SyntheticOnly/published",
+    "productId": "synthetic-client",
+    "channel": "preview",
+    "sequence": 1,
+    "contentBaseUrl": "https://downloads.example.invalid/",
+    "createdUtc": "2026-10-22T00:00:00Z",
+    "expiresUtc": "2026-10-29T00:00:00Z",
+    "keyId": "synthetic-public-key-id",
+    "includeBundle": true,
+    "allowLoopbackHttp": false
+  }
+}

@@ -50,7 +50,7 @@ internal static partial class Program
         Console.WriteLine(FormatAccountMySqlEnvironmentCommand());
         Console.WriteLine("$smokeUsername = '<live account username>'");
         Console.WriteLine("$smokePassword = '<live account password>'");
-        Console.WriteLine("$serverName = 'TestSrv'");
+        Console.WriteLine("$serverName = 'WolfConquer'");
         Console.WriteLine("$stopWolfAccountServer = \"Get-CimInstance Win32_Process | Where-Object { `$_.Name -eq 'dotnet.exe' -and `$_.CommandLine -like '*WolfConquer.AccountServer.dll*--listen*--port 9960*' } | ForEach-Object { Stop-Process -Id `$_.ProcessId -Force }\"");
         Console.WriteLine("1. Run the preflight and do not continue until it reports Ready: True:");
         Console.WriteLine(

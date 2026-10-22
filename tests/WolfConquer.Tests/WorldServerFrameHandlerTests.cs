@@ -3030,10 +3030,10 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             Assert.Equal(250U, weather.Intensity);
             Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[welcomeTalkIndex]), out var welcomeTalk));
             Assert.Equal(LegacyMsgMessagePacket.TalkChatType, welcomeTalk.ChatType);
-            Assert.Equal("Welcome to TestSrv.", welcomeTalk.Content[3]);
+            Assert.Equal("Welcome to WolfConquer.", welcomeTalk.Content[3]);
             Assert.True(LegacyNpcReplyPacket.TryParse(ReadFrame(sent[staticGuiIndex]), out var staticGui));
             Assert.Equal(LegacyNpcReplyInteractType.StaticGui, staticGui.InteractType);
-            Assert.Equal("Welcome to TestSrv.", staticGui.Text);
+            Assert.Equal("Welcome to WolfConquer.", staticGui.Text);
             Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[runeRankIndex]), out var runeRank));
             Assert.Equal("My ranking: Unranked; Current rune pack score: 0", runeRank.Content[3]);
         }
@@ -3413,7 +3413,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         Assert.True(LegacyCoatStoragePacket.TryParse(ReadFrame(sent[34]), out _));
         Assert.True(LegacyCoatStoragePacket.TryParse(ReadFrame(sent[35]), out _));
         Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[36]), out var welcomeTalk));
-        Assert.Equal("Welcome to TestSrv.", welcomeTalk.Content[3]);
+        Assert.Equal("Welcome to WolfConquer.", welcomeTalk.Content[3]);
         Assert.True(LegacyNpcReplyPacket.TryParse(ReadFrame(sent[42]), out var staticGui));
         Assert.Equal(LegacyNpcReplyInteractType.StaticGui, staticGui.InteractType);
         AssertSingleUpdate(sent[47], 1_293_600, LegacyMsgUpdateDataType.InventorySashMax, 300);
@@ -35949,7 +35949,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             Assert.True(LegacyCoatStoragePacket.TryParse(ReadFrame(sent[lateIndex + 6]), out _));
             Assert.True(LegacyCoatStoragePacket.TryParse(ReadFrame(sent[lateIndex + 7]), out _));
             Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[lateIndex + 8]), out var welcomeTalk));
-            Assert.Equal("Welcome to TestSrv.", welcomeTalk.Content[3]);
+            Assert.Equal("Welcome to WolfConquer.", welcomeTalk.Content[3]);
             Assert.True(LegacyNpcReplyPacket.TryParse(ReadFrame(sent[lateIndex + 14]), out var staticGui));
             Assert.Equal(LegacyNpcReplyInteractType.StaticGui, staticGui.InteractType);
             AssertSingleUpdate(sent[lateIndex + 19], 1_293_600, LegacyMsgUpdateDataType.InventorySashMax, 300);

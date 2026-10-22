@@ -1,0 +1,13 @@
+<Project>
+  <!-- Only Invoke-LocalCheck's generated ASCII run ID opts into isolated TRX paths.
+       Normal restore/build/test commands retain the SDK's default behavior. -->
+  <PropertyGroup Condition="'$(WolfConquerLocalResultsId)' != ''">
+    <_WolfConquerLocalResultsValid>$([System.Text.RegularExpressions.Regex]::IsMatch('$(WolfConquerLocalResultsId)', '^[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$'))</_WolfConquerLocalResultsValid>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(_WolfConquerLocalResultsValid)' == 'True' and '$(IsTestProject)' == 'true'">
+    <VSTestResultsDirectory>$(MSBuildThisFileDirectory).artifacts/local-dev/$(WolfConquerLocalResultsId)-solution-results/$(MSBuildProjectName)/$(TargetFramework)</VSTestResultsDirectory>
+  </PropertyGroup>
+  <Target Name="ValidateWolfConquerLocalResultsId" BeforeTargets="VSTest" Condition="'$(WolfConquerLocalResultsId)' != ''">
+    <Error Condition="'$(_WolfConquerLocalResultsValid)' != 'True'" Text="WolfConquerLocalResultsId must be the local-check tool's generated ASCII run ID." />
+  </Target>
+</Project>

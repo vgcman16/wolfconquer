@@ -64,6 +64,24 @@ explicit, nonempty patch operation and returns owned candidate bytes plus match
 counts. It does not install a file or prove rendering. The registry-dependent
 `client-text-candidate` CLI is not included in this publication.
 
+## Owned launcher display name
+
+The following newly authored catalog changes only the plain login display name.
+It does not change a server ID, route, executable, protected loader or encrypted catalog:
+
+```json
+[
+  {
+    "relativePath": "ini/ndloginServer.dat",
+    "encodingKind": "CodePage936",
+    "replacements": [{ "key": "Default.GameName", "value": "WolfConquer" }]
+  }
+]
+```
+
+Use a separate offline client copy and preserve the original file. This is not
+proof that opaque `GuardShield.dat` or `Server.dat` can be rewritten safely.
+
 ## Item catalogs
 
 The three item-catalog commands operate only on explicitly supplied files:
