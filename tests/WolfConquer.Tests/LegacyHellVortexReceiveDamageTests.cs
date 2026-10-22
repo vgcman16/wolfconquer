@@ -112,9 +112,26 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var receive = typeof(WorldPacketHandlers).GetMethod(
             "ApplyLegacyPlayerMagicDamageToPlayerAsync", BindingFlags.Static | BindingFlags.NonPublic);
         Assert.NotNull(receive);
-        var invocation = receive.Invoke(null,
-            [context, new WorldActiveSession(targetConnection, targetSession), caster.Character, 193U,
-                CancellationToken.None, false, null]);
+        var receiveParameters = receive.GetParameters();
+        Assert.Equal(new[]
+        {
+            "context", "target", "attacker", "damage", "cancellationToken",
+            "applyMudWall", "combatGearReceipt", "nativeIncomingClientIdentity",
+        }, receiveParameters.Select(parameter => parameter.Name).ToArray());
+        Assert.Equal(typeof(object), receiveParameters[7].ParameterType);
+        Assert.True(receiveParameters[7].IsOptional);
+        Assert.Null(receiveParameters[7].DefaultValue);
+        // This is the INCOMING attacker token, not the target token. Its declared null default
+        // captures both original registered clients at receive entry, before the first await.
+        var receiveArguments = Enumerable.Repeat<object?>(Type.Missing, receiveParameters.Length).ToArray();
+        receiveArguments[0] = context;
+        receiveArguments[1] = new WorldActiveSession(targetConnection, targetSession);
+        receiveArguments[2] = caster.Character;
+        receiveArguments[3] = 193U;
+        receiveArguments[4] = CancellationToken.None;
+        receiveArguments[5] = false; // Preserve this test's existing applyMudWall choice.
+        receiveArguments[6] = null; // No manufactured completed-opening receipt.
+        var invocation = receive.Invoke(null, receiveArguments);
         Assert.NotNull(invocation);
         var asTask = invocation.GetType().GetMethod(nameof(ValueTask.AsTask), Type.EmptyTypes);
         Assert.NotNull(asTask);

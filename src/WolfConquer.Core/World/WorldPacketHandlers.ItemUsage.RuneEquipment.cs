@@ -177,13 +177,27 @@ public static partial class WorldPacketHandlers
         if (!HasLegacyInventorySpace(session.PlayerItems, 1))
         {
             await context.Connection.SendAsync(
-                    LegacyMsgMessagePacket.BoxDialog("Please make 1 more space in your inventory.").ToFrameBytes(),
+                    LegacyNpcReplyPacket.ForMessageBox("Please make 1 more space in your inventory.").ToFrameBytes(),
                     cancellationToken)
                 .ConfigureAwait(false);
             await context.Log.WriteLineAsync(
                     "WorldServer skipped MsgItemUsage unequip rune " +
                     $"{FormatSession(context)} source={LegacyRuneEquipmentSource} sourceLines={LegacyUnequipRuneLines} " +
                     $"itemUid={packet.Id}; inventory is full.")
+                .ConfigureAwait(false);
+            return;
+        }
+
+        if (TryReadLegacyVendorState(session.Character, out _))
+        {
+            await context.Connection.SendAsync(
+                    LegacyNpcReplyPacket.ForMessageBox("Sorry, you cannot do this while vending.").ToFrameBytes(),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            await context.Log.WriteLineAsync(
+                    "WorldServer skipped MsgItemUsage unequip rune " +
+                    $"{FormatSession(context)} source={LegacyRuneEquipmentSource} sourceLines={LegacyUnequipRuneLines} " +
+                    $"itemUid={packet.Id}; source rejects active vending.")
                 .ConfigureAwait(false);
             return;
         }
@@ -198,9 +212,20 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        // Ranking admission is read-only; retain the existing managed transfer even if native would reject.
+        var rankAdmissionSession = session;
+        var publishRuneRank = TryRefreshLegacyPlayerMagicResourceSession(
+                context, session.Character.Uid, ref rankAdmissionSession) &&
+            rankAdmissionSession.Character.Reborn >= 2 &&
+            rankAdmissionSession.Character.Level >= 15 &&
+            HasLegacyInventorySpace(rankAdmissionSession.PlayerItems, 1) &&
+            !TryReadLegacyVendorState(rankAdmissionSession.Character, out _) &&
+            TryGetRuneItem(rankAdmissionSession.PlayerItems, packet.Id, out _);
+
         var updatedItems = ReplaceRuneItem(session.PlayerItems, rune, rune.WithPosition(LegacyRuneStoragePosition));
+        var updatedSpells = RemoveLegacyUnequippedRuneSpell(context, session.PlayerSpells, rune, out var removedSpellId);
         var updatedSession = ClampLegacyEquipmentRuntimeHitpoints(
-            session with { PlayerItems = updatedItems },
+            session with { PlayerItems = updatedItems, PlayerSpells = updatedSpells },
             context.WorldData);
         context.Sessions?.Set(context.Connection, updatedSession);
         var updatedContext = context with { Session = updatedSession };
@@ -213,12 +238,27 @@ public static partial class WorldPacketHandlers
                 persistItems: true)
             .ConfigureAwait(false);
 
+        if (removedSpellId is { } spellId)
+        {
+            await context.Connection.SendAsync(new MsgActionPacket
+                {
+                    ObjId = CheckedUInt32(updatedSession.Character.Uid, nameof(updatedSession.Character.Uid)),
+                    DwParam = spellId,
+                    Type = (MsgActionType)109,
+                }.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+        }
+
         await context.Connection.SendAsync(
                 CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame)),
                 cancellationToken)
             .ConfigureAwait(false);
         await SendLegacyEquipmentRuntimeRefreshAsync(updatedContext, updatedSession, cancellationToken)
             .ConfigureAwait(false);
+
+        if (publishRuneRank)
+        {
+            UpdateLegacyRuneRanking(updatedContext, updatedSession);
+        }
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled MsgItemUsage unequip rune " +

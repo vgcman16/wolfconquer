@@ -3,7 +3,7 @@ using System.Text;
 namespace WolfConquer.Core.Client;
 
 /// <summary>Applies a caller-supplied text catalog. No client text is bundled.</summary>
-public static class EnglishClientPatch
+public static partial class EnglishClientPatch
 {
     private const int LegacyNpcDisplayNameMaxLength = 28;
 
@@ -119,65 +119,13 @@ public static class EnglishClientPatch
             throw new FileNotFoundException($"Client patch target not found: {path}", path);
         }
 
-        var original = File.ReadAllBytes(path);
-        var encoding = ClientTextEncodings.GetEncoding(patchFile.EncodingKind);
-        patchFile.ValidateOriginal?.Invoke(patchFile.RelativePath, original, encoding);
-        if (patchFile.FullTextPatch is not null)
+        var candidate = BuildFileCandidate(patchFile, File.ReadAllBytes(path));
+        if (candidate.Result.Changed)
         {
-            if (patchFile.Replacements.Count != 0 || patchFile.CommentPrefixes is { Count: > 0 })
-            {
-                throw new InvalidOperationException($"Full-text client patch cannot combine replacements or comment prefixes: {patchFile.RelativePath}");
-            }
-
-            var fullTextBytes = AddPreamble(BuildFullTextBytes(patchFile.FullTextPatch, encoding), encoding);
-            var fullTextChanged = !original.AsSpan().SequenceEqual(fullTextBytes);
-            if (fullTextChanged)
-            {
-                File.WriteAllBytes(path, fullTextBytes);
-            }
-
-            return new ClientPatchFileResult(patchFile.RelativePath, 1, 0, fullTextChanged);
+            File.WriteAllBytes(path, candidate.ToArray());
         }
 
-        var originalContent = StripPreamble(original, encoding);
-        var textFile = ClientStringFile.Parse(originalContent, encoding, (patchFile.CommentPrefixes ?? []).ToArray());
-        var applied = 0;
-        var missing = 0;
-        var deferredMissing = new List<ClientTextReplacement>();
-
-        foreach (var replacement in patchFile.Replacements)
-        {
-            var normalizedReplacement = NormalizeReplacementForClientFile(patchFile, replacement);
-            if (SetReplacement(textFile, normalizedReplacement))
-            {
-                applied++;
-            }
-            else
-            {
-                deferredMissing.Add(normalizedReplacement);
-            }
-        }
-
-        foreach (var replacement in deferredMissing)
-        {
-            if (SetReplacement(textFile, replacement))
-            {
-                applied++;
-            }
-            else
-            {
-                missing++;
-            }
-        }
-
-        var updated = AddPreamble(textFile.ToBytes(), encoding);
-        var changed = !original.AsSpan().SequenceEqual(updated);
-        if (changed)
-        {
-            File.WriteAllBytes(path, updated);
-        }
-
-        return new ClientPatchFileResult(patchFile.RelativePath, applied, missing, changed);
+        return candidate.Result;
     }
 
     private static ClientTextReplacement NormalizeReplacementForClientFile(

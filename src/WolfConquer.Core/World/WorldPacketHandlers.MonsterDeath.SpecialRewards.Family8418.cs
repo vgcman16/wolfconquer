@@ -12,10 +12,11 @@ public static partial class WorldPacketHandlers
         WorldSession session,
         LegacyMonsterInstance monster,
         Monster monsterFamily,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        LegacyFamily8418Reward? preparedReward = null)
     {
         const string sourceBranch = "MonsterRole.cs Family.ID == 8418 && killer.Player.Map == 10342";
-        var reward = SelectLegacyFamily8418Reward(session.Character);
+        var reward = preparedReward ?? SelectLegacyFamily8418Reward(session.Character);
         var updatedSession = session;
         var updatedContext = context with { Session = updatedSession };
         var applied = false;
@@ -162,7 +163,16 @@ public static partial class WorldPacketHandlers
             return forcedReward;
         }
 
-        if (CheckLegacyFamily8418Rate(0.0001))
+        return SelectLegacyFamily8418RandomReward(CheckLegacyFamily8418Rate, Random.Shared.Next,
+            preserveNativeDeadReturn: false);
+    }
+
+    private static LegacyFamily8418Reward SelectLegacyFamily8418RandomReward(
+        Func<double, bool> rate,
+        Func<int, int, int> next,
+        bool preserveNativeDeadReturn = true)
+    {
+        if (rate(0.0001))
         {
             return LegacyFamily8418Floor(
                 3_001_044,
@@ -170,27 +180,27 @@ public static partial class WorldPacketHandlers
                 "{name} He Get 1 Mastrey Froute !");
         }
 
-        if (CheckLegacyFamily8418Rate(0.008))
+        if (rate(0.008))
         {
             return LegacyFamily8418Floor(3_001_045, "Core.Rate(0.008) DropItemID(3001045)");
         }
 
-        if (CheckLegacyFamily8418Rate(0.003))
+        if (rate(0.003))
         {
             return LegacyFamily8418Floor(3_316_793, "Core.Rate(0.003) DropItemID(3316793)");
         }
 
-        if (CheckLegacyFamily8418Rate(0.0004))
+        if (rate(0.0004))
         {
             return LegacyFamily8418Floor(3_330_770, "Core.Rate(0.0004) DropItemID(3330770)");
         }
 
-        if (CheckLegacyFamily8418Rate(0.0005))
+        if (rate(0.0005))
         {
             return LegacyFamily8418None("outer Core.Rate(0.0005)=true");
         }
 
-        if (CheckLegacyFamily8418Rate(0.0006))
+        if (rate(0.0006))
         {
             return new LegacyFamily8418Reward(
                 LegacyFamily8418RewardKind.ClassExperience,
@@ -200,7 +210,7 @@ public static partial class WorldPacketHandlers
                 SourceDetail: "Core.Rate(0.0006) ClassExperience += 50");
         }
 
-        if (CheckLegacyFamily8418Rate(0.0002))
+        if (rate(0.0002))
         {
             return LegacyFamily8418Floor(
                 729_463,
@@ -208,7 +218,7 @@ public static partial class WorldPacketHandlers
                 "{name} He Get Ninja points  Archive in Map Huant !");
         }
 
-        if (CheckLegacyFamily8418Rate(0.0006))
+        if (rate(0.0006))
         {
             return LegacyFamily8418Floor(
                 729_464,
@@ -216,14 +226,14 @@ public static partial class WorldPacketHandlers
                 "{name} He Get Skill Ninja Archive in Map Huant !");
         }
 
-        if (CheckLegacyFamily8418Rate(0.0002))
+        if (rate(0.0002))
         {
-            return SelectLegacyFamily8418SwitchReward(Random.Shared.Next(1, 6));
+            return SelectLegacyFamily8418SwitchReward(next(1, 6), rate);
         }
 
         foreach (var reward in LegacyFamily8418TailFloorRewards)
         {
-            if (CheckLegacyFamily8418Rate(reward.RatePercent))
+            if (rate(reward.RatePercent))
             {
                 return LegacyFamily8418Floor(
                     reward.ItemId,
@@ -231,33 +241,35 @@ public static partial class WorldPacketHandlers
             }
         }
 
-        if (CheckLegacyFamily8418Rate(0.0008) ||
-            CheckLegacyFamily8418Rate(0.0007) ||
-            CheckLegacyFamily8418Rate(0.0009) ||
-            CheckLegacyFamily8418Rate(0.00003) ||
-            CheckLegacyFamily8418Rate(0.0004))
+        if (rate(0.0008) ||
+            rate(0.0007) ||
+            rate(0.0009) ||
+            rate(0.00003) ||
+            rate(0.0004))
         {
             return LegacyFamily8418None("terminal guard Core.Rate(...) hit");
         }
 
-        if (CheckLegacyFamily8418Rate(0.0007))
+        if (rate(0.0007))
         {
             return LegacyFamily8418Floor(3_306_368, "nested Core.Rate(0.0007) DropItemID(3306368)");
         }
 
-        if (CheckLegacyFamily8418Rate(0.0008))
+        if (rate(0.0008))
         {
             return LegacyFamily8418Inventory(3_335_127, "nested Core.Rate(0.0008) AddItemWitchStack(3335127)");
         }
 
-        if (CheckLegacyFamily8418Rate(0.0022))
+        if (rate(0.0022))
         {
             return LegacyFamily8418Inventory(3_335_126, "nested Core.Rate(0.0022) AddItemWitchStack(3335126)");
         }
 
-        if (!CheckLegacyFamily8418Rate(0.008))
+        if (!rate(0.008))
         {
-            return LegacyFamily8418None("nested Core.Rate(0.008)=false");
+            return preserveNativeDeadReturn
+                ? LegacyFamily8418Stop("nested Core.Rate(0.008)=false; return from native Dead")
+                : LegacyFamily8418None("nested Core.Rate(0.008)=false");
         }
 
         return LegacyFamily8418Floor(3_004_280, "nested Core.Rate(0.008) DropItemID(3004280)");
@@ -381,7 +393,8 @@ public static partial class WorldPacketHandlers
         return false;
     }
 
-    private static LegacyFamily8418Reward SelectLegacyFamily8418SwitchReward(int sourceRoll)
+    private static LegacyFamily8418Reward SelectLegacyFamily8418SwitchReward(
+        int sourceRoll, Func<double, bool> rate)
     {
         return sourceRoll switch
         {
@@ -389,9 +402,9 @@ public static partial class WorldPacketHandlers
             2 => LegacyFamily8418Floor(3_333_401, "switch roll=2 DropItemID(3333401)"),
             3 => LegacyFamily8418Floor(3_333_402, "switch roll=3 DropItemID(3333402)"),
             4 => LegacyFamily8418Floor(3_333_400, "switch roll=4 DropItemID(3333400)"),
-            5 when CheckLegacyFamily8418Rate(0.002) =>
+            5 when rate(0.002) =>
                 LegacyFamily8418Floor(3_333_403, "switch roll=5 Core.Rate(0.002) DropItemID(3333403)"),
-            6 when CheckLegacyFamily8418Rate(0.0001) =>
+            6 when rate(0.0001) =>
                 LegacyFamily8418Floor(3_333_404, "switch roll=6 Core.Rate(0.0001) DropItemID(3333404)"),
             _ => LegacyFamily8418None(FormattableString.Invariant($"switch roll={sourceRoll} no drop")),
         };
@@ -423,6 +436,12 @@ public static partial class WorldPacketHandlers
             Amount: 0,
             SourceMessage: null,
             sourceDetail);
+    }
+
+    private static LegacyFamily8418Reward LegacyFamily8418Stop(string sourceDetail)
+    {
+        return new LegacyFamily8418Reward(
+            LegacyFamily8418RewardKind.StopNativeDeath, 0, 0, null, sourceDetail);
     }
 
     private static LegacyFamily8418Reward LegacyFamily8418None(string sourceDetail)
@@ -467,6 +486,7 @@ public static partial class WorldPacketHandlers
         FloorDrop,
         InventoryStack,
         ClassExperience,
+        StopNativeDeath,
     }
 
     private readonly record struct LegacyFamily8418Reward(

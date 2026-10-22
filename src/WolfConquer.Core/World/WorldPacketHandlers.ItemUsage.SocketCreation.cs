@@ -13,6 +13,23 @@ public static partial class WorldPacketHandlers
             CancellationToken cancellationToken)
     {
         var args = ReadLegacyItemUsageArgs(frame);
+        if (packet.DwParam2 is 1 or 5 or 7 or 12)
+        {
+            args = args.Take(checked((int)packet.DwParam2)).ToArray();
+        }
+
+        if (packet.DwParam2 is not (1 or 5 or 7 or 12))
+        {
+            await SendLegacyCreateSocketItemResponseAsync(context, 0, success: false, cancellationToken)
+                .ConfigureAwait(false);
+            await context.Log.WriteLineAsync(
+                    "WorldServer skipped MsgItemUsage create socket item " +
+                    $"{FormatSession(context)} itemUid={packet.Id} dwParam2={packet.DwParam2}; " +
+                    "unsupported legacy CreateSocketItem material count.")
+                .ConfigureAwait(false);
+            return;
+        }
+
         if (!TryFindLegacySocketTarget(session.PlayerItems, packet.Id, out var target, out var targetIsEquipment))
         {
             await SendLegacyCreateSocketItemResponseAsync(context, 0, success: false, cancellationToken)
@@ -26,6 +43,10 @@ public static partial class WorldPacketHandlers
 
         if (!IsLegacySocketUpdateAllowed(target.ItemId))
         {
+            await context.Connection.SendAsync(
+                    LegacyMsgMessagePacket.SystemTopLeft("Sorry, this item cannot be socketed!").ToFrameBytes(),
+                    cancellationToken)
+                .ConfigureAwait(false);
             await SendLegacyCreateSocketItemResponseAsync(context, target.Uid, success: false, cancellationToken)
                 .ConfigureAwait(false);
             await context.Log.WriteLineAsync(
@@ -98,16 +119,6 @@ public static partial class WorldPacketHandlers
                         materialCount: 12,
                         openFirstSocket: true,
                         cancellationToken)
-                    .ConfigureAwait(false);
-                return;
-
-            default:
-                await SendLegacyCreateSocketItemResponseAsync(context, target.Uid, success: false, cancellationToken)
-                    .ConfigureAwait(false);
-                await context.Log.WriteLineAsync(
-                        "PARITY-GAP MsgItemUsage create socket item " +
-                        $"{FormatSession(context)} itemUid={target.Uid} itemId={target.ItemId} dwParam2={packet.DwParam2}; " +
-                        "legacy CreateSocketItem branch is not modeled in this lane.")
                     .ConfigureAwait(false);
                 return;
         }

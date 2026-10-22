@@ -108,15 +108,15 @@ public static partial class WorldPacketHandlers
             var packet = activeInstance.ToSpawnPacket(
                 clientCompatibility: context.ClientCompatibility,
                 statusFlags: statusFlags);
-            await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+            await SendLegacyTeleportFrameAsync(context, context.Connection, packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
             foreach (var update in LegacyMsgUpdatePacket.CreateMonsterHitpointUpdateSequence(activeInstance))
             {
-                await context.Connection.SendAsync(update.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+                await SendLegacyTeleportFrameAsync(context, context.Connection, update.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
             }
 
             if (context.MonsterStates?.IsBlackSpotted(activeInstance, now) == true)
             {
-                await context.Connection.SendAsync(
+                await SendLegacyTeleportFrameAsync(context, context.Connection,
                         LegacyBlackspotPacket.CreateActive(activeInstance.Uid).ToFrameBytes(),
                         cancellationToken)
                     .ConfigureAwait(false);

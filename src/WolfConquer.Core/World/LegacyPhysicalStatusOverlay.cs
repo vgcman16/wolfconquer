@@ -23,6 +23,10 @@ public sealed record LegacyPhysicalStatusOverlay(
     [System.Text.Json.Serialization.JsonIgnore]
     public uint? JiangHuMaxMana { get; init; }
 
+    // Native GameClient.PerfectionStatus field; earned by admitted equipment queries, never saved.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public double? PerfectionToxinEraser { get; init; }
+
     public const int FrontBreakStatusFlag = 313;
 
     public static LegacyPhysicalStatusOverlay ForOwner(WorldSession session)

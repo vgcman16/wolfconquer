@@ -303,6 +303,21 @@ internal static partial class Program
             return ClientPeSymbolAudit(args);
         }
 
+        if (command == "client-item-catalog-roundtrip")
+        {
+            return ClientItemCatalogRoundtrip(args);
+        }
+
+        if (command == "client-item-catalog-codec")
+        {
+            return ClientItemCatalogCodecCommand(args);
+        }
+
+        if (command == "client-item-catalog-localize")
+        {
+            return ClientItemCatalogLocalizeCommand(args);
+        }
+
         if (command == "generated-buffer-string-scan")
         {
             return GeneratedBufferStringScan(args);
@@ -406,6 +421,16 @@ internal static partial class Program
         if (command == "legacy-world-smoke")
         {
             return LegacyWorldSmoke(args);
+        }
+
+        if (command == "seed-loot-roundtrip-fixture")
+        {
+            return SeedLootRoundtripFixture(args);
+        }
+
+        if (command == "legacy-loot-roundtrip-smoke")
+        {
+            return LegacyLootRoundtripSmoke(args);
         }
 
         if (command == "local-live-stack-smoke")
@@ -540,6 +565,8 @@ internal static partial class Program
             string.Equals(value, "legacy-account-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "legacy-guard-shield-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "legacy-world-smoke", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "seed-loot-roundtrip-fixture", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "legacy-loot-roundtrip-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "local-live-stack-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "legacy-world-capture", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "legacy-world-relay-decode", StringComparison.OrdinalIgnoreCase) ||
@@ -591,6 +618,9 @@ internal static partial class Program
             string.Equals(value, "client-launch-dependency-audit", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-launch-contract-audit", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-pe-symbol-audit", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "client-item-catalog-roundtrip", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "client-item-catalog-codec", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "client-item-catalog-localize", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "generated-buffer-string-scan", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "license-route-capture-compare", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "license-route-relay-compare", StringComparison.OrdinalIgnoreCase) ||
@@ -742,6 +772,8 @@ internal static partial class Program
         Console.WriteLine("  WolfConquer.DataTool legacy-account-smoke <address> <port> <username> <password> <serverName> [--expect-ip ip] [--expect-port port] [--timeout-ms ms]");
         Console.WriteLine("  WolfConquer.DataTool legacy-guard-shield-smoke <address> <port> [--command text] [--expect-response text] [--timeout-ms ms]");
         Console.WriteLine("  WolfConquer.DataTool legacy-world-smoke <address> <port> <accountKey> [--timeout-ms ms]");
+        Console.WriteLine("  WolfConquer.DataTool seed-loot-roundtrip-fixture <NEW-absolute-DBServer-dir> <account-key> <character-uid> <item-uid>");
+        Console.WriteLine("  WolfConquer.DataTool legacy-loot-roundtrip-smoke <loopback-ip> <port> <account-key> <character-uid> <item-uid> [--timeout-ms ms] [--verify-only]");
         Console.WriteLine("  WolfConquer.DataTool local-live-stack-smoke <address> <gatewayPort> <accountPort> <username> <password> <serverName> [--login-web-base-url url] [--expect-world-ip ip] [--expect-world-port port] [--timeout-ms ms]");
         Console.WriteLine("  WolfConquer.DataTool legacy-world-capture <address> <port> <accountKey> <outputPath> [--timeout-ms ms] [--max-frames N] [--sample-bytes N]");
         Console.WriteLine("  WolfConquer.DataTool legacy-world-relay-decode <relayCaptureJsonPath> <outputJsonPath> [--max-frames N] [--sample-bytes N]");
@@ -791,6 +823,9 @@ internal static partial class Program
         Console.WriteLine("  WolfConquer.DataTool client-launch-dependency-audit <exePath> --workdir label=path [--workdir label=path ...] [--client-root path] [--max-import-dlls N] [--recursive] [--max-recursive-depth N]");
         Console.WriteLine("  WolfConquer.DataTool client-launch-contract-audit <oldClientRoot> <currentClientRoot> [--old-label label] [--current-label label] [--candidate relativePath] [...] [--workdir [label=]relativePath] [...] [--symbol-dll relativePath] [...] [--string text] [--no-default-strings] [--max-string-offsets N] [--max-import-dlls N]");
         Console.WriteLine("  WolfConquer.DataTool client-pe-symbol-audit [<exePath> --import-dll <dllName>] [--dll <dllPath>] [--compare] [--shim-summary] [--emit-def] [--proxy-module <moduleName>] [--max-imports N] [--max-exports N]");
+        Console.WriteLine("  WolfConquer.DataTool client-item-catalog-roundtrip <decoded-source-path> [--output-new <fresh-path>]");
+        Console.WriteLine("  WolfConquer.DataTool client-item-catalog-codec <decode|encode> <input-path> [--output-new <fresh-path>]");
+        Console.WriteLine("  WolfConquer.DataTool client-item-catalog-localize <packed-source> --english-itemtype <67-field-source> [--include-text-fields] [--output-new <fresh-path>]");
         Console.WriteLine("  WolfConquer.DataTool generated-buffer-string-scan [--term text] [--context-bytes N] [--max-hits N] <path|label=path> [...]");
         Console.WriteLine("  WolfConquer.DataTool license-route-capture-compare <captureJsonPath> <captureJsonPath> [captureJsonPath ...]");
         Console.WriteLine("  WolfConquer.DataTool license-route-relay-compare <relayCaptureJsonPath> [relayCaptureJsonPath ...]");

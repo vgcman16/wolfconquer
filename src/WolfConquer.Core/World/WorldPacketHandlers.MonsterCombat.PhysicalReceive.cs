@@ -9,6 +9,8 @@ public static partial class WorldPacketHandlers
         WorldPacketHandlerContext context, WorldSession session, LegacyMonsterInstance monster,
         uint damage, CancellationToken cancellationToken)
     {
+        // Native CheckForOponnentDead holds Player BEFORE RemovePick can publish.
+        var nativePlayerReceiver = session.NativePlayer;
         var scope = new LegacyEquipmentQueryPublicationScope(session.Character.Uid);
         var current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
         if (!current.Completed) return default;
@@ -31,7 +33,7 @@ public static partial class WorldPacketHandlers
                 CheckedUInt16(session.Character.X, nameof(session.Character.X)),
                 CheckedUInt16(session.Character.Y, nameof(session.Character.Y)), monster.Uid, monster.Name);
             var killed = await CompleteLegacyPhysicalMonsterDeathAsync(
-                    context with { Session = session }, session, scope, monster, cause, cancellationToken)
+                    context with { Session = session }, session, scope, nativePlayerReceiver, monster, cause, cancellationToken)
                 .ConfigureAwait(false);
             return killed is null ? default : new(killed, previous, previous, true, true);
         }

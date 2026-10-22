@@ -6,13 +6,15 @@ public static partial class WorldPacketHandlers
         WorldPacketHandlerContext context,
         LegacyPlayerMagicReceivePreparation prepared,
         WorldActiveSession target,
+        LegacyNativePlayerRuntime? nativePlayerReceiver,
         WorldSession attacker,
         CancellationToken cancellationToken)
     {
+        // The physical receiver is carried from ReceiveAttack entry, not re-fetched after transform awaits.
         var scope = new LegacyEquipmentQueryPublicationScope(target.Session.Character.Uid,
             RequiredParticipant: new WorldActiveSession(context.Connection, attacker));
         var death = await ExecuteLegacyNormalPlayerDeathPhasesAsync(
-                context with { Connection = target.Connection, Session = target.Session }, target.Session, scope,
+                context with { Connection = target.Connection, Session = target.Session }, target.Session, scope, nativePlayerReceiver,
                 new LegacyNormalPlayerDeathCause(prepared.DeathX, prepared.DeathY,
                     attacker.Character.Uid, attacker.Character.Name), cancellationToken)
             .ConfigureAwait(false);

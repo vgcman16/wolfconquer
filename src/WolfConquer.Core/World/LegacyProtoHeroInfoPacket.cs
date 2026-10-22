@@ -32,7 +32,8 @@ public sealed class LegacyProtoHeroInfoPacket
         CharacterSnapshot snapshot,
         ushort serverId = 2,
         byte initTransfer = 0,
-        string? usersRoot = null)
+        string? usersRoot = null,
+        LegacyNativePlayerRuntime? nativePlayer = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
@@ -40,7 +41,9 @@ public sealed class LegacyProtoHeroInfoPacket
         var activeTitles = LegacyTitleStoragePacket.ResolveActiveSpecialTitleState(snapshot, usersRoot);
         numeric[1] = CheckedUInt64(snapshot.Uid, nameof(snapshot.Uid));
         numeric[2] = ReadAttributeUInt64(snapshot.Attributes, "AparenceType");
-        numeric[3] = BuildMesh(snapshot);
+        // Native MsgBuilder.ProtoHeroInfo uses physical Player.Mesh. Only the
+        // explicit successful existing-login route supplies this loaded owner.
+        numeric[3] = nativePlayer is null ? BuildMesh(snapshot) : nativePlayer.Mesh;
         numeric[4] = CheckedUInt64(snapshot.Hair, nameof(snapshot.Hair));
         numeric[5] = unchecked((ulong)snapshot.Money);
         numeric[6] = CheckedUInt64(snapshot.ConquerPoints, nameof(snapshot.ConquerPoints));
@@ -77,12 +80,16 @@ public sealed class LegacyProtoHeroInfoPacket
         numeric[39] = ReadAttributeSignedUInt64(snapshot.Attributes, "RacePoints");
         numeric[40] = ReadAttributeSignedUInt64(snapshot.Attributes, "CountryID");
         numeric[42] = ReadAttributeSignedUInt64(snapshot.Attributes, "DominoCode");
-        numeric[43] = ReadAttributeSignedUInt64(snapshot.Attributes, "ClassExperience");
+        numeric[43] = nativePlayer is null
+            ? ReadAttributeSignedUInt64(snapshot.Attributes, "ClassExperience")
+            : nativePlayer.ClassExperience;
 
         var strings = new Dictionary<int, string>
         {
-            [NameField] = snapshot.Name,
-            [SpouseField] = ReadAttributeString(snapshot.Attributes, "Spouse", "None"),
+            [NameField] = nativePlayer is null ? snapshot.Name : nativePlayer.Name,
+            [SpouseField] = nativePlayer is null
+                ? ReadAttributeString(snapshot.Attributes, "Spouse", "None")
+                : nativePlayer.Spouse,
             [BayoField] = ReadAttributeString(snapshot.Attributes, "Signature", string.Empty)
         };
 

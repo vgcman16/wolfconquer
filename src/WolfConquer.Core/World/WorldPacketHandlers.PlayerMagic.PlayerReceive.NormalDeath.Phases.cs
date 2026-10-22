@@ -9,12 +9,13 @@ public static partial class WorldPacketHandlers
         WorldPacketHandlerContext context,
         WorldSession session,
         LegacyEquipmentQueryPublicationScope scope,
+        LegacyNativePlayerRuntime? nativePlayerReceiver,
         LegacyNormalPlayerDeathCause cause,
         CancellationToken cancellationToken)
     {
         var death = new LegacyEquipmentQueryExecution(context, session,
             new LegacyEquipmentQueryRequest(LegacyEquipmentRebuildReason.PlayerDeath, scope))
-            { CancellationToken = cancellationToken };
+            { CancellationToken = cancellationToken, NormalDeathPlayerReceiver = nativePlayerReceiver };
         if (!death.Refresh()) return death.Current;
 
         // Source GhostStamp precedes DeadTalk; DeadStamp is a DISTINCT later read.

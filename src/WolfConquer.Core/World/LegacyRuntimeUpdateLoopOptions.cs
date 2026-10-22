@@ -7,6 +7,10 @@ public sealed record LegacyRuntimeUpdateLoopOptions(
     ILegacySignedMillisecondClock? LegacyClock = null,
     ILegacySignedMillisecondClock? LegacyEnvironmentClock = null)
 {
+    // Explicit local MyServerInfo identity; absent configuration never issues an
+    // on-own-server owner or changes the physical Player's ServerID.
+    public LegacyLocalServerIdentity? LocalServerIdentity { get; init; }
+
     public static LegacyRuntimeUpdateLoopOptions Disabled { get; } =
         new(Enabled: false, TimeSpan.FromSeconds(1), TimeProvider.System);
 

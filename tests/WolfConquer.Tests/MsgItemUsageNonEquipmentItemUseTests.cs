@@ -11,7 +11,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class MsgItemUsageNonEquipmentItemUseTests : IDisposable
+public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
 {
     private const int LegacyShieldBlockFlag = 0x71;
 
@@ -446,17 +446,26 @@ public sealed class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         var countBeforeRequest = sent.Count;
         await handler.HandleFrameAsync(connection, ReadFrame(CreateEquipUse(fragmentUid).ToFrameBytes()));
 
-        Assert.Equal(countBeforeRequest + 3, sent.Count);
+        Assert.Equal(countBeforeRequest + 22, sent.Count);
+        for (var debitIndex = 0; debitIndex < 19; debitIndex++)
+        {
+            Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + debitIndex]), out var debit));
+            Assert.Equal(fragmentUid, debit.Uid);
+            Assert.Equal(fragmentItemId, debit.ItemId);
+            Assert.Equal((ushort)(19 - debitIndex), debit.StackSize);
+            Assert.Equal(LegacyGameItemPacket.UpdateItemMode, debit.Mode);
+        }
+
         AssertItemUsage(
-            sent[countBeforeRequest],
+            sent[countBeforeRequest + 19],
             new MsgItemUsagePacket(fragmentUid, DwParam: 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
-        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + 1]), out var rewardPacket));
+        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + 20]), out var rewardPacket));
         Assert.Equal(expectedFallbackRuneItemId, rewardPacket.ItemId);
         Assert.Equal(LegacyGameItemPacket.AddItemMode, rewardPacket.Mode);
         Assert.Equal((ushort)700, rewardPacket.Durability);
         Assert.Equal((ushort)700, rewardPacket.MaximumDurability);
         Assert.Equal((byte)1, rewardPacket.Bound);
-        Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 2]), out var message));
+        Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 21]), out var message));
         Assert.Contains("You have got 1 YellowRuneFallback(B)!.", message.Content);
 
         var session = GetSession(handler, connection);
@@ -522,17 +531,26 @@ public sealed class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         var countBeforeRequest = sent.Count;
         await handler.HandleFrameAsync(connection, ReadFrame(CreateEquipUse(fragmentUid).ToFrameBytes()));
 
-        Assert.Equal(countBeforeRequest + 3, sent.Count);
+        Assert.Equal(countBeforeRequest + 22, sent.Count);
+        for (var debitIndex = 0; debitIndex < 19; debitIndex++)
+        {
+            Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + debitIndex]), out var debit));
+            Assert.Equal(fragmentUid, debit.Uid);
+            Assert.Equal(fragmentItemId, debit.ItemId);
+            Assert.Equal((ushort)(19 - debitIndex), debit.StackSize);
+            Assert.Equal(LegacyGameItemPacket.UpdateItemMode, debit.Mode);
+        }
+
         AssertItemUsage(
-            sent[countBeforeRequest],
+            sent[countBeforeRequest + 19],
             new MsgItemUsagePacket(fragmentUid, DwParam: 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
-        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + 1]), out var rewardPacket));
+        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + 20]), out var rewardPacket));
         Assert.Equal(rewardItemId, rewardPacket.ItemId);
         Assert.Equal(LegacyGameItemPacket.AddItemMode, rewardPacket.Mode);
         Assert.Equal(rewardDurability, rewardPacket.Durability);
         Assert.Equal(rewardDurability, rewardPacket.MaximumDurability);
         Assert.Equal(expectedRewardBound ? (byte)1 : (byte)0, rewardPacket.Bound);
-        Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 2]), out var message));
+        Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 21]), out var message));
         Assert.Contains(
             "You have got 1 " + rewardName + (expectedRewardBound ? "(B)!." : "!."),
             message.Content);
@@ -630,29 +648,44 @@ public sealed class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         var countBeforeRequest = sent.Count;
         await handler.HandleFrameAsync(connection, ReadFrame(CreateDecomposeRelicsUse(id: 0, relicUid)));
 
-        Assert.Equal(countBeforeRequest + 3, sent.Count);
+        // Deliberate native contract correction: REMOVE + nine independent ADDs + echo.
+        Assert.Equal(countBeforeRequest + 11, sent.Count);
         AssertItemUsage(
             sent[countBeforeRequest],
             new MsgItemUsagePacket(relicUid, DwParam: 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
-        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + 1]), out var crystalPacket));
-        Assert.Equal(crystalItemId, crystalPacket.ItemId);
-        Assert.Equal((ushort)9, crystalPacket.StackSize);
-        Assert.Equal(LegacyGameItemPacket.AddItemMode, crystalPacket.Mode);
-        Assert.True(MsgItemUsagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 2]), out var echoPacket));
-        Assert.Equal(new MsgItemUsagePacket(0, 0, MsgItemUsageAction.DecomposeRelics, 511_043_495, 0, 0, 0), echoPacket);
-        Assert.True(PacketReader.TryRead(sent[countBeforeRequest + 2], out var echoReader));
+        var packetUids = new HashSet<uint>();
+        for (var index = 0; index < 9; index++)
+        {
+            Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + 1 + index]), out var crystalPacket));
+            Assert.Equal(crystalItemId, crystalPacket.ItemId);
+            Assert.Equal((ushort)1, crystalPacket.StackSize);
+            Assert.Equal(LegacyGameItemPacket.AddItemMode, crystalPacket.Mode);
+            Assert.True(packetUids.Add(crystalPacket.Uid));
+        }
+        Assert.True(MsgItemUsagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 10]), out var echoPacket));
+        Assert.Equal(new MsgItemUsagePacket(0, 0, MsgItemUsageAction.DecomposeRelics, 511_043_495, 1, 0, 0), echoPacket);
+        Assert.True(PacketReader.TryRead(sent[countBeforeRequest + 10], out var echoReader));
         Assert.Equal(relicUid, echoReader.ReadUInt32(MsgItemUsagePacket.PayloadLength));
 
         var session = GetSession(handler, connection);
-        var liveCrystal = Assert.Single(session.PlayerItems.InventoryItems);
-        Assert.Equal(crystalItemId, liveCrystal.ItemId);
-        Assert.Equal((ushort)9, liveCrystal.StackSize);
+        Assert.Equal(9, session.PlayerItems.InventoryItems.Count);
+        Assert.All(session.PlayerItems.InventoryItems, crystal =>
+        {
+            Assert.Equal(crystalItemId, crystal.ItemId);
+            Assert.Equal((ushort)1, crystal.StackSize);
+            Assert.Contains(crystal.Uid, packetUids);
+        });
         Assert.DoesNotContain(session.PlayerItems.InventoryItems, item => item.Uid == relicUid);
 
         var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        var persistedCrystal = Assert.Single(persistedItems.InventoryItems);
-        Assert.Equal(crystalItemId, persistedCrystal.ItemId);
-        Assert.Equal((ushort)9, persistedCrystal.StackSize);
+        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(session.PlayerItems),
+            PlayerItemSnapshotLoader.ToLegacyBytes(persistedItems));
+        Assert.Equal(9, persistedItems.InventoryItems.Count);
+        Assert.All(persistedItems.InventoryItems, crystal =>
+        {
+            Assert.Equal(crystalItemId, crystal.ItemId);
+            Assert.Equal((ushort)1, crystal.StackSize);
+        });
         Assert.DoesNotContain(persistedItems.InventoryItems, item => item.Uid == relicUid);
 
         var output = log.ToString();
@@ -1407,10 +1440,9 @@ public sealed class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         var countBeforeRequest = sent.Count;
         await handler.HandleFrameAsync(
             connection,
-            ReadFrame(CreateRuneEquipmentUse(
+            ReadFrame(CreateRuneComposeDeclaredCountUse(
                 targetRuneUid,
-                dwParam: 0,
-                MsgItemUsageAction.ComposeRune,
+                declaredCount: 1,
                 materialRuneUid)));
 
         Assert.Equal(countBeforeRequest + 2, sent.Count);
@@ -2416,7 +2448,7 @@ public sealed class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         writer.WriteUInt64(4, 0);
         writer.WriteUInt16(12, (ushort)MsgItemUsageAction.DecomposeRelics);
         writer.WriteUInt32(14, 511_043_495);
-        writer.WriteUInt32(18, 0);
+        writer.WriteUInt32(18, checked((uint)itemUids.Length));
         writer.WriteUInt32(22, 0);
         writer.WriteUInt32(26, 0);
         for (var index = 0; index < itemUids.Length; index++)
@@ -2506,7 +2538,7 @@ public sealed class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         writer.WriteUInt64(4, 0);
         writer.WriteUInt16(12, (ushort)MsgItemUsageAction.DecomposeRune);
         writer.WriteUInt32(14, 511_043_495);
-        writer.WriteUInt32(18, 0);
+        writer.WriteUInt32(18, checked((uint)args.Length));
         writer.WriteUInt32(22, 0);
         writer.WriteUInt32(26, 0);
         for (var index = 0; index < args.Length; index++)

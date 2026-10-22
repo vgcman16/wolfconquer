@@ -15,6 +15,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task DirectNormalDeathPublicThunderQueriesBeforeHpZeroSetterAndAddsDeadAfterTeamAndPair()
     {
         using var fixture = new DirectNormalDeathFixture();
+        await fixture.PrepareNativeQueryInputsAsync();
         await fixture.JoinAsync();
         Assert.Equal(1U, (await fixture.StatusAsync(PlayerUid)).MagicAttack);
         var targetStatus = await fixture.StatusAsync(TargetPlayerUid);
@@ -83,6 +84,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             }
             return ValueTask.CompletedTask;
         });
+        await fixture.PrepareNativeQueryInputsAsync();
         var castStarted = DateTimeOffset.UtcNow;
         await fixture.CastSacrificeAsync();
         var castCompleted = DateTimeOffset.UtcNow;
@@ -161,9 +163,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             var row = DirectOverlayItem(helmet, "NormalDeathHelmet");
             var fields = row.Fields.ToArray();
             fields[18] = "500";
+            fields[19] = "500"; // Legal raw ItemMP; real251 preserves existing current500MP.
             var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [],
             [
-                CreateMagicRow(Thunder, sort: 1, useMana: 0, useStamina: 0, damage: 399, range: 18,
+                CreateMagicRow(Thunder, sort: 1, useMana: 0, useStamina: 0, damage: 799, range: 18,
                     coolDown: 0, coldTime: 0),
                 CreateMagicRow(Sacrifice, sort: 6, useMana: 0, useStamina: 0, damage: 100,
                     coolDown: 0, coldTime: 0),
@@ -188,7 +191,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     CreateMagicRow(DirectNormalDeathIdentitySpell, sort: 99, useMana: 0, useStamina: 0,
                         damage: 100, range: 15, coolDown: 0, coldTime: 0),
                 } : Array.Empty<MagicType>()),
-            ], items: [row with { Fields = fields }]);
+            ], items: [row with { Fields = fields }],
+                combatGear:
+                [
+                    .. (deathIdentityLine ? new[] { CreateNativeOrdinaryMagicNeutralLoadedGear(201) } : Array.Empty<CombatGear>()),
+                    .. (passiveFlowKnack ? new[] { CreateNativeOrdinaryMagicNeutralLoadedGear(1302) } : Array.Empty<CombatGear>()),
+                ]);
             WorldSession Session(uint uid, string name, ushort x, ushort spell) => CreateSession(uid: uid,
                 name: name, mapId: 1_000, x: x, y: 584,
                 classCode: uid == TargetPlayerUid && passiveFlowKnack ? 13_005 : 2_005, reborn: 2,
@@ -287,6 +295,18 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(bytes), out var status));
             return status;
         }
+        public async Task PrepareNativeQueryInputsAsync()
+        {
+            foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
+                await PrepareNativeOrdinaryMagicInputQueryAsync(Context(uid),
+                    () => Order.ToArray().Where(frame => frame.Recipient == uid).Select(frame => frame.Bytes).ToArray(),
+                    expectedMagicAttack: 1, expectedMaximumHitpoints: 500, expectedMaximumMana: 500);
+        }
+        public async Task KillPhysicalAsync() => await PacketHandlers.HandleAsync(Context(PlayerUid),
+            ReadFrame(new MsgAttackPacket(new MsgAttackQuery(Uid: PlayerUid, OpponentUid: TargetPlayerUid,
+                X: checked((ushort)Target.Character.X), Y: checked((ushort)Target.Character.Y),
+                AttackType: MsgAttackType.Physical, Damage: 0, KilledMonster: 0, ResponseDamage: 0,
+                Effect: MsgAttackEffect.None, Unknown: 0)).ToFrameBytes()));
         public async Task KillAsync() => await CastAsync(PlayerUid, TargetPlayerUid, Thunder);
         public async Task CastSacrificeAsync() => await CastAsync(TargetPlayerUid, TargetPlayerUid, Sacrifice);
         public async Task CastStatusAsync(ushort spell) => await CastAsync(TargetPlayerUid, TargetPlayerUid, spell);

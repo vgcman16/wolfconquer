@@ -195,44 +195,48 @@ public static partial class WorldPacketHandlers
         var inventoryItems = items.InventoryItems.ToList();
         var mutationFrames = new List<byte[]>();
         var remaining = count;
-        for (var index = 0; index < inventoryItems.Count && remaining > 0; index++)
+        while (remaining > 0)
         {
-            var candidate = inventoryItems[index];
-            if (candidate.ItemId != itemId || candidate.Bound != bound)
+            var remainingBeforePass = remaining;
+            for (var index = 0; index < inventoryItems.Count && remaining > 0; index++)
             {
-                continue;
+                var candidate = inventoryItems[index];
+                if (candidate.ItemId != itemId)
+                {
+                    continue;
+                }
+
+                if (candidate.StackSize > 1)
+                {
+                    var updatedItem = candidate.WithStackSize(checked((ushort)(candidate.StackSize - 1)));
+                    inventoryItems[index] = updatedItem;
+                    mutationFrames.Add(
+                        LegacyGameItemPacket
+                            .FromSnapshotItem(updatedItem, mode: LegacyGameItemPacket.UpdateItemMode)
+                            .ToFrameBytes());
+                }
+                else
+                {
+                    mutationFrames.Add(
+                        new MsgItemUsagePacket(
+                            candidate.Uid,
+                            DwParam: 0,
+                            MsgItemUsageAction.RemoveInventory,
+                            Timestamp: 0,
+                            DwParam2: 0,
+                            DwParam3: 0,
+                            DwParam4: 0).ToFrameBytes());
+                    inventoryItems.RemoveAt(index);
+                    index--;
+                }
+
+                remaining--;
             }
 
-            var available = candidate.StackSize > 0 ? candidate.StackSize : (ushort)1;
-            var consumed = Math.Min(available, remaining);
-            remaining = checked((ushort)(remaining - consumed));
-            if (available > consumed)
+            if (remaining == remainingBeforePass)
             {
-                var updatedItem = candidate.WithStackSize(checked((ushort)(available - consumed)));
-                inventoryItems[index] = updatedItem;
-                mutationFrames.Add(
-                    LegacyGameItemPacket
-                        .FromSnapshotItem(updatedItem, mode: LegacyGameItemPacket.UpdateItemMode)
-                        .ToFrameBytes());
-                continue;
+                return false;
             }
-
-            mutationFrames.Add(
-                new MsgItemUsagePacket(
-                    candidate.Uid,
-                    DwParam: 0,
-                    MsgItemUsageAction.RemoveInventory,
-                    Timestamp: 0,
-                    DwParam2: 0,
-                    DwParam3: 0,
-                    DwParam4: 0).ToFrameBytes());
-            inventoryItems.RemoveAt(index);
-            index--;
-        }
-
-        if (remaining != 0)
-        {
-            return false;
         }
 
         updatedItems = items with { InventoryItems = inventoryItems.ToArray() };

@@ -530,6 +530,8 @@ public static partial class WorldPacketHandlers
         ushort newXpCount,
         CancellationToken cancellationToken)
     {
+        // Capture the Player.Revive receiver before any target HP/XP/stamina publication awaits.
+        var nativePlayerReceiver = session.NativePlayer;
         var hadXpList = HasLegacyStatusFlag(session.Character, LegacyRuntimeUpdateTicker.XpListFlag);
         var currentHitpoints = session.Character.MinHitPoints <= 0
             ? 1U
@@ -593,7 +595,8 @@ public static partial class WorldPacketHandlers
         await connection.SendAsync(
                 LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
                     uid,
-                    CreateLegacyRuntimeStatusFlagVector(updatedSession.Character)).ToFrameBytes(),
+                    LegacyNativePlayerFlag6Lifecycle.CaptureVector(nativePlayerReceiver,
+                        CreateLegacyRuntimeStatusFlagVector(updatedSession.Character))).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         await connection.SendAsync(

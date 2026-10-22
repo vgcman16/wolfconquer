@@ -353,8 +353,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var sessions = new WorldSessionStore();
         var sent = new List<byte[]>();
         using var log = new StringWriter();
-        var connection = CreateSendingConnection(sent);
-        var session = CreateSession(spellIds: [ExistingCounterKillRuntimeSpellId]);
+        // Declared physical-client MODEL prestate; not socket birth or login acquisition.
+        var physicalClient = new LegacyNativeGameClientRuntime();
+        var connection = CreateCounterKillPhysicalModelConnection(sent, physicalClient);
+        var session = CreateSession(spellIds: [ExistingCounterKillRuntimeSpellId]) with { NativeGameClient = physicalClient };
         sessions.Set(connection, session);
         var context = new WorldPacketHandlerContext(
             connection,

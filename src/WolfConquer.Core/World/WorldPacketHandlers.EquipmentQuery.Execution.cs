@@ -11,7 +11,23 @@ public static partial class WorldPacketHandlers
         {
             Context = context with { Session = session };
             Session = session;
-            Request = request;
+            var scope = request.Scope;
+            if (context.Sessions is { } world)
+            {
+                if (scope.OwnerNativeClientIdentity is null)
+                {
+                    var ownerFound = LegacyNativeClientPublication.TryCaptureIdentity(
+                        world, context.Connection, scope.OwnerUid, out var ownerIdentity);
+                    scope = scope with { OwnerNativeClientIdentity = ownerFound ? ownerIdentity : new object() };
+                }
+                if (scope.RequiredParticipant is { } required && scope.RequiredNativeClientIdentity is null)
+                {
+                    var requiredFound = LegacyNativeClientPublication.TryCaptureIdentity(
+                        world, required.Connection, required.Session.Character.Uid, out var requiredIdentity);
+                    scope = scope with { RequiredNativeClientIdentity = requiredFound ? requiredIdentity : new object() };
+                }
+            }
+            Request = request with { Scope = scope }; // BEFORE admission or AppendItems can await.
             Current = new(session, request.Scope.RequiredParticipant?.Session);
         }
 
@@ -50,11 +66,8 @@ public static partial class WorldPacketHandlers
 
         public bool Commit(Func<WorldSession, WorldSession> update)
         {
-            if (!Refresh()) return false;
-            Session = update(Session);
-            Context = Context with { Session = Session };
-            Context.Sessions?.Set(Context.Connection, Session);
-            return Refresh();
+            Adopt(CommitLegacyEquipmentQueryMutation(Context, Session, Request.Scope, update));
+            return Current.Completed;
         }
 
         public bool SetMaximum(uint maximum) => Commit(session => session with

@@ -75,7 +75,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var hp = ParseMsgUpdates(targetFrames).Where(packet => packet.Uid == TargetPlayerUid)
             .SelectMany(packet => packet.Updates).Where(entry => entry.Type == LegacyMsgUpdateDataType.Hitpoints)
             .Select(entry => entry.Value).ToArray();
-        // (20001+399) /2 =10200. A fresh AttackUp then doubles back to20400.
+        // (40401+399) /2 =20400; real Hawks50% first leaves10200. Fresh AttackUp doubles back to20400.
         // Source shield20000 therefore leaves9800/zero incoming, or leaves0/incoming400.
         Assert.Equal(earnAttackUp ? new ulong[] { 300, 300, 300, 0 } : new ulong[] { 300 }, hp);
         var targetAfter = fixture.Slot(TargetPlayerUid);

@@ -102,6 +102,8 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        // Native Player.Revive retains its physical instance receiver across later sends.
+        var nativePlayerReceiver = session.NativePlayer;
         var currentHitpoints = session.Character.MinHitPoints <= 0
             ? 1U
             : CheckedUInt32(session.Character.MinHitPoints, nameof(session.Character.MinHitPoints));
@@ -152,7 +154,8 @@ public static partial class WorldPacketHandlers
         await context.Connection.SendAsync(
                 LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
                     uid,
-                    CreateLegacyRuntimeStatusFlagVector(revivedCharacter)).ToFrameBytes(),
+                    LegacyNativePlayerFlag6Lifecycle.CaptureVector(nativePlayerReceiver,
+                        CreateLegacyRuntimeStatusFlagVector(revivedCharacter))).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         await context.Connection.SendAsync(

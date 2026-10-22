@@ -4,13 +4,17 @@ public static partial class WorldPacketHandlers
 {
     private sealed partial class LegacyEquipmentQueryExecution
     {
+        // One original Player.Dead receiver for every vector/explicit removal in this death operation.
+        public LegacyNativePlayerRuntime? NormalDeathPlayerReceiver { get; init; }
+
         public async ValueTask<bool> SendNormalDeathVectorAsync()
         {
             if (!Refresh()) return false;
             var frame = LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
                     CheckedUInt32(Request.Scope.OwnerUid, nameof(Request.Scope.OwnerUid)),
-                    LegacyPlayerDeathState.CreateStatusFlagVector(Session.Character.Attributes,
-                        LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength))
+                    LegacyNativePlayerFlag6Lifecycle.CaptureVector(NormalDeathPlayerReceiver,
+                        LegacyPlayerDeathState.CreateStatusFlagVector(Session.Character.Attributes,
+                            LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength)))
                 .ToFrameBytes();
             // One source UpdateFlagOffset captures its vector once, self first.
             if (!await SendAsync(frame, LegacyEquipmentQueryPublishedPhases.None).ConfigureAwait(false))

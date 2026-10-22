@@ -18,7 +18,9 @@ public static partial class WorldPacketHandlers
         bool applyMudWallInFinalReceive = true,
         ushort? postBackPhysicalSpellId = null,
         uint postBackPhysicalDamageDivisor = 1,
-        uint postBackFlameDamageOnHuman = 0)
+        uint postBackFlameDamageOnHuman = 0,
+        ushort? postBackMagicSpellId = null,
+        object? postBackNativeMagicCasterIdentity = null)
     {
         var originalAttackerSession = context.Session;
         var backDamageEnteredAlive = attacker.MinHitPoints > 0;
@@ -48,6 +50,16 @@ public static partial class WorldPacketHandlers
                 abortReason == LegacyPlayerMagicReceiveAbortReason.TargetLost ? context.Session : null, abortReason);
         }
 
+        if (postBackMagicSpellId is 1_000 or 1_001 &&
+            postBackNativeMagicCasterIdentity is { } nativeIdentity)
+        {
+            if (!TryRefreshLegacyNativeMagicQueryCaster(context, attacker.Uid, nativeIdentity,
+                    out var nativeCaster))
+                return new LegacyPlayerMagicReceiveOutcome(null, null,
+                    LegacyPlayerMagicReceiveAbortReason.AttackerLost);
+            context = context with { Session = nativeCaster };
+            attacker = nativeCaster.Character;
+        }
         var finalDamage = appliedDamageOverride ?? damage;
         if (postBackPhysicalSpellId is 16_330 or 16_340 or 16_540 or 16_550)
         {
@@ -92,8 +104,13 @@ public static partial class WorldPacketHandlers
         }
 
         var outcome = await ApplyLegacyPlayerMagicDamageToPlayerAsync(
-                context, target, attacker, finalDamage, cancellationToken,
-                applyMudWall: applyMudWallInFinalReceive)
+                context, target, attacker,
+                postBackMagicSpellId is { } magicSpellId
+                    ? CompleteLegacyNativeAttackPlayerPostBackDamage(attacker, magicSpellId, finalDamage)
+                    : finalDamage,
+                cancellationToken,
+                applyMudWall: applyMudWallInFinalReceive,
+                nativeIncomingClientIdentity: postBackNativeMagicCasterIdentity)
             .ConfigureAwait(false);
         var currentAttacker = outcome.AttackerSession ??
             (context.Session?.Character.Uid == attacker.Uid ? context.Session : null);

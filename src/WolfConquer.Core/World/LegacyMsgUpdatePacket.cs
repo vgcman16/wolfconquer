@@ -175,14 +175,18 @@ public sealed record LegacyMsgUpdatePacket(uint Uid, IReadOnlyList<LegacyMsgUpda
             CheckedUInt64(snapshot.PkPoints, nameof(snapshot.PkPoints)));
     }
 
-    public static LegacyMsgUpdatePacket CreateLegacyClassExperienceStartupUpdate(CharacterSnapshot snapshot)
+    public static LegacyMsgUpdatePacket CreateLegacyClassExperienceStartupUpdate(
+        CharacterSnapshot snapshot,
+        LegacyNativePlayerRuntime? nativePlayer = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
         return CreateSingleUpdate(
             CheckedUInt32(snapshot.Uid, nameof(snapshot.Uid)),
             LegacyMsgUpdateDataType.ClassExperience,
-            ReadLegacyAttributeUInt64(snapshot, "ClassExperience"));
+            nativePlayer is null
+                ? ReadLegacyAttributeUInt64(snapshot, "ClassExperience")
+                : nativePlayer.ClassExperience);
     }
 
     public static IReadOnlyList<LegacyMsgUpdatePacket> CreateLegacyDonationStartupUpdates(CharacterSnapshot snapshot)

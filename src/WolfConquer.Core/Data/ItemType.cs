@@ -16,6 +16,8 @@ public sealed record ItemType(int Id, string Name, IReadOnlyList<string> Fields)
     public const int ItemMPFieldIndex = 19;
     public const int DurabilityFieldIndex = 21;
     public const int ConquerPointsWorthFieldIndex = 36;
+    public const int TimeFieldIndex = 38;
+    public const int StackSizeFieldIndex = 46;
     public const int RuneSpellIdFieldIndex = 25;
     public const int PurificationLevelFieldIndex = 55;
     public const int PurificationMeteorNeedFieldIndex = 56;
@@ -42,7 +44,27 @@ public sealed record ItemType(int Id, string Name, IReadOnlyList<string> Fields)
 
     public uint LegacyDurability => TryGetUIntField(DurabilityFieldIndex, out var value) ? value : 0;
 
+    public bool TryGetLegacyDurability(out ushort value)
+    {
+        value = 0;
+        return Fields is not null && Fields.Count > DurabilityFieldIndex &&
+            ushort.TryParse(Fields[DurabilityFieldIndex], NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+    }
+
     public uint ConquerPointsWorth => TryGetUIntField(ConquerPointsWorthFieldIndex, out var value) ? value : 0;
+
+    public uint LegacyTime => TryGetLegacyTime(out var value) ? value : 0;
+
+    public ushort LegacyStackSize => Id > 0 && IsLegacyAccessory ? (ushort)1 :
+        Fields is not null && Fields.Count > StackSizeFieldIndex && ushort.TryParse(Fields[StackSizeFieldIndex],
+            NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : (ushort)0;
+
+    public bool TryGetLegacyTime(out uint value)
+    {
+        value = 0;
+        return Fields is not null && Fields.Count > TimeFieldIndex &&
+            uint.TryParse(Fields[TimeFieldIndex], NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+    }
 
     public uint RuneSpellId => TryGetUIntField(RuneSpellIdFieldIndex, out var value) ? value : 0;
 

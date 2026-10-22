@@ -99,6 +99,8 @@ public static partial class WorldPacketHandlers
         await SendLegacyEquipmentRuntimeRefreshAsync(updatedContext, updatedSession, cancellationToken)
             .ConfigureAwait(false);
 
+        UpdateLegacyRuneRanking(updatedContext, updatedSession);
+
         await context.Log.WriteLineAsync(
                 "WorldServer handled MsgItemUsage direct rune bag add " +
                 $"{FormatSession(updatedContext)} source={LegacyDirectRuneBagSource} " +
@@ -114,6 +116,14 @@ public static partial class WorldPacketHandlers
         PacketFrame frame,
         CancellationToken cancellationToken)
     {
+        if (await TryHandleLegacyRuneBagExistingStackMergeAsync(
+                context, session, packet, frame, cancellationToken).ConfigureAwait(false))
+            return;
+
+        if (await TryHandleLegacyRuneBagFullInventoryAddFailureAsync(
+                context, session, packet, frame, cancellationToken).ConfigureAwait(false))
+            return;
+
         if (!HasLegacyInventorySpace(session.PlayerItems, 1))
         {
             await context.Log.WriteLineAsync(
@@ -171,6 +181,11 @@ public static partial class WorldPacketHandlers
                 CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame)),
                 cancellationToken)
             .ConfigureAwait(false);
+
+        if (TryReadLegacyItemType(context.WorldData, returned.ItemId, out _))
+        {
+            UpdateLegacyRuneRanking(updatedContext, updatedSession);
+        }
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled MsgItemUsage direct rune bag remove " +

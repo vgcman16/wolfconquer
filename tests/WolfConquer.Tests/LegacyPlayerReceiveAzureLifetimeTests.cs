@@ -301,7 +301,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             }
             var rows = new List<MagicType>
             {
-                CreateMagicRow(1_000, sort: 1, useMana: 0, useStamina: 0, damage: 399, range: 18, coolDown: 0, coldTime: 0),
+                CreateMagicRow(1_000, sort: 1, useMana: 0, useStamina: 0, damage: 799, range: 18, coolDown: 0, coldTime: 0),
                 CreateMagicRow(15_750, sort: 6, useMana: 0, useStamina: 0, damage: 100, duration: 30, coolDown: 0, coldTime: 0),
             };
             DaoqiDictType[] jades = [];
@@ -321,7 +321,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             }
             var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [], rows,
                 items: [Item(111_092, "AzureLifeCaster500", "500"), Item(111_093, "AzureLifeTarget5000", "5000")],
-                daoqiDictTypes: jades);
+                daoqiDictTypes: jades,
+                combatGear: jade ? [CreateRootMissingArrowSourceGear() with
+                    { Id = 701, GearTypeId = 701, MagicTypeIds = [],
+                        SourceFile = "fixture://direct-azure-life/loaded701" }] : []);
             handler = new WorldServerFrameHandler(snapshotLoader: null, handoffService: null, worldData: world,
                 runtimeUpdateLoop: new LegacyRuntimeUpdateLoopOptions(true, TimeSpan.FromMilliseconds(20), clock),
                 log: TextWriter.Synchronized(log), protocolProfile: ConquerProtocolProfile.VisibleDx8D13);
@@ -394,6 +397,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         public Task ToggleAsync() => CastAsync(TargetPlayerUid, TargetPlayerUid, 15_750);
         public async Task PrimeAsync()
         {
+            // Earn native CURRENT equipment status before the real toggle/hits; StatusQuery alone does not query equipment.
+            foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
+                await PacketHandlers.HandleAsync(context with { Connection = connections[uid], Session = Current(uid) },
+                    ReadFrame(new MsgActionPacket { ObjId = uid, Type = (MsgActionType)251 }.ToFrameBytes()));
             Assert.False(Target.Character.Attributes.ContainsKey("LightningShieldLeft"));
             Assert.False(Target.Character.Attributes.ContainsKey(DirectAzureLifeDeadline));
             await ToggleAsync();

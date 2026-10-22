@@ -33,6 +33,14 @@ public sealed record WorldSession(
     LegacyFineRainEquipmentAdmission? FineRainEquipmentAdmission = null,
     LegacyEquipmentHitpointsStatus? EquipmentHitpointsStatus = null)
 {
+    // A record copy retains the SAME client owner, whose CURRENT Player is separately replaceable.
+    // Creating/loading a session is NOT Player birth. Unknown/manual sessions stay unbound.
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyNativeGameClientRuntime? NativeGameClient { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyNativePlayerRuntime? NativePlayer => NativeGameClient?.Player;
+
     private CharacterSnapshot _character = Character;
     private LegacyCanAttackFlashingRegistration? _canAttackFlashingRegistration;
 

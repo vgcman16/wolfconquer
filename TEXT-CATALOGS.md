@@ -22,7 +22,9 @@ files. The examples below use newly authored synthetic text.
 ```
 
 `relativePath` and `encodingKind` are required. Encoding names are `Utf8`,
-`Utf8Bom`, and `CodePage936`. JSON property names are case-insensitive; unknown
+`Utf8Bom`, `CodePage936`, and `Utf16LeBom`. The UTF-16 option is explicit, little-endian,
+with a BOM and strict invalid-byte handling; there is no encoding auto-detection.
+JSON property names are case-insensitive; unknown
 properties are rejected. Paths must be unique and relative to the supplied root.
 Rooted paths, drive paths, traversal segments, and symbolic links or junctions
 below the root are rejected. Patch targets must already exist. All target paths
@@ -55,6 +57,29 @@ Comparison catalogs may contain only `relativePath` and `encodingKind`; they
 select the files and decoding needed for comparison. An empty catalog or a
 selection with no existing targets cannot report a successful comparison.
 File drift without `--patch-files-only` still compares the full client tree.
+
+For a no-write preview, C# callers can use
+`EnglishClientPatch.BuildFileCandidate(patchFile, originalBytes)`. It requires an
+explicit, nonempty patch operation and returns owned candidate bytes plus match
+counts. It does not install a file or prove rendering. The registry-dependent
+`client-text-candidate` CLI is not included in this publication.
+
+## Item catalogs
+
+The three item-catalog commands operate only on explicitly supplied files:
+
+```text
+WolfConquer.DataTool client-item-catalog-roundtrip ./decoded-catalog.txt
+WolfConquer.DataTool client-item-catalog-codec decode ./packed-catalog.dat --output-new ./decoded-new.txt
+WolfConquer.DataTool client-item-catalog-localize ./packed-catalog.dat --english-itemtype ./authorized-67-field-source.txt --output-new ./localized-new.dat
+```
+
+The roundtrip model preserves supported 65/67-field rows and unchanged bytes.
+Localization matches IDs from the supplied donor; `--include-text-fields` opts in
+to the supported additional text fields. Output paths must be fresh. No game
+catalog, translations, or recorded codec vectors are bundled. Synthetic codec
+roundtrip tests check the implementation's algebra, not a native-client oracle
+or visual acceptance.
 
 Patch exit codes are 0 when every requested replacement matched (including an
 idempotent repeat), 1 for invalid configuration or unavailable files, and 2 for

@@ -18,10 +18,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task HandlerMagicAttackAgainstVisiblePlayerAppliesBloodTideForTrojanSourceWhenRollAndCooldownAllow()
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0),
+            [CreateRetainedNativeMagic421Helmet(), CreateRetainedNativeMagic421Helmet(itemId: 111_003, name: "Retained alternate helmet")],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0),
             CreateMagicRow(
                 LegacyBloodTideSpellId,
                 sort: 0,
@@ -55,6 +56,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             AlternateEquipmentActive = true,
         };
         var targetSession = CreateSession(uid: TargetPlayerUid, name: "Target", x: 832, y: 584);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -63,6 +65,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,

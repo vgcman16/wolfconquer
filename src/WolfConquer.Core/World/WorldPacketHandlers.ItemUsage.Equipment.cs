@@ -406,7 +406,7 @@ public static partial class WorldPacketHandlers
         }
 
         await context.Connection.SendAsync(
-                CreateLegacyPlayerStatusResponse(session, worldData).ToFrameBytes(),
+                CreateNativeMagicCachedPlayerStatusResponse(context, session).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         await context.Connection.SendAsync(

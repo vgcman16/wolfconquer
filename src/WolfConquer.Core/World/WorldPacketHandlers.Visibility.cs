@@ -118,7 +118,7 @@ public static partial class WorldPacketHandlers
             }
 
             var spawn = LegacyNpcSpawnPacket.FromNpc(npc);
-            await context.Connection.SendAsync(spawn.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+            await SendLegacyTeleportFrameAsync(context, context.Connection, spawn.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
             sentCount++;
         }
 
@@ -213,7 +213,7 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            await context.Connection.SendAsync(projection.ToNpcSpawnPacket().ToFrameBytes(), cancellationToken)
+            await SendLegacyTeleportFrameAsync(context, context.Connection, projection.ToNpcSpawnPacket().ToFrameBytes(), cancellationToken)
                 .ConfigureAwait(false);
             sentCount++;
         }
@@ -293,7 +293,7 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            await context.Connection.SendAsync(projection.ToNpcSpawnPacket().ToFrameBytes(), cancellationToken)
+            await SendLegacyTeleportFrameAsync(context, context.Connection, projection.ToNpcSpawnPacket().ToFrameBytes(), cancellationToken)
                 .ConfigureAwait(false);
             sentCount++;
         }
@@ -387,7 +387,7 @@ public static partial class WorldPacketHandlers
 
             var visibleSobNpc = context.SobNpcStates?.GetVisible(sobNpc) ?? sobNpc;
             var spawn = LegacySobNpcSpawnPacket.FromSobNpc(visibleSobNpc);
-            await context.Connection.SendAsync(spawn.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+            await SendLegacyTeleportFrameAsync(context, context.Connection, spawn.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
             sentCount++;
         }
 
@@ -443,7 +443,7 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+            await SendLegacyTeleportFrameAsync(context, context.Connection, packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
             sentCount++;
         }
 
@@ -477,7 +477,7 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+            await SendLegacyTeleportFrameAsync(context, context.Connection, packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
             sentCount++;
         }
 

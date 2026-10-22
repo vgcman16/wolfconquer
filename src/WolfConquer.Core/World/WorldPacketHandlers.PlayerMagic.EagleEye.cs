@@ -91,7 +91,9 @@ public static partial class WorldPacketHandlers
         PlayerSpellSnapshotEntry playerSpell,
         LegacyMagicRuntimeSpell spell,
         LegacyPlayerMonsterMagicTarget target,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<double, bool>? family8418Rate = null,
+        Func<int, int, int>? family8418Next = null)
     {
         if (!CanLegacyPlayerAttackMonster(session.Character, target.Monster, target.MonsterFamily, out _))
         {
@@ -124,10 +126,23 @@ public static partial class WorldPacketHandlers
             target.Monster,
             target.MonsterFamily,
             spell);
-        var result = ApplyLegacyPlayerMonsterDamage(monsterStates, target.Monster, requestedDamage, now, session);
+        var receive = await ApplyLegacyMonsterNativeReceiveAsync(
+                context, session, session, target.Monster, target.MonsterFamily,
+                requestedDamage, now, cancellationToken, family8418Rate, family8418Next)
+            .ConfigureAwait(false);
+        var result = receive.Damage;
+        session = receive.Session;
+        context = context with { Session = session };
         if (result.AlreadyDead)
         {
             return;
+        }
+
+        if (receive.NativeDeadHandled && result.Killed)
+        {
+            // ReceiveAttack.Monster shares team experience AFTER Dead, BEFORE EagleEye resumes.
+            await TryApplyLegacyMonsterTeamExperienceAsync(context, session, target.Monster, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         if (monsterStates.IsBlackSpotted(target.Monster, now))
@@ -138,6 +153,15 @@ public static partial class WorldPacketHandlers
         else
         {
             session = SetLegacyEagleEyeCountdown(session, active: true);
+        }
+
+        if (receive.NativeDeadHandled)
+        {
+            // Native UpdateSpell precedes this converted path's animation (Attack.cs496..498).
+            session = await TryApplyLegacyPlayerMagicSpellExperienceAsync(
+                context, session, playerSpell, spell, result.DamageApplied, cancellationToken)
+                .ConfigureAwait(false);
+            context = context with { Session = session };
         }
 
         await SendLegacyEagleEyeAnimationAsync(
@@ -156,30 +180,33 @@ public static partial class WorldPacketHandlers
         var updatedSession = session;
         if (result.Killed)
         {
-            var death = new MsgAttackPacket(new MsgAttackQuery(
-                Uid: CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)),
-                OpponentUid: target.Monster.Uid,
-                X: target.Monster.X,
-                Y: target.Monster.Y,
-                AttackType: MsgAttackType.Death,
-                Damage: 0,
-                KilledMonster: 1,
-                ResponseDamage: 0,
-                Effect: MsgAttackEffect.None,
-                Unknown: 0));
-            await SendMonsterCombatFrameToVisibleAsync(context, session, target.Monster, death, cancellationToken)
-                .ConfigureAwait(false);
-            await TrySendLegacyMonsterDeathDropAsync(context, session, target.Monster, target.MonsterFamily, cancellationToken)
-                .ConfigureAwait(false);
-            updatedSession = await TryApplyLegacyBossDeathRewardsAsync(
-                    context,
-                    updatedSession,
-                    target.Monster,
-                    target.MonsterFamily,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await TryApplyLegacyMonsterTeamExperienceAsync(context, updatedSession, target.Monster, cancellationToken)
-                .ConfigureAwait(false);
+            if (!receive.NativeDeadHandled)
+            {
+                var death = new MsgAttackPacket(new MsgAttackQuery(
+                    Uid: CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)),
+                    OpponentUid: target.Monster.Uid,
+                    X: target.Monster.X,
+                    Y: target.Monster.Y,
+                    AttackType: MsgAttackType.Death,
+                    Damage: 0,
+                    KilledMonster: 1,
+                    ResponseDamage: 0,
+                    Effect: MsgAttackEffect.None,
+                    Unknown: 0));
+                await SendMonsterCombatFrameToVisibleAsync(context, session, target.Monster, death, cancellationToken)
+                    .ConfigureAwait(false);
+                await TrySendLegacyMonsterDeathDropAsync(context, session, target.Monster, target.MonsterFamily, cancellationToken)
+                    .ConfigureAwait(false);
+                updatedSession = await TryApplyLegacyBossDeathRewardsAsync(
+                        context,
+                        updatedSession,
+                        target.Monster,
+                        target.MonsterFamily,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                await TryApplyLegacyMonsterTeamExperienceAsync(context, updatedSession, target.Monster, cancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
         else
         {
@@ -209,14 +236,17 @@ public static partial class WorldPacketHandlers
                 result.DamageApplied,
                 cancellationToken)
             .ConfigureAwait(false);
-        updatedSession = await TryApplyLegacyPlayerMagicSpellExperienceAsync(
-                context,
-                updatedSession,
-                playerSpell,
-                spell,
-                result.DamageApplied,
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (!receive.NativeDeadHandled)
+        {
+            updatedSession = await TryApplyLegacyPlayerMagicSpellExperienceAsync(
+                    context,
+                    updatedSession,
+                    playerSpell,
+                    spell,
+                    result.DamageApplied,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
         context.Sessions?.Set(context.Connection, updatedSession);
     }
 

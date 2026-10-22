@@ -81,12 +81,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Fact]
     public async Task ArrowBladesNormalDeathRetiresReal337RegistrationWithoutResettingEitherCounter()
     {
-        await using var fixture = new ArrowLifecycleFixture();
+        await using var fixture = new ArrowLifecycleFixture(nativeDeathCasterQueryControls: true);
+        await fixture.PrepareArrowNativeDeathCasterAsync();
         await fixture.AttackAsync();
         fixture.AssertRegistration(ArrowStarLifetimeFlag, ArrowLifeOrigin.DateTime, ArrowStarLifetimeSeconds);
         Assert.Equal(1U, ArrowLifeCounter(fixture.Owner, "ArrowBlades"));
         Assert.Equal(1U, ArrowLifeCounter(fixture.Owner, "StarFlow"));
-        await fixture.KillOwnerAsync(); // Existing real Magic1000/raw9000 is lethal to actual5000HP owner.
+        await fixture.KillOwnerAsync(); // Queried peer MA1 + raw9999, then native player /2 = lethal5000.
         Assert.Equal(0, fixture.Owner.Character.MinHitPoints);
         Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, LegacyPlayerDeathState.DeadStatusFlag));
         ArrowLifeAssertRetired(fixture.Owner, ArrowStarLifetimeFlag);

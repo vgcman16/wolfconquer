@@ -24,13 +24,21 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         using var fixture = new DirectRegistrationReplaceFixture();
         var initialOwnerItems = fixture.Owner.PlayerItems;
         var initialPeerItems = fixture.Peer.PlayerItems;
-        Assert.Equal(1U, (await fixture.StatusAsync(PlayerUid)).MagicAttack);
+        // Native Status2301 reads existing cached MA; it does not perform an equipment query.
+        Assert.Equal(0U, (await fixture.StatusAsync(PlayerUid)).MagicAttack);
         Assert.Equal(500U, (await fixture.StatusAsync(PlayerUid)).MaxHP);
-        Assert.Equal(1U, (await fixture.StatusAsync(TargetPlayerUid)).MagicAttack);
+        Assert.Equal(0U, (await fixture.StatusAsync(TargetPlayerUid)).MagicAttack);
         Assert.Equal(500U, (await fixture.StatusAsync(TargetPlayerUid)).MaxHP);
         Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, DirectRegistrationReplaceFlag));
         Assert.False(fixture.Owner.Character.Attributes.ContainsKey(DirectRegistrationReplacePolicy));
         Assert.Null(fixture.Owner.EquipmentHitpointsStatus);
+        await fixture.PrepareNativeQueryInputsAsync();
+
+        // Preserve the positive MA1 assertions AFTER the existing real251 acquisition.
+        Assert.Equal(1U, (await fixture.StatusAsync(PlayerUid)).MagicAttack);
+        Assert.Equal(500U, (await fixture.StatusAsync(PlayerUid)).MaxHP);
+        Assert.Equal(1U, (await fixture.StatusAsync(TargetPlayerUid)).MagicAttack);
+        Assert.Equal(500U, (await fixture.StatusAsync(TargetPlayerUid)).MaxHP);
 
         var attachStart = fixture.Order.Count;
         await fixture.CastAsync(PlayerUid, PlayerUid, DirectRegistrationReplaceDragonSwing);
@@ -45,7 +53,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         // This is NOT another12200 cast: that source handler would toggle OFF.
         var replacementStart = fixture.Order.Count;
         await fixture.CastAsync(PlayerUid, TargetPlayerUid, DirectRegistrationReplaceThunder);
-        Assert.Equal(100, fixture.Peer.Character.MinHitPoints); // Magic1 + raw399 =400.
+        Assert.Equal(100, fixture.Peer.Character.MinHitPoints); // (QueriedMagic1 + raw799)/2 =400.
         Assert.Equal(300, fixture.Owner.Character.MinHitPoints);
         Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, DirectRegistrationReplaceFlag));
         Assert.Equal("true", fixture.Owner.Character.Attributes[DirectRegistrationReplacePolicy]);
@@ -126,6 +134,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             var helmet = DirectOverlayItem(helmetId, "RegistrationReplacementHelmet");
             var helmetFields = helmet.Fields.ToArray();
             helmetFields[18] = "500";
+            helmetFields[19] = "500"; // Legal raw ItemMP preserves existing current500MP after real251.
             var useRune = CreateMagicRow(DirectRegistrationReplaceUseRune, sort: 6, useMana: 0,
                 useStamina: 0, damage: 310, duration: 11, gDamage: 100, range: 18, coolDown: 0, coldTime: 0);
             var useRuneFields = useRune.Fields.ToArray();
@@ -148,9 +157,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 CreateMagicRow(DirectRegistrationReplaceDragonSwing, sort: 6, useMana: 0, useStamina: 0,
                     damage: 100, duration: 60, coolDown: 0, coldTime: 0),
                 CreateMagicRow(DirectRegistrationReplaceThunder, sort: 1, useMana: 0, useStamina: 0,
-                    damage: 399, range: 18, coolDown: 0, coldTime: 0),
+                    damage: 799, range: 18, coolDown: 0, coldTime: 0),
                 useRune,
-            ], items: [helmet with { Fields = helmetFields }], daoqiDictTypes: [jade]);
+            ], items: [helmet with { Fields = helmetFields }], daoqiDictTypes: [jade],
+                combatGear: [CreateNativeOrdinaryMagicNeutralLoadedGear(701)]);
             WorldSession Session(uint uid, int job, ushort x, long hp, ushort[] spells) =>
                 CreateSession(uid: uid, name: "Registration" + uid.ToString(CultureInfo.InvariantCulture),
                     mapId: 1_000, x: x, y: 584, classCode: job, reborn: 2, strength: 0, spirit: 0,
@@ -221,6 +231,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 LegacyPlayerStatusPacket.TryParse(ReadFrame(frame.Bytes), out _)).Bytes;
             Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(bytes), out var status));
             return status;
+        }
+        public async Task PrepareNativeQueryInputsAsync()
+        {
+            foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
+                await PrepareNativeOrdinaryMagicInputQueryAsync(Context(uid),
+                    () => Order.ToArray().Where(frame => frame.Recipient == uid).Select(frame => frame.Bytes).ToArray(),
+                    expectedMagicAttack: 1, expectedMaximumHitpoints: 500, expectedMaximumMana: 500);
         }
         public async Task CastAsync(uint caster, uint target, ushort spell) =>
             await PacketHandlers.HandleAsync(Context(caster), ReadFrame(new MsgAttackPacket(new MsgAttackQuery(

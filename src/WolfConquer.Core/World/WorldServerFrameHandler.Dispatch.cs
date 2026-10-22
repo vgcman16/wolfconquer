@@ -15,6 +15,31 @@ public sealed partial class WorldServerFrameHandler
 
         try
         {
+            if (!_tradeRecovery.TryEnsureInitialized(out var recoveryReason))
+            {
+                await _log.WriteLineAsync($"WorldServer trade recovery blocked world admission/actions: {recoveryReason}.")
+                    .ConfigureAwait(false);
+                return;
+            }
+            // Normal frames can run concurrently, but a trade mutation must not
+            // cross an awaited handler that will later publish an older session.
+            using var operation = frame.Header.Opcode is WorldPacketOpcodes.LegacyTrade or WorldPacketOpcodes.LegacySecondaryPassword ||
+                IsLegacyExclusiveItemMutationFrame(frame)
+                ? null
+                : frame.Header.Opcode is WorldPacketOpcodes.LegacyMsgLoginGame or
+                    WorldPacketOpcodes.InternalWorldEnterRequest or WorldPacketOpcodes.LegacyNewRole
+                    ? await _worldOperations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false)
+                    : await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
+            // A preceding exclusive trade may have fenced recovery while this
+            // operation was queued; do not proceed on the earlier readiness read.
+            if (_tradeRecovery.IsBlocked)
+            {
+                await _log.WriteLineAsync("WorldServer trade recovery blocked a queued world action.").ConfigureAwait(false);
+                return;
+            }
+            // Register from login onward, including a pending trade's recipient who
+            // may disconnect before ever sending a trade packet of their own.
+            RegisterTradeDisconnect(connection, cancellationToken);
             await HandleFrameCoreAsync(connection, frame, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -119,7 +144,15 @@ public sealed partial class WorldServerFrameHandler
                 ProtocolProfile: _protocolProfile,
                 ChatItems: _chatItems,
                 TeleportTerrain: _teleportTerrain,
-                LegacyClock: _runtimeUpdateLoop.LegacyClock ?? LegacySignedMillisecondClock.System);
+                LegacyClock: _runtimeUpdateLoop.LegacyClock ?? LegacySignedMillisecondClock.System,
+                TournamentWatcherHolders: _tournamentWatcherHolders)
+            {
+                RuneRankings = _runeRankings,
+                Trades = _tradeStates,
+                TradeOperations = _worldOperations,
+                TradeRecovery = _tradeRecovery,
+                LocalServerIdentity = _runtimeUpdateLoop.LocalServerIdentity,
+            };
             try
             {
                 await handler(context, frame, cancellationToken).ConfigureAwait(false);

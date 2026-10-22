@@ -44,7 +44,8 @@ public static partial class WorldPacketHandlers
                 durationMilliseconds,
                 invokeDelayMilliseconds,
                 cancellationToken,
-                hitRadiusOverride)
+                hitRadiusOverride,
+                capturedPlayerSpell: playerSpell)
             .ConfigureAwait(false);
 
         if (spell.Id == 21_580)
@@ -417,6 +418,16 @@ public static partial class WorldPacketHandlers
                 return true;
             case 21_580:
                 itemId = 4_170;
+                color = 30;
+                hitRadiusOverride = null;
+                return true;
+            case 22_070:
+                itemId = 4_200;
+                color = 14;
+                hitRadiusOverride = 4;
+                return true;
+            case 22_100:
+                itemId = 4_210;
                 color = 30;
                 hitRadiusOverride = null;
                 return true;

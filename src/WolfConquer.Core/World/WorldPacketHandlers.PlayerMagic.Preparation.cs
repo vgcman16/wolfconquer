@@ -11,14 +11,16 @@ public static partial class WorldPacketHandlers
         WorldPacketHandlerContext context,
         WorldSession session,
         LegacyMagicRuntimeSpell spell,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        object? expectedNativeClientIdentity = null)
     {
         return TryPrepareLegacyPlayerMagicCastAsync(
             context,
             session,
             spell,
             ignoreAttackStamp: false,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            expectedNativeClientIdentity: expectedNativeClientIdentity);
     }
 
     private static async ValueTask<WorldSession?> TryPrepareLegacyPlayerMagicCastAsync(
@@ -26,16 +28,22 @@ public static partial class WorldPacketHandlers
         WorldSession session,
         LegacyMagicRuntimeSpell spell,
         bool ignoreAttackStamp,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        object? expectedNativeClientIdentity = null)
     {
+        if (expectedNativeClientIdentity is not null &&
+            !TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session,
+                expectedNativeClientIdentity)) return null;
         if (HasPreparedLegacyRootFirstFamilyInvocation(context, session, spell))
-            return TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session) ? session : null;
+            return TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session,
+                expectedNativeClientIdentity) ? session : null;
         var cadenceSession = ignoreAttackStamp
             ? session
             : await TryStartLegacyPlayerMagicAttackStampCadenceAsync(
                     context,
                     session,
-                    spell)
+                    spell,
+                    expectedNativeClientIdentity)
                 .ConfigureAwait(false);
         if (cadenceSession is null)
         {
@@ -46,7 +54,8 @@ public static partial class WorldPacketHandlers
                 context,
                 cadenceSession,
                 spell,
-                cancellationToken)
+                cancellationToken,
+                expectedNativeClientIdentity)
             .ConfigureAwait(false);
         if (resourceResult.Session is null)
         {
@@ -58,15 +67,20 @@ public static partial class WorldPacketHandlers
                 resourceResult.Session,
                 spell,
                 resourceResult.GraceOfHeaven,
-                cancellationToken)
+                cancellationToken,
+                expectedNativeClientIdentity)
             .ConfigureAwait(false);
     }
 
     private static async ValueTask<WorldSession?> TryStartLegacyPlayerMagicAttackStampCadenceAsync(
         WorldPacketHandlerContext context,
         WorldSession session,
-        LegacyMagicRuntimeSpell spell)
+        LegacyMagicRuntimeSpell spell,
+        object? expectedNativeClientIdentity = null)
     {
+        if (expectedNativeClientIdentity is not null &&
+            !TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session,
+                expectedNativeClientIdentity)) return null;
         if (!TryGetLegacyPlayerMagicAttackStampCadence(spell, out var cadence))
         {
             return session;
@@ -87,12 +101,10 @@ public static partial class WorldPacketHandlers
             }
         }
 
-        var updatedSession = session with
-        {
-            Character = WithLegacyPlayerAttackStamp(session.Character, now),
-        };
-        context.Sessions?.Set(context.Connection, updatedSession);
-        return updatedSession;
+        if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
+                owner => owner with { Character = WithLegacyPlayerAttackStamp(owner.Character, now) },
+                expectedNativeClientIdentity)) return null;
+        return session;
     }
 
     private static bool TryGetLegacyPlayerMagicAttackStampCadence(
@@ -160,10 +172,15 @@ public static partial class WorldPacketHandlers
         WorldSession session,
         LegacyMagicRuntimeSpell spell,
         bool graceOfHeaven,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        object? expectedNativeClientIdentity = null)
     {
+        if (expectedNativeClientIdentity is not null &&
+            !TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session,
+                expectedNativeClientIdentity)) return null;
         if (HasPreparedLegacyRootFirstFamilyInvocation(context, session, spell))
-            return TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session) ? session : null;
+            return TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session,
+                expectedNativeClientIdentity) ? session : null;
         if (graceOfHeaven && LegacyMagicRuntime.UsesLegacyCooldown(spell))
         {
             return session;
@@ -208,24 +225,32 @@ public static partial class WorldPacketHandlers
             : new Dictionary<ushort, DateTimeOffset>(session.MagicCooldowns);
         cooldowns[spell.Id] = cooldown.ReadyAtUtc;
 
-        var updatedSession = session with { MagicCooldowns = cooldowns };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
+                owner => owner with { MagicCooldowns = cooldowns }, expectedNativeClientIdentity)) return null;
         await context.Connection.SendAsync(
                 LegacyMagicColdTimePacket.FromStartedCooldown(spell).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
-        return updatedSession;
+        if (expectedNativeClientIdentity is not null &&
+            !TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session,
+                expectedNativeClientIdentity)) return null;
+        return session;
     }
 
     private static async ValueTask<LegacyPlayerMagicResourcePreparationResult> TrySpendLegacyPlayerMagicResourcesAsync(
         WorldPacketHandlerContext context,
         WorldSession session,
         LegacyMagicRuntimeSpell spell,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        object? expectedNativeClientIdentity = null)
     {
+        if (expectedNativeClientIdentity is not null &&
+            !TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session,
+                expectedNativeClientIdentity)) return new(Session: null, GraceOfHeaven: false);
         if (HasPreparedLegacyRootFirstFamilyInvocation(context, session, spell))
             return new LegacyPlayerMagicResourcePreparationResult(
-                TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session) ? session : null,
+                TryRefreshLegacyPlayerMagicResourceSession(context, session.Character.Uid, ref session,
+                    expectedNativeClientIdentity) ? session : null,
                 GraceOfHeaven: false);
         if (session.Character.MapId == 1_039)
         {
@@ -255,9 +280,10 @@ public static partial class WorldPacketHandlers
         if (cost.UseStamina > 0)
         {
             var remainingStamina = stamina - cost.UseStamina;
-            updatedCharacter = WithCharacterAttribute(updatedCharacter, "Stamina", remainingStamina);
-            session = session with { Character = updatedCharacter };
-            context.Sessions?.Set(context.Connection, session);
+            if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
+                    owner => owner with { Character = WithCharacterAttribute(owner.Character, "Stamina", remainingStamina) },
+                    expectedNativeClientIdentity)) return new(Session: null, GraceOfHeaven: false);
+            updatedCharacter = session.Character;
             await context.Connection.SendAsync(
                     LegacyMsgUpdatePacket
                         .CreateLegacyRuntimeStaminaTickUpdate(
@@ -266,7 +292,8 @@ public static partial class WorldPacketHandlers
                         .ToFrameBytes(),
                     cancellationToken)
                 .ConfigureAwait(false);
-            if (!TryRefreshLegacyPlayerMagicResourceSession(context, acceptedAttackerUid, ref session))
+            if (!TryRefreshLegacyPlayerMagicResourceSession(context, acceptedAttackerUid, ref session,
+                    expectedNativeClientIdentity))
             {
                 return new LegacyPlayerMagicResourcePreparationResult(Session: null, GraceOfHeaven: false);
             }
@@ -290,12 +317,10 @@ public static partial class WorldPacketHandlers
         if (cost.UseMana > 0 && !graceOfHeaven)
         {
             var remainingMana = checked(updatedCharacter.MinMana - cost.UseMana);
-            updatedCharacter = updatedCharacter with
-            {
-                MinMana = remainingMana,
-            };
-            session = session with { Character = updatedCharacter };
-            context.Sessions?.Set(context.Connection, session);
+            if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
+                    owner => owner with { Character = owner.Character with { MinMana = remainingMana } },
+                    expectedNativeClientIdentity)) return new(Session: null, GraceOfHeaven: false);
+            updatedCharacter = session.Character;
             await SendScalarUpdateAsync(
                     context,
                     updatedCharacter,
@@ -303,7 +328,8 @@ public static partial class WorldPacketHandlers
                     CheckedUInt32(remainingMana, nameof(updatedCharacter.MinMana)),
                     cancellationToken)
                 .ConfigureAwait(false);
-            if (!TryRefreshLegacyPlayerMagicResourceSession(context, acceptedAttackerUid, ref session))
+            if (!TryRefreshLegacyPlayerMagicResourceSession(context, acceptedAttackerUid, ref session,
+                    expectedNativeClientIdentity))
             {
                 return new LegacyPlayerMagicResourcePreparationResult(Session: null, GraceOfHeaven: false);
             }

@@ -11,7 +11,7 @@ public static partial class WorldPacketHandlers
             if (!Refresh()) return false;
             var projection = LegacyMaxHitpointsCalculator.CalculateQueryHitpointProjection(
                 Session, SourceItems, Context.WorldData, CapturedAlternate);
-            if (!AddMaximum(projection.RuneStorage)) return false;
+            if (!NativeMagicRuneStorage() || !AddMaximum(projection.RuneStorage)) return false;
 
             var blood = ReadAttributeUInt32(Session.Character.Attributes, RuntimeLegacyBloodTideHitpointsAttribute);
             if (HasLegacyStatusFlag(Session.Character, LegacyBloodTideFlag) && !AddMaximum(blood))
@@ -35,7 +35,8 @@ public static partial class WorldPacketHandlers
             if (HasLegacyStatusFlag(Session.Character, LegacyRiseOfTaoismFlag))
             {
                 if (!AddMaximum(50_000) ||
-                    !await AddHitpointsAsync(50_000).ConfigureAwait(false))
+                    !await AddHitpointsAsync(50_000).ConfigureAwait(false) ||
+                    !AddNativeMagic(new LegacyNativeMagicQueryFields(13_000, 0, 0, 0)))
                     return false;
             }
 

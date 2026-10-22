@@ -183,7 +183,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             var casterRow = DirectOverlayItem(111_097, "EarlyShieldCasterHelmet");
             var casterFields = casterRow.Fields.ToArray();
             casterFields[18] = "500";
-            casterFields[29] = "20000"; // Real modeled item magic attack; source ushort-safe.
+            casterFields[29] = "40400"; // Real native ItemMA is ushort-safe; queried MA40401 + raw399, then /2 =20400.
             var targetRow = DirectOverlayItem(111_098, "EarlyShieldTargetHelmet");
             var targetFields = targetRow.Fields.ToArray();
             targetFields[18] = "500";
@@ -207,7 +207,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     DirectEarlyHawksWarmItem(111_099, "EarlyHawksWarmHelmet"),
                     DirectEarlyHawksWarmItem(130_099, "EarlyHawksWarmArmor"),
                 } : Array.Empty<ItemType>()),
-            ], daoqiDictTypes: hawks ? [DirectEarlyHawksJade()] : []);
+            ], daoqiDictTypes: hawks ? [DirectEarlyHawksJade()] : [],
+                combatGear: hawks ? [CreateRootMissingArrowSourceGear() with
+                    { Id = 701, GearTypeId = 701, MagicTypeIds = [],
+                        SourceFile = "fixture://direct-early-hawks/loaded701" }] : []);
             foreach (var uid in hawks ? new[] { PlayerUid, TargetPlayerUid, DirectEarlyHawksWarmUid } : new[] { PlayerUid, TargetPlayerUid })
             {
                 connections[uid] = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
@@ -296,6 +299,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }
         public async Task PrimeAsync()
         {
+            // Real query establishes native CURRENT MA/MaxHP, including the durable two-item warm target when present.
+            foreach (var uid in hawks ? new[] { PlayerUid, TargetPlayerUid, DirectEarlyHawksWarmUid } : new[] { PlayerUid, TargetPlayerUid })
+                await PacketHandlers.HandleAsync(Context(uid),
+                    ReadFrame(new MsgActionPacket { ObjId = uid, Type = (MsgActionType)251 }.ToFrameBytes()));
             await CastAsync(TargetPlayerUid, TargetPlayerUid, 15_750);
             Assert.True(HasLegacyStatusFlag(Slot(TargetPlayerUid).Character.Attributes, LegacyLightningShieldFlag));
             Assert.False(HasLegacyStatusFlag(Slot(TargetPlayerUid).Character.Attributes, LegacyLightningShieldActivatedFlag));
@@ -319,7 +326,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     LegacyPlayerStatusPacket.TryParse(ReadFrame(frame.Bytes), out _)).Bytes;
                 Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(bytes), out var status));
                 Assert.Equal(500U, status.MaxHP);
-                Assert.Equal(uid == PlayerUid ? 20_001U : 1U, status.MagicAttack);
+                Assert.Equal(uid == PlayerUid ? 40_401U : 1U, status.MagicAttack);
                 Assert.Equal(0U, status.MagicDefence);
                 Assert.Equal(0U, status.ItemBless);
                 Assert.Equal(0U, status.Fields[LegacyPlayerStatusPacket.MagicDamageIncreaseIndex]);

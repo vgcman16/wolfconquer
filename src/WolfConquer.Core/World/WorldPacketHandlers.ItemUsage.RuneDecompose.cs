@@ -27,7 +27,22 @@ public static partial class WorldPacketHandlers
         PacketFrame frame,
         CancellationToken cancellationToken)
     {
-        var args = ReadLegacyItemUsageArgs(frame);
+        var physicalArgs = ReadLegacyItemUsageArgs(frame);
+        var declaredCount = packet.DwParam2;
+        if (declaredCount is > 0 and < 50 && physicalArgs.Count < declaredCount)
+        {
+            await context.Log.WriteLineAsync(
+                    "WorldServer skipped MsgItemUsage decompose rune " +
+                    $"{FormatSession(context)} source={LegacyRuneDecomposeSource} " +
+                    $"sourceLines={LegacyRuneDecomposeLines}; declared args count={declaredCount} " +
+                    $"exceeds complete physical UIDs={physicalArgs.Count}; managed fail-closed.")
+                .ConfigureAwait(false);
+            return;
+        }
+
+        IReadOnlyList<uint> args = declaredCount is > 0 and < 50
+            ? physicalArgs.Take(checked((int)declaredCount)).ToArray()
+            : [];
         if (args.Count == 0)
         {
             await context.Log.WriteLineAsync(
@@ -169,6 +184,8 @@ public static partial class WorldPacketHandlers
                         .ToFrameBytes(),
                     cancellationToken)
                 .ConfigureAwait(false);
+
+            UpdateLegacyRuneRanking(updatedContext, updatedSession);
         }
 
         await context.Connection.SendAsync(

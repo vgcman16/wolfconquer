@@ -30,35 +30,35 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            await context.Connection.SendAsync(
+            await SendLegacyTeleportFrameAsync(context, context.Connection,
                     CreatePlayerSpawnPacket(active.Session, context.WorldData).ToFrameBytes(),
                     cancellationToken)
                 .ConfigureAwait(false);
             var activeCloneSpawns = CreateShadowCloneSpawnPackets(active.Session, context.WorldData);
             foreach (var cloneSpawn in activeCloneSpawns)
             {
-                await context.Connection.SendAsync(cloneSpawn.ToFrameBytes(), cancellationToken)
+                await SendLegacyTeleportFrameAsync(context, context.Connection, cloneSpawn.ToFrameBytes(), cancellationToken)
                     .ConfigureAwait(false);
             }
 
             var activePetSpawns = CreateLivePetSpawnPackets(active.Session, context.ClientCompatibility);
             foreach (var petSpawn in activePetSpawns)
             {
-                await context.Connection.SendAsync(petSpawn.ToFrameBytes(), cancellationToken)
+                await SendLegacyTeleportFrameAsync(context, context.Connection, petSpawn.ToFrameBytes(), cancellationToken)
                     .ConfigureAwait(false);
             }
 
-            await active.Connection.SendAsync(selfSpawn.ToFrameBytes(), cancellationToken)
+            await SendLegacyTeleportFrameAsync(context, active.Connection, selfSpawn.ToFrameBytes(), cancellationToken)
                 .ConfigureAwait(false);
             foreach (var cloneSpawn in selfCloneSpawns)
             {
-                await active.Connection.SendAsync(cloneSpawn.ToFrameBytes(), cancellationToken)
+                await SendLegacyTeleportFrameAsync(context, active.Connection, cloneSpawn.ToFrameBytes(), cancellationToken)
                     .ConfigureAwait(false);
             }
 
             foreach (var petSpawn in selfPetSpawns)
             {
-                await active.Connection.SendAsync(petSpawn.ToFrameBytes(), cancellationToken)
+                await SendLegacyTeleportFrameAsync(context, active.Connection, petSpawn.ToFrameBytes(), cancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -98,7 +98,7 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            await active.Connection.SendAsync(spawn, cancellationToken).ConfigureAwait(false);
+            await SendLegacyTeleportFrameAsync(context, active.Connection, spawn, cancellationToken).ConfigureAwait(false);
             sentCount++;
         }
 
@@ -119,7 +119,7 @@ public static partial class WorldPacketHandlers
         var equipmentRefresh = LegacyShowEquipmentPacket.CreateEquipmentRefresh(
             session.PlayerItems,
             session.AlternateEquipmentActive);
-        await context.Connection.SendAsync(
+        await SendLegacyTeleportFrameAsync(context, context.Connection,
                 equipmentRefresh.ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
@@ -144,7 +144,7 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        await context.Connection.SendAsync(
+        await SendLegacyTeleportFrameAsync(context, context.Connection,
                 CreatePlayerSpawnPacket(session, context.WorldData).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
@@ -182,7 +182,7 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            await active.Connection.SendAsync(removeFrame, cancellationToken).ConfigureAwait(false);
+            await SendLegacyTeleportFrameAsync(context, active.Connection, removeFrame, cancellationToken).ConfigureAwait(false);
             sentCount++;
         }
 

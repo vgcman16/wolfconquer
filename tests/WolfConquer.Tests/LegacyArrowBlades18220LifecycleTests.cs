@@ -195,7 +195,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Fact]
     public async Task ArrowBladesNormalDeathRetiresBothRealRegistrationsButDoesNotResetArrowCounter()
     {
-        await using var fixture = new ArrowLifecycleFixture();
+        await using var fixture = new ArrowLifecycleFixture(nativeDeathCasterQueryControls: true);
+        await fixture.PrepareArrowNativeDeathCasterAsync();
         await fixture.EarnWaterAsync();
         await fixture.AttackAsync();
         await fixture.OrdinaryMagicAsync(); // Real receive, not a seeded Arrow counter;333 stays present.

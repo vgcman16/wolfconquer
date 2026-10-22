@@ -130,6 +130,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         var entered = false;
         return new ArrowLifecycleFixture(learnedStarFlow: true, starFlowTargetEffects: true,
+            nativeStarFlowCallerQueryControls: true,
             onSend: (current, recipient, bytes) =>
             {
                 if (!entered && recipient == PlayerUid && ArrowThirdVector(bytes, charge: false, triggered: true))

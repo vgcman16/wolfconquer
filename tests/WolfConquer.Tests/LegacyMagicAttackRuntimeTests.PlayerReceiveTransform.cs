@@ -130,7 +130,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var worldData = CreateMagicCatalog(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -162,6 +162,18 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        await PrepareNativeOrdinaryMagicInputQueryAsync(context, () => casterSent.ToArray(),
+            expectedMagicAttack: 301, expectedMaximumHitpoints: 900, expectedMaximumMana: 1500);
+        await PrepareNativeOrdinaryMagicInputQueryAsync(
+            context with { Connection = targetConnection, Session = targetSession },
+            () => targetSent.ToArray(),
+            expectedMagicAttack: 301, expectedMaximumHitpoints: 900, expectedMaximumMana: 1500);
+        Assert.True(sessions.TryGet(casterConnection, out var queriedCaster));
+        context = context with { Session = Assert.IsType<WorldSession>(queriedCaster) };
+        // Both real queries completed and proved MA301/normalMax900/currentHP.
+        // Existing active-transform UpdateStatus restores the caster's HP3000.
+        casterSent.Clear(); targetSent.Clear(); peerSent.Clear();
 
         await PacketHandlers.HandleAsync(
             context,

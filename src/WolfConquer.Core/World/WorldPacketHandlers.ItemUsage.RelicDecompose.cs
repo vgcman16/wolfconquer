@@ -17,7 +17,14 @@ public static partial class WorldPacketHandlers
         PacketFrame frame,
         CancellationToken cancellationToken)
     {
-        var args = ReadLegacyItemUsageArgs(frame);
+        if (!TryReadLegacyRelicDecomposeArgs(packet, frame, out var args))
+        {
+            await context.Log.WriteLineAsync(
+                    "WorldServer skipped MsgItemUsage decompose relics " +
+                    $"{FormatSession(context)}; declared argument body is incomplete (managed fail-closed).")
+                .ConfigureAwait(false);
+            return;
+        }
         foreach (var itemUid in args)
         {
             if (!session.PlayerItems.InventoryItems.Any(item => item.Uid == itemUid))
@@ -32,46 +39,14 @@ public static partial class WorldPacketHandlers
             }
         }
 
-        if (!TryReadItemType(context.WorldData, LegacyRelicDecomposeCrystalItemId, out var crystalItemType))
-        {
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP MsgItemUsage decompose relics " +
-                    $"{FormatSession(context)} source={LegacyRelicDecomposeSource} " +
-                    $"sourceLines={LegacyRelicDecomposeLines}; itemtype {LegacyRelicDecomposeCrystalItemId} is missing.")
-                .ConfigureAwait(false);
-            return;
-        }
-
         var updatedItems = session.PlayerItems;
         var mutationFrames = new List<byte[]>();
         var decomposedCount = 0;
         foreach (var itemUid in args)
         {
-            var relic = updatedItems.InventoryItems.FirstOrDefault(item => item.Uid == itemUid);
-            if (relic is null)
-            {
-                await context.Log.WriteLineAsync(
-                        "PARITY-GAP MsgItemUsage decompose relics " +
-                        $"{FormatSession(context)} source={LegacyRelicDecomposeSource} " +
-                        $"sourceLines={LegacyRelicDecomposeLines} itemUid={itemUid}; " +
-                        "selected item disappeared during local mutation.")
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            updatedItems = ConsumeSingleLegacyInventoryItem(updatedItems, relic, out var consumeFrame);
-            mutationFrames.Add(consumeFrame);
-
-            updatedItems = AddLegacyInventoryItem(
-                updatedItems,
-                crystalItemType,
-                LegacyRelicDecomposeCrystalStack,
-                out var crystal,
-                out var crystalMode);
-            mutationFrames.Add(
-                LegacyGameItemPacket
-                    .FromSnapshotItem(crystal, mode: crystalMode)
-                    .ToFrameBytes());
+            // Native snapshots occurrences first and ignores both removal and Add return values.
+            updatedItems = RemoveLegacyRelicDecomposeUnit(updatedItems, itemUid, mutationFrames);
+            updatedItems = AddLegacyRelicDecomposeCrystals(context.WorldData, updatedItems, mutationFrames);
             decomposedCount++;
         }
 
@@ -96,6 +71,8 @@ public static partial class WorldPacketHandlers
                 CreateLegacyItemUsageFrameWithArgs(packet, args),
                 cancellationToken)
             .ConfigureAwait(false);
+
+        UpdateLegacyRuneRanking(updatedContext, updatedSession);
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled MsgItemUsage decompose relics " +

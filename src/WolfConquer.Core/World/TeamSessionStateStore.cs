@@ -14,6 +14,8 @@ public sealed partial class TeamSessionStateStore
     public void CreateTeam(ConquerTcpConnection connection, long leaderUid)
     {
         ArgumentNullException.ThrowIfNull(connection);
+        if (_nativeClientAuthority is not null)
+            throw new InvalidOperationException("Original native-client lease required for bound team creation.");
 
         lock (_gate)
         {
@@ -45,12 +47,16 @@ public sealed partial class TeamSessionStateStore
     public void ExitTeam(ConquerTcpConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
+        if (_nativeClientAuthority is not null &&
+            WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate) return;
 
+        TeamSession? changedTeam = null;
         lock (_gate)
         {
             if (_states.TryGetValue(connection, out var state))
             {
                 var team = state.Team;
+                changedTeam = team;
                 var wasLeader = state.IsLeader;
 
                 RemoveConnectionNoLock(connection, state);
@@ -60,10 +66,12 @@ public sealed partial class TeamSessionStateStore
                 }
             }
         }
+        if (changedTeam is not null) RefreshNativeTeamLeaderName(changedTeam);
     }
 
     public bool TryAddMember(ConquerTcpConnection leaderConnection, ConquerTcpConnection memberConnection, long memberUid)
     {
+        if (_nativeClientAuthority is not null) return false;
         if (leaderConnection is null || memberConnection is null)
         {
             return false;
@@ -323,7 +331,8 @@ public sealed partial class TeamSessionStateStore
     {
         foreach (var member in team.Members)
         {
-            _states.Remove(member.Connection);
+            if (_states.TryGetValue(member.Connection, out var current) && ReferenceEquals(current.Team, team))
+                _states.Remove(member.Connection);
         }
 
         team.Members.Clear();
@@ -333,7 +342,10 @@ public sealed partial class TeamSessionStateStore
     {
         for (var i = 0; i < state.Team.Members.Count; i++)
         {
-            if (ReferenceEquals(state.Team.Members[i].Connection, connection))
+            if (ReferenceEquals(state.Team.Members[i].Connection, connection) &&
+                state.Team.Members[i].Uid == state.MemberUid &&
+                (state.NativeClient is null ||
+                 ReferenceEquals(state.Team.Members[i].NativeClient?.Identity, state.NativeClient.Identity)))
             {
                 state.Team.Members.RemoveAt(i);
                 break;
@@ -352,10 +364,13 @@ public sealed partial class TeamSessionStateStore
 
         var leader = team.Members[0];
         team.LeaderUid = leader.Uid;
+        team.NativeLeader = leader.NativeClient;
 
         foreach (var member in team.Members)
         {
-            if (_states.TryGetValue(member.Connection, out var state))
+            if (_states.TryGetValue(member.Connection, out var state) &&
+                ReferenceEquals(state.Team, team) &&
+                (member.NativeClient is null || ReferenceEquals(state.NativeClient?.Identity, member.NativeClient.Identity)))
             {
                 state.IsLeader = ReferenceEquals(member.Connection, leader.Connection);
             }
@@ -367,6 +382,7 @@ public sealed partial class TeamSessionStateStore
         public uint Uid { get; } = uid;
 
         public long LeaderUid { get; set; } = leaderUid;
+        public LegacyTournamentWatcherClient? NativeLeader { get; set; }
 
         public string TeamName { get; set; } = teamName;
 
@@ -386,6 +402,7 @@ public sealed partial class TeamSessionStateStore
         public long Uid { get; } = uid;
 
         public LegacyTeamMemberInfoEntry? LegacyInfo { get; set; }
+        public LegacyTournamentWatcherClient? NativeClient { get; set; }
     }
 
     private sealed class TeamSessionState(TeamSession team, long memberUid, bool isLeader)
@@ -395,5 +412,6 @@ public sealed partial class TeamSessionStateStore
         public long MemberUid { get; } = memberUid;
 
         public bool IsLeader { get; set; } = isLeader;
+        public LegacyTournamentWatcherClient? NativeClient { get; set; }
     }
 }

@@ -11,6 +11,25 @@ public static class LegacyVendorPurchasePersistence
 
     private static readonly object PersistenceGate = new();
 
+    // Trade reuses this transaction, with validation inside the existing gate -> file-lock
+    // order. Taking those file locks outside TryPersist would invert vendor lock ordering.
+    internal static bool TryPersistWithBaselineValidation(
+        WorldSession originalFirst,
+        WorldSession updatedFirst,
+        WorldSession originalSecond,
+        WorldSession updatedSecond,
+        string? playerItemsRoot,
+        Func<bool> validateLocked,
+        out string reason)
+    {
+        ArgumentNullException.ThrowIfNull(validateLocked);
+        lock (PersistenceGate)
+        {
+            return TryPersistCore(originalFirst, updatedFirst, originalSecond, updatedSecond,
+                playerItemsRoot, out reason, validateLocked, durableTrade: true);
+        }
+    }
+
     public static bool TryPersist(
         WorldSession originalBuyer,
         WorldSession updatedBuyer,
@@ -42,7 +61,9 @@ public static class LegacyVendorPurchasePersistence
         WorldSession originalSeller,
         WorldSession updatedSeller,
         string? playerItemsRoot,
-        out string reason)
+        out string reason,
+        Func<bool>? validateLocked = null,
+        bool durableTrade = false)
     {
         reason = string.Empty;
         if (!TryValidateSessionPair(
@@ -102,7 +123,14 @@ public static class LegacyVendorPurchasePersistence
         var lockedReason = string.Empty;
         var persisted = SnapshotFileLockCoordinator.ExecuteLocked(
             [buyerCharacterPath, sellerCharacterPath, buyerItemPath, sellerItemPath],
-            () => TryPersistLocked(
+            () =>
+            {
+                if (validateLocked is not null && !validateLocked())
+                {
+                    lockedReason = "snapshotBaselineMismatch";
+                    return false;
+                }
+                return TryPersistLocked(
                 buyerCharacterPath,
                 sellerCharacterPath,
                 buyerItemPath,
@@ -110,7 +138,9 @@ public static class LegacyVendorPurchasePersistence
                 updatedBuyer,
                 updatedSeller,
                 normalizedPlayerItemsRoot,
-                out lockedReason));
+                out lockedReason,
+                durableTrade);
+            });
         reason = lockedReason;
         return persisted;
     }
@@ -123,7 +153,8 @@ public static class LegacyVendorPurchasePersistence
         WorldSession updatedBuyer,
         WorldSession updatedSeller,
         string normalizedPlayerItemsRoot,
-        out string reason)
+        out string reason,
+        bool durableTrade)
     {
         reason = string.Empty;
         if (!TryPrepareCharacterUpdate(
@@ -132,14 +163,16 @@ public static class LegacyVendorPurchasePersistence
                 updatedBuyer,
                 out var buyerCharacterLines,
                 out var buyerCharacterEncoding,
-                out reason) ||
+                out reason,
+                durableTrade) ||
             !TryPrepareCharacterUpdate(
                 "seller",
                 sellerCharacterPath,
                 updatedSeller,
                 out var sellerCharacterLines,
                 out var sellerCharacterEncoding,
-                out reason))
+                out reason,
+                durableTrade))
         {
             return false;
         }
@@ -155,6 +188,37 @@ public static class LegacyVendorPurchasePersistence
         {
             reason = "itemSnapshotSerializationFailed:" + ex.GetType().Name;
             return false;
+        }
+
+        if (durableTrade)
+        {
+            // Trade additionally consumes durable escrow claims. A write-ahead
+            // record makes a crash between these four replacements replayable.
+            var usersRoot = System.IO.Path.GetDirectoryName(buyerCharacterPath)!;
+            if (!PathsEqual(usersRoot, System.IO.Path.GetDirectoryName(sellerCharacterPath)!))
+            {
+                reason = "tradeUsersRootMismatch";
+                return false;
+            }
+            try
+            {
+                return LegacyTradeJournal.TryCommit(usersRoot, normalizedPlayerItemsRoot,
+                [
+                    new(LegacyTradeJournalFileKind.Character, updatedBuyer.AccountId,
+                        File.ReadAllBytes(buyerCharacterPath), EncodeTradeCharacterLines(buyerCharacterLines, buyerCharacterEncoding)),
+                    new(LegacyTradeJournalFileKind.Character, updatedSeller.AccountId,
+                        File.ReadAllBytes(sellerCharacterPath), EncodeTradeCharacterLines(sellerCharacterLines, sellerCharacterEncoding)),
+                    new(LegacyTradeJournalFileKind.Items, updatedBuyer.Character.Uid,
+                        PlayerItemSnapshotFilePersistence.ReadAllBytesIfExists(buyerItemPath), buyerItemBytes),
+                    new(LegacyTradeJournalFileKind.Items, updatedSeller.Character.Uid,
+                        PlayerItemSnapshotFilePersistence.ReadAllBytesIfExists(sellerItemPath), sellerItemBytes),
+                ], out reason);
+            }
+            catch (Exception ex) when (IsPersistenceException(ex))
+            {
+                reason = "tradeJournalPreparation:" + ex.GetType().Name;
+                return false;
+            }
         }
 
         var transactionId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
@@ -265,7 +329,8 @@ public static class LegacyVendorPurchasePersistence
         WorldSession updatedSession,
         out string[] updatedLines,
         out Encoding encoding,
-        out string reason)
+        out string reason,
+        bool clearTradeClaim)
     {
         updatedLines = [];
         encoding = CharacterSnapshotFileEncoding.DefaultWriteEncoding;
@@ -303,6 +368,8 @@ public static class LegacyVendorPurchasePersistence
             ["Money"] = updatedSession.Character.Money.ToString(CultureInfo.InvariantCulture),
             ["ConquerPoints"] = updatedSession.Character.ConquerPoints.ToString(CultureInfo.InvariantCulture),
         };
+        if (clearTradeClaim)
+            foreach (var value in LegacyTradeEscrowClaims.ClearValues) values[value.Key] = value.Value;
         if (!TryApplyCharacterValues(lines, values, out updatedLines))
         {
             reason = role + "CharacterSectionMissing";
@@ -310,6 +377,16 @@ public static class LegacyVendorPurchasePersistence
         }
 
         return true;
+    }
+
+    private static byte[] EncodeTradeCharacterLines(string[] lines, Encoding encoding)
+    {
+        var preamble = encoding.GetPreamble();
+        var text = encoding.GetBytes(string.Join(Environment.NewLine, lines) + Environment.NewLine);
+        var bytes = new byte[preamble.Length + text.Length];
+        preamble.CopyTo(bytes, 0);
+        text.CopyTo(bytes, preamble.Length);
+        return bytes;
     }
 
     private static bool TryValidateCharacterUid(

@@ -242,6 +242,31 @@ public static partial class WorldPacketHandlers
             return (defenderSession, attackerSession, false, LegacyPlayerMagicReceiveAbortReason.None);
         }
 
+        // Native MyCombatGear.ProcescMagic864 writes the selected book ID BEFORE root/steed/CanUse.
+        var randomOwner = TryAssignLegacyNestedDamageRandomSpellEntry(
+            defenderContext, defenderSession, playerSpell.Id);
+        if (randomOwner is null)
+            return (defenderSession, attackerSession, false, LegacyPlayerMagicReceiveAbortReason.TargetLost);
+        defenderSession = randomOwner;
+        defenderContext = defenderContext with { Session = defenderSession };
+
+        if (spellId == LegacyCombatGearMagneticLightSpellId)
+        {
+            var steed = await TryRejectLegacyCombatGearMagneticSteedEntryAsync(
+                    defenderContext, defenderSession, cancellationToken).ConfigureAwait(false);
+            if (steed.Session is null)
+                return (defenderSession, attackerSession, false, LegacyPlayerMagicReceiveAbortReason.TargetLost);
+            defenderSession = steed.Session;
+            defenderContext = defenderContext with { Session = defenderSession };
+            if (steed.Rejected)
+            {
+                var steedReason = RefreshLegacyCombatGearUpdateTargetPlayerParticipants(
+                    ref defenderContext, attackerConnection, ref attackerSession, ref defenderSession,
+                    attackerSession.Character.Uid, defenderSession.Character.Uid);
+                return (defenderSession, attackerSession, false, steedReason);
+            }
+        }
+
         var admission = await TryAdmitLegacyCombatGearNestedPlayerDamageProcAsync(
                 defenderContext, attackerConnection, attackerSession, defenderSession, spell, cancellationToken)
             .ConfigureAwait(false);
@@ -631,6 +656,19 @@ public static partial class WorldPacketHandlers
     {
         // These are ORIGINAL incoming roles, opposite the nested counter receive.
         // Identity fences do not rerun alive/range/PK or source branch selection.
+        if (defenderContext.CombatGearReceiveParticipants is { } original)
+        {
+            var incomingContext = defenderContext with
+                { Connection = attackerConnection, Session = attackerSession };
+            var target = new WorldActiveSession(defenderContext.Connection, defenderSession);
+            var request = new LegacyPlayerReceiveCombatGearRequest(
+                attackerSession, target, attackerUid, defenderUid);
+            var reason = RefreshLegacyCombatGearCapturedParticipants(
+                incomingContext, request, original, ref attackerSession, ref target);
+            defenderSession = target.Session;
+            defenderContext = defenderContext with { Session = defenderSession };
+            return reason;
+        }
         if (defenderContext.Sessions is not { } sessions)
         {
             return attackerSession.Character.Uid != attackerUid

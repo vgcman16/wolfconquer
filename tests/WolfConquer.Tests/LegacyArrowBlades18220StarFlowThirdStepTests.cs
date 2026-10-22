@@ -199,7 +199,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Fact]
     public async Task ArrowBladesNormalDeathRetiresActuallyEarned336WithoutResettingEitherCounter()
     {
-        await using var fixture = new ArrowLifecycleFixture();
+        await using var fixture = new ArrowLifecycleFixture(nativeDeathCasterQueryControls: true);
+        await fixture.PrepareArrowNativeDeathCasterAsync();
         await ArrowThirdWarmAsync(fixture);
         await fixture.OrdinaryMagicAsync();
         fixture.AssertRegistration(ArrowThirdTriggered, ArrowLifeOrigin.AddSeconds(2).DateTime, 10);

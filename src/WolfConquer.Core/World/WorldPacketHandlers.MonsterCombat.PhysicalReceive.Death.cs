@@ -6,6 +6,7 @@ public static partial class WorldPacketHandlers
 {
     private static async ValueTask<WorldSession?> CompleteLegacyPhysicalMonsterDeathAsync(
         WorldPacketHandlerContext context, WorldSession session, LegacyEquipmentQueryPublicationScope scope,
+        LegacyNativePlayerRuntime? nativePlayerReceiver,
         LegacyMonsterInstance monster, LegacyNormalPlayerDeathCause cause, CancellationToken cancellationToken)
     {
         var current = await ClearLegacyPhysicalMonsterThundercloudsAsync(context, session, scope, cancellationToken)
@@ -24,7 +25,7 @@ public static partial class WorldPacketHandlers
         }
 
         current = await ExecuteLegacyNormalPlayerDeathPhasesAsync(
-                context with { Session = session }, session, scope, cause, cancellationToken)
+                context with { Session = session }, session, scope, nativePlayerReceiver, cause, cancellationToken)
             .ConfigureAwait(false);
         if (!current.Completed) return null;
         var packet = new MsgAttackPacket(new MsgAttackQuery(

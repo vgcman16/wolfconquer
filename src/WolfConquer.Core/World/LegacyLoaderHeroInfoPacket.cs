@@ -33,19 +33,20 @@ public readonly record struct LegacyLoaderHeroInfoPacket(
     public int PayloadLength => NameBytesOffset + Encoding.UTF8.GetByteCount(Name);
     public int FrameLength => PacketHeader.Size + PayloadLength;
 
-    public static LegacyLoaderHeroInfoPacket FromSnapshot(CharacterSnapshot snapshot, ushort serverId = 2)
+    public static LegacyLoaderHeroInfoPacket FromSnapshot(CharacterSnapshot snapshot, ushort serverId = 2,
+        LegacyNativePlayerRuntime? nativePlayer = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
         return new LegacyLoaderHeroInfoPacket(
             CheckedUInt32(snapshot.Uid, nameof(snapshot.Uid)),
-            BuildMesh(snapshot),
+            nativePlayer is null ? BuildMesh(snapshot) : nativePlayer.Mesh,
             serverId,
             CheckedByte(snapshot.Level, nameof(snapshot.Level)),
             ReadNobilityRank(snapshot),
             ReadAttributeByte(snapshot.Attributes, "VipLevel"),
             CheckedUInt32(snapshot.Class, nameof(snapshot.Class)),
-            snapshot.Name);
+            nativePlayer is null ? snapshot.Name : nativePlayer.Name);
     }
 
     public static bool TryParse(PacketFrame frame, out LegacyLoaderHeroInfoPacket packet)

@@ -11,25 +11,10 @@ public static partial class WorldPacketHandlers
         WorldDataCatalog worldData,
         Monster monsterFamily,
         int roll,
-        uint moneyAmount,
         out LegacyMonsterDeathDropSelection selection,
         out string noDropReason)
     {
         noDropReason = "";
-        if (roll is > 40 and < 60)
-        {
-            var candidate = GetLegacyMoneyItemId(moneyAmount);
-            if (TryUseKnownLegacyDropItemId(worldData, candidate, out var itemId))
-            {
-                selection = new LegacyMonsterDeathDropSelection(itemId, FloorItemRuntimePickupKind.Money, moneyAmount);
-                return true;
-            }
-
-            selection = default;
-            noDropReason = $"source money drop item id {candidate} is not present in the local itemtype catalog";
-            return false;
-        }
-
         if (roll is > 500 and < 600)
         {
             if (TryReadKnownLegacyDropItemId(worldData, monsterFamily, "drop_hp", out var itemId, out noDropReason))

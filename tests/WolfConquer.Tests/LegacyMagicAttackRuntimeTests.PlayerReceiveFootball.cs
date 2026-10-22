@@ -18,8 +18,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.False(HasLegacyStatusFlag(result.CasterSession.Character.Attributes, LegacyFootballBallFlag));
         Assert.False(HasLegacyStatusFlag(result.TargetSession.Character.Attributes, LegacyFootballBallFlag));
 
-        AssertFootballSpellAnimationDamage(result.CasterSent, expectedDamage: 0);
-        AssertFootballSpellAnimationDamage(result.TargetSent, expectedDamage: 0);
+        // Football returns without mutating the retained SpellObj scalar: (queried301 + raw120)/2.
+        AssertFootballSpellAnimationDamage(result.CasterSent, expectedDamage: 210);
+        AssertFootballSpellAnimationDamage(result.TargetSent, expectedDamage: 210);
     }
 
     [Fact]
@@ -35,8 +36,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.True(HasLegacyStatusFlag(result.CasterSession.Character.Attributes, LegacyFootballBallFlag));
         Assert.False(HasLegacyStatusFlag(result.TargetSession.Character.Attributes, LegacyFootballBallFlag));
 
-        AssertFootballSpellAnimationDamage(result.CasterSent, expectedDamage: 0);
-        AssertFootballSpellAnimationDamage(result.TargetSent, expectedDamage: 0);
+        // Passing the ball also skips HP mutation, not the already-calculated animation scalar.
+        AssertFootballSpellAnimationDamage(result.CasterSent, expectedDamage: 210);
+        AssertFootballSpellAnimationDamage(result.TargetSent, expectedDamage: 210);
 
         var updates = ParseMsgUpdates(result.CasterSent.Concat(result.TargetSent));
         AssertStatusFlagUpdate(updates, PlayerUid, LegacyFootballBallFlag, expectedSet: true);
@@ -75,6 +77,26 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        // Earn source Status.MagicAttack through the public query. Raw Spirit300 gives301,
+        // native base HP900 clamps the raw5000 current HP, and MaxMana1500 does not refill500.
+        await PacketHandlers.HandleAsync(
+            context,
+            ReadFrame(new MsgActionPacket { ObjId = PlayerUid, Type = (MsgActionType)251 }.ToFrameBytes()));
+        var statusBytes = Assert.Single(casterSent,
+            bytes => LegacyPlayerStatusPacket.TryParse(ReadFrame(bytes), out _));
+        Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(statusBytes), out var status));
+        Assert.Equal(PlayerUid, status.Uid);
+        Assert.Equal(301U, status.MagicAttack);
+        Assert.Equal(900U, status.MaxHP);
+        Assert.Equal(1500U, status.MaxMana);
+        Assert.True(sessions.TryGet(casterConnection, out var queriedCasterSession));
+        Assert.NotNull(queriedCasterSession);
+        Assert.Equal(900L, queriedCasterSession.Character.MinHitPoints);
+        Assert.Equal(500L, queriedCasterSession.Character.MinMana);
+        context = context with { Session = queriedCasterSession };
+        casterSent.Clear();
+        targetSent.Clear(); // Only positively proved query setup frames; target remains unqueried HP5000.
 
         await PacketHandlers.HandleAsync(
             context,
@@ -118,13 +140,26 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         IReadOnlyList<byte[]> frames,
         uint expectedDamage)
     {
+        var animationBytes = Assert.Single(frames,
+            bytes => LegacySpellAnimationPacket.TryParse(ReadFrame(bytes), out _));
+        Assert.Equal((ushort)2239, ReadFrame(animationBytes).Header.Opcode);
         var spell = Assert.Single(ParseSpellAnimations(frames));
         Assert.Equal(PlayerUid, spell.AttackerUid);
+        Assert.Equal(0U, spell.AttackedUid);
+        Assert.Equal((ushort)832, spell.X);
+        Assert.Equal((ushort)584, spell.Y);
         Assert.Equal(ThunderSpellId, spell.SpellId);
+        Assert.Equal((byte)0, spell.SpellLevel);
+        Assert.Equal((byte)0, spell.LevelHu);
+        Assert.Equal((ushort)0, spell.NextSpell);
+        Assert.Equal((byte)0, spell.SpellEffect);
         var target = Assert.Single(spell.Targets);
         Assert.Equal(TargetPlayerUid, target.Uid);
         Assert.Equal(expectedDamage, target.Damage);
         Assert.True(target.Hit);
+        Assert.Equal(MsgAttackEffect.None, target.Effect);
+        Assert.DoesNotContain(ParseMsgUpdates(frames), update => update.Uid == TargetPlayerUid &&
+            update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.Hitpoints));
     }
 
     private static void AssertStatusFlagUpdate(

@@ -17,6 +17,7 @@ public sealed class DataToolLegacyWorldSmokeTests : IDisposable
     [Fact]
     public async Task LegacyWorldSmokePrintsAnswerOk()
     {
+        using var beastMetadata = new NativeLoginBeastMetadataScope(1000);
         Directory.CreateDirectory(_usersRoot);
         WriteSnapshot(1_293_600);
         var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot));
@@ -68,6 +69,7 @@ public sealed class DataToolLegacyWorldSmokeTests : IDisposable
     [Fact]
     public async Task LegacyWorldCaptureWritesBoundedSnapshotWhenAnswerOkIsSeen()
     {
+        using var beastMetadata = new NativeLoginBeastMetadataScope(1000);
         Directory.CreateDirectory(_usersRoot);
         WriteSnapshot(1_293_600);
         var outputPath = Path.Combine(_usersRoot, "legacy-world-capture.json");

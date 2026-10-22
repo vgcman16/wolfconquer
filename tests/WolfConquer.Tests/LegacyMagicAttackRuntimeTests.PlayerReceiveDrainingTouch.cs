@@ -98,11 +98,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         IReadOnlyDictionary<string, string> casterAttributes)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
+            [CreateRetainedNativeMagic421Helmet(nativeMana500: true)],
             // DrainingTouch resource assertions use zero spell mana cost to isolate the restore packets.
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 0, damage: 120, coldTime: 0));
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 0, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -126,6 +127,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             name: "Target",
             x: 832,
             y: 584);
+        casterSession = CreateRetainedNativeMagic421Input(casterSession, nativeMana500: true);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession, nativeMana500: true);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -134,6 +137,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent, nativeMana500: true);
 
         await PacketHandlers.HandleAsync(
             context,

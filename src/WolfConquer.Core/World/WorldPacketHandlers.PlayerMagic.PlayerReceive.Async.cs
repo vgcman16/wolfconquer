@@ -11,8 +11,12 @@ public static partial class WorldPacketHandlers
         uint damage,
         CancellationToken cancellationToken,
         bool applyMudWall = true,
-        LegacyPlayerReceiveCombatGearReceipt? combatGearReceipt = null)
+        LegacyPlayerReceiveCombatGearReceipt? combatGearReceipt = null,
+        object? nativeIncomingClientIdentity = null)
     {
+        // Native ReceiveAttack.Execute holds its attacked Player argument through every await.
+        // Carry that physical target into Dead AFTER attacker finish; never re-read client.Player there.
+        var nativeDeadPlayerReceiver = target.Session.NativePlayer;
         var acceptedAttackerUid = attacker.Uid;
         var acceptedTargetUid = target.Session.Character.Uid;
         // Real runtime receives have an attacker session. Preserve the legacy
@@ -29,11 +33,13 @@ public static partial class WorldPacketHandlers
         {
             WorldSession currentOpeningAttacker = openingAttacker;
             var request = new LegacyPlayerReceiveCombatGearRequest(
-                currentOpeningAttacker, target, acceptedAttackerUid, acceptedTargetUid);
+                currentOpeningAttacker, target, acceptedAttackerUid, acceptedTargetUid,
+                nativeIncomingClientIdentity);
             if (combatGearReceipt is not null)
             {
-                combatGearReceipt.Consume(context.Connection, acceptedAttackerUid,
-                    target.Connection, acceptedTargetUid);
+                var originalParticipants = combatGearReceipt.Consume(
+                    context.Connection, acceptedAttackerUid, target.Connection, acceptedTargetUid);
+                context = context with { CombatGearReceiveParticipants = originalParticipants };
                 var reason = RefreshLegacyPlayerReceiveCombatGearParticipants(
                     context, request, ref currentOpeningAttacker, ref target);
                 if (reason != LegacyPlayerMagicReceiveAbortReason.None)
@@ -49,8 +55,9 @@ public static partial class WorldPacketHandlers
                     return new(null, opening.AttackerSession, opening.AbortReason);
                 currentOpeningAttacker = opening.AttackerSession!;
                 target = opening.Target!;
-                opening.Receipt!.Consume(context.Connection, acceptedAttackerUid,
-                    target.Connection, acceptedTargetUid);
+                var originalParticipants = opening.Receipt!.Consume(
+                    context.Connection, acceptedAttackerUid, target.Connection, acceptedTargetUid);
+                context = context with { CombatGearReceiveParticipants = originalParticipants };
             }
             context = context with { Session = currentOpeningAttacker };
             attacker = currentOpeningAttacker.Character;
@@ -172,7 +179,7 @@ public static partial class WorldPacketHandlers
         // Normal Dead owns GhostStamp/talk, later DeadStamp, ClearFlags/query,
         // then HP0 setter before AddFlagDead; none is an atomic late replay.
         return await CompleteLegacyNormalPlayerDeathAsync(
-                context, prepared, finalTarget, finalAttacker, cancellationToken)
+                context, prepared, finalTarget, nativeDeadPlayerReceiver, finalAttacker, cancellationToken)
             .ConfigureAwait(false);
     }
 

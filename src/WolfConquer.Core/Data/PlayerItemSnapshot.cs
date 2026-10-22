@@ -95,6 +95,11 @@ public sealed class PlayerItemSnapshotItem
         return Copy(durability: durability);
     }
 
+    public PlayerItemSnapshotItem WithMaximumDurabilityAndPlus(ushort maximumDurability, byte plus)
+    {
+        return Copy(maximumDurability: maximumDurability, plus: plus);
+    }
+
     public PlayerItemSnapshotItem WithSocketProgress(uint socketProgress)
     {
         return Copy(socketProgress: socketProgress);
@@ -130,6 +135,13 @@ public sealed class PlayerItemSnapshotItem
         return Copy(animaItemId: animaItemId);
     }
 
+    public PlayerItemSnapshotItem WithActivation(uint activate, long expiration)
+    {
+        // Native MsgGameItem's saved TimeLeftInMinutes getter is zero while
+        // activated. Normalize only this new projection, never old snapshots.
+        return Copy(activate: activate, expiration: expiration, timeLeftInMinutes: activate != 0 ? 0u : null);
+    }
+
     public PlayerItemSnapshotItem WithWarehouseId(uint warehouseId, ushort? position = null)
     {
         return Copy(warehouseId: warehouseId, position: position);
@@ -145,6 +157,8 @@ public sealed class PlayerItemSnapshotItem
         uint? itemId = null,
         ushort? position = null,
         ushort? durability = null,
+        ushort? maximumDurability = null,
+        byte? plus = null,
         uint? socketProgress = null,
         uint? runeExperience = null,
         ushort? stackSize = null,
@@ -152,6 +166,9 @@ public sealed class PlayerItemSnapshotItem
         uint? color = null,
         byte? locked = null,
         uint? animaItemId = null,
+        uint? activate = null,
+        long? expiration = null,
+        uint? timeLeftInMinutes = null,
         uint? warehouseId = null,
         IReadOnlyList<PlayerItemSnapshotItem>? depositedItems = null)
     {
@@ -160,13 +177,13 @@ public sealed class PlayerItemSnapshotItem
             Uid = Uid,
             ItemId = itemId ?? ItemId,
             Durability = durability ?? Durability,
-            MaximumDurability = MaximumDurability,
+            MaximumDurability = maximumDurability ?? MaximumDurability,
             Position = position ?? Position,
             SocketProgress = socketProgress ?? SocketProgress,
             SocketOne = SocketOne,
             SocketTwo = SocketTwo,
             Effect = Effect,
-            Plus = Plus,
+            Plus = plus ?? Plus,
             Bless = Bless,
             Bound = bound ?? Bound,
             Enchant = Enchant,
@@ -174,8 +191,8 @@ public sealed class PlayerItemSnapshotItem
             Locked = locked ?? Locked,
             PlusProgress = PlusProgress,
             Inscribed = Inscribed,
-            Activate = Activate,
-            TimeLeftInMinutes = TimeLeftInMinutes,
+            Activate = activate ?? Activate,
+            TimeLeftInMinutes = timeLeftInMinutes ?? TimeLeftInMinutes,
             StackSize = stackSize ?? StackSize,
             WarehouseId = warehouseId ?? WarehouseId,
             Color = color ?? Color,
@@ -198,7 +215,7 @@ public sealed class PlayerItemSnapshotItem
             Attribute3 = Attribute3,
             Attribute4 = Attribute4,
             Attribute5 = Attribute5,
-            Expiration = Expiration,
+            Expiration = expiration ?? Expiration,
             MythSoul = MythSoul,
             MythSoulPoints = MythSoulPoints,
             PerfectionLevel = PerfectionLevel,
@@ -280,7 +297,12 @@ public sealed class PlayerItemSnapshotLoader
 
     public string PlayerItemsRoot => _playerItemsRoot;
 
-    public PlayerItemSnapshot LoadByCharacterUid(long characterUid)
+    public PlayerItemSnapshot LoadByCharacterUid(long characterUid) =>
+        LoadByCharacterUid(characterUid, captureRawLoad: null);
+
+    // The actual ONE locked file read feeds both the separate physical raw owner and existing DTO.
+    // No serialization/re-read or inference from the normalized/deduplicated snapshot is permitted.
+    internal PlayerItemSnapshot LoadByCharacterUid(long characterUid, Action<byte[]?>? captureRawLoad)
     {
         var path = GetCharacterSnapshotPath(characterUid);
         return SnapshotFileLockCoordinator.ExecuteLocked(
@@ -288,6 +310,7 @@ public sealed class PlayerItemSnapshotLoader
             () =>
             {
                 var bytes = PlayerItemSnapshotFilePersistence.ReadAllBytesIfExists(path);
+                captureRawLoad?.Invoke(bytes);
                 return bytes is null
                     ? PlayerItemSnapshot.Empty
                     : Parse(bytes, Path.GetFileName(path));

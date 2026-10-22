@@ -45,7 +45,7 @@ internal static partial class Program
             return 0;
         }
         catch (Exception ex) when (
-            ex is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException)
+            ex is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException or OverflowException)
         {
             Console.Error.WriteLine($"Client PE symbol audit failed: {ex.Message}");
             return 1;
@@ -357,6 +357,8 @@ internal static partial class Program
             var exportTableSize = 0U;
             var importTableRva = 0U;
             var importTableSize = 0U;
+            var delayImportTableRva = 0U;
+            var delayImportTableSize = 0U;
             if (dataDirectoryOffset + 8 <= optionalOffset + optionalHeaderSize && dataDirectoryCount > 0)
             {
                 exportTableRva = ReadClientLaunchPeUInt32(data, dataDirectoryOffset);
@@ -368,6 +370,26 @@ internal static partial class Program
                 importTableRva = ReadClientLaunchPeUInt32(data, dataDirectoryOffset + 8);
                 importTableSize = ReadClientLaunchPeUInt32(data, dataDirectoryOffset + 12);
             }
+
+            if (dataDirectoryCount > 13)
+            {
+                if (dataDirectoryOffset + 14 * 8 > optionalOffset + optionalHeaderSize)
+                {
+                    throw new InvalidDataException("delay-import-data-directory-outside-optional-header");
+                }
+
+                delayImportTableRva = ReadClientLaunchPeUInt32(data, dataDirectoryOffset + 13 * 8);
+                delayImportTableSize = ReadClientLaunchPeUInt32(data, dataDirectoryOffset + 13 * 8 + 4);
+            }
+
+            if (optionalHeaderSize < 32)
+            {
+                throw new InvalidDataException("optional-header-too-small-for-image-base");
+            }
+
+            var imageBase = isPe32Plus
+                ? ReadClientPeSymbolUInt64(data, optionalOffset + 24)
+                : ReadClientLaunchPeUInt32(data, optionalOffset + 28);
 
             var sections = ReadClientLaunchPeSections(data, checked(optionalOffset + optionalHeaderSize), sectionCount);
             return new ClientPeSymbolPeHeaders(
@@ -382,7 +404,10 @@ internal static partial class Program
                 ImportTableRva: importTableRva,
                 ImportTableSize: importTableSize,
                 ExportTableRva: exportTableRva,
-                ExportTableSize: exportTableSize);
+                ExportTableSize: exportTableSize,
+                ImageBase: imageBase,
+                DelayImportTableRva: delayImportTableRva,
+                DelayImportTableSize: delayImportTableSize);
         }
         catch (Exception ex) when (ex is InvalidDataException or ArgumentOutOfRangeException or OverflowException)
         {
@@ -390,7 +415,7 @@ internal static partial class Program
         }
     }
 
-    private static ClientPeSymbolImportSet ReadClientPeSymbolImportsFromDll(
+    private static ClientPeSymbolImportSet ReadClientPeSymbolNormalImportsFromDll(
         byte[] bytes,
         ClientPeSymbolPeHeaders pe,
         string requestedDllName,
@@ -685,6 +710,11 @@ internal static partial class Program
         if (!dllPe.IsPe)
         {
             return ClientPeSymbolCompareReport.Skipped("dll-not-pe");
+        }
+
+        if (!imports.IsPresent)
+        {
+            return ClientPeSymbolCompareReport.Skipped("import-dll-not-present");
         }
 
         var exportNames = exports.NamedExports
@@ -1022,7 +1052,10 @@ internal sealed record ClientPeSymbolPeHeaders(
     uint ImportTableRva,
     uint ImportTableSize,
     uint ExportTableRva,
-    uint ExportTableSize)
+    uint ExportTableSize,
+    ulong ImageBase = 0,
+    uint DelayImportTableRva = 0,
+    uint DelayImportTableSize = 0)
 {
     public static ClientPeSymbolPeHeaders Skipped()
     {

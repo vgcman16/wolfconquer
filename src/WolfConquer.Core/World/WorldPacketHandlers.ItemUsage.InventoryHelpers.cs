@@ -41,19 +41,18 @@ public static partial class WorldPacketHandlers
         out PlayerItemSnapshotItem? item,
         out ItemType? itemType)
     {
-        if (entry.Item is not null)
-        {
-            item = entry.Item.WithPosition(0);
-            itemType = TryReadLegacyItemType(context.WorldData, entry.Packet.ItemId, out var existingType)
-                ? existingType
-                : null;
-            return true;
-        }
-
+        // Native MsgFloorItem/MsgItemPacket.cs:174 requires ItemsBase even
+        // when the ground entry already carries its physical item snapshot.
         if (!TryReadLegacyItemType(context.WorldData, entry.Packet.ItemId, out itemType))
         {
             item = null;
             return false;
+        }
+
+        if (entry.Item is not null)
+        {
+            item = entry.Item.WithPosition(0);
+            return true;
         }
 
         item = CreatePurchasedItems(session.PlayerItems, itemType, 1, isBound: false, plus: entry.Packet.PlusOrColor)[0];
@@ -78,41 +77,6 @@ public static partial class WorldPacketHandlers
         return true;
     }
 
-    private static bool TryAddLegacyCurrency(
-        CharacterSnapshot character,
-        FloorItemRuntimeEntry entry,
-        out CharacterSnapshot updatedCharacter)
-    {
-        updatedCharacter = character;
-        if (entry.Amount <= 0)
-        {
-            return false;
-        }
-
-        if (entry.Kind == FloorItemRuntimePickupKind.Money)
-        {
-            if (character.Money > long.MaxValue - entry.Amount)
-            {
-                return false;
-            }
-
-            updatedCharacter = character with { Money = character.Money + entry.Amount };
-            return true;
-        }
-
-        if (entry.Kind == FloorItemRuntimePickupKind.ConquerPoints)
-        {
-            if (character.ConquerPoints > long.MaxValue - entry.Amount)
-            {
-                return false;
-            }
-
-            updatedCharacter = character with { ConquerPoints = character.ConquerPoints + entry.Amount };
-            return true;
-        }
-
-        return false;
-    }
 
     private static PlayerItemSnapshot ConsumeSingleLegacyInventoryItem(
         PlayerItemSnapshot items,

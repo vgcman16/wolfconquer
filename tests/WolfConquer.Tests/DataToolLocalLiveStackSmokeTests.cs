@@ -19,6 +19,7 @@ public sealed class DataToolLocalLiveStackSmokeTests : IDisposable
     [Fact]
     public async Task LocalLiveStackSmokeProvesLoaderGatewayAccountAndWorldRoute()
     {
+        using var beastMetadata = new NativeLoginBeastMetadataScope(1000);
         Directory.CreateDirectory(_usersRoot);
         WriteSnapshot(1_400_123);
 

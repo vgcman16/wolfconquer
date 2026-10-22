@@ -94,20 +94,6 @@ public static partial class WorldPacketHandlers
         PlayerItemSnapshotItem rune,
         IReadOnlyDictionary<int, IReadOnlyList<ItemType>>? itemsById)
     {
-        if (rune.ItemId / 100 == 40_100)
-        {
-            return true;
-        }
-
-        if (rune.ItemId > int.MaxValue ||
-            itemsById is null ||
-            !itemsById.TryGetValue((int)rune.ItemId, out var itemTypes))
-        {
-            return false;
-        }
-
-        return itemTypes.Any(itemType =>
-            itemType.Name.Contains("Comprehension", StringComparison.OrdinalIgnoreCase) ||
-            itemType.Fields.Any(field => field.Contains("Comprehension", StringComparison.OrdinalIgnoreCase)));
+        return rune is not null && rune.ItemId == 4_010_001;
     }
 }

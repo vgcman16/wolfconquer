@@ -55,6 +55,11 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        // This stage has no native public item-mutation writers. Never expose its old raw image
+        // as a current lookup after these public mutation intents (including rejected requests).
+        if (packet.Action is not (MsgItemUsageAction.Ping or MsgItemUsageAction.ShowItem or
+                MsgItemUsageAction.ShowWarehouseMoney))
+            context.Connection.NativeGameClient?.RawEquipmentObservation?.InvalidateRawLoadObservation("publicItemUsageMutationIntent");
         await context.Log.WriteLineAsync(
                 "WorldServer handled MsgItemUsage " +
                 $"{FormatSession(context)} action={packet.Action} id={packet.Id} dwParam={packet.DwParam} " +

@@ -12,6 +12,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var phases = new ConcurrentQueue<(uint Recipient, string Phase)>();
         await using var fixture = new RootMagicEntryFixture(
             itemEffects: new(RightEffect: 0), itemEffectLifetimeControls: true,
+            nativeDeathCasterQueryControls: true,
             onSend: (current, uid, bytes) =>
             {
                 if (!armed || RootGhostPhaseKind(bytes) is not { } phase)
@@ -97,6 +98,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         WorldSession? replacement = null;
         await using var fixture = new RootMagicEntryFixture(
             itemEffects: new(RightEffect: 0), itemEffectLifetimeControls: true,
+            nativeDeathCasterQueryControls: true,
             onSend: (current, uid, bytes) =>
             {
                 if (!armed || entered || uid != PlayerUid || RootGhostPhaseKind(bytes) != lossPhase)
@@ -155,7 +157,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             return ValueTask.CompletedTask;
         }
         await using var fixture = new RootMagicEntryFixture(
-            itemEffects: new(RightEffect: 0), itemEffectLifetimeControls: true, onSend: OnSend);
+            itemEffects: new(RightEffect: 0), itemEffectLifetimeControls: true,
+            nativeDeathCasterQueryControls: true, onSend: OnSend);
         fixture.AddRootGhostViewer(RootGhostExtraViewerUid, OnSend);
         await PrepareRootGhostPhaseAsync(fixture);
         var start = fixture.Order.Count;

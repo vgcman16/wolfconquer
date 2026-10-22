@@ -365,6 +365,13 @@ public sealed class CharacterSnapshotLoader
         return _playerItemLoader?.LoadByCharacterUid(characterUid) ?? PlayerItemSnapshot.Empty;
     }
 
+    internal PlayerItemSnapshot LoadPlayerItemsByCharacterUid(
+        long characterUid, Action<byte[]?> captureRawLoad)
+    {
+        ArgumentNullException.ThrowIfNull(captureRawLoad);
+        return _playerItemLoader?.LoadByCharacterUid(characterUid, captureRawLoad) ?? PlayerItemSnapshot.Empty;
+    }
+
     public PlayerSpellSnapshot LoadPlayerSpellsByCharacterUid(long characterUid)
     {
         return _playerSpellLoader?.LoadByCharacterUid(characterUid) ?? PlayerSpellSnapshot.Empty;

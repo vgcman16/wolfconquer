@@ -29,6 +29,7 @@ public static partial class WorldPacketHandlers
 
             if (!Refresh() || !AddManaMaximum(LegacyEquipmentNativeMana.CombatGear(Session, Context.WorldData)))
                 return false; // Native Status570–589 AFTER rank-spell await, BEFORE LoadGearMythsoulBag1553.
+            if (!NativeMagicGear()) return false;
             byte venom = 0;
             foreach (var item in CapturedEquipment)
             {
@@ -36,9 +37,10 @@ public static partial class WorldPacketHandlers
                 if (item.MythSoul != 0 && item.MythSoul % 1000 - level == 10)
                     venom = unchecked((byte)(venom + level));
             }
-            return venom != 0
+            var venomPublished = venom != 0
                 ? await SetNativeDerivedSpellAsync(20_000, venom).ConfigureAwait(false)
                 : await RemoveNativeDerivedSpellAsync(20_000).ConfigureAwait(false);
+            return venomPublished && NativeMagicMythsoul(); // Source bag stats AFTER Venom's publication.
         }
 
         private async ValueTask<bool> SetNativeDerivedSpellAsync(ushort id, ushort level)

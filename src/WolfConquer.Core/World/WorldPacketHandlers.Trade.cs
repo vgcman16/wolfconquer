@@ -34,36 +34,7 @@ public static partial class WorldPacketHandlers
         PacketFrame frame,
         CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!LegacyTradePacket.TryParse(frame, out var packet))
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer rejected malformed LegacyTrade packet {FormatSession(context)}. {FormatFrameDiagnostic(frame)}")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        await context.Log.WriteLineAsync(
-                "WorldServer handled LegacyTrade " +
-                $"{FormatSession(context)} type={packet.Type}; " +
-                "sourceName=CMsgTrade sourceEvidence=MrRayzo.Packets maps ID 2119 to CMsgTrade.")
-            .ConfigureAwait(false);
-
-        if (context.Session is { } session)
-        {
-            var tradeActive = packet.Type switch
-            {
-                2 or 4 or 5 => false,
-                0 or 1 or 3 or 6 or 7 or 9 or 11 or 12 => true,
-                _ => session.LegacyTradeActive,
-            };
-
-            if (tradeActive != session.LegacyTradeActive)
-            {
-                context.Sessions?.Set(context.Connection, session with { LegacyTradeActive = tradeActive });
-            }
-        }
+        await HandleLegacyTradeRuntimeAsync(context, frame, cancellationToken).ConfigureAwait(false);
     }
 
 

@@ -10,4 +10,5 @@ public enum LegacyEquipmentRebuildReason
     TransformFinish,
     InitialWorldEntry,
     AllowAnimation,
+    RiseOfTaoismChange,
 }

@@ -10,13 +10,16 @@ public static partial class WorldPacketHandlers
     {
         // Team.MemberInfo41-50 snapshots identity/mesh at the REAL membership point.
         // Constructor clamps; later HitPoints setter deliberately uses ushort casts.
-        teams.InitializeLegacyMemberInfo(connection, session.Character.Uid,
-            new LegacyTeamMemberInfoEntry(
+        var entry = new LegacyTeamMemberInfoEntry(
                 session.Character.Name,
                 CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)),
                 BuildLegacyCharacterMesh(session.Character),
                 Math.Min(ushort.MaxValue, GetLegacyEquipmentRuntimeMaxHitpoints(session, context.WorldData)),
-                unchecked((ushort)Math.Min(ushort.MaxValue, session.Character.MinHitPoints))));
+                unchecked((ushort)Math.Min(ushort.MaxValue, session.Character.MinHitPoints)));
+        if (NativeTeamEntryClient(context, connection) is { } original)
+            teams.InitializeNativeMemberInfo(original, entry);
+        else
+            teams.InitializeLegacyMemberInfo(connection, session.Character.Uid, entry);
     }
 
     private static async ValueTask<LegacyEquipmentQueryPublicationResult>

@@ -1535,7 +1535,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerLegacyNobilityConquerPointsDonateSkipsAfterLegacyTradeRequestUntilClose()
+    public async Task HandlerLegacyNobilityConquerPointsDonateDoesNotTreatOrphanTradeRequestAsOpenTrade()
     {
         Directory.CreateDirectory(_usersRoot);
         WriteSnapshot(
@@ -1557,7 +1557,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         await handler.HandleFrameAsync(
             connection,
             ReadFrame(new LegacyTradePacket(Type: 0).ToFrameBytes()));
-        Assert.True(GetSession(handler, connection).LegacyTradeActive);
+        Assert.False(GetSession(handler, connection).LegacyTradeActive);
 
         await handler.HandleFrameAsync(
             connection,
@@ -1566,34 +1566,25 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 Value: 250_000_000,
                 DonationType: (byte)LegacyNobilityDonationType.ConquerPoints).ToFrameBytes()));
 
-        Assert.Equal(startupCount, sent.Count);
+        Assert.Equal(startupCount + 3, sent.Count);
         var updated = GetSession(handler, connection);
-        Assert.True(updated.LegacyTradeActive);
-        Assert.Equal(500_000, updated.Character.ConquerPoints);
-        Assert.Equal("0", updated.Character.Attributes["DonationNobility"]);
+        Assert.False(updated.LegacyTradeActive);
+        Assert.Equal(0, updated.Character.ConquerPoints);
+        Assert.Equal("250000000", updated.Character.Attributes["DonationNobility"]);
 
         var output = log.ToString();
-        Assert.Contains("WorldServer skipped source-backed LegacyNobility donation guard", output);
-        Assert.Contains("reason=inTrade", output);
-        Assert.DoesNotContain("WorldServer applied LegacyNobility donation", output);
+        Assert.DoesNotContain("reason=inTrade", output);
+        Assert.Contains("WorldServer applied LegacyNobility donation", output);
+        Assert.True(LegacyNobilityIconPacket.TryParse(ReadFrame(sent[startupCount]), out var icon));
+        Assert.Equal(250_000_000UL, icon.Donation);
+        AssertSingleUpdate(sent[startupCount + 1], 1_293_600, LegacyMsgUpdateDataType.ConquerPoints, 0);
 
         await handler.HandleFrameAsync(
             connection,
             ReadFrame(new LegacyTradePacket(Type: 2).ToFrameBytes()));
         Assert.False(GetSession(handler, connection).LegacyTradeActive);
 
-        var afterCloseCount = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new LegacyNobilityRequestPacket(
-                LegacyNobilityAction.Donate,
-                Value: 250_000_000,
-                DonationType: (byte)LegacyNobilityDonationType.ConquerPoints).ToFrameBytes()));
-
-        Assert.Equal(afterCloseCount + 3, sent.Count);
-        Assert.True(LegacyNobilityIconPacket.TryParse(ReadFrame(sent[afterCloseCount]), out var icon));
-        Assert.Equal(250_000_000UL, icon.Donation);
-        AssertSingleUpdate(sent[afterCloseCount + 1], 1_293_600, LegacyMsgUpdateDataType.ConquerPoints, 0);
+        Assert.Equal(startupCount + 3, sent.Count);
     }
 
     [Fact]
@@ -25692,7 +25683,16 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 playerProficienciesRoot: null);
             var handler = new WorldServerFrameHandler(loader, handoff, worldData, log);
             var sent = new List<byte[]>();
-            var connection = CreateSendingConnection(sent);
+            // Declared physical CLIENT MODEL prestate, not socket-born acquisition.
+            var physicalClient = new LegacyNativeGameClientRuntime();
+            var connection = new ConquerTcpConnection(
+                null, new IPEndPoint(IPAddress.Loopback, 9958),
+                (frame, _) =>
+                {
+                    sent.Add(frame.ToArray());
+                    return ValueTask.CompletedTask;
+                },
+                nativeGameClient: physicalClient);
 
             await handler.HandleFrameAsync(
                 connection,
@@ -27394,7 +27394,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
         var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), handoff, log);
+        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot, Path.Combine(_usersRoot, "PlayersItems")), handoff, log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -27743,7 +27743,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
         var peerTicket = handoff.Issue(1293601, "watcher", ConquerRuntimeDefaults.WorldServer);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), handoff, worldData, log);
+        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot, Path.Combine(_usersRoot, "PlayersItems")), handoff, worldData, log);
         var sent = new List<byte[]>();
         var peerSent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
@@ -27852,7 +27852,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
         var peerTicket = handoff.Issue(1293601, "watcher", ConquerRuntimeDefaults.WorldServer);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), handoff, worldData, log);
+        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot, Path.Combine(_usersRoot, "PlayersItems")), handoff, worldData, log);
         var sent = new List<byte[]>();
         var peerSent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
@@ -27962,7 +27962,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
         var teammateTicket = handoff.Issue(1293601, "teammate", ConquerRuntimeDefaults.WorldServer);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), handoff, worldData, log);
+        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot, Path.Combine(_usersRoot, "PlayersItems")), handoff, worldData, log);
         var sent = new List<byte[]>();
         var teammateSent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
@@ -28071,7 +28071,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
         var teammateTicket = handoff.Issue(1293601, "teammate", ConquerRuntimeDefaults.WorldServer);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), handoff, worldData, log);
+        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot, Path.Combine(_usersRoot, "PlayersItems")), handoff, worldData, log);
         var sent = new List<byte[]>();
         var teammateSent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);

@@ -7,11 +7,27 @@ public sealed record WorldActiveSession(
     ConquerTcpConnection Connection,
     WorldSession Session);
 
-public sealed class WorldSessionStore
+public sealed partial class WorldSessionStore
 {
     private readonly ConditionalWeakTable<ConquerTcpConnection, SessionHolder> _sessions = new();
     private readonly ConditionalWeakTable<ConquerTcpConnection, object> _connectionGates = new();
     private readonly Action<ConquerTcpConnection, WorldSession?, WorldSession>? _sessionChanged;
+
+    // Synchronous lock-reentrancy detection ONLY. Not a client identity or async ownership token.
+    [ThreadStatic]
+    private static int _enteredConnectionGateDepth;
+    internal static bool IsCurrentThreadInsideAnyConnectionGate => _enteredConnectionGateDepth != 0;
+
+    private static NativeConnectionGateScope EnterNativeConnectionGate()
+    {
+        _enteredConnectionGateDepth = checked(_enteredConnectionGateDepth + 1);
+        return default;
+    }
+
+    private readonly struct NativeConnectionGateScope : IDisposable
+    {
+        public void Dispose() => _enteredConnectionGateDepth--;
+    }
 
     public WorldSessionStore(Action<ConquerTcpConnection, WorldSession?, WorldSession>? sessionChanged = null)
     {
@@ -26,6 +42,7 @@ public sealed class WorldSessionStore
         var gate = _connectionGates.GetValue(connection, static _ => new object());
         lock (gate)
         {
+            using var nativeGateScope = EnterNativeConnectionGate();
             var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
             var previous = holder.Read();
             holder.Publish(session);
@@ -45,6 +62,7 @@ public sealed class WorldSessionStore
         var gate = _connectionGates.GetValue(connection, static _ => new object());
         lock (gate)
         {
+            using var nativeGateScope = EnterNativeConnectionGate();
             var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
             if (!ReferenceEquals(holder.Read(), expectedSession))
             {
@@ -64,6 +82,7 @@ public sealed class WorldSessionStore
         var gate = _connectionGates.GetValue(connection, static _ => new object());
         lock (gate)
         {
+            using var nativeGateScope = EnterNativeConnectionGate();
             if (!_sessions.TryGetValue(connection, out var holder))
             {
                 session = null;
@@ -96,6 +115,22 @@ public sealed class WorldSessionStore
         return session is not null;
     }
 
+    // Synchronous native-client cache access uses the SAME gate as Set/CAS/Remove.
+    // No await or external publication occurs inside this callback.
+    internal bool WithCurrentNativeClientIdentity(
+        ConquerTcpConnection connection, long originalUid, Action<object> action)
+    {
+        if (!_connectionGates.TryGetValue(connection, out var gate)) return false;
+        lock (gate)
+        {
+            using var nativeGateScope = EnterNativeConnectionGate();
+            if (!_sessions.TryGetValue(connection, out var holder) ||
+                holder.Read() is not { } current || current.Character.Uid != originalUid) return false;
+            action(holder.NativeClientIdentity);
+            return true;
+        }
+    }
+
     public IReadOnlyList<WorldActiveSession> Snapshot()
     {
         var sessions = new List<WorldActiveSession>();
@@ -114,6 +149,7 @@ public sealed class WorldSessionStore
     private sealed class SessionHolder
     {
         private WorldSession? _session;
+        public object NativeClientIdentity { get; private set; } = new();
 
         public WorldSession? Read()
         {
@@ -122,11 +158,14 @@ public sealed class WorldSessionStore
 
         public void Publish(WorldSession session)
         {
+            if (_session is { } previous && previous.Character.Uid != session.Character.Uid)
+                NativeClientIdentity = new object();
             Volatile.Write(ref _session, session);
         }
 
         public void Clear()
         {
+            NativeClientIdentity = new object();
             Volatile.Write(ref _session, null);
         }
     }

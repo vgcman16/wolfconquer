@@ -96,12 +96,7 @@ public static partial class WorldPacketHandlers
 
             case LegacyRuneStoragePacket.StartupType:
                 await context.Connection.SendAsync(
-                        LegacyRuneRankMessage
-                            .CreateStartup(
-                                session.Character,
-                                session.PlayerItems,
-                                context.WorldData?.RuneRankings)
-                            .ToFrameBytes(),
+                        CreateLegacyRuneRankingMessage(context, session).ToFrameBytes(),
                         cancellationToken)
                     .ConfigureAwait(false);
                 break;
@@ -215,6 +210,7 @@ public static partial class WorldPacketHandlers
         }
 
         updatedSession = query.Session!;
+        UpdateLegacyRuneRanking(context, updatedSession);
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled LegacyRuneStorage " +

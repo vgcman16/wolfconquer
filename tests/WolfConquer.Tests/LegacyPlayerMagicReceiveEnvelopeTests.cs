@@ -21,7 +21,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             CreateMonsterFamily(),
             spawns: [],
             sobNpcs: [],
-            magicRows: [CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0)],
+            magicRows: [CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0)],
+            items: [CreateRetainedNativeMagic421Helmet()],
             gouyuImmortals: [CreateReceiveEnvelopeGouyuImmortal(level: 17, chance: 5_000, rate: 0, seconds: 10)]);
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
@@ -37,16 +38,21 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 [ReceiveEnvelopeNinjaSageModeRollAttribute] = "0",
             });
         var targetSession = CreateSession(uid: TargetPlayerUid, name: "Target", x: 832, y: 584);
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
 
+        var context = new WorldPacketHandlerContext(
+            casterConnection,
+            log,
+            casterSession,
+            WorldData: worldData,
+            Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(context, targetConnection, casterSent, targetSent);
+
         await PacketHandlers.HandleAsync(
-            new WorldPacketHandlerContext(
-                casterConnection,
-                log,
-                casterSession,
-                WorldData: worldData,
-                Sessions: sessions),
+            context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
                 Uid: PlayerUid,
                 OpponentUid: TargetPlayerUid,

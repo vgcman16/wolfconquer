@@ -1360,10 +1360,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task HandlerMagicAttackAgainstVisiblePlayerSendsSpellAnimationAppliesDamageAndSpendsMana()
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateNativeOrdinaryMagic421Catalog(
             monsterFamily,
-            [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -1372,6 +1371,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var targetConnection = CreateSendingConnection(targetSent);
         var casterSession = CreateSession();
         var targetSession = CreateSession(uid: TargetPlayerUid, name: "Target", x: 832, y: 584);
+        casterSession = CreateNativeOrdinaryMagic421Input(casterSession);
+        targetSession = CreateNativeOrdinaryMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -1380,6 +1381,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        context = await PrepareNativeOrdinaryMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -1570,10 +1574,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task HandlerMagicAttackAgainstVisiblePlayerUpdatesPersistsRightWeaponProficiency()
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateNativePlayerOnlyProficiencyInputCatalog(
             monsterFamily,
-            [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var proficienciesRoot = Path.Combine(
             Path.GetTempPath(),
             "wolfconquer-player-magic-prof-xp-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture),
@@ -1608,6 +1611,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             playerItems: casterItems,
             playerProficiencies: new PlayerProficiencySnapshot([initialProficiency]));
         var targetSession = CreateSession(uid: TargetPlayerUid, name: "Target", x: 832, y: 584);
+        casterSession = CreateNativeOrdinaryMagic421Input(casterSession);
+        targetSession = CreateNativeOrdinaryMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -1620,6 +1625,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         try
         {
+            // Declared initial disk snapshot, never a desired post-cast progress outcome.
+            var proficiencyLoader = new PlayerProficiencySnapshotLoader(proficienciesRoot);
+            proficiencyLoader.SaveByCharacterUid(PlayerUid, casterSession.PlayerProficiencies);
+            Assert.Equal(initialProficiency,
+                Assert.Single(proficiencyLoader.LoadByCharacterUid(PlayerUid).Proficiencies));
+            context = await PrepareNativeOrdinaryMagic421QueriesAsync(
+                context, targetConnection, casterSent, targetSent);
+            Assert.Equal(initialProficiency,
+                Assert.Single(proficiencyLoader.LoadByCharacterUid(PlayerUid).Proficiencies));
+
             await PacketHandlers.HandleAsync(
                 context,
                 ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -1635,31 +1650,31 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     Unknown: 0,
                     SpellId: ThunderSpellId)).ToFrameBytes()));
 
-            var expectedExperience = initialProficiency.Experience + (ExpectedPlayerThunderDamage * SourceDefaultExpRateProf * 100);
-            var proficiencyPacket = Assert.Single(
-                casterSent
-                    .Select(bytes => LegacyProficiencyPacket.TryParse(ReadFrame(bytes), out var packet)
-                        ? packet
-                        : (LegacyProficiencyPacket?)null)
-                    .Where(packet => packet is not null)
-                    .Select(packet => packet!.Value));
-            Assert.Equal(new LegacyProficiencyPacket(
-                Id: 421,
-                Level: 0,
-                Experience: expectedExperience,
-                NeededExperience: LegacyProficiencyPacket.GetNeededExperience(0)), proficiencyPacket);
+            // Native Attack1000 player branch leaves num3 zero; UpdateSpell returns before proficiency work.
+            var expectedExperience = initialProficiency.Experience;
+            Assert.DoesNotContain(casterSent,
+                bytes => LegacyProficiencyPacket.TryParse(ReadFrame(bytes), out _));
+            Assert.DoesNotContain(casterSent,
+                bytes => LegacySpellPacket.TryParse(ReadFrame(bytes), out _));
+            Assert.True(sessions.TryGet(targetConnection, out var hitTarget));
+            Assert.Equal(5_000L - ExpectedPlayerThunderDamage,
+                Assert.IsType<WorldSession>(hitTarget).Character.MinHitPoints);
+            Assert.Equal(ExpectedPlayerThunderDamage,
+                Assert.Single(Assert.Single(ParseSpellAnimations(casterSent)).Targets).Damage);
 
             Assert.True(sessions.TryGet(casterConnection, out var updatedCasterSession));
             Assert.NotNull(updatedCasterSession);
             var updatedProficiency = Assert.Single(updatedCasterSession.PlayerProficiencies.Proficiencies);
             Assert.Equal(421U, updatedProficiency.Id);
             Assert.Equal(expectedExperience, updatedProficiency.Experience);
+            Assert.Equal(initialProficiency, updatedProficiency);
 
             var persistedProficiency = Assert.Single(new PlayerProficiencySnapshotLoader(proficienciesRoot)
                 .LoadByCharacterUid(PlayerUid)
                 .Proficiencies);
             Assert.Equal(updatedProficiency, persistedProficiency);
-            Assert.Contains("WorldServer sent legacy player magic weapon proficiency experience", log.ToString());
+            Assert.Equal(initialProficiency, persistedProficiency);
+            Assert.DoesNotContain("WorldServer sent legacy player magic weapon proficiency experience", log.ToString());
         }
         finally
         {
@@ -1682,10 +1697,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         string expectedReason)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -1703,6 +1719,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["StatusFlags"] = BuildStatusFlags(targetStatusFlag),
                 [RuntimeLegacyCombatGearDamageRollAttribute] = damageRoll.ToString(CultureInfo.InvariantCulture),
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -1711,6 +1729,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -1773,10 +1793,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         bool expectBlocked)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet(), CreateStatusItemType(checked((int)casterGarmentId), "DeclaredCasterGarment"), CreateStatusItemType(checked((int)targetGarmentId), "DeclaredTargetGarment")],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -1793,6 +1814,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             y: 584,
             mapId: 1_082,
             playerItems: CreateEquipmentPlayerItems(targetGarmentId));
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -1801,6 +1824,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -1850,10 +1875,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         bool expectBlocked)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -1871,6 +1897,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["CaptureTheFlagAttackable"] = targetAttackable ? "1" : "0",
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -1879,6 +1907,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -1946,8 +1976,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            [CreateItemType((int)overwhelmRuneItemId, "Overwhelm(+9)")],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0),
+            spellId == ThunderSpellId
+                ? [CreateRetainedNativeMagic421Helmet(), CreateItemType((int)overwhelmRuneItemId, "Overwhelm(+9)")]
+                : [CreateItemType((int)overwhelmRuneItemId, "Overwhelm(+9)")],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0),
             CreateMagicRow(DevouringStrikeSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
@@ -1983,6 +2015,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["StatusFlags"] = BuildStatusFlags(LegacyImmortalForceFlag),
             });
+        if (spellId == ThunderSpellId)
+        {
+            casterSession = CreateRetainedNativeMagic421Input(casterSession);
+            targetSession = CreateRetainedNativeMagic421Input(targetSession);
+        }
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -1991,6 +2028,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        if (spellId == ThunderSpellId)
+        {
+            context = await PrepareRetainedNativeMagic421QueriesAsync(
+                context, targetConnection, casterSent, targetSent);
+        }
 
         await PacketHandlers.HandleAsync(
             context,
@@ -2032,9 +2074,26 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }
 
         Assert.Equal(493, updatedCasterSession.Character.MinMana);
-        Assert.Equal(5_000 - ExpectedPlayerThunderDamage, updatedTargetSession.Character.MinHitPoints);
-        Assert.Single(ParseSpellAnimations(casterSent));
-        Assert.Single(ParseSpellAnimations(targetSent));
+        Assert.Equal(casterStatusFlag == LegacyRiseOfTaoismFlag ? 0 : 5_000 - ExpectedPlayerThunderDamage,
+            updatedTargetSession.Character.MinHitPoints);
+        var casterAnimation = Assert.Single(ParseSpellAnimations(casterSent));
+        var targetAnimation = Assert.Single(ParseSpellAnimations(targetSent));
+        if (casterStatusFlag == LegacyRiseOfTaoismFlag)
+        {
+            // This retained gate row supplies only flag227, not the real15440 producer.
+            // Native query: raw Spirit300 + MA0 +1 +13000 =13301. ExtraMDamage stays0.
+            // Attack1000 soul0 /2 gives6921; Receive killsHP5000 without clamping wire damage.
+            foreach (var animation in new[] { casterAnimation, targetAnimation })
+            {
+                Assert.Equal(PlayerUid, animation.AttackerUid);
+                Assert.Equal(spellId, animation.SpellId);
+                var hit = Assert.Single(animation.Targets);
+                Assert.Equal(TargetPlayerUid, hit.Uid);
+                Assert.Equal(6_921U, hit.Damage);
+                Assert.True(hit.Hit);
+                Assert.Equal(MsgAttackEffect.None, hit.Effect);
+            }
+        }
         Assert.DoesNotContain(
             casterUpdates,
             update => update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.ForbiddenPirate));
@@ -2060,8 +2119,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            itemTypes,
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0),
+            spellId == ThunderSpellId ? [CreateRetainedNativeMagic421Helmet(), .. itemTypes] : itemTypes,
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0),
             CreateMagicRow(15_940, sort: 1, useMana: 7, damage: 120, coldTime: 0),
             CreateMagicRow(16_550, sort: 1, useMana: 7, damage: 120, coldTime: 0));
         var sessions = new WorldSessionStore();
@@ -2090,6 +2149,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     ItemId = solidnessRuneItemId,
                     Position = 101,
                 }));
+        if (spellId == ThunderSpellId)
+        {
+            casterSession = CreateRetainedNativeMagic421Input(casterSession);
+            targetSession = CreateRetainedNativeMagic421Input(targetSession);
+        }
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -2098,6 +2162,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        if (spellId == ThunderSpellId)
+        {
+            context = await PrepareRetainedNativeMagic421QueriesAsync(
+                context, targetConnection, casterSent, targetSent);
+        }
 
         await PacketHandlers.HandleAsync(
             context,
@@ -3023,10 +3092,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         bool expectBlocked)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateNativeOrdinaryMagic421Catalog(
             monsterFamily,
-            [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -3042,6 +3110,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["LegacyTournamentProcess"] = tournamentProcess,
             });
         var targetSession = CreateSession(uid: TargetPlayerUid, name: "Target", x: 832, y: 584);
+        casterSession = CreateNativeOrdinaryMagic421Input(casterSession);
+        targetSession = CreateNativeOrdinaryMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -3050,6 +3120,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        // Retained LastManStand attributes are compatibility gate inputs,
+        // not a claim of a genuinely earned typed tournament registration.
+        context = await PrepareNativeOrdinaryMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -3102,10 +3177,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             TimeSpan.FromSeconds(chillingSnowDurationSeconds)).TotalMilliseconds);
 
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0),
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0),
             CreateMagicRow(ChillingSnowSpellId, sort: 1, useMana: 0, damage: chillingSnowDurationSeconds, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
@@ -3136,6 +3212,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 [ThunderSpellId] = initialReadyAt,
             },
         };
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -3144,6 +3222,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -3192,10 +3272,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         const uint chillingSnowDurationSeconds = 7;
         var initialReadyAt = DateTimeOffset.UtcNow.AddSeconds(10);
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0),
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0),
             CreateMagicRow(ChillingSnowSpellId, sort: 1, useMana: 0, damage: chillingSnowDurationSeconds, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
@@ -3230,6 +3311,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 [ThunderSpellId] = initialReadyAt,
             },
         };
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -3238,6 +3321,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -3345,10 +3430,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task HandlerMagicAttackAgainstFlashingNameVisiblePlayerInCapturePkModeAppliesDamageAndSpendsMana()
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -3369,6 +3455,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["StatusFlags"] = BuildStatusFlags(LegacyFlashingNameFlag),
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -3377,6 +3465,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -3420,10 +3510,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task HandlerMagicAttackAgainstNormalVisiblePlayerInPkModeAppliesCasterFlashingName()
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -3437,6 +3528,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["PkMode"] = "0",
             });
         var targetSession = CreateSession(uid: TargetPlayerUid, name: "Target", x: 832, y: 584, mapId: 1_000);
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -3445,6 +3538,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -3502,10 +3597,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task HandlerMagicAttackAgainstFlashingNameVisiblePlayerInCapturePkModeDoesNotApplyCasterFlashingName()
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -3528,6 +3624,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["StatusFlags"] = BuildStatusFlags(LegacyFlashingNameFlag),
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -3536,6 +3634,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -3586,10 +3686,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         int targetStatusFlag)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -3612,6 +3713,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["StatusFlags"] = BuildStatusFlags(targetStatusFlag),
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -3620,6 +3723,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -4214,10 +4319,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task HandlerMagicAttackUnionPkWithExplicitNotInUnionAppliesDamageAndSpendsMana()
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -4240,6 +4346,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["UnionUID"] = "1370",
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -4248,6 +4356,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -4350,10 +4460,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         string unexpectedLog)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -4367,6 +4478,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             x: 832,
             y: 584,
             attributes: targetAttributes);
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -4375,6 +4488,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -4770,10 +4885,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         const long blockAttackMapId = 3_825;
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -4796,6 +4912,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["StatusFlags"] = BuildStatusFlags(LegacyFlashingNameFlag),
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -4804,6 +4922,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -5136,6 +5256,27 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions);
 
+        // Earn native Status.MA through Data251 before the lethal public cast.
+        // No gear, flag, cached result or raw character input is assigned here.
+        var queryStart = casterSent.Count;
+        await PacketHandlers.HandleAsync(context,
+            ReadFrame(new MsgActionPacket { ObjId = PlayerUid,
+                Type = (MsgActionType)251 }.ToFrameBytes()));
+        var queryBytes = Assert.Single(casterSent.Skip(queryStart),
+            bytes => LegacyPlayerStatusPacket.TryParse(ReadFrame(bytes), out _));
+        Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(queryBytes), out var queryStatus));
+        Assert.Equal(PlayerUid, queryStatus.Uid);
+        Assert.Equal(301U, queryStatus.MagicAttack); // Raw Spirit300 + native Equip1540 increment.
+        Assert.Equal(900U, queryStatus.MaxHP);      // Class142 generic Spirit300 *3, no gear.
+        Assert.Equal(1_500U, queryStatus.MaxMana);  // Class142 generic Spirit300 *5.
+        Assert.True(sessions.TryGet(casterConnection, out var queriedCasterSession));
+        Assert.NotNull(queriedCasterSession);
+        Assert.Equal(900L, queriedCasterSession.Character.MinHitPoints); // Native query clamps rawHP5000.
+        Assert.Equal(500L, queriedCasterSession.Character.MinMana);     // Query does not fill current MP.
+        context = context with { Session = queriedCasterSession };
+        casterSent.Clear();
+        targetSent.Clear();
+
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -5196,10 +5337,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         foreach (var spell in new[] { Assert.Single(ParseSpellAnimations(casterSent)), Assert.Single(ParseSpellAnimations(targetSent)) })
         {
+            Assert.Equal(PlayerUid, spell.AttackerUid);
+            Assert.Equal(ThunderSpellId, spell.SpellId);
             var target = Assert.Single(spell.Targets);
             Assert.Equal(TargetPlayerUid, target.Uid);
-            Assert.Equal(100U, target.Damage);
+            // Native Attack1000 keeps (queriedMA301 + raw row120) /2 =210 on the wire.
+            // Receive kills HP100 without replacing the same SpellObj.Damage by HP loss.
+            Assert.Equal(210U, target.Damage);
             Assert.True(target.Hit);
+            Assert.Equal(MsgAttackEffect.None, target.Effect);
         }
 
         Assert.Contains("WorldServer handled legacy player-player magic", log.ToString());

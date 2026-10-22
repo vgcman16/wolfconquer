@@ -325,7 +325,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal("33", session.Character.Attributes["Stamina"]);
     }
 
-    private sealed class DirectQueryTeamHpFixture : IDisposable
+    private sealed partial class DirectQueryTeamHpFixture : IDisposable
     {
         private readonly WorldSessionStore _sessions = new();
         private readonly TeamSessionStateStore _teams = new();
@@ -354,7 +354,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 CreateMagicRow(FineRainAttachStatusSpellId, sort: 6, useMana: 0, useStamina: 0,
                     damage: 0, duration: 60, coolDown: 0, coldTime: 0),
                 ..(includeThirdJoin
-                    ? new MagicType[] { CreateMagicRow(ThunderSpellId, sort: 1, useMana: 0, damage: 119,
+                    ? new MagicType[] { CreateMagicRow(ThunderSpellId, sort: 1, useMana: 0, damage: 239,
                         experience: 1_000, coolDown: 0, coldTime: 0) }
                     : Array.Empty<MagicType>()),
             ], items:

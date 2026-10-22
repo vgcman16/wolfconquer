@@ -147,15 +147,19 @@ public sealed partial class WorldServerFrameHandler
             nextSeam: "inspect-runtime-exception",
             reason: "runtime exception was caught without terminating the live server; inspect the error log and decompiled source dispatch for parity triage");
         await _log.WriteLineAsync(diagnostic.FormatLogMessage()).ConfigureAwait(false);
+        var exceptionDetail = frame.Header.Opcode == WorldPacketOpcodes.LegacySecondaryPassword
+            ? exception.GetType().Name + ": [secondary password details redacted]"
+            : exception.GetType().Name + ": " + exception.Message;
         await _log.WriteLineAsync(
                 "PARITY-BUG world runtime exception " +
                 $"{FormatSession(session)} {FormatFrameDiagnostic(frame)} " +
-                $"sourceSeam={sourceSeam} exception={exception.GetType().Name}: {exception.Message}")
+                $"sourceSeam={sourceSeam} exception={exceptionDetail}")
             .ConfigureAwait(false);
         Console.Error.WriteLine(
             "PARITY-BUG world runtime exception " +
             $"{DateTimeOffset.UtcNow:O} {FormatSession(session)} {FormatFrameDiagnostic(frame)} " +
-            $"sourceSeam={sourceSeam}{Environment.NewLine}{exception}");
+            $"sourceSeam={sourceSeam}{Environment.NewLine}" +
+            (frame.Header.Opcode == WorldPacketOpcodes.LegacySecondaryPassword ? exceptionDetail : exception.ToString()));
     }
 
     private static string FormatSession(WorldSession? session)
@@ -180,6 +184,9 @@ public sealed partial class WorldServerFrameHandler
 
     private static string FormatFrameDiagnostic(PacketFrame frame)
     {
+        if (frame.Header.Opcode == WorldPacketOpcodes.LegacySecondaryPassword)
+            return "opcode=" + frame.Header.Opcode + " payloadLength=" +
+                frame.Payload.Length.ToString(CultureInfo.InvariantCulture) + " payloadSampleHex=[redacted]";
         const int sampleBytes = 32;
         var sampleLength = (int)Math.Min(frame.Payload.Length, sampleBytes);
         var sample = sampleLength == 0

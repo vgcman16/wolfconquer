@@ -50,7 +50,7 @@ public static partial class WorldPacketHandlers
                     monster,
                     session.Character,
                     NextLegacyFloorItemUid());
-                var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, ownerOnly: true);
+                var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, ownerOnly: true, dynamicId: monster.DynamicId);
                 if (context.FloorItems is { } floorItems)
                 {
                     if (!floorItems.TryAddVisibleOnGround(
@@ -89,7 +89,7 @@ public static partial class WorldPacketHandlers
                     loggedMissingFloorItemRuntime = true;
                 }
 
-                await SendFloorItemVisibleAsync(context, session.Character, floorItem, cancellationToken)
+                await SendFloorItemVisibleAsync(context, session.Character, entry, cancellationToken)
                     .ConfigureAwait(false);
                 sentCount++;
             }
@@ -107,7 +107,7 @@ public static partial class WorldPacketHandlers
                 monster,
                 session.Character,
                 NextLegacyFloorItemUid());
-            var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, pickupItem, ownerOnly: true);
+            var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, pickupItem, ownerOnly: true, dynamicId: monster.DynamicId);
             if (context.FloorItems is { } floorItems)
             {
                 if (!floorItems.TryAddVisibleOnGround(
@@ -148,7 +148,7 @@ public static partial class WorldPacketHandlers
                 loggedMissingFloorItemRuntime = true;
             }
 
-            await SendFloorItemVisibleAsync(context, session.Character, floorItem, cancellationToken)
+            await SendFloorItemVisibleAsync(context, session.Character, entry, cancellationToken)
                 .ConfigureAwait(false);
             generatedItemsSent++;
             sentCount++;
@@ -261,9 +261,12 @@ public static partial class WorldPacketHandlers
         WorldSession killerSession,
         LegacyMonsterInstance monster,
         Monster monsterFamily,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool mapSideEffectsAlreadyApplied = false)
     {
-        var updatedKillerSession = await TryApplyLegacyMonsterDeathMapSideEffectsAsync(
+        var updatedKillerSession = mapSideEffectsAlreadyApplied
+            ? killerSession
+            : await TryApplyLegacyMonsterDeathMapSideEffectsAsync(
                 context,
                 killerSession,
                 monster,

@@ -18,10 +18,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             monsterFamily,
             [],
             [
+                CreateRetainedNativeMagic421Helmet(),
                 CreateItemType((int)LegacyCapriceLevelTwentySevenItemId, "Caprice (+27)"),
                 CreateItemType((int)LegacyConsolidationLevelNineItemId, "Consolidation(+9)"),
             ],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -60,6 +61,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["LegacyConsolidationRoll"] = "99",
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -68,6 +71,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,
@@ -102,8 +108,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            [CreateItemType((int)LegacyCapriceLevelTwentySevenItemId, "Caprice (+27)")],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet(), CreateItemType((int)LegacyCapriceLevelTwentySevenItemId, "Caprice (+27)")],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -136,6 +142,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["StatusFlags"] = BuildStatusFlags(LegacyXpListFlag),
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -144,6 +152,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(
+            context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,

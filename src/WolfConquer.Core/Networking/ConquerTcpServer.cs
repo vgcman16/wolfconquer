@@ -59,6 +59,8 @@ public sealed class ConquerTcpServer : IAsyncDisposable
             }
 
             _stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            if (_options.WireMode == ConquerTcpWireMode.LegacyGameServer)
+                LegacyNativePoolRandom.InitializeAtServerStartup();
             _listener.Start();
             _acceptTask = AcceptLoopAsync(_stop.Token);
         }
@@ -200,7 +202,8 @@ public sealed class ConquerTcpServer : IAsyncDisposable
                         writeGate,
                         clientCancellationToken,
                         IsConnectionClosed,
-                        MarkConnectionClosed)
+                        MarkConnectionClosed,
+                        created => connection = created)
                     .ConfigureAwait(false);
                 return;
             }
@@ -215,7 +218,8 @@ public sealed class ConquerTcpServer : IAsyncDisposable
                         writeGate,
                         clientCancellationToken,
                         IsConnectionClosed,
-                        MarkConnectionClosed)
+                        MarkConnectionClosed,
+                        created => connection = created)
                     .ConfigureAwait(false);
                 return;
             }
@@ -264,6 +268,9 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         {
             MarkConnectionClosed();
             await clientStop.CancelAsync().ConfigureAwait(false);
+            // Finish world retirement before normal stream disposal publishes EOF.
+            // This runs after dispatch unwinds, never inside a send/connection gate.
+            await connection.CompleteTransportCloseAsync().ConfigureAwait(false);
             await reader.CompleteAsync().ConfigureAwait(false);
             _log.WriteLine($"{_options.Endpoint.Role} closed client {remoteEndPoint} on {localEndPoint}");
         }
@@ -333,7 +340,8 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         SemaphoreSlim writeGate,
         CancellationToken cancellationToken,
         Func<bool> isConnectionClosed,
-        Action markConnectionClosed)
+        Action markConnectionClosed,
+        Action<ConquerTcpConnection> onConnectionCreated)
     {
         var cipher = new LegacyAccServerCipher();
         var traceLegacyAccountAuth = IsTruthyEnvironment(
@@ -380,6 +388,8 @@ public sealed class ConquerTcpServer : IAsyncDisposable
                 client.Close();
                 return ValueTask.CompletedTask;
             });
+
+        onConnectionCreated(connection);
 
         await LegacyAccServerPacketPipeline.ReadFramesAsync(
             reader,
@@ -459,7 +469,8 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         SemaphoreSlim writeGate,
         CancellationToken cancellationToken,
         Func<bool> isConnectionClosed,
-        Action markConnectionClosed)
+        Action markConnectionClosed,
+        Action<ConquerTcpConnection> onConnectionCreated)
     {
         var traceLegacyGameWire = IsTruthyEnvironment(
             Environment.GetEnvironmentVariable("WOLFCONQUER_TRACE_LEGACY_GAME_WIRE"));
@@ -481,11 +492,16 @@ public sealed class ConquerTcpServer : IAsyncDisposable
                 markConnectionClosed);
         }
 
+        // Native GameClient constructs its physical Player BEFORE the first DH send.
+        // This is intentionally only the legacy game path, not account/generic transport creation.
+        // Allocate Player after DH object construction but BEFORE GenerateRequest/server-key send.
+        LegacyNativeGameClientRuntime? nativeGameClient = null;
         var (inboundCipher, outboundCipher) = await CompleteLegacyGameServerHandshakeAsync(
             reader,
             WriteRawAsync,
             cancellationToken,
-            traceLegacyGameWire ? LogLegacyGameWireTrace : null).ConfigureAwait(false);
+            traceLegacyGameWire ? LogLegacyGameWireTrace : null,
+            () => nativeGameClient = new LegacyNativeGameClientRuntime()).ConfigureAwait(false);
 
         async ValueTask WriteEncryptedAsync(ReadOnlyMemory<byte> bytes, CancellationToken token)
         {
@@ -542,7 +558,10 @@ public sealed class ConquerTcpServer : IAsyncDisposable
                 markConnectionClosed();
                 client.Close();
                 return ValueTask.CompletedTask;
-            });
+            },
+            nativeGameClient ?? throw new InvalidOperationException("Native Player birth was not reached."));
+
+        onConnectionCreated(connection);
 
         await LegacyGameServerPacketPipeline.ReadFramesAsync(
             reader,
@@ -559,9 +578,12 @@ public sealed class ConquerTcpServer : IAsyncDisposable
             PipeReader reader,
             Func<ReadOnlyMemory<byte>, CancellationToken, ValueTask> writeRawAsync,
             CancellationToken cancellationToken,
-            Action<string>? trace = null)
+            Action<string>? trace = null,
+            Action? beforeServerKeyExchange = null)
     {
         var diffieHellman = new LegacyGameServerDiffieHellman();
+        // Native GameClient: DH object/crypto setup -> new Player -> CreateServerKeyPacket.
+        beforeServerKeyExchange?.Invoke();
         var serverPublicKey = diffieHellman.GenerateRequest();
         var serverHandshake = LegacyGameServerHandshakePacket.BuildWithLegacyParameters(serverPublicKey);
         var plainServerHandshake = serverHandshake.ToArray();

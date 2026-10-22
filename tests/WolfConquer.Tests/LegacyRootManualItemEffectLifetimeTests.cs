@@ -87,7 +87,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task RootManualCompletedPrefixRealDeathRetiresBothFlagsWithoutFutureExpiryPublication()
     {
         await using var fixture = new RootMagicEntryFixture(itemEffects:
-            new(RightEffect: 0, RingEffect: 1, NeckEffect: 200), itemEffectLifetimeControls: true);
+            new(RightEffect: 0, RingEffect: 1, NeckEffect: 200), itemEffectLifetimeControls: true,
+            nativeDeathCasterQueryControls: true);
+        await fixture.PrepareRootNativeDeathCasterAsync();
         await fixture.QueryRootItemEffectsAsync();
         await fixture.CastAsync(1_000);
         await fixture.StartRootItemEffectRuntimeAsync();
@@ -96,7 +98,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         AssertRootManualLifetimeFlags(fixture, stigma: true, shield: true);
         Assert.Equal(fixture.Now.AddSeconds(10), RootManualLifetimeDeadline(fixture, 8)); // Earned at W0; original W15.
         Assert.Equal(fixture.Now.AddSeconds(15), RootManualLifetimeDeadline(fixture, 9)); // Earned at W0; original W20.
-        await fixture.KillRootItemEffectOwnerAsync(); // Learned source-valid raw9000 + neutralMagicAttack1, not an HP seed.
+        await fixture.KillRootItemEffectOwnerAsync(); // Queried peer MA1 + raw9999, then native player /2 = lethal5000.
         Assert.Equal(0L, fixture.Owner.Character.MinHitPoints);
         Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 5));
         AssertRootManualLifetimeFlags(fixture, stigma: false, shield: false);

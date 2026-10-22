@@ -1253,7 +1253,7 @@ public sealed class LegacyGearDamageParityTests
             "CalculateLegacyPlayerPlayerMagicDamage",
             BindingFlags.Static | BindingFlags.NonPublic);
         Assert.NotNull(method);
-        return Assert.IsType<uint>(method.Invoke(null, [attacker, target, spell, worldData]));
+        return Assert.IsType<uint>(method.Invoke(null, [attacker, target, spell, worldData, null]));
     }
 
     private static uint InvokePlayerMonsterPhysicalPostDefense2Effects(

@@ -19,8 +19,10 @@ public sealed partial class WorldServerFrameHandler
         PlayerItemSnapshot playerItems,
         PlayerSpellSnapshot playerSpells,
         CombatGearSnapshot combatGear,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        LegacyNativeGameClientRuntime? nativeLoadedClient = null)
     {
+        PrepareLegacyLocalServerIdentity(connection, snapshot.Uid);
         await SendLegacyWorldEntryStartupPrefixAsync(connection, cancellationToken).ConfigureAwait(false);
         await _log.WriteLineAsync(
                 $"WorldServer legacy startup prefix complete uid={snapshot.Uid} mode={_worldEntryStartupProbe.PrefixMode}.")
@@ -41,14 +43,16 @@ public sealed partial class WorldServerFrameHandler
                 connection,
                 snapshot,
                 "loader-hero",
-                LegacyLoaderHeroInfoPacket.FromSnapshot(snapshot).ToFrameBytes(),
+                LegacyLoaderHeroInfoPacket.FromSnapshot(snapshot,
+                    nativePlayer: nativeLoadedClient?.Player).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         await SendLegacyWorldEntryStartupFrameAsync(
                 connection,
                 snapshot,
                 "proto-hero",
-                LegacyProtoHeroInfoPacket.FromSnapshot(snapshot, usersRoot: _snapshotLoader?.UsersRoot).ToFrameBytes(),
+                LegacyProtoHeroInfoPacket.FromSnapshot(snapshot, usersRoot: _snapshotLoader?.UsersRoot,
+                    nativePlayer: nativeLoadedClient?.Player).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         var chiState = LegacyChiState.FromSnapshot(snapshot);
@@ -209,7 +213,7 @@ public sealed partial class WorldServerFrameHandler
         }
 
         await connection.SendAsync(
-                LegacyRuneRankMessage.CreateStartup(snapshot, playerItems, _worldData?.RuneRankings).ToFrameBytes(),
+                LegacyRuneRankMessage.CreateLiveStartup(snapshot, playerItems, _runeRankings).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -234,7 +238,8 @@ public sealed partial class WorldServerFrameHandler
                 cancellationToken)
             .ConfigureAwait(false);
         await connection.SendAsync(
-                LegacyMsgUpdatePacket.CreateLegacyClassExperienceStartupUpdate(snapshot).ToFrameBytes(),
+                LegacyMsgUpdatePacket.CreateLegacyClassExperienceStartupUpdate(snapshot,
+                    nativePlayer: nativeLoadedClient?.Player).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         if (LegacyCombatGearPacket.TryCreateStartup(snapshot, combatGear, out var combatGearPacket))

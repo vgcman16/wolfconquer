@@ -49,6 +49,15 @@ public sealed partial class WorldServerFrameHandler
             }
 
             var snapshot = snapshotLoad.Snapshot;
+            if (!TryApplyLegacyExistingCharacterLocalPrefix(
+                    connection, snapshot, out snapshot, out var prefixReason))
+            {
+                await _log.WriteLineAsync(
+                        $"WorldServer skipped legacy accepted-login local prefix key={characterUid} reason={prefixReason}.")
+                    .ConfigureAwait(false);
+                return;
+            }
+
             await connection.SendAsync(LegacyMsgMessagePacket.AnswerOk().ToFrameBytes(), cancellationToken)
                 .ConfigureAwait(false);
             await StartWorldSessionAsync(
@@ -58,7 +67,8 @@ public sealed partial class WorldServerFrameHandler
                     snapshot,
                     cancellationToken,
                     afterStartupBeforeRuntime: (session, token) =>
-                        SendLegacyWorldLoginDelayedStartupReviewsAsync(connection, session.Character, token))
+                        SendLegacyWorldLoginDelayedStartupReviewsAsync(connection, session.Character, token),
+                    nativeLoadedClient: connection.NativeGameClient)
                 .ConfigureAwait(false);
             await _log.WriteLineAsync(
                     $"WorldServer legacy MsgLoginGame Success key={characterUid} uid={snapshot.Uid} map={snapshot.MapId}.")
@@ -78,9 +88,34 @@ public sealed partial class WorldServerFrameHandler
         foreach (var active in _sessions.Snapshot())
         {
             if (ReferenceEquals(active.Connection, connection) ||
-                active.Session.AccountId != characterUid ||
-                !_sessions.TryRemove(active.Connection, out var removedSession) ||
-                removedSession is null)
+                active.Session.AccountId != characterUid)
+            {
+                continue;
+            }
+
+            // Escrow must remain reachable until its refund is persisted; removing the
+            // old session first would make disconnect cleanup unable to recover it.
+            var tradeContext = new WorldPacketHandlerContext(active.Connection, _log,
+                Sessions: _sessions, PlayerItemsRoot: _snapshotLoader?.PlayerItemsRoot)
+            {
+                Trades = _tradeStates,
+                TradeRecovery = _tradeRecovery,
+            };
+            if (!await WorldPacketHandlers.CancelLegacyTradeForDisconnectAsync(tradeContext, cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                await connection.SendAsync(
+                        LegacyMsgMessagePacket.BoxDialog(LegacyDuplicateLoginDialogText).ToFrameBytes(),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                await _log.WriteLineAsync(
+                        "WorldServer rejected duplicate legacy MsgLoginGame " +
+                        $"key={characterUid}; old session and unresolved trade escrow retained.")
+                    .ConfigureAwait(false);
+                return true;
+            }
+
+            if (!_sessions.TryRemove(active.Connection, out var removedSession) || removedSession is null)
             {
                 continue;
             }

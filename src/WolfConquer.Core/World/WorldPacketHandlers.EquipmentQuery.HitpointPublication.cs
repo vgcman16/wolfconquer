@@ -12,7 +12,10 @@ public static partial class WorldPacketHandlers
         var loss = LegacyEquipmentQueryPublicationLoss.None;
         if (context.Sessions is { } sessions)
         {
-            if (!sessions.TryGet(context.Connection, out owner) || owner is null ||
+            if (!(scope.OwnerNativeClientIdentity is { } ownerIdentity
+                    ? LegacyNativeClientPublication.TryCurrent(
+                        sessions, context.Connection, scope.OwnerUid, ownerIdentity, out owner)
+                    : sessions.TryGet(context.Connection, out owner)) || owner is null ||
                 owner.Character.Uid != scope.OwnerUid)
             {
                 owner = null;
@@ -20,7 +23,10 @@ public static partial class WorldPacketHandlers
             }
 
             if (scope.RequiredParticipant is { } accepted &&
-                (!sessions.TryGet(accepted.Connection, out required) || required is null ||
+                (!(scope.RequiredNativeClientIdentity is { } requiredIdentity
+                    ? LegacyNativeClientPublication.TryCurrent(sessions, accepted.Connection,
+                        accepted.Session.Character.Uid, requiredIdentity, out required)
+                    : sessions.TryGet(accepted.Connection, out required)) || required is null ||
                  required.Character.Uid != accepted.Session.Character.Uid))
             {
                 required = null;
@@ -83,24 +89,21 @@ public static partial class WorldPacketHandlers
         var current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
         if (!current.Completed) return current;
         session = current.Session!;
-        // Source HitPoints assignment never changes the independent Status.Max.
-        // Materialize a missing Max BEFORE replacing signed current HP.
-        if (!LegacyEquipmentHitpointsStatus.TryGetForOwner(session, out _))
+        current = CommitLegacyEquipmentQueryMutation(context, session, scope, owner =>
         {
-            var previousHitpoints = session.Character.MinHitPoints > 0
-                ? CheckedUInt32(session.Character.MinHitPoints, nameof(session.Character.MinHitPoints)) : 0U;
-            session = session with
+            // Source HitPoints assignment never changes independent Status.Max.
+            if (!LegacyEquipmentHitpointsStatus.TryGetForOwner(owner, out _))
             {
-                EquipmentHitpointsStatus = new LegacyEquipmentHitpointsStatus(scope.OwnerUid,
-                    GetLegacyEquipmentRuntimeMaxHitpoints(session, context.WorldData, previousHitpoints)),
-            };
-        }
-        session = session with
-        {
-            Character = session.Character with { MinHitPoints = value },
-        };
-        context.Sessions?.Set(context.Connection, session);
-        current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
+                var previousHitpoints = owner.Character.MinHitPoints > 0
+                    ? CheckedUInt32(owner.Character.MinHitPoints, nameof(owner.Character.MinHitPoints)) : 0U;
+                owner = owner with
+                {
+                    EquipmentHitpointsStatus = new LegacyEquipmentHitpointsStatus(scope.OwnerUid,
+                        GetLegacyEquipmentRuntimeMaxHitpoints(owner, context.WorldData, previousHitpoints)),
+                };
+            }
+            return owner with { Character = owner.Character with { MinHitPoints = value } };
+        });
         if (!current.Completed) return current;
         session = current.Session!;
 

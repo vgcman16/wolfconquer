@@ -176,7 +176,7 @@ public static partial class WorldPacketHandlers
         var x = CheckedUInt32(character.X, nameof(character.X));
         var y = CheckedUInt32(character.Y, nameof(character.Y));
 
-        await context.Connection.SendAsync(
+        await SendLegacyTeleportFrameAsync(context, context.Connection,
                 new MsgActionPacket
                 {
                     ObjId = uid,
@@ -192,7 +192,7 @@ public static partial class WorldPacketHandlers
 
         if (transitionSourceMapId != 700)
         {
-            await context.Connection.SendAsync(
+            await SendLegacyTeleportFrameAsync(context, context.Connection,
                     new MsgActionPacket
                     {
                         ObjId = uid,
@@ -207,7 +207,7 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
         }
 
-        await context.Connection.SendAsync(
+        await SendLegacyTeleportFrameAsync(context, context.Connection,
                 new MsgActionPacket
                 {
                     ObjId = uid,
@@ -220,7 +220,7 @@ public static partial class WorldPacketHandlers
                 }.ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
-        await context.Connection.SendAsync(
+        await SendLegacyTeleportFrameAsync(context, context.Connection,
                 new MsgActionPacket
                 {
                     ObjId = uid,
@@ -234,7 +234,7 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
 
         var mapStatus = LegacyMapStatusPacket.FromMap(character.MapId, context.WorldData?.MapsById);
-        await context.Connection.SendAsync(mapStatus.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+        await SendLegacyTeleportFrameAsync(context, context.Connection, mapStatus.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
         await SendVisibleRouletteTablesAsync(context, character, cancellationToken).ConfigureAwait(false);
         await SendVisiblePlayersAsync(context, session, cancellationToken).ConfigureAwait(false);
         await SendVisibleStaticNpcHeadObjectsAsync(context, character, cancellationToken).ConfigureAwait(false);

@@ -8,6 +8,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task DirectQueryTeamHpThirdRealJoinCannotReplayExistingMembersPreWoundConstructorHitpoints()
     {
         using var fixture = new DirectQueryTeamHpFixture(includeThirdJoin: true);
+        await fixture.PrepareTeamHpNativeWoundCasterAsync();
         var original = await fixture.JoinTeamAsync();
         Assert.Equal(300, fixture.Owner.Character.MinHitPoints);
         var woundStart = fixture.Order.Count;
@@ -18,7 +19,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var animation = Assert.Single(ParseSpellAnimations(wound), packet => packet.SpellId == ThunderSpellId);
         var hit = Assert.Single(animation.Targets);
         Assert.Equal(PlayerUid, hit.Uid);
-        Assert.Equal(120U, hit.Damage); // Source MagicAttack1 + raw119.
+        Assert.Equal(120U, hit.Damage); // Real peer251 MA1 + raw239, then source caller /2.
         var joinStart = fixture.Order.Count;
         await fixture.JoinThirdMemberAsync();
         var frame = Assert.Single(fixture.Order.ToArray().Skip(joinStart), entry => entry.Recipient == PlayerUid &&

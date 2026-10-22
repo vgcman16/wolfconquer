@@ -36,8 +36,33 @@ public sealed record WorldPacketHandlerContext(
     ConquerProtocolProfile ProtocolProfile = ConquerProtocolProfile.RootD11_7899,
     LegacyChatItemStore? ChatItems = null,
     Data.LegacyGameMapTerrainQuery? TeleportTerrain = null,
-    ILegacySignedMillisecondClock? LegacyClock = null)
+    ILegacySignedMillisecondClock? LegacyClock = null,
+    LegacyTournamentWatcherHolders? TournamentWatcherHolders = null)
 {
     [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyRuneRankingState? RuneRankings { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyTradeStateStore? Trades { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal WorldOperationBarrier? TradeOperations { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyTradeRecoveryState? TradeRecovery { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyLocalServerIdentity? LocalServerIdentity { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyTeleportOwner? TeleportOwner { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyNativeTeamMembershipEntry? NativeTeamMembershipEntry { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
     internal LegacyRootFirstFamilyInvocation? RootFirstFamilyInvocation { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyCombatGearReceiveParticipants? CombatGearReceiveParticipants { get; init; }
 }

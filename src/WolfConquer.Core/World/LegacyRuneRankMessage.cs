@@ -21,6 +21,24 @@ public static class LegacyRuneRankMessage
         return LegacyMsgMessagePacket.SystemRuneRank(text);
     }
 
+    public static LegacyMsgMessagePacket CreateLiveStartup(
+        CharacterSnapshot snapshot,
+        PlayerItemSnapshot playerItems,
+        LegacyRuneRankingState rankings)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(playerItems);
+        ArgumentNullException.ThrowIfNull(rankings);
+
+        var score = LegacyRuneStoragePacket.ComputeStorageScore(playerItems);
+        var rank = rankings.FindRank(snapshot.Uid);
+        var text = rank is null
+            ? $"My ranking: Unranked; Current rune pack score: {score}"
+            : $"My ranking: {rank.Value}; Current rune pack score: {score}";
+
+        return LegacyMsgMessagePacket.SystemRuneRank(text);
+    }
+
     private static int? FindRank(long uid, IReadOnlyList<RuneRankingRecord> rankings)
     {
         for (var index = 0; index < rankings.Count; index++)

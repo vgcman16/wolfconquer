@@ -115,7 +115,7 @@ public static class LegacyMonsterDropPlacement
                 placedY,
                 killer,
                 floorUid);
-            var entry = BuildRuntimeEntry(monster.MapId, packet, selection);
+            var entry = BuildRuntimeEntry(monster.MapId, context.DynamicId, packet, selection);
             var visibility = ProjectVisibility(killer, entry, context);
             decisions.Add(new LegacyMonsterDropPlacementDecision(
                 attempt,
@@ -240,12 +240,13 @@ public static class LegacyMonsterDropPlacement
 
     private static FloorItemRuntimeEntry BuildRuntimeEntry(
         int mapId,
+        uint dynamicId,
         LegacyFloorItemPacket packet,
         LegacyMonsterDeathDropSelection selection)
     {
         return selection.Kind == LegacyMonsterDeathDropKind.Money
-            ? FloorItemRuntimeEntry.ForMoney(mapId, packet, selection.MoneyAmount, ownerOnly: true)
-            : FloorItemRuntimeEntry.ForItem(mapId, packet, ownerOnly: true);
+            ? FloorItemRuntimeEntry.ForMoney(mapId, packet, selection.MoneyAmount, ownerOnly: true, dynamicId: dynamicId)
+            : FloorItemRuntimeEntry.ForItem(mapId, packet, ownerOnly: true, dynamicId: dynamicId);
     }
 
     private static FloorItemRuntimePickupKind ResolvePickupKind(LegacyMonsterDeathDropSelection selection)

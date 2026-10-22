@@ -9,75 +9,86 @@ public sealed partial class WorldServerFrameHandler
     private const string RuntimeLegacyRiseOfTaoismExtraMagicDamageAttribute = "RiseofTaoismExtraMDamage";
 
     private async ValueTask SendDueLegacyRiseOfTaoismExpirationsAsync(
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
+        DateTimeOffset now, CancellationToken cancellationToken)
     {
-        var activeSessions = _sessions.Snapshot();
-        if (activeSessions.Count == 0)
-        {
-            return;
-        }
-
         var playerCount = 0;
         var viewerCount = 0;
-        foreach (var active in activeSessions)
+        foreach (var candidate in _sessions.Snapshot())
         {
-            if (!_sessions.TryGet(active.Connection, out var currentSession) ||
-                currentSession is null ||
-                !TryExpireLegacyTimedStatusFlag(
-                    currentSession.Character,
-                    now,
-                    LegacyRiseOfTaoismStatusFlag,
-                    WorldPacketHandlers.RuntimeLegacyRiseOfTaoismExpiresAtUtcAttribute,
-                    out var expiredCharacter,
-                    out var removedVisibleFlag,
-                    RuntimeLegacyRiseOfTaoismExtraMagicDamageAttribute,
-                    RuntimeLegacyRiseOfTaoismRemoveOnDeadAttribute))
-            {
+            var uid = candidate.Session.Character.Uid;
+            if (!LegacyNativeClientPublication.TryCaptureIdentity(
+                    _sessions, candidate.Connection, uid, out var identity))
                 continue;
-            }
-
-            var updatedSession = currentSession with { Character = expiredCharacter };
-            _sessions.Set(active.Connection, updatedSession);
-            if (!removedVisibleFlag)
-            {
-                continue;
-            }
-
-            var uid = CheckedUInt32(expiredCharacter.Uid, nameof(expiredCharacter.Uid));
-            var statusFrame = LegacyMsgUpdatePacket
-                .CreateLegacyRuntimeStatusFlagVectorUpdate(
-                    uid,
-                    LegacyPlayerDeathState.CreateStatusFlagVector(
-                        expiredCharacter.Attributes,
-                        LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength))
-                .ToFrameBytes();
-
-            await active.Connection.SendAsync(statusFrame, cancellationToken).ConfigureAwait(false);
-            viewerCount++;
-
-            foreach (var viewer in activeSessions)
-            {
-                if (ReferenceEquals(viewer.Connection, active.Connection) ||
-                    viewer.Session.Character.Uid == expiredCharacter.Uid ||
-                    !CanSeePlayer(viewer.Session.Character, expiredCharacter))
+            var expired = false;
+            var removed = false;
+            if (!LegacyNativeClientPublication.TryUpdate(_sessions, candidate.Connection, uid, identity,
+                owner =>
                 {
-                    continue;
-                }
+                    if (!TryExpireLegacyTimedStatusFlag(owner.Character, now,
+                            LegacyRiseOfTaoismStatusFlag,
+                            WorldPacketHandlers.RuntimeLegacyRiseOfTaoismExpiresAtUtcAttribute,
+                            out var character, out var visible,
+                            RuntimeLegacyRiseOfTaoismRemoveOnDeadAttribute))
+                        return owner;
+                    expired = true;
+                    removed = visible;
+                    return owner with { Character = character };
+                }, out var current) || !expired || !removed)
+                continue;
 
-                await viewer.Connection.SendAsync(statusFrame, cancellationToken).ConfigureAwait(false);
+            var frame = LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
+                CheckedUInt32(uid, nameof(uid)), LegacyPlayerDeathState.CreateStatusFlagVector(
+                    current.Character.Attributes, LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength))
+                .ToFrameBytes();
+            await candidate.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+            viewerCount++;
+            if (!LegacyNativeClientPublication.TryCurrent(
+                    _sessions, candidate.Connection, uid, identity, out current))
+                continue;
+
+            // Capture the view AFTER the owner's remove-vector await, retaining original peer identities.
+            var viewers = new List<(WolfConquer.Core.Networking.ConquerTcpConnection Connection,
+                long Uid, object Identity)>();
+            foreach (var peer in _sessions.Snapshot())
+            {
+                var peerUid = peer.Session.Character.Uid;
+                if (ReferenceEquals(peer.Connection, candidate.Connection) || peerUid == uid ||
+                    !LegacyNativeClientPublication.TryCaptureIdentity(
+                        _sessions, peer.Connection, peerUid, out var peerIdentity) ||
+                    !LegacyNativeClientPublication.TryCurrent(
+                        _sessions, peer.Connection, peerUid, peerIdentity, out var freshPeer) ||
+                    !CanSeePlayer(freshPeer.Character, current.Character))
+                    continue;
+                viewers.Add((peer.Connection, peerUid, peerIdentity));
+            }
+            foreach (var viewer in viewers)
+            {
+                if (!LegacyNativeClientPublication.TryCurrent(
+                        _sessions, candidate.Connection, uid, identity, out current))
+                    break;
+                if (!LegacyNativeClientPublication.TryCurrent(
+                        _sessions, viewer.Connection, viewer.Uid, viewer.Identity, out var peer) ||
+                    !CanSeePlayer(peer.Character, current.Character))
+                    continue;
+                await viewer.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
                 viewerCount++;
             }
+            if (!LegacyNativeClientPublication.TryCurrent(
+                    _sessions, candidate.Connection, uid, identity, out current))
+                continue;
 
-            playerCount++;
+            // Native ThreadPool3007-3011 owes this query AFTER RemoveFlag's complete vector fanout.
+            // Reentrant real re-acquisition is CURRENT input to this owed query, not an expiry re-gate.
+            var context = CreateMonsterRuntimeContext(candidate with { Session = current });
+            var scope = new LegacyEquipmentQueryPublicationScope(uid) { OwnerNativeClientIdentity = identity };
+            var query = await WorldPacketHandlers.ExecuteLegacyEquipmentQueryAsync(context, current,
+                new LegacyEquipmentQueryRequest(LegacyEquipmentRebuildReason.RiseOfTaoismChange, scope),
+                cancellationToken).ConfigureAwait(false);
+            if (query.Completed) playerCount++;
         }
 
         if (playerCount > 0)
-        {
-            await _log.WriteLineAsync(
-                    "WorldServer expired legacy RiseofTaoism flags " +
-                    $"playerCount={playerCount} viewerCount={viewerCount}.")
-                .ConfigureAwait(false);
-        }
+            await _log.WriteLineAsync("WorldServer expired legacy RiseofTaoism flags " +
+                $"playerCount={playerCount} viewerCount={viewerCount}.").ConfigureAwait(false);
     }
 }

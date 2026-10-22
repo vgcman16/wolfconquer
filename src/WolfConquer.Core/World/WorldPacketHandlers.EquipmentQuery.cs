@@ -43,7 +43,8 @@ public static partial class WorldPacketHandlers
             return execution.Outcome();
 
         if (!await execution.SendAsync(
-                CreateLegacyPlayerStatusResponse(execution.Session, context.WorldData).ToFrameBytes(),
+                CreateNativeMagicCachedPlayerStatusResponse(execution.Context, execution.Session,
+                    execution.Context.Connection, execution.Request.Scope.OwnerNativeClientIdentity).ToFrameBytes(),
                 LegacyEquipmentQueryPublishedPhases.Status).ConfigureAwait(false))
             return execution.Outcome();
 

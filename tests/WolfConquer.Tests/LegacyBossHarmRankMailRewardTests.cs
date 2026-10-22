@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyBossHarmRankMailRewardTests : IDisposable
+public sealed partial class LegacyBossHarmRankMailRewardTests : IDisposable
 {
     private const uint KillerUid = 9_999;
     private const int BossFamilyId = 9_901;
@@ -16989,7 +16989,8 @@ public sealed class LegacyBossHarmRankMailRewardTests : IDisposable
         IReadOnlyList<Monster>? extraMonsters = null,
         IReadOnlyList<QuestMission>? questMissions = null,
         IReadOnlyList<XuanbaoRandomAttribute>? xuanbaoRandomAttributes = null,
-        IReadOnlyList<InnerPowerRankEntry>? innerPowerRanks = null)
+        IReadOnlyList<InnerPowerRankEntry>? innerPowerRanks = null,
+        IReadOnlyList<MagicType>? magic = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -17068,7 +17069,7 @@ public sealed class LegacyBossHarmRankMailRewardTests : IDisposable
             questTaskTypes: [],
             questMissions: questMissions ?? [],
             quizQuestions: [],
-            magic: [],
+            magic: magic ?? [],
             magicEffects: [],
             magicTypeOperations: [],
             titleTypes: [],

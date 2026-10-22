@@ -35,6 +35,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     Assert.All(persistentAura, field => Assert.Equal(field.Value, current.Target.Character.Attributes[field.Key]));
                 return ValueTask.CompletedTask;
             });
+        await fixture.PrepareNativeQueryInputsAsync();
         // Real handler owns active flag/lifetime; only XPList is an entry prerequisite.
         if (spellId == 6_001) await fixture.CastPoisonAsync();
         else await fixture.CastStatusAsync(spellId);
@@ -46,7 +47,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     "LegacyAuraDamage", "LegacyAuraGDamage" }
                 .ToDictionary(key => key, key => fixture.Target.Character.Attributes[key]);
         armed = true;
-        await fixture.KillAsync();
+        // Native MagicDefender early1 becomes0 after caller /2; only this
+        // earned128 row uses a real ordinary Physical minimum hit.
+        if (spellId == 11_200) await fixture.KillPhysicalAsync();
+        else await fixture.KillAsync();
         Assert.Equal(1, queries);
         Assert.Equal(0, fixture.Target.Character.MinHitPoints);
         Assert.True(HasLegacyStatusFlag(fixture.Target.Character.Attributes, 5));
@@ -79,6 +83,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal(!dragonWar, current.Target.Character.Attributes.ContainsKey("LegacyDragonSwingExpiresAtUtc"));
             return ValueTask.CompletedTask;
         });
+        await fixture.PrepareNativeQueryInputsAsync();
         if (dragonWar)
         {
             var tournament = new LegacyDragonWarRuntimeStateStore();
@@ -142,6 +147,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 flagsAtDead.Enqueue(HasLegacyStatusFlag(current.Target.Character.Attributes, 0x3B));
             return ValueTask.CompletedTask;
         });
+        await fixture.PrepareNativeQueryInputsAsync();
         if (joinedPolicy)
         {
             var tournament = new LegacyFreezeWarRuntimeStateStore();
@@ -192,6 +198,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 }
                 return ValueTask.CompletedTask;
             });
+        await fixture.PrepareNativeQueryInputsAsync();
         await fixture.KillAsync(); // Receive opening proc precedes the same real lethal receive.
         Assert.True(procs > 0);
         Assert.Equal(0, fixture.Target.Character.MinHitPoints);
@@ -275,6 +282,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task DirectNormalDeathTrueDragonWarRemovalThenRealFalseCastDoesNotReuseOldPolicy()
     {
         using var fixture = new DirectNormalDeathFixture(targetHitpoints: 1);
+        await fixture.PrepareNativeQueryInputsAsync();
         var tournament = new LegacyDragonWarRuntimeStateStore();
         tournament.Open(fixture.UtcNow);
         Assert.True(tournament.TryJoin(fixture.Target, out var joined));
@@ -301,6 +309,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task DirectNormalDeathIdleFalseCastThenDragonWarAddFlagRetainsPolicyAndDeadline()
     {
         using var fixture = new DirectNormalDeathFixture(targetHitpoints: 1);
+        await fixture.PrepareNativeQueryInputsAsync();
         var tournament = new LegacyDragonWarRuntimeStateStore();
         tournament.Open(fixture.UtcNow);
         Assert.True(tournament.TryJoin(fixture.Target, out var joined));

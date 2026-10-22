@@ -88,7 +88,7 @@ public sealed class ClientStringFile
                 continue;
             }
 
-            _lines[index] = _lines[index] with { Text = prefix + parsedKey + NormalizeReplacementSeparator(separator, currentValue) + value };
+            _lines[index] = _lines[index] with { Text = prefix + parsedKey + NormalizeReplacementSeparator(separator, currentValue, value) + value };
             return true;
         }
 
@@ -175,7 +175,7 @@ public sealed class ClientStringFile
                 continue;
             }
 
-            _lines[index] = _lines[index] with { Text = prefix + parsedKey + NormalizeReplacementSeparator(separator, currentValue) + value };
+            _lines[index] = _lines[index] with { Text = prefix + parsedKey + NormalizeReplacementSeparator(separator, currentValue, value) + value };
             return true;
         }
 
@@ -382,8 +382,16 @@ public sealed class ClientStringFile
         return true;
     }
 
-    private static string NormalizeReplacementSeparator(string separator, string currentValue)
+    private static string NormalizeReplacementSeparator(string separator, string currentValue, string replacementValue)
     {
+        // Explicit leading layout whitespace belongs to the replacement rather
+        // than accumulating with indentation retained from an earlier value.
+        if (replacementValue.Length > 0 && char.IsWhiteSpace(replacementValue[0]))
+        {
+            var equalsIndex = separator.IndexOf('=');
+            return equalsIndex >= 0 ? separator[..(equalsIndex + 1)] : string.Empty;
+        }
+
         if (currentValue.Length == 0)
         {
             var equalsIndex = separator.IndexOf('=');

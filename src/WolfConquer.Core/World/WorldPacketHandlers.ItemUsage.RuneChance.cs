@@ -15,6 +15,7 @@ public static partial class WorldPacketHandlers
     {
         if (!TryGetRuneItem(session.PlayerItems, packet.Id, out var rune))
         {
+            UpdateLegacyRuneRanking(context, session);
             await context.Log.WriteLineAsync(
                     "WorldServer skipped MsgItemUsage chance rune " +
                     $"{FormatSession(context)} source={LegacyRuneChanceSource} " +
@@ -93,6 +94,8 @@ public static partial class WorldPacketHandlers
                     .ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
+
+        UpdateLegacyRuneRanking(updatedContext, updatedSession);
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled MsgItemUsage chance rune " +

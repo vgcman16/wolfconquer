@@ -13,12 +13,33 @@ public static partial class WorldPacketHandlers
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (context.Session is not { } session)
+        var session = context.Session;
+        if (context.Sessions is { } currentSessions)
+        {
+            // The supplied context can predate another ordinary handler's
+            // publication. A removed current session must never be resurrected.
+            if (!currentSessions.TryGet(context.Connection, out session)) session = null;
+        }
+        if (session is null)
         {
             await context.Log.WriteLineAsync(
                     $"WorldServer skipped MsgAction CompleteLogin {FormatSession(context)}; no character session is available.")
                 .ConfigureAwait(false);
             return;
+        }
+        context = context with { Session = session };
+
+        LegacyCompleteLoginRuntime.Owner? owner = null;
+        if (context.Connection.NativeGameClient is not null || session.NativeGameClient is not null)
+        {
+            if (context.Sessions is null ||
+                !LegacyCompleteLoginRuntime.TryCapture(context.Connection, session, out owner))
+            {
+                await context.Log.WriteLineAsync(
+                        $"WorldServer skipped MsgAction CompleteLogin {FormatSession(context)}; current physical Player owner is unavailable.")
+                    .ConfigureAwait(false);
+                return;
+            }
         }
 
         if (HasExplicitLegacyCompleteLoginInterserverAttribute(session))
@@ -74,15 +95,36 @@ public static partial class WorldPacketHandlers
         await context.Connection.SendAsync(abilityScore.ToFrameBytes(), cancellationToken)
             .ConfigureAwait(false);
 
-        var updatedCharacter = WithCharacterAttribute(session.Character, LegacyCompleteLoginAttribute, 1UL);
-        var updatedSession = session with { Character = updatedCharacter };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        WorldSession? updatedSession;
+        if (context.Sessions is { } sessions)
+        {
+            // Native Data132 writes the physical flag only AFTER the final send.
+            // Merge its compatibility projection into the latest same-owner
+            // session; an awaited startup must not overwrite a newer wallet.
+            if (!sessions.TryCompleteLegacyLogin(context.Connection, session, owner, out updatedSession))
+            {
+                await context.Log.WriteLineAsync(
+                        $"WorldServer skipped MsgAction CompleteLogin publication {FormatSession(context)}; current owner changed or session ended during startup.")
+                    .ConfigureAwait(false);
+                return;
+            }
+        }
+        else
+        {
+            // Preserve existing wholly unbound managed fixtures, without
+            // constructing a client, Player, or private completion issuer.
+            updatedSession = session with
+            {
+                Character = WithCharacterAttribute(session.Character, LegacyCompleteLoginAttribute, 1UL),
+            };
+        }
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled MsgAction CompleteLogin " +
                 $"{FormatSession(context with { Session = updatedSession })} typeId={(ushort)packet.Type} " +
                 $"jiangHuSent={jiangHuSent} coatStorageCount={coatStorageCount} " +
-                $"guildPromptSent={guildPromptSent} abilityScoreItems={abilityScore.Items.Count}; " +
+                $"guildPromptSent={guildPromptSent} abilityScoreItems={abilityScore.Items.Count} " +
+                $"physicalPlayerCompleted={owner is not null}; " +
                 "source=MsgDataPacket.CompleteLogin [Data(132)] local branch sends VIP startup, JiangHu startup, " +
                 "wardrobe startup, optional guild prompt, prestige response, then sets Player.CompleteLogin=true.")
             .ConfigureAwait(false);

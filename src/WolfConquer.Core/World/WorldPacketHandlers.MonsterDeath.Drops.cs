@@ -13,7 +13,6 @@ public static partial class WorldPacketHandlers
         CancellationToken cancellationToken)
     {
         var roll = ReadLegacyMonsterDeathDropRoll(session.Character, out var forcedRoll);
-        var moneyAmount = ReadLegacyMonsterDeathDropMoneyAmount(session.Character);
         if (context.WorldData is not { } worldData)
         {
             await LogParityGapAsync(
@@ -93,48 +92,60 @@ public static partial class WorldPacketHandlers
         var sentCount = 0;
         var loggedMissingFloorItemRuntime = false;
         var lastSelection = default(LegacyMonsterDeathDropSelection);
+        uint? lastMoneyItemId = null;
         var lastNoDropReason = "";
         for (var index = 0; index < dropCount; index++)
         {
-            if (!TrySelectLegacyMonsterDeathDropItemId(
-                    context,
-                    session.Character,
-                    worldData,
-                    monsterFamily,
-                    roll,
-                    moneyAmount,
-                    out var selection,
-                    out var noDropReason))
+            LegacyMonsterDeathDropSelection selection;
+            FloorItemRuntimeEntry entry;
+            if (dropKind == "money")
             {
-                lastNoDropReason = noDropReason;
-                continue;
-            }
-
-            var floorItem = LegacyFloorItemPacket.FromMonsterDrop(
-                selection.ItemId,
-                dropX,
-                dropY,
-                session.Character,
-                NextLegacyFloorItemUid());
-            var entry = selection.Kind == FloorItemRuntimePickupKind.Money
-                ? FloorItemRuntimeEntry.ForMoney(monster.MapId, floorItem, selection.Amount, ownerOnly: true)
-                : FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, ownerOnly: true);
-            if (context.FloorItems is { } floorItems)
-            {
-                if (!floorItems.TryAddVisibleOnGround(
-                        entry,
-                        DateTimeOffset.UtcNow,
-                        0,
-                        (mapId, x, y) => TryValidateStaticTerrainLocation(context, mapId, x, y, out _),
-                        out var added))
+                if (!TryAddLegacyMonsterDeathMoneyDrop(context, session.Character, worldData,
+                        monster.MapId, monster.DynamicId, dropX, dropY, out entry,
+                        out selection, out var placementRejected, out var noDropReason))
                 {
-                    break;
+                    lastNoDropReason = noDropReason;
+                    if (selection.ItemId != 0)
+                    {
+                        lastMoneyItemId = selection.ItemId;
+                    }
+                    if (placementRejected)
+                    {
+                        // Native AddGroundItem clears both ref coordinates on
+                        // failure; MonsterRole retries the remaining money piles.
+                        dropX = 0;
+                        dropY = 0;
+                    }
+                    continue;
+                }
+            }
+            else
+            {
+                if (!TrySelectLegacyMonsterDeathDropItemId(context, session.Character, worldData,
+                        monsterFamily, roll, out selection, out var noDropReason))
+                {
+                    lastNoDropReason = noDropReason;
+                    continue;
                 }
 
-                entry = added;
-                floorItem = added.Packet;
+                var selectedPacket = LegacyFloorItemPacket.FromMonsterDrop(selection.ItemId, dropX, dropY,
+                    session.Character, NextLegacyFloorItemUid());
+                entry = FloorItemRuntimeEntry.ForItem(monster.MapId, selectedPacket, ownerOnly: true, dynamicId: monster.DynamicId);
+                if (context.FloorItems is { } floorItems)
+                {
+                    if (!floorItems.TryAddVisibleOnGround(entry, DateTimeOffset.UtcNow, 0,
+                            (mapId, x, y) => TryValidateStaticTerrainLocation(context, mapId, x, y, out _),
+                            out var added))
+                    {
+                        break;
+                    }
+
+                    entry = added;
+                }
             }
-            else if (!loggedMissingFloorItemRuntime)
+
+            var floorItem = entry.Packet;
+            if (context.FloorItems is null && !loggedMissingFloorItemRuntime)
             {
                 await LogParityGapAsync(
                         context,
@@ -161,7 +172,7 @@ public static partial class WorldPacketHandlers
 
             dropX = floorItem.X;
             dropY = floorItem.Y;
-            await SendFloorItemVisibleAsync(context, session.Character, floorItem, cancellationToken)
+            await SendFloorItemVisibleAsync(context, session.Character, entry, cancellationToken)
                 .ConfigureAwait(false);
             sentCount++;
             lastSelection = selection;
@@ -185,7 +196,7 @@ public static partial class WorldPacketHandlers
                         context,
                         LegacyParityGapDiagnostics.MonsterDrop(
                             monster.MonsterId,
-                            itemId: dropKind == "money" ? GetLegacyMoneyItemId(moneyAmount) : null,
+                            itemId: lastMoneyItemId,
                             mapId: TryGetLegacyParityMapId(monster.MapId),
                             dropKind: dropKind,
                             resource: WorldDataResource,
@@ -243,7 +254,7 @@ public static partial class WorldPacketHandlers
                 monster,
                 session.Character,
                 NextLegacyFloorItemUid());
-            var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, ownerOnly: true);
+            var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, ownerOnly: true, dynamicId: monster.DynamicId);
             if (context.FloorItems is { } floorItems)
             {
                 if (!floorItems.TryAddVisibleOnGround(
@@ -284,7 +295,7 @@ public static partial class WorldPacketHandlers
                 loggedMissingFloorItemRuntime = true;
             }
 
-            await SendFloorItemVisibleAsync(context, session.Character, floorItem, cancellationToken)
+            await SendFloorItemVisibleAsync(context, session.Character, entry, cancellationToken)
                 .ConfigureAwait(false);
             sentCount++;
         }
@@ -550,7 +561,7 @@ public static partial class WorldPacketHandlers
                 monster,
                 session.Character,
                 NextLegacyFloorItemUid());
-            var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, ownerOnly: true);
+            var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, ownerOnly: true, dynamicId: monster.DynamicId);
             if (context.FloorItems is { } floorItems)
             {
                 if (!floorItems.TryAddVisibleOnGround(
@@ -591,7 +602,7 @@ public static partial class WorldPacketHandlers
                 loggedMissingFloorItemRuntime = true;
             }
 
-            await SendFloorItemVisibleAsync(context, session.Character, floorItem, cancellationToken)
+            await SendFloorItemVisibleAsync(context, session.Character, entry, cancellationToken)
                 .ConfigureAwait(false);
             sentCount++;
         }
@@ -629,7 +640,7 @@ public static partial class WorldPacketHandlers
             monster,
             session.Character,
             NextLegacyFloorItemUid());
-        var entry = FloorItemRuntimeEntry.ForMoney(monster.MapId, floorItem, amount, ownerOnly: true);
+        var entry = FloorItemRuntimeEntry.ForMoney(monster.MapId, floorItem, amount, ownerOnly: true, dynamicId: monster.DynamicId);
         if (context.FloorItems is { } floorItems)
         {
             if (!floorItems.TryAddVisibleOnGround(
@@ -670,7 +681,7 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
         }
 
-        await SendFloorItemVisibleAsync(context, session.Character, floorItem, cancellationToken)
+        await SendFloorItemVisibleAsync(context, session.Character, entry, cancellationToken)
             .ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer sent legacy map special monster death money drop " +

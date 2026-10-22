@@ -24,7 +24,7 @@ public static partial class WorldPacketHandlers
         CancellationToken cancellationToken)
     {
         var frame = packet.ToFrameBytes();
-        await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+        await SendLegacyTeleportFrameAsync(context, context.Connection, frame, cancellationToken).ConfigureAwait(false);
 
         var sentCount = 1;
         if (context.Sessions is { } sessions)
@@ -38,7 +38,7 @@ public static partial class WorldPacketHandlers
                     continue;
                 }
 
-                await active.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+                await SendLegacyTeleportFrameAsync(context, active.Connection, frame, cancellationToken).ConfigureAwait(false);
                 sentCount++;
             }
         }
@@ -75,19 +75,23 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            var mapId = entry.MapId == 0 ? character.MapId : entry.MapId;
-            if (!CanSeeFloorItem(character, mapId, packet.X, packet.Y))
+            if (entry.DynamicId.HasValue)
             {
-                continue;
+                if (!CanRefreshScopedFloorItem(context, character, entry, previousCharacter)) continue;
+            }
+            else
+            {
+                // Untagged/effect compatibility is deliberately not changed
+                // by ordinary-loot scope capture.
+                var mapId = entry.MapId == 0 ? character.MapId : entry.MapId;
+                if (!CanSeeFloorItem(character, mapId, packet.X, packet.Y) ||
+                    previousCharacter is { } previous && CanSeeFloorItem(previous, mapId, packet.X, packet.Y))
+                {
+                    continue;
+                }
             }
 
-            if (previousCharacter is { } previous &&
-                CanSeeFloorItem(previous, mapId, packet.X, packet.Y))
-            {
-                continue;
-            }
-
-            await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+            await SendLegacyTeleportFrameAsync(context, context.Connection, packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
             sentCount++;
         }
 

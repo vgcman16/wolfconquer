@@ -8,7 +8,8 @@ public static partial class WorldPacketHandlers
         WorldSession AttackerSession,
         WorldActiveSession Target,
         long AttackerUid,
-        long TargetUid);
+        long TargetUid,
+        object? IncomingNativeClientIdentity = null);
 
     private readonly record struct LegacyPlayerReceiveCombatGearOutcome(
         WorldSession? AttackerSession,
@@ -22,11 +23,12 @@ public static partial class WorldPacketHandlers
         ConquerTcpConnection attackerConnection,
         long attackerUid,
         ConquerTcpConnection targetConnection,
-        long targetUid)
+        long targetUid,
+        LegacyCombatGearReceiveParticipants participants)
     {
         private int consumed;
 
-        public void Consume(
+        public LegacyCombatGearReceiveParticipants Consume(
             ConquerTcpConnection actualAttackerConnection,
             long actualAttackerUid,
             ConquerTcpConnection actualTargetConnection,
@@ -40,6 +42,7 @@ public static partial class WorldPacketHandlers
             {
                 throw new InvalidOperationException("CombatGear receipt belongs to one accepted receive pair.");
             }
+            return participants;
         }
     }
 
@@ -49,6 +52,10 @@ public static partial class WorldPacketHandlers
         ref WorldSession attacker,
         ref WorldActiveSession target)
     {
+        if (context.CombatGearReceiveParticipants is { } original)
+            return RefreshLegacyCombatGearCapturedParticipants(
+                context, request, original, ref attacker, ref target);
+
         if (context.Sessions is { } sessions)
         {
             if (!sessions.TryGet(context.Connection, out var currentAttacker) ||

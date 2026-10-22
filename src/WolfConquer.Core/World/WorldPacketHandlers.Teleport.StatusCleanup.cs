@@ -139,7 +139,7 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
-        if (!sessions.TryCompareAndSet(context.Connection, session, cleanup.CleanedSession))
+        if (!TryCommitOwnedLegacyTeleport(context, session, cleanup.CleanedSession))
         {
             sessions.TryGet(context.Connection, out var currentSession);
             var currentUid = currentSession?.Character.Uid.ToString() ?? "missing";

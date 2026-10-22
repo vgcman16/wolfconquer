@@ -63,6 +63,8 @@ public sealed partial class WorldServerFrameHandler
                 await Task.Delay(_runtimeUpdateLoop.TickInterval, timeProvider, cancellationToken)
                     .ConfigureAwait(false);
 
+                using var operation = await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
+                if (_tradeRecovery.IsBlocked) continue;
                 TryStartLegacyGlobalRuntimeUpdateLoop(cancellationToken);
                 var now = timeProvider.GetUtcNow();
                 _sessions.TryGet(connection, out var currentSession);
@@ -132,6 +134,8 @@ public sealed partial class WorldServerFrameHandler
                 await Task.Delay(_runtimeUpdateLoop.TickInterval, timeProvider, cancellationToken)
                     .ConfigureAwait(false);
 
+                using var operation = await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
+                if (_tradeRecovery.IsBlocked) continue;
                 var now = timeProvider.GetUtcNow();
                 RemoveExpiredLegacyQualifierMatches(now);
                 await TickLegacyGuildWarRuntimeAsync(now, timeProvider.LocalTimeZone).ConfigureAwait(false);

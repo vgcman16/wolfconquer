@@ -25,6 +25,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         private bool itemEffectRuntimeStarted;
         private readonly bool itemEffectXpControls;
         private bool itemEffectPlayerRuntimeStarted;
+        private readonly bool nativeDeathCasterQueryControls;
 
         public RootMagicEntryFixture(ushort selectedId = 1_000, ushort rawCadence = 0,
             int coldTime = 0, bool passive = false, bool ridingCrop = false,
@@ -34,9 +35,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             bool nativeCadenceControls = false, bool omitSelectedLearnedInput = false,
             bool ridingCropQueryControls = false,
             RootManualItemEffectInputs? itemEffects = null, bool itemEffectLifetimeControls = false,
-            bool itemEffectXpControls = false)
+            bool itemEffectXpControls = false, bool nativeDeathCasterQueryControls = false)
         {
             hasRawRidingCrop = ridingCrop;
+            this.nativeDeathCasterQueryControls = nativeDeathCasterQueryControls;
+            Assert.True(!nativeDeathCasterQueryControls || itemEffectLifetimeControls);
             this.itemEffectXpControls = itemEffectXpControls;
             Assert.True(!itemEffectXpControls || itemEffectLifetimeControls);
             var rows = new List<MagicType>
@@ -56,7 +59,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             };
             if (itemEffectLifetimeControls)
                 rows.Add(CreateMagicRow(1_001, sort: 1, useMana: 0, useStamina: 0,
-                    damage: 9_000, range: 18, coolDown: 0, coldTime: 0));
+                    damage: nativeDeathCasterQueryControls ? 9_999U : 9_000U,
+                    range: 18, coolDown: 0, coldTime: 0));
             if (itemEffectXpControls)
                 rows.Add(CreateMagicRow(1_020, sort: 6, useMana: 0, useStamina: 0,
                     damage: 100, duration: 30, range: 18, coolDown: 0, coldTime: 0));
@@ -83,6 +87,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     CropQueryInput(410_095, "0"), CropQueryInput(150_095, "0"), CropQueryInput(120_095, "0"),
                     .. (ridingCrop ? new[] { CropQueryInput(203_003, "0") } : Array.Empty<ItemType>()),
                 ];
+            if (nativeDeathCasterQueryControls)
+                queryItems = [.. (queryItems ?? Array.Empty<ItemType>()),
+                    CropQueryInput(111_005, "50000", "1000"), CropQueryInput(120_005, "50000")];
             var sourceArrowCatalog = catalogArrowWithoutLearnedBook ? CreateRootMissingArrowSourceGear() : null;
             var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [], rows,
                 items: queryItems,
@@ -164,6 +171,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 x: 832, y: 584, strength: 0, spirit: 0,
                 minHitPoints: 100_000, minMana: 1_000, stamina: 100,
                 spellIds: itemEffectLifetimeControls ? [1_001] : [],
+                playerItems: nativeDeathCasterQueryControls ? PlayerItemSnapshot.Empty with
+                {
+                    EquipmentItems =
+                    [
+                        new() { Uid = 99_191, ItemId = 111_005, Position = 1,
+                            Durability = 100, MaximumDurability = 100 },
+                        new() { Uid = 99_192, ItemId = 120_005, Position = 2,
+                            Durability = 100, MaximumDurability = 100 },
+                    ],
+                } : PlayerItemSnapshot.Empty,
                 attributes: new Dictionary<string, string> { ["PkMode"] = "0", ["BattlePower"] = "120" });
             if (itemEffectLifetimeControls)
             {

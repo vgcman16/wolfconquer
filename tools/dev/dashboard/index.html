@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WolfConquer · Local workshop</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header><div class="mark">W</div><div><p class="eyebrow">WINDOWS DEVELOPMENT WORKSHOP</p><h1>WolfConquer</h1></div><span class="local">LOCAL ONLY · READ ONLY</span></header>
+  <main>
+    <section class="intro"><h2>A clear view of your local stack.</h2><p>Build checks and observed services. This page never starts, stops, logs into, or changes the game.</p></section>
+    <div id="connection" role="status">Connecting to local status…</div>
+    <section class="cards">
+      <article><p class="eyebrow">LATEST AUTOMATED CHECK</p><h3 id="check-state">Unknown</h3><p id="check-detail">No result loaded.</p><p id="check-time" class="muted"></p></article>
+      <article><p class="eyebrow">OBSERVED SERVER PROCESSES</p><h3 id="service-count">—</h3><p id="service-detail">Checking explicitly selected installation.</p><p class="muted">A listening process is not proof of gameplay readiness.</p></article>
+      <article><p class="eyebrow">TEST BOUNDARY</p><h3>Development</h3><p>Automated checks do not establish full parity, English translation, or live-client compatibility.</p><a href="https://github.com/vgcman16/wolfconquer">View source repository ↗</a></article>
+    </section>
+    <section class="panel"><div class="section-title"><h2>Build pipeline</h2><span>RESTORE → BUILD → TEST</span></div><div id="steps" class="steps"><p class="muted">No recorded check yet.</p></div></section>
+    <section class="panel"><div class="section-title"><h2>Server observations</h2><span id="observed">—</span></div><div id="services"><p class="muted">Loading…</p></div></section>
+    <section class="panel instructions"><h2>Run a local check</h2><p>In PowerShell 7, from the source checkout:</p><code>./tools/dev/Invoke-LocalCheck.ps1</code><p class="muted">Runs sequentially and records the real exit codes. It does not deploy the result or modify your saves. This dashboard has no execution buttons.</p><details><summary>Selected source checkout</summary><code id="repository"></code></details></section>
+  </main>
+  <footer>WolfConquer local workshop · refreshes every 10 seconds · keep credentials and game data outside the public repository</footer>
+</body>
+</html>

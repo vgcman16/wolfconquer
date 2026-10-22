@@ -34,7 +34,8 @@ public static partial class WorldPacketHandlers
                 durationMilliseconds,
                 invokeDelayMilliseconds,
                 cancellationToken,
-                hitRadiusOverride)
+                hitRadiusOverride,
+                capturedPlayerSpell: playerSpell)
             .ConfigureAwait(false);
 
         await SendLegacyCombatGearFloorSpellPlacementAnimationAsync(
@@ -66,8 +67,15 @@ public static partial class WorldPacketHandlers
         int durationMilliseconds,
         int invokeDelayMilliseconds,
         CancellationToken cancellationToken,
-        double? hitRadiusOverride = null)
+        double? hitRadiusOverride = null,
+        PlayerSpellSnapshotEntry? capturedPlayerSpell = null)
     {
+        var capturesFloorState = spell.Id is 21_580 or 22_070 or 22_100;
+        if (capturesFloorState && capturedPlayerSpell is null)
+        {
+            throw new ArgumentNullException(nameof(capturedPlayerSpell));
+        }
+
         var character = session.Character;
         var floorUid = NextLegacyFloorItemUid();
         var packet = new LegacyFloorItemPacket(
@@ -98,7 +106,12 @@ public static partial class WorldPacketHandlers
                 Math.Max(1, (int)spell.Range),
                 hitRadiusOverride ?? Math.Max(1, (int)spell.MaxTargets),
                 ExpiresAt: now.AddMilliseconds(durationMilliseconds),
-                RepeatMilliseconds: invokeDelayMilliseconds);
+                RepeatMilliseconds: invokeDelayMilliseconds,
+                SpellLevel: capturesFloorState ? spell.Level : (byte)0,
+                LevelHu: capturesFloorState ? capturedPlayerSpell!.SoulLevel : (byte)0,
+                CapturedSpell: capturesFloorState ? spell : null,
+                AnimationOriginX: capturesFloorState ? packet.OwnerX : null,
+                AnimationOriginY: capturesFloorState ? packet.OwnerY : null);
             floorItems.AddVisible(FloorItemRuntimeEntry.ForEffect(character.MapId, packet, effect), now);
         }
         else
@@ -278,8 +291,14 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            if (context.WorldData is not { } worldData ||
-                !LegacyMagicRuntime.TryResolveSpell(worldData, spellId, spellLevel: 0, out var spell))
+            if (context.WorldData is not { } worldData)
+            {
+                continue;
+            }
+
+            var hasDefaultSpell = LegacyMagicRuntime.TryResolveSpell(worldData, spellId, spellLevel: 0, out var spell);
+            var isCapturedFloor = spellId is 21_580 or 22_070 or 22_100;
+            if (!hasDefaultSpell && !isCapturedFloor)
             {
                 continue;
             }
@@ -319,6 +338,12 @@ public static partial class WorldPacketHandlers
                     continue;
                 }
 
+                var pulseSpell = isCapturedFloor ? effect.CapturedSpell ?? spell : spell;
+                if (pulseSpell is null)
+                {
+                    continue;
+                }
+
                 var ownerContext = context with
                 {
                     Connection = owner.Connection,
@@ -353,7 +378,7 @@ public static partial class WorldPacketHandlers
                             context.WorldData,
                             target.Monster,
                             target.MonsterFamily,
-                            spell);
+                            pulseSpell);
                         var result = ApplyLegacyPlayerMonsterDamage(
                             monsterStates,
                             target.Monster,
@@ -368,14 +393,14 @@ public static partial class WorldPacketHandlers
 
                         animationTargets.Add(new LegacySpellAnimationTarget(
                             target.Monster.Uid,
-                            result.DamageApplied,
-                            Hit: result.DamageApplied > 0,
+                            isCapturedFloor ? result.RequestedDamage : result.DamageApplied,
+                            Hit: isCapturedFloor ? result.RequestedDamage > 0 : result.DamageApplied > 0,
                         MsgAttackEffect.None));
                     }
                 }
 
                 var ownerLostDuringReceive = false;
-                foreach (var target in EnumerateVisiblePlayerMagicTargets(ownerContext, ownerSession, spell))
+                foreach (var target in EnumerateVisiblePlayerMagicTargets(ownerContext, ownerSession, pulseSpell))
                 {
                     var targetCharacter = target.ActiveSession.Session.Character;
                     if (!IsLegacyCombatGearFloorSpellTarget(
@@ -391,7 +416,7 @@ public static partial class WorldPacketHandlers
                     var damage = CalculateLegacyPlayerPlayerPhysicalSpellDamage(
                         ownerSession,
                         target.ActiveSession.Session,
-                        spell,
+                        pulseSpell,
                         worldData,
                         damageDivisor: 1);
                     var receiveOutcome = await ApplyLegacyPlayerMagicDamageToPlayerAsync(
@@ -418,15 +443,23 @@ public static partial class WorldPacketHandlers
                         continue;
                     }
 
-                    if (result.DamageApplied == 0)
+                    if (result.DamageApplied == 0 && !isCapturedFloor)
                     {
                         continue;
+                    }
+
+                    // ReceiveAttack mutates SpellObj before the source's display-only Soul step.
+                    // Base.CalculateSoul is identity in this native tree, including nonzero LevelHu.
+                    var displayDamage = isCapturedFloor ? result.ReceiveDamage ?? damage : result.DamageApplied;
+                    if (spellId == 21_580)
+                    {
+                        displayDamage = unchecked(displayDamage * 75u) / 100u;
                     }
 
                     playerResults.Add(result);
                     animationTargets.Add(new LegacySpellAnimationTarget(
                         CheckedUInt32(result.UpdatedSession.Character.Uid, nameof(result.UpdatedSession.Character.Uid)),
-                        result.DamageApplied,
+                        displayDamage,
                         Hit: true,
                         MsgAttackEffect.None));
                 }
@@ -454,19 +487,19 @@ public static partial class WorldPacketHandlers
 
                         var damage = CalculateLegacySobNpcPhysicalSpellDamage(
                             ownerSession,
-                            spell,
+                            pulseSpell,
                             worldData,
                             damageMultiplier: 1);
                         var deathBehavior = LegacySobNpcEventRules.GetDeathBehavior(target.SobNpc);
                         var result = sobNpcStates.ApplyDamage(target.SobNpc, damage, now, deathBehavior);
-                        if (result.AlreadyDead || result.DamageApplied == 0)
+                        if (result.AlreadyDead || result.DamageApplied == 0 && !isCapturedFloor)
                         {
                             continue;
                         }
 
                         animationTargets.Add(new LegacySpellAnimationTarget(
                             CheckedUInt32(target.SobNpc.Id, nameof(target.SobNpc.Id)),
-                            result.DamageApplied,
+                            isCapturedFloor ? damage : result.DamageApplied,
                             Hit: true,
                             MsgAttackEffect.None));
 
@@ -483,11 +516,11 @@ public static partial class WorldPacketHandlers
 
                 var animation = LegacySpellAnimationPacket.ForPlayerMagic(
                     entry.Packet.Uid,
-                    effect.OriginX,
-                    effect.OriginY,
+                    effect.AnimationOriginX ?? effect.OriginX,
+                    effect.AnimationOriginY ?? effect.OriginY,
                     spellId,
-                    spellLevel: 0,
-                    levelHu: 0,
+                    spellLevel: isCapturedFloor ? effect.SpellLevel : (byte)0,
+                    levelHu: isCapturedFloor ? effect.LevelHu : (byte)0,
                     animationTargets,
                     bombFlag: 1);
                 await SendPlayerSpellAnimationToVisibleAsync(ownerContext, ownerSession, animation, cancellationToken)
@@ -594,7 +627,7 @@ public static partial class WorldPacketHandlers
                             ownerContext,
                             eventTarget.SobNpc,
                             eventTarget.Result,
-                            spell)
+                            pulseSpell)
                         .ConfigureAwait(false);
                 }
 

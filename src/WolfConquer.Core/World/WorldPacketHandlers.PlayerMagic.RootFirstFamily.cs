@@ -4,8 +4,11 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
+    private static bool IsLegacyNativeRiseOfTaoismRootSpell(LegacyMagicRuntimeSpell spell) =>
+        spell.Sort == LegacyMagicSort.AttachStatus && spell.Id == LegacyRiseOfTaoismAttachStatusSpellId;
+
     private static bool IsLegacyRootFirstFamily(LegacyMagicRuntimeSpell spell) =>
-        spell.Id == 18_220 ||
+        spell.Id == 18_220 || IsLegacyNativeRiseOfTaoismRootSpell(spell) ||
         (!IsLegacyNativeCombatGearSpellId(spell.Id) &&
          spell.Sort is LegacyMagicSort.Attack or LegacyMagicSort.DirectAttack or LegacyMagicSort.Bomb or LegacyMagicSort.Recruit);
 

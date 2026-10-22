@@ -16,6 +16,16 @@ public static partial class WorldPacketHandlers
         CancellationToken cancellationToken)
     {
         var args = ReadLegacyItemUsageArgs(frame);
+        if (packet.DwParam2 is 0 or >= 50)
+        {
+            args = [];
+        }
+
+        if (packet.DwParam2 is > 0 and < 50 && args.Count > packet.DwParam2)
+        {
+            args = args.Take(checked((int)packet.DwParam2)).ToArray();
+        }
+
         if (!TryGetRuneItem(session.PlayerItems, packet.Id, out var targetRune))
         {
             await context.Log.WriteLineAsync(
@@ -45,6 +55,7 @@ public static partial class WorldPacketHandlers
         var updatedTarget = targetRune;
         var mutationFrames = new List<byte[]>();
         var consumedMaterials = 0;
+        var acceptedMaterials = 0;
         foreach (var material in materials)
         {
             if (updatedTarget.ItemId % 100 >= GetLegacyMaxRuneLevel(updatedTarget.ItemId))
@@ -54,6 +65,13 @@ public static partial class WorldPacketHandlers
 
             if (!IsLegacyRuneComposeMaterialItemId(material.ItemId))
             {
+                if (acceptedMaterials > 0)
+                {
+                    await CommitLegacyRuneComposeAcceptedPrefixAsync(
+                            context, session, targetRune, updatedTarget, updatedItems, mutationFrames, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
                 await context.Log.WriteLineAsync(
                         "WorldServer skipped MsgItemUsage compose rune " +
                         $"{FormatSession(context)} source={LegacyRuneComposeSource} " +
@@ -144,6 +162,7 @@ public static partial class WorldPacketHandlers
             updatedTarget = updatedTarget
                 .WithItemId(itemId)
                 .WithRuneExperience(runeExperience);
+            acceptedMaterials++;
 
             if (TryConsumeLegacyRuneComposeInventoryMaterial(
                     updatedItems,
@@ -199,6 +218,8 @@ public static partial class WorldPacketHandlers
                     .ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
+
+        UpdateLegacyRuneRanking(context, updatedSession);
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled MsgItemUsage compose rune " +

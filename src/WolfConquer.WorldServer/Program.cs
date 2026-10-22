@@ -6,6 +6,17 @@ using WolfConquer.Core.World;
 
 var endpoint = ConquerRuntimeDefaults.WorldServer;
 var protocolProfile = ConquerProtocolProfileConfiguration.FromEnvironment();
+LegacyLocalServerIdentity? localServerIdentity;
+try
+{
+    localServerIdentity = LegacyLocalServerIdentity.FromEnvironment();
+}
+catch (FormatException)
+{
+    Console.Error.WriteLine(
+        "Invalid WOLFCONQUER_LOCAL_SERVER_ID; expected an unsigned 32-bit decimal server ID.");
+    return 1;
+}
 RuntimeConsoleLog.ConfigureFromEnvironment(endpoint.Role);
 Console.Out.WriteLine($"Protocol profile: {protocolProfile}");
 var worldData = await WorldDataStartup.TryLoadAsync(Console.Out);
@@ -33,7 +44,13 @@ IAccountEmailVerifier? accountEmailVerifier = string.IsNullOrWhiteSpace(accountE
 Console.Out.WriteLine(accountEmailVerifier is null
     ? "Account email verifier: unavailable; Security Anima email checks will fail closed."
     : "Account email verifier: MySQL authority configured.");
-var runtimeUpdateLoop = LegacyRuntimeUpdateLoopOptions.EnabledDefault;
+var runtimeUpdateLoop = LegacyRuntimeUpdateLoopOptions.EnabledDefault with
+{
+    LocalServerIdentity = localServerIdentity,
+};
+Console.Out.WriteLine(localServerIdentity is { } identity
+    ? $"Native local server identity configured: {identity.ServerId}."
+    : "Native local server identity unavailable; own-server-dependent native behavior remains held.");
 var clientCompatibility = LegacyClientCompatibilityOptions.FromEnvironment();
 var worldEntryStartupProbe = LegacyWorldEntryStartupProbeOptions.FromEnvironment();
 if (clientCompatibility.EnableNewerClientRevelatorStartupEffect)

@@ -145,8 +145,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task RuntimeLoopExpiresRiseOfTaoism15440FlagAndDamageAttribute()
+    public async Task RuntimeLoopExpiresRiseOfTaoism15440FlagAndRetainsDamageAttribute()
     {
+        // Seeded WorldData:null timer-adapter coverage, not public acquisition or owed-query proof.
+        // Native ThreadPool3007-3011 removes227 then queries; Player425's independent extra scalar remains.
         using var log = new StringWriter();
         using var cancel = new CancellationTokenSource();
         var sent = new List<byte[]>();
@@ -181,7 +183,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 {
                     var current = AssertHandlerSession(handler, connection);
                     return !HasLegacyStatusFlag(current.Character.Attributes, LegacyRiseOfTaoismFlag) &&
-                        !current.Character.Attributes.ContainsKey("RiseofTaoismExtraMDamage") &&
+                        current.Character.Attributes.TryGetValue("RiseofTaoismExtraMDamage", out var retainedExtra) &&
+                        retainedExtra == "27" &&
                         !current.Character.Attributes.ContainsKey("LegacyRiseOfTaoismExpiresAtUtc") &&
                         !current.Character.Attributes.ContainsKey("LegacyRiseOfTaoismRemoveOnDead");
                 },
@@ -189,7 +192,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
             var expiredSession = AssertHandlerSession(handler, connection);
             Assert.False(HasLegacyStatusFlag(expiredSession.Character.Attributes, LegacyRiseOfTaoismFlag));
-            Assert.False(expiredSession.Character.Attributes.ContainsKey("RiseofTaoismExtraMDamage"));
+            Assert.Equal("27", expiredSession.Character.Attributes["RiseofTaoismExtraMDamage"]);
             Assert.False(expiredSession.Character.Attributes.ContainsKey("LegacyRiseOfTaoismExpiresAtUtc"));
             Assert.False(expiredSession.Character.Attributes.ContainsKey("LegacyRiseOfTaoismRemoveOnDead"));
             Assert.Contains(ParseMsgUpdates(sent), update => update.Updates.Any(entry =>

@@ -90,39 +90,40 @@ public static partial class WorldPacketHandlers
     {
         updatedItems = items;
         frames = [];
-        if (count <= 0 || materialUids.Count == 0)
+        if (count <= 0 || materialUids.Count != count)
+        {
+            return false;
+        }
+
+        var remainingUids = new HashSet<uint>(materialUids);
+        if (remainingUids.Count != count)
+        {
+            return false;
+        }
+
+        // Native VerifiedUpdateItem selects physical entries, never units from a stack.
+        var selectedItems = new List<PlayerItemSnapshotItem>(count);
+        foreach (var item in items.InventoryItems)
+        {
+            if (item.ItemId == materialItemId && remainingUids.Remove(item.Uid))
+            {
+                selectedItems.Add(item);
+            }
+        }
+
+        if (remainingUids.Count != 0 || selectedItems.Count != count)
         {
             return false;
         }
 
         var inventoryItems = items.InventoryItems.ToList();
         var mutationFrames = new List<byte[]>();
-        var remaining = count;
-        foreach (var materialUid in materialUids)
+        foreach (var item in selectedItems)
         {
-            if (remaining == 0)
+            var index = inventoryItems.IndexOf(item);
+            if (item.StackSize > 1 && item.Position < 40)
             {
-                break;
-            }
-
-            var index = inventoryItems.FindIndex(item => item.Uid == materialUid);
-            if (index < 0)
-            {
-                return false;
-            }
-
-            var item = inventoryItems[index];
-            if (item.ItemId != materialItemId)
-            {
-                return false;
-            }
-
-            var available = item.StackSize > 0 ? item.StackSize : 1;
-            var consumed = Math.Min(available, remaining);
-            remaining -= consumed;
-            if (available > consumed)
-            {
-                var updatedItem = item.WithStackSize(checked((ushort)(available - consumed)));
+                var updatedItem = item.WithStackSize(checked((ushort)(item.StackSize - 1)));
                 inventoryItems[index] = updatedItem;
                 mutationFrames.Add(
                     LegacyGameItemPacket
@@ -142,11 +143,6 @@ public static partial class WorldPacketHandlers
                         DwParam4: 0).ToFrameBytes());
                 inventoryItems.RemoveAt(index);
             }
-        }
-
-        if (remaining != 0)
-        {
-            return false;
         }
 
         updatedItems = new PlayerItemSnapshot(

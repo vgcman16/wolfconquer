@@ -93,23 +93,53 @@ public sealed class PlayerQuestSnapshotLoaderTests : IDisposable
         [
             new PlayerQuestSnapshotEntry(2_001, PlayerQuestStatus.Finished, 12, [3]),
         ]);
-        using var persistenceStarted = new ManualResetEventSlim();
-
-        Task persistence;
-        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+        var retryObserved = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ownership = StartLongRunning(() =>
         {
-            persistence = StartLongRunning(() =>
+            // Keep the lock/release phase off xUnit's async continuation queue.
+            using var persistenceStarted = new ManualResetEventSlim();
+            using var watcher = new FileSystemWatcher(_root, CharacterUid + ".bin.player-quest-file-*.tmp")
+            {
+                NotifyFilter = NotifyFilters.FileName,
+            };
+            using var locked = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            // Removing a real transaction temp while this lock is held proves a failed
+            // replace attempt reached production cleanup, rather than merely starting Save.
+            watcher.Deleted += (_, _) => retryObserved.TrySetResult(true);
+            watcher.EnableRaisingEvents = true;
+            var persistence = StartLongRunning(() =>
             {
                 persistenceStarted.Set();
                 loader.SaveByCharacterUid(CharacterUid, replacement);
                 return true;
             });
-            Assert.True(persistenceStarted.Wait(TimeSpan.FromSeconds(5)));
-            await Task.Delay(50);
-            Assert.False(persistence.IsCompleted);
-        }
+            bool started;
+            bool sawRetry;
+            bool completedWhileLocked;
+            byte[] whileLocked;
+            bool saved;
+            try
+            {
+                started = persistenceStarted.Wait(TimeSpan.FromSeconds(5));
+                sawRetry = retryObserved.Task.Wait(TimeSpan.FromSeconds(5));
+                completedWhileLocked = persistence.IsCompleted;
+                whileLocked = File.ReadAllBytes(path);
+            }
+            finally
+            {
+                locked.Dispose();
+                // Drain the owned writer even when an observation fails, before fixture cleanup.
+                saved = persistence.GetAwaiter().GetResult();
+            }
 
-        await persistence.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(started);
+            Assert.True(sawRetry, "A failed real replace attempt must delete its transaction temp.");
+            Assert.False(completedWhileLocked);
+            Assert.Equal(original, whileLocked);
+            return saved;
+        });
+
+        Assert.True(await ownership.WaitAsync(TimeSpan.FromSeconds(15)));
         Assert.Equal(PlayerQuestSnapshotLoader.Serialize(replacement), File.ReadAllBytes(path));
         AssertNoTransactionArtifacts();
     }

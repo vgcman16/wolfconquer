@@ -12,6 +12,7 @@ public static class ClientTextEncodings
         {
             ClientTextEncodingKind.Utf8 => new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
             ClientTextEncodingKind.Utf8Bom => new UTF8Encoding(encoderShouldEmitUTF8Identifier: true, throwOnInvalidBytes: true),
+            ClientTextEncodingKind.Utf16LeBom => new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true),
             ClientTextEncodingKind.CodePage936 => Encoding.GetEncoding(
                 936,
                 EncoderFallback.ExceptionFallback,

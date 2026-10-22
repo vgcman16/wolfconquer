@@ -28,7 +28,7 @@ public static partial class WorldPacketHandlers
             WithoutLegacyStatusFlag(session.Character, LegacyFatalStrikeFlag),
             RuntimeLegacyFatalStrikeExpiresAtUtcAttribute);
         var updatedSession = session with { Character = updatedCharacter };
-        if (!sessions.TryCompareAndSet(context.Connection, session, updatedSession))
+        if (!TryCommitOwnedLegacyTeleport(context, session, updatedSession))
         {
             sessions.TryGet(context.Connection, out var currentSession);
             var currentUid = currentSession?.Character.Uid.ToString() ?? "missing";

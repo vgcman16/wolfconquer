@@ -16,6 +16,8 @@ public static partial class WorldPacketHandlers
             // Equip.UpdateStats consumes captured MyGear AFTER AppendItems.
             // Earned overlays do not enter its raw BT/CA rebuild projection.
             if (!Refresh()) return false;
+            if (!LegacyNativePerfectionClient.BeginQuery(Context.Sessions, Context.Connection,
+                    Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity)) return false;
             var rawSource = Session with
             {
                 PlayerItems = SourceItems,
@@ -39,9 +41,13 @@ public static partial class WorldPacketHandlers
                 }))
                 return false;
 
+            if (!ResetNativeMagicQuery()) return false; // Source new Status629/Spirit633/Gems634.
             foreach (var item in CapturedEquipment)
             {
                 if (!Refresh()) return false;
+                if (!LegacyNativePerfectionClient.AddCapturedItem(Context.Sessions, Context.Connection,
+                        Request.Scope.OwnerUid, item.PerfectionLevel,
+                        Request.Scope.OwnerNativeClientIdentity)) return false; // Native653: CURRENT shared field.
                 if (item.Durability == 0) continue;
                 if (item.Position % 50 == 18 && !Commit(session => session with
                     {
@@ -58,6 +64,7 @@ public static partial class WorldPacketHandlers
                             _ => LegacyPhysicalStatusOverlay.ForOwner(session) with { NecklaceItemEffect = item.Effect },
                         },
                     })) return false; // Native808/813/817 before this item's Circle828.
+                if (!NativeMagicItemBeforeCircle(item)) return false; // Source AddGem819-820.
                 if (Context.WorldData is { } data &&
                     TryGetLegacyEligibleEquippedRuneLevel(Session, data, "Circle of Life", out var circle) &&
                     circle is >= 1 and <= 9)
@@ -68,13 +75,16 @@ public static partial class WorldPacketHandlers
                         return false;
                 }
 
+                if (!NativeMagicItemAfterCircle(item)) return false; // Source item statuses AFTER Circle setter.
                 if (!AddMaximum(LegacyMaxHitpointsCalculator.CalculateQueryItemHitpoints(
                         item, Context.WorldData, CapturedAlternate)))
                     return false;
                 if (!AddManaMaximum(LegacyEquipmentNativeMana.Item(item, Context.WorldData))) return false;
+                if (!CaptureNativePerfectionRelicLucky(item)) return false;
             }
 
             if (!Refresh()) return false;
+            if (!NativeMagicBeforeFury()) return false; // Current Witchery/NatureChant precede Fury HP await.
             if (Context.WorldData is { } worldData &&
                 HasLegacyStatusFlag(Session.Character, LegacyIronGuardFlag) &&
                 TryGetLegacyEligibleEquippedRuneLevel(Session, worldData, "FuryStrike", out var fury))
@@ -95,6 +105,8 @@ public static partial class WorldPacketHandlers
             var projection = LegacyMaxHitpointsCalculator.CalculateQueryHitpointProjection(
                 Session, SourceItems, Context.WorldData, CapturedAlternate);
             if (!AddMaximum(projection.OtherBeforeVip)) return false;
+            if (!RebuildNativePerfectionCache()) return false;
+            if (!NativeMagicBeforeGear()) return false;
             if (!await RunNativeDerivedSpellsAsync().ConfigureAwait(false)) return false;
             if (!Refresh() || !AddMaximum(LegacyMaxHitpointsCalculator.CalculateAttributeHitpoints(
                     Session.Character.Class, Session.Character.Strength, Session.Character.Agility,
@@ -106,6 +118,9 @@ public static partial class WorldPacketHandlers
             {
                 if (!await AddHitpointsAsync(3_000).ConfigureAwait(false) || !AddMaximum(3_000))
                     return false;
+                if (!Refresh()) return false;
+                if (!LegacyNativePerfectionClient.AddLucky(Context.Sessions, Context.Connection,
+                        Request.Scope.OwnerUid, 3, Request.Scope.OwnerNativeClientIdentity)) return false;
             }
 
             if (!await RunVigorAndCreateSpawnPrefixAsync().ConfigureAwait(false))
@@ -114,7 +129,7 @@ public static partial class WorldPacketHandlers
             projection = LegacyMaxHitpointsCalculator.CalculateQueryHitpointProjection(
                 Session, SourceItems, Context.WorldData, CapturedAlternate);
             if (!AddMaximum(projection.SubClass)) return false;
-            return AddJiangHuManaMaximum(); // Native1580–1582 after CreateSpawn/subclass, before final Status.
+            return NativeMagicLateProfiles() && AddJiangHuManaMaximum(); // Native1577–1582.
         }
     }
 }

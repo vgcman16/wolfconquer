@@ -16,10 +16,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         const uint axeShadowPower = 10;
         const uint hawksAmbitionPower = 20;
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -48,6 +49,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["StatusFlags"] = BuildStatusFlags(LegacyHawksAmbitionFlag),
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -56,6 +59,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,

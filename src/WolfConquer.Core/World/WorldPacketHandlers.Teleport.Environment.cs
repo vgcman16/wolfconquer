@@ -12,7 +12,7 @@ public static partial class WorldPacketHandlers
         var color = ReadAttributeUInt64(character.Attributes, "color", "Color");
         if (color != 0)
         {
-            await context.Connection.SendAsync(
+            await SendLegacyTeleportFrameAsync(context, context.Connection,
                     new MsgActionPacket
                     {
                         ObjId = CheckedUInt32(character.Uid, nameof(character.Uid)),
@@ -27,7 +27,7 @@ public static partial class WorldPacketHandlers
 
         if (LegacyWeatherPacket.TryCreateStartup(character, out var weatherPacket))
         {
-            await context.Connection.SendAsync(weatherPacket.ToFrameBytes(), cancellationToken)
+            await SendLegacyTeleportFrameAsync(context, context.Connection, weatherPacket.ToFrameBytes(), cancellationToken)
                 .ConfigureAwait(false);
         }
     }

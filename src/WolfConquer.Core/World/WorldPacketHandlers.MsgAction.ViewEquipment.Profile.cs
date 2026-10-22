@@ -63,7 +63,7 @@ public static partial class WorldPacketHandlers
         WorldSession target,
         WorldPacketHandlerContext context)
     {
-        return CreateLegacyPlayerStatusResponse(target, context.WorldData);
+        return CreateNativeMagicCachedPlayerStatusResponse(context, target);
     }
 
     private static async ValueTask<bool> TrySendViewEquipmentNoticeAsync(

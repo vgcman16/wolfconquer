@@ -78,14 +78,14 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal(WildPhoenixQualifiedDamageSpellId, spell.SpellId);
             var target = Assert.Single(spell.Targets);
             Assert.Equal(TargetPlayerUid, target.Uid);
-            Assert.Equal(1U, target.Damage);
+            Assert.Equal(0U, target.Damage); // Native early WildPhoenix calculator1, then caller1001 identitySoul /2.
             Assert.True(target.Hit);
             Assert.Equal(MsgAttackEffect.None, target.Effect);
         }
 
         Assert.True(sessions.TryGet(targetConnection, out var updatedTargetSession));
         Assert.NotNull(updatedTargetSession);
-        Assert.Equal(4_999, updatedTargetSession.Character.MinHitPoints);
+        Assert.Equal(5_000, updatedTargetSession.Character.MinHitPoints); // Zero still enters Receive and the Hit=true target.
         Assert.Equal(
             "1",
             updatedTargetSession.Character.Attributes[RuntimeLegacyCombatGearWildPhoenixChargeCountAttribute]);
@@ -233,14 +233,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         bool attackerHasWildPhoenix)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
+            [CreateRetainedNativeMagic421Helmet()],
             CreateMagicRow(
                 WildPhoenixQualifiedDamageSpellId,
                 sort: 1,
                 useMana: 7,
-                damage: 120,
+                damage: 541,
                 coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
@@ -270,16 +271,21 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             name: "Target",
             x: 832,
             y: 584);
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
 
+        var context = new WorldPacketHandlerContext(
+            casterConnection,
+            log,
+            casterSession,
+            WorldData: worldData,
+            Sessions: sessions);
+        context = await PrepareRetainedNativeMagic421QueriesAsync(context, targetConnection, casterSent, targetSent);
+
         await PacketHandlers.HandleAsync(
-            new WorldPacketHandlerContext(
-                casterConnection,
-                log,
-                casterSession,
-                WorldData: worldData,
-                Sessions: sessions),
+            context,
             ReadFrame(new MsgAttackPacket(CreateWildPhoenixPlayerMagicQuery(targetSession)).ToFrameBytes()));
 
         Assert.True(sessions.TryGet(casterConnection, out var updatedCasterSession));

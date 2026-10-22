@@ -35,7 +35,8 @@ public sealed partial class WorldServerFrameHandler
             ProtocolProfile: _protocolProfile,
             TeleportTerrain: _teleportTerrain,
             TimeProvider: _runtimeUpdateLoop.TimeProvider ?? TimeProvider.System,
-            LegacyClock: _runtimeUpdateLoop.LegacyClock ?? LegacySignedMillisecondClock.System);
+            LegacyClock: _runtimeUpdateLoop.LegacyClock ?? LegacySignedMillisecondClock.System,
+                TournamentWatcherHolders: _tournamentWatcherHolders);
     }
 
     private async ValueTask SendDueFloorSpellEffectsAsync(
@@ -87,7 +88,7 @@ public sealed partial class WorldServerFrameHandler
         var viewerCount = 0;
         foreach (var entry in expired)
         {
-            if (entry.MapId == 0)
+            if (!entry.DynamicId.HasValue && entry.MapId == 0)
             {
                 continue;
             }
@@ -97,7 +98,9 @@ public sealed partial class WorldServerFrameHandler
             var sentToViewer = false;
             foreach (var active in activeSessions)
             {
-                if (!CanSeeFloorItem(active.Session.Character, entry.MapId, packet.X, packet.Y))
+                if (entry.DynamicId.HasValue
+                    ? !LegacyFloorItemVisibility.CanBroadcast(active.Session.Character, entry)
+                    : !CanSeeFloorItem(active.Session.Character, entry.MapId, packet.X, packet.Y))
                 {
                     continue;
                 }

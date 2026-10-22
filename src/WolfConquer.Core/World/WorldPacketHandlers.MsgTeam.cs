@@ -26,16 +26,21 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (!TryEnterNativeTeamMembership(context, packet, out var entered)) return;
+        context = entered;
+
         await context.Log.WriteLineAsync(
                 $"WorldServer handled MsgTeam {FormatSession(context)} type={packet.Type} uid={packet.Uid} from {context.Connection.RemoteEndPoint}.")
             .ConfigureAwait(false);
 
-        if (context.Session is not { } session)
+        if (!TryRefreshNativeTeamMembership(context, out var session) ||
+            !IsNativeTeamAdmissionCurrent(context, packet, session)) return;
+        context = context with { Session = session };
+        try
         {
-            return;
+            await HandleMsgTeamStateAsync(context, packet, session, cancellationToken).ConfigureAwait(false);
         }
-
-        await HandleMsgTeamStateAsync(context, packet, session, cancellationToken).ConfigureAwait(false);
+        catch (LegacyNativeTeamMembershipRetiredException) { }
     }
 
     private static async ValueTask HandleMsgTeamStateAsync(
@@ -56,7 +61,8 @@ public static partial class WorldPacketHandlers
                     return;
                 }
 
-                teamStates.CreateTeam(context.Connection, session.Character.Uid);
+                if (!CreateTeamAtNativeMembershipEntry(context, teamStates, session)) return;
+                context = CaptureNativeTeamPublication(context, teamStates, context.Connection);
                 CaptureLegacyTeamMemberInfo(context, teamStates, session, context.Connection);
                 await SendTeamCreateMembershipAsync(context, session, cancellationToken)
                     .ConfigureAwait(false);
@@ -294,14 +300,15 @@ public static partial class WorldPacketHandlers
         TeamSessionStateStore teamStates,
         CancellationToken cancellationToken)
     {
-        if (teamStates.HasTeam(context.Connection) ||
+        if (HasTeamAtNativeMembershipEntry(context, teamStates, context.Connection) ||
             !TryGetVisibleSessionByUid(context, session, packet.Uid, out var leader) ||
             teamStates.GetForbidJoin(leader.Connection) ||
-            !teamStates.TryAddMember(leader.Connection, context.Connection, session.Character.Uid))
+            !AddTeamAtNativeMembershipEntry(context, teamStates, leader.Connection, context.Connection, session.Character.Uid))
         {
             return;
         }
 
+        context = CaptureNativeTeamPublication(context, teamStates, context.Connection);
         CaptureLegacyTeamMemberInfo(context, teamStates, session, context.Connection);
         await SendTeamAddFramesAsync(context, session, context.Connection, cancellationToken)
             .ConfigureAwait(false);
@@ -318,11 +325,12 @@ public static partial class WorldPacketHandlers
             teamStates.GetForbidJoin(context.Connection) ||
             teamStates.IsFull(context.Connection) ||
             !TryGetVisibleSessionByUid(context, session, packet.Uid, out var member) ||
-            !teamStates.TryAddMember(context.Connection, member.Connection, member.Session.Character.Uid))
+            !AddTeamAtNativeMembershipEntry(context, teamStates, context.Connection, member.Connection, member.Session.Character.Uid))
         {
             return;
         }
 
+        context = CaptureNativeTeamPublication(context, teamStates, member.Connection);
         CaptureLegacyTeamMemberInfo(context, teamStates, member.Session, member.Connection);
         await SendTeamAddFramesAsync(context, member.Session, member.Connection, cancellationToken)
             .ConfigureAwait(false);

@@ -4,7 +4,7 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Tests;
 
-public sealed class WorldDataLoaderTests : IDisposable
+public sealed partial class WorldDataLoaderTests : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

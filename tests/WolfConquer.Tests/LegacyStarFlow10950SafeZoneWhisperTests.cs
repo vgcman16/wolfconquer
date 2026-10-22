@@ -17,6 +17,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var armed = false;
         var before = 0L;
         await using var fixture = new ArrowLifecycleFixture(learnedStarFlow: true, starFlowTargetEffects: true,
+            nativeStarFlowCallerQueryControls: true,
             onSend: (current, recipient, bytes) =>
         {
             if (armed && recipient == PlayerUid && ArrowThirdVector(bytes, false, true))
@@ -63,6 +64,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var armed = false;
         var before = 0L;
         await using var fixture = new ArrowLifecycleFixture(learnedStarFlow: true, starFlowTargetEffects: true,
+            nativeStarFlowCallerQueryControls: true,
             onSend: async (current, recipient, bytes) =>
         {
             if (armed && recipient == PlayerUid && ArrowThirdVector(bytes, false, true))
@@ -128,6 +130,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var before = 0L;
         WorldSession? replacement = null;
         await using var fixture = new ArrowLifecycleFixture(learnedStarFlow: true, starFlowTargetEffects: true,
+            nativeStarFlowCallerQueryControls: true,
             onSend: (current, recipient, bytes) =>
         {
             if (armed && recipient == PlayerUid && ArrowThirdVector(bytes, false, true))
@@ -201,6 +204,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var callbacks = 0;
         var before = 0L;
         await using var fixture = new ArrowLifecycleFixture(learnedStarFlow: true, starFlowTargetEffects: true,
+            nativeStarFlowCallerQueryControls: true,
             onSend: (current, recipient, bytes) =>
         {
             if (armed && recipient == PlayerUid && ArrowThirdVector(bytes, false, true))

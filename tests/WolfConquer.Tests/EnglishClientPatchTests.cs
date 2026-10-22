@@ -15,6 +15,7 @@ public sealed class EnglishClientPatchTests : IDisposable
     [InlineData(ClientTextEncodingKind.Utf8)]
     [InlineData(ClientTextEncodingKind.Utf8Bom)]
     [InlineData(ClientTextEncodingKind.CodePage936)]
+    [InlineData(ClientTextEncodingKind.Utf16LeBom)]
     public void ExplicitCatalogPreservesSectionsDuplicateKeysAndEncoding(ClientTextEncodingKind kind)
     {
         var encoding = ClientTextEncodings.GetEncoding(kind);

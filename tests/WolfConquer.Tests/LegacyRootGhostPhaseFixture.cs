@@ -54,12 +54,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
     private static async Task PrepareRootGhostPhaseAsync(RootMagicEntryFixture fixture)
     {
+        await fixture.PrepareRootNativeDeathCasterAsync();
         await fixture.QueryRootItemEffectsAsync();
         Assert.Equal(5_000L, fixture.Owner.Character.MinHitPoints);
         Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 5));
         Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 10));
         var killedAt = fixture.Now;
-        await fixture.KillRootItemEffectOwnerAsync(); // Real peer learned1001/raw9000; never a saved Dead/HP outcome.
+        await fixture.KillRootItemEffectOwnerAsync(); // Real queried peer MA1/raw9999; native /2 kills without an HP seed.
         Assert.Equal(0L, fixture.Owner.Character.MinHitPoints);
         Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 5));
         Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 10));

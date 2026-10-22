@@ -35,7 +35,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             ParseSpellAnimations(result.TargetSent),
             animation => animation.SpellId == ThunderSpellId);
         var target = Assert.Single(incoming.Targets, target => target.Uid == TargetPlayerUid);
-        Assert.Equal(1U, target.Damage);
+        Assert.Equal(0U, target.Damage); // Native early calculator1 is halved by triggering caller1000, not CounterKill16350.
         Assert.Equal(
             targetStatusFlag == AuraMagicDefenderFlag
                 ? MsgAttackEffect.Imunity

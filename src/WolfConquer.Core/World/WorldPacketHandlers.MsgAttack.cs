@@ -28,15 +28,21 @@ public static partial class WorldPacketHandlers
         }
 
         var query = packet.Query;
+        LegacyCounterKillCanUseOwner? counterKillOwner = null;
+        if (query.AttackType == MsgAttackType.CounterKillSwitch &&
+            !TryCaptureLegacyCounterKillCanUseOwner(context, out counterKillOwner))
+            return; // No registered original owner; never reinterpret this as no-Store.
         var focusedAttackPrepared = false;
         try
         {
         context = await CancelLegacyMsgAttackIntensifyArmAsync(context, cancellationToken)
             .ConfigureAwait(false);
+        if (counterKillOwner is not null && !IsLegacyCounterKillCanUseOwnerCurrent(context, counterKillOwner)) return;
         var focusedAttackState = await PrepareLegacyMsgAttackFocusedAsync(context, cancellationToken)
             .ConfigureAwait(false);
         context = focusedAttackState.Context;
         focusedAttackPrepared = focusedAttackState.Prepared;
+        if (counterKillOwner is not null && !IsLegacyCounterKillCanUseOwnerCurrent(context, counterKillOwner)) return;
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled MsgAttack " +
@@ -48,7 +54,8 @@ public static partial class WorldPacketHandlers
                 $"from {context.Connection.RemoteEndPoint}.")
             .ConfigureAwait(false);
 
-        if (await HandleLegacyCounterKillSwitchAsync(context, packet, cancellationToken).ConfigureAwait(false))
+        if (counterKillOwner is not null && !IsLegacyCounterKillCanUseOwnerCurrent(context, counterKillOwner)) return;
+        if (await HandleLegacyCounterKillSwitchAsync(context, packet, counterKillOwner, cancellationToken).ConfigureAwait(false))
         {
             return;
         }
@@ -120,7 +127,10 @@ public static partial class WorldPacketHandlers
         {
             if (focusedAttackPrepared)
             {
-                await ClearLegacyMsgAttackFocusedAsync(context, cancellationToken).ConfigureAwait(false);
+                if (counterKillOwner is not null)
+                    await ClearLegacyCounterKillCanUseFocusedAsync(context, counterKillOwner, cancellationToken).ConfigureAwait(false);
+                else
+                    await ClearLegacyMsgAttackFocusedAsync(context, cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -590,55 +600,6 @@ public static partial class WorldPacketHandlers
             $"minAttack={minAttack} maxAttack={maxAttack} physicalPercent={physicalPercent} " +
             $"physicalDamageIncrease={physicalDamageIncrease} monsterDefense={monsterDefense} " +
             $"monsterDefense2={monsterDefense2}; source=Physical.OnMonster damage audit.";
-    }
-
-    private static async ValueTask<bool> HandleLegacyCounterKillSwitchAsync(
-        WorldPacketHandlerContext context,
-        MsgAttackPacket packet,
-        CancellationToken cancellationToken)
-    {
-        if (packet.Query.AttackType != MsgAttackType.CounterKillSwitch ||
-            context.Session is not { } session ||
-            context.WorldData is not { } worldData)
-        {
-            return false;
-        }
-
-        if (!LegacyMagicRuntime.TryResolveLearnedSpell(
-                session.PlayerSpells,
-                worldData,
-                LegacyCounterKillSpellId,
-                out var playerSpell,
-                out var spell) ||
-            !IsLegacyCounterKillSpell(spell))
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped legacy CounterKill switch " +
-                    $"{FormatSession(context)} spellId=6003; learned CounterKill spell was not available.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var active = !IsLegacyCounterKillActive(session.Character);
-        var updatedCharacter = WithCharacterAttribute(
-            session.Character,
-            RuntimeLegacyCounterKillActiveAttribute,
-            active ? "1" : "0");
-        var updatedSession = session with { Character = updatedCharacter };
-        context.Sessions?.Set(context.Connection, updatedSession);
-
-        var response = new MsgAttackPacket(packet.Query with
-        {
-            SpellId = playerSpell.Id,
-            SpellLevel = playerSpell.Level,
-            Damage = active ? 1 : 0,
-        });
-        await context.Connection.SendAsync(response.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-        await context.Log.WriteLineAsync(
-                "WorldServer handled legacy CounterKill switch " +
-                $"{FormatSession(context with { Session = updatedSession })} active={active}.")
-            .ConfigureAwait(false);
-        return true;
     }
 
 }

@@ -348,6 +348,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             ClassicAttachStatusInvisibilitySpellId);
         var now = DateTimeOffset.UtcNow;
         var expiresAt = now.AddSeconds(ClassicAttachStatusDurationSeconds);
+        var clock = new ManualRuntimeTimeProvider(now);
         var handler = new WorldServerFrameHandler(
             snapshotLoader: null,
             handoffService: null,
@@ -355,7 +356,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             runtimeUpdateLoop: new LegacyRuntimeUpdateLoopOptions(
                 Enabled: true,
                 TimeSpan.FromMilliseconds(10),
-                new AnchoredRuntimeTimeProvider(expiresAt.AddSeconds(1))),
+                clock),
             log: log);
         var session = CreateSession(
             spellIds: [ClassicAttachStatusInvisibilitySpellId],
@@ -371,7 +372,30 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         try
         {
+            // Existing white-box loop-start fixture; no claim of public login/cast admission coverage.
             StartHandlerRuntimeUpdateLoop(handler, connection, session, cancel.Token);
+            await WaitUntilAsync(() => clock.ScheduledTimerCount == 2, TimeSpan.FromSeconds(1));
+            clock.Advance(TimeSpan.FromMilliseconds(10)); // Actual player/global Task.Delay callbacks, BEFORE expiry.
+            await WaitUntilAsync(
+                () => ParseMsgUpdates(sent).Any(update =>
+                    update.Uid == PlayerUid &&
+                    update.Updates.Any(entry =>
+                        entry.Type == LegacyMsgUpdateDataType.StatusFlag &&
+                        entry.Values is not null &&
+                        IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag))),
+                TimeSpan.FromSeconds(1));
+            Assert.True(GetHandlerSessions(handler).TryGet(connection, out var activeSession));
+            Assert.NotNull(activeSession);
+            Assert.True(HasLegacyStatusFlag(activeSession.Character.Attributes, ClassicAttachStatusInvisibilityFlag));
+            Assert.Equal(expiresAt.ToString("O", CultureInfo.InvariantCulture),
+                activeSession.Character.Attributes[ClassicAttachStatusInvisibilityExpiresAtUtcAttribute]);
+            Assert.DoesNotContain(ParseMsgUpdates(sent), update => update.Uid == PlayerUid &&
+                update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag &&
+                    entry.Values is not null &&
+                    !IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag)));
+            await WaitUntilAsync(() => clock.ScheduledTimerCount == 2, TimeSpan.FromSeconds(1));
+            // Only an observed real SET publication opens the second phase. Never seed a cleared result.
+            clock.Advance(expiresAt - clock.GetUtcNow() + TimeSpan.FromSeconds(1));
             await WaitUntilAsync(
                 () => ParseMsgUpdates(sent).Any(update =>
                     update.Uid == PlayerUid &&
@@ -408,10 +432,18 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 entry =>
                     entry.Values is not null &&
                     !IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag));
+            var setIndex = Array.FindIndex(clearedUpdates, entry => entry.Values is not null &&
+                IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag));
+            var clearIndex = Array.FindIndex(clearedUpdates, entry => entry.Values is not null &&
+                !IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag));
+            Assert.True(setIndex < clearIndex, "Actual SET publication must precede actual expiry CLEAR publication.");
         }
         finally
         {
             await cancel.CancelAsync();
+            await WaitUntilAsync(() => clock.ScheduledTimerCount == 0 &&
+                Equals(0, typeof(WorldServerFrameHandler).GetField("_legacyRuntimeGlobalLoopStarted",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(handler)), TimeSpan.FromSeconds(1));
         }
     }
 

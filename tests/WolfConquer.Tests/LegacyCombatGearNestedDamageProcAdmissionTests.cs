@@ -494,10 +494,46 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         public async Task CastAsync()
         {
-            await PacketHandlers.HandleAsync(new WorldPacketHandlerContext(
+            var context = new WorldPacketHandlerContext(
                     _connections[PlayerUid], TextWriter.Synchronized(_log), _originalCaster,
                     WorldData: _world, Sessions: _sessions, TimeProvider: _clock,
-                    ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13),
+                    ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
+            var beforeCaster = Caster;
+            var beforeTarget = Target;
+            var beforeQueryAt = Now;
+            // Native1000 halves AFTER Magic.OnPlayer: freshMA0 + row1 becomes0.
+            // Earn the source's unconditionalMA1 through real251, without changing raw inputs.
+            await PacketHandlers.HandleAsync(context,
+                ReadFrame(new MsgActionPacket { ObjId = PlayerUid, Type = (MsgActionType)251 }.ToFrameBytes()));
+            var queryFrames = Frames(PlayerUid);
+            var statusBytes = Assert.Single(queryFrames,
+                bytes => LegacyPlayerStatusPacket.TryParse(ReadFrame(bytes), out _));
+            Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(statusBytes), out var status));
+            Assert.Equal(PlayerUid, status.Uid);
+            Assert.Equal(1U, status.MagicAttack);
+            Assert.Equal(0U, status.MagicPercent);
+            Assert.Equal(0U, status.SkillCStrike);
+            Assert.Equal(0U, status.MagicDamageIncrease);
+            var echoBytes = Assert.Single(queryFrames, bytes =>
+                MsgActionPacket.TryParse(ReadFrame(bytes), out var echo) &&
+                echo.Type == (MsgActionType)251 && echo.ObjId == PlayerUid);
+            Assert.True(Array.IndexOf(queryFrames, echoBytes) > Array.IndexOf(queryFrames, statusBytes));
+            Assert.True(_sessions.TryGet(_connections[PlayerUid], out var queriedCaster));
+            Assert.NotNull(queriedCaster);
+            Assert.Equal(beforeCaster.Character.Spirit, queriedCaster.Character.Spirit);
+            Assert.Equal(beforeCaster.Character.Strength, queriedCaster.Character.Strength);
+            Assert.Equal(beforeCaster.Character.MinHitPoints, queriedCaster.Character.MinHitPoints);
+            Assert.Equal(beforeCaster.Character.MinMana, queriedCaster.Character.MinMana);
+            Assert.Equal(beforeCaster.Character.Attributes["Stamina"], queriedCaster.Character.Attributes["Stamina"]);
+            Assert.Equal(beforeCaster.Character.Attributes["BattlePower"], queriedCaster.Character.Attributes["BattlePower"]);
+            Assert.Equal(beforeCaster.PlayerSpells, queriedCaster.PlayerSpells);
+            Assert.Same(beforeTarget, Target);
+            Assert.Equal(beforeQueryAt, Now);
+            Assert.Empty(Animations(PlayerUid));
+            Assert.Empty(Animations(TargetPlayerUid));
+            context = context with { Session = queriedCaster };
+            _order.Clear(); // Exclude only the positively proved, completed setup query.
+            await PacketHandlers.HandleAsync(context,
                 ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
                     Uid: PlayerUid, OpponentUid: TargetPlayerUid, X: 831, Y: 584,
                     AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0, ResponseDamage: 0,

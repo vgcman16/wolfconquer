@@ -16,10 +16,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         const uint expectedActivationShieldLeft = 26_000;
         const uint expectedDrainedShieldLeft = expectedActivationShieldLeft - ExpectedPlayerThunderDamage;
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0),
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0),
             CreateMagicRow(LegacyLightningShieldSpellId, sort: 0, level: 3, useMana: 0, damage: 0, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
@@ -43,6 +44,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["LegacyLightningShieldRoll"] = "0",
                 ["FlashShieldLevel"] = "2",
             });
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -51,6 +54,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,

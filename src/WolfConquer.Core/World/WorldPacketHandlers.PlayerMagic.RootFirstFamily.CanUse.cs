@@ -6,10 +6,11 @@ public static partial class WorldPacketHandlers
 {
     private static async ValueTask<WorldSession?> TryPrepareLegacyRootFirstFamilyCanUseAsync(
         WorldPacketHandlerContext context, WorldSession session, LegacyMagicRuntimeSpell spell,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        object? expectedNativeClientIdentity = null)
     {
         var uid = session.Character.Uid;
-        bool Refresh() => TryRefreshLegacyPlayerMagicResourceSession(context, uid, ref session);
+        bool Refresh() => TryRefreshLegacyPlayerMagicResourceSession(context, uid, ref session, expectedNativeClientIdentity);
         if (!Refresh()) return null;
         if (session.Character.MapId != 1_039)
         {
@@ -21,8 +22,9 @@ public static partial class WorldPacketHandlers
             if (useStamina > 0)
             {
                 var remaining = stamina - useStamina;
-                session = session with { Character = WithCharacterAttribute(session.Character, "Stamina", remaining) };
-                context.Sessions?.Set(context.Connection, session);
+                if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
+                        owner => owner with { Character = WithCharacterAttribute(owner.Character, "Stamina", remaining) },
+                        expectedNativeClientIdentity)) return null;
                 await context.Connection.SendAsync(LegacyMsgUpdatePacket.CreateLegacyRuntimeStaminaTickUpdate(
                         CheckedUInt32(uid, nameof(uid)), remaining).ToFrameBytes(), cancellationToken).ConfigureAwait(false);
                 if (!Refresh()) return null;
@@ -35,8 +37,10 @@ public static partial class WorldPacketHandlers
                         context, session, spell, $"mana={session.Character.MinMana} requiredMana={cost.UseMana}").ConfigureAwait(false);
             if (cost.UseMana > 0)
             {
-                session = session with { Character = session.Character with { MinMana = session.Character.MinMana - cost.UseMana } };
-                context.Sessions?.Set(context.Connection, session);
+                var remaining = session.Character.MinMana - cost.UseMana;
+                if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
+                        owner => owner with { Character = owner.Character with { MinMana = remaining } },
+                        expectedNativeClientIdentity)) return null;
                 await SendScalarUpdateAsync(context, session.Character, LegacyMsgUpdateDataType.Mana,
                         CheckedUInt32(session.Character.MinMana, nameof(session.Character.MinMana)), cancellationToken).ConfigureAwait(false);
                 if (!Refresh()) return null;
@@ -60,8 +64,8 @@ public static partial class WorldPacketHandlers
             var duration = unchecked(spell.ColdTime - ReadLegacyRootColdSigilPower(context, session, spell.Id));
             var localDeadline = LegacyArrowBladesFlagRegistration.LocalTime(provider, now).AddMilliseconds(duration);
             cooldowns[spell.Id] = new DateTimeOffset(localDeadline, provider.LocalTimeZone.GetUtcOffset(localDeadline));
-            session = session with { MagicCooldowns = cooldowns };
-            context.Sessions?.Set(context.Connection, session);
+            if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
+                    owner => owner with { MagicCooldowns = cooldowns }, expectedNativeClientIdentity)) return null;
             if (!Refresh()) return null;
         }
         return session; // No HP/Alive check here; it belongs to the native handler where present.

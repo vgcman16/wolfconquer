@@ -122,10 +122,7 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
-        if (sessions.TryCompareAndSet(
-                context.Connection,
-                expectedSession,
-                destinationSession))
+        if (TryCommitOwnedLegacyTeleport(context, expectedSession, destinationSession))
         {
             return true;
         }

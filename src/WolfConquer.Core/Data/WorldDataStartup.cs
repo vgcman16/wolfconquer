@@ -35,6 +35,8 @@ public static class WorldDataStartup
             return null;
         }
 
+        LegacyNativeBeastsCatalogStartup.AddRows(catalog.BeastAttributes);
+
         await log.WriteLineAsync(
                 "World data loaded: " +
                 $"clientConfigs={catalog.ClientConfigs.Count}, " +

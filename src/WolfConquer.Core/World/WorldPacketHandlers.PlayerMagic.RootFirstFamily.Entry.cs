@@ -10,7 +10,16 @@ public static partial class WorldPacketHandlers
         LegacyMagicRuntimeSpell selected, bool ignoreAttackStamp, CancellationToken cancellationToken)
     {
         var uid = session.Character.Uid;
-        bool Refresh() => TryRefreshLegacyPlayerMagicResourceSession(context, uid, ref session);
+        object? nativeIdentity = null;
+        if ((selected.Sort == LegacyMagicSort.Attack && IsLegacyNativeAttackPlayerCompletion(selected.Id)) ||
+            IsLegacyNativeRiseOfTaoismRootSpell(selected))
+        {
+            if (context.Sessions is not { } world ||
+                !LegacyNativeClientPublication.TryCaptureIdentity(world, context.Connection, uid, out var identity))
+                return null;
+            nativeIdentity = identity;
+        }
+        bool Refresh() => TryRefreshLegacyPlayerMagicResourceSession(context, uid, ref session, nativeIdentity);
         if (!Refresh() || context.WorldData is not { } worldData) return null;
         // Native ProcescMagic requires the real learned book/level BEFORE passive and AttackStamp.
         if (!LegacyMagicRuntime.TryResolveNativeLearnedSpell(
@@ -61,23 +70,25 @@ public static partial class WorldPacketHandlers
                         context, session, selected, $"attackStampRemainingMs={remaining}").ConfigureAwait(false);
                 return null;
             }
-            session = session with { Character = WithLegacyPlayerAttackStamp(session.Character, now) };
-            context.Sessions?.Set(context.Connection, session);
+            if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
+                    owner => owner with { Character = WithLegacyPlayerAttackStamp(owner.Character, now) },
+                    nativeIdentity)) return null;
             if (!Refresh()) return null;
         }
 
         // Native public HandlerProcess148 sets OnAutoAttack=false before ProcescMagic952-960.
         var prefix = await ApplyLegacyRootManualItemEffectsAsync(
-            context with { Session = session }, session, selected.Id, cancellationToken).ConfigureAwait(false);
+            context with { Session = session }, session, selected.Id, cancellationToken, nativeIdentity).ConfigureAwait(false);
         if (prefix is null) return null;
         session = prefix;
+        if (nativeIdentity is not null && !Refresh()) return null;
 
         // Pool.WeaponSpells membership is built across every level row before any invocation.
         if (IsLegacyNativeRootWeaponSpell(worldData, selected.Id))
         {
             if (session.LegacyRandomSpell != selected.Id) return null;
-            session = session with { LegacyRandomSpell = 0 };
-            context.Sessions?.Set(context.Connection, session);
+            if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
+                    owner => owner with { LegacyRandomSpell = 0 }, nativeIdentity)) return null;
             if (!Refresh()) return null;
         }
         if (!LegacyMagicRuntime.TryResolveNativeLearnedSpell(
@@ -87,13 +98,16 @@ public static partial class WorldPacketHandlers
             !IsInLegacyRootFirstFamilyRange(context, session, query.OpponentUid, spell.Range)) return null;
         if (spell.Level == selected.Level) spell = spell with { CoolDown = checked((ushort)milliseconds) };
         var capture = new LegacyRootFirstFamilyInvocation(context.Connection, uid, spell.Id, book.Level,
-            book.UseSpellSoul > 0 ? book.Id : (ushort)0, NativeCanUseEntered: true, Prepared: false);
+            book.UseSpellSoul > 0 ? book.Id : (ushort)0, NativeCanUseEntered: true, Prepared: false)
+            { NativeClientIdentity = nativeIdentity };
         // Later producer package publishes capture.SoulSpellId HERE, before even a failed resource check.
         // This prerequisite deliberately creates no OnSoul session field and no Jiang consumer.
         var prepared = await TryPrepareLegacyRootFirstFamilyCanUseAsync(
-                context with { Session = session }, session, spell, cancellationToken).ConfigureAwait(false);
+                context with { Session = session }, session, spell, cancellationToken, nativeIdentity).ConfigureAwait(false);
         if (prepared is null) return null;
-        return (prepared, book, spell, capture with { Prepared = true });
+        session = prepared;
+        if (nativeIdentity is not null && !Refresh()) return null;
+        return (session, book, spell, capture with { Prepared = true });
     }
 
     private static bool IsLegacyNativeRootWeaponSpell(WorldDataCatalog worldData, ushort spellId) =>

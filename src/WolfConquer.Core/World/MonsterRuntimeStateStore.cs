@@ -27,7 +27,8 @@ public sealed partial class MonsterRuntimeStateStore
         {
             var state = GetOrCreateNoLock(instance);
             RefreshRespawnNoLock(instance, state, now);
-            if (state.DeadAt is not null)
+            if (state.DeadAt is not null ||
+                (state.NativeDeathRespawnReadyAt is not null && state.Hitpoints == 0))
             {
                 visible = default!;
                 return false;
@@ -499,7 +500,8 @@ public sealed partial class MonsterRuntimeStateStore
         uint requestedDamage,
         DateTimeOffset now,
         uint? attackerUid,
-        string? attackerName)
+        string? attackerName,
+        bool deferNativeDeathPrefix = false)
     {
         ArgumentNullException.ThrowIfNull(instance);
 
@@ -507,7 +509,8 @@ public sealed partial class MonsterRuntimeStateStore
         {
             var state = GetOrCreateNoLock(instance);
             RefreshRespawnNoLock(instance, state, now);
-            if (state.DeadAt is not null)
+            if (state.DeadAt is not null ||
+                (state.NativeDeathRespawnReadyAt is not null && state.Hitpoints == 0))
             {
                 return new MonsterDamageResult(
                     DamageApplied: 0,
@@ -528,6 +531,14 @@ public sealed partial class MonsterRuntimeStateStore
             }
 
             var damage = Math.Min(requestedDamage, state.Hitpoints);
+            if (deferNativeDeathPrefix && damage == state.Hitpoints)
+            {
+                // Native lethal ReceiveAttack calls Dead BEFORE subtracting HP. The real owner
+                // is committed by the shared prefix after its preceding BlackSpot publication.
+                return new MonsterDamageResult(damage, 0, Killed: true,
+                    AlreadyDead: false, RequestedDamage: requestedDamage);
+            }
+
             state.Hitpoints -= damage;
             var killed = state.Hitpoints == 0;
             if (killed)
@@ -537,6 +548,7 @@ public sealed partial class MonsterRuntimeStateStore
                     state.PendingBlackSpotInactiveBroadcast = true;
                 }
 
+                state.NativeDeathRespawnReadyAt = null;
                 state.DeadAt = now;
                 state.PendingRespawnBroadcast = false;
                 state.DeathRemovalBroadcastSent = false;
@@ -908,7 +920,7 @@ public sealed partial class MonsterRuntimeStateStore
         }
 
         var schedule = LegacyMonsterLifecycleSchedule.FromDeath(deadAt, state.RespawnTimeSeconds);
-        if (now < schedule.RespawnReadyAt)
+        if (now < (state.NativeDeathRespawnReadyAt ?? schedule.RespawnReadyAt))
         {
             return;
         }
@@ -917,6 +929,7 @@ public sealed partial class MonsterRuntimeStateStore
         state.Y = instance.Y;
         state.Hitpoints = instance.MaxLife;
         state.DeadAt = null;
+        state.NativeDeathRespawnReadyAt = null;
         state.PendingRespawnBroadcast = true;
         state.DeathRemovalBroadcastSent = false;
         state.LastMovedAt = null;
@@ -1040,6 +1053,8 @@ public sealed partial class MonsterRuntimeStateStore
         public int RespawnTimeSeconds { get; } = respawnTimeSeconds;
 
         public DateTimeOffset? DeadAt { get; set; }
+
+        public DateTimeOffset? NativeDeathRespawnReadyAt { get; set; }
 
         public bool PendingRespawnBroadcast { get; set; }
 

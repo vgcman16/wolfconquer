@@ -22,64 +22,9 @@ public static partial class WorldPacketHandlers
     {
         if (spell.Sort != LegacyMagicSort.AttachStatus ||
             spell.Id != LegacyRiseOfTaoismAttachStatusSpellId)
-        {
             return false;
-        }
-
-        var resourceSession = await TryPrepareLegacyPlayerMagicCastAsync(
-                context,
-                session,
-                spell,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (resourceSession is null)
-        {
-            return true;
-        }
-
-        var casterUid = CheckedUInt32(resourceSession.Character.Uid, nameof(resourceSession.Character.Uid));
-        var resourceContext = context with { Session = resourceSession };
-        var interaction = new MsgAttackPacket(query with { Uid = casterUid });
-        await resourceContext.Connection.SendAsync(interaction.ToFrameBytes(), cancellationToken)
-            .ConfigureAwait(false);
-
-        var updatedSession = ApplyLegacyRiseOfTaoismStatus(resourceSession, spell, DateTimeOffset.UtcNow);
-        context.Sessions?.Set(context.Connection, updatedSession);
-        var updatedContext = context with { Session = updatedSession };
-
-        await SendPlayerStatusFlagVectorToVisibleAsync(updatedContext, updatedSession, cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacyRiseOfTaoismFineRainUpdateToVisibleAsync(
-                updatedContext,
-                updatedSession,
-                spell.Duration,
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        var animation = new LegacySpellAnimationPacket(
-            casterUid,
-            AttackedUid: casterUid,
-            query.X,
-            query.Y,
-            spell.Id,
-            (byte)Math.Min(playerSpell.Level, byte.MaxValue),
-            NextSpell: 0,
-            LevelHu: playerSpell.UseSpellSoul,
-            SpellEffect: 0,
-            [new LegacySpellAnimationTarget(casterUid, 0, Hit: true, MsgAttackEffect.None)]);
-        await SendPlayerSpellAnimationToVisibleAsync(updatedContext, updatedSession, animation, cancellationToken)
-            .ConfigureAwait(false);
-        await SendPlayerEquipmentAppearanceRefreshAsync(updatedContext, updatedSession, cancellationToken)
-            .ConfigureAwait(false);
-
-        await context.Log.WriteLineAsync(
-                "WorldServer handled legacy RiseofTaoism AttachStatus magic " +
-                $"{FormatSession(updatedContext)} spellId={spell.Id} spellLevel={playerSpell.Level} " +
-                $"statusFlag={LegacyRiseOfTaoismFlag} duration={spell.Duration} " +
-                $"riseofTaoismExtraMDamage={spell.Damage} fineRainDamage={LegacyRiseOfTaoismFineRainDamage}; " +
-                "source=AttachStatus.cs case 15440.")
-            .ConfigureAwait(false);
-        return true;
+        return await ExecuteLegacyNativeRiseOfTaoismQueryCastAsync(
+            context, query, playerSpell, spell, session, cancellationToken).ConfigureAwait(false);
     }
 
     private static WorldSession ApplyLegacyRiseOfTaoismStatus(

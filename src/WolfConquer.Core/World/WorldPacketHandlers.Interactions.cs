@@ -222,7 +222,7 @@ public static partial class WorldPacketHandlers
         byte[] frame,
         CancellationToken cancellationToken)
     {
-        await subjectConnection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+        await SendLegacyTeleportFrameAsync(context, subjectConnection, frame, cancellationToken).ConfigureAwait(false);
         if (context.Sessions is not { } sessions)
         {
             return;
@@ -237,7 +237,7 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            await active.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+            await SendLegacyTeleportFrameAsync(context, active.Connection, frame, cancellationToken).ConfigureAwait(false);
         }
     }
 

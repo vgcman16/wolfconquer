@@ -115,7 +115,7 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        var response = CreateLegacyPlayerStatusResponse(targetSession, context.WorldData);
+        var response = CreateNativeMagicCachedPlayerStatusResponse(context, targetSession);
         await context.Connection.SendAsync(response.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 $"WorldServer handled LegacyPlayerStatus {FormatSession(context)} uid={targetUid}.")

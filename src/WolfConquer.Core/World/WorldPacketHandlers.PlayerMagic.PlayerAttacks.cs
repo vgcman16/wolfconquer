@@ -14,6 +14,12 @@ public static partial class WorldPacketHandlers
         LegacyMagicRuntimeSpell spell,
         CancellationToken cancellationToken)
     {
+        var nativeQueryCast = spell.Sort == LegacyMagicSort.Attack &&
+            IsLegacyNativeAttackPlayerCompletion(spell.Id);
+        var nativeMagicCasterIdentity = nativeQueryCast
+            ? context.RootFirstFamilyInvocation?.NativeClientIdentity ??
+                CaptureLegacyNativeMagicQueryCaster(context, session) : null;
+        if (nativeQueryCast && nativeMagicCasterIdentity is null) return true;
         WorldActiveSession primaryTarget;
         if (spell.Sort == LegacyMagicSort.Attack && context.Sessions is { } sessions)
         {
@@ -65,10 +71,18 @@ public static partial class WorldPacketHandlers
                 context,
                 session,
                 spell,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                nativeMagicCasterIdentity).ConfigureAwait(false);
         if (resourceSession is null)
         {
             return true;
+        }
+
+        if (nativeQueryCast)
+        {
+            if (!TryRefreshLegacyNativeMagicQueryCaster(context, session.Character.Uid,
+                    nativeMagicCasterIdentity!, out var nativeCaster)) return true;
+            resourceSession = nativeCaster;
         }
 
         if (!TrySelectLegacyPlayerMagicTargets(
@@ -115,6 +129,12 @@ public static partial class WorldPacketHandlers
                 targets,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (nativeQueryCast)
+        {
+            if (!TryRefreshLegacyNativeMagicQueryCaster(context, session.Character.Uid,
+                    nativeMagicCasterIdentity!, out var nativeCaster)) return true;
+            updatedSession = nativeCaster;
+        }
         context = context with { Session = updatedSession };
 
         var results = new List<LegacyPlayerMagicDamageResult>();
@@ -123,12 +143,21 @@ public static partial class WorldPacketHandlers
         {
             var activeTarget = target.ActiveSession;
             var usesMagicOnPlayer = spell.Sort == LegacyMagicSort.Attack;
+            var completesNativeAttackPlayer = usesMagicOnPlayer &&
+                IsLegacyNativeAttackPlayerCompletion(spell.Id);
             (activeTarget, var wildPhoenixDefended) =
                 await TryApplyLegacyCombatGearWildPhoenixDefenderAsync(
                         context,
                         activeTarget,
                         cancellationToken)
                     .ConfigureAwait(false);
+            if (completesNativeAttackPlayer)
+            {
+                if (!TryRefreshLegacyNativeMagicQueryCaster(context, session.Character.Uid,
+                        nativeMagicCasterIdentity!, out var nativeCaster)) return true;
+                updatedSession = nativeCaster;
+                context = context with { Session = nativeCaster };
+            }
             var maniacDanceDefended =
                 usesMagicOnPlayer &&
                 !wildPhoenixDefended &&
@@ -154,7 +183,11 @@ public static partial class WorldPacketHandlers
                     updatedSession,
                     activeTarget.Session,
                     spell,
-                    context.WorldData);
+                    context.WorldData,
+                    sourceStatus: completesNativeAttackPlayer
+                        ? (LegacyNativeMagicQueryFields?)ReadLegacyNativeMagicQueryCaster(
+                            context, session.Character.Uid, nativeMagicCasterIdentity!)
+                        : null);
             if (!wildPhoenixDefended && !statusDefended)
             {
                 var baseDamage = damage;
@@ -180,15 +213,24 @@ public static partial class WorldPacketHandlers
                         activeTarget,
                         updatedSession.Character,
                         damage,
-                        cancellationToken)
+                        cancellationToken,
+                        postBackMagicSpellId: completesNativeAttackPlayer ? spell.Id : null,
+                        postBackNativeMagicCasterIdentity: completesNativeAttackPlayer
+                            ? nativeMagicCasterIdentity : null)
                     .ConfigureAwait(false)
                 : await ApplyLegacyPlayerMagicDamageToPlayerAsync(
                         context,
                         activeTarget,
                         updatedSession.Character,
-                        damage,
-                        cancellationToken)
+                        completesNativeAttackPlayer
+                            ? CompleteLegacyNativeAttackPlayerDamage(spell.Id, damage)
+                            : damage,
+                        cancellationToken,
+                        nativeIncomingClientIdentity: completesNativeAttackPlayer
+                            ? nativeMagicCasterIdentity : null)
                     .ConfigureAwait(false);
+            if (completesNativeAttackPlayer && !TryRefreshLegacyNativeMagicQueryCaster(
+                    context, session.Character.Uid, nativeMagicCasterIdentity!, out _)) return true;
             if (receive.AttackerSession is { } carriedAttacker)
             {
                 updatedSession = carriedAttacker;
@@ -227,7 +269,7 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
             context = context with { Session = updatedSession };
 
-            if (result.DamageApplied == 0 &&
+            if (!completesNativeAttackPlayer && result.DamageApplied == 0 &&
                 !result.HawksAmbitionConsumed &&
                 !result.DuelCleanupApplied &&
                 !result.AttackerAbsolutionConsumed &&
@@ -260,7 +302,10 @@ public static partial class WorldPacketHandlers
             results.Add(result);
             animationTargets.Add(new LegacySpellAnimationTarget(
                 CheckedUInt32(result.UpdatedSession.Character.Uid, nameof(result.UpdatedSession.Character.Uid)),
-                result.DamageApplied,
+                completesNativeAttackPlayer
+                    ? result.ReceiveDamage ?? throw new InvalidOperationException(
+                        "Completed native Attack player receive must carry post-modifier damage.")
+                    : result.DamageApplied,
                 Hit: true,
                 magicDefenderDefended ? MsgAttackEffect.Imunity : MsgAttackEffect.None));
         }
@@ -313,7 +358,11 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
 
         var totalDamage = results.Aggregate(0UL, (total, result) => total + result.DamageApplied);
-        var proficiencyExperience = totalDamage > uint.MaxValue ? uint.MaxValue : (uint)totalDamage;
+        // Attack1000/1001 accumulates num3/num16 only from Monster/Npc.Execute, never Player.Execute.
+        var callerProgress = spell.Sort == LegacyMagicSort.Attack && IsLegacyNativeAttackPlayerCompletion(spell.Id)
+            ? 0UL
+            : totalDamage;
+        var proficiencyExperience = callerProgress > uint.MaxValue ? uint.MaxValue : (uint)callerProgress;
         updatedSession = await TryApplyLegacyWeaponProficiencyExperienceAsync(
                 context,
                 updatedSession,
@@ -326,7 +375,7 @@ public static partial class WorldPacketHandlers
                 updatedSession,
                 playerSpell,
                 spell,
-                totalDamage,
+                callerProgress,
                 cancellationToken)
             .ConfigureAwait(false);
         await context.Log.WriteLineAsync(
@@ -1325,11 +1374,19 @@ public static partial class WorldPacketHandlers
         WorldSession attacker,
         WorldSession target,
         LegacyMagicRuntimeSpell spell,
-        WorldDataCatalog? worldData)
+        WorldDataCatalog? worldData,
+        LegacyNativeMagicQueryFields? sourceStatus = null)
     {
         var attackerFields = CalculateLegacyRuntimeStatusFields(attacker, worldData);
         var targetFields = CalculateLegacyRuntimeStatusFields(target, worldData);
 
+        if (sourceStatus is { } cached)
+        {
+            attackerFields[LegacyPlayerStatusPacket.MagicAttackIndex] = cached.MagicAttack;
+            attackerFields[LegacyPlayerStatusPacket.MagicPercentIndex] = cached.MagicPercent;
+            attackerFields[LegacyPlayerStatusPacket.SkillCStrikeIndex] = cached.SkillCStrike;
+            attackerFields[LegacyPlayerStatusPacket.MagicDamageIncreaseIndex] = cached.MagicDamageIncrease;
+        }
         var damage = attackerFields[LegacyPlayerStatusPacket.MagicAttackIndex];
         damage = AddLegacySaturating(damage, spell.Damage);
         damage = AddLegacyPercentBonus(damage, attackerFields[LegacyPlayerStatusPacket.MagicPercentIndex]);

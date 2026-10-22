@@ -15,7 +15,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     private const int ArrowLifeWater = 333;
     private const int ArrowLifeSob = 65_182;
 
-    private sealed class ArrowLifecycleFixture : IAsyncDisposable
+    private sealed partial class ArrowLifecycleFixture : IAsyncDisposable
     {
         private readonly ManualRuntimeTimeProvider clock = new(ArrowLifeOrigin);
         private readonly CancellationTokenSource cancel = new();
@@ -30,15 +30,21 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         private readonly MonsterRuntimeStateStore monsterStates = new();
         private readonly SobNpcRuntimeStateStore sobStates = new();
         private bool started;
+        private readonly bool nativeDeathCasterQueryControls;
+        private readonly bool nativeStarFlowCallerQueryControls;
+        private bool nativeStarFlowCallerQueryPrepared;
         private DateTimeOffset? lastInput;
         private LegacyClientCompatibilityOptions? arrowAttackCompatibility;
 
         public ArrowLifecycleFixture(string route = "physical-player", bool learnedArrow = true,
             Func<ArrowLifecycleFixture, uint, byte[], ValueTask>? onSend = null, bool sourcePassiveArrow = false,
             bool learnedStarFlow = false, MagicType? starFlowRow = null, bool catalogStarFlow = false,
-            ushort mapId = 1_000, bool mpMasterCatalog = false, bool starFlowTargetEffects = false)
+            ushort mapId = 1_000, bool mpMasterCatalog = false, bool starFlowTargetEffects = false,
+            bool nativeDeathCasterQueryControls = false, bool nativeStarFlowCallerQueryControls = false)
         {
             this.route = route;
+            this.nativeDeathCasterQueryControls = nativeDeathCasterQueryControls;
+            this.nativeStarFlowCallerQueryControls = nativeStarFlowCallerQueryControls;
             Assert.Contains(route, new[] { "physical-player", "archer-player", "monster", "archer-sob" });
             var monsterFamily = CreateMonsterFamily() with
             {
@@ -64,11 +70,19 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 var item = DirectOverlayItem(id, "ArrowLifecycle" + id);
                 var fields = item.Fields.ToArray();
                 fields[18] = hp; // Actual ushort-safe item HP; no stored MaxHP alias.
+                if (nativeStarFlowCallerQueryControls && id != 131_094)
+                {
+                    // Legal UInt16 item inputs. Query earns ownerMA9002 / peerMA1000;
+                    // raw spell9000 then native /2 retains old9001 and lethal5000 setups.
+                    fields[19] = "1000";
+                    fields[29] = id == 111_094 ? "9001" : "999";
+                }
                 return item with { Fields = fields };
             }
             var magicRows = new List<MagicType>
             {
-                warm, arrow, CreateMagicRow(1_000, sort: 1, useMana: 0, damage: 9_000,
+                warm, arrow, CreateMagicRow(1_000, sort: 1, useMana: 0,
+                    damage: nativeDeathCasterQueryControls ? 9_999U : 9_000U,
                     range: 18, coolDown: 0, coldTime: 0),
             };
             IReadOnlyList<ushort> ownerSpells = learnedArrow ? [17_400, 18_220, 1_000] : [17_400, 1_000];
@@ -93,7 +107,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     : [HpItem(111_094, "4100"), HpItem(111_095, "50000"), HpItem(131_094, "50000")],
                 magicEffects: sourcePassiveArrow ? MagicEffectParser.Parse(
                     "[1822000]\nName=ArrowBlades\nDescEx=Active:~Consumes~3~throwing~knives,~dealing~300%~damage~to~enemies~in~a~rectangular~area~ahead~(100%~damage~to~human~targets).~Passive:~After~two~normal~attacks,~the~3rd~attack~will~trigger~Arrow~Blades.\n",
-                    "fixture://source-MagicEffect-1822000.ini") : null);
+                    "fixture://source-MagicEffect-1822000.ini") : null,
+                combatGear: nativeStarFlowCallerQueryControls
+                    ? [CombatGearParser.ParseRow("fixture://starflow-native-loaded-neutral-401", 1,
+                        "151@@401@@1@@100@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@")]
+                    : null);
             SourceArrowEffect = sourcePassiveArrow ? Assert.Single(world.MagicEffectsById[1_822_000]) : null;
             monster = CreateRuntimeMonsterInstance(world, spawn, monsterFamily);
             var owner = CreateSession(mapId: mapId, classCode: 4_005, strength: 300, spirit: 0,
@@ -207,6 +225,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         public async Task AttackAsync()
         {
+            await PrepareStarFlowNativeCallerQueriesAsync();
             await SpaceInputAsync();
             await SendAsync(PlayerUid, PrimaryUid,
                 route == "archer-player" || route == "archer-sob" ? MsgAttackType.Archer : MsgAttackType.Physical);

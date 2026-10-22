@@ -17,7 +17,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         var finishSeen = 0;
         var waitSeen = 0;
-        using var fixture = new DirectTransformReceiveFixture(attackDamage: 4_000, withFineRain,
+        using var fixture = new DirectTransformReceiveFixture(attackDamage: 6_000, withFineRain,
             onSend: async (current, recipient, bytes) =>
             {
                 if (recipient != PlayerUid) return;
@@ -73,7 +73,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Fact]
     public async Task DirectTransformReceiveRealWoundThenAdmittedActiveQueryRefillsInsteadOfMerelyClamping()
     {
-        using var fixture = new DirectTransformReceiveFixture(attackDamage: 119, withFineRain: false);
+        using var fixture = new DirectTransformReceiveFixture(attackDamage: 239, withFineRain: false);
         await fixture.AssertNeutralMagicAsync();
         await fixture.TransformAsync();
         var woundStart = fixture.OwnerFrames.Count;
@@ -84,7 +84,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var woundFrames = fixture.OwnerFrames.ToArray().Skip(woundStart).ToArray();
         var hit = Assert.Single(Assert.Single(ParseSpellAnimations(woundFrames),
             packet => packet.SpellId == ThunderSpellId).Targets);
-        Assert.Equal(120U, hit.Damage); // Source Equip1540 MagicAttack1 + real raw119 spell.
+        Assert.Equal(120U, hit.Damage); // Queried source MA1 + raw239, then native identity Soul /2.
         Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, FineRainDeadStatusFlag));
         Assert.DoesNotContain(woundFrames, DirectTransformReceiveIsFinish);
         DirectFineRainHpAssertMaximumUpdates(woundFrames, 3_000);
@@ -202,6 +202,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         public async Task AssertNeutralMagicAsync()
         {
+            // Real query earns native CURRENT Status before either role has FineRain212 or a transform.
+            foreach (var uid in new[] { TargetPlayerUid, PlayerUid })
+                await PacketHandlers.HandleAsync(Context(uid), ReadFrame(new MsgActionPacket
+                    { ObjId = uid, Type = (MsgActionType)251 }.ToFrameBytes()));
             var attacker = await QueryAsync(TargetPlayerUid);
             var target = await QueryAsync(PlayerUid);
             Assert.Equal(1U, attacker.MagicAttack); // Source Equip1540 unconditional increment.

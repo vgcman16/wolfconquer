@@ -15,6 +15,7 @@ public enum FloorItemRuntimePickupStatus
     Missing,
     OwnerLocked,
     Expired,
+    Busy,
 }
 
 public sealed record FloorItemRuntimeEntry(
@@ -26,41 +27,51 @@ public sealed record FloorItemRuntimeEntry(
     bool OwnerOnly,
     FloorItemRuntimeEffect? Effect = null)
 {
+    // Captured at a real ordinary-loot birth. Null retains untagged/manual/effect
+    // compatibility; it is not inferred later from whichever player sees the item.
+    public uint? DynamicId { get; init; }
+
     public static FloorItemRuntimeEntry ForItem(
         long mapId,
         LegacyFloorItemPacket packet,
         PlayerItemSnapshotItem? item = null,
-        bool ownerOnly = false)
+        bool ownerOnly = false,
+        uint? dynamicId = null)
     {
-        return new FloorItemRuntimeEntry(mapId, packet, FloorItemRuntimePickupKind.Item, Amount: 0, item, ownerOnly);
+        return new FloorItemRuntimeEntry(mapId, packet, FloorItemRuntimePickupKind.Item, Amount: 0, item, ownerOnly)
+        { DynamicId = dynamicId };
     }
 
     public static FloorItemRuntimeEntry ForMoney(
         long mapId,
         LegacyFloorItemPacket packet,
         long amount,
-        bool ownerOnly = false)
+        bool ownerOnly = false,
+        uint? dynamicId = null)
     {
         if (amount <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(amount), amount, "Floor item money amount must be positive.");
         }
 
-        return new FloorItemRuntimeEntry(mapId, packet, FloorItemRuntimePickupKind.Money, amount, Item: null, ownerOnly);
+        return new FloorItemRuntimeEntry(mapId, packet, FloorItemRuntimePickupKind.Money, amount, Item: null, ownerOnly)
+        { DynamicId = dynamicId };
     }
 
     public static FloorItemRuntimeEntry ForConquerPoints(
         long mapId,
         LegacyFloorItemPacket packet,
         long amount,
-        bool ownerOnly = false)
+        bool ownerOnly = false,
+        uint? dynamicId = null)
     {
         if (amount <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(amount), amount, "Floor item Conquer Point amount must be positive.");
         }
 
-        return new FloorItemRuntimeEntry(mapId, packet, FloorItemRuntimePickupKind.ConquerPoints, amount, Item: null, ownerOnly);
+        return new FloorItemRuntimeEntry(mapId, packet, FloorItemRuntimePickupKind.ConquerPoints, amount, Item: null, ownerOnly)
+        { DynamicId = dynamicId };
     }
 
     public static FloorItemRuntimeEntry ForEffect(
@@ -96,13 +107,16 @@ public sealed record FloorItemRuntimeEffect(
     byte SpellLevel = 0,
     byte LevelHu = 0,
     uint RuntimeOwnerUid = 0,
-    DateTimeOffset? NextRepeatAt = null);
+    DateTimeOffset? NextRepeatAt = null,
+    LegacyMagicRuntimeSpell? CapturedSpell = null,
+    ushort? AnimationOriginX = null,
+    ushort? AnimationOriginY = null);
 
 public sealed record FloorItemRuntimeDueEffects(
     IReadOnlyList<FloorItemRuntimeEntry> Invoked,
     IReadOnlyList<FloorItemRuntimeEntry> Expired);
 
-public sealed class FloorItemRuntimeStateStore
+public sealed partial class FloorItemRuntimeStateStore
 {
     public const int DefaultCapacity = 4_096;
     public static readonly TimeSpan LegacyOwnerOnlyDuration = TimeSpan.FromSeconds(20);
@@ -146,6 +160,8 @@ public sealed class FloorItemRuntimeStateStore
 
         lock (_gate)
         {
+            ThrowIfGroundReservationCollisionNoLock(entry);
+            ThrowIfPickupReservationCollisionNoLock(entry);
             RemoveExpiredNoLock(now);
             AddVisibleNoLock(entry, now);
         }
@@ -189,7 +205,7 @@ public sealed class FloorItemRuntimeStateStore
                 return false;
             }
 
-            if (IsExpiredNoLock(state, now))
+            if (!_pendingPickupByUid.ContainsKey(floorUid) && IsExpiredNoLock(state, now))
             {
                 RemoveNoLock(floorUid, out _);
                 entry = default!;
@@ -287,7 +303,7 @@ public sealed class FloorItemRuntimeStateStore
             List<uint>? dueUids = null;
             foreach (var pair in _visibleByUid)
             {
-                if (pair.Value.Entry.Effect is not { } effect ||
+                if (_pendingPickupByUid.ContainsKey(pair.Key) || pair.Value.Entry.Effect is not { } effect ||
                     effect.SpellId != spellId ||
                     now < effect.DueAt)
                 {
@@ -323,7 +339,7 @@ public sealed class FloorItemRuntimeStateStore
             List<uint>? repeatUids = null;
             foreach (var pair in _visibleByUid)
             {
-                if (pair.Value.Entry.Effect is not { } effect ||
+                if (_pendingPickupByUid.ContainsKey(pair.Key) || pair.Value.Entry.Effect is not { } effect ||
                     effect.SpellId != spellId ||
                     effect.RepeatMilliseconds <= 0 ||
                     effect.NextRepeatAt is not { } nextRepeatAt ||
@@ -371,7 +387,7 @@ public sealed class FloorItemRuntimeStateStore
             List<uint>? expiredUids = null;
             foreach (var pair in _visibleByUid)
             {
-                if (pair.Value.Entry.Effect is not { } effect ||
+                if (_pendingPickupByUid.ContainsKey(pair.Key) || pair.Value.Entry.Effect is not { } effect ||
                     effect.SpellId != spellId)
                 {
                     continue;
@@ -471,32 +487,7 @@ public sealed class FloorItemRuntimeStateStore
         Func<long, ushort, ushort, bool>? isGroundValid,
         out FloorItemRuntimeEntry added)
     {
-        ArgumentNullException.ThrowIfNull(entry);
-        if (entry.Packet.DropType != LegacyFloorItemDropType.Visible)
-        {
-            throw new ArgumentException("Only visible floor item packets can be added.", nameof(entry));
-        }
-
-        lock (_gate)
-        {
-            RemoveExpiredNoLock(now);
-
-            var x = entry.Packet.X;
-            var y = entry.Packet.Y;
-            if (!CanPlaceGroundItemNoLock(entry.MapId, x, y, isGroundValid) &&
-                !TryFindGroundItemLocationNoLock(entry.MapId, x, y, range, isGroundValid, out x, out y))
-            {
-                added = default!;
-                return false;
-            }
-
-            added = entry with
-            {
-                Packet = entry.Packet with { X = x, Y = y },
-            };
-            AddVisibleNoLock(added, now);
-            return true;
-        }
+        return TryAddVisibleOnGroundCore(entry, now, range, isGroundValid, null, out added);
     }
 
     private FloorItemRuntimePickupStatus TryConsumePickupEntry(
@@ -528,6 +519,36 @@ public sealed class FloorItemRuntimeStateStore
 
     private void AddVisibleNoLock(FloorItemRuntimeEntry entry, DateTimeOffset now)
     {
+        ThrowIfGroundReservationCollisionNoLock(entry);
+        ThrowIfPickupReservationCollisionNoLock(entry);
+
+        if (entry.Effect is { SpellId: 21_580 or 22_070 or 22_100, CapturedSpell: not null } effect)
+        {
+            // ClientFloorSpells keeps its first owner/spell group's animation state until empty.
+            // Per-floor captured damage data and OwnerX/Y geometry must not inherit that state.
+            foreach (var uid in _insertionOrder)
+            {
+                var previous = _visibleByUid[uid].Entry;
+                if (previous.Packet.ItemOwnerUid != entry.Packet.ItemOwnerUid ||
+                    previous.Effect is not { } first || first.SpellId != effect.SpellId)
+                {
+                    continue;
+                }
+
+                entry = entry with
+                {
+                    Effect = effect with
+                    {
+                        SpellLevel = first.SpellLevel,
+                        LevelHu = first.LevelHu,
+                        AnimationOriginX = first.AnimationOriginX ?? first.OriginX,
+                        AnimationOriginY = first.AnimationOriginY ?? first.OriginY,
+                    },
+                };
+                break;
+            }
+        }
+
         if (_visibleByUid.TryGetValue(entry.Packet.Uid, out var existing))
         {
             existing.Entry = entry;
@@ -537,9 +558,9 @@ public sealed class FloorItemRuntimeStateStore
             return;
         }
 
-        if (_visibleByUid.Count >= _capacity)
+        if (_visibleByUid.Count >= _capacity && !TryEvictOldestNoLock())
         {
-            EvictOldestNoLock();
+            throw new InvalidOperationException("All visible floor entries are reserved for pickup.");
         }
 
         var orderNode = _insertionOrder.AddLast(entry.Packet.Uid);
@@ -581,6 +602,11 @@ public sealed class FloorItemRuntimeStateStore
         }
 
         entry = state.Entry;
+        if (_pendingPickupByUid.ContainsKey(floorUid))
+        {
+            return FloorItemRuntimePickupStatus.Busy;
+        }
+
         if (!IsExpiredNoLock(state, now))
         {
             return FloorItemRuntimePickupStatus.Available;
@@ -641,6 +667,11 @@ public sealed class FloorItemRuntimeStateStore
 
     private bool IsGroundItemOccupiedNoLock(long mapId, ushort x, ushort y)
     {
+        if (IsGroundItemReservedNoLock(mapId, x, y))
+        {
+            return true;
+        }
+
         foreach (var state in _visibleByUid.Values)
         {
             if (state.Entry.MapId == mapId &&
@@ -680,7 +711,7 @@ public sealed class FloorItemRuntimeStateStore
         List<uint>? expiredUids = null;
         foreach (var pair in _visibleByUid)
         {
-            if (!IsExpiredNoLock(pair.Value, now))
+            if (_pendingPickupByUid.ContainsKey(pair.Key) || !IsExpiredNoLock(pair.Value, now))
             {
                 continue;
             }
@@ -708,7 +739,7 @@ public sealed class FloorItemRuntimeStateStore
 
     private bool RemoveNoLock(uint floorUid, out FloorItemRuntimeEntry entry)
     {
-        if (!_visibleByUid.TryGetValue(floorUid, out var state))
+        if (_pendingPickupByUid.ContainsKey(floorUid) || !_visibleByUid.TryGetValue(floorUid, out var state))
         {
             entry = default!;
             return false;
@@ -720,16 +751,17 @@ public sealed class FloorItemRuntimeStateStore
         return true;
     }
 
-    private void EvictOldestNoLock()
+    private bool TryEvictOldestNoLock()
     {
-        var oldest = _insertionOrder.First;
-        if (oldest is null)
+        for (var candidate = _insertionOrder.First; candidate is not null; candidate = candidate.Next)
         {
-            return;
+            if (!_pendingPickupByUid.ContainsKey(candidate.Value))
+            {
+                return RemoveNoLock(candidate.Value, out _);
+            }
         }
 
-        _visibleByUid.Remove(oldest.Value);
-        _insertionOrder.RemoveFirst();
+        return false;
     }
 
     private sealed class FloorItemRuntimeState(

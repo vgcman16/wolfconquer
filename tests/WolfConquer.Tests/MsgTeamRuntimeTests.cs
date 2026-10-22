@@ -630,10 +630,10 @@ public sealed class MsgTeamRuntimeTests : IDisposable
         Assert.Equal(0U, matches.PlayerCount);
         Assert.Equal(1U, matches.PageCount);
         var match = Assert.Single(matches.Entries);
-        Assert.Equal(1U, match.FirstUid);
+        Assert.Equal(2U, match.FirstUid);
         Assert.Equal("HeroOne", match.FirstName);
         Assert.Equal(1U, match.FirstMemberCount);
-        Assert.Equal(2U, match.SecondUid);
+        Assert.Equal(3U, match.SecondUid);
         Assert.Equal("Target", match.SecondName);
         Assert.Equal(1U, match.SecondMemberCount);
     }
@@ -1644,7 +1644,7 @@ public sealed class MsgTeamRuntimeTests : IDisposable
         Assert.Equal(expectedMemberUid, teamUpdate.Uid);
         var update = Assert.Single(teamUpdate.Updates);
         Assert.Equal(LegacyMsgUpdateDataType.Team, update.Type);
-        Assert.Equal(1UL, update.Value);
+        Assert.Equal(2UL, update.Value);
     }
 
     private static void AssertTeamRemovalCleanup(

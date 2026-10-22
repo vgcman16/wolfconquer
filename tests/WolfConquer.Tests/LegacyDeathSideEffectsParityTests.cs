@@ -61,6 +61,34 @@ public sealed class LegacyDeathSideEffectsParityTests
             Sessions: sessions,
             TimeProvider: clock);
 
+        // Native Magic.OnPlayer consumes queried GameClient.Status, not live Spirit.
+        // Earn Spirit300 + the native unconditional1 through the real public251 path.
+        await PacketHandlers.HandleAsync(context,
+            ReadFrame(new MsgActionPacket { ObjId = CasterUid, Type = (MsgActionType)251 }.ToFrameBytes()));
+        var queryStatusBytes = Assert.Single(casterSent,
+            bytes => LegacyPlayerStatusPacket.TryParse(ReadFrame(bytes), out _));
+        Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(queryStatusBytes), out var queryStatus));
+        Assert.Equal(CasterUid, queryStatus.Uid);
+        Assert.Equal(301U, queryStatus.MagicAttack);
+        Assert.Equal(0U, queryStatus.MagicPercent);
+        Assert.Equal(0U, queryStatus.SkillCStrike);
+        Assert.Equal(0U, queryStatus.MagicDamageIncrease);
+        var queryEchoBytes = Assert.Single(casterSent, bytes =>
+            MsgActionPacket.TryParse(ReadFrame(bytes), out var echo) &&
+            echo.Type == (MsgActionType)251 && echo.ObjId == CasterUid);
+        Assert.True(casterSent.IndexOf(queryEchoBytes) > casterSent.IndexOf(queryStatusBytes));
+        Assert.True(sessions.TryGet(casterConnection, out var queriedCasterSession));
+        Assert.NotNull(queriedCasterSession);
+        Assert.Equal(300, queriedCasterSession.Character.Spirit); // Existing raw input, not a damage boost.
+        Assert.Equal(origin, clock.GetUtcNow());
+        Assert.Equal(0, deadTalks);
+        Assert.True(sessions.TryGet(targetConnection, out var beforeCombatTarget));
+        Assert.NotNull(beforeCombatTarget);
+        Assert.Equal(100, beforeCombatTarget.Character.MinHitPoints);
+        context = context with { Session = queriedCasterSession };
+        casterSent.Clear();
+        targetSent.Clear(); // Exclude only this positively proved, completed setup query.
+
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(

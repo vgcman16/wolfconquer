@@ -15,7 +15,11 @@ internal enum LegacyEquipmentQueryPublicationLoss
 internal sealed record LegacyEquipmentQueryPublicationScope(
     long OwnerUid,
     PlayerItemSnapshot? ExpectedItems = null,
-    WorldActiveSession? RequiredParticipant = null);
+    WorldActiveSession? RequiredParticipant = null)
+{
+    internal object? OwnerNativeClientIdentity { get; init; }
+    internal object? RequiredNativeClientIdentity { get; init; }
+}
 
 internal readonly record struct LegacyEquipmentQueryPublicationResult(
     WorldSession? Session,

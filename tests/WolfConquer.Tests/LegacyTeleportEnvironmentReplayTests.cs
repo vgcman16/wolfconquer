@@ -46,6 +46,7 @@ public sealed class LegacyTeleportEnvironmentReplayTests
             new LegacyTeleportDestination(DestinationMapId, DestinationX, DestinationY),
             TeleportTimestamp,
             CancellationToken.None);
+        GC.KeepAlive(harness.PeerConnection);
 
         var updated = Assert.IsType<WorldSession>(result);
         AssertDestinationState(harness, updated);
@@ -116,6 +117,7 @@ public sealed class LegacyTeleportEnvironmentReplayTests
             new LegacyTeleportDestination(DestinationMapId, DestinationX, DestinationY),
             TeleportTimestamp,
             CancellationToken.None);
+        GC.KeepAlive(harness.PeerConnection);
 
         var updated = Assert.IsType<WorldSession>(result);
         AssertDestinationState(harness, updated);
@@ -183,7 +185,7 @@ public sealed class LegacyTeleportEnvironmentReplayTests
             Session: source,
             Sessions: sessions,
             ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
-        return new EnvironmentHarness(connection, source, sessions, context, sent);
+        return new EnvironmentHarness(connection, peerConnection, source, sessions, context, sent);
     }
 
     private static WorldSession CreateSession(
@@ -373,6 +375,7 @@ public sealed class LegacyTeleportEnvironmentReplayTests
 
     private sealed record EnvironmentHarness(
         ConquerTcpConnection Connection,
+        ConquerTcpConnection PeerConnection,
         WorldSession Source,
         WorldSessionStore Sessions,
         WorldPacketHandlerContext Context,

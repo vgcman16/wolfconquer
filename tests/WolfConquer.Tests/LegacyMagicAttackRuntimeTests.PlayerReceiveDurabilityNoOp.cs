@@ -26,10 +26,14 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             MaximumDurability = 100,
             Position = 3,
         };
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             CreateMonsterFamily(),
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 0, damage: 120, coldTime: 0));
+            [
+                CreateRetainedNativeMagic421Helmet(itemId: 421_003, name: "Retained source backsword"),
+                CreateRetainedNativeMagic421Helmet(itemId: 130_003, name: "Retained source armor"),
+            ],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 0, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
         var targetSent = new List<byte[]>();
@@ -51,6 +55,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,

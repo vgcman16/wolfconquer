@@ -1,5 +1,49 @@
 # Publication validation
 
+## 2026-10-22 update
+
+Validated on Windows x64, SDK 9.0.314, Release, with a measured PowerShell 7
+executable for native child probes. These results apply to the sanitized public
+tree, not the private repository or a deployed game server.
+
+| Check | Result |
+|---|---|
+| Restore | Seven projects; passed |
+| Release build | Passed; zero errors; warnings remain |
+| Full unfiltered solution tests | 15,084 passed; 0 failed; 166 skipped; 15,250 total |
+| Local development tools | 15 synthetic cases included in the full run |
+| Dashboard | HTTP/health/status passed; four explicitly selected service processes observed; POST 405 and unknown route 404; browser rendering inspected |
+
+The successful sequential run finished at `2026-10-22T11:26:15.0945758Z`:
+
+```powershell
+pwsh -NoProfile -File ./tools/dev/Invoke-LocalCheck.ps1 -PowerShellPath <explicit-PS7-executable>
+```
+
+The script performs restore, build with `--no-restore`, then tests with
+`--no-build --no-restore` and no filter. Small receipts and logs stay local under
+ignored `.artifacts/local-dev/`. No input-hash proof ceremony is required.
+
+An initial integrated run found missing owned Beast metadata in two test fixtures,
+stale absent-method/provider-call assertions, and a scheduling-sensitive lock test.
+The fixtures now supply real synthetic startup input and restore the prior cache;
+assertions match implemented methods; lock release observes genuine failed-attempt
+cleanup. Production retry limits and gameplay behavior were not weakened.
+
+The first build emitted 74 warnings; the subsequent incremental build emitted 73
+(unchanged Core warning not re-emitted). Warnings include NU1701 for legacy
+MySql.Data, an unused interop field, nullable diagnostics, and xUnit suggestions.
+This is not warning-free. Restore emitted no dependency audit warnings; that is
+not a security guarantee. See [dependencies](DEPENDENCIES.md) for provider limits.
+
+The 166 skips are [excluded coverage](docs/EXTERNAL-FIXTURE-TESTS.md), not passes.
+Synthetic codec roundtrips are not a native-client oracle. These checks do not
+establish SQL execution, complete English translation, current-source live-client
+compatibility, deployment, full parity, or production readiness. GitHub workflow
+and CodeFactor results apply independently to the commit they actually inspect.
+
+## Earlier public commit 498e7c83 (historical only)
+
 The edited publication snapshot was validated locally on Windows x64 with .NET SDK 9.0.314 and Release configuration on 2026-10-17. These results apply to the sanitized source in this repository.
 
 | Check | Result |

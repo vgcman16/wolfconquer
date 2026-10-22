@@ -14,13 +14,11 @@ public static partial class WorldPacketHandlers
                 context, session, scope, unchecked((int)capturedTransformMaximum), cancellationToken)
             .ConfigureAwait(false);
         if (!current.Completed) return current;
-        session = current.Session! with
-        {
-            EquipmentHitpointsStatus = new LegacyEquipmentHitpointsStatus(scope.OwnerUid, capturedTransformMaximum),
-        };
-        context.Sessions?.Set(context.Connection, session);
-        context = context with { Session = session };
-        current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
+        current = CommitLegacyEquipmentQueryMutation(context, current.Session!, scope,
+            owner => owner with
+            {
+                EquipmentHitpointsStatus = new LegacyEquipmentHitpointsStatus(scope.OwnerUid, capturedTransformMaximum),
+            });
         if (!current.Completed) return current;
         return await SendLegacyCurrentStatusHitpointPairAsync(
                 context, current.Session!, scope, cancellationToken)

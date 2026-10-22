@@ -20,7 +20,7 @@ public static partial class WorldPacketHandlers
         var memberCount = checked((int)teamStates.GetMemberCount(joinedConnection));
         var teamUid = teamStates.GetTeamUid(joinedConnection);
 
-        await joinedConnection.SendAsync(
+        await SendNativeTeamMembershipFrameAsync(context, joinedConnection,
                 new LegacyTeamLeadershipPacket(
                     LegacyTeamLeadershipMode.Teammate,
                     Uid: 0,
@@ -29,7 +29,7 @@ public static partial class WorldPacketHandlers
                     Unknown: 0).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
-        await joinedConnection.SendAsync(
+        await SendNativeTeamMembershipFrameAsync(context, joinedConnection,
                 new LegacyTeamLeadershipPacket(
                     LegacyTeamLeadershipMode.Leader,
                     memberUid,
@@ -38,7 +38,7 @@ public static partial class WorldPacketHandlers
                     Unknown: 0).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
-        await joinedConnection.SendAsync(
+        await SendNativeTeamMembershipFrameAsync(context, joinedConnection,
                 new LegacyTeamLeadershipPacket(
                     LegacyTeamLeadershipMode.Leader,
                     leaderUid,
@@ -47,7 +47,7 @@ public static partial class WorldPacketHandlers
                     Unknown: 0).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
-        await joinedConnection.SendAsync(
+        await SendNativeTeamMembershipFrameAsync(context, joinedConnection,
                 new LegacyMsgUpdatePacket(
                     memberUid,
                     [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Team, teamUid)]).ToFrameBytes(),
@@ -64,7 +64,7 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
-            await recipient.Connection.SendAsync(teamMemberInfo.ToFrameBytes(), cancellationToken)
+            await SendNativeTeamMembershipFrameAsync(context, recipient.Connection, teamMemberInfo.ToFrameBytes(), cancellationToken, recipient.Uid)
                 .ConfigureAwait(false);
         }
 
@@ -79,7 +79,7 @@ public static partial class WorldPacketHandlers
         uint uid,
         CancellationToken cancellationToken)
     {
-        await context.Connection.SendAsync(new MsgTeamPacket(type, uid).ToFrameBytes(), cancellationToken)
+        await SendNativeTeamMembershipFrameAsync(context, context.Connection, new MsgTeamPacket(type, uid).ToFrameBytes(), cancellationToken)
             .ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 $"WorldServer sent MsgTeam {FormatSession(context)} type={type} uid={uid}.")
@@ -208,7 +208,7 @@ public static partial class WorldPacketHandlers
             Count: 1,
             Unknown: 1,
             [entry]);
-        await context.Connection.SendAsync(memberInfo.ToFrameBytes(), cancellationToken)
+        await SendNativeTeamMembershipFrameAsync(context, context.Connection, memberInfo.ToFrameBytes(), cancellationToken)
             .ConfigureAwait(false);
         if (!TryRefreshLegacyPlayerMagicResourceSession(context, ownerUid, ref session))
         {
@@ -221,7 +221,7 @@ public static partial class WorldPacketHandlers
             LeaderUid: characterUid,
             Count: 1,
             Unknown: 0);
-        await context.Connection.SendAsync(leadership.ToFrameBytes(), cancellationToken)
+        await SendNativeTeamMembershipFrameAsync(context, context.Connection, leadership.ToFrameBytes(), cancellationToken)
             .ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 $"WorldServer sent legacy team create membership frames {FormatSession(context)} uid={characterUid}.")
@@ -234,6 +234,12 @@ public static partial class WorldPacketHandlers
         long? constructorMemberUid = null)
     {
         var teamStates = context.TeamStates ?? new TeamSessionStateStore();
+        if (context.NativeTeamMembershipEntry?.Team is { } nativeTeam)
+        {
+            var nativeEntries = teamStates.ReadNativeTeamMemberInfo(nativeTeam);
+            return new LegacyTeamMemberInfoPacket(LegacyTeamMemberInfoAction.AddMember,
+                checked((byte)nativeEntries.Count), Unknown: 1, nativeEntries);
+        }
         var entries = new List<LegacyTeamMemberInfoEntry>();
         foreach (var member in teamStates.SnapshotLegacyMemberRecipients(connection))
         {

@@ -621,11 +621,11 @@ public sealed class LegacyMagicClassGatePreparationTests
             "TryPrepareLegacyPlayerMagicCastAsync",
             BindingFlags.Static | BindingFlags.NonPublic,
             binder: null,
-            types: [typeof(WorldPacketHandlerContext), typeof(WorldSession), typeof(LegacyMagicRuntimeSpell), typeof(CancellationToken)],
+            types: [typeof(WorldPacketHandlerContext), typeof(WorldSession), typeof(LegacyMagicRuntimeSpell), typeof(CancellationToken), typeof(object)],
             modifiers: null);
         Assert.NotNull(method);
 
-        var invocation = method.Invoke(null, [context, session, spell, CancellationToken.None]);
+        var invocation = method.Invoke(null, [context, session, spell, CancellationToken.None, null]);
         Assert.NotNull(invocation);
         return await (ValueTask<WorldSession?>)invocation;
     }

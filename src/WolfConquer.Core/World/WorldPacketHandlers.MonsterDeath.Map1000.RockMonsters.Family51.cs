@@ -274,7 +274,7 @@ public static partial class WorldPacketHandlers
         {
             PlusOrColor = 14,
         };
-        var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, ownerOnly: true);
+        var entry = FloorItemRuntimeEntry.ForItem(monster.MapId, floorItem, ownerOnly: true, dynamicId: monster.DynamicId);
         if (context.FloorItems is { } floorItems)
         {
             if (!floorItems.TryAddVisibleOnGround(
@@ -321,7 +321,7 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
         }
 
-        await SendFloorItemVisibleAsync(context, session.Character, floorItem, cancellationToken)
+        await SendFloorItemVisibleAsync(context, session.Character, entry, cancellationToken)
             .ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer sent legacy map 1000 family 51 Rock Monster floor drop " +

@@ -28,7 +28,8 @@ public sealed partial class WorldServerFrameHandler
     private readonly IAccountEmailVerifier? _accountEmailVerifier;
     private readonly ArenaSessionStateStore _arenaStates = new();
     private readonly TeamArenaSessionStateStore _teamArenaStates = new();
-    private readonly TeamSessionStateStore _teamStates = new();
+    private readonly TeamSessionStateStore _teamStates;
+    private readonly LegacyTournamentWatcherHolders _tournamentWatcherHolders;
     private readonly LegacyElitePkSessionStateStore _elitePkStates = new();
     private readonly LegacyTeamPkSessionStateStore _teamPkStates = new();
     private readonly MonsterRuntimeStateStore _monsterStates = new();
@@ -214,6 +215,7 @@ public sealed partial class WorldServerFrameHandler
         _teamArenaStatistics = teamArenaStatistics ?? TeamArenaStatisticsProvider.Empty;
         _packetHandlers = DefaultPacketHandlers;
         _worldData = worldData;
+        _runeRankings = new LegacyRuneRankingState(worldData?.RuneRankings);
         _terrain = terrain;
         _teleportTerrain = terrain ??
             (worldData is null || worldData.LegacyGameMapsByMapId.Count == 0
@@ -226,6 +228,7 @@ public sealed partial class WorldServerFrameHandler
         _protocolProfile = protocolProfile;
         _guildWarRuntime = new LegacyGuildWarRuntimeScheduler(_guildWarStates);
         _log = TextWriter.Synchronized(log ?? TextWriter.Null);
+        _tradeRecovery = new(_snapshotLoader?.UsersRoot, _snapshotLoader?.PlayerItemsRoot);
         _voteStates = voteStates ?? TryCreateLegacyVoteRuntimeStateStore(_snapshotLoader?.UsersRoot);
         if (_voteStates is { LoadResult.Success: false })
         {
@@ -236,6 +239,8 @@ public sealed partial class WorldServerFrameHandler
         }
 
         _sessions = new WorldSessionStore(PersistChangedSessionState);
+        _tournamentWatcherHolders = new(_sessions);
+        _teamStates = new(_sessions, _tournamentWatcherHolders);
     }
 
     private void PersistChangedSessionState(
@@ -685,9 +690,12 @@ public sealed partial class WorldServerFrameHandler
         string username,
         CharacterSnapshot snapshot,
         CancellationToken cancellationToken,
-        Func<WorldSession, CancellationToken, ValueTask>? afterStartupBeforeRuntime = null)
+        Func<WorldSession, CancellationToken, ValueTask>? afterStartupBeforeRuntime = null,
+        LegacyNativeGameClientRuntime? nativeLoadedClient = null)
     {
-        var playerItems = _snapshotLoader?.LoadPlayerItemsByCharacterUid(snapshot.Uid) ?? PlayerItemSnapshot.Empty;
+        var nativeEquipment = BeginLegacyNativeEquipmentRawLoad(connection);
+        var playerItems = _snapshotLoader?.LoadPlayerItemsByCharacterUid(snapshot.Uid,
+            bytes => nativeEquipment?.CaptureRawLoad(bytes)) ?? PlayerItemSnapshot.Empty;
         var starterState = await EnsureLegacyFirstCharacterStarterStateAsync(
                 snapshot,
                 playerItems,
@@ -695,6 +703,7 @@ public sealed partial class WorldServerFrameHandler
             .ConfigureAwait(false);
         snapshot = starterState.Snapshot;
         playerItems = starterState.PlayerItems;
+        if (starterState.Applied) nativeEquipment?.InvalidateRawLoadObservation("targetStarterReplacement");
         var playerSpells = _snapshotLoader?.LoadPlayerSpellsByCharacterUid(snapshot.Uid) ?? PlayerSpellSnapshot.Empty;
         var starterSpellState = await EnsureLegacyFirstCharacterStarterSpellsAsync(
                 snapshot,
@@ -734,7 +743,12 @@ public sealed partial class WorldServerFrameHandler
             playerSpells,
             playerProficiencies,
             CombatGear: combatGear,
-            UsersRoot: _snapshotLoader?.UsersRoot);
+            UsersRoot: _snapshotLoader?.UsersRoot)
+        {
+            NativeGameClient = connection.NativeGameClient,
+        };
+        session = PrepareLegacySecondaryPasswordSession(connection, session);
+        if (_tradeRecovery.IsBlocked) return;
         _sessions.Set(connection, session);
         await LogLegacySessionSidecarStatusAsync(session).ConfigureAwait(false);
         if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out session)) return;
@@ -744,7 +758,8 @@ public sealed partial class WorldServerFrameHandler
                 session.PlayerItems,
                 session.PlayerSpells,
                 session.CombatGear ?? CombatGearSnapshot.Empty,
-                cancellationToken)
+                cancellationToken,
+                nativeLoadedClient: nativeLoadedClient)
             .ConfigureAwait(false);
         var ownerUid = snapshot.Uid;
         if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, ownerUid, out session)) return;
@@ -868,6 +883,8 @@ public sealed partial class WorldServerFrameHandler
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
+        // Native Player.Revive retains the original physical receiver, not a later client.Player.
+        var nativePlayerReceiver = session.NativePlayer;
         var currentHitpoints = session.Character.MinHitPoints <= 0
             ? 1U
             : CheckedUInt32(session.Character.MinHitPoints, nameof(session.Character.MinHitPoints));
@@ -918,9 +935,10 @@ public sealed partial class WorldServerFrameHandler
         await connection.SendAsync(
                 LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
                     uid,
-                    LegacyPlayerDeathState.CreateStatusFlagVector(
-                        updatedSession.Character.Attributes,
-                        LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength)).ToFrameBytes(),
+                    LegacyNativePlayerFlag6Lifecycle.CaptureVector(nativePlayerReceiver,
+                        LegacyPlayerDeathState.CreateStatusFlagVector(
+                            updatedSession.Character.Attributes,
+                            LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength))).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         await connection.SendAsync(

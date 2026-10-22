@@ -70,19 +70,21 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var afterDeath = -1;
         await using var fixture = new RootMagicEntryFixture(itemEffects:
             new(RightEffect: 0, RingEffect: 0, NeckEffect: 200), itemEffectLifetimeControls: true,
-            itemEffectXpControls: true, onSend: async (current, uid, bytes) =>
+            itemEffectXpControls: true, nativeDeathCasterQueryControls: true,
+            onSend: async (current, uid, bytes) =>
             {
                 if (!armed || entered || uid != PlayerUid ||
                     !RootManualItemScalar(bytes, LegacyMsgUpdateDataType.XPList, 0)) return;
                 entered = true;
                 Assert.False(HasLegacyStatusFlag(current.Owner.Character.Attributes, 4));
                 Assert.True(HasLegacyStatusFlag(current.Owner.Character.Attributes, 8));
-                await current.KillRootItemEffectOwnerAsync(); // Real peer learned1001/raw9000, not a flag/HP seed.
+                await current.KillRootItemEffectOwnerAsync(); // Queried peer MA1/raw9999; native /2, not a flag/HP seed.
                 Assert.Equal(0L, current.Owner.Character.MinHitPoints);
                 Assert.True(HasLegacyStatusFlag(current.Owner.Character.Attributes, 5));
                 Assert.False(HasLegacyStatusFlag(current.Owner.Character.Attributes, 8));
                 afterDeath = current.Order.Count;
             });
+        await fixture.PrepareRootNativeDeathCasterAsync();
         await fixture.QueryRootItemEffectsAsync();
         await fixture.EarnRootItemEffectXpListAsync();
         await fixture.CastAsync(1_000); // Earn the old15-second shield AFTER the800-second XP acquisition.

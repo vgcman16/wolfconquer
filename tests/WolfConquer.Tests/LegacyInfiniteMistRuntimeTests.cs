@@ -155,8 +155,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            [CreateItemType((int)LegacySkyVeilLevelNineItemId, "Sky Veil(+9)")],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0),
+            [CreateRetainedNativeMagic421Helmet(), CreateItemType((int)LegacySkyVeilLevelNineItemId, "Sky Veil(+9)")],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0),
             CreateInfiniteMistMagicRow());
         var sessions = new WorldSessionStore();
         var casterSent = new List<byte[]>();
@@ -178,6 +178,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 CreatePlayerSpell(LegacyInfiniteMistSpellId),
             ],
             attributes: targetAttributes);
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         var context = new WorldPacketHandlerContext(
@@ -186,6 +188,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(context, targetConnection, casterSent, targetSent);
 
         await PacketHandlers.HandleAsync(
             context,

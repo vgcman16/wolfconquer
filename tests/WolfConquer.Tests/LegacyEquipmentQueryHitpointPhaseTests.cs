@@ -48,7 +48,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         var observations = new ConcurrentQueue<(uint Maximum, long Hitpoints)>();
         var capture = false;
-        using var fixture = new DirectQueryHpFixture(onSend: (current, recipient, bytes) =>
+        using var fixture = new DirectQueryHpFixture(nativeWoundCasterQueryControls: true,
+            onSend: (current, recipient, bytes) =>
         {
             if (capture && recipient == PlayerUid && DirectQueryHpIsFirstMax(bytes))
             {
@@ -57,8 +58,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             }
             return ValueTask.CompletedTask;
         });
+        await fixture.PrepareQueryHpNativeWoundCasterAsync();
         await fixture.TransformAsync();
-        await fixture.WoundOwnerAsync(); // Public neutral MagicAttack1 + real raw119 =120.
+        await fixture.WoundOwnerAsync(); // Real peer251 earns MA1; raw239 then native caller /2 =120.
         Assert.Equal(2_880, fixture.Owner.Character.MinHitPoints);
         DirectFineRainHpAssertOwnedMaximum(fixture.Owner, 3_000);
         var start = fixture.Order.Count;
@@ -191,14 +193,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }
     }
 
-    private sealed class DirectQueryHpFixture : IDisposable
+    private sealed partial class DirectQueryHpFixture : IDisposable
     {
         private readonly WorldSessionStore _sessions = new();
         private readonly Dictionary<uint, ConquerTcpConnection> _connections = [];
         private readonly WorldPacketHandlerContext _context;
         private readonly StringWriter _log = new();
 
-        public DirectQueryHpFixture(Func<DirectQueryHpFixture, uint, byte[], ValueTask>? onSend = null)
+        public DirectQueryHpFixture(Func<DirectQueryHpFixture, uint, byte[], ValueTask>? onSend = null,
+            bool nativeWoundCasterQueryControls = false)
         {
             var clock = new ManualRuntimeTimeProvider(new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero));
             const uint helmetId = 111_096;
@@ -212,7 +215,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     damage: 100, duration: 60, experience: 1_000, coolDown: 0, coldTime: 0),
                 CreateMagicRow(TransformSpellId, sort: 19, level: 1, useMana: 0, useStamina: 0,
                     damage: 100, duration: 60, experience: 1_000, coolDown: 0, coldTime: 0),
-                CreateMagicRow(ThunderSpellId, sort: 1, useMana: 0, damage: 119, coolDown: 0, coldTime: 0),
+                CreateMagicRow(ThunderSpellId, sort: 1, useMana: 0,
+                    damage: nativeWoundCasterQueryControls ? 239U : 119U, coolDown: 0, coldTime: 0),
             ], items: [helmet], transformInfo:
             [
                 new TransformInfo(TransformSpellId, 0, "DivineHare", 207, 3_000,
@@ -230,7 +234,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 }, attributes: new Dictionary<string, string> { ["PkMode"] = "0", ["BattlePower"] = "120" });
             var peer = CreateSession(uid: TargetPlayerUid, name: "QueryHpPeer", mapId: 1_000, x: 832, y: 584,
                 classCode: 2_005, strength: 0, spirit: 0, minHitPoints: 500, stamina: 100,
-                spellIds: [ThunderSpellId], attributes: new Dictionary<string, string>
+                spellIds: [ThunderSpellId],
+                playerItems: nativeWoundCasterQueryControls ? PlayerItemSnapshot.Empty with { EquipmentItems =
+                    [new PlayerItemSnapshotItem { Uid = 98_202, ItemId = helmetId, Position = 1,
+                        Durability = 100, MaximumDurability = 100 }] } : PlayerItemSnapshot.Empty,
+                attributes: new Dictionary<string, string>
                 {
                     ["PkMode"] = "0", ["BattlePower"] = "120",
                 });

@@ -93,7 +93,7 @@ public static partial class WorldPacketHandlers
         {
             Character = ClearLegacyMountRideStatus(sourceSession.Character),
         };
-        if (!sessions.TryCompareAndSet(context.Connection, sourceSession, updatedSession))
+        if (!TryCommitOwnedLegacyTeleport(context, sourceSession, updatedSession))
         {
             sessions.TryGet(context.Connection, out var currentSession);
             return new LegacyTeleportEntrySideEffectResult(

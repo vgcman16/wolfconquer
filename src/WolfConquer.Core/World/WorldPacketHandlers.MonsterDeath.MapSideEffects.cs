@@ -10,7 +10,8 @@ public static partial class WorldPacketHandlers
         WorldSession killerSession,
         LegacyMonsterInstance monster,
         Monster monsterFamily,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool family8418RewardAlreadyApplied = false)
     {
         var updatedSession = killerSession;
         var updatedContext = context with { Session = updatedSession };
@@ -213,7 +214,8 @@ public static partial class WorldPacketHandlers
             updatedContext = updatedContext with { Session = updatedSession };
         }
 
-        if (monsterFamily.Id == 8_418 &&
+        if (!family8418RewardAlreadyApplied &&
+            monsterFamily.Id == 8_418 &&
             monster.MapId == 10_342)
         {
             updatedSession = await TryApplyLegacyFamily8418Map10342MonsterDeathRewardAsync(

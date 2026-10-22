@@ -15,6 +15,10 @@ public static partial class WorldPacketHandlers
             item.ItemId >= LegacyAnimaFirstItemNpcId && item.ItemId <= LegacyAnimaLastItemNpcId;
     }
 
+    private static bool LegacySecurityAnimaItemOperationNeedsPin(WorldSession session) =>
+        ReadAttributeString(session.Character.Attributes, LegacyAccountSecurityAnimaPinAttribute).Length != 0 &&
+        !ReadAttributeBool(session.Character.Attributes, LegacyAccountSecurityAnimaActivatedAttribute);
+
     private static async ValueTask<bool> TryBlockLegacySecurityAnimaItemOperationAsync(
         WorldPacketHandlerContext context,
         WorldSession session,
@@ -22,12 +26,7 @@ public static partial class WorldPacketHandlers
         CancellationToken cancellationToken)
     {
         var currentSession = LegacyAccountSecurityResolveAnimaSession(context, session);
-        if (ReadAttributeString(
-                currentSession.Character.Attributes,
-                LegacyAccountSecurityAnimaPinAttribute).Length == 0 ||
-            ReadAttributeBool(
-                currentSession.Character.Attributes,
-                LegacyAccountSecurityAnimaActivatedAttribute))
+        if (!LegacySecurityAnimaItemOperationNeedsPin(currentSession))
         {
             return false;
         }

@@ -50,10 +50,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         long targetMinHitPoints)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var elitePkStates = new LegacyElitePkSessionStateStore();
         var casterSent = new List<byte[]>();
@@ -72,6 +73,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             minHitPoints: targetMinHitPoints,
             mapId: 700,
             attributes: CreatePkQualifierAttributes(dynamicId: 42, serverId: 1002));
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         elitePkStates.ActivateMatch(casterConnection, targetConnection, dynamicId: 42);
@@ -83,6 +86,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             ElitePkStates: elitePkStates);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(context, targetConnection, casterSent, targetSent);
 
         await SendThunderAtPlayerAsync(context, targetSession);
 
@@ -99,10 +104,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         long targetMinHitPoints)
     {
         var monsterFamily = CreateMonsterFamily();
-        var worldData = CreateMagicCatalog(
+        var worldData = CreateMagicCatalogWithItems(
             monsterFamily,
             [],
-            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 120, coldTime: 0));
+            [CreateRetainedNativeMagic421Helmet()],
+            CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var sessions = new WorldSessionStore();
         var teamStates = new TeamSessionStateStore();
         var teamPkStates = new LegacyTeamPkSessionStateStore();
@@ -122,6 +128,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             minHitPoints: targetMinHitPoints,
             mapId: 700,
             attributes: CreatePkQualifierAttributes(dynamicId: 42, serverId: 1002));
+        casterSession = CreateRetainedNativeMagic421Input(casterSession);
+        targetSession = CreateRetainedNativeMagic421Input(targetSession);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
         teamStates.CreateTeam(casterConnection, PlayerUid);
@@ -138,6 +146,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             TeamStates: teamStates,
             TeamPkStates: teamPkStates);
+
+        context = await PrepareRetainedNativeMagic421QueriesAsync(context, targetConnection, casterSent, targetSent);
 
         await SendThunderAtPlayerAsync(context, targetSession);
 
