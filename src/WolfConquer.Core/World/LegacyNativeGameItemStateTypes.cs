@@ -82,7 +82,7 @@ internal static class LegacyNativeGameItemFlags
 	}
 }
 
-internal static class LegacyNativeItemExtra
+internal partial class LegacyNativeItemExtra
 {
 	public enum Typing : uint
 	{

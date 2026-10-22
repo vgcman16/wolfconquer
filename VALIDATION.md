@@ -1,5 +1,34 @@
 # Publication validation
 
+## Native inventory transport and queue prerequisites
+
+Complete native item framing/log text, lock and extra-effect sends now use the
+actual item fields, mutable extra-message lists and native Packet owner. The
+ItemUsage enum/read/write and ItemLock codec, date helpers and physical server
+identity comparison are implemented without host packet registration. Full
+Inventory.Update/Remove, item Send and the lottery receiver remain unfinished.
+
+Focused private Debug and independent public Release verification each passed
+484 cases, zero failures/skips:101 new and383 retained. New cases cover literal
+frames, fixed-string truncation, clock-dependent effects, native partial faults,
+live metadata/list aliases, asymmetric usage cursors and reserved bytes. This
+is a focused component result, not a new full-suite or live-client result.
+
+The complete native base queue/ThreadItem bodies are present. Sixteen fresh
+Windows PowerShell children verify queue work and synchronous thread phases;
+they start no lifecycle worker. Native Thread.Abort remains unsupported on
+modern .NET and emits SYSLIB0006; it has not been silently replaced. The genuine
+login/save/deletion worker and its remaining dependencies are not installed.
+
+A separate isolated local probe with the preserved legacy MySql.Data6.3.6 DLL
+on.NET9.0.16 failed before SELECT against MariaDB12.2.2: first missing codepages,
+then DBNull conversion during character-set loading after probe-only encoding
+registration. That is negative compatibility evidence, not successful SQL or
+proof for the public NuGet asset. No original database or deployment was used.
+Warnings remain; full persistence, worker lifecycle, host adoption and client
+acceptance still require separate work. The older full Windows run below does
+not certify this later batch.
+
 ## Complete native gear-view and Air Power receiver bodies
 
 The complete private native receiver bodies now use genuine protobuf parsing,

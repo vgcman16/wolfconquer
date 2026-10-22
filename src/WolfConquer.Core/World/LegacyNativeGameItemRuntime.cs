@@ -7,8 +7,8 @@ namespace WolfConquer.Core.World;
 // Complete native MsgGameItem construction storage/defaults and ITEM_ID/Rune setter.
 // The SAME concrete item reference remains in Inventory; no DTO or identity wrapper.
 // Native has no explicit constructor. Declaration-order initializers are retained.
-// The ItemExtras partial builds the native SendItemExtra frame only; it does NOT
-// implement Send/ItemCreate/ToLog/equipment classification or raw loading.
+// Focused partials own native ItemCreate/ToLog/lock/extra sends. Full Send,
+// inventory updates, equipment classification and raw loading remain separate.
 internal sealed partial class LegacyNativeGameItemRuntime
 {
 	public static ushort MythsoulBag = 217;

@@ -4,8 +4,8 @@ namespace WolfConquer.Core.World;
 
 internal sealed partial class LegacyNativeGameItemRuntime
 {
-    // MsgGameItem.SendItemExtra: mutate the stored value types, then serialize
-    // their list copies. InLife and SecoundsLeft retain their native clock reads.
+    // Independent managed frame projection, not the native Packet SendItemExtra owner.
+    // InLife and SecoundsLeft retain their native clock reads and stored mutations.
     internal byte[]? CreateItemExtraFrame()
     {
         if (Purification.ItemUID == 0 && Refinary.ItemUID == 0)
