@@ -1,5 +1,23 @@
 # Publication validation
 
+## Native packet protobuf reads and writes
+
+All three native Packet protobuf methods now use the pinned serializer directly.
+Serialize writes at the current unmanaged cursor without framing or changing
+Size. Framed Deserialize resets to zero and consumes only the declared payload,
+ignoring opcode/seal/Size; both overloads return a new object rather than merging
+the supplied instance. Raw Deserialize does not touch the packet cursor/memory.
+No load gate, bounds repair, exception suppression or host adoption was added.
+
+Private Debug verification passed706 focused cases; independent public Release
+passed620, both zero failures/skips. Both include16 new cases and19 storage
+controls; other retained inventories differ. Empty payload/default construction,
+exact payloads, physical aliases,
+cursor/fault timing and bounded truncated streams are tested with the real model.
+All unsafe tests use initialized owned buffers; this is not a claim of malformed
+pointer/input safety, network receive integration or actual-client acceptance.
+Compiler/dependency warnings remain; no new full-suite result is implied.
+
 ## Genuine object-packet serialization
 
 All six native gear-family implicit packet conversions now use the actual

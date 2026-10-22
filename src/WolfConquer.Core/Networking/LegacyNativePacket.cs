@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace WolfConquer.Core.Networking;
 
 // Native ServerSockets.Packet unmanaged storage/lifecycle subset, not a DTO or wire adapter.
-// Print/Dump, pipe encryption and generic protobuf serialization are deliberately absent.
+// Print/Dump and pipe encryption are absent; genuine protobuf methods are in their partial.
 // Native allocation/cursor quirks remain: callers must own and bound their unsafe buffers.
 internal partial class LegacyNativePacket : IDisposable
 {
