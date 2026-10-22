@@ -1,5 +1,19 @@
 # Publication validation
 
+## Latest full Windows rejection on public 9a9cbc7c
+
+Run39867954370 on9a9cbc7ce9e973c0c3e85df8fb47fcb19de4a0d8 failed;
+receipt20261022T225243652Z-2386c7ad finished2026-10-22T22:57:29.8954864Z.
+Restore/build passed. Core16,854passed/3failed/165skipped(17,022total); updater
+262/262passed. Launcher/parser stages did not run. Original TRXs/logs retained.
+
+Earlier repaired Reviver/MagicPray and updater cases pass in this full run.
+Three older tests failed: scalar-save worker readiness, quest-save destination
+contention, and TCP diagnostic error-log observation. Investigation identifies
+test scheduling/observation dependencies; repairs are under review without
+changing production retry budgets, removing assertions or accepting save failure.
+Current source is NOT full-check green, deployed, or actual-client accepted.
+
 ## Portable receiver and updater fixture repairs
 
 Private Debug and independent sanitized-public Release each passed all2,010
@@ -13,7 +27,8 @@ raw frames and the original HP assertions are not filtered or relaxed.
 The full public updater check passed262/262,zero failures/skips,1m18s. Three new
 real owned-command controls verify per-fixture executable identity and genuine
 process-guard/recovery behavior. Production runtime and guard code are unchanged.
-Full Windows validation on this repair is pending; no live-client proof is added.
+The subsequent full Windows rejection above remains authoritative; no live-client
+proof is added by these focused passes.
 
 ### Preserved first public repair rejection
 
