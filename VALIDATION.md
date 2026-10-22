@@ -1,5 +1,25 @@
 # Publication validation
 
+## Native Ninja Info contracts and primitive codecs
+
+The complete native Info record, signed Flags values, byte printer, packet2394
+constant and primitive Create/Get codecs are now ported. Required field widths,
+unknown signed enum values, exact newline/space output, mutable re-encoding,
+declared-length framing and decoder failure order retain the reference behavior.
+The Info.Process equipment/inventory/currency graph remains absent rather than
+being represented by a partial receiver or placeholder owners.
+
+Private Debug and independent public Release each passed 1,404 focused cases,
+zero failures/skips: 24 independent behavior cases, nine pinned wire controls
+and 1,371 retained. The nine wire controls also passed against the held native
+protobuf serializer in an owned source-shaped Framework/x86 executable. No
+production repair or assertion weakening was needed.
+
+This is component and serializer proof only. It does not add receive dispatch,
+prove current-client packet acceptance, deploy services, complete full login/save
+callers or replace the last full Windows CI result. The parity estimate is not
+increased from a passing test count.
+
 ## Complete native Ninja item-view receiver body
 
 The complete private MsgNinjaItem.Process body now decodes, checks View by
