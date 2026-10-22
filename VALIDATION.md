@@ -1,5 +1,25 @@
 # Publication validation
 
+## Static dependency inventory and backup-suffix follow-up
+
+The new `client-pe-dependency-audit` passed **73 focused cases** in both the
+private Debug tree and sanitized public Release tree:42 new command cases plus31
+retained symbol-audit regressions, zero failures/skips. They exercise actual CLI
+children on synthetic PE32/PE32+ files, normal/delay RVA/legacy-VA descriptors,
+bounded names, malformed ranges, JSON-only success and real Windows junction/
+symbolic-alias refusal with original bytes/write times preserved. No synthetic
+PE is executed. Build warnings remain; this is not a new whole-server test run.
+
+The command was also used read-only on the local investigation target; native
+bytes/findings are not included in this publication. A static import inventory
+does not prove symbol readiness, runtime search order or fresh-client startup.
+
+The later dated-backup suffix safeguard passed **nine grouped exclusion cases**
+in both trees, zero skips. It blocks suffixed backup/temp extension segments even
+inside approved asset directories, permits exact omission and preserves source
+bytes. Filename filtering is not a content/security or redistribution audit.
+No actual client package/feed was staged, signed, published or launched here.
+
 ## Exact 7a4675ba Windows follow-up
 
 [Windows run39806247831](https://github.com/vgcman16/wolfconquer/actions/runs/39806247831)

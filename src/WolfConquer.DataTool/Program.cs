@@ -303,6 +303,11 @@ internal static partial class Program
             return ClientPeSymbolAudit(args);
         }
 
+        if (command == "client-pe-dependency-audit")
+        {
+            return ClientPeDependencyAudit(args);
+        }
+
         if (command == "client-item-catalog-roundtrip")
         {
             return ClientItemCatalogRoundtrip(args);
@@ -618,6 +623,7 @@ internal static partial class Program
             string.Equals(value, "client-launch-dependency-audit", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-launch-contract-audit", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-pe-symbol-audit", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "client-pe-dependency-audit", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-item-catalog-roundtrip", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-item-catalog-codec", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-item-catalog-localize", StringComparison.OrdinalIgnoreCase) ||
@@ -823,6 +829,7 @@ internal static partial class Program
         Console.WriteLine("  WolfConquer.DataTool client-launch-dependency-audit <exePath> --workdir label=path [--workdir label=path ...] [--client-root path] [--max-import-dlls N] [--recursive] [--max-recursive-depth N]");
         Console.WriteLine("  WolfConquer.DataTool client-launch-contract-audit <oldClientRoot> <currentClientRoot> [--old-label label] [--current-label label] [--candidate relativePath] [...] [--workdir [label=]relativePath] [...] [--symbol-dll relativePath] [...] [--string text] [--no-default-strings] [--max-string-offsets N] [--max-import-dlls N]");
         Console.WriteLine("  WolfConquer.DataTool client-pe-symbol-audit [<exePath> --import-dll <dllName>] [--dll <dllPath>] [--compare] [--shim-summary] [--emit-def] [--proxy-module <moduleName>] [--max-imports N] [--max-exports N]");
+        Console.WriteLine("  WolfConquer.DataTool client-pe-dependency-audit <absoluteLocalPePath>");
         Console.WriteLine("  WolfConquer.DataTool client-item-catalog-roundtrip <decoded-source-path> [--output-new <fresh-path>]");
         Console.WriteLine("  WolfConquer.DataTool client-item-catalog-codec <decode|encode> <input-path> [--output-new <fresh-path>]");
         Console.WriteLine("  WolfConquer.DataTool client-item-catalog-localize <packed-source> --english-itemtype <67-field-source> [--include-text-fields] [--output-new <fresh-path>]");

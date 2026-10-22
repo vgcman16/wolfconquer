@@ -111,6 +111,29 @@ The default trusted origin is `https://github.com/vgcman16/wolfconquer.git`, bra
 
 ## Offline preparation tools
 
+For a bounded static PE dependency inventory, without loading or searching for
+any imported module:
+
+```powershell
+dotnet run --project src/WolfConquer.DataTool -- client-pe-dependency-audit C:\ReviewedClient\Env_DX8\OperatorSelectedClient.exe
+```
+
+This reads one explicit ordinary local `.exe`/`.dll` (64 bytes through64MiB),
+refusing linked paths. JSON includes PE32/PE32+ kind, SHA256 and the original
+normal-then-delay import names, preserving descriptor order, duplicates and case.
+Declared directories must contain complete null terminators in unambiguous
+raw-backed logical PE ranges; padding/overlay names and unsafe Windows basenames
+are refused. Names may legitimately be extensionless or use another extension.
+Limits are512 combined descriptors and255 name bytes plus NUL. Failure emits
+stderr/nonzero, not a partial success JSON report.
+
+This inventory does not load DLLs, inspect symbol tables, resolve forwarded
+exports/SxS, reproduce `LoadLibrary` calls or classify names as system/approved.
+It supplements the older normal-import/search-candidate diagnostics; neither is
+a native startup or portable-package proof. Independently observed runtime paths
+and reviewed configuration remain necessary. PE field definitions follow the
+[Microsoft PE format](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format).
+
 The [explicit-file planner](../tools/updates/CLIENT-DISTRIBUTION-PLAN.md) inventories
 reviewed names and lengths without opening client contents. Its successful plan
 can feed [offline exact-list staging](../tools/updates/CLIENT-DISTRIBUTION-STAGE.md),

@@ -127,6 +127,7 @@ function Get-CdRisk([string]$Relative) {
             return 'private-local-or-control-path'
         }
         if ($segment -match '(?i)(\.(pem|key|pfx|p12|ppk|jks|snk|kdbx|wallet|pdb|dmp|dump|ilk|idb|iobj|ipdb|obj|log|bak|old|tmp|temp|orig|sql|db|db3|mdb|sqlite|sqlite3|sav|suo|user)$)|^(\.env($|\.)|id_(rsa|dsa|ecdsa|ed25519)($|\.)|\.git(ignore|attributes|modules)?$)' -or
+            $segment -match '(?i)\.(bak|old|orig|tmp|temp)[._-]' -or
             $segment -match '(?i)^(accounts?|profiles?|credentials?|passwords?|secrets?|private[-_]?keys?|tokens?|cookies|sessions?)([._-].*)?$' -or
             $segment -match '(?i)(^|[._-])(secret|credential|password|private[-_]?key|release[-_]?private)([._-]|$)|^(last[-_]?login|login[-_]?(history|records?)|recent[-_]?players?)([._-]|$)' -or
             $segment -match '(?i)^(wolfconquer-updates\.json|trusted-release-keys\.json|WolfConquer\.(Updater|Launcher)(\..*)?)$') {

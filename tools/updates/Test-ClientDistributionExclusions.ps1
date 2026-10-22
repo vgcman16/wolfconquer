@@ -137,6 +137,31 @@ try {
         Assert-CdTest ($refusal -like '*quarantined*' -and -not [IO.Directory]::Exists($stage)) 'direct legacy-file plan is refused by existing staging quarantine before any copies'
         Assert-CdTest ($before -ceq (Get-CeOrdinarySnapshot $f.Source)) 'quarantining names does not alter source bytes'
     }
+    Invoke-CdTestCase 'dated backup extension segments quarantine approved files and allow exact exclusion without near-match blocking' {
+        $f = New-CdTestFixture 'dated-backups'
+        $backups = @('GuardShield.dat.bak.codex-date', 'data/Server.dat.bak-codex-date')
+        foreach ($path in $backups) {
+            [IO.File]::WriteAllText([IO.Path]::Combine($f.Source, $path), 'Synthetic private backup bytes. Preserve, never publish.')
+        }
+        [IO.File]::WriteAllText([IO.Path]::Combine($f.Source, 'data', 'oldworld.dat'), 'Synthetic ordinary asset bytes.')
+        $f.Policy.files = @('Client.exe', $backups[0]); Save-CdTestPolicy $f
+        $before = Get-CdSyntheticSnapshot $f.Source
+        $outputs = Get-CdTestOutputs $f 'backup-refused'
+        Assert-CdTestThrows { Invoke-CdTestPlanner $f $outputs }
+        Assert-CdTest (-not [IO.File]::Exists($outputs.Plan)) 'dated backups never produce an approved publisher plan'
+        $report = [IO.File]::ReadAllText($outputs.Report) | ConvertFrom-Json
+        Assert-CdTest ($report.blockedCount -eq 2 -and $report.quarantined.Count -eq 2) 'exact-file and directory-approved dated backups are both quarantined'
+        $f.Policy.files = @('Client.exe'); $f.Policy.excludePaths = $backups; Save-CdTestPolicy $f
+        $outputs = Get-CdTestOutputs $f 'backup-excluded'; Invoke-CdTestPlanner $f $outputs
+        $plan = [IO.File]::ReadAllText($outputs.Plan) | ConvertFrom-Json
+        $report = [IO.File]::ReadAllText($outputs.Report) | ConvertFrom-Json
+        Assert-CdTest ($plan.files.Count -eq 3 -and ($plan.files.path -join ',') -ceq
+            'Client.exe,data/a.bin,data/oldworld.dat') 'innocent near-match asset remains approved and dated backups stay excluded'
+        Assert-CdTest ($report.outcome -ceq 'planned-not-published' -and $report.blockedCount -eq 0 -and
+            $report.reviewRequiredCount -eq 0 -and $report.excludedEntryCount -eq 2) 'explicit exact backup exclusions produce a clean plan without publishing'
+        Assert-CdTest (-not [IO.Directory]::Exists($f.Policy.publication.publishRoot)) 'backup exclusion does not create publication output'
+        Assert-CdTest ($before -ceq (Get-CdSyntheticSnapshot $f.Source)) 'both backup refusals and exclusions preserve all original bytes and write times'
+    }
     $f = New-CdTestFixture 'file-links'
     $external = [IO.Path]::Combine($f.Root, 'external'); $null = [IO.Directory]::CreateDirectory($external)
     $target = [IO.Path]::Combine($external, 'kept.bin'); [IO.File]::WriteAllBytes($target, [byte[]](2, 4, 6, 8))

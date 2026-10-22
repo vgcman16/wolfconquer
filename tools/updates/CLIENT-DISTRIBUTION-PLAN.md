@@ -26,6 +26,12 @@ do not rename them to evade review. This conservative name rule is not a malware
 verdict or proof that any other file is clean. Direct staging plans receive the
 same existing quarantine check before any copies.
 
+Dated backup/temp extension segments are quarantined too: for example,
+`Server.dat.bak-codex-date` and `GuardShield.dat.bak.codex-date` cannot enter
+approved payloads. Exact exclusions omit them without deleting original files.
+The rule also covers suffixed `.old`, `.orig`, `.tmp` and `.temp` segments; it
+does not treat an ordinary name such as `oldworld.dat` as a backup.
+
 Unknown top-level entries—and unknown siblings in partially selected folders—require explicit approval or exclusion. A review-required report is written, the command throws, and no publisher plan is created. It never silently approves an unknown item. A selected private/generated path blocks the plan until explicitly excluded. Private-key extensions, credentials, accounts/profiles, logs, caches, screenshots, temporary/debug/backup files, Git metadata and updater-control/trust files are conservatively quarantined by name anywhere. False positives require separate human review/curation; there is no bypass switch. Excluded/quarantined directories are not traversed.
 
 Only names, attributes and file lengths are inspected; client/configuration contents are not opened or hashed. The policy itself is read as strict JSON. Name filtering cannot detect a secret renamed to an innocent asset name or hidden inside an approved file. Keep the source quiescent during review; this metadata scan is not a security/content audit or immutable snapshot.
