@@ -14,6 +14,25 @@ test scheduling/observation dependencies; repairs are under review without
 changing production retry budgets, removing assertions or accepting save failure.
 Current source is NOT full-check green, deployed, or actual-client accepted.
 
+## Snapshot concurrency and contention test repairs
+
+Private Debug and independent public Release each passed2,135focused cases,
+zero failures/skips,20s and18s: the retained2,076plus all six persistence-consumer
+test classes and three real Windows observer controls. Equivalent-root writers
+now use owned threads, checked gates and unconditional drain. Contention tests
+still invoke one actual persistence operation under a real destination sharing
+lock and require failed-replace temporary deletion before release; the Windows
+observer uses owned native directory IO rather than ThreadPool callbacks.
+Cancellation is scoped to the retained directory/OVERLAPPED, drained before
+buffers/handles are released. Tests cover matching events, timeout cleanup and
+independent observer cancellation. All original saved-byte/encoding/alias/no-temp
+assertions remain; production locks and five-attempt retry budgets are unchanged.
+
+The first private attempt failed to compile a test-project-specific WindowsFact
+name. A dedicated platform attribute fixed that setup; all three Windows controls
+executed in the passing runs with zero skips. The full9a9cbc7c failed receipts
+remain preserved. A new full Windows run is still required for these repairs.
+
 ## Native pipe item transport and inventory queries
 
 Private Debug and independent public Release each passed2,076focused cases,

@@ -53,27 +53,45 @@ public sealed class CharacterSnapshotScalarPersistenceConcurrencyTests : IDispos
         using var ready = new CountdownEvent(roots.Length);
         using var start = new ManualResetEventSlim();
 
-        var writes = roots.Select((root, index) => Task.Run(() =>
+        // These eight workers deliberately block at the same gate. Give each an
+        // owned thread rather than occupying the shared test ThreadPool while
+        // this method synchronously waits for all eight readiness signals.
+        var writes = roots.Select((root, index) => Task.Factory.StartNew(() =>
         {
             ready.Signal();
-            start.Wait(TimeSpan.FromSeconds(5));
+            if (!start.Wait(TimeSpan.FromSeconds(5)))
+            {
+                throw new TimeoutException("Timed out waiting to start the concurrent snapshot writers.");
+            }
+
             var succeeded = CharacterSnapshotScalarPersistence.TryPersist(
                 root,
                 original with { X = original.X + index + 1 },
                 out _,
                 out var reason);
             return (Succeeded: succeeded, Reason: reason);
-        })).ToArray();
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)).ToArray();
+        var allWrites = Task.WhenAll(writes);
 
-        Assert.True(ready.Wait(TimeSpan.FromSeconds(5)));
-        start.Set();
-        var results = await Task.WhenAll(writes).WaitAsync(TimeSpan.FromSeconds(15));
+        try
+        {
+            Assert.True(ready.Wait(TimeSpan.FromSeconds(5)));
+            start.Set();
+            var results = await allWrites.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.All(results, result => Assert.True(result.Succeeded, result.Reason));
-        var persistedText = Windows1252().GetString(File.ReadAllBytes(path));
-        Assert.Contains("Payload49999=preserve", persistedText, StringComparison.Ordinal);
-        Assert.InRange(LoadSnapshot().X, original.X + 1, original.X + roots.Length);
-        AssertNoTransactionArtifacts();
+            Assert.All(results, result => Assert.True(result.Succeeded, result.Reason));
+            var persistedText = Windows1252().GetString(File.ReadAllBytes(path));
+            Assert.Contains("Payload49999=preserve", persistedText, StringComparison.Ordinal);
+            Assert.InRange(LoadSnapshot().X, original.X + 1, original.X + roots.Length);
+            AssertNoTransactionArtifacts();
+        }
+        finally
+        {
+            // A readiness/observation failure must not dispose fixture state
+            // while an owned writer is still blocked or persisting.
+            start.Set();
+            await allWrites;
+        }
     }
 
     [Fact]
