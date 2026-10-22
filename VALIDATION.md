@@ -1,5 +1,24 @@
 # Publication validation
 
+## Complete native nobility components
+
+The complete Nobility owner and ranking, real Player/member rank propagation and
+gender property, icon/broadcast methods, DaysNobility paid-state owner, mutable
+Pool ranking and full character-file table loader are implemented. Native ranking
+thresholds, strict admission/cap, physical aliases/ties, stale sampled thresholds,
+icon-before-promotion order, date/state/fault prefixes and differing gender rules
+remain intact. Paid Duke deliberately sets position 15 (therefore Prince).
+
+Private Debug and independent public Release each passed 1,911 focused cases,
+zero failures/skips: 68 owner, six message and 21 paid-state/table cases new,
+with 1,816 retained.
+Tests use genuine queues/records and bounded GUID-owned Windows INI files, with
+actual RNG/pool/recycler/culture restoration. No original Users files or database
+are read, no socket pump runs, and no live account receives a paid rank.
+
+Full startup, login/save/expiry and receive integration remain absent. Component
+proof is not a deployed feature, current-client acceptance or a new parity estimate.
+
 ## Complete native quest definitions and message primitives
 
 The complete QuestInfo owner (physical rows, INI loader, eligibility and NPC
