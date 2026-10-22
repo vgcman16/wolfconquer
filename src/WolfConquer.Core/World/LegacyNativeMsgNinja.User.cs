@@ -4,7 +4,7 @@ using WolfConquer.Core.Networking;
 namespace WolfConquer.Core.World;
 
 // Complete native MsgNinjaUser contract/Create; MsgNinjaItem is in separate partials.
-// MsgNinjaInfo and all packet handlers/host callers remain absent.
+// MsgNinjaInfo, packet registration and host callers remain absent.
 internal static partial class LegacyNativeMsgNinja
 {
     [ProtoContract]

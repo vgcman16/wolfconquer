@@ -36,8 +36,14 @@ public sealed partial class LegacyNativeNinjaLoadingTests
             Assert.Equal(0u, field.GetValue(item));
         });
         Assert.Equal((ushort)2393, LegacyNativeMsgNinja.MsgNinjaItem_ID);
-        Assert.DoesNotContain(typeof(ItemQuery).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static),
-            method => method.Name == "Process");
+        var process = typeof(ItemQuery).GetMethod("Process", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(process);
+        Assert.True(process.IsPrivate);
+        Assert.Equal(typeof(void), process.ReturnType);
+        Assert.Equal(new[] { typeof(LegacyNativeGameClientRuntime), typeof(WolfConquer.Core.Networking.LegacyNativePacket) },
+            process.GetParameters().Select(parameter => parameter.ParameterType));
+        Assert.DoesNotContain(process.GetCustomAttributesData(),
+            attribute => attribute.AttributeType.Name is "Packet" or "PacketAttribute");
     }
 
     [Fact]

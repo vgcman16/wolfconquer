@@ -5,7 +5,7 @@ namespace WolfConquer.Core.World;
 
 internal static partial class LegacyNativeMsgNinja
 {
-    // Complete native physical contract; Process is wholly absent.
+    // Complete native physical contract; its private receiver body is in a separate partial.
     [ProtoContract]
     public partial class MsgNinjaItem
     {

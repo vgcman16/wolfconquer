@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 namespace WolfConquer.Core.World;
 
 // Complete native Ninja state/profile and method family, including its original-empty Item.UPDATE.
-// No MsgNinja receive handler, equipment recalculation or skill consumer is installed.
+// No MsgNinja dispatcher registration, equipment recalculation or skill consumer is installed.
 // No DataCore, login/save caller or host adoption is installed.
 internal partial class LegacyNativeNinja
 {

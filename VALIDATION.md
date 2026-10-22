@@ -1,5 +1,25 @@
 # Publication validation
 
+## Complete native Ninja item-view receiver body
+
+The complete private MsgNinjaItem.Process body now decodes, checks View by
+equality, reads the actual nullable/unpublished GamePoll and calls the genuine
+item producer before the user-profile producer. Current peer UID, MyNinja and
+metadata are used without invented map/class gates, cached peers or fake owners.
+
+Private Debug and independent public Release each passed 1,371 focused cases,
+zero failures/skips: 20 new receiver cases and 1,351 retained. Unknown modes,
+missing keys, current catalog replacement, physical UID-versus-key, foreign
+backlinks, exact response order and decode/identity/producer fault prefixes are
+covered. The old structural assertion that Process was absent was deliberately
+updated to its actual private-static signature and lack of Packet attributes;
+behavior assertions were not weakened. No production repair was needed.
+
+No Packet attribute, dispatcher registration or GamePoll startup publication is
+added. This is native body proof, not current-client opcode acceptance, a live
+route, deployment, new full Windows CI or full SaveClient/login proof. The Info
+receiver/equipment/inventory/currency graph remains unfinished.
+
 ## Complete native Ninja owner method family
 
 The remaining Item.UPDATE, AddItem, GetSkill and SageMode methods and genuine
