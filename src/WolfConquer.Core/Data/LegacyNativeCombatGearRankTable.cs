@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace WolfConquer.Core.Data;
 
-// Native CQ_COMBAT_GEAR_RANK in-memory family. File Load/Save is not implemented here.
+// Native CQ_COMBAT_GEAR_RANK family; direct file persistence is in the Persistence partial.
 internal partial class LegacyNativeCombatGearRankTable
 {
     public enum Type : uint

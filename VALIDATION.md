@@ -1,5 +1,21 @@
 # Publication validation
 
+## Native combat-gear ranking file persistence
+
+Complete source-shaped rank Load/Save and the native database Write/Mode owners
+passed **75 focused public Release cases**, zero failures/skips:30 new cases plus
+45 retained rank/read cases available in this public tree. The private Debug
+selection independently passed102 (30 new/72 retained). These selections differ;
+neither count is a new full-suite run. Existing build warnings remain.
+
+Tests use only GUID-owned files and preserve all22 columns, raw prefix/ignored
+argument, Create-first faults, dictionary aliases/top10, enum narrowing,
+unescaped delimiters and real writer/locked-file failure timing. A separate
+ported-model read-only probe loaded preserved data without invoking Save. No
+original saves are published or mutated. Native startup/protobuf registration,
+host adoption, SQL/full-player persistence and live-client acceptance remain
+separate unfinished requirements. This commit does not deploy the running stack.
+
 ## Static dependency inventory and backup-suffix follow-up
 
 The new `client-pe-dependency-audit` passed **73 focused cases** in both the
