@@ -58,7 +58,47 @@ dotnet C:\WolfConquerTools\WolfConquer.Updater.dll recover --config C:\WolfConqu
 - Target processes must be stopped. Existing custom/modified files are refused rather than overwritten. Unlisted local files are not deleted. Backups, durable journals and recovery copies are retained; allow disk space for the client, staging, bundle and rollback copies. No automatic pruning is implemented.
 - An unchanged-release check is metadata-only; it does not rehash the entire client. `--repair` performs the full verification/precondition pass but does not overwrite user edits. A launch executable is individually verified against the signed release before launch.
 - Launch executable and arguments come from local configuration, never remote commands. Authentication remains manual. Do not disable antivirus or certificate validation.
+
 - Local configuration may additionally set `launchWorkingDirectoryRelativePath`, such as `"Env_DX8"`, when the engine requires its own directory. Omitted/null retains the payload root for existing configurations. The path must be an ordinary contained directory with no traversal, aliases or reparse ancestors; launch requires it to exist. It is not supplied by the signed remote manifest.
+
+### Optional fixed DX8 asset layout
+
+For an independently curated release that needs the legacy shared-asset layout,
+local bootstrap configuration can explicitly select:
+
+```json
+{
+  "launchRelativePath": "Env_DX8/OperatorSelectedClient.exe",
+  "launchWorkingDirectoryRelativePath": "Env_DX8",
+  "clientAssetLayoutPreset": "legacy-dx8-v1"
+}
+```
+
+This is a configuration fragment, not a published release or instruction to rename
+a client. The selected executable must also appear in the local
+`protectedExecutables` list and the signed release.
+
+After ordinary signed installation, this Windows NTFS preset creates only eleven
+contained directory junctions from `Env_DX8/<name>` to the same-named root asset
+directory: `ani`, `c3`, `data`, `data2`, `Font`, `Help`, `ini`, `map`,
+`Script`, `sound` and `video`. Every root must have signed child files and the
+manifest must contain ordinary engine content. Neither manifests nor ZIPs define
+links, and payload paths through the generated aliases are forbidden.
+
+Preparation rechecks the installer lease, exact committed release/file metadata,
+pending recovery and stopped client processes. Existing aliases must be exact
+same-target mount points; ordinary conflicts, symbolic links and retargets are
+refused without replacement. Failure removes only exact links created by that
+call, nonrecursively; incomplete cleanup is reported for inspection. No privilege
+adjustment, elevation, target-asset deletion or generic reparse-policy relaxation
+is performed. OS support and directory permissions are required.
+
+Omission/null keeps existing behavior; unknown or empty presets are refused.
+An unchanged metadata-only check does not create or repair aliases. Use explicit
+`--repair` / **Verify files** to restore missing valid aliases after normal
+signed-file checks; modified payloads and conflicting entries remain refusals.
+A separately requested launch also prepares the layout and hashes the executable.
+This compatibility tooling is not proof of fresh-client rendering or login.
 
 ## Clean source copies only
 

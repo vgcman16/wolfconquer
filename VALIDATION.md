@@ -1,5 +1,29 @@
 # Publication validation
 
+## Portable DX8 layout follow-up
+
+The opt-in local fixed DX8 layout passed **40 focused Windows cases**, then the
+full updater suite passed **259/259** and the separate Windows launcher suite
+passed **49/49**, all with zero failures/skips. Root reviewed all new production
+and test modules. These are local private-tree results for the standalone update
+components. The sanitized public tree independently passed its full updater
+suite259/259 and launcher suite49/49, also zero failures/skips. Exact-commit
+GitHub checks remain separate; their result is not claimed in advance.
+
+Tests create actual NTFS mount points only in owned synthetic temporary roots.
+They prove signed ordinary installation, exact fixed aliases, target-byte
+preservation, wrong-kind/target/ancestor refusal, idempotence, later root-asset
+patches, real stopped-process checks, pending-state rejection, mid-operation
+conflict/cancellation rollback, metadata-only non-repair and explicit repair.
+Synthetic executables are never launched. Two earlier focused runs failed in
+test-native path assertions/cleanup; preserving body and cleanup errors exposed
+mixed slashes in the test helper. Canonical test paths fixed that issue without
+weakening production syntax; forward-slash refusal is explicitly covered.
+
+These counts are not gameplay parity, a new server-suite run, a fresh real-client
+install/login, or publication of game assets. The 55% planning estimate is
+unchanged. Actual client curation and portable loader configuration remain open.
+
 ## Follow-up: exact GitHub check and offline staging
 
 Published commit `03d9e1e1cd0c7b8631fdeab0e5430a7467a32f03` passed
@@ -27,7 +51,10 @@ The PNG was visually inspected. Tests verify the fixed fill across every frame,
 matching assessment metadata, strict schema/date/range parsing, read-only check
 behavior and actual input/output link refusal. The tests validate presentation
 and safety behavior, not the subjective 55% planning estimate. GitHub automatic
-refresh still requires its own successful run after this source is published.
+refresh was subsequently proven by successful Windows run
+[39800432703](https://github.com/vgcman16/wolfconquer/actions/runs/39800432703)
+on69695d0c. It published generated-only1218aeeb; Root rechecked deterministic
+outputs. This refresh does not reassess the underlying estimate.
 
 ## 2026-10-22 launcher and updater intake
 

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
+using WolfConquer.Updates.ClientLayout;
 using WolfConquer.Updates.Discovery;
 using WolfConquer.Updates.Install;
 using WolfConquer.Updates.Manifest;
@@ -14,7 +15,8 @@ public static class LauncherWorkflow
     {
         var (settings, root, _) = ClientConfiguration.Load(configAbsolutePath);
         return new(Path.GetFullPath(configAbsolutePath), settings.ProductId, settings.Channel, root,
-            settings.LaunchRelativePath, settings.AllowLoopbackHttp, settings.LaunchWorkingDirectoryRelativePath);
+            settings.LaunchRelativePath, settings.AllowLoopbackHttp, settings.LaunchWorkingDirectoryRelativePath,
+            settings.ClientAssetLayoutPreset);
     }
 
     public static Task<ClientWorkflowResult> RunClientAsync(string configAbsolutePath, bool fresh = false,
@@ -77,11 +79,22 @@ public static class LauncherWorkflow
         byte[]? cached = File.Exists(cacheFile) ? LocalFiles.Bytes(cacheFile, SignedUpdateManifest.MaximumEnvelopeBytes) : null;
         Report(progress, UpdateOperationPhase.Verifying, "Verifying the exact signed release manifest");
         var found = await discovery.FetchReleaseAsync(index, trust, minimum, cached, cancellation).ConfigureAwait(false);
+        if (settings.ClientAssetLayoutPreset is { } layoutPreset)
+        {
+            ClientAssetLayout.ValidateManifest(found.Release.FullManifest, layoutPreset);
+            ClientAssetLayout.ValidateExistingLayout(root, layoutPreset);
+        }
         bool launchCandidateAvailable = found.Release.FullManifest.Manifest.Files.Any(file =>
             string.Equals(file.Path, settings.LaunchRelativePath, StringComparison.Ordinal));
         UpdateInstallResult? installation = null;
         if (!unchanged || repair)
             installation = await installer.InstallAsync(found.Release, options, cancellation).ConfigureAwait(false);
+        if (settings.ClientAssetLayoutPreset is { } preparedPreset)
+        {
+            Report(progress, UpdateOperationPhase.Checking, "Preparing fixed local DX8 shared-asset layout");
+            await ClientAssetLayout.PrepareAsync(found.Release.FullManifest, options, preparedPreset,
+                cancellation: cancellation).ConfigureAwait(false);
+        }
         if (launch) ClientConfiguration.ResolveLaunchWorkingDirectory(settings, root, requireExists: true);
         LocalFiles.AtomicWrite(cacheFile, found.FullEnvelope);
         int? processId = null;

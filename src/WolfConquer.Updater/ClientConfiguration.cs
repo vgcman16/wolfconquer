@@ -1,3 +1,4 @@
+using WolfConquer.Updates.ClientLayout;
 using WolfConquer.Updates.Manifest;
 
 namespace WolfConquer.Updater;
@@ -5,7 +6,7 @@ namespace WolfConquer.Updater;
 internal sealed record ClientConfiguration(int SchemaVersion, string ProductId, string Channel, string FeedUrl,
     string KeyId, string PublicKeySpkiPem, string InstallDirectory, string LaunchRelativePath,
     string[] LaunchArguments, string[] ProtectedExecutables, bool AllowLoopbackHttp = false,
-    string? LaunchWorkingDirectoryRelativePath = null)
+    string? LaunchWorkingDirectoryRelativePath = null, string? ClientAssetLayoutPreset = null)
 {
     internal static (ClientConfiguration Settings, string Root, string Cache) Load(string path, string? installRootOverride = null)
     {
@@ -25,6 +26,8 @@ internal sealed record ClientConfiguration(int SchemaVersion, string ProductId, 
         UpdatePathPolicy.ValidateRelativePath(settings.LaunchRelativePath);
         if (settings.LaunchWorkingDirectoryRelativePath is not null)
             UpdatePathPolicy.ValidateRelativePath(settings.LaunchWorkingDirectoryRelativePath);
+        ClientAssetLayout.ValidateConfiguration(settings.ClientAssetLayoutPreset, settings.LaunchRelativePath,
+            settings.LaunchWorkingDirectoryRelativePath);
         foreach (var executable in settings.ProtectedExecutables) UpdatePathPolicy.ValidateRelativePath(executable);
         if (!settings.ProtectedExecutables.Contains(settings.LaunchRelativePath, StringComparer.OrdinalIgnoreCase))
             throw new InvalidDataException("Launch executable must be in the protected process list.");
@@ -38,6 +41,7 @@ internal sealed record ClientConfiguration(int SchemaVersion, string ProductId, 
             throw new InvalidDataException("Payload cannot contain bootstrap cache.");
         LocalFiles.Check(root); LocalFiles.Check(cache);
         ResolveLaunchWorkingDirectory(settings, root, requireExists: false);
+        if (settings.ClientAssetLayoutPreset is { } preset) ClientAssetLayout.ValidateExistingLayout(root, preset);
         return (settings, root, cache);
     }
 
