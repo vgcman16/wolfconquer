@@ -1,5 +1,33 @@
 # Publication validation
 
+## Native Ninja profile scoring and complete metadata loading
+
+The complete Score/six component getters, Levels, ToString/Load and two-table
+NinjaFile.Load use the existing genuine Ninja, metadata, equipment and record
+owners. Raw levels are not normalized through AddItem; saved Score is recomputed
+on save and consumed but ignored on load, exactly as native.
+
+Private Debug and independent public Release each passed 1,137 focused cases,
+zero failures/skips: 32 new profile and 21 owned-file loader cases, plus 1,084
+retained (including 25 newly selected older Ninja declaration/query controls).
+Inclusive physical-ID bands, per-row element charges, uint wrapping, alternate
+slot fallback, full 20-field prefix/five-field item rows, aliases/duplicates,
+current culture and exact partial-fault publication are covered. No production
+repair or assertion weakening was needed.
+
+A separate fresh-process read-only check on .NET9.0.16 invoked the actual Load
+with both native tables initially null: all 315 sigil rows/12 fields (3,780 values)
+and ten immortal rows/13 fields (130 values) matched independent parsing. Both
+ASCII input hashes stayed unchanged, and configuration/cultures were restored.
+The native Score and UK5 share column11; immortal columns9..11 are ignored.
+External inputs and the private probe are not repository assets; this does not
+prove other legacy encodings or server startup.
+
+Rank, flag/point-message, item/skill/NPC mutation, startup publication and full
+SaveClient/login callers remain separate. No host, current-client acceptance,
+original save/database write, deployment, new full Windows CI result or revised
+parity estimate is claimed. Warnings remain.
+
 ## Complete native AnimaSkin profile/storage/send components
 
 The complete native AnimaSkin owner (state, constructor, equipped-skin getter,

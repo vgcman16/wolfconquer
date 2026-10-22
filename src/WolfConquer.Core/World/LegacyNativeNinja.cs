@@ -3,9 +3,10 @@ using System.Collections.Concurrent;
 
 namespace WolfConquer.Core.World;
 
-// Native Ninja mutable state, constructors, DBItem and both equipment queries only.
-// Score/Levels, Item.UPDATE and gameplay mutation/wire methods remain explicitly absent.
-internal class LegacyNativeNinja
+// Native Ninja state, constructors, DBItem, queries, scores, Levels and profile record.
+// Item.UPDATE and other gameplay mutation/wire/rank methods remain explicitly absent.
+// No DataCore, login/save caller or host adoption is installed.
+internal partial class LegacyNativeNinja
 {
     public enum ItemType : ulong
     {
