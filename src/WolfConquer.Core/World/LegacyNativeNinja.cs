@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 
 namespace WolfConquer.Core.World;
 
-// Native Ninja state/profile, scoring, flags/points, ranking and complete Loading graph.
-// Item.UPDATE/AddItem and SageMode remain absent; no receive handler is installed.
+// Complete native Ninja state/profile and method family, including its original-empty Item.UPDATE.
+// No MsgNinja receive handler, equipment recalculation or skill consumer is installed.
 // No DataCore, login/save caller or host adoption is installed.
 internal partial class LegacyNativeNinja
 {
@@ -77,7 +77,7 @@ internal partial class LegacyNativeNinja
         LightningMastery = 0x10uL
     }
 
-    public class Item
+    public partial class Item
     {
         public uint ItemID;
         public uint Level;

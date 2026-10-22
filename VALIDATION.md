@@ -1,5 +1,28 @@
 # Publication validation
 
+## Complete native Ninja owner method family
+
+The remaining Item.UPDATE, AddItem, GetSkill and SageMode methods and genuine
+Role.Core.Rate(int) are now ported. UPDATE is actually empty in the reference and
+is explicitly documented as such; it is not a replacement for equipment logic.
+AddItem retains its native level clamp, item send before dictionary publication
+and late rank update. GetSkill uses real current spell metadata and the shared
+Pool RNG; it does not reuse the unrelated attack RNG or a forced-result provider.
+
+Private Debug and independent public Release each passed 1,351 focused cases,
+zero failures/skips: 11 new item cases, 31 skill/shared-RNG cases, 19 SageMode
+cases and 1,290 retained. Actual queued bytes, overwrite aliases, mutation/fault
+prefixes, strict RNG draw order, timed flags, duplicate nonrenewal, full-width
+archive timers and view-fault ordering are covered. No production repair or
+assertion weakening was needed.
+
+SageMode retains the source's undisposed second recycled wrapper. Its real empty
+map and view-fault paths are covered; physical peer-player broadcast is not
+proven, and no fake MapObj adapter was introduced. These component proofs do not
+complete MsgNinja Info/receive dispatch, equipment recalculation, full startup/
+login/save callers, host birth or skill consumers. No deployment, current-client
+acceptance, new full Windows CI result or revised parity estimate is claimed.
+
 ## Genuine native Ninja ranking and complete loading components
 
 The complete native NinjaRank owner now includes physical entries/appearance,
@@ -25,8 +48,8 @@ the client's current MyNinja, and single-item messages omit UK while bulk includ
 it. These are preserved reference behaviors, not newly invented fixes.
 
 Full Server/startup, login/rebirth and receive/host callers remain absent.
-Remaining Ninja item mutations/Info handlers and equipment recalculation are
-separate. Owned fixture persistence is not SQL/original-save/restart proof. No
+Later complete Ninja owner proof is recorded above. Info handlers and equipment
+recalculation remain separate. Owned fixture persistence is not SQL/original-save/restart proof. No
 deployment, current-client acceptance, new full Windows CI result or revised
 parity estimate is claimed. CodeFactor warnings remain a separate backlog.
 
@@ -46,8 +69,8 @@ controls cover defaults, high flag, max points, all widths, mixed loading and
 null. Actual queues, take-before-mutation, late-send/early-metadata faults and
 disposal are checked. No production repair or assertion weakening was needed.
 
-Later rank/loading component proof is recorded above. Remaining item/skill/Info/
-Process, startup and full SaveClient/login callers remain separate. No host/
+Later complete Ninja owner and rank/loading component proof is recorded above.
+Remaining Info/Process, startup and full SaveClient/login callers remain separate. No host/
 current-client acceptance, original save/DB
 write, deployment, new full Windows CI result or revised parity estimate is
 claimed. Existing warnings and the CodeFactor backlog remain.
