@@ -1,5 +1,35 @@
 # Publication validation
 
+## Complete native HundredWeapons component graph
+
+The complete native HundredWeapons owner, physical weapon rows, metadata loader,
+HWRank and Opt/Info contracts/producers now use actual spell, bitmap, rank, clock
+and packet owners. All owner methods, ten rank buckets, fourteen-flag priority,
+twenty-one-column rank records, record loading and live metadata reads are kept.
+The conditional member-birth slot is explicit and unwired; receive handlers and
+full startup/login/save callers are not replaced with facades.
+
+Private Debug and independent public Release each passed 1,675 focused cases,
+zero failures/skips: 71 owner, 48 rank, 23 message and 77 held-serializer cases
+new, with 1,456 retained. Actual queue bytes, owned-file reloads, skill/rank fault
+prefixes, signed clock gates and all rate-table bounds are covered. The owned
+Framework/x86 probe was parent-read, rebuilt and run against the pinned serializer:
+68 payloads and nine expected non-Flags enum rejections, zero unexpected outcomes.
+
+The native Framework clear loop throws after its first successful removal,
+including the last entry. A bounded own-method compatibility bridge retains that
+state/failure order instead of silently clearing all entries under .NET9. General
+concurrent external dictionary mutation equivalence is not claimed.
+
+The first private run had 1,462 cascading registrar-setup failures: the new wire
+test class lacked the native serial collection. Correcting that assignment fixed
+the run without relaxing registrar or behavior assertions. Shared RNG is scoped
+and restored around real test Player birth. No further production repair was
+needed after the source-reviewed clear compatibility change.
+
+These are component proofs, not current-client acceptance, deployment, a new full
+Windows CI result or complete login/save integration. The parity estimate is unchanged.
+
 ## Genuine native Time32 clock and scheduling
 
 The complete Time32 type was recovered read-only from the actual preserved
