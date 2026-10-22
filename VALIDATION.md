@@ -1,5 +1,37 @@
 # Publication validation
 
+## Latest full Windows rejection on public 0a06f4ad
+
+Run 39864294474 failed on 0a06f4ade3e2b426a9dc2acdb699b821807253c1.
+Receipt 20261022T222228209Z-68a244b7 ended 2026-10-22T22:25:31.696509Z:
+restore/build passed; core 16,808 passed, one failed, 166 skipped (16,975 total);
+updates 258 passed, one failed. Later launcher/parser stages did not run.
+
+The Flag6 reviver test observed an XP-circle packet between expected HP updates.
+Source review identifies two independent runtime tick producers; deterministic
+test scheduling is under repair without filtering frames or weakening HP checks.
+The real journal-recovery test reached its final layout step, then the process
+guard correctly refused unavailable same-basename image attribution. Its fixed
+test executable name overlaps separately launched pipeline fixtures. Exact failed
+PID is not recorded; fixture-name isolation and real guard controls are pending.
+
+Original failed receipts remain preserved. Current source is NOT full-check green;
+focused native passes do not erase either failure or establish client/deployment proof.
+
+## Complete native NPC replay and level-storage prerequisites
+
+Both NPC replay codecs now use the complete native seven-field query, 619-name
+NPC identifier catalog and 16 NPC types. Byte-reader versus ushort-writer action
+asymmetry, ignored Stamp, native string boundaries and all aliases remain.
+Three plain Player level/class-history fields and the genuine two-argument RNG
+rate method are implemented; full Level/Class setters and attack dispatch are not.
+
+Private Debug and independent public Release each passed 2,006 focused cases,
+zero failures/skips: 25 new NPC replay and 21 field/RNG cases with 1,960 retained. Initialized
+owned buffers, actual shared RNG ordering (including the pre-fault draw), exact
+queue-free payloads and physical query layout are tested. No startup/host route,
+live leveling, inventory grant or native login/save adoption is established.
+
 ## Complete native dialogs and level-experience table loading
 
 Full native Dialog methods, NpcReply declarations and both codecs, static-message
