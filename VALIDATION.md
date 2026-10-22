@@ -1,5 +1,21 @@
 # Publication validation
 
+## Complete native gear-view and Air Power receiver bodies
+
+The complete private native receiver bodies now use genuine protobuf parsing,
+current pool/gear/powers, packet sends, spell storage and rank owners. Focused
+verification passed739 private Debug and653 public Release cases, zero failures/
+skips. Both include33 new receiver cases; retained inventories differ.
+
+Coverage includes requester-versus-target ownership and literal full frames,
+current physical pool/cache references, exact spell-learning order, threshold
+and integer-narrowing quirks, rank partial publication and bounded parser faults.
+Readonly player backing fields are seeded only in tests; no partial setter or
+production fallback was introduced. These are managed component checks, not
+OS-socket/client proof. No Packet attributes or host dispatcher were registered,
+and legacy source opcodes are not adopted as D13 authority. The full Windows
+run below predates these later bodies; it is not a full-suite result for them.
+
 ## Exact edeff87b Windows check
 
 [Windows run39823843806](https://github.com/vgcman16/wolfconquer/actions/runs/39823843806)

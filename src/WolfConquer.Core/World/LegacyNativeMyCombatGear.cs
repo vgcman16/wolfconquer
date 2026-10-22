@@ -6,6 +6,7 @@ namespace WolfConquer.Core.World;
 
 // Native user constructor, full GetEntry25..61, UpdateRank64..67 and both isOpen helpers.
 // Loading remains absent; client birth does not publish this owner.
+// Private source receiver bodies do not install Packet attributes or a host dispatcher.
 internal partial class LegacyNativeMyCombatGear : LegacyNativeCombatGear
 {
     public LegacyNativeGameClientRuntime user;
