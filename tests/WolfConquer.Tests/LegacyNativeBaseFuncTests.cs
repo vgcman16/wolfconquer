@@ -42,7 +42,7 @@ public sealed class LegacyNativeBaseFuncTests
         Assert.Equal(new[] { typeof(int), typeof(bool) }, method.GetParameters().Select(p => p.ParameterType));
         Assert.Equal(new[] { "nMax", "bRealRand" }, method.GetParameters().Select(p => p.Name));
         Assert.All(method.GetParameters(), p => Assert.False(p.IsOptional));
-        Assert.Equal(new[] { "RandGet", "rand", "srand" },
+        Assert.Equal(new[] { "ProficiencyLevelExperience", "RandGet", "rand", "srand" },
             typeof(LegacyNativeBaseFunc).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
                 .Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
     }

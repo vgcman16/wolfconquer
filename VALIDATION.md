@@ -1,5 +1,31 @@
 # Publication validation
 
+## Complete native proficiency behavior and system messages
+
+Every native Proficiency method now uses genuine gem/status fields, native
+threshold lookup and real primitive packet/message sends. Complete message
+fields, six constructors, required contract, serialization/deserialization and
+all four system-message branches are integrated without a host chat dispatcher.
+
+Private Debug and independent public Release each passed701 focused cases,
+zero failures/skips:84new/617retained. New coverage includes40 progression/
+codec/threshold,23 message behavior,10 contract/frame,8 gem/status and3 actual
+progression->binary save->fresh-owner reload cases. Eight independent
+Framework/x86 controls from the preserved pinned serializer match the modern
+native contract. The earlier33-case prerequisite run overlaps these results.
+
+Native uint/ushort/byte wrap, threshold narrowing, low/high-level scaling,
+previous-level jumps beyond20, cap/send order, stale stored thresholds versus
+recomputed wire values and full-width physical-ID rekey are retained. Gem state
+keeps the native thirteen-slot array and ninth-Tortoise gate. Message state keeps
+null-string omission, absent-slot retention, Count1/seven slots, live catalog,
+local ServerID0 and actual View-owner routing/fault/disposal order.
+
+This is component proof, including actual synthetic Windows file I/O, not full
+SaveClient, DataCore/host birth, live worker/socket transport, current-client
+acceptance, English-client completion or deployment. Warnings remain. No new
+full Windows CI run is claimed; the exact older run below remains historical.
+
 ## Native queued file, spell and proficiency persistence
 
 Complete native guild/union/clan member updates, race record, spouse operations,
@@ -24,7 +50,8 @@ the same loop bodies and fault order; successful paths close normally.
 
 This is not full SaveClient, login/deletion/queue-worker lifecycle, DataCore/host
 birth, SQL integration, restart recovery, current-client acceptance or deployment.
-Full inventory mutations and proficiency progression/send remain unfinished.
+Full inventory mutations remain unfinished. Later proficiency progression/send
+component proof is documented above; it does not install its production callers.
 Warnings remain, including unsupported native Thread.Abort. The last full
 Windows run below predates this batch; these are focused component checks only.
 

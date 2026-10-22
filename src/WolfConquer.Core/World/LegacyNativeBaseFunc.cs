@@ -2,8 +2,9 @@ using System.Runtime.InteropServices;
 
 namespace WolfConquer.Core.World;
 
-// Literal BaseFunc storage/import/RandGet projection. Other BaseFunc methods are not ported here.
-public static class LegacyNativeBaseFunc
+// Literal BaseFunc storage/import/RandGet; genuine proficiency lookup is in its partial.
+// Other BaseFunc methods are not ported here.
+public static partial class LegacyNativeBaseFunc
 {
     private static byte[] _SteedSpeed = new byte[13]
     {

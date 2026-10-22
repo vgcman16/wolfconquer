@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 
 namespace WolfConquer.Core.World;
 
-// Genuine native Proficiency field initializers, constructor and CheckProf. Native
-// Add/UpdSpell/CheckUpdate/SendAll are absent, not stubbed. There is no
+// Complete native Proficiency field initializers, constructor and methods.
+// Packet codecs and threshold lookup retain their genuine owners. There is no
 // DataCore, login, host or client-constructor caller for this owner.
 internal partial class LegacyNativeProficiencyStorage
 {
