@@ -1,5 +1,25 @@
 # Publication validation
 
+## Genuine native Time32 clock and scheduling
+
+The complete Time32 type was recovered read-only from the actual preserved
+GameServer project's referenced SystemExtensions dependency. Five modular files
+retain signed four-byte state, unchecked arithmetic, all add/all/scheduling
+methods, exact optional defaults, current-culture text, the reached empty Now
+prelude and original winmm struct-return clock. Unrelated uncalled dependency
+code is excluded; no original game assembly was invoked or mock clock inserted.
+
+Private Debug and independent public Release each passed 1,456 focused cases,
+zero failures/skips: 52 new clock/model/arithmetic cases and 1,404 retained.
+Independent real Windows OS tick brackets validate both the native struct-return
+P/Invoke and Now, plus default-zero-time scheduling paths, under .NET9. No
+production behavior repair or assertion weakening was needed. The native unused
+field remains present and its compiler warning remains visible, not suppressed.
+
+This closes a genuine dependency, not the full HundredWeapons graph, full
+login/save callers, host wiring, current-client acceptance, deployment or a new
+full Windows CI run. The low-confidence parity estimate remains unchanged.
+
 ## Native Ninja Info contracts and primitive codecs
 
 The complete native Info record, signed Flags values, byte printer, packet2394
