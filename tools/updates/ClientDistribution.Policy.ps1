@@ -100,10 +100,14 @@ function Read-CdPolicy([string]$Path, [string]$Source) {
     $publish = Resolve-CdAbsolute $p.publishRoot
     if ([IO.File]::Exists($publish)) { throw 'Publication root cannot name an existing file.' }
     if ((Test-CdWithin $Source $publish) -or (Test-CdWithin $publish $Source)) { throw 'Source and publication roots must not overlap.' }
-    foreach ($relative in ([string[]]$directories + [string[]]$files + [string[]]$excludes)) {
+    foreach ($relative in ([string[]]$directories + [string[]]$files)) {
         $actual = Assert-CdExactExistingPath $Source $relative
         if ($directories.Contains($relative) -and -not [IO.Directory]::Exists($actual)) { throw 'An asset directory is not a directory.' }
         if ($files.Contains($relative) -and -not [IO.File]::Exists($actual)) { throw 'An exact file is not a file.' }
+    }
+    foreach ($exclude in $excludes) {
+        $null = Assert-CdExactExcludedLeaf $Source $exclude
+        if ($directories.Contains($exclude)) { throw 'Asset-directory approval conflicts with an exact exclusion.' }
     }
     foreach ($file in $files) {
         foreach ($exclude in $excludes) {

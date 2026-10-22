@@ -90,6 +90,31 @@ function Assert-CdExactExistingPath([string]$Source, [string]$Relative) {
     return $current
 }
 
+function Assert-CdExactExcludedLeaf([string]$Source, [string]$Relative) {
+    # This exception is only for an explicitly excluded FINAL entry. Never use
+    # the leaf as a directory, follow its target, or read target metadata/data.
+    Assert-CdRelative $Relative
+    Assert-CdNoReparse $Source
+    $slash = $Relative.LastIndexOf('/')
+    $parent = if ($slash -lt 0) { $Source } else {
+        Assert-CdExactExistingPath $Source ($Relative.Substring(0,$slash))
+    }
+    $leaf = $Relative.Substring($slash + 1)
+    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $actual = $null
+    foreach ($child in @(Get-CdChildren $parent)) {
+        $name = [IO.Path]::GetFileName($child)
+        if (-not $names.Add($name)) { throw 'Excluded-leaf parent names contain a Windows case alias.' }
+        if ($name.Equals($leaf, [StringComparison]::Ordinal)) { $actual = $child }
+    }
+    if ($null -eq $actual) { throw 'An excluded leaf is missing or differs from its exact source spelling.' }
+    Assert-CdNoReparse $parent
+    $attributes = [IO.File]::GetAttributes($actual)
+    if ($attributes -band [IO.FileAttributes]::Device) { throw 'Device entries cannot be excluded as ordinary source leaves.' }
+    Assert-CdNoReparse $parent
+    return $actual
+}
+
 function Get-CdRisk([string]$Relative) {
     foreach ($segment in $Relative.Split('/')) {
         if ($segment -match '(?i)^(accounts?|profiles?|users?|userdata|user[-_]?data|logs?|cache|caches|screenshots?|screen[-_]?shots|temp|tmp|debug|backups?|crashdumps?|\.git|\.svn|\.hg|\.vs|obj|bin|\.wolfconquer-updates|\.wolfconquer-cache)($|[._-])') {

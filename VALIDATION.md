@@ -2,6 +2,16 @@
 
 ## Portable DX8 layout follow-up
 
+The metadata-only planner's explicit excluded-leaf follow-up passed nine baseline
+planner groups, seven new exclusion groups (zero skips on this PC), and ten
+staging groups on both private and sanitized public trees. Its real
+planner-to-stager test preserves outside target bytes
+under an exclusive lock and copies only the original two approved fixture files.
+Selected/unlisted links and linked roots/ancestors remain refusals; no generic
+stager or publisher policy was relaxed. File-symlink coverage uses already
+available Windows privilege; on other hosts the script reports an explicit skip
+instead of altering permissions. This is not approval of a real-client policy.
+
 The opt-in local fixed DX8 layout passed **40 focused Windows cases**, then the
 full updater suite passed **259/259** and the separate Windows launcher suite
 passed **49/49**, all with zero failures/skips. Root reviewed all new production

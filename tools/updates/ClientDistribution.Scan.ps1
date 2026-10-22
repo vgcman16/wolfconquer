@@ -1,14 +1,5 @@
 Set-StrictMode -Version Latest
 
-function Test-CdExcluded([object]$Policy, [string]$Relative) {
-    for ($candidate = $Relative; $candidate; ) {
-        if ($Policy.Excludes.Contains($candidate)) { return $true }
-        $slash = $candidate.LastIndexOf('/')
-        $candidate = if ($slash -lt 0) { '' } else { $candidate.Substring(0, $slash) }
-    }
-    return $false
-}
-
 function Test-CdPolicyBelow([object]$Policy, [string]$Relative) {
     foreach ($path in ([string[]]$Policy.Files + [string[]]$Policy.Excludes)) {
         if ($path.StartsWith($Relative + '/', [StringComparison]::OrdinalIgnoreCase)) { return $true }
@@ -19,15 +10,20 @@ function Test-CdPolicyBelow([object]$Policy, [string]$Relative) {
 function Visit-CdEntry([string]$Path, [string]$Relative, [bool]$ApprovedDirectory, [object]$Policy, [object]$State) {
     Assert-CdRelative $Relative
     if (-not $State.Seen.Add($Relative)) { throw 'Source paths contain a Windows case alias.' }
+    if ($Policy.Excludes.Contains($Relative)) {
+        # Exact exclusions stop at this entry, including a reparse leaf. Recheck
+        # its ordinary parent chain and literal name/attributes without a target query.
+        $actual = Assert-CdExactExcludedLeaf $State.Source $Relative
+        if (-not $actual.Equals($Path, [StringComparison]::Ordinal)) { throw 'Excluded scan entry differs from its exact source path.' }
+        $risk = Get-CdRisk $Relative
+        $State.Excluded.Add([ordered]@{ path = $Relative; reason = $(if ($risk) { 'explicit-exclusion-quarantined-name' } else { 'explicit-policy-exclusion' }) })
+        return
+    }
     Assert-CdNoReparse $Path
     $attributes = [IO.File]::GetAttributes($Path)
     if ($attributes -band ([IO.FileAttributes]::Device -bor [IO.FileAttributes]::ReparsePoint)) { throw 'Device and reparse paths cannot be distributed.' }
     $directory = [bool]($attributes -band [IO.FileAttributes]::Directory)
     $risk = Get-CdRisk $Relative
-    if (Test-CdExcluded $Policy $Relative) {
-        $State.Excluded.Add([ordered]@{ path = $Relative; reason = $(if ($risk) { 'explicit-exclusion-quarantined-name' } else { 'explicit-policy-exclusion' }) })
-        return # Never inspect a private/excluded directory's descendants or file contents.
-    }
     $approved = $ApprovedDirectory -or $Policy.Files.Contains($Relative) -or $Policy.Directories.Contains($Relative)
     $partial = -not $approved -and $directory -and (Test-CdPolicyBelow $Policy $Relative)
     if ($risk) {
@@ -52,6 +48,7 @@ function Visit-CdEntry([string]$Path, [string]$Relative, [bool]$ApprovedDirector
 
 function Get-CdScan([string]$Source, [object]$Policy) {
     $state = [pscustomobject]@{
+        Source = $Source
         Files = [Collections.Generic.SortedDictionary[string, long]]::new([StringComparer]::Ordinal)
         Seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
         Excluded = [Collections.Generic.List[object]]::new(); Quarantined = [Collections.Generic.List[object]]::new()
