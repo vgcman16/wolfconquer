@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-22**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `e9468537e9b962dd1a449a1881b28b28eb46f819` (short: `e9468537e9b9`).
+Source commit: `a73b06cd71b5fcd944a660260106ff922a4b3a61` (short: `a73b06cd71b5`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
