@@ -25,6 +25,16 @@ on.NET9.0.16 failed before SELECT against MariaDB12.2.2: first missing codepages
 then DBNull conversion during character-set loading after probe-only encoding
 registration. That is negative compatibility evidence, not successful SQL or
 proof for the public NuGet asset. No original database or deployment was used.
+After resolving explicit probe-only prerequisites, a later private held-provider
+probe passed real native reads of two synthetic account rows, NULL/no-row and
+disposal behavior, and missing-table error1146. It required CodePages registration,
+the actual PerformanceCounter9.0.16 runtime dependency (monitoring remains false),
+MariaDB's documented [NO_NULL_COLLATION_IDS](https://mariadb.com/docs/server/server-management/variables-and-modes/old_mode)
+and a Latin1 fixture. Exact database
+identity was checked through numeric server-side equality; the auxiliary string
+DATABASE() query still exposed a retained metadata/cleanup stall. This limited
+ASCII-fixture success does not prove general Unicode, public-package, host,
+full-player persistence or restart compatibility. All owned test servers stopped.
 Warnings remain; full persistence, worker lifecycle, host adoption and client
 acceptance still require separate work. The older full Windows run below does
 not certify this later batch.
