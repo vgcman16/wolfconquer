@@ -14,8 +14,8 @@ concurrency:
 
 jobs:
   render:
-    if: github.repository == 'vgcman16/wolfconquer' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    if: github.repository == 'vgcman16/wolfconquer' && github.ref == 'refs/heads/main' && github.actor == github.repository_owner
+    runs-on: [self-hosted, Windows, X64, wolfconquer-trusted]
     timeout-minutes: 10
     permissions:
       contents: write
@@ -24,33 +24,51 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Prepare isolated image renderer
-        shell: bash
-        run: |
-          python3 -m venv "$RUNNER_TEMP/parity-render"
-          "$RUNNER_TEMP/parity-render/bin/python" -m pip install --disable-pip-version-check -r tools/parity/requirements.txt
       - name: Test, render and verify the reviewed assessment
-        shell: bash
+        shell: pwsh
         env:
           SOURCE_COMMIT: ${{ github.sha }}
+          PARITY_PYTHON: ${{ vars.WOLFCONQUER_PARITY_PYTHON }}
+          PARITY_PYTHON_SHA256: ${{ vars.WOLFCONQUER_PARITY_PYTHON_SHA256 }}
         run: |
-          "$RUNNER_TEMP/parity-render/bin/python" -m unittest discover -s tools/parity/tests
-          "$RUNNER_TEMP/parity-render/bin/python" tools/parity/generate.py --root "$GITHUB_WORKSPACE" --commit "$SOURCE_COMMIT"
-          "$RUNNER_TEMP/parity-render/bin/python" tools/parity/generate.py --root "$GITHUB_WORKSPACE" --commit "$SOURCE_COMMIT" --check
+          $python = $env:PARITY_PYTHON
+          if (-not [IO.Path]::IsPathFullyQualified($python) -or $python.StartsWith('\\') -or -not (Test-Path -LiteralPath $python -PathType Leaf)) {
+            throw 'Configure an explicit local Python executable in the repository Actions variables.'
+          }
+          for ($path = $python; $path; $path = [IO.Path]::GetDirectoryName($path)) {
+            if ((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Linked renderer paths are refused.' }
+          }
+          if ($env:PARITY_PYTHON_SHA256 -cnotmatch '^[A-F0-9]{64}$' -or (Get-FileHash -LiteralPath $python -Algorithm SHA256).Hash -cne $env:PARITY_PYTHON_SHA256) {
+            throw 'The configured Python executable identity changed; remeasure it before accepting an upgrade.'
+          }
+          & $python -m unittest discover -s tools/parity/tests
+          if ($LASTEXITCODE -ne 0) { throw 'Parity renderer tests failed.' }
+          & $python tools/parity/generate.py --root $env:GITHUB_WORKSPACE --commit $env:SOURCE_COMMIT
+          if ($LASTEXITCODE -ne 0) { throw 'Parity generation failed.' }
+          & $python tools/parity/generate.py --root $env:GITHUB_WORKSPACE --commit $env:SOURCE_COMMIT --check
+          if ($LASTEXITCODE -ne 0) { throw 'Parity output verification failed.' }
       - name: Publish only generated tracker files
-        shell: bash
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: |
           git add -- docs/parity/progress.gif docs/parity/progress.png docs/parity/PROGRESS.md
-          if git diff --cached --quiet; then
-            echo "Tracker already matches the source assessment."
+          if ($LASTEXITCODE -ne 0) { throw 'Could not stage generated tracker files.' }
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Output 'Tracker already matches the source assessment.'
             exit 0
-          fi
-          if [ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$SOURCE_COMMIT" ]; then
-            echo "Main changed; a newer push owns the refresh. No force push."
+          }
+          if ($LASTEXITCODE -ne 1) { throw 'Could not inspect staged tracker changes.' }
+          $advertised = git ls-remote origin refs/heads/main
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect trusted main.' }
+          if ($advertised.Split("`t")[0] -cne $env:SOURCE_COMMIT) {
+            Write-Output 'Main changed; a newer push owns the refresh. No force push.'
             exit 0
-          fi
+          }
           git -c user.name=vgcman16 -c user.email=155417613+vgcman16@users.noreply.github.com commit -m "Refresh parity tracker [skip ci]"
-          git -c credential.helper= -c 'credential.helper=!f() { if [ "$1" = get ]; then printf "%s\n" "username=x-access-token" "password=$GH_TOKEN"; fi; }; f' push origin HEAD:refs/heads/main
+          if ($LASTEXITCODE -ne 0) { throw 'Could not commit generated tracker files.' }
+          $helper = '!f() { if [ "$1" = get ]; then printf "%s\n" "username=x-access-token" "password=$GH_TOKEN"; fi; }; f'
+          git -c credential.helper= -c ("credential.helper=" + $helper) push origin HEAD:refs/heads/main
+          if ($LASTEXITCODE -ne 0) { throw 'Generated tracker push failed; no force push or rewrite attempted.' }

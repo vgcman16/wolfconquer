@@ -13,7 +13,7 @@ WolfConquer is a C# implementation of server, packet, and data tooling for resea
 
 Windows-first [local development tools](docs/LOCAL-DEVELOPMENT.md) provide a
 sequential check command and read-only localhost dashboard. The game does not
-depend on GitHub to run. The workflow is manually requested on trusted `main` by
+depend on GitHub to run. The build/test workflow is manually requested on trusted `main` by
 the repository owner. Outside pull requests are never executed on the local PC.
 Badges report checks or static analysis, not full parity or production readiness.
 

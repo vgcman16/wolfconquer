@@ -49,7 +49,8 @@ the latest ledger review, not a fresh whole-source audit. Ordinary docs, tooling
 or test-count changes can leave the estimate unchanged.
 
 The **Parity tracker** GitHub workflow runs after pushes to this repository's
-`main` and can also be requested manually. It validates the ledger, runs renderer
+`main` by the repository owner and can also be requested manually by that owner.
+It validates the ledger, runs renderer
 tests and refreshes only the generated GIF, static PNG and Markdown ledger. It
 records the triggering source commit separately from the assessment dates. A
 generated-only follow-up commit is automatic, does not recursively re-trigger
@@ -60,10 +61,12 @@ The card is an ordinary animated GIF supported by
 The publication uses the repository token's documented
 [non-recursive push behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow).
 
-This documentation-only job uses a GitHub-hosted runner, not the Windows game PC.
-It cannot build, launch, deploy, log in to or restart the game. The existing
-Windows checks remain trusted-owner/manual only. No outside pull-request code is
-executed on the local PC.
+This documentation-only job uses the existing trusted Windows runner. It cannot
+build, launch, deploy, log in to or restart the game. Repository Actions variables
+select an explicitly measured local Python executable; its SHA256 must match.
+The pinned Pillow version is already installed, with no package installation in
+the job. The separate Windows build/test checks remain trusted-owner/manual only.
+No outside pull-request code is executed on the local PC.
 
 To reproduce locally with Python 3.12+:
 
