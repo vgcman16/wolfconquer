@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-22**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `a061d72208efee50e9f7607503d9a2f3eeaad18a` (short: `a061d72208ef`).
+Source commit: `e9468537e9b962dd1a449a1881b28b28eb46f819` (short: `e9468537e9b9`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -29,7 +29,7 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | Domain | Status | Implemented evidence | Remaining work |
 | --- | --- | --- | --- |
 | Transport, authentication and startup | partial | Packet, cipher, startup and replacement-service paths exist; a limited local gameplay milestone was demonstrated on an earlier build. | Complete native ownership and loader joins; verify the current published build and staged endpoint migration with the actual client. |
-| Shared player, items and persistence | partial | Concrete item records, container and equipment work, durable managed snapshots, pickup roundtrip work and bounded native load/save components exist. | Finish one shared native player/item graph, complete login-loader and save/fault ordering, production caller integration, SQL and restart recovery. |
+| Shared player, items and persistence | partial | Concrete item records, container and equipment work, durable managed snapshots, pickup roundtrip work and bounded native load/save components exist. Native item framing, lock/extra sends, usage codecs and queue prerequisites have focused component proof. | Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery. |
 | Combat, monsters and death | partial | Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof. | Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios. |
 | NPCs, shops, progression and housing | partial | Main dispatch, shops, forging, skill learning and several durable progression/reward paths exist. | Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle. |
 | Trade, social systems and events | partial | Trade admission, guild/clan projections and selected actions, timers, score panels and several event state machines exist. | Implement full item/money trade transactions, remaining guild/union actions, event brackets, rewards, claims, disconnects, reset and durable recovery. |
