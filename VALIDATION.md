@@ -1,5 +1,34 @@
 # Publication validation
 
+## Native exchange-shop profile and goods-table components
+
+The complete native shop owner and all nine methods, both 13/11-field goods-table
+loaders, three required message contracts and all five primitive codecs are
+implemented using genuine records, metadata, shared RNG and packet owners.
+
+Private Debug and independent public Release each passed 934 focused cases, zero
+failures/skips: 66 new and 868 retained. Retained selection includes 20 older RNG
+compatibility controls. New coverage comprises 40 storage/accounting/metadata/
+selection/open cases, 14 actual preserved-serializer controls, a full contract
+check, ten primitive codec cases and an explicit native constructor-slot check.
+Six initial decoder tests hit the unchanged native packet stack-depth guard in
+the test runner; moving only those tests to the established owned thread resolved
+them without changing assertions or production behavior.
+
+A separate fresh-process read-only probe on .NET 9.0.16 invoked both actual
+loaders against preserved ASCII inputs: all 1,810 goods rows / 23,530 field values
+and 63 extended rows / 693 values matched. Both file hashes were unchanged. The
+goods input has 15 columns; the native owner reads its first 13 and ignores the
+tail. External input files/probe are not public repository assets, and non-ASCII
+legacy encodings are not proven by this check.
+
+Cap-zero admission, uint overflow, physical key/ID drift, ordinary Dictionary.Add
+partial faults, unbounded native stock selection, the goods_rec_id168 loading
+gate and three-clock midnight-plus-60s arithmetic are retained. No buy/info
+receivers, wallet/inventory transaction, full SaveClient/login/worker/host birth,
+current-client acceptance or deployment is claimed. Warnings remain. These are
+focused components, not a new full Windows CI run or revised parity estimate.
+
 ## Complete native collection profile and outgoing message components
 
 Complete CollectionStorage fields/constructor/record Load/ToString and Load-send,

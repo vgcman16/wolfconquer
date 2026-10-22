@@ -12,7 +12,7 @@
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Concrete items, containers/equipment, managed snapshots and pickup roundtrips exist. Focused native proof covers transport/queues, member/map/spouse updates, spell/proficiency binary persistence, title/security records, EpicTrojan state/reset/save/load and collection storage/records/send, including real progression/profile save and fresh-owner reload. Full SaveClient and production callers remain unfinished.",
+      "implemented": "Concrete items, containers/equipment, managed snapshots and pickup roundtrips exist. Focused native proof covers transport/queues, member/map/spouse updates, spell/proficiency persistence, title/security/EpicTrojan records, collection storage/send and exchange-shop records/goods, including real progression/profile save and fresh-owner reload. Full SaveClient and production callers remain unfinished.",
       "remaining": "Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery."
     },
     {
