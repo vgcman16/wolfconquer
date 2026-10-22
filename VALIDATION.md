@@ -14,7 +14,8 @@ tree, not the private repository or a deployed game server.
 | Local development tools | 15 synthetic cases included in the full run |
 | Dashboard | HTTP/health/status passed; four explicitly selected service processes observed; POST 405 and unknown route 404; browser rendering inspected |
 
-The successful sequential run finished at `2026-10-22T11:26:15.0945758Z`:
+The latest successful sequential run, including the test-harness repairs described
+below, finished at `2026-10-22T11:55:08.9381842Z`:
 
 ```powershell
 pwsh -NoProfile -File ./tools/dev/Invoke-LocalCheck.ps1 -PowerShellPath <explicit-PS7-executable>
@@ -29,6 +30,20 @@ stale absent-method/provider-call assertions, and a scheduling-sensitive lock te
 The fixtures now supply real synthetic startup input and restore the prior cache;
 assertions match implemented methods; lock release observes genuine failed-attempt
 cleanup. Production retry limits and gameplay behavior were not weakened.
+
+A later CI repeat at `939dbf8a` failed two tests (15,082 passed, 166 skipped):
+another scheduling-sensitive snapshot contention check and a child process that
+printed the expected profile-rejection error but did not exit before its timeout.
+A local repeat after those fixes exposed the same timing pattern in the item-save
+test (15,083 passed, one failed, 166 skipped). These are recorded failures, not
+passing retries. The snapshot contention family now shares a small test helper
+that owns the real file lock, observes actual failed-attempt temporary-file
+cleanup, checks unchanged bytes while locked, then drains the writer after
+release. The scalar cleanup assertion also uses the real transaction prefix.
+Profile probes retain nonzero-exit, error-text, and no-listener assertions;
+Windows child launches inherit crash-report suppression while the testhost's
+previous error mode is immediately restored. There is no permanent OS setting
+change or kill-as-success path.
 
 The first build emitted 74 warnings; the subsequent incremental build emitted 73
 (unchanged Core warning not re-emitted). Warnings include NU1701 for legacy

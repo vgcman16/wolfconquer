@@ -18,27 +18,17 @@ public sealed class CharacterSnapshotScalarPersistenceConcurrencyTests : IDispos
         var path = WriteWindows1252Snapshot();
         var original = LoadSnapshot();
         var updated = original with { X = original.X + 1 };
-        var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        Task<(bool Succeeded, string Path, string Reason)> persistence;
-        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            persistence = Task.Run(() =>
+        var result = await SnapshotPersistenceContentionAssert.RetriesAsync(
+            path, File.ReadAllBytes(path), ".character-file-",
+            () =>
             {
-                started.SetResult(true);
                 var succeeded = CharacterSnapshotScalarPersistence.TryPersist(
                     _usersRoot,
                     updated,
                     out var persistedPath,
                     out var reason);
-                return (succeeded, persistedPath, reason);
+                return (Succeeded: succeeded, Path: persistedPath, Reason: reason);
             });
-
-            await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            await Task.Delay(50);
-        }
-
-        var result = await persistence.WaitAsync(TimeSpan.FromSeconds(5));
 
         Assert.True(result.Succeeded, result.Reason);
         Assert.Equal(path, result.Path);
@@ -173,7 +163,7 @@ public sealed class CharacterSnapshotScalarPersistenceConcurrencyTests : IDispos
     {
         Assert.Empty(Directory.EnumerateFiles(
             _usersRoot,
-            "*.character-scalar-*",
+            "*.character-file-*",
             SearchOption.TopDirectoryOnly));
     }
 

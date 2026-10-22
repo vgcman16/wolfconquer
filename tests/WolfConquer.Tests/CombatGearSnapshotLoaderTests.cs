@@ -241,23 +241,9 @@ public sealed class CombatGearSnapshotLoaderTests : IDisposable
         File.WriteAllText(path, originalText);
         var loader = new CombatGearSnapshotLoader(_root);
         var replacement = CreateSnapshot(masteryPoints: 99);
-        using var persistenceStarted = new ManualResetEventSlim();
-
-        Task persistence;
-        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            persistence = StartLongRunning(() =>
-            {
-                persistenceStarted.Set();
-                loader.SaveByCharacterUid(CharacterUid, replacement);
-                return true;
-            });
-            Assert.True(persistenceStarted.Wait(TimeSpan.FromSeconds(5)));
-            await Task.Delay(50);
-            Assert.False(persistence.IsCompleted);
-        }
-
-        await persistence.WaitAsync(TimeSpan.FromSeconds(5));
+        await SnapshotPersistenceContentionAssert.RetriesAsync(
+            path, File.ReadAllBytes(path), ".combat-gear-file-",
+            () => loader.SaveByCharacterUid(CharacterUid, replacement));
         Assert.Equal(CombatGearSnapshotLoader.ToLegacyText(replacement), File.ReadAllText(path));
         AssertNoTransactionArtifacts();
     }

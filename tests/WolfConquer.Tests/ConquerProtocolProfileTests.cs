@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Net;
+using System.Runtime.InteropServices;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.Packets;
 using WolfConquer.Core.Runtime;
@@ -8,6 +9,14 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
+// The Windows error mode is process-wide during the synchronous child-start scope.
+// Do not let another test's child launch inherit that temporary mode.
+[CollectionDefinition("ProtocolProfileChildProcess", DisableParallelization = true)]
+public sealed class ProtocolProfileChildProcessCollection
+{
+}
+
+[Collection("ProtocolProfileChildProcess")]
 public sealed class ConquerProtocolProfileTests
 {
     private static readonly TimeSpan ProcessTimeout = TimeSpan.FromSeconds(30);
@@ -193,7 +202,7 @@ public sealed class ConquerProtocolProfileTests
             process.StartInfo.ArgumentList.Add("0");
         }
 
-        Assert.True(process.Start(), $"Could not start {projectName}.");
+        Assert.True(StartServerProcess(process), $"Could not start {projectName}.");
         var outputTask = process.StandardOutput.ReadToEndAsync();
         var errorTask = process.StandardError.ReadToEndAsync();
         using var timeout = new CancellationTokenSource(ProcessTimeout);
@@ -212,6 +221,32 @@ public sealed class ConquerProtocolProfileTests
 
         return new ProcessResult(process.ExitCode, await outputTask, await errorTask);
     }
+
+    private static bool StartServerProcess(Process process)
+    {
+        if (!OperatingSystem.IsWindows()) return process.Start();
+
+        // Expected unhandled profile errors can otherwise enter unattended Windows
+        // crash reporting after stderr is emitted. The child inherits reporting suppression;
+        // the testhost mode is changed only for this launch, not a permanent OS setting.
+        const uint SemNoGpFaultErrorBox = 0x0002;
+        uint previousMode = GetErrorMode();
+        try
+        {
+            SetErrorMode(previousMode | SemNoGpFaultErrorBox);
+            return process.Start();
+        }
+        finally
+        {
+            SetErrorMode(previousMode);
+        }
+    }
+
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    private static extern uint GetErrorMode();
+
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    private static extern uint SetErrorMode(uint mode);
 
     private static string FindRepositoryRoot()
     {

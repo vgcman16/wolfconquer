@@ -147,23 +147,9 @@ public sealed class PlayerSpellSnapshotLoaderTests : IDisposable
         [
             Entry(10311, level: 3, experience: 75, previousLevel: 1, soulLevel: 4, useSpellSoul: 2),
         ]);
-        using var persistenceStarted = new ManualResetEventSlim();
-
-        Task persistence;
-        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            persistence = StartLongRunning(() =>
-            {
-                persistenceStarted.Set();
-                loader.SaveByCharacterUid(CharacterUid, replacement);
-                return true;
-            });
-            Assert.True(persistenceStarted.Wait(TimeSpan.FromSeconds(5)));
-            await Task.Delay(50);
-            Assert.False(persistence.IsCompleted);
-        }
-
-        await persistence.WaitAsync(TimeSpan.FromSeconds(5));
+        await SnapshotPersistenceContentionAssert.RetriesAsync(
+            path, original, ".player-spell-file-",
+            () => loader.SaveByCharacterUid(CharacterUid, replacement));
         Assert.Equal(PlayerSpellSnapshotLoader.ToLegacyBytes(replacement), File.ReadAllBytes(path));
         AssertNoTransactionArtifacts();
     }

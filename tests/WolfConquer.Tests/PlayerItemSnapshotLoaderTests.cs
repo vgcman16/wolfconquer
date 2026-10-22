@@ -243,23 +243,9 @@ public sealed class PlayerItemSnapshotLoaderTests : IDisposable
         var loader = new PlayerItemSnapshotLoader(_root);
         var replacement = PlayerItemSnapshotLoader.Parse(
             BuildPlayerItems([DbItem(uid: 1002, itemId: 1088001, position: 0, stackSize: 5)], []));
-        using var persistenceStarted = new ManualResetEventSlim();
-
-        Task persistence;
-        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            persistence = StartLongRunning(() =>
-            {
-                persistenceStarted.Set();
-                loader.SaveByCharacterUid(CharacterUid, replacement);
-                return true;
-            });
-            Assert.True(persistenceStarted.Wait(TimeSpan.FromSeconds(5)));
-            await Task.Delay(50);
-            Assert.False(persistence.IsCompleted);
-        }
-
-        await persistence.WaitAsync(TimeSpan.FromSeconds(5));
+        await SnapshotPersistenceContentionAssert.RetriesAsync(
+            path, original, ".player-item-file-",
+            () => loader.SaveByCharacterUid(CharacterUid, replacement));
         Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(replacement), File.ReadAllBytes(path));
         AssertNoTransactionArtifacts();
     }

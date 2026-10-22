@@ -141,23 +141,9 @@ public sealed class PlayerProficiencySnapshotLoaderTests : IDisposable
         [
             Entry(601, level: 9, previousLevel: 3, experience: 777, neededExperience: 888),
         ]);
-        using var persistenceStarted = new ManualResetEventSlim();
-
-        Task persistence;
-        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            persistence = StartLongRunning(() =>
-            {
-                persistenceStarted.Set();
-                loader.SaveByCharacterUid(CharacterUid, replacement);
-                return true;
-            });
-            Assert.True(persistenceStarted.Wait(TimeSpan.FromSeconds(5)));
-            await Task.Delay(50);
-            Assert.False(persistence.IsCompleted);
-        }
-
-        await persistence.WaitAsync(TimeSpan.FromSeconds(5));
+        await SnapshotPersistenceContentionAssert.RetriesAsync(
+            path, original, ".player-proficiency-file-",
+            () => loader.SaveByCharacterUid(CharacterUid, replacement));
         Assert.Equal(PlayerProficiencySnapshotLoader.ToLegacyBytes(replacement), File.ReadAllBytes(path));
         AssertNoTransactionArtifacts();
     }
