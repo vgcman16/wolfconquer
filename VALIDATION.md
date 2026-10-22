@@ -1,5 +1,37 @@
 # Publication validation
 
+## Genuine BinaryFile and complete mail components
+
+Complete native BinaryFile, mail save/load, physical records/conversions,
+contracts, primitive codecs, list paging, notifications and the unwired list
+receiver/member slot now use genuine file, dictionary, packet and queue owners.
+Mail claim/reward handlers and full LoadCharacter/SaveClient adoption remain absent.
+
+Private Debug and independent public Release each passed 1,768 focused cases,
+zero failures/skips: 39 BinaryFile and 54 mail cases new, with 1,675 retained.
+Actual owned-file save/reload, live physical rows, reused-record tails, expiry,
+duplicate overwrite/no-clear, list ordering/extra-empty-page behavior, byte-exact
+queues and mutation/fault prefixes are covered.
+
+The literal file wrapper first failed four advancement cases: repeated .NET9
+SafeFileHandle access resets the kernel position, unlike the source's Framework
+runtime. An owned source-shaped comparison reproduced rereads and overwritten
+writes. One lazy genuine handle per Open, shared by Position/Read/Write, repairs
+this while retaining negative/product/lifetime faults. Eight added lifetime cases
+exposed one incorrect private-cache test expectation after disposed access; it
+now asserts the actual closed handle, keeping all public disposed-fault checks.
+Native BinaryFile has no cache field; no native behavior assertion was relaxed.
+
+Owned Framework/x86 and .NET9/AnyCPU record probes agree on the 744-byte layout,
+all offsets and finite string/tail/timer cases on this machine's ACP1252. Different
+Encoding.Default values are not substituted for the actual native ANSI decoding.
+Unsafe overlength/unterminated buffers, other code pages and throwing opened-file
+cleanup paths remain unproven. No production test hooks or cleanup facade added.
+
+No original game files, saves, assemblies, routes or services were executed or
+changed. These component proofs do not establish gameplay, client acceptance,
+deployment, full login/save integration or a new full Windows CI result.
+
 ## Complete native HundredWeapons component graph
 
 The complete native HundredWeapons owner, physical weapon rows, metadata loader,
