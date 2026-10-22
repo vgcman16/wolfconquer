@@ -1,5 +1,26 @@
 # Publication validation
 
+## Complete native Ninja flags, points and user messages
+
+All seven flag/mastery/point methods, the genuine 21-required-field user contract,
+whole Create producer and native2395 encoder are implemented on the existing
+Ninja, score, packet and recipient owners. No native user decoder exists, so none
+is invented. Composite-mask any-overlap behavior, zero-mask sends, low32 mastery
+narrowing, uint point wrap, UID0 notifications and supplied-UID loading remain
+unchanged from source.
+
+Private Debug and independent public Release each passed 1,169 focused cases,
+zero failures/skips: 23 new mutation/producer cases, nine contract/primitive
+controls and 1,137 retained. Eight source-shaped Framework/x86 held-serializer
+controls cover defaults, high flag, max points, all widths, mixed loading and
+null. Actual queues, take-before-mutation, late-send/early-metadata faults and
+disposal are checked. No production repair or assertion weakening was needed.
+
+Rank, full loading, item/skill/Info/Process, startup and full SaveClient/login
+callers remain separate. No host/current-client acceptance, original save/DB
+write, deployment, new full Windows CI result or revised parity estimate is
+claimed. Existing warnings and the CodeFactor backlog remain.
+
 ## Native Ninja profile scoring and complete metadata loading
 
 The complete Score/six component getters, Levels, ToString/Load and two-table
@@ -23,7 +44,8 @@ The native Score and UK5 share column11; immortal columns9..11 are ignored.
 External inputs and the private probe are not repository assets; this does not
 prove other legacy encodings or server startup.
 
-Rank, flag/point-message, item/skill/NPC mutation, startup publication and full
+Later flag/point-message proof is recorded above. Rank, item/skill/NPC mutation,
+startup publication and full
 SaveClient/login callers remain separate. No host, current-client acceptance,
 original save/database write, deployment, new full Windows CI result or revised
 parity estimate is claimed. Warnings remain.
