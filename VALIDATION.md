@@ -1,5 +1,35 @@
 # Publication validation
 
+## Genuine native Ninja ranking and complete loading components
+
+The complete native NinjaRank owner now includes physical entries/appearance,
+19-flag priority, conversion, actual safe-dictionary catalog, sorting/cap/query/
+removal and genuine 21-column Load/Save. The full native rank-display contract
+and both2054 primitive codecs are present. Ninja UpdateRank, Alternate, GetLevel
+and Loading use real ranks, metadata, spell storage, Player NiniaP0, user/item
+producers and packet owners; both item producers and2393 codecs are complete.
+
+Private Debug and independent public Release each passed 1,290 focused cases,
+zero failures/skips: 51 new ranking/record/display cases, 52 loading/spell/item
+cases, 18 complete wire/contract cases and 1,169 retained. Real owned-file save/
+reload, cached-versus-live ranks, exact field widths, full Loading queue order,
+badge thresholds and partial mutation/disposal faults are covered. Sixteen
+source-shaped Framework/x86 held-serializer controls include Unicode, null rows,
+null strings and unknown signed Flags. No production repair or assertion weakening
+was needed.
+
+Native quirks remain deliberate: Wind/Lightning require >1000 while three other
+elements use >=1000; Wind's copied row retains Overall type. Low-score Ninjas
+retain stale rows, the safe-dictionary cached array affects Save, GetLevel reads
+the client's current MyNinja, and single-item messages omit UK while bulk includes
+it. These are preserved reference behaviors, not newly invented fixes.
+
+Full Server/startup, login/rebirth and receive/host callers remain absent.
+Remaining Ninja item mutations/Info handlers and equipment recalculation are
+separate. Owned fixture persistence is not SQL/original-save/restart proof. No
+deployment, current-client acceptance, new full Windows CI result or revised
+parity estimate is claimed. CodeFactor warnings remain a separate backlog.
+
 ## Complete native Ninja flags, points and user messages
 
 All seven flag/mastery/point methods, the genuine 21-required-field user contract,
@@ -16,8 +46,9 @@ controls cover defaults, high flag, max points, all widths, mixed loading and
 null. Actual queues, take-before-mutation, late-send/early-metadata faults and
 disposal are checked. No production repair or assertion weakening was needed.
 
-Rank, full loading, item/skill/Info/Process, startup and full SaveClient/login
-callers remain separate. No host/current-client acceptance, original save/DB
+Later rank/loading component proof is recorded above. Remaining item/skill/Info/
+Process, startup and full SaveClient/login callers remain separate. No host/
+current-client acceptance, original save/DB
 write, deployment, new full Windows CI result or revised parity estimate is
 claimed. Existing warnings and the CodeFactor backlog remain.
 
@@ -44,8 +75,8 @@ The native Score and UK5 share column11; immortal columns9..11 are ignored.
 External inputs and the private probe are not repository assets; this does not
 prove other legacy encodings or server startup.
 
-Later flag/point-message proof is recorded above. Rank, item/skill/NPC mutation,
-startup publication and full
+Later flag/point-message and rank/loading component proof is recorded above.
+Remaining item/skill/NPC mutation, startup publication and full
 SaveClient/login callers remain separate. No host, current-client acceptance,
 original save/database write, deployment, new full Windows CI result or revised
 parity estimate is claimed. Warnings remain.

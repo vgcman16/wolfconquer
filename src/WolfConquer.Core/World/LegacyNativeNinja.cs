@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 
 namespace WolfConquer.Core.World;
 
-// Native Ninja state, constructors, DBItem, queries, scores/Levels/profile and flags/points.
-// Item.UPDATE, full loading/item/skill/ranking methods remain explicitly absent.
+// Native Ninja state/profile, scoring, flags/points, ranking and complete Loading graph.
+// Item.UPDATE/AddItem and SageMode remain absent; no receive handler is installed.
 // No DataCore, login/save caller or host adoption is installed.
 internal partial class LegacyNativeNinja
 {
