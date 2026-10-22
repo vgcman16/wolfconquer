@@ -1,5 +1,23 @@
 # Publication validation
 
+## Exact edeff87b Windows check
+
+[Windows run39823843806](https://github.com/vgcman16/wolfconquer/actions/runs/39823843806)
+completed successfully on exactedeff87bd37439ea5f7c716ba43709f22c58fa56.
+All eight sequential stages passed; the local receipt finished at
+2026-10-22T17:38:02Z. Release build:81 warnings, zero errors. Results:
+
+- Server/tool tests:15,287 passed, zero failed,166 explicitly skipped external-fixture cases.
+- Updater tests:259 passed, zero failed/skipped.
+- Separate Windows launcher tests:49 passed, zero failed/skipped.
+- Status and updater-receipt parser checks passed; they use synthetic fixtures,
+  not live public-feed or service availability probes.
+
+This exact run includes the real gear registrar, object-packet binding and native
+protobuf packet methods documented below. It does not deploy the game, prove
+fresh client login, full native parity, SQL/full-player persistence or production
+readiness. Warnings and explicit fixture omissions remain visible.
+
 ## Native packet protobuf reads and writes
 
 All three native Packet protobuf methods now use the pinned serializer directly.
