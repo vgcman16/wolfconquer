@@ -77,7 +77,7 @@
                 <StackPanel Visibility="{Binding IsClientTab, Converter={StaticResource BoolVisibility}}">
                   <TextBlock Text="CONFIGURATION FILE" Style="{StaticResource FieldLabel}" />
                   <Grid Margin="0,0,0,7"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="84" /></Grid.ColumnDefinitions>
-                    <TextBox Text="{Binding ConfigurationPath, UpdateSourceTrigger=PropertyChanged}" ToolTip="Choose your local updater JSON configuration. No credentials are collected here." />
+                    <TextBox Text="{Binding ConfigurationPath, UpdateSourceTrigger=PropertyChanged}" LostKeyboardFocus="Configuration_LostKeyboardFocus" ToolTip="Choose your local updater JSON configuration. No credentials are collected here." />
                     <Button Grid.Column="1" Content="Browse…" Style="{StaticResource ActionButton}" Padding="8,4" Margin="7,0,0,0" Click="BrowseConfiguration_Click" />
                   </Grid>
                 </StackPanel>
@@ -88,6 +88,8 @@
                     <Button Grid.Column="1" Content="Browse…" Style="{StaticResource ActionButton}" Padding="8,4" Margin="7,0,0,0" Click="BrowseClient_Click" />
                   </Grid>
                   <CheckBox IsChecked="{Binding AllowFreshInstall}" Margin="0,8,0,0" Content="Fresh client download · requires an empty/updater-only target folder" />
+                  <TextBlock Text="{Binding LaunchWorkingDirectoryText, Mode=OneWay}" FontSize="10" Foreground="#84AD94"
+                             TextWrapping="Wrap" Margin="0,7,0,0" ToolTip="Read-only local configuration. Relative directories are resolved inside the selected client folder at launch." />
                 </StackPanel>
                 <StackPanel Visibility="{Binding IsSourceTab, Converter={StaticResource BoolVisibility}}">
                   <TextBlock Text="CLEAN SOURCE CHECKOUT · NOT YOUR CLIENT FOLDER" Style="{StaticResource FieldLabel}" />

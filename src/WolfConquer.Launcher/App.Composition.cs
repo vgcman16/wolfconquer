@@ -28,7 +28,9 @@ public partial class App
             if (options.TryGetValue("--config", out var config))
             {
                 model.ConfigurationPath = config;
-                model.ClientRoot = LauncherWorkflow.ReadClientSettings(config).InstallDirectory;
+                var settings = LauncherWorkflow.ReadClientSettings(config);
+                model.ClientRoot = settings.InstallDirectory;
+                model.DisplayClientSettings(settings);
             }
             if (options.TryGetValue("--client-root", out var client)) model.ClientRoot = client;
             if (options.TryGetValue("--source-root", out var source))

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 
@@ -38,10 +39,18 @@ public partial class MainWindow : Window
         try
         {
             var dialog = new OpenFileDialog { Title = "Choose local updater configuration", Filter = "JSON configuration (*.json)|*.json", CheckFileExists = true };
-            if (dialog.ShowDialog(this) == true && Local(dialog.FileName)) ViewModel.ConfigurationPath = dialog.FileName;
+            if (dialog.ShowDialog(this) == true && Local(dialog.FileName))
+            {
+                ViewModel.ConfigurationPath = dialog.FileName;
+                ViewModel.RefreshClientSettingsDisplay();
+            }
         }
         catch (Exception error) when (error is IOException or InvalidOperationException or System.ComponentModel.Win32Exception)
         { ViewModel.ReportShellError("The local configuration picker could not be opened."); }
+    }
+    private void Configuration_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (ViewModel.CanEditPaths) ViewModel.RefreshClientSettingsDisplay();
     }
     private void BrowseClient_Click(object sender, RoutedEventArgs e) => BrowseFolder(false);
     private void BrowseSource_Click(object sender, RoutedEventArgs e) => BrowseFolder(true);

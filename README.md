@@ -3,6 +3,12 @@
 [![Windows local checks](https://github.com/vgcman16/wolfconquer/actions/workflows/windows-local.yml/badge.svg?branch=main)](https://github.com/vgcman16/wolfconquer/actions/workflows/windows-local.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/vgcman16/wolfconquer/badge)](https://www.codefactor.io/repository/github/vgcman16/wolfconquer)
 
+[![WolfConquer parity planning tracker](docs/parity/progress.gif)](docs/PARITY.md)
+
+The tracker shows a dated, low-confidence planning estimate, not measured
+coverage or full-client completion.
+[Progress, remaining systems and evidence limits](docs/PARITY.md).
+
 WolfConquer is a C# implementation of server, packet, and data tooling for researching Conquer-compatible protocols. This repository contains a sanitized source snapshot, with a new Git history.
 
 Windows-first [local development tools](docs/LOCAL-DEVELOPMENT.md) provide a

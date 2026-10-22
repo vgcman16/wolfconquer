@@ -50,7 +50,9 @@ public sealed partial class LauncherViewModel
     {
         value ??= "";
         if (IsBusy || field == value) return;
-        field = value; Changed(name); if (!IsVisualPreview) ResetInputStatus();
+        field = value; Changed(name);
+        if (name == nameof(ConfigurationPath)) InvalidateClientSettingsDisplay();
+        if (!IsVisualPreview) ResetInputStatus();
     }
     private void ResetInputStatus()
     {

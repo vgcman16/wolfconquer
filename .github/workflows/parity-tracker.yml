@@ -1,0 +1,56 @@
+name: Parity tracker
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wolfconquer-parity-tracker
+  cancel-in-progress: true
+
+jobs:
+  render:
+    if: github.repository == 'vgcman16/wolfconquer' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the triggering main commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Prepare isolated image renderer
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/parity-render"
+          "$RUNNER_TEMP/parity-render/bin/python" -m pip install --disable-pip-version-check -r tools/parity/requirements.txt
+      - name: Test, render and verify the reviewed assessment
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          "$RUNNER_TEMP/parity-render/bin/python" -m unittest discover -s tools/parity/tests
+          "$RUNNER_TEMP/parity-render/bin/python" tools/parity/generate.py --root "$GITHUB_WORKSPACE" --commit "$SOURCE_COMMIT"
+          "$RUNNER_TEMP/parity-render/bin/python" tools/parity/generate.py --root "$GITHUB_WORKSPACE" --commit "$SOURCE_COMMIT" --check
+      - name: Publish only generated tracker files
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          git add -- docs/parity/progress.gif docs/parity/progress.png docs/parity/PROGRESS.md
+          if git diff --cached --quiet; then
+            echo "Tracker already matches the source assessment."
+            exit 0
+          fi
+          if [ "$(git ls-remote origin refs/heads/main | cut -f1)" != "$SOURCE_COMMIT" ]; then
+            echo "Main changed; a newer push owns the refresh. No force push."
+            exit 0
+          fi
+          git -c user.name=vgcman16 -c user.email=155417613+vgcman16@users.noreply.github.com commit -m "Refresh parity tracker [skip ci]"
+          git -c credential.helper= -c 'credential.helper=!f() { if [ "$1" = get ]; then printf "%s\n" "username=x-access-token" "password=$GH_TOKEN"; fi; }; f' push origin HEAD:refs/heads/main

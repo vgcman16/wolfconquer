@@ -1,5 +1,34 @@
 # Publication validation
 
+## Follow-up: exact GitHub check and offline staging
+
+Published commit `03d9e1e1cd0c7b8631fdeab0e5430a7467a32f03` passed
+[Windows local checks run 39797202093](https://github.com/vgcman16/wolfconquer/actions/runs/39797202093).
+Its actual eight-stage receipt finished at `2026-10-22T14:40:35.1647385Z`:
+15,089 server/tool tests passed with 166 skips, 219 updater tests passed, and
+43 separate launcher tests passed. This is exact-commit CI, not deployment.
+
+After that commit, the display-only working-directory update passed the full
+launcher presentation suite: **49 passed, zero failed/skipped** on both local
+private and sanitized public trees. The application's own XAML preview was
+rendered and inspected locally, with no game or desktop input.
+
+The exact-list offline staging tool passed **ten grouped synthetic cases** on
+both trees. They exercise copied bytes, rebased plans, ordinary path containment,
+actual junction/file-symbolic-link refusal and a real second-file writer conflict
+that leaves explicit partial staging data with no publisher plan. No real client
+was copied or published by these tests. These focused follow-up results do not
+claim a new full solution run for later changes.
+
+The parity renderer passed **17 tests, zero failures/skips** locally. Actual
+outputs passed deterministic byte comparison: a 24-frame, 1.92-second GIF
+(62,548 bytes for the initial status), static PNG and full generated Markdown.
+The PNG was visually inspected. Tests verify the fixed fill across every frame,
+matching assessment metadata, strict schema/date/range parsing, read-only check
+behavior and actual input/output link refusal. The tests validate presentation
+and safety behavior, not the subjective 55% planning estimate. GitHub automatic
+refresh still requires its own successful run after this source is published.
+
 ## 2026-10-22 launcher and updater intake
 
 The sanitized public working tree passed the full sequential Windows local check

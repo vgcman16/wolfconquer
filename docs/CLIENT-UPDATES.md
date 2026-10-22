@@ -69,6 +69,21 @@ dotnet C:\WolfConquerTools\WolfConquer.Updater.dll source --root C:\WolfConquerS
 
 The default trusted origin is `https://github.com/vgcman16/wolfconquer.git`, branch `main`. The operator explicitly starts the watcher; it is not installed silently. It fetches the trusted advertised commit and fast-forwards only a matching clean checkout. Local edits, untracked files, hidden index flags, local commits/divergence, submodules, hooks/filters/URL rewrites and unfinished Git operations are refused or preserved. It never resets, stashes, builds, deploys or restarts a server. Concurrent external edits/Git operations still require operator coordination.
 
+## Offline preparation tools
+
+The [explicit-file planner](../tools/updates/CLIENT-DISTRIBUTION-PLAN.md) inventories
+reviewed names and lengths without opening client contents. Its successful plan
+can feed [offline exact-list staging](../tools/updates/CLIENT-DISTRIBUTION-STAGE.md),
+which copies current approved bytes to a new ordinary directory and verifies the
+copies before writing a rebased plan. Neither step publishes or approves hidden
+file contents or redistribution rights. A failed stage is retained for inspection;
+the original client is never adopted as an installation target.
+
+`tools/updates/New-LauncherBundle.ps1` separately packages an explicit existing
+launcher publish directory into a new ZIP with exactly the nine required runtime
+files. Unknown extras/configuration/keys are refused. It does not build or invoke
+the launcher, include game assets, or sign/publish the ZIP.
+
 ## Operator publishing and hosting
 
 Use a new dedicated signing-key directory outside Git, the curated source and the served directory:

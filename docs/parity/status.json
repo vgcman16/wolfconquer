@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "scope": "Strict legacy-server parity (project planning)",
+  "reviewedAt": "2026-10-22",
+  "estimate": { "percent": 55, "low": 40, "high": 70, "confidence": "low", "asOf": "2026-10-19" },
+  "sourceAudit": { "date": "2026-10-19", "files": 784, "lines": 260144, "targetComparison": "representative" },
+  "domains": [
+    {
+      "id": "transport", "title": "Transport, authentication and startup", "status": "partial",
+      "implemented": "Packet, cipher, startup and replacement-service paths exist; a limited local gameplay milestone was demonstrated on an earlier build.",
+      "remaining": "Complete native ownership and loader joins; verify the current published build and staged endpoint migration with the actual client."
+    },
+    {
+      "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
+      "implemented": "Concrete item records, container and equipment work, durable managed snapshots, pickup roundtrip work and bounded native load/save components exist.",
+      "remaining": "Finish one shared native player/item graph, complete login-loader and save/fault ordering, production caller integration, SQL and restart recovery."
+    },
+    {
+      "id": "combat", "title": "Combat, monsters and death", "status": "partial",
+      "implemented": "Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof.",
+      "remaining": "Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios."
+    },
+    {
+      "id": "progression", "title": "NPCs, shops, progression and housing", "status": "partial",
+      "implemented": "Main dispatch, shops, forging, skill learning and several durable progression/reward paths exist.",
+      "remaining": "Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle."
+    },
+    {
+      "id": "social", "title": "Trade, social systems and events", "status": "partial",
+      "implemented": "Trade admission, guild/clan projections and selected actions, timers, score panels and several event state machines exist.",
+      "remaining": "Implement full item/money trade transactions, remaining guild/union actions, event brackets, rewards, claims, disconnects, reset and durable recovery."
+    },
+    {
+      "id": "edge-systems", "title": "Cross-server and casino workflows", "status": "partial",
+      "implemented": "Group/travel metadata, startup packets, poker data and visibility surfaces exist.",
+      "remaining": "Complete genuine transfer/return/session/economy ownership and failure handling; verify table rounds, betting, pot and settlement."
+    }
+  ],
+  "milestones": [
+    {
+      "id": "live-client", "title": "Limited local live-client milestone", "status": "verified",
+      "detail": "Login, walking, one-item drop/pickup and saving were demonstrated on an earlier isolated local build. This does not validate the latest public source."
+    },
+    {
+      "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
+      "detail": "Not yet proven against the current published commit. Automated tests and prior local deployment proof are separate."
+    },
+    {
+      "id": "english", "title": "Complete English client", "status": "in-progress",
+      "detail": "Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete."
+    },
+    {
+      "id": "newer-client", "title": "Newer-client-only parity", "status": "planned",
+      "detail": "Not estimated. Features absent from the older server source require separate binary, data and observed-behavior evidence."
+    },
+    {
+      "id": "distribution", "title": "Public full-client download and updates", "status": "in-progress",
+      "detail": "Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet."
+    }
+  ]
+}

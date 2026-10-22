@@ -36,6 +36,7 @@ public sealed partial class LauncherViewModel
     private async Task RunAsync(LauncherAction action)
     {
         if (!CanRun() || _execute is null) return;
+        if (IsClientTab) RefreshClientSettingsDisplay();
         var execute = _execute;
         var inputs = new LauncherInputs(ConfigurationPath, ClientRoot, SourceRoot, AllowFreshInstall);
         using var cancellation = new CancellationTokenSource();

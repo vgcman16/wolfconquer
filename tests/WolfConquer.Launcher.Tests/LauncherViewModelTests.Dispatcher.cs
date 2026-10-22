@@ -5,8 +5,8 @@ namespace WolfConquer.Launcher.Tests;
 
 public sealed partial class LauncherViewModelTests
 {
-    // Presentation callbacks only: no Application, Window, update engine, files,
-    // processes or native game components are instantiated by these tests.
+    // Owned STA presentation dispatcher only: no Application, Window, update execution,
+    // processes or native game components. Settings-display cases may read owned local JSON fixtures.
     private static async Task OnDispatcher(Func<Task> test)
     {
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
