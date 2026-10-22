@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-22**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `726943e3e5f022f8481d5807bee343f12aec3904` (short: `726943e3e5f0`).
+Source commit: `4298d7ce58c5f54a19e841898b37ce8d25afed94` (short: `4298d7ce58c5`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -29,7 +29,7 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | Domain | Status | Implemented evidence | Remaining work |
 | --- | --- | --- | --- |
 | Transport, authentication and startup | partial | Packet, cipher, startup and replacement-service paths exist; a limited local gameplay milestone was demonstrated on an earlier build. | Complete native ownership and loader joins; verify the current published build and staged endpoint migration with the actual client. |
-| Shared player, items and persistence | partial | Concrete items, containers/equipment, managed snapshots and pickup roundtrips exist. Focused native proof covers transport/queues, member/map/spouse updates, spell/proficiency binary persistence, title/security records, EpicTrojan state/reset/save/load and collection storage/records/send, including real progression/profile save and fresh-owner reload. Full SaveClient and production callers remain unfinished. | Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery. |
+| Shared player, items and persistence | partial | Concrete items, containers/equipment, managed snapshots and pickup roundtrips exist. Focused native proof covers transport/queues, member/map/spouse updates, spell/proficiency persistence, title/security/EpicTrojan records, collection storage/send and exchange-shop records/goods, including real progression/profile save and fresh-owner reload. Full SaveClient and production callers remain unfinished. | Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery. |
 | Combat, monsters and death | partial | Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof. | Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios. |
 | NPCs, shops, progression and housing | partial | Main dispatch, shops, forging, skill learning and several durable progression/reward paths exist. | Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle. |
 | Trade, social systems and events | partial | Trade admission, guild/clan projections and selected actions, timers, score panels and several event state machines exist. | Implement full item/money trade transactions, remaining guild/union actions, event brackets, rewards, claims, disconnects, reset and durable recovery. |
