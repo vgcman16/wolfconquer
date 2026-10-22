@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-22**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `31a995eae0e29d5b44726efb8dfec2d60a70148a` (short: `31a995eae0e2`).
+Source commit: `9b3ab01350b8cb3ac2795abfd2c2a4e2c7d6246a` (short: `9b3ab01350b8`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -29,7 +29,7 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | Domain | Status | Implemented evidence | Remaining work |
 | --- | --- | --- | --- |
 | Transport, authentication and startup | partial | Packet, cipher, startup and replacement-service paths exist; a limited local gameplay milestone was demonstrated on an earlier build. | Complete native ownership and loader joins; verify the current published build and staged endpoint migration with the actual client. |
-| Shared player, items and persistence | partial | Concrete items/containers and managed snapshots exist. Focused native proof covers queues, member/map updates, spell/proficiency progression and records, title/security/EpicTrojan/collection/exchange/guild-skill/AnimaSkin records, subclass/Ninja metadata and messages, the complete Ninja owner and its ranking/loading components. Actual queues and owned-file reloads are tested; full SaveClient and production callers remain unfinished. | Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery. |
+| Shared player, items and persistence | partial | Concrete items/containers and managed snapshots exist. Focused native proof covers queues, member/map updates, spell/proficiency progression and records, title/security/EpicTrojan/collection/exchange/guild-skill/AnimaSkin records, subclass/Ninja metadata and messages, the complete Ninja owner and ranking/loading/item-view bodies. Actual queues and owned-file reloads are tested; full SaveClient and production callers remain unfinished. | Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery. |
 | Combat, monsters and death | partial | Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof. | Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios. |
 | NPCs, shops, progression and housing | partial | Main dispatch, shops, forging, skill learning and several durable progression/reward paths exist. | Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle. |
 | Trade, social systems and events | partial | Trade admission, guild/clan projections and selected actions, timers, score panels and several event state machines exist. | Implement full item/money trade transactions, remaining guild/union actions, event brackets, rewards, claims, disconnects, reset and durable recovery. |
