@@ -8,18 +8,19 @@ namespace WolfConquer.Tests;
 public sealed class LegacyNativeItemTypeCacheOwnerTests
 {
     [Fact]
-    public void DeclaredCachesHaveExactMutableStaticDictionaryTypesAndNativeOrder()
+    public void DeclaredCachesAndTradeListHaveExactMutableStaticTypesAndNativeOrder()
     {
         var fields = typeof(LegacyNativeItemTypeRuneMetadata)
             .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
             .OrderBy(field => field.MetadataToken).ToArray();
-        Assert.Equal(new[] { "PurificationItems", "Accessorys", "Refinary", "Garments", "SteedMounts" },
+        Assert.Equal(new[] { "PurificationItems", "Accessorys", "Refinary", "Garments", "SteedMounts", "unabletradeitem" },
             fields.Select(field => field.Name));
         Assert.Equal(typeof(Dictionary<ushort, Dictionary<uint, LegacyNativeItemRuneMetadata>>), fields[0].FieldType);
         Assert.Equal(typeof(Dictionary<uint, LegacyNativeItemRuneMetadata>), fields[1].FieldType);
         Assert.Equal(typeof(Dictionary<uint, Dictionary<uint, LegacyNativeRifinery.Item>>), fields[2].FieldType);
-        foreach (var field in fields.Skip(3))
+        foreach (var field in fields.Skip(3).Take(2))
             Assert.Equal(typeof(Dictionary<uint, LegacyNativeItemRuneMetadata>), field.FieldType);
+        Assert.Equal(typeof(List<uint>), fields[5].FieldType);
         foreach (var field in fields)
         {
             Assert.True(field.IsPublic);

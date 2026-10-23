@@ -20,19 +20,21 @@
   are implemented. Full trading, teleport and tournament lifecycle remain held.
 - [x] Whole monster damage-ranking/broadcast and native login/time/configuration
   writers are implemented as components; full damage receive/login remain held.
-- [x] Private and independent sanitized-public Release each passed4157/4157,
-  zero failures/skips:4057 retained +61 new +39 existing shared-owner controls.
+- [x] Entire PoleDomination state/round/scoring/furniture component, TeamArena
+  scalar writer and ten receive fields are implemented, without host activation.
+- [x] Private and independent sanitized-public Release each passed4230/4230,
+  zero failures/skips:4157 retained +57 new +16 existing cache-owner controls.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run39902878432 on60c821b7 passed all8stages: core20728 passed/
-  0 failed/165 unexecuted of20893; updater262/262; launcher49/49; synthetic
+  Full Windows run39904151049 onb75f29ab passed all8stages: core20789 passed/
+  0 failed/165 unexecuted of20954; updater262/262; launcher49/49; synthetic
   parser20+13 cases. HTTP/service probes were skipped.
-- [x] Timer, geometry, ban-owner and lifecycle-prerequisite source has full Windows
-  proof in3m50s on exact60c821b7. Hair setter/getter controls remain intact.
-- [ ] Fresh full Windows proof for the newer logging/ranking/login-wire batch is
+- [x] Logging/ranking/login-wire source has full Windows proof in3m52s on exact
+  b75f29ab. Hair setter/getter and earlier component controls remain intact.
+- [ ] Fresh full Windows proof for the newer Pole/logger/trade-list batch is
   pending. The preceding green run does not validate these newer source changes.
 
 ## Correctness findings retained
@@ -51,6 +53,11 @@
   match11340 state/result +945 date rows;20 real-owner/timed-send cases passed.
 - [x] Framework arena rank ordering reads every key once, including singleton
   faults. Scoped translation preserves that behavior; both owned x86 probes18/18.
+- [x] Whole Pole ranking now uses the same materialized UInt32-key order after a
+  separate30-row default/optimized Framework and modern-candidate comparison.
+  Two whole-method controls preserve Winner and recycler order on singleton null.
+  The fixture explicitly sets SobNpc type as the real loader does; no constructor
+  or missing-object/null behavior was changed to make furniture tests pass.
 - [x] Physical-monster floating scale keeps native operation order. Exact-integer
   rewrite was rejected780/1193; revised owned x86 default/optimized1193/1193.
 - [x] RemainingTime cast-only proposal was rejected on6 reachable date extrema.

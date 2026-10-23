@@ -15,6 +15,14 @@ internal sealed partial class LegacyNativeItemTypeRuneMetadata : Dictionary<uint
 
     public static Dictionary<uint, LegacyNativeItemRuneMetadata> SteedMounts = new Dictionary<uint, LegacyNativeItemRuneMetadata>();
 
+    // Entire native ItemType328..333, following the five caches in source order.
+    // This field is genuinely replaceable/mutable, not the host's fixed predicate.
+    public static List<uint> unabletradeitem = new List<uint>
+    {
+        750000u, 722700u, 3306885u, 3307142u, 3600025u, 3200000u, 729549u, 3008994u, 3200005u, 3600029u,
+        3007108u, 3007109u, 3007110u, 3200004u, 3600031u, 3600027u, 3600024u
+    };
+
 	private static ushort[] purifyStabilizationPoints = new ushort[6] { 10, 30, 60, 100, 150, 200 };
 
 	private static ushort[] refineryStabilizationPoints = new ushort[5] { 10, 30, 70, 150, 270 };

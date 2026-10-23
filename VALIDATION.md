@@ -1,5 +1,32 @@
 # Publication validation
 
+## Complete Pole Domination component and shared-owner controls
+
+Private and independent sanitized-public Release each passed4230/4230 selected
+cases, zero failures/skips:4157 retained +57 new +16 existing cache-owner cases.
+The entire PoleDomination component retains all original state, construction,
+furniture lookup/reset, scoring, ranking, start, finish-round and completion
+bodies. Tests cover real map/view publication, HP/packet order, nonzero and zero
+HP rounds, winner aliases, wrapping scores and source fault prefixes. The
+TeamArena scalar codec and ten physical receive fields are also present.
+
+Review exposed modern LINQ skipping a singleton key read. A whole-event red
+test showed Winner being overwritten before the native null fault. The existing
+stable UInt32-key materialization was accepted for this exact callsite only
+after comparing all30 full ordered rows across owned Framework/x86 default and
+optimized source/candidate builds and modern.NET9 candidate: zero differences.
+Two whole-method regressions require unchanged Winner and recycler identity order.
+The initial furniture test omitted the ObjType assigned by the native NPC loader;
+the fixture now sets it and checks real typed map lookup. Production constructors,
+missing-object behavior and assertions were not weakened.
+
+Two direct real-logger cases verify actual lambda-target files and counters in
+guarded temporary roots. Four native trade-restriction-list cases retain its17
+ordered entries, aliases, mutability and replacement/null behavior. The list is
+declared after the five original ItemType caches; all cache controls remain.
+This does not prove full trading, NPC death/receive, scheduled events, SQL,
+host activation, deployment or a live client. Fresh full Windows proof is pending.
+
 ## Native logging compatibility, monster ranking and login wire prerequisites
 
 Private and independent sanitized-public Release each passed4157/4157 selected
@@ -25,7 +52,11 @@ and exact command-builder/signature contracts. The complete Banned12 owner is
 present but never invoked: no SQL connection, reader execution or account update
 is tested or claimed. There is no invented SQL-auth reader or host registration.
 
-Fresh full Windows proof for this newer batch is pending. These component checks
+[Full Windows39904151049](https://github.com/vgcman16/wolfconquer/actions/runs/39904151049)
+passed all eight stages in3m52s onb75f29abb0fef87741f2136f3cd58ae321f38f1c:
+core20789 passed/0 failed/165 unexecuted of20954; updater262/262; launcher49/49;
+synthetic status-parser20 and smoke-parser13. HTTP/service probes were skipped.
+This run predates the newer Pole/logger/trade-list batch above. These checks
 do not prove full login, damage/death/loot/XP, SQL saves, live-client rendering,
 host adoption or deployment. Original saves, SQL, client/server processes and
 live routing were not changed.
@@ -60,9 +91,8 @@ synthetic status-parser20 and smoke-parser13. HTTP/service probes were skipped.
 This validates the committed timer/geometry/ban/lifecycle components, not full
 gameplay, SQL integration, host adoption or a live deployment.
 
-That review exposed the inherited Framework path-compatibility gap corrected and
-focused-tested above. This older green source does not validate the newer fix,
-monster scoring or login wire prerequisites; green CI is not full gameplay parity.
+That review exposed the inherited Framework path-compatibility gap subsequently
+corrected and validated in39904151049 above. Green CI is not full gameplay parity.
 
 ## Native geometry and complete ban-file owners
 
