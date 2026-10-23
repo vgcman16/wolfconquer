@@ -1,5 +1,25 @@
 # Publication validation
 
+## Native JiangHu and whole prestige-points rebuilding
+
+Private Release and independent sanitized-public Release each passed1076/1076,
+zero failures/skips:86 new JiangHu/table/rank/stat/training/roll/record/codec
+cases,56 new whole CreatePrestigePoints cases,934 retained. Owned Framework4/x86
+default and optimized numeric controls each passed10/10 for finite time and
+aligned-power narrowing. Original game binaries, private data and databases are
+not required; record tests use bounded test-owned files with exact-byte cleanup.
+
+Whole prestige rebuilding preserves both item loops, the source's two Items[1]
+wardrobe reads, configured server identity and rank-before-perfection-before-guild
+side effects, including real late metadata failure. An initial duplicate ServerID
+declaration failed compilation; only that new duplicate was removed, retaining
+the existing native physical identity field and predicate. No identity is inferred.
+
+JiangHu activation/login/apply-star and economic receivers, equipment/Team/HP/
+level rebuilding, native startup/login/save/host adoption and actual-client
+rendering remain open. The two admitted component receivers are unregistered.
+Focused component success does not establish full Windows or gameplay acceptance.
+
 ## Native Team/aura prerequisites and stat calculations
 
 Private Release and independent sanitized-public Release each passed934/934,

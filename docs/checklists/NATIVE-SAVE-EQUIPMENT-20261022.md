@@ -1,5 +1,21 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on JiangHu and complete prestige rebuild
+
+- [x] Whole JiangHu state/rank/stat/training/reward/roll/record owner methods,
+  native table/catalog/player-record save/load, ten codecs and two unregistered
+  component receivers:86 cases. Activation/login/apply-star callers remain held.
+- [x] Whole CreatePrestigePoints, including both equipment loops, both wardrobe
+  reads, configured server gate and rank/perfection/guild mutation order:56 cases.
+- [x] Private and independent sanitized-public Release each passed1076/1076,
+  zero failures/skips (142 new +934 retained). An initial duplicate-field compile
+  rejection was corrected by removing only the newly introduced ServerID duplicate;
+  the existing physical field and OnMyOwnServer predicate remain unchanged.
+- [x] Owned Framework4/x86 default and optimized JiangHu numeric controls each
+  passed10/10; finite time and aligned-power narrowing only, not original EXE proof.
+- [ ] Full equipment/Team/HP/level cycles, native startup/login/save/host adoption,
+  activation/economic receivers and actual-client rendering remain unfinished.
+
 ## Follow-on Team/aura prerequisites and HP/mana calculations
 
 - [x] Whole Team/leadership/flag-icon codecs and flag-icon component echo,
@@ -13,7 +29,8 @@
   Original Finalize leaves Position4; corrected assertions retain exact bytes,
   size and later read-cursor checks. Production was not changed to suit tests.
 - [ ] Full Team/HP/level/equipment cycle, native save/login and host adoption remain.
-  JiangHu, player/map and mentor candidates still require parent intake/proof.
+  Player/map and mentor candidates still require parent intake/proof; JiangHu is
+  independently proven above.
 - Owned HP expression probe:18 result values match expected formulas under both
   default and optimized Framework4/x86; separate10 cast controls also pass.
 
@@ -26,8 +43,8 @@
   isolation controls. The initial793-pass/7-fail receipt is retained: seven tests
   faulted during real item construction; corrected setup removes catalog metadata
   only after construction, so the intended production fault order is exercised.
-- [ ] Full CreatePrestigePoints, equipment rebuild, startup/load/save/host adoption
-  and live-client proof remain open. These are component checks, not deployment.
+- [x] Whole CreatePrestigePoints is proven above. Equipment rebuild, startup/load/
+  save/host adoption and live-client proof remain open, not deployment acceptance.
 - HP arithmetic review: owned Framework4/x86 default and optimized probes each
   passed10 finite double-to-UInt16 controls for the actual formula range only.
 
