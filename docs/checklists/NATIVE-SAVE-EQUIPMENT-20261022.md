@@ -15,8 +15,8 @@
   and football round/NPC/map methods are implemented without full event adoption.
 - [x] Whole LoadClientItems routing/perfection, Confiscator records/containers/files
   and hair/face admission/equipment/2282 receiver are implemented as components.
-- [x] Private and independent sanitized-public Release each passed3843/3843,
-  zero failures/skips:3652 retained +20 timed-extra +171 existing item controls.
+- [x] Private and independent sanitized-public Release each passed3940/3940,
+  zero failures/skips:3843 retained +44 geometry +53 complete ban-owner controls.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
@@ -29,10 +29,17 @@
   run39900336782 completed successfully in4m01s. The earlier39899616012 failure
   was an obsolete getter-only Hair assertion; all getter controls remain, and
   its replacement requires the genuine complete setter rather than an auto-slot.
-- [ ] The newer timed-extra source has focused proof above, not a fresh full run.
+- [ ] Newer timer, geometry and ban-owner source has focused proof above; a fresh
+  full Windows run is pending. The prior green run does not validate this batch.
 
 ## Correctness findings retained
 
+- [x] Complete native degree/sector geometry matches all17512 ordered observations
+  from both owned Framework builds; both actual copies match, not just digests.
+  Wrapped distance, coordinate narrowing and sticky Arrange quirks are retained.
+- [x] Both full native IP/account ban owners retain duplicate, expiry, no-op IP
+  removal, file formatting and fault behavior. All53 controls use synthetic
+  component state and guarded temporary files, not live login or original bans.
 - [x] Timed purification/refinery expiry now retains Framework tick arithmetic,
   Int32 overflow expiry and mutable availability. Both source builds/candidate
   match11340 state/result +945 date rows;20 real-owner/timed-send cases passed.

@@ -1,5 +1,25 @@
 # Publication validation
 
+## Native geometry and complete ban-file owners
+
+Private and independent sanitized-public Release each passed3940/3940 selected
+cases, zero failures/skips:3843 retained +44 geometry +53 ban-owner controls.
+The complete degree/sector owners match every17512 ordered D/S observation from
+both owned Framework/x86 default and optimized builds. Actual private/public
+outputs match both builds; measured fingerprints are retained as regression
+assertions after that full comparison, not used as acceptance substitutes.
+
+Geometry preserves raw coordinate storage, UInt16 operands, signed-short distance
+wrap, native operation order and sticky sector adjustment. The WarCry executor
+itself remains held on its genuine gameplay dependencies; this is not spell proof.
+
+Both complete IP/account ban owners retain native duplicate and expiry behavior,
+the literal IP-removal no-op, message arithmetic, count/trailing-slash persistence,
+and original exception order. Tests use guarded GUID-owned temporary files and
+synthetic component state only. No original ban lists, saves, SQL, login queue,
+host, live client or routing changed. Fresh full Windows proof for this batch and
+the timer correction remains pending; the1588612e green run below predates both.
+
 ## Timed purification and refinery expiry
 
 Both complete SecoundsLeft getters now retain the original absolute tick-to-
