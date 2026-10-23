@@ -48,7 +48,7 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
         private const uint KeyItemId = 3_303_973;
         private readonly string root = Path.Combine(Path.GetTempPath(), RootPrefix + Guid.NewGuid().ToString("N"));
         private long accountId = CharacterUid;
-        private readonly WorldSessionStore sessions = new();
+        private WorldSessionStore sessions = new();
         private readonly PacketHandlerRegistry<WorldPacketHandlerContext> registry =
             PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
         private bool ownsRoot;

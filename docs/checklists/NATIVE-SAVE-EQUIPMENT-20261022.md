@@ -14,7 +14,15 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   18fail; private Release530/530 passed,zero failed/skipped,5s, including123 chest,
   95 NPC,14 codec and298 adjacent cases. Forty-eight new chest controls; two
   retained registered Script/Reply facts migrated to genuine owned files.
-  Public full CI pending; actual Frame/shared-barrier proof is next.
+  Successor private534/534 passed,zero failed/skipped,4s: all530 retained plus
+  four actualD13Frame Rare/Epic success/refusal controls, chest127. Real shared
+  reader/exclusive probe prove these handlers release their lease; full files,
+  session and wire assertions retained, real random branch not exhaustive.
+  PublicWindows40031267716 failed exact14450da2:24171corepass/2fail/165excluded,
+  updater301pass,launcher/parsersnotrun,190warnings/0buildErrors,4m28s. Both
+  failures were hardcoded private fixture name versus sanitized public seed,
+  before handlers; fixture now uses supplied name without weakening equality.
+  Successor full CI pending. Next: FSB067 Victory quest/item transaction.
   This supersedes separate best-effort-save debt below for Rare/Epic only,
   not Victory/all rewards, power-loss/raw-writer/outbox/ABA or global UID safety.
   Current max+1 creator remains; isolated canonical UID/Host activation HOLD.

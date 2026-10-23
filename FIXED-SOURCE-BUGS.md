@@ -1132,9 +1132,10 @@ controls are synthetic only. This does not close the explicit gameplay limits.
 - Explicit VisibleDx8D13 offline registered/component fixtures and owned files
   only. Post-roll CP calls are component proof, not registered RNG/client proof.
   English key-name evidence remains a SERVER export, not client-table proof.
-  The existing max+1 creator, publication before separate best-effort saves,
-  whole reward transactions/CAS/journal/replay/delivery, respawn/claim lifecycle,
-  SQL, live/deployment/full parity and global UID/Host activation remain open.
+  At this admission-only checkpoint, separate best-effort saves and whole reward
+  commit/recovery remained open. FSB066 below supersedes that debt for Rare/Epic
+  only; max+1/global UID, Victory/broader claims, delivery, SQL/live/full parity
+  and canonical UID/Host activation remain open.
 
 
 ### FSB-066: Commit chest key/reward saves before publishing success
@@ -1158,19 +1159,54 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   **530/530 passed**, zero failed/skipped,5s, deity-transaction-green.trx:
   123 chest +95 NPC +14 codec +298 Trade/session/barrier/DragonSkin neighbors.
   All202 baseline names are retained and pass. Forty-eight new chest cases:
-  16 required-file +2 deposited-cost +10 direct persistence +20 post-roll owner
-  controls, including interruption/recovery, stale owners, overflow, malformed
-  metadata, output faults and ended connections. Two retained Rare/Epic
+  16 required-file +2 deposited-cost +6 journal-boundary +4 changed-file +8
+  recovery-owner +4 stale-owner +8 publication controls. Overflow and malformed
+  metadata guards are source-reviewed, not separately tested here. Two retained Rare/Epic
   registered Script/Reply facts now use complete real files and ready recovery.
-- Limits: offline owned-file/registered component proof only; public full CI
-  pending. Actual Frame/shared-barrier integration is next, not yet proven.
-  Recovery covers real process-restart prefixes, not power loss, multi-process
+- Successor private Release **534/534 passed**, zero failed/skipped,4s:
+  all530 retained plus four actual D13 Frame controls (chest127). Rare/Epic
+  success and missing-item-file refusal complete under an independently owned
+  shared reader, followed by an actual exclusive probe proving lease release.
+  Complete dialog/reward/file/session checks remain; Epic tests its real chosen
+  random branch, not exhaustive CP/item Frame outcomes. No accepting owner.
+- Public Windows40031267716 FAILED exact14450da2 in4m28s: core24171pass/
+  2fail/165NotExecuted, updater301pass; launcher/parsers did not run. Build190
+  warnings/0errors. Receipt20261023T220650082Z-7d363ee5 finished22:10:53.9312898Z;
+  jobcompleted22:11:02Z. Both failures precede handlers: the raw fixture used a
+  private name instead of public's sanitized seed name. It now serializes the
+  supplied name; full equality/assertions remain. Successor full CI pending;
+  this failed run is not relabeled green.
+- Limits: owned-file/registered/Frame component proof, not authenticated login,
+  a real TCP listener/client, enabled runtime-loop lifecycle or deployment.
+  Recovery covers fresh-owner replay of controlled journal prefixes, not an
+  actual killed process, power loss, multi-process
   or uncooperative writers, durable outbox, ABA or every crash point. Current
   max+1 reward UID remains unsafe globally; canonical UID/Host activation HOLD.
   Victory/broader NPC claims, SQL, live/deployment/full parity remain open.
   No original saves, live client/server or routing were changed.
 
 ## Active audit
+
+### FSB-067: Commit Victory chest quest claim and reward together (OPEN)
+
+- Source-confirmed owner: TryUnlockLegacyVictoryChestAsync in
+  WorldPacketHandlers.NpcEntrypoints.Deityland.cs. It publishes Finished quest
+  3944 and a reward before separate best-effort item/quest saves, then sends
+  success even after an ordinary save refusal. One saved half can lose a reward
+  or retain a reloadable Accepted claim. Frame sidecar autosave is also separate.
+- Required invariant: validate complete current account/item/quest owners,
+  prepare exact claim/reward images and output, journal item+quest commitment
+  before session/output, and reconcile interrupted claims without duplication.
+  Retain valid objective100 threshold, random rewards, capacity and wire order.
+- Current shared journal supports Character/Items only. A genuine versioned
+  Quests target/root/recovery shape is required; do not disguise quests as items
+  or replace coordination with reordered bool saves. Keep old v1/v2 behavior,
+  the shared pending slot, explicit configured roots and fail-closed recovery.
+- Status: source diagnosis only, not an executed failure or fixed claim.
+  Next tests use complete owned files, both NPC positives, actual item/quest
+  sharing faults, absent quest authority and stale Finished baseline, followed
+  by real journal interruption/replay controls. Preserve the three old Victory
+  facts/goldens. No live/SQL/original-save action; UID/Host activation stays HOLD.
 
 Current work does not close whole managed reward transactions. SuperGuildWar's
 checked preparation now precedes its claim decision as verified above, but the

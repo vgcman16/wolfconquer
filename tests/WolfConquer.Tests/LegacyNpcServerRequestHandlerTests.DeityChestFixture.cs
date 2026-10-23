@@ -95,7 +95,7 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
             ownsRoot = true;
             Directory.CreateDirectory(Users);
             Directory.CreateDirectory(Items);
-            File.WriteAllText(CharacterPath, CharacterText, new UTF8Encoding(false, true));
+            File.WriteAllText(CharacterPath, CreateCharacterText(seed.Character.Name), new UTF8Encoding(false, true));
             var character = CharacterSnapshotParser.ParseText(File.ReadAllText(CharacterPath), CharacterPath);
             // Every original character field remains the same; only actual file provenance/dictionaries are supplied.
             Assert.Equal(seed.Character with
@@ -318,9 +318,9 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
             Directory.Delete(directory, recursive: false);
         }
 
-        private static readonly string CharacterText = string.Join("\r\n", new[]
+        private static string CreateCharacterText(string name) => string.Join("\r\n", new[]
         {
-            "; original NPC success-fixture character", "[Character]", "UID=1293600", "Name=Demonic", "Body=1003",
+            "; original NPC success-fixture character", "[Character]", "UID=1293600", "Name=" + name, "Body=1003",
             "Face=0", "Haire=0", "Class=7051", "FirstClass=7051", "SecoundeClass=0", "Reborn=0", "Level=140",
             "Experience=0", "Map=10137", "X=93", "Y=403", "PMap=10137", "PMapX=93", "PMapY=403",
             "Strength=0", "Agility=0", "Vitaliti=0", "Spirit=0", "Atributes=0", "MinHitPoints=1", "MinMana=0",
