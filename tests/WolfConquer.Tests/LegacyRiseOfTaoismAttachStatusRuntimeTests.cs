@@ -150,6 +150,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         // Seeded WorldData:null timer-adapter coverage, not public acquisition or owed-query proof.
         // Native ThreadPool3007-3011 removes227 then queries; Player425's independent extra scalar remains.
         using var log = new StringWriter();
+        var synchronizedLog = TextWriter.Synchronized(log);
         using var cancel = new CancellationTokenSource();
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
@@ -162,7 +163,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 Enabled: true,
                 TimeSpan.FromMilliseconds(10),
                 new AnchoredRuntimeTimeProvider(now.AddSeconds(10))),
-            log: log);
+            log: synchronizedLog);
         var session = CreateSession(
             spellIds: [RiseOfTaoismAttachStatusSpellId],
             attributes: new Dictionary<string, string>
@@ -173,6 +174,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["LegacyRiseOfTaoismRemoveOnDead"] = "true",
             });
         SetHandlerSession(handler, connection, session);
+
+        string ReadLog()
+        {
+            lock (synchronizedLog) return log.ToString();
+        }
 
         try
         {
@@ -186,7 +192,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                         current.Character.Attributes.TryGetValue("RiseofTaoismExtraMDamage", out var retainedExtra) &&
                         retainedExtra == "27" &&
                         !current.Character.Attributes.ContainsKey("LegacyRiseOfTaoismExpiresAtUtc") &&
-                        !current.Character.Attributes.ContainsKey("LegacyRiseOfTaoismRemoveOnDead");
+                        !current.Character.Attributes.ContainsKey("LegacyRiseOfTaoismRemoveOnDead") &&
+                        // Publication precedes async vector/query/log completion.
+                        ReadLog().Contains("WorldServer expired legacy RiseofTaoism flags", StringComparison.Ordinal);
                 },
                 TimeSpan.FromSeconds(1));
 
@@ -199,7 +207,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 entry.Type == LegacyMsgUpdateDataType.StatusFlag &&
                 entry.Values is not null &&
                 !IsLegacyStatusFlagSet(entry.Values, LegacyRiseOfTaoismFlag)));
-            Assert.Contains("WorldServer expired legacy RiseofTaoism flags", log.ToString());
+            Assert.Contains("WorldServer expired legacy RiseofTaoism flags", ReadLog());
         }
         finally
         {

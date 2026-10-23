@@ -14,7 +14,14 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   entitlement; other recipients/pool exhaustion, complete saved/reloaded values
   and exact packet order checked. Leader300000CP/tuned500000silver/item2100065/
   flag151 and deputy flag152-only remain. Two exchange style corrections batched.
-  Full Windows CI pending; no deployment. Full claim/session/two-file recovery,
+  FullWindows39978653171 on a80552fd:23588 core passed/1failed/165excluded;
+  all12 guild cases passed, updater301passed. The sole failure is the retained
+  RiseOfTaoism timer test checking its log before async completion; launcher and
+  later stages did not run. Its fixture now waits for state AND synchronized
+  completion log, retaining the state/vector assertions. Private focused15/15
+  passes, and independent public focused15/15passes; full CI rerun pending.
+  No deployment.
+  Full claim/session/two-file recovery,
   Lottery cadence and shared UID/host lifecycle remain open.
 
 - [x] Exchange material preparation (FSB045): private446passed/0failed/0skipped;

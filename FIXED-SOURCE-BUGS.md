@@ -664,7 +664,10 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   item/flag151, deputy flag152 only. Source7770 documents the older model with
   50000000source silver; neither that amount nor the newer decompile's mail branch
   replaces the current approved tuning. No wire format or live routing changed.
-- Full Windows publication CI is pending. This is NOT full FSB009 closure:
+- FullWindows39978653171 ran all12 guild cases successfully but failed one old
+  RiseOfTaoism timer/log race (23588corepassed/1failed/165excluded). The fixture
+  now waits for actual async completion; private/public focused15/15each pass.
+  Full publication CI rerun is pending. This is NOT full FSB009 closure:
   Lottery cadence, unconditional session publication, claim+memory+two-file crash
   atomicity, durable outbox/reconciliation, raw writers and global UID activation
   remain open. No live client, original saves or SQL were used.

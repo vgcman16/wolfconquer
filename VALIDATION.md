@@ -12,8 +12,15 @@ wire order are checked. No existing positive was removed or changed to refusal.
 Checked private reward/image/frame preparation now precedes the unchanged claim
 decision. Leader300000CP/tuned500000silver/item2100065/flag151, deputy152-only,
 and source2/4-space gates remain. Two observed exchange mechanical corrections
-join this batch. Full Windows CI pending; no deployment/client/SQL/original-save
-action. Durable claim+session+two-file recovery, Lottery, raw-writer races and
+join this batch. FullWindows39978653171 on exact a80552fd1d1200edbb6b3b05776ba543faa47cd4
+finished2026-10-23T15:33:39Z failed:23588corepassed/1failed/165excluded;
+all12 guild cases passed, updater301passed. Launcher/later stages did not run.
+The retained RiseOfTaoism timer test observed session publication before async
+log completion; the fixture now waits for both with synchronized log access,
+retaining all state/vector assertions. Private and independent public focused
+checks each15/15pass with no failures/skips; full CI rerun pending.
+Receipt20261023T152955200Z-4d087c62.
+No deployment/client/SQL/original-save action. Durable claim+session+two-file recovery, Lottery, raw-writer races and
 global UID activation remain open; this is partial FSB009 repair, not closure.
 
 ## Exchange material checkpoint
