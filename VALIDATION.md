@@ -1,5 +1,23 @@
 # Publication validation
 
+## Native VIP publication and experience calculations
+
+Private Release and independent sanitized-public Release each passed1336/1336,
+zero failures/skips:125 new VIP/state/codec/experience-calculation cases and1211
+retained. Owned Framework4/x86 default and optimized probes each passed22 cast
+controls and640 source-shaped expression comparisons. These are owned arithmetic
+observations, not execution of original game binaries.
+
+The initial private compile found a synchronous test declared as Task; a later
+1328-pass/8-fail run exposed wrong expectations of a writer reset. Source
+SendUpdate appends at the actual incoming cursor. Corrected tests assert its
+dirty prefix, packet order and subsequent cursor reuse; production was unchanged.
+Public rerun passes independently; synthetic public fixtures remain preserved.
+
+Actual experience granting, the whole native Level setter and its inventory/
+save/equipment/attack dependencies remain unfinished. No native login/save/host
+adoption, full Windows acceptance or live-client proof follows from this result.
+
 ## Native player/map contract and complete achievement receiver
 
 Private Release and independent sanitized-public Release each passed1211/1211,

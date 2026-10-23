@@ -1,5 +1,21 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on VIP publication and experience calculations
+
+- [x] Whole native VipLevel/ExpireVip state, UpdateVip, all VIP flags and status
+  codec; complete GainExperience scaling and CalcExpBall calculations:125 cases.
+- [x] Private Release and independent sanitized-public Release each passed1336/1336,
+  zero failures/skips (125 new +1211 retained). Initial compile found a synchronous
+  test returning Task; the next1328-pass/8-fail run exposed incorrect expectations
+  that scalar VIP updates reset the writer. Native SendUpdate appends at its
+  incoming cursor; tests now preserve the dirty prefix and later cursor reuse.
+  No production reset, clamp, expiry enforcement or fake Level setter was added.
+- [x] Owned Framework4/x86 default and optimized probes each passed22 unsigned
+  conversion controls and640 source-shaped experience-expression comparisons.
+- [ ] Actual experience grants and the whole Level setter remain held behind real
+  inventory/save/equipment/attack dependencies. Native startup/login/save, host
+  adoption and live-client proof are not established by these component results.
+
 ## Follow-on native player/map and complete achievement receiver
 
 - [x] Complete native SpawnPacketProto/GetArray (both branches), real Player map
