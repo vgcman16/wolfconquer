@@ -19,7 +19,7 @@ publication order, complete hair mutation/admission/equipment and the whole
 unregistered2282 receiver. Files are guarded GUID-owned temporary fixtures only.
 Full LoadCharacter's initial unfiltered SQL update, eager LoginQueue/ExecuteLogin,
 full login/save and host adoption remain held. No original save, SQL, worker,
-socket pump, live client or routing changed. Fresh full Windows proof is pending;
+socket pump, live client or routing changed. Fresh full Windows proof is below;
 the earlier3646f1ef green run below does not validate these newer source changes.
 
 Full Windows39899616012 on e511c12b built successfully, then core20493 passed/
@@ -29,9 +29,20 @@ retains all backing-field/getter controls and Class/Level read-only assertions,
 while requiring Hair's whole native setter signature, physical store, loading
 gate, SendUpdate and genuine storage admission. Corrected private and independent
 sanitized-public Release each passed3652/3652 selected cases, zero failures/skips:
-the prior3651 plus this existing contract control. A corrected full run is pending.
-The inherited timed purification/refinery expiry expressions also remain under
-Framework/x86 comparison; permanent-extra controls do not prove large durations.
+the prior3651 plus this existing contract control.
+
+[Corrected full Windows39900336782](https://github.com/vgcman16/wolfconquer/actions/runs/39900336782)
+passed all eight stages in4m01s on1588612e82513a6d915f22f281e40f19ec493e1b:
+core20494 passed/0 failed/165 unexecuted of20659, updater262/262, launcher49/49,
+synthetic status-parser20 and smoke-parser13. HTTP/service probes were skipped.
+This proves the committed source/tests, not host adoption or a live deployment.
+
+The inherited timed purification/refinery expiry expressions have a separately
+confirmed runtime gap: modern original differs on1152 owned observations, while
+the isolated proposal matches every11340 state/result and945 date control against
+both Framework/x86 default and optimized builds. Every row was compared, without
+a digest shortcut. That proposal and20 real-owner tests remain unintegrated and
+unexecuted in production trees; this green run does not validate the timer fix.
 
 ## Native-launch TCP reader resilience
 

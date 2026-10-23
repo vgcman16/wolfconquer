@@ -22,15 +22,13 @@
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run39897664958 on3646f1ef passed all8stages: core20399 passed/
-  0 failed/165 unexecuted of20564; updater262/262; launcher49/49; synthetic
+  Full Windows run39900336782 on1588612e passed all8stages: core20494 passed/
+  0 failed/165 unexecuted of20659; updater262/262; launcher49/49; synthetic
   parser20+13 cases. HTTP/service probes were skipped.
-- [x] The3556-case native snapshot and35 new tool controls now have fresh full
-  Windows proof on exact3646f1ef; run39897664958 completed successfully in3m54s.
-- [ ] New loader full Windows39899616012 on e511c12b failed one stale Hair
-  getter-only contract: core20493/1/165 unexecuted of20659; updater262/262.
-  The source-backed setter contract is corrected;3652/3652 focused passed in both
-  copies. A corrected full Windows run remains required.
+- [x] The3652-case native snapshot has fresh full Windows proof on exact1588612e;
+  run39900336782 completed successfully in4m01s. The earlier39899616012 failure
+  was an obsolete getter-only Hair assertion; all getter controls remain, and
+  its replacement requires the genuine complete setter rather than an auto-slot.
 
 ## Correctness findings retained
 
@@ -55,8 +53,9 @@
 
 ## Remaining end-to-end work
 
-- [ ] Compare inherited timed purification/refinery expiry across Framework/x86
-  and modern .NET; permanent-extra controls do not prove large-duration semantics.
+- [ ] Integrate/test the isolated timed-extra expiry correction. Owned Framework
+  default/optimized +modern candidate match11340 state/result and945 date rows;
+  current modern expressions differ1152 times. The20 real-owner tests are not run.
 - [ ] Close real Team/HP/aura and XP/RemoveFlag/Level/Class/equipment mutual cycle.
   Keep whole methods; do not substitute absent-flag or low-XP success branches.
 - [ ] Close the full spell dispatcher and all required spell-sort/receive/death
