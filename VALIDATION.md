@@ -1,5 +1,22 @@
 # Publication validation
 
+## Native quest persistence checkpoint
+
+Private/public Release **3465/3465** each,0failed/0skipped. Complete real native
+quest images are prepared before flushed same-directory atomic replacement;
+malformed complete books cannot truncate a destination. Loads fully parse count,
+rows, intentions and tail before detached conflict-safe canonical merge (FSB040).
+Nonconflicting rows and identical physical aliases stay; malformed, duplicate or
+conflicting data cannot publish a prefix. Actual sharing denial, released handles,
+first-save/reload, comparator drift/collisions, oversized files and whole merged
+image bounds are checked. Existing valid bytes/raw statuses/UID0 remain; no
+five-quest gameplay cap is imposed on persistence.
+
+The first run caught missing-directory attribute classification and production
+was fixed without weakening the test. Full CI pending. This is offline owned-file
+component proof, not native host/login/SQL/award activation or multifile recovery.
+Raw writers/readers and unknown post-replace/crash durability remain explicit.
+
 ## Selected native DivineGuard checkpoint
 
 Private/public Release **3214/3214** each,0failed/0skipped, including98new
@@ -10,8 +27,14 @@ owner/peer packet order remain. Invalid preparation no longer dirties cooldown
 or publishes refinement. Actual loan/state drift, seeded outcomes, token replay,
 wire goldens and accepted transport failure are checked.
 
-The deferred one-line testconstant parentheses joins this behavioral batch;
-full CI and current CodeFactor analysis are not yet measured. Full outer
+The deferred one-line testconstant parentheses joins this behavioral batch.
+[Windows39962905914](https://github.com/vgcman16/wolfconquer/actions/runs/39962905914)
+passed4m43s on exactaf3ca964fed04edbd7608602312d511e2ac8d5d2, completed
+2026-10-23T13:44:48Z. Core23325passed/0failed of23490 (165externalfixturecases
+excluded), updater301/301, launcher49/49; all8stageexit0,206build warnings.
+Receipt20261023T134022374Z-6aac4289 finished13:44:41.9366811Z. CodeFactor3NEW
+(2complexity+1duplication),1FIXED (testconstant),total2289; no risky cosmetic
+control-flow rewrite. Full outer
 CheckEffects authorization/combat/HP/Team/revive/host activation stays open.
 Offline component proof only; no live client, original save or SQL changed.
 

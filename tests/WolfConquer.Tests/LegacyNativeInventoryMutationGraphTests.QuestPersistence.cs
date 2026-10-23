@@ -3,6 +3,7 @@ using WolfConquer.Core.Data;
 using WolfConquer.Core.World;
 using Row = WolfConquer.Core.World.LegacyNativeMsgQuestList.QuestListItem;
 using Status = WolfConquer.Core.World.LegacyNativeMsgQuestList.QuestListItem.QuestStatus;
+using Outcome = WolfConquer.Core.Data.LegacyNativeRoleQuests.Outcome;
 
 namespace WolfConquer.Tests;
 
@@ -15,16 +16,14 @@ public sealed partial class LegacyNativeInventoryMutationGraphTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public Task QuestOpenFailureReturnsBeforeDereferencingMissingQuestOwner(bool save) =>
+    public Task QuestMissingOwnerRejectsWithoutCreatingOneOrTouchingFiles(bool save) =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             scope.OwnFiles(createQuestDirectory: false);
             scope.Player.QuestGUI = null;
-
-            if (save) LegacyNativeRoleQuests.Save(scope.Client);
-            else LegacyNativeRoleQuests.Load(scope.Client);
-
+            var result = save ? LegacyNativeRoleQuests.TrySave(scope.Client) : LegacyNativeRoleQuests.TryLoad(scope.Client);
+            Assert.Equal(Outcome.Rejected, result.Status);
             Assert.Null(scope.Player.QuestGUI);
             Assert.False(File.Exists(scope.QuestPath));
             Assert.False(Directory.Exists(Path.Combine(scope.OwnedDirectory!, "Quests")));
@@ -32,24 +31,22 @@ public sealed partial class LegacyNativeInventoryMutationGraphTests
         });
 
     [Fact]
-    public Task SaveWritesExactNativeCountAndUnframedVariableIntentionsAndIgnoresAcceptedOnlyRows() =>
-        NativePacketTestThread.Run(() =>
-        {
-            using var scope = new Scope();
-            scope.OwnFiles();
-            var row = scope.Row(9, uint.MaxValue, (Status)99, 0, uint.MaxValue, 7);
-            row.Time = 0xAABBCCDD;
-            scope.Quests.AcceptedQuests[600] = new() { UID = 600, Intentions = [42] };
-            File.WriteAllBytes(scope.QuestPath, new byte[999]);
-
-            LegacyNativeRoleQuests.Save(scope.Client);
-
-            Assert.Equal(QuestFile((uint.MaxValue, 99u, 0xAABBCCDDu, new uint[] { 0, uint.MaxValue, 7 })),
-                File.ReadAllBytes(scope.QuestPath));
-            Assert.Same(row, scope.Quests.src[9]);
-            Assert.Equal(600u, Assert.Single(scope.Quests.AcceptedQuests).Value.UID);
-            Assert.Empty(scope.Queue);
-        });
+    public Task SaveWritesExactNativeCountRawStatusAndVariableIntentions() => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope();
+        scope.OwnFiles();
+        var row = scope.Row(uint.MaxValue, uint.MaxValue, (Status)99, 0, uint.MaxValue, 7);
+        row.Time = 0xAABBCCDD;
+        var accepted = scope.Row(600, 600, Status.Accepted);
+        scope.Quests.AcceptedQuests[600] = accepted;
+        File.WriteAllBytes(scope.QuestPath, new byte[999]);
+        LegacyNativeRoleQuests.Save(scope.Client);
+        Assert.Equal(QuestFile((uint.MaxValue, 99u, 0xAABBCCDDu, new uint[] { 0, uint.MaxValue, 7 }),
+            (600u, 0u, 123u, Array.Empty<uint>())), File.ReadAllBytes(scope.QuestPath));
+        Assert.Same(row, scope.Quests.src[uint.MaxValue]);
+        Assert.Same(accepted, Assert.Single(scope.Quests.AcceptedQuests).Value);
+        Assert.Empty(scope.Queue);
+    });
 
     [Fact]
     public Task EmptySaveReplacesOldFileWithOnlySignedZeroCount() => NativePacketTestThread.Run(() =>
@@ -61,52 +58,56 @@ public sealed partial class LegacyNativeInventoryMutationGraphTests
         Assert.Equal(new byte[4], File.ReadAllBytes(scope.QuestPath));
     });
 
-    [Fact]
-    public Task SaveCountsDictionaryEntriesAndRetainsDuplicateValueUidRatherThanDeduplicating() =>
-        NativePacketTestThread.Run(() =>
-        {
-            using var scope = new Scope();
-            scope.OwnFiles();
-            var row = scope.Row(10, 600, Status.Finished, 1);
-            scope.Quests.src[11] = row;
-            LegacyNativeRoleQuests.Save(scope.Client);
-            var expected = QuestFile((600u, 1u, 123u, new uint[] { 1 }), (600u, 1u, 123u, new uint[] { 1 }));
-            Assert.Equal(expected, File.ReadAllBytes(scope.QuestPath));
-            Assert.Same(scope.Quests.src[10], scope.Quests.src[11]);
-        });
-
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public Task SaveBodyFaultLeavesCountPrefixInsteadOfRollingBackOrClosingInFinally(bool nullRow) =>
+    [InlineData("nullRow")]
+    [InlineData("nullIntentions")]
+    [InlineData("keyMismatch")]
+    [InlineData("duplicatePhysical")]
+    [InlineData("acceptedOnly")]
+    [InlineData("foreignAlias")]
+    [InlineData("finishedAccepted")]
+    [InlineData("aliasedMaps")]
+    public Task SaveMalformedCompleteBookRejectsWithoutTruncationOrLeaks(string defect) =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             scope.OwnFiles();
-            if (nullRow) scope.Quests.src[600] = null!;
-            else scope.Row(600, 600, Status.Accepted).Intentions = null!;
-            var file = new LegacyNativeBinaryFile();
-            Assert.True(file.Open(scope.QuestPath, FileMode.Create));
-            try
+            var row = scope.Row(600, 600, Status.Accepted, 7);
+            scope.Quests.AcceptedQuests[600] = row;
+            switch (defect)
             {
-                Assert.Throws<NullReferenceException>(() => LegacyNativeRoleQuests.SaveOpenedFile(file, scope.Client));
+                case "nullRow": scope.Quests.src[600] = null!; break;
+                case "nullIntentions": row.Intentions = null!; break;
+                case "keyMismatch": row.UID = 999; break;
+                case "duplicatePhysical": scope.Quests.src[601] = row; break;
+                case "acceptedOnly": scope.Quests.AcceptedQuests[700] = new Row { UID = 700 }; break;
+                case "foreignAlias": scope.Quests.AcceptedQuests[600] = new Row { UID = 600 }; break;
+                case "finishedAccepted": row.Status = Status.Finished; break;
+                case "aliasedMaps": scope.Quests.AcceptedQuests = scope.Quests.src; break;
             }
-            finally { file.Close(); }
-            Assert.Equal(new byte[] { 1, 0, 0, 0 }, File.ReadAllBytes(scope.QuestPath));
-            Assert.Single(scope.Quests.src);
+            byte[] before = [1, 3, 5, 7, 9];
+            File.WriteAllBytes(scope.QuestPath, before);
+            var source = scope.Quests.src;
+            var accepted = scope.Quests.AcceptedQuests;
+            Assert.Equal(Outcome.Rejected, LegacyNativeRoleQuests.TrySave(scope.Client).Status);
+            Assert.Equal(before, File.ReadAllBytes(scope.QuestPath));
+            Assert.Same(source, scope.Quests.src);
+            Assert.Same(accepted, scope.Quests.AcceptedQuests);
+            using var exclusive = new FileStream(scope.QuestPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            Assert.Empty(scope.Queue);
         });
 
     [Fact]
-    public Task LoadPublishesActualNewRowsAndSharedAcceptedAliasWithoutClearingPriorRows() =>
+    public Task LoadPublishesCompleteRowsCanonicalAcceptedAndRetainsNonconflictingRows() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             scope.OwnFiles();
             var retained = scope.Row(500, 500, Status.Finished, 99);
-            LoadOwned(scope, QuestFile(
+            Assert.Equal(Outcome.Committed, LoadOwned(scope, QuestFile(
                 (600u, 0u, 100u, new uint[] { 1, 2 }),
                 (700u, 2u, 200u, Array.Empty<uint>()),
-                (800u, 99u, 300u, new uint[] { uint.MaxValue })));
+                (800u, 99u, 300u, new uint[] { uint.MaxValue }))).Status);
             Assert.Equal(4, scope.Quests.src.Count);
             Assert.Same(retained, scope.Quests.src[500]);
             Assert.Same(scope.Quests.src[600], Assert.Single(scope.Quests.AcceptedQuests).Value);
@@ -114,110 +115,111 @@ public sealed partial class LegacyNativeInventoryMutationGraphTests
             Assert.Empty(scope.Quests.src[700].Intentions);
             Assert.Equal((Status)99, scope.Quests.src[800].Status);
             Assert.Empty(scope.Queue);
+            using var exclusive = new FileStream(scope.QuestPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         });
-
-    [Fact]
-    public Task LoadExistingSourceKeyKeepsOldRowButAcceptedMapGetsNewLoadedObject() =>
-        NativePacketTestThread.Run(() =>
-        {
-            using var scope = new Scope();
-            scope.OwnFiles();
-            var retained = scope.Row(600, 999, Status.Finished, 99);
-            LoadOwned(scope, QuestFile((600u, 0u, 100u, new uint[] { 1, 2 })));
-            Assert.Same(retained, scope.Quests.src[600]);
-            var accepted = Assert.Single(scope.Quests.AcceptedQuests).Value;
-            Assert.NotSame(retained, accepted);
-            Assert.Equal(600u, accepted.UID);
-            Assert.Equal(new uint[] { 1, 2 }, accepted.Intentions);
-            Assert.Equal(999u, retained.UID);
-            Assert.Equal(new uint[] { 99 }, retained.Intentions);
-        });
-
-    [Fact]
-    public Task DuplicateAcceptedRecordFaultRetainsFirstRealRowAndStopsBeforeLaterRows() =>
-        NativePacketTestThread.Run(() =>
-        {
-            using var scope = new Scope();
-            scope.OwnFiles();
-            Assert.Throws<ArgumentException>(() => LoadOwned(scope, QuestFile(
-                (600u, 0u, 100u, new uint[] { 1 }),
-                (600u, 0u, 200u, new uint[] { 2 }),
-                (700u, 1u, 300u, new uint[] { 3 }))));
-            var first = Assert.Single(scope.Quests.src).Value;
-            Assert.Equal(100u, first.Time);
-            Assert.Equal(new uint[] { 1 }, first.Intentions);
-            Assert.Same(first, Assert.Single(scope.Quests.AcceptedQuests).Value);
-            Assert.False(scope.Quests.src.ContainsKey(700));
-        });
-
-    [Fact]
-    public Task FinishedLoadedRowDoesNotRemovePreexistingAcceptedAlias() => NativePacketTestThread.Run(() =>
-    {
-        using var scope = new Scope();
-        scope.OwnFiles();
-        var accepted = new Row { UID = 700, Status = Status.Accepted, Intentions = [7] };
-        scope.Quests.AcceptedQuests[700] = accepted;
-        LoadOwned(scope, QuestFile((700u, 1u, 100u, new uint[] { 2 })));
-        Assert.Equal(Status.Finished, scope.Quests.src[700].Status);
-        Assert.Same(accepted, scope.Quests.AcceptedQuests[700]);
-        Assert.NotSame(accepted, scope.Quests.src[700]);
-    });
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(int.MinValue)]
-    public Task NonpositiveFileCountRetainsExistingCollectionsWithoutRecoveryOrRejection(int count) =>
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task IdenticalOverlapRetainsExistingCanonicalRowAndIndexesLoadedAccepted(bool indexed) =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             scope.OwnFiles();
-            var retained = scope.Row(600, 600, Status.Accepted, 7);
-            scope.Quests.AcceptedQuests[600] = retained;
-            var bytes = new byte[4];
-            BinaryPrimitives.WriteInt32LittleEndian(bytes, count);
-            LoadOwned(scope, bytes);
+            var retained = scope.Row(600, 600, Status.Accepted, 1, 2);
+            retained.Time = 100;
+            if (indexed) scope.Quests.AcceptedQuests[600] = retained;
+            Assert.Equal(Outcome.Committed, LoadOwned(scope, QuestFile((600u, 0u, 100u, new uint[] { 1, 2 }))).Status);
             Assert.Same(retained, Assert.Single(scope.Quests.src).Value);
             Assert.Same(retained, Assert.Single(scope.Quests.AcceptedQuests).Value);
         });
 
-    [Fact]
-    public Task EmptyNativeReadRetainsInitialCurrentCountAndLoadsDefaultZeroRecord() =>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public Task ConflictingOverlapRejectsWholeLoadWithoutSplitAliases(int difference) =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             scope.OwnFiles();
-            var retained = scope.Row(999, 999, Status.Finished, 7);
-            LoadOwned(scope, []);
-            Assert.Equal(2, scope.Quests.src.Count);
-            Assert.Same(retained, scope.Quests.src[999]);
-            var zero = scope.Quests.src[0];
-            Assert.Equal(0u, zero.UID);
-            Assert.Equal(Status.Accepted, zero.Status);
-            Assert.Empty(zero.Intentions);
-            Assert.Same(zero, Assert.Single(scope.Quests.AcceptedQuests).Value);
+            var retained = scope.Row(600, 600, Status.Accepted, 1, 2);
+            retained.Time = 100;
+            scope.Quests.AcceptedQuests[600] = retained;
+            uint status = difference == 0 ? 1u : 0u;
+            uint time = difference == 1 ? 200u : 100u;
+            uint[] values = difference == 2 ? [1, 3] : difference == 3 ? [1] : [1, 2];
+            var source = scope.Quests.src;
+            var accepted = scope.Quests.AcceptedQuests;
+            Assert.Equal(Outcome.Rejected, LoadOwned(scope, QuestFile(
+                (700u, 1u, 10u, new uint[] { 9 }), (600u, status, time, values))).Status);
+            Assert.Same(source, scope.Quests.src);
+            Assert.Same(accepted, scope.Quests.AcceptedQuests);
+            Assert.Same(retained, Assert.Single(source).Value);
+            Assert.Same(retained, Assert.Single(accepted).Value);
+            Assert.Equal(new uint[] { 1, 2 }, retained.Intentions);
+            Assert.Equal(100u, retained.Time);
         });
 
+    [Theory]
+    [InlineData(0u)]
+    [InlineData(1u)]
+    public Task DuplicateDiskUidRejectsWholeLoadInsteadOfPublishingFirstRow(uint status) =>
+        NativePacketTestThread.Run(() =>
+        {
+            using var scope = new Scope();
+            scope.OwnFiles();
+            var source = scope.Quests.src;
+            var accepted = scope.Quests.AcceptedQuests;
+            Assert.Equal(Outcome.Rejected, LoadOwned(scope, QuestFile(
+                (600u, status, 100u, new uint[] { 1 }), (600u, status, 200u, new uint[] { 2 }),
+                (700u, 1u, 300u, new uint[] { 3 }))).Status);
+            Assert.Same(source, scope.Quests.src);
+            Assert.Same(accepted, scope.Quests.AcceptedQuests);
+            Assert.Empty(source);
+            Assert.Empty(accepted);
+        });
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(int.MinValue)]
+    [InlineData(int.MaxValue)]
+    public Task InvalidSignedRowCountRejectsUnchanged(int count) => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope();
+        scope.OwnFiles();
+        var retained = scope.Row(600, 600, Status.Accepted, 7);
+        scope.Quests.AcceptedQuests[600] = retained;
+        var bytes = new byte[4];
+        BinaryPrimitives.WriteInt32LittleEndian(bytes, count);
+        Assert.Equal(Outcome.Rejected, LoadOwned(scope, bytes).Status);
+        Assert.Same(retained, Assert.Single(scope.Quests.src).Value);
+        Assert.Same(retained, Assert.Single(scope.Quests.AcceptedQuests).Value);
+    });
+
     [Fact]
-    public Task NegativeIntentionLengthFaultsBeforePublishingThatRow() => NativePacketTestThread.Run(() =>
+    public Task ValidZeroCountRetainsExistingRows() => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope();
+        scope.OwnFiles();
+        var retained = scope.Row(600, 600, Status.Accepted, 7);
+        Assert.Equal(Outcome.Committed, LoadOwned(scope, new byte[4]).Status);
+        Assert.Same(retained, Assert.Single(scope.Quests.src).Value);
+        Assert.Empty(scope.Quests.AcceptedQuests); // Existing Kingdom-style subset stays valid.
+    });
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(int.MaxValue)]
+    public Task InvalidIntentionLengthRejectsBeforeAnyPublication(int length) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         scope.OwnFiles();
         var bytes = QuestFile((600u, 0u, 100u, Array.Empty<uint>()));
-        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(16), -1);
-        Assert.Throws<OverflowException>(() => LoadOwned(scope, bytes));
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(16), length);
+        Assert.Equal(Outcome.Rejected, LoadOwned(scope, bytes).Status);
         Assert.Empty(scope.Quests.src);
         Assert.Empty(scope.Quests.AcceptedQuests);
-    });
-
-    [Fact]
-    public Task LoadBodyRequiresActualQuestOwnerAndDoesNotAllocateOne() => NativePacketTestThread.Run(() =>
-    {
-        using var scope = new Scope();
-        scope.OwnFiles();
-        scope.Player.QuestGUI = null;
-        Assert.Throws<NullReferenceException>(() => LoadOwned(scope, new byte[4]));
-        Assert.Null(scope.Player.QuestGUI);
-        Assert.Empty(scope.Queue);
     });
 }

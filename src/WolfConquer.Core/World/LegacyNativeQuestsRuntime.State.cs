@@ -10,9 +10,14 @@ internal partial class LegacyNativeQuestsRuntime
 
     public Dictionary<uint, LegacyNativeMsgQuestList.QuestListItem> AcceptedQuests;
 
+    // Constructor identity and cooperating persistence gate, not raw-writer safety.
+    internal readonly LegacyNativePlayerRuntime PersistenceOwner;
+    internal readonly object PersistenceSyncRoot = new();
+
     public LegacyNativeQuestsRuntime(LegacyNativePlayerRuntime _owner)
     {
         Player = _owner;
+        PersistenceOwner = _owner;
         AcceptedQuests = new Dictionary<uint, LegacyNativeMsgQuestList.QuestListItem>();
         src = new Dictionary<uint, LegacyNativeMsgQuestList.QuestListItem>();
     }

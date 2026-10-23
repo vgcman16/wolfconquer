@@ -7,11 +7,21 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Private/public Release **3465/3465** each,0failed/0skipped: complete native
+  quest Save/Load (FSB040), real flushed replacement, full bounded parsing and
+  canonical conflict-safe merge. Corrected destructive/partial/split-alias tests;
+  valid bytes, raw statuses, UID0 rows and no persistence-level five-quest cap
+  remain. Full CI pending. Native login/SQL/quest-award lifecycle and raw writers
+  remain open; this does not enable a host or certify multifile recovery.
+
 - [x] Private/public Release **3214/3214** each,0failed/0skipped: complete selected
   native DivineGuard preparation before cooldown/status/success effects
   (FSB039),98new controls plus14 retained ProcRates cases. Genuine5%/15seconds,
   selected-trigger10minute stamp and owner/peer wire order remain. Includes the
-  deferred single testconstant parentheses fix; full CI/CodeFactor pending.
+  deferred single testconstant parentheses fix. FullWindows39962905914 passes
+  4m43s on exactaf3ca964: core23325/0failed (165excluded), updater301/301,
+  launcher49/49,8stageexit0,206build warnings. CodeFactor3NEW (2complexity+
+  1duplication),1FIXED (testconstant),total2289; no risky cosmetic follow-up.
   Full outer CheckEffects/combat/HP/Team/revive/host remains open, not activated.
 
 - [x] Private/public Release **3116/3116** each,0failed/0skipped: complete native

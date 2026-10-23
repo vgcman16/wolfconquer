@@ -141,12 +141,9 @@ public sealed partial class LegacyNativeInventoryMutationGraphTests
         return stream.ToArray();
     }
 
-    private static void LoadOwned(Scope scope, byte[] bytes)
+    private static LegacyNativeRoleQuests.Result LoadOwned(Scope scope, byte[] bytes)
     {
         File.WriteAllBytes(scope.QuestPath, bytes);
-        var file = new LegacyNativeBinaryFile();
-        Assert.True(file.Open(scope.QuestPath, FileMode.Open));
-        try { LegacyNativeRoleQuests.LoadOpenedFile(file, scope.Client); }
-        finally { file.Close(); } // Explicit fixture ownership; native Load has no Close.
+        return LegacyNativeRoleQuests.TryLoad(scope.Client);
     }
 }

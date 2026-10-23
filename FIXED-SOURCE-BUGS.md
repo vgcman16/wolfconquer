@@ -464,10 +464,39 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   malformed owners/status, actual loan corruption/disposal, stale state,
   token replay, independent wire goldens and accepted send failure are checked.
   The previously deferred testconstant parentheses joins this behavior batch.
+  FullWindows39962905914 on exactaf3ca964 passes: core23325/0failed
+  (165excluded), updater301/301, launcher49/49, all8stageexit0.
 - Limits: no full outer CheckEffects authorization, combat/HP/Team/revive or
   host activation. Eligible loss prepares three potential-success loans; this
   is a safety tradeoff, not a speed claim. No RNG rollback, raw-writer global
   atomicity or confirmed network delivery is claimed. Offline only.
+
+### FSB-040: Stage complete native quest files and canonical indexes
+
+- Owner: complete RoleQuests Save/Load. The source truncated before validating,
+  ignored short I/O, leaked load handles and published partial/default/split-alias
+  rows. Unsafe opened-file entry points are retired after migrating every caller.
+- Save captures the genuine constructor-bound book/player/UID/absolute root,
+  validates complete physical rows and Accepted subset, prepares bounded native
+  bytes and uses real same-directory flushed atomic replacement with baseline
+  checks. Unproven write outcomes fence this path locally; void wrappers cannot
+  silently acknowledge rejected saves. No new quest owner is fabricated.
+- Load validates the entire counted image and tail before detached merge. Keep
+  nonconflicting rows and exact identical overlaps as canonical physical aliases;
+  reject duplicate/conflicting UIDs and invalid indexes without publication.
+  Preserve raw status bits, native enumeration, UID0 rows and more-than-five
+  accepted persistence; no new gameplay cap. Validate the merged64MiB bound and
+  physical indexes independently of caller comparers before reference commitment.
+- Verification: private/public Release **3465/3465** each,0failed/0skipped.
+  Retained byte goldens, first-save/reload, real Windows sharing denial, released
+  handles, truncation/tail/count faults, changing-hash/collapsing comparers, owner
+  drift and oversized file/merged-book controls pass. The first run exposed
+  DirectoryInfo's missing sentinel; production now reads actual attributes and
+  reports genuine missing directories as NotFound without hiding access errors.
+- Limits: offline one-file component and cooperating gates, not host/login/SQL,
+  all quest/objective/award transactions, multifile/crash recovery or atomic raw
+  observation of two public maps. Raw writers/path ABA remain open. Unknown
+  post-replace classification is source-reviewed, not invented runtime proof.
 
 ## Active audit
 
@@ -512,14 +541,20 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-037 | Native save truncates before validation, persists prefixes or loses nested deposits | Complete owned image and truthful atomic file outcome before acknowledgement | Scoped native save verified3116 both trees and full Windows39959714814; host/loader/SQL recovery open |
 | FSB-038 | Fixed32 text reads/writes escape buffers or retain stale tails | Bounded field access, validate before write and explicit null admission | Scoped record verified34cases within3116 both trees; full load/postlude audit open |
 | FSB-039 | Selected DivineGuard resets cooldown and publishes refinement before fallible status work | Complete real preparation and final ownership before stamp/status/draw effects | Scoped proc verified3214 both trees; outer authorization/combat/HP/host remains open |
+| FSB-040 | Quest saves truncate; loads accept partial/default rows and split canonical aliases | Complete real image and coherent validated merge before file/map publication | Scoped persistence verified3465 both trees; host/SQL/raw lifecycle recovery open |
 
 ## CodeFactor cleanup
 
-The next DivineGuard behavior batch passes3214/3214 in both trees and includes
-the one deferred testconstant parentheses fix. Its full CI/remote analysis is
-not yet measured; do not infer a cleared finding from local tests.
+Latest DivineGuard checkpoint publicaf3ca964 passes full
+[Windows39962905914](https://github.com/vgcman16/wolfconquer/actions/runs/39962905914)
+in4m43s, completed2026-10-23T13:44:48Z. Core23325passed/0failed of23490
+(165externalfixturecasesexcluded), updater301/301, launcher49/49;8stageexit0,
+206build warnings. Receipt20261023T134022374Z-6aac4289 finished13:44:41.9366811Z.
+Both local3214 selections pass. CodeFactor3NEW (2complexity+1duplication),
+1FIXED (the deferred testconstant),total2289. No cosmetic control-flow rewrite
+is started; none of this proves completed gameplay or host activation.
 
-Latest verified behavioral checkpoint: public01431fe3,
+Previous verified behavioral checkpoint: public01431fe3,
 [Windows39959714814](https://github.com/vgcman16/wolfconquer/actions/runs/39959714814)
 passed4m45s, completed2026-10-23T13:20:50Z. Core23227passed/0failed of23392
 (165externalfixturecasesexcluded), updater301/301, launcher49/49, all8stageexit0.
