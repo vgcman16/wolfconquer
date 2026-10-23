@@ -7,11 +7,16 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Published7a79ebc5 passes full Windows39945614990 in4m06s: core22196/0failed
+  (165 excluded), updater301/301, launcher49/49, all8 stages0. CodeFactor confirms
+  0NEW/4FIXED,total2268, net59 fewer than2327. Build warnings and gameplay debt
+  remain; no new live-client/deployment/parity claim. Next work is flag/AI safety.
+
 - [x] Combined defect-first successor passes private/public2646/2646,0fail/0skip:
   real RandomLite wide-range fault correction (44 RNG cases,31 new), one shared
   typed HW/Ninja mutation algorithm (19 new controls), and two test nameof fixes.
   RNG full-domain/fairness and whole rank transaction safety remain open. Current
-  successor still needs committed-tree CI and fresh CodeFactor analysis.
+  successor now has committed-tree CI and actual CodeFactor verification above.
 - [x] Full Windows39943323494 on exact5a62e0d4 passed4m09s: core22146/0failed,
   165 excluded, updater301/301, launcher49/49, all8 stages0. CodeFactor reports
   8FIXED/3NEW,total2272; all7 older API targets cleared. The three follow-ups are

@@ -1,5 +1,16 @@
 # Publication validation
 
+## Latest verified public code checkpoint
+
+[Windows39945614990](https://github.com/vgcman16/wolfconquer/actions/runs/39945614990)
+passed4m06s on exact7a79ebc5c0098e6a78f88d0b6ebde752fca50313, completed
+2026-10-23T11:27:05Z. Actual TRX: core22196 passed/0failed of22361 (165 external-
+fixture cases excluded), updater301/301, launcher49/49, all8 stages0.
+Receipt20261023T112314959Z-b46ced1a finished11:26:58.3548561Z;203 build warnings
+remain. CodeFactor confirms0NEW/4FIXED,total2268, net59 below2327.
+This verifies the combined RNG/ranking batch below, not deployment, live-client
+play, full-domain randomness, completed gameplay or a bug-free server.
+
 ## Current defect-first checkpoint
 
 Private/public Release each passed **2646/2646**,0fail/0skip. RandomLite inclusive
@@ -18,8 +29,9 @@ No protocol/packet switch was reshaped for a complexity score.
 
 User guardrail: real defects first; mechanical cosmetic changes batched by rule,
 with focused checks per coherent batch and full CI for behavioral/integration
-checkpoints, not each warning. Current combined successor needs clean committed-
-tree CI and fresh analysis. Further style work must not displace gameplay safety.
+checkpoints, not each warning. The combined successor now has clean committed-
+tree CI and fresh analysis above. Further style work must not displace gameplay
+safety; the next priority is flag admission and its real consuming transactions.
 
 ## Latest preceding full Windows receipt
 

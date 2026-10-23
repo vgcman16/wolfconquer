@@ -260,7 +260,16 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## CodeFactor cleanup
 
-Latest published5a62e0d4: **8FIXED/3NEW**, **2272 total**. All seven older API
+Latest verified public code7a79ebc5: **0NEW/4FIXED**, **2268 total findings**,
+net59 below2327. The three targeted follow-ups and one older RNG arithmetic
+record are inactive. Full Windows39945614990 passed4m06s on exact
+7a79ebc5c0098e6a78f88d0b6ebde752fca50313, completed2026-10-23T11:27:05Z:
+core22196 passed/0failed of22361 (165 excluded), updater301/301, launcher49/49,
+all8 stages0. Receipt20261023T112314959Z-b46ced1a finished11:26:58.3548561Z.
+Build203 warnings remain; this is offline CI, not live-client or deployment proof.
+Cosmetic follow-up loop stops here; next work is real flag/AI/caller safety.
+
+Earlier published5a62e0d4: **8FIXED/3NEW**, **2272 total**. All seven older API
 targets cleared; the eighth fixed record is an older duplicate that was reissued
 under a new key. Two new findings are nameof suggestions in test expectation
 constructors; literal ParamName assertions remain independent. The third is the
@@ -273,7 +282,7 @@ fields/constructor/gate/ref dictionary/ref cap remain; UID is captured once and
 upsert uses one lookup. Stable unsigned ties/caps/row identity and late cap reads
 remain tested. Mutation-before-fallible-sort/raw-race safety is still open.
 No packet switch, protocol layout or handler ordering was refactored for score.
-Remote analysis and full CI for this combined behavioral checkpoint are pending;
+Remote analysis and full CI now verify this combined behavioral checkpoint above;
 no per-warning full-CI loop is intended. Defect-first batching is now explicit in
 the engineering policy.
 
