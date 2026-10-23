@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyVoteManagerItemRewardMutationTests : IDisposable
+public sealed partial class LegacyVoteManagerItemRewardMutationTests : IDisposable
 {
     private const uint CharacterUid = 1_293_600;
     private const long AccountId = CharacterUid;
@@ -112,31 +112,30 @@ public sealed class LegacyVoteManagerItemRewardMutationTests : IDisposable
         Assert.DoesNotContain("VoteManager item reward", result.Log, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task FullInventoryPersistsDebitOnlyAndSendsNothing()
+    [Theory]
+    [MemberData(nameof(RewardCases))]
+    public async Task FullInventoryRefusesWithoutVoteDebitOrExposure(byte optionId, ulong cost, uint rewardItemId)
     {
         var originalItems = Items(Enumerable.Range(1, 40)
             .Select(index => InventoryItem(checked((uint)index), checked((uint)(400_000 + index))))
             .ToArray());
-        var result = await InvokeAsync(
-            optionId: 43,
-            votePoints: 15,
-            originalItems,
-            CreateWorldDataCatalog(ItemType(4_200_013)));
+        var result = await InvokeAsync(optionId, cost + 5, originalItems,
+            CreateWorldDataCatalog(ItemType(rewardItemId)));
 
         Assert.True(result.Handled);
-        Assert.NotSame(result.OriginalSession, result.UpdatedSession);
-        Assert.Equal(5UL, VotePoints(result.UpdatedSession.Character));
+        Assert.Same(result.OriginalSession, result.UpdatedSession);
+        Assert.Equal(cost + 5, VotePoints(result.UpdatedSession.Character));
         AssertPlayerItemsEqual(originalItems, result.UpdatedSession.PlayerItems);
-        Assert.NotNull(result.PersistedAtCommit);
-        Assert.Equal(5UL, VotePoints(result.PersistedAtCommit!.Character));
-        AssertPlayerItemsEqual(originalItems, result.PersistedAtCommit.Items);
-        Assert.NotNull(result.PersistedItems);
-        AssertPlayerItemsEqual(originalItems, result.PersistedItems!);
+        Assert.Null(result.PersistedAtCommit);
+        Assert.NotNull(result.ReloadedCharacter);
+        Assert.Equal(cost + 5, VotePoints(result.ReloadedCharacter!));
+        AssertPlayerItemsEqual(originalItems, Assert.IsType<PlayerItemSnapshot>(result.PersistedItems));
+        Assert.Equal(result.OriginalCharacterBytes, File.ReadAllBytes(result.CharacterPath));
         Assert.Equal(result.OriginalItemBytes, File.ReadAllBytes(result.PlayerItemsPath));
-        Assert.Equal(["commit"], result.ExposureOrder);
+        Assert.Empty(result.ExposureOrder);
         Assert.Empty(result.Sent);
-        Assert.Contains("inventoryFull=True packetOrder=none", result.Log);
+        Assert.Contains("reason=inventory-full", result.Log);
+        Assert.Contains("no mutation or packets were committed", result.Log);
     }
 
     [Fact]

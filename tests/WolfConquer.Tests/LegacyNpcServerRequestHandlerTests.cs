@@ -1296,7 +1296,7 @@ public sealed class LegacyNpcServerRequestHandlerTests
     }
 
     [Fact]
-    public async Task HandlerUnlocksEpicDeitylandChestWithSourceUnlockKey()
+    public async Task HandlerUnlocksEpicDeitylandChestWithEpicKey()
     {
         using var log = new StringWriter();
         var sent = new List<byte[]>();
@@ -1341,7 +1341,7 @@ public sealed class LegacyNpcServerRequestHandlerTests
             ReadFrame(BuildLegacyNpcDialogReply(optionId: 1, interactType: 1, npcId: 0)));
 
         Assert.Equal(10, sent.Count);
-        AssertRemoveInventory(sent[8], sourceUnlockKey.Uid);
+        AssertRemoveInventory(sent[8], epicDialogKey.Uid);
         if (LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[9]), out var update))
         {
             Assert.Equal([new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.ConquerPoints, 200_000)], update.Updates);
@@ -1353,8 +1353,8 @@ public sealed class LegacyNpcServerRequestHandlerTests
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Contains(updatedSession.PlayerItems.InventoryItems, item => item.ItemId == epicDialogKey.ItemId);
-        Assert.DoesNotContain(updatedSession.PlayerItems.InventoryItems, item => item.ItemId == sourceUnlockKey.ItemId);
+        Assert.DoesNotContain(updatedSession.PlayerItems.InventoryItems, item => item.ItemId == epicDialogKey.ItemId);
+        Assert.Contains(updatedSession.PlayerItems.InventoryItems, item => item.ItemId == sourceUnlockKey.ItemId);
         Assert.Contains("source=NpcHandler.EpicDeitylandChests", log.ToString());
         Assert.DoesNotContain("PARITY-GAP unmodeled LegacyNpcReply", log.ToString());
     }

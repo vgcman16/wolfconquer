@@ -70,7 +70,7 @@ public sealed partial class LegacyNativeCombatGearMessageTests
 
     private static List<Field> Entry(Field field) => ReadFields(Assert.IsType<byte[]>(field.Bytes));
     private static ulong Scalar(List<Field> fields, int number) =>
-        Assert.Single(fields.Where(field => field.Number == number && field.Bytes is null)).Value;
+        Assert.Single(fields, field => field.Number == number && field.Bytes is null).Value;
     private sealed record Field(int Number, ulong Value, byte[]? Bytes);
 
     private static void AssertItem(List<Field> fields, Gear.Weapon weapon)

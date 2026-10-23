@@ -25,8 +25,8 @@ public sealed class LegacyNativeSocketImportTests
             methods.Select(Identity).OrderBy(identity => identity, StringComparer.Ordinal));
         Assert.Equal(31, methods.Length);
         Assert.Equal(29, methods.Count(method => method.IsPublic));
-        Assert.Single(methods.Where(method => method.IsAssembly));
-        Assert.Single(methods.Where(method => method.IsPrivate));
+        Assert.Single(methods, method => method.IsAssembly);
+        Assert.Single(methods, method => method.IsPrivate);
         Assert.All(methods, method =>
         {
             Assert.True(method.IsStatic);
@@ -93,7 +93,7 @@ public sealed class LegacyNativeSocketImportTests
         Assert.Equal(31, expected.Length);
         foreach (var row in expected)
         {
-            var method = Assert.Single(methods.Where(candidate => Identity(candidate) == row.Identity));
+            var method = Assert.Single(methods, candidate => Identity(candidate) == row.Identity);
             var import = method.GetCustomAttribute<DllImportAttribute>()!;
             Assert.Equal(row.Library, import.Value);
             Assert.Equal(row.EntryPoint, import.EntryPoint);
@@ -178,7 +178,7 @@ public sealed class LegacyNativeSocketImportTests
     {
         Signature("shutdown", typeof(int), new[] { "s", "how" }, new[] { "", "" }, typeof(IntPtr), typeof(NativeShutdownFlags));
         Signature("WSALookupServiceNext", typeof(int), new[] { "hLookup", "dwControlFlags", "lpdwBufferLength", "pqsResults" }, new[] { "", "", "", "" }, typeof(int), typeof(int), typeof(int).MakeByRefType(), typeof(IntPtr));
-        var lookup = Assert.Single(Imports().Where(method => method.Name == "WSALookupServiceNext"));
+        var lookup = Assert.Single(Imports(), method => method.Name == "WSALookupServiceNext");
         Assert.True(lookup.IsPrivate);
         Assert.False(lookup.IsPublic || lookup.IsAssembly);
     }
@@ -193,8 +193,8 @@ public sealed class LegacyNativeSocketImportTests
 
     private static MethodInfo Signature(string name, Type returnType, string[] names, string[] directions, params Type[] parameterTypes)
     {
-        var method = Assert.Single(Imports().Where(candidate =>
-            candidate.Name == name && candidate.GetParameters().Select(parameter => parameter.ParameterType).SequenceEqual(parameterTypes)));
+        var method = Assert.Single(Imports(), candidate =>
+            candidate.Name == name && candidate.GetParameters().Select(parameter => parameter.ParameterType).SequenceEqual(parameterTypes));
         Assert.Equal(returnType, method.ReturnType);
         var parameters = method.GetParameters();
         Assert.Equal(names, parameters.Select(parameter => parameter.Name));

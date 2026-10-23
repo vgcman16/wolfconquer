@@ -25,7 +25,7 @@ public sealed class LegacyNativeSpellRuneTests
         Assert.NotSame(first, second);
         Assert.Equal(3, first.Length);
         Assert.Equal(2, first.Count(x => ReferenceEquals(shared, x)));
-        Assert.Single(first.Where(x => ReferenceEquals(other, x)));
+        Assert.Single(first, x => ReferenceEquals(other, x));
         first[0] = new LegacyNativeMsgSpell();
         Assert.DoesNotContain(second, x => x.ID == 0);
         Assert.Same(shared, storage.ClientSpells[1]);

@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyLotteryExchangeMutationTests : IDisposable
+public sealed partial class LegacyLotteryExchangeMutationTests : IDisposable
 {
     private const uint LotteryCollectorWongNpcId = 3_952;
     private const uint MarketLadyLuckNpcId = 923;
@@ -82,7 +82,7 @@ public sealed class LegacyLotteryExchangeMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task CollectorUnboundGateCanRemoveEarlierBoundItemLikeSourceInventoryRemove()
+    public async Task CollectorDebitsEligibleUnboundItemAndPreservesBoundStock()
     {
         var playerItemsRoot = CreatePlayerItemsRoot();
         var usersRoot = CreateUsersRoot();
@@ -102,10 +102,11 @@ public sealed class LegacyLotteryExchangeMutationTests : IDisposable
 
         Assert.Equal(40, result.UpdatedSession.Character.ConquerPoints);
         var remaining = Assert.Single(result.UpdatedSession.PlayerItems.InventoryItems);
-        Assert.Equal(20U, remaining.Uid);
-        Assert.Equal(0, remaining.Bound);
-        AssertRemoval(result.Sent[0], uid: 10);
-        Assert.Contains("removedBound=1", result.Log);
+        Assert.Equal(10U, remaining.Uid);
+        Assert.Equal(1, remaining.Bound);
+        AssertPlayerItemsEqual(CreatePlayerItems(originalItems.InventoryItems[0]), CreatePlayerItems(remaining));
+        AssertRemoval(result.Sent[0], uid: 20);
+        Assert.Contains("removedBound=0", result.Log);
         AssertPersistedEquals(playerItemsRoot, result.UpdatedSession.PlayerItems);
     }
 
@@ -331,7 +332,7 @@ public sealed class LegacyLotteryExchangeMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task MarketUnboundGateCanRemoveEarlierBoundTicketLikeSourceInventoryRemove()
+    public async Task MarketDebitsEligibleUnboundTicketAndPreservesBoundStock()
     {
         var playerItemsRoot = CreatePlayerItemsRoot();
         var originalItems = CreatePlayerItems(
@@ -346,16 +347,17 @@ public sealed class LegacyLotteryExchangeMutationTests : IDisposable
             playerItemsRoot,
             usersRoot: null);
 
-        AssertRemoval(result.Sent[0], uid: 10);
+        AssertRemoval(result.Sent[0], uid: 20);
         var remainingTicket = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
             item => item.ItemId == LotteryTicketItemId);
-        Assert.Equal(20U, remainingTicket.Uid);
-        Assert.Equal(0, remainingTicket.Bound);
+        Assert.Equal(10U, remainingTicket.Uid);
+        Assert.Equal(1, remainingTicket.Bound);
+        AssertPlayerItemsEqual(CreatePlayerItems(originalItems.InventoryItems[0]), CreatePlayerItems(remainingTicket));
         Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
             item => item.ItemId == SmallLotteryTicketItemId && item.Bound == 0);
-        Assert.Contains("removedBound=1", result.Log);
+        Assert.Contains("removedBound=0", result.Log);
     }
 
     [Fact]

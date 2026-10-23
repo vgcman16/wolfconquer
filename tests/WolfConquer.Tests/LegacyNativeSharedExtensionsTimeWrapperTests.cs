@@ -24,11 +24,11 @@ public sealed class LegacyNativeSharedExtensionsTimeWrapperTests
     {
         var instructions = ReadInstructions(TimeMethod("AllSeconds"));
         var expected = TimeMethod("AllMilliseconds");
-        var call = Assert.Single(instructions.Where(i => i.CalledMethod is not null));
+        var call = Assert.Single(instructions, i => i.CalledMethod is not null);
         Assert.Equal(OpCodes.Call, call.Op);
         Assert.Equal(expected, call.CalledMethod);
         var significant = instructions.Where(i => i.Op != OpCodes.Nop).ToArray();
-        var division = Assert.Single(significant.Where(i => i.Op == OpCodes.Div));
+        var division = Assert.Single(significant, i => i.Op == OpCodes.Div);
         var divisionIndex = Array.IndexOf(significant, division);
         Assert.True(divisionIndex >= 2);
         Assert.Equal((int?)1000, significant[divisionIndex - 1].Int32Operand);
@@ -39,8 +39,8 @@ public sealed class LegacyNativeSharedExtensionsTimeWrapperTests
     [Fact]
     public void GetHashCodeIlCallsSameOwnerValueOnceWithoutDateTimeInstanceHash()
     {
-        var call = Assert.Single(ReadInstructions(TimeMethod("GetHashCode"))
-            .Where(i => i.CalledMethod is not null));
+        var call = Assert.Single(ReadInstructions(TimeMethod("GetHashCode")),
+            i => i.CalledMethod is not null);
         Assert.Equal(OpCodes.Call, call.Op);
         Assert.Equal(TimeMethod("Value"), call.CalledMethod);
     }

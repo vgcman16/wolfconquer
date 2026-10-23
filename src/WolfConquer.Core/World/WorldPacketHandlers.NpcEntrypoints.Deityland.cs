@@ -664,7 +664,10 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        if (rewardItemId != 0 && !CanLegacyDeitylandChestCreateRewardSlot(session.PlayerItems, keyItemId))
+        var consumeFrames = new List<byte[]>();
+        var updatedItems = ConsumeLegacyInventoryStack(session.PlayerItems, keyItemId, 1, consumeFrames);
+
+        if (rewardItemId != 0 && !HasLegacyInventorySpace(updatedItems, 1))
         {
             await context.Connection.SendAsync(
                     LegacyNpcReplyPacket.ForMessageBox("Please make 1 more space in your inventory.").ToFrameBytes(),
@@ -676,9 +679,6 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
             return;
         }
-
-        var consumeFrames = new List<byte[]>();
-        var updatedItems = ConsumeLegacyInventoryStack(session.PlayerItems, keyItemId, 1, consumeFrames);
 
         if (conquerPointsReward != 0)
         {
@@ -751,18 +751,6 @@ public static partial class WorldPacketHandlers
                 "WorldServer handled LegacyNpc Deityland chest item reward " +
                 $"{FormatSession(rewardContext)} source={sourceMethod} keyItemId={keyItemId} itemId={rewardItemId}.")
             .ConfigureAwait(false);
-    }
-
-    private static bool CanLegacyDeitylandChestCreateRewardSlot(PlayerItemSnapshot items, uint keyItemId)
-    {
-        if (HasLegacyInventorySpace(items, 1))
-        {
-            return true;
-        }
-
-        return items.InventoryItems.Any(item =>
-            item.ItemId == keyItemId &&
-            (item.StackSize == 0 || item.StackSize == 1));
     }
 
     private static PlayerItemSnapshotItem CreateLegacyDeitylandChestRewardItem(

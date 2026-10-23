@@ -7,6 +7,17 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Admitted-claim/chest safety (FSB060–063): Vote full-bag rejection,
+  positive unbound Lottery costs/capacity-before-allocation, exact post-debit
+  Deityland capacity and Epic3303974 key identity. Tests-first76=52pass/24fail
+  across50+26 selections;43 net new cases and four unsafe old methods corrected.
+  Private and independent public Release326/326 each passed,zero failed/skipped;
+  full Windows CI pending. D13 offline component/registered and owned-file checks preserve
+  valid economics/frames; server-export item names are not client-table proof.
+  Whole transactions,zero-stack admission,respawn/claims,UID/Host activation,
+  crash recovery,SQL/live/full parity remain open. Fourteen xUnit2031 substitutions
+  in eight files are local hygiene only, not measured CodeFactor portal cleanup.
+
 - [x] NPC admitted-cost and existing-lock safety (FSB058/059): real tests-first
   108=82passed/26failed; six unsafe old facts corrected and39 new cases added.
   Private and independent public Release338/338 each passed,zero failed/skipped

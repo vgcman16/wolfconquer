@@ -68,7 +68,7 @@ public static partial class WorldPacketHandlers
     private const uint LegacyDeitylandPortalLastNpcId = 20_865;
     private const uint LegacyRareDeitylandChestKeyItemId = 3_303_973;
     private const uint LegacyEpicDeitylandChestDialogKeyItemId = 3_303_974;
-    private const uint LegacyEpicDeitylandChestUnlockKeyItemId = 3_303_973;
+    private const uint LegacyEpicDeitylandChestUnlockKeyItemId = LegacyEpicDeitylandChestDialogKeyItemId;
     private const uint LegacyEpicDeitylandChestConquerPointReward = 200_000;
     private const uint LegacyDeityAltarPrimaryNpcId = 22_560;
     private const uint LegacyDeityAltarSecondaryNpcId = 22_561;

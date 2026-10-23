@@ -55,7 +55,7 @@ public sealed partial class LegacyNativeCombatGearMessageTests
         var fields = ReadFrame(frame, 2420);
         Assert.Equal(3UL, Scalar(fields, 1));
         Assert.Equal(17UL, Scalar(fields, 2));
-        AssertItem(Entry(Assert.Single(fields.Where(field => field.Number == 3))), weapon);
+        AssertItem(Entry(Assert.Single(fields, field => field.Number == 3)), weapon);
         Assert.Same(jades, weapon.BlackJades);
         Assert.Equal(3U, weapon.Exp);
         var retained = frame.ToArray();

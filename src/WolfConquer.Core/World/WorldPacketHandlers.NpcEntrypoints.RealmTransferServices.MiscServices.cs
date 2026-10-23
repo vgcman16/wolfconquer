@@ -307,6 +307,13 @@ public static partial class WorldPacketHandlers
             "VotePoints",
             updatedVotePoints);
         var hasInventorySpace = HasLegacyInventorySpace(session.PlayerItems, 1);
+        if (!hasInventorySpace)
+        {
+            await LogLegacyRealmTransferServicesVoteItemSafetyFenceAsync(
+                    context, source, sourceLines, optionId, rewardItemId, "inventory-full")
+                .ConfigureAwait(false);
+            return;
+        }
         PlayerItemSnapshotItem? grantedItem = null;
 
         if (hasInventorySpace)

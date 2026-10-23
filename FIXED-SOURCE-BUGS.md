@@ -1011,6 +1011,65 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   receipt/stdout and all three terminal TRXs. Parser20+13 controls remain
   synthetic only; no HTTP/service,SQL,live-client or deployment proof.
 
+### FSB-060: Refuse full-bag Vote item claims before spending points
+
+- Owner: `RealmTransferServices.MiscServices` Vote item rewards, options43–46.
+  The old path could deduct VotePoints without granting an item when the bag was
+  full. Capacity now rejects before persistence, session mutation or success.
+- Preserve all four costs/rewards, metadata validation and successful frames.
+  Full-bag controls require unchanged points, items, saved files and outputs.
+- Verification: included in the shared admission batch below. This does not
+  establish whole Vote claim recovery or a durable economy transaction.
+
+### FSB-061: Debit only eligible Lottery exchange costs before allocating rewards
+
+- Owner: `JailGuildServices.Rewards`, Collector Wong and Market exchanges.
+  Authorization could accept unbound stock while debit selected an earlier bound
+  or empty row. Select only matching `Bound == 0 && StackSize > 0` rows, retaining
+  original eligible order and existing costs/payouts.
+- Market checks capacity against the exact staged ticket removal before reward
+  allocation; a full bag cannot reach UID overflow/allocation first. Refusal
+  preserves costs, economy, files and success output. Valid slot-freeing and
+  noncanonical-binding controls remain.
+- Verification: shared batch below; no global allocator/Host activation or
+  complete exchange transaction/replay claim.
+
+### FSB-062: Check Deityland capacity against the actual planned key debit
+
+- Owner: `Deityland.TryUnlockLegacyDeitylandChestAsync`. The old ANY-short-key
+  prediction let a full40 bag with ordered stacks `[2,1]` append item41 after
+  charging the first stack2 without freeing a slot.
+- Prepare the exact existing debit/frames privately, then check the resulting
+  inventory for item payouts. Refusal discards both; CP-only rewards need no slot.
+  Preserve binding/enumeration policy, costs, rewards/rates and debit-first frames.
+- Verification: shared batch below. Pre-persistence session publication,
+  shared zero-stack admission and NPC respawn/claim lifecycle remain open.
+
+### FSB-063: Require the Epic chest's own Epic key
+
+- Owners: Epic chest dialog/unlock constants and registered caller. Native code
+  and the copied test consumed Rare3303973 while the Epic dialog requested
+  Epic3303974. Unlock now uses the existing Epic dialog key constant.
+- Registered Epic-only success, Rare-only unchanged refusal and mixed-key
+  controls preserve Rare stock and consume Epic stock for either genuine random
+  item payout or200,000CP. The old unsafe mixed-key fact is corrected; wire
+  layouts, rates and successful packet ordering are unchanged.
+- Catalog provenance: `.setup_work/seed-json/items.json` rows2373051–55 and
+  2373123–27 name RareChestKey/EpicChestKey. Its `manifest.json` identifies a
+  2026-07-19 export from original `lqtxfwd/GameServer/DBServer`: SERVER catalog
+  evidence, not independent client-table/binary proof.
+- Shared tests-first evidence for FSB060–063:50 cases=37pass/13fail and26 cases=
+  15pass/11fail; combined76=52pass/24fail. Added43 net new cases and corrected
+  four unsafe old test methods. Private widened Release selection passed
+  **326/326**, zero failed/skipped (`claim-chest-green.trx`, terminal exit0).
+  Independent public Release also passed326/326,zero failed/skipped. Full
+  Windows CI is pending; focused checks are not a full-CI claim.
+- D13 offline registered/component fixtures and owned files only. Private-method
+  post-roll controls are not registered Epic/Frame/client proof. No live client,
+  SQL, crash safety, coherent multi-file atomicity or full-parity acceptance.
+  Fourteen equivalent xUnit2031 substitutions in eight test files are local
+  hygiene, not a verified CodeFactor portal finding reduction.
+
 ## Active audit
 
 Current work does not close whole managed reward transactions. SuperGuildWar's

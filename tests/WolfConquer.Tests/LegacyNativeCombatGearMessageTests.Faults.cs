@@ -62,7 +62,7 @@ public sealed partial class LegacyNativeCombatGearMessageTests
         var mainOnly = Weapon();
         mainOnly.TypeAnima = null!;
         AssertItem(Entry(Assert.Single(ReadFrame(
-            GearMessage.Create(7, mainOnly, GearMessage.TypeID.Load), 2420).Where(field => field.Number == 3))), mainOnly);
+            GearMessage.Create(7, mainOnly, GearMessage.TypeID.Load), 2420), field => field.Number == 3)), mainOnly);
         var skinOnly = Weapon();
         skinOnly.BlackJades = null!;
         var skinEntries = ReadFrame(SkinMessage.Create(skinOnly), 2422)

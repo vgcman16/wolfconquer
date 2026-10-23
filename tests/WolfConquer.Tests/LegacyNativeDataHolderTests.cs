@@ -26,7 +26,7 @@ public sealed class LegacyNativeDataHolderTests
         Assert.False(field.IsInitOnly);
         Assert.False(field.IsLiteral);
         Assert.Equal(NullabilityState.Nullable, new NullabilityInfoContext().Create(field).ReadState);
-        var method = Assert.Single(type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(candidate => !candidate.IsSpecialName));
+        var method = Assert.Single(type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly), candidate => !candidate.IsSpecialName);
         Assert.Equal("CreateConnection", method.Name);
         Assert.Equal(typeof(bool), method.ReturnType);
         Assert.Equal(new[] { "host", "username", "password", "database" },

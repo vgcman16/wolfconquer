@@ -17,8 +17,8 @@ public sealed class LegacyNativeItemTypeRuneCheckTests
         Assert.Equal(new[] { typeof(uint), typeof(uint) }, method.GetParameters().Select(p => p.ParameterType));
         Assert.Equal(new[] { "ID", "Position" }, method.GetParameters().Select(p => p.Name));
         Assert.All(method.GetParameters(), p => Assert.False(p.IsOptional));
-        Assert.Single(typeof(Table).GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Where(m => m.Name == "isRuneCheck"));
+        Assert.Single(typeof(Table).GetMethods(BindingFlags.Public | BindingFlags.Static),
+            m => m.Name == "isRuneCheck");
     }
 
     [Fact]

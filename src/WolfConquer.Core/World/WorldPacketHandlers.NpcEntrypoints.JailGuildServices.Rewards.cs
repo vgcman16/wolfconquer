@@ -504,7 +504,7 @@ public static partial class WorldPacketHandlers
 
         var characterUid = (uint)session.Character.Uid;
 
-        var removalTarget = session.PlayerItems.InventoryItems.First(item => item.ItemId == sourceItemId);
+        var removalTarget = session.PlayerItems.InventoryItems.First(item => item.ItemId == sourceItemId && item.Bound == 0 && item.StackSize > 0);
         var updatedItems = ConsumeSingleLegacyInventoryItem(
             session.PlayerItems,
             removalTarget,
@@ -713,6 +713,23 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        var removalTarget = session.PlayerItems.InventoryItems.First(
+            item => item.ItemId == LegacyJailGuildServicesLotteryTicketItemId && item.Bound == 0 && item.StackSize > 0);
+        var consumedItems = ConsumeSingleLegacyInventoryItem(
+            session.PlayerItems,
+            removalTarget,
+            out var removalFrame);
+        if (!HasLegacyInventorySpace(consumedItems, 1))
+        {
+            await context.Log.WriteLineAsync(
+                    "PARITY-GAP LegacyNpc JailGuildServices MarketLadyLuck exchange " +
+                    $"{FormatSession(context)} source={LegacyJailGuildServicesMarketLadyLuckSource.SourceMethod} " +
+                    $"sourceLines={LegacyJailGuildServicesMarketLadyLuckSource.SourceLines} optionId={optionId} " +
+                    "reason=inventory-full-after-planned-ticket-removal; no ticket was consumed and no reward was granted.")
+                .ConfigureAwait(false);
+            return;
+        }
+
         PlayerItemSnapshotItem rewardItem;
         try
         {
@@ -730,23 +747,6 @@ public static partial class WorldPacketHandlers
                     $"{FormatSession(context)} source={LegacyJailGuildServicesMarketLadyLuckSource.SourceMethod} " +
                     $"sourceLines={LegacyJailGuildServicesMarketLadyLuckSource.SourceLines} optionId={optionId} " +
                     "reason=item-uid-exhausted; no ticket was consumed and no mutation packet was sent.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var removalTarget = session.PlayerItems.InventoryItems.First(
-            item => item.ItemId == LegacyJailGuildServicesLotteryTicketItemId);
-        var consumedItems = ConsumeSingleLegacyInventoryItem(
-            session.PlayerItems,
-            removalTarget,
-            out var removalFrame);
-        if (!HasLegacyInventorySpace(consumedItems, 1))
-        {
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP LegacyNpc JailGuildServices MarketLadyLuck exchange " +
-                    $"{FormatSession(context)} source={LegacyJailGuildServicesMarketLadyLuckSource.SourceMethod} " +
-                    $"sourceLines={LegacyJailGuildServicesMarketLadyLuckSource.SourceLines} optionId={optionId} " +
-                    "reason=inventory-full-after-planned-ticket-removal; no ticket was consumed and no reward was granted.")
                 .ConfigureAwait(false);
             return;
         }
@@ -801,7 +801,7 @@ public static partial class WorldPacketHandlers
         var count = 0u;
         foreach (var item in items.InventoryItems)
         {
-            if (item.ItemId != itemId || item.Bound != 0)
+            if (item.ItemId != itemId || item.Bound != 0 || item.StackSize == 0)
             {
                 continue;
             }
