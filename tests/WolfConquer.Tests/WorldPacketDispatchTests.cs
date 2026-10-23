@@ -1590,7 +1590,9 @@ public sealed class WorldPacketDispatchTests
             "WorldServer source-silent legacy packet session=none opcode=2311 payloadLength=516.",
             output);
         Assert.Contains("sourceName=unmapped", output);
-        Assert.Contains("opcode 2311 has no [Packet(2311)] attribute", output);
+        Assert.Contains("opcode 2311 has no [Packet(2311)] inbound handler", output);
+        Assert.Contains("MsgMessage.cs command ttp writes 21 literal payload bytes and calls Finalize(2311)", output);
+        Assert.Contains("this serializer does not establish an inbound handler", output);
         Assert.Contains("observed an all-zero 516-byte client frame", output);
         Assert.Contains(
             "payloadSampleHex=0000000000000000000000000000000000000000000000000000000000000000...",

@@ -1,5 +1,23 @@
 # Native saves and equipment — offline checklist
 
+## CI recovery and source-backed test contract correction
+
+- [x] Human-approved registered Windows runner recovery; queued parity tracker
+  passed and refreshed only its three generated files. No game/client restart.
+- [x] Fresh full Windows run39889787428 onbdd40e4a restored/built successfully,
+  then found two core-test expectation failures:19670 passed/2 failed/165
+  unexecuted of19837; updater262/262 passed. Later Windows stages were not reached.
+- [x] Original source confirms public RandFromGivingNums and outbound-only2311
+  serialization, not an inbound handler. Two tests now retain their existing
+  checks and add exact signature plus outbound/inbound evidence assertions.
+  No production method, packet behavior, test skip or workflow was changed.
+- [x] Sanitized-public focused API/selection/dispatch checks passed309/309,
+  zero failures/skips. First direct run301/309 lacked the required measured PS7
+  probe binding; matching the normal pipeline environment passed all309.
+- [ ] Fresh full Windows CI rerun is required after this test-only correction.
+  Focused proof is not full CI, gameplay, deployment or overall parity acceptance.
+
+
 ## Follow-on complete solo arena load/reset and instance prerequisites
 
 - [x] Genuine arena instance and match constructors/state, complete Winner/Loser/

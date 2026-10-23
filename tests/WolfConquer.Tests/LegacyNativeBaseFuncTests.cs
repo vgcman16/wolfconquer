@@ -42,7 +42,16 @@ public sealed class LegacyNativeBaseFuncTests
         Assert.Equal(new[] { typeof(int), typeof(bool) }, method.GetParameters().Select(p => p.ParameterType));
         Assert.Equal(new[] { "nMax", "bRealRand" }, method.GetParameters().Select(p => p.Name));
         Assert.All(method.GetParameters(), p => Assert.False(p.IsOptional));
-        Assert.Equal(new[] { "ProficiencyLevelExperience", "RandGet", "rand", "srand" },
+        // Native BaseFunc145..152 is public too; the later whole-method port must
+        // remain visible rather than being hidden to preserve an older API snapshot.
+        var selection = typeof(LegacyNativeBaseFunc).GetMethod("RandFromGivingNums")!;
+        Assert.True(selection.IsPublic && selection.IsStatic);
+        Assert.Equal(typeof(uint), selection.ReturnType);
+        var selectionParameter = Assert.Single(selection.GetParameters());
+        Assert.Equal(typeof(uint[]), selectionParameter.ParameterType);
+        Assert.Equal("nums", selectionParameter.Name);
+        Assert.False(selectionParameter.IsOptional);
+        Assert.Equal(new[] { "ProficiencyLevelExperience", "RandFromGivingNums", "RandGet", "rand", "srand" },
             typeof(LegacyNativeBaseFunc).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
                 .Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
     }

@@ -1,5 +1,24 @@
 # Publication validation
 
+## CI recovery — test-only correction awaiting full rerun
+
+The registered self-hosted Windows runner was restarted with human approval;
+queued Parity tracker39889055900 passed. Only its three generated tracker files
+changed inbdd40e4a. Fresh full Windows run39889787428 restored/built successfully,
+then failed two core expectations:19670 passed,2 failed,165 unexecuted of19837.
+Updater262/262 passed; launcher/parser stages were not reached after test exit1.
+
+Source review confirms the later native public RandFromGivingNums method and the
+2311 outbound serializer without an inbound receiver. Only those two tests were
+updated: original checks retained, exact new method signature and outbound/
+inbound diagnostic assertions added. Production and skip behavior are unchanged.
+
+Focused sanitized-public API/selection/dispatch checks passed309/309 with the
+normal measured PS7 probe binding, zero failures/skips. An initial direct run
+passed301/309 with8 environment-binding failures; no production fix was needed.
+Fresh full Windows CI remains required; this entry does not claim CI-green.
+
+
 ## Native solo arena load/reset and genuine instance graph
 
 Private and independent sanitized-public Release each passed2824/2824, zero
