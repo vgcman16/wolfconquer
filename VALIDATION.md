@@ -1,5 +1,24 @@
 # Publication validation
 
+## Native Team/aura prerequisites and stat calculations
+
+Private Release and independent sanitized-public Release each passed934/934,
+zero failures/skips:72 new Team/leadership/flag-icon/aura/Associate-state cases,
+62 new whole native HP/mana formula and guild-skill-table cases,800 retained.
+Owned source-shaped HP arithmetic observations match18 formula values under
+both default and optimized Framework4/x86;10 finite cast controls also pass.
+Aura conversion is scoped to the separately observed source expression families.
+
+Initial private compilation exposed a missing test namespace. The next913-pass/
+21-fail result retained correct packet bytes but expected the wrong post-Finalize
+cursor. Native Finalize writes the header and leaves Position4; tests now assert
+that, retaining size/bytes and later read-cursor checks. No serializer behavior
+was weakened. All rejections remain local. Public fixtures remain synthetic.
+
+Full Team/HP/level/equipment rebuilding, native save/login/startup/host adoption
+and actual-client rendering remain open. No live game or service was restarted,
+and these focused results do not qualify the interrupted full Windows run.
+
 ## Native Prestige ranking and Perfection effects
 
 Private Release and independent sanitized-public Release each passed800/800,

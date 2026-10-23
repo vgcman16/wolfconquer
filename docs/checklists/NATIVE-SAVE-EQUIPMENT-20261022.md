@@ -1,5 +1,22 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on Team/aura prerequisites and HP/mana calculations
+
+- [x] Whole Team/leadership/flag-icon codecs and flag-icon component echo,
+  physical Associate collections/timers, aura stat mutations and progression
+  fields:72 cases. No shortened Team/HP/level lifecycle was installed.
+- [x] Complete native GameClient HP/mana formulas and guild-skill table loader/
+  lookup/cache behavior:62 cases, including real owned-file partial failures.
+- [x] Private Release and independent sanitized-public Release each passed934/934,
+  zero failures/skips (134 new +800 retained). First compile exposed a missing
+  test namespace; v2's913-pass/21-fail receipt exposed wrong test cursor assertions.
+  Original Finalize leaves Position4; corrected assertions retain exact bytes,
+  size and later read-cursor checks. Production was not changed to suit tests.
+- [ ] Full Team/HP/level/equipment cycle, native save/login and host adoption remain.
+  JiangHu, player/map and mentor candidates still require parent intake/proof.
+- Owned HP expression probe:18 result values match expected formulas under both
+  default and optimized Framework4/x86; separate10 cast controls also pass.
+
 ## Follow-on Prestige and Perfection proof
 
 - [x] Whole native Prestige ranking buckets, queries, record/file persistence,
