@@ -42,7 +42,7 @@ internal sealed class LegacyNativeSelfStatusBindings
     internal bool IsCurrent() => ReferenceEquals(Client.Player, Player) && ReferenceEquals(Player.Owner, Client) &&
         ReferenceEquals(Player.BitVector, Vector) && ReferenceEquals(Player.View, View) && ReferenceEquals(View.Owner, Client) &&
         Player.UID == Uid && Player.X == X && Player.Y == Y && Player.Map == mapId && Player.DynamicID == dynamicId &&
-        ReferenceEquals(Client.Map, map) && (map is null || mapView is not null && ReferenceEquals(map.View, mapView)) &&
+        ReferenceEquals(Client.Map, map) && (map is null || (mapView is not null && ReferenceEquals(map.View, mapView))) &&
         pool is not null && ReferenceEquals(LegacyNativePoolClients.GamePoll, pool);
 
     internal unsafe bool HasCallerStorage(int required) => (IntPtr)Caller.Memory == callerAddress &&

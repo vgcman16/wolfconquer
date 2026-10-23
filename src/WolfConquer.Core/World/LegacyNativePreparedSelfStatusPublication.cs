@@ -82,7 +82,7 @@ internal sealed class LegacyNativePreparedSelfStatusPublication : IDisposable
         var a = animation?.GetStream(); var s = status?.GetStream();
         if (!bindings.HasOriginalCaller(animationFrame.Length) || !Live(a, animationFrame.Length) ||
             Overlap(a!, bindings.Caller)) return false;
-        return statusFrame is null || Live(s, statusFrame.Length) && !Overlap(s!, a!) && !Overlap(s!, bindings.Caller);
+        return statusFrame is null || (Live(s, statusFrame.Length) && !Overlap(s!, a!) && !Overlap(s!, bindings.Caller));
     }
 
     private static unsafe bool Live(LegacyNativePacket? packet, int length) =>

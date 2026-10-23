@@ -295,7 +295,7 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Verification: Private/public Release1931/1931 each,0failed/0skipped.
   Real malformed-tail callers, prior frames/buffers and existing valid packet/
   appearance/selection goldens remain; corrupt fixtures are not silently repaired.
-- Limits: full rank publication, map enumeration/AI movement, postcommit animation/
+- Limits: full rank publication, map enumeration/AI movement,
   complete refinement procs/casts/host recovery remain open. Prepared Sage and
   Shield/Stigma successors are recorded separately below.
 
@@ -339,7 +339,7 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   Rejection preserves complete caller/state/XP/prior queues; accepted transport
   loss never refunds the grant or creates a retryable false result.
 - Verification: private/public Release **2392/2392** each,0failed/0skipped;
- 109 new cases plus retained valid effect and full generic animation goldens.
+  109 new cases plus retained valid effect and full generic animation goldens.
 - Limits: these effects, not resource admission/full casts/HP/death, durable
   persistence, arbitrary raw races or per-recipient delivery transactions.
 
@@ -359,6 +359,25 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Limits: scoped genuine component operations, not all native packet IO, hostile
   comparers mutating new staged books, raw concurrent lifetime/ABA or full host
   recovery. General reader/writer audit FSB-012 remains open.
+
+### FSB-034: Publish complete owned rune storage without count wrap or cache escape
+
+- Original Rune.Add inserted before allocating its cache; null/UID/cache faults
+  and escaped array edits could leave contradictory owners. Count wrapped at256.
+  Stage the genuine comparer-preserving dictionary/cache, validate complete row
+  identity and current assigned client/Player/UID, then publish both references.
+- Count is exact int (no native production/wire consumer); Objects returns fresh
+  defensive arrays, including empty arrays, retaining valid item aliases/order.
+  Malformed raw queries are explicitly unavailable; they cannot grant free slots.
+  Equipped readers join the same cooperating gate order and whole-graph checks.
+- Verification: private/public Release **2896/2896** each,0failed/0skipped;
+  includes56 new storage controls, retained source-valid calculations/position
+  policies,32 concurrent Adds and broader item-loading/save consumers. The first
+  local run exposed an empty-array reuse regression; implementation was fixed,
+  keeping the original valid constructor assertion unchanged.
+- Limits: no new Equip/Unequip/economy/SQL/host path, full loader transaction,
+  global item-UID ownership or arbitrary raw-writer isolation. The unsafe native
+  save truncation/partial-write owner is being replaced separately, not certified.
 
 ## Active audit
 
@@ -397,8 +416,28 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-031 | Sage flag precedes archive preparation; typed plans/frames can mismatch | Both genuine frames and exact current plan before flag commit | Scoped Sage verified2392; cast/host/delivery recovery open |
 | FSB-032 | Shield/Stigma flag precedes animation/caller preparation | Complete bounded frames and caller before typed acceptance | Scoped effects verified2392; full cast/HP/durability open |
 | FSB-033 | Final comparer can change earlier state or prepared native loan metadata | Pure complete state and exact live frame checks after last comparer | Scoped status/flag/potion paths verified2392; general packet/raw-writer audit open |
+| FSB-034 | Rune insertion/cache publication can split; Count wraps; public arrays corrupt ownership | Complete owned staged publication, exact count and explicit unavailable queries | Scoped storage verified2896; full equip/load/save/economy/host remains open |
 
 ## CodeFactor cleanup
+
+Latest verified behavioral checkpoint: publicbd69741b,
+[Windows39955050650](https://github.com/vgcman16/wolfconquer/actions/runs/39955050650)
+passed4m21s, completed2026-10-23T12:45:01Z. Core22951passed/0failed of23116
+(165externalfixturecasesexcluded), updater301/301, launcher49/49, all8stageexit0.
+Receipt20261023T124055209Z-b222361a finished12:44:53.9462471Z;206build warnings
+remain. This is offline automated proof, not deployment/live-client/full parity.
+
+CodeFactor on that exact commit reports28NEW/1FIXED,total2294. Nineteen new
+precedence/readability records across10C#files are one mechanical parentheses
+batch; nine new method-complexity findings are deferred per the defect-first
+guardrail. No packet switch/control flow is rewritten merely for a score.
+Follow-up analysis must confirm any claimed clearance; no zero-issues claim.
+
+Rune plus the single19-record parentheses batch now passes private/public
+Release2896/2896 each,0failed/0skipped. Parentheses only make existing operator
+precedence explicit; no formula, ordering or packet-switch body changed. One
+fullCI is intended for this coherent Rune behavior checkpoint, not each warning.
+Remote analysis for the new commit is pending; complexity debt stays explicit.
 
 Latest verified public code4727d8b3:
 

@@ -41,7 +41,7 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         };
         ReviewCache.SetValue(fixture.Storage, corrupted);
         ReviewQueriesRefuse(fixture.Storage);
-        Assert.Same(corrupted, fixture.Storage.Objects); Assert.Equal(entries, dictionary.ToArray());
+        Assert.Same(corrupted, ReviewCache.GetValue(fixture.Storage)); Assert.Equal(entries, dictionary.ToArray());
         Assert.Same(dictionary, ReviewItems.GetValue(fixture.Storage));
         Assert.Equal((ushort)101, normal.Position); Assert.Equal((ushort)121, alternate.Position);
         Assert.Equal((ushort)211, inactive.Position);
@@ -57,10 +57,10 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         // but before its cache publication. This is not a fake query/owner callback.
         var omitted = new LegacyNativeGameItemRuntime { Uid = 2, Position = 121 };
         dictionary.Add(omitted.Uid, omitted);
-        var cache = fixture.Storage.Objects;
+        var cache = (LegacyNativeGameItemRuntime[])ReviewCache.GetValue(fixture.Storage)!;
         fixture.Client.Equipment!.Alternante = true;
         ReviewQueriesRefuse(fixture.Storage);
-        Assert.Same(cache, fixture.Storage.Objects); Assert.Same(normal, Assert.Single(cache));
+        Assert.Same(cache, ReviewCache.GetValue(fixture.Storage)); Assert.Same(normal, Assert.Single(cache));
         Assert.Same(omitted, dictionary[2]); Assert.Equal(2, dictionary.Count);
     }
 
@@ -75,9 +75,9 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         var first = fixture.Rune(1, 4_031_107, position, "normal");
         var second = fixture.Rune(2, 4_031_109, position, "alternate");
         fixture.Client.Equipment!.Alternante = alternate;
-        var cache = fixture.Storage.Objects;
+        var cache = (LegacyNativeGameItemRuntime[])ReviewCache.GetValue(fixture.Storage)!;
         ReviewQueriesRefuse(fixture.Storage);
-        Assert.Same(cache, fixture.Storage.Objects); Assert.Same(first, cache[0]); Assert.Same(second, cache[1]);
+        Assert.Same(cache, ReviewCache.GetValue(fixture.Storage)); Assert.Same(first, cache[0]); Assert.Same(second, cache[1]);
         Assert.Equal(position, first.Position); Assert.Equal(position, second.Position);
     }
 

@@ -104,7 +104,7 @@ public sealed partial class LegacyNativeCreatePrestigeTests
         Assert.Same(member,client.Player.MyGuildMember);Assert.Equal(25150u,member.PrestigePoints);
         Assert.Equal(client.PrestigePoints,entry.Points);Assert.NotSame(client.PrestigePoints,entry.Points);
         Assert.Same(metadata,LegacyNativePoolItems.ItemsBase);Assert.False(metadata!.ContainsKey(id));
-        Assert.Same(cache,client.Rune.Objects);Assert.Same(item,Assert.Single(cache));
+        Assert.Equal(cache,client.Rune.Objects);Assert.Same(item,Assert.Single(cache));
         Assert.Equal(id,item.ITEM_ID);Assert.Equal((ushort)101,item.Position);Assert.Equal(1u,item.Uid);
     }
 

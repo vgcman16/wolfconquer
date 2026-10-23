@@ -45,7 +45,7 @@ public sealed partial class LegacyNativePlayerLifecycleTests
         => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); SeedGoalPreimage(scope); var snapshot = new GoalAdmissionSnapshot(scope);
-        Assert.False(scope.Client.HeroRewards!.TryLoad(new string('/', 1024 * 1024 + 1))); snapshot.AssertUnchanged(scope);
+        Assert.False(scope.Client.HeroRewards!.TryLoad(new string('/', (1024 * 1024) + 1))); snapshot.AssertUnchanged(scope);
     });
 
     [Theory]

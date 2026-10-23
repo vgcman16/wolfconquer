@@ -75,7 +75,7 @@ public sealed partial class LegacyNativeStatusFlagsTests
         internal bool Armed;
         internal int Reads;
         public bool Equals(int left, int right) => left == right ||
-            Armed && mode == "false-presence" && (left == 6 && right == 18 || left == 18 && right == 6);
+            (Armed && mode == "false-presence" && ((left == 6 && right == 18) || (left == 18 && right == 6)));
         public int GetHashCode(int value)
         {
             if (Armed && ++Reads == 3 && mode == "false-absence") return 1;

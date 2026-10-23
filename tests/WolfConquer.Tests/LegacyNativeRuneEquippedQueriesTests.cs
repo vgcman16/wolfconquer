@@ -36,10 +36,10 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         f.Storage.Add(new() { Uid = 999, Position = 101 });
         Assert.Empty(f.Storage.WornObjects);
         f.Client.Equipment = new(f.Client);
-        var cache = f.Storage.Objects;
+        var cache = (LegacyNativeGameItemRuntime[])ReviewCache.GetValue(f.Storage)!;
         cache[0] = null!;
         Assert.Empty(f.Storage.WornObjects);
-        Assert.Same(cache, f.Storage.Objects);
+        Assert.Same(cache, ReviewCache.GetValue(f.Storage));
         Assert.Null(cache[0]);
     }
 
@@ -200,14 +200,14 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         f.Ready();
         var first = f.Rune(1, 4_031_107, 101, "First");
         var second = f.Rune(2, 4_031_109, 102, "Second");
-        var cache = f.Storage.Objects;
+        var cache = (LegacyNativeGameItemRuntime[])ReviewCache.GetValue(f.Storage)!;
         cache[0] = second;
-        Assert.True(f.Storage.ContainsUID(first.Uid));
+        Assert.Throws<InvalidDataException>(() => f.Storage.ContainsUID(first.Uid));
         Assert.False(f.Storage.IsEquipped("First"));
         Assert.False(f.Storage.IsEquipped("Second", out LegacyNativeGameItemRuntime? item));
         Assert.Null(item);
         Assert.Empty(f.Storage.WornObjects);
-        Assert.Same(cache, f.Storage.Objects);
+        Assert.Same(cache, ReviewCache.GetValue(f.Storage));
         Assert.Same(second, cache[0]);
         Assert.Same(second, cache[1]);
     }

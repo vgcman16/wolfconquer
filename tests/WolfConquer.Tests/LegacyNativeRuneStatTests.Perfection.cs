@@ -88,13 +88,13 @@ public sealed partial class LegacyNativeRuneStatTests
         using var scope = new Scope();
         for (uint uid = 1; uid <= 257; uid++) scope.Add(uid, 7000001, 101);
         Assert.Equal((byte)0, scope.Rune.EquippedCount);
-        var cache = scope.Rune.Objects;
-        scope.Rune.Objects[0] = null!;
+        var cache = PhysicalRuneCache(scope.Rune);
+        PhysicalRuneCache(scope.Rune)[0] = null!;
         Assert.Equal((byte)0, scope.Rune.EquippedCount);
         scope.Rune.Owner = null;
         Assert.Equal((byte)0, scope.Rune.EquippedCount);
         Assert.Null(scope.Rune.EquippedRedRune);
-        Assert.Same(cache, scope.Rune.Objects);
+        Assert.Same(cache, PhysicalRuneCache(scope.Rune));
         Assert.Null(cache[0]);
         Assert.Null(scope.Rune.Owner);
     }

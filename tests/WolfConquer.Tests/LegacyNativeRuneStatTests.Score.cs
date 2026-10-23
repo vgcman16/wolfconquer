@@ -7,6 +7,11 @@ namespace WolfConquer.Tests;
 
 public sealed partial class LegacyNativeRuneStatTests
 {
+    private static LegacyNativeGameItemRuntime[] PhysicalRuneCache(LegacyNativeRuneItemStorage rune) =>
+        (LegacyNativeGameItemRuntime[])typeof(LegacyNativeRuneItemStorage)
+            .GetField("objects", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(rune)!;
+
     [Theory]
     [InlineData(0, 0u)]
     [InlineData(211, 0u)]
@@ -38,7 +43,7 @@ public sealed partial class LegacyNativeRuneStatTests
     }
 
     [Fact]
-    public void ScoreUsesExposedPhysicalCacheAliasesAndDoesNotRequireEquipmentOrOwner()
+    public void ScoreUsesValidatedRowAliasesAndRejectsMalformedStorageWithoutRequiringEquippedOwnership()
     {
         using var scope = new Scope();
         var item = scope.Add(1, 4030003, 103);
@@ -48,8 +53,10 @@ public sealed partial class LegacyNativeRuneStatTests
         Assert.Equal(1400u, scope.Rune.Score);
         item.Position = 0;
         Assert.Equal(0u, scope.Rune.Score);
-        scope.Rune.Objects[0] = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Rune.Score);
+        var escaped = scope.Rune.Objects; escaped[0] = null!;
+        Assert.Equal(0u, scope.Rune.Score); // Public arrays cannot corrupt storage.
+        PhysicalRuneCache(scope.Rune)[0] = null!;
+        Assert.Throws<InvalidDataException>(() => scope.Rune.Score);
     }
 
     [Fact]

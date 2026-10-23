@@ -24,13 +24,13 @@ internal partial class LegacyNativeHeroRewardsRuntime
         var tokens = line.Split('/');
         if (!int.TryParse(tokens[0], NumberStyles.None, CultureInfo.InvariantCulture, out int count) ||
             count < 0 || count > MaxGoalRecords) return false;
-        int required = 1 + count * 2;
+        int required = 1 + (count * 2);
         if (tokens.Length != required && !(tokens.Length == required + 1 && tokens[^1].Length == 0)) return false;
         var parsed = new GoalRecord[count];
         for (int index = 0; index < count; index++)
         {
-            if (!uint.TryParse(tokens[index * 2 + 1], NumberStyles.None, CultureInfo.InvariantCulture, out uint uid) || uid == 0 ||
-                !byte.TryParse(tokens[index * 2 + 2], NumberStyles.None, CultureInfo.InvariantCulture, out byte claim)) return false;
+            if (!uint.TryParse(tokens[(index * 2) + 1], NumberStyles.None, CultureInfo.InvariantCulture, out uint uid) || uid == 0 ||
+                !byte.TryParse(tokens[(index * 2) + 2], NumberStyles.None, CultureInfo.InvariantCulture, out byte claim)) return false;
             parsed[index] = new(uid, claim);
         }
         rows = parsed;

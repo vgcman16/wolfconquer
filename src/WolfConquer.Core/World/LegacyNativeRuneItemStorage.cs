@@ -1,97 +1,123 @@
-using System.Collections.Generic;
-using System.Linq;
-
 namespace WolfConquer.Core.World;
 
-// Native Rune constructor/storage/Add/lookups and complete worn/equipped queries.
-// Equip/Unequip and spell mutations remain absent.
-// Every stored and cached value is the SAME concrete item, never a UID or DTO wrapper.
+// Native Rune storage with validated, cooperating publication. Item rows remain aliases.
 internal sealed partial class LegacyNativeRuneItemStorage
 {
     public LegacyNativeGameClientRuntime? Owner;
     private readonly LegacyNativeGameClientRuntime? constructorOwner;
     private Dictionary<uint, LegacyNativeGameItemRuntime> items;
     private LegacyNativeGameItemRuntime[] objects;
-
-    public LegacyNativeGameItemRuntime[] Objects => objects;
-
-    public byte Count
-    {
-        get
-        {
-            byte b = 0;
-            LegacyNativeGameItemRuntime[] array = objects;
-            foreach (LegacyNativeGameItemRuntime value in array)
-            {
-                if (value != null)
-                    b++;
-            }
-            return b;
-        }
-    }
+    internal object StorageSyncRoot { get; } = new();
 
     public LegacyNativeRuneItemStorage(LegacyNativeGameClientRuntime? client)
     {
         Owner = client;
         constructorOwner = client;
-        items = new Dictionary<uint, LegacyNativeGameItemRuntime>();
-        objects = new LegacyNativeGameItemRuntime[0];
+        items = new();
+        objects = [];
+    }
+
+    // No caller receives the authoritative cache array. Valid row aliases/order are unchanged.
+    public LegacyNativeGameItemRuntime[] Objects
+    {
+        get
+        {
+            lock (StorageSyncRoot)
+                return (LegacyNativeGameItemRuntime[])RequireStorageSnapshot().Cache.Clone();
+        }
+    }
+
+    // This is an in-memory cardinality, not a byte wire field.
+    public int Count
+    {
+        get
+        {
+            lock (StorageSyncRoot)
+                return RequireStorageSnapshot().Rows.Length;
+        }
     }
 
     public bool Add(LegacyNativeGameItemRuntime item)
     {
-        if (!items.ContainsKey(item.Uid) && Objects.Where(i => i.Position == 211).Count() < 100)
+        var client = constructorOwner;
+        if (client is null || item is null) return false;
+        lock (client.SpellAdmissionSyncRoot)
         {
-            items.Add(item.Uid, item);
-            objects = items.Values.ToArray();
-            return true;
-        }
-        return false;
-    }
-
-    public bool TryGetItem(uint UID, out LegacyNativeGameItemRuntime? item)
-    {
-        LegacyNativeGameItemRuntime[] array = objects;
-        foreach (LegacyNativeGameItemRuntime value in array)
-        {
-            if (value != null && value.Uid == UID)
+            var player = client.Player;
+            if (player is null) return false;
+            lock (player.SpellAdmissionSyncRoot)
+            lock (StorageSyncRoot)
             {
-                item = value;
+                var binding = new StorageBinding(client, player, player.UID);
+                if (!IsCurrent(binding) || !TryCaptureStorage(out var before)) return false;
+                var incoming = new StorageRow(item, item.Uid, item.Position, item.ITEM_ID);
+                if (incoming.Uid == 0 || before.Rows.Any(row => row.Uid == incoming.Uid) ||
+                    before.Rows.Count(row => row.Position == 211) >= 100) return false;
+
+                // Preserve the genuine dictionary comparer. All potentially throwing allocation/
+                // comparer work is detached; failure cannot publish an authoritative-only prefix.
+                var prepared = new Dictionary<uint, LegacyNativeGameItemRuntime>(
+                    checked(before.Rows.Length + 1), before.Dictionary.Comparer);
+                foreach (var row in before.Rows) prepared.Add(row.Uid, row.Item);
+                if (!prepared.TryAdd(incoming.Uid, incoming.Item)) return false;
+                var cache = prepared.Values.ToArray();
+
+                // No comparer, allocation or callback after these final pure checks.
+                if (!IsCurrentStorage(before) || !IsCurrentRow(incoming) || !IsCurrent(binding)) return false;
+                items = prepared;
+                objects = cache;
                 return true;
             }
         }
-        item = null;
-        return false;
     }
 
-    public LegacyNativeGameItemRuntime? TryGetItem(byte Position)
+    // Invalid storage is NOT ordinary absence; a negated query must not authorize mutation.
+    public bool TryGetItem(uint uid, out LegacyNativeGameItemRuntime? item)
     {
-        return Objects.Where(i => i.Position == Position).FirstOrDefault();
+        lock (StorageSyncRoot)
+        {
+            item = null;
+            item = RequireStorageSnapshot().Rows.FirstOrDefault(row => row.Uid == uid).Item;
+            return item is not null;
+        }
+    }
+
+    public LegacyNativeGameItemRuntime? TryGetItem(byte position)
+    {
+        lock (StorageSyncRoot)
+            return RequireStorageSnapshot().Rows.FirstOrDefault(row => row.Position == position).Item;
     }
 
     public LegacyNativeGameItemRuntime? TryGetItem(uint id)
     {
-        return Objects.Where(i => i.ITEM_ID == id && i.Position != 211).FirstOrDefault();
+        lock (StorageSyncRoot)
+            return RequireStorageSnapshot().Rows.FirstOrDefault(row => row.ItemId == id && row.Position != 211).Item;
     }
 
-
-    public bool Free(ushort Position)
+    public bool ContainsUID(uint uid)
     {
-        if (Position == 212) return true;
-        var snapshot = objects;
-        if (snapshot is null) return false;
-        bool occupied = false;
-        foreach (var item in snapshot)
+        lock (StorageSyncRoot)
+            return RequireStorageSnapshot().Rows.Any(row => row.Uid == uid);
+    }
+
+    // Permission query: invalid/missing physical ownership never means a free slot, including212.
+    public bool Free(ushort position)
+    {
+        var client = constructorOwner;
+        if (client is null) return false;
+        lock (client.SpellAdmissionSyncRoot)
         {
-            // An unknown cache entry cannot authorize another item for this slot.
-            if (item is null) return false;
-            occupied |= item.Position == Position;
+            var player = client.Player;
+            if (player is null) return false;
+            lock (player.SpellAdmissionSyncRoot)
+            lock (StorageSyncRoot)
+            {
+                var binding = new StorageBinding(client, player, player.UID);
+                if (!IsCurrent(binding) || !TryCaptureStorage(out var snapshot)) return false;
+                bool free = position == 212 || (position == 211 && snapshot.Rows.Length < 100) ||
+                    !snapshot.Rows.Any(row => row.Position == position);
+                return free && IsCurrentStorage(snapshot) && IsCurrent(binding);
+            }
         }
-        return (Position == 211 && snapshot.Length < 100) || !occupied;
-    }
-
-    public bool ContainsUID(uint UID)
-    {
-        return items.ContainsKey(UID);
     }
 }

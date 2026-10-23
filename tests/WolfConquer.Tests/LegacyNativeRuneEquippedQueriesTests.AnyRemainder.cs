@@ -16,7 +16,7 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         using var fixture = new Fixture();
         var first = fixture.Rune(11, 4_031_107, 101, "first");
         var second = fixture.Rune(12, 4_031_109, 121, "second");
-        var cache = fixture.Storage.Objects;
+        var cache = (LegacyNativeGameItemRuntime[])ReviewCache.GetValue(fixture.Storage)!;
         switch (corruption)
         {
             case 0: cache[1] = null!; break;
@@ -28,10 +28,11 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         var physical = cache.ToArray();
         fixture.Client.Equipment!.Alternante = true;
         Assert.Empty(fixture.Storage.WornObjects);
-        Assert.Same(cache, fixture.Storage.Objects);
+        Assert.Same(cache, ReviewCache.GetValue(fixture.Storage));
         Assert.Equal(physical.Length, cache.Length);
         for (int i = 0; i < physical.Length; i++) Assert.Same(physical[i], cache[i]);
-        Assert.True(fixture.Storage.ContainsUID(11)); Assert.True(fixture.Storage.ContainsUID(12));
+        Assert.Throws<InvalidDataException>(() => fixture.Storage.ContainsUID(11));
+        Assert.Throws<InvalidDataException>(() => fixture.Storage.ContainsUID(12));
     }
 
     [Fact]
@@ -43,7 +44,7 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         field.SetValue(fixture.Storage, null);
         Assert.Empty(fixture.Storage.WornObjects);
         Assert.Null(field.GetValue(fixture.Storage));
-        Assert.True(fixture.Storage.ContainsUID(11));
+        Assert.Throws<InvalidDataException>(() => fixture.Storage.ContainsUID(11));
     }
 
     [Fact]

@@ -31,25 +31,27 @@ public sealed class LegacyNativeRuneEquipStorageTests
     [Fact]
     public void RuneAddCachesTheSameObjectAndDuplicateKeepsOldCache()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
+        using var scope = new LegacyNativeRuneStorageTestOwner();
+        var rune = scope.Rune;
         var item = Item(7, 101);
         Assert.True(rune.Add(item));
-        var cache = rune.Objects;
+        var cache = ReadRuneCache(rune);
         Assert.Same(item, Assert.Single(cache));
         Assert.False(rune.Add(Item(7, 211)));
-        Assert.Same(cache, rune.Objects);
+        Assert.Same(cache, ReadRuneCache(rune));
         Assert.Same(item, Assert.Single(rune.Objects));
     }
 
     [Fact]
-    public void RuneNullItemFaultLeavesExistingDictionaryAndCacheUntouched()
+    public void RuneNullItemRefusesWithoutChangingExistingDictionaryAndCache()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
+        using var scope = new LegacyNativeRuneStorageTestOwner();
+        var rune = scope.Rune;
         var item = Item(7, 212);
         Assert.True(rune.Add(item));
-        var cache = rune.Objects;
-        Assert.Throws<NullReferenceException>(() => rune.Add(null!));
-        Assert.Same(cache, rune.Objects);
+        var cache = ReadRuneCache(rune);
+        Assert.False(rune.Add(null!));
+        Assert.Same(cache, ReadRuneCache(rune));
         Assert.Same(item, Assert.Single(cache));
         Assert.True(rune.ContainsUID(7));
     }
@@ -57,53 +59,51 @@ public sealed class LegacyNativeRuneEquipStorageTests
     [Fact]
     public void RuneCapacityCountsOnlyCachedPosition211AndBlocksAnyNewPositionAtOneHundred()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
+        using var scope = new LegacyNativeRuneStorageTestOwner();
+        var rune = scope.Rune;
         for (uint uid = 1; uid <= 100; uid++) Assert.True(rune.Add(Item(uid, 212)));
         Assert.True(rune.Add(Item(101, 212)));
         foreach (var item in rune.Objects.Take(100)) item.Position = 211;
-        var cache = rune.Objects;
+        var cache = ReadRuneCache(rune);
         Assert.False(rune.Add(Item(102, 101)));
-        Assert.Same(cache, rune.Objects);
+        Assert.Same(cache, ReadRuneCache(rune));
         Assert.False(rune.ContainsUID(102));
         rune.Objects[0].Position = 212;
         Assert.True(rune.Add(Item(102, 101)));
     }
 
     [Fact]
-    public void RuneExposedArrayMutationDoesNotRepairPrivateDictionaryUntilNextSuccessfulAdd()
+    public void RuneEscapedArrayCannotCorruptPrivateDictionaryOrCache()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
-        var original = Item(7, 101);
-        Assert.True(rune.Add(original));
-        var external = Item(9, 103);
-        rune.Objects[0] = external;
-        Assert.True(rune.ContainsUID(7));
-        Assert.False(rune.TryGetItem(7u, out _));
-        Assert.True(rune.TryGetItem(9u, out var observed));
-        Assert.Same(external, observed);
+        using var scope = new LegacyNativeRuneStorageTestOwner();
+        var rune = scope.Rune;
+        var original = Item(7, 101); Assert.True(rune.Add(original));
+        var escaped = rune.Objects; var external = Item(9, 103); escaped[0] = external;
+        Assert.True(rune.ContainsUID(7)); Assert.False(rune.ContainsUID(9));
+        Assert.True(rune.TryGetItem(7u, out var observed)); Assert.Same(original, observed);
+        Assert.False(rune.TryGetItem(9u, out _)); Assert.Same(original, Assert.Single(rune.Objects));
         Assert.True(rune.Add(Item(11, 104)));
-        Assert.Contains(original, rune.Objects);
-        Assert.DoesNotContain(external, rune.Objects);
+        Assert.Contains(original, rune.Objects); Assert.DoesNotContain(external, rune.Objects);
     }
 
     [Fact]
-    public void RuneMutableUidLookupUsesCachedValueWhileContainsUsesOriginalDictionaryKey()
+    public void RuneMutableUidMismatchMakesRawQueriesUnavailableInsteadOfInventingAbsence()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
-        var item = Item(7, 101);
-        Assert.True(rune.Add(item));
-        item.Uid = 99;
-        Assert.True(rune.ContainsUID(7));
-        Assert.False(rune.ContainsUID(99));
-        Assert.False(rune.TryGetItem(7u, out _));
-        Assert.True(rune.TryGetItem(99u, out var observed));
-        Assert.Same(item, observed);
+        using var scope = new LegacyNativeRuneStorageTestOwner(); var rune = scope.Rune;
+        var item = Item(7, 101); Assert.True(rune.Add(item)); item.Uid = 99;
+        Assert.Throws<InvalidDataException>(() => rune.ContainsUID(7));
+        Assert.Throws<InvalidDataException>(() => rune.ContainsUID(99));
+        Assert.Throws<InvalidDataException>(() => rune.TryGetItem(7u, out _));
+        Assert.Throws<InvalidDataException>(() => rune.TryGetItem(99u, out _));
+        Assert.False(rune.Add(Item(11, 104))); Assert.False(rune.Free(212));
+        Assert.Same(item, ReadRuneCache(rune)[0]); Assert.Equal(99u, item.Uid);
     }
 
     [Fact]
     public void RunePositionAndItemIdOverloadsKeepTheirDifferentNativePredicates()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
+        using var scope = new LegacyNativeRuneStorageTestOwner();
+        var rune = scope.Rune;
         var bag = Item(7, 211);
         var worn = Item(8, 212);
         Assert.True(rune.Add(bag));
@@ -114,14 +114,14 @@ public sealed class LegacyNativeRuneEquipStorageTests
     }
 
     [Fact]
-    public void RuneUidLookupSkipsNullCacheEntryButPositionQueryRetainsNativeNullFault()
+    public void RuneNullPrivateCacheEntryIsUnavailableInEveryRawQuery()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
-        Assert.True(rune.Add(Item(7, 101)));
-        rune.Objects[0] = null!;
-        Assert.False(rune.TryGetItem(7u, out var observed));
-        Assert.Null(observed);
-        Assert.Throws<NullReferenceException>(() => rune.TryGetItem((byte)101));
+        using var scope = new LegacyNativeRuneStorageTestOwner(); var rune = scope.Rune;
+        Assert.True(rune.Add(Item(7, 101))); ReadRuneCache(rune)[0] = null!;
+        Assert.Throws<InvalidDataException>(() => rune.TryGetItem(7u, out _));
+        Assert.Throws<InvalidDataException>(() => rune.TryGetItem((byte)101));
+        Assert.Throws<InvalidDataException>(() => rune.TryGetItem(181305u));
+        Assert.False(rune.Free(212)); Assert.False(rune.Add(Item(8, 103)));
     }
 
     [Fact]
@@ -203,22 +203,24 @@ public sealed class LegacyNativeRuneEquipStorageTests
 
 
     [Fact]
-    public void RuneCountCountsEveryNonNullCacheEntryAndRetainsByteWrap()
+    public void RuneCountIsExactAndDefensiveArrayMutationCannotWrapOrReduceIt()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
+        using var scope = new LegacyNativeRuneStorageTestOwner(); var rune = scope.Rune;
         for (uint uid = 1; uid <= 256; uid++) Assert.True(rune.Add(Item(uid, 212)));
-        Assert.Equal(256, rune.Objects.Length);
-        Assert.Equal((byte)0, rune.Count);
-        rune.Objects[0] = null!;
-        Assert.Equal((byte)255, rune.Count);
+        Assert.Equal(256, rune.Objects.Length); Assert.Equal(256, rune.Count);
+        var escaped = rune.Objects; escaped[0] = null!;
+        Assert.Equal(256, rune.Count); Assert.NotNull(rune.Objects[0]);
+        ReadRuneCache(rune)[0] = null!;
+        Assert.Throws<InvalidDataException>(() => rune.Count);
     }
 
     [Fact]
     public void RuneFree211RetainsFallbackPositionQueryEvenAfterCountReachesOneHundred()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
+        using var scope = new LegacyNativeRuneStorageTestOwner();
+        var rune = scope.Rune;
         for (uint uid = 1; uid <= 100; uid++) Assert.True(rune.Add(Item(uid, 212)));
-        Assert.Equal((byte)100, rune.Count);
+        Assert.Equal(100, rune.Count);
         Assert.True(rune.Free(211)); // Native final OR branch: no position211 item exists.
         rune.Objects[0].Position = 211;
         Assert.False(rune.Free(211));
@@ -226,15 +228,16 @@ public sealed class LegacyNativeRuneEquipStorageTests
     }
 
     [Fact]
-    public void RuneFree212RetainsItsSpecialRuleWhileUnknownCacheSlotsFailClosed()
+    public void RuneFree212SpecialRuleRequiresACompleteValidStorageGraph()
     {
-        var rune = new LegacyNativeRuneItemStorage(null);
-        Assert.True(rune.Add(Item(7, 101)));
-        rune.Objects[0] = null!;
-        Assert.True(rune.Free(212));
-        Assert.False(rune.Free(211)); // Null cache data cannot grant a free slot.
-        Assert.False(rune.Free(103));
+        using var scope = new LegacyNativeRuneStorageTestOwner(); var rune = scope.Rune;
+        Assert.True(rune.Add(Item(7, 101))); ReadRuneCache(rune)[0] = null!;
+        Assert.False(rune.Free(212)); Assert.False(rune.Free(211)); Assert.False(rune.Free(103));
     }
+
+    private static LegacyNativeGameItemRuntime[] ReadRuneCache(LegacyNativeRuneItemStorage rune) =>
+        (LegacyNativeGameItemRuntime[])typeof(LegacyNativeRuneItemStorage)
+            .GetField("objects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(rune)!;
 
     private static LegacyNativeGameItemRuntime Item(uint uid, ushort position) =>
         new() { Uid = uid, ITEM_ID = 181305u, Position = position };

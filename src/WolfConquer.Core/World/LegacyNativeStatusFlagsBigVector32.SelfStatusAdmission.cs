@@ -13,8 +13,8 @@ internal partial class LegacyNativeStatusFlagsBigVector32
     {
         token = null; present = false; statusWords = null;
         if (!Monitor.IsEntered(SyncRoot) ||
-            !(flag == (int)LegacyNativeMsgUpdate.Flags.Stigma && seconds == 90 ||
-              flag == (int)LegacyNativeMsgUpdate.Flags.MagicShield && seconds == 40)) return false;
+            !((flag == (int)LegacyNativeMsgUpdate.Flags.Stigma && seconds == 90) ||
+              (flag == (int)LegacyNativeMsgUpdate.Flags.MagicShield && seconds == 40))) return false;
         try
         {
             if (!TryCapture(out var before) || !ValidIndex(flag, before!.Words)) return false;
@@ -44,7 +44,7 @@ internal partial class LegacyNativeStatusFlagsBigVector32
             if (prepared.Change is not null && !TryTakeCurrent(prepared.Change, out staged)) return false;
             if (!IsCurrent(prepared.Before) || !TryCapture(out var current) ||
                 !SamePhysicalMonsterState(prepared.Before, current!) ||
-                staged is not null && !SamePhysicalMonsterState(staged.Before, current!) ||
+                (staged is not null && !SamePhysicalMonsterState(staged.Before, current!)) ||
                 !publication.MatchesAcceptance(bindings, token, prepared.Flag, prepared.Present, prepared.ExpectedWords) ||
                 !bindings.IsCurrent() || !publication.HasLiveStorage()) return false;
             // Full comparer-aware revalidation, pure recapture, physical ownership,

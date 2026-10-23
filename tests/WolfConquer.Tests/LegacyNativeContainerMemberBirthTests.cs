@@ -343,7 +343,7 @@ public sealed class LegacyNativeContainerMemberBirthTests
     }
 
     [Fact]
-    public void NativeItemCountUsesRuneArrayLengthWithoutDeduplicatingOrClearingNullEntry()
+    public void NativeItemCountKeepsGroupAliasesButEscapedRuneArrayCannotInjectNull()
     {
         var client = FullyConstructedContainerSubset();
         var item = Item(7);
@@ -357,7 +357,7 @@ public sealed class LegacyNativeContainerMemberBirthTests
         Assert.Equal(3, items.Length);
         Assert.Same(item, items[0]);
         Assert.Same(item, items[1]);
-        Assert.Null(items[2]);
+        Assert.Same(item, items[2]);
     }
 
     private static LegacyNativeGameClientRuntime FullyConstructedContainerSubset()

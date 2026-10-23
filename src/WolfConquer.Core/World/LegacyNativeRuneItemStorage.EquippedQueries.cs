@@ -10,9 +10,21 @@ internal sealed partial class LegacyNativeRuneItemStorage
     {
         get
         {
-            if (!TryCaptureEquipped(out var context, out var snapshot)) return [];
-            var worn = SelectWorn(snapshot, context.Alternate);
-            return IsCurrent(context) ? worn : [];
+            var client = constructorOwner;
+            if (client is null) return [];
+            lock (client.SpellAdmissionSyncRoot)
+            {
+                var player = client.Player;
+                if (player is null) return [];
+                lock (player.SpellAdmissionSyncRoot)
+                lock (StorageSyncRoot)
+                {
+                    if (!ReferenceEquals(client.Player, player) ||
+                        !TryCaptureEquipped(out var context, out var snapshot)) return [];
+                    var worn = SelectWorn(snapshot, context.Alternate);
+                    return IsCurrent(context) ? worn : [];
+                }
+            }
         }
     }
 
@@ -20,29 +32,37 @@ internal sealed partial class LegacyNativeRuneItemStorage
     public bool IsEquipped(string runeName, out LegacyNativeGameItemRuntime item)
     {
         item = null;
-        if (runeName is null || !TryCaptureEquipped(out var context, out var snapshot) ||
-            context.Player.Reborn < 2 || context.Player.Level < 15)
+        var client = constructorOwner;
+        if (client is null || runeName is null) return false;
+        lock (client.SpellAdmissionSyncRoot)
         {
-            return false;
-        }
-        var metadata = LegacyNativePoolItems.ItemsBase;
-        if (metadata is null) return false;
-        LegacyNativeGameItemRuntime[] wornObjects = SelectWorn(snapshot, context.Alternate);
-        foreach (LegacyNativeGameItemRuntime msgGameItem in wornObjects)
-        {
-            uint id = msgGameItem.ITEM_ID;
-            if (LegacyNativeItemTypeRuneMetadata.IsRune(id) &&
-                metadata.TryGetValue(id, out var row) && row is not null && row.ID == id &&
-                !string.IsNullOrEmpty(row.Name) &&
-                LegacyNativeItemTypeRuneMetadata.EquipPassJobReq(row, context.Client) &&
-                row.Name.Contains(runeName, StringComparison.OrdinalIgnoreCase) &&
-                ReferenceEquals(LegacyNativePoolItems.ItemsBase, metadata) && IsCurrent(context))
+            var player = client.Player;
+            if (player is null) return false;
+            lock (player.SpellAdmissionSyncRoot)
+            lock (StorageSyncRoot)
             {
-                item = msgGameItem;
-                return true;
+                if (!ReferenceEquals(client.Player, player) || !TryCaptureEquipped(out var context, out var snapshot) ||
+                    context.Player.Reborn < 2 || context.Player.Level < 15) return false;
+                var metadata = LegacyNativePoolItems.ItemsBase;
+                if (metadata is null) return false;
+                LegacyNativeGameItemRuntime[] wornObjects = SelectWorn(snapshot, context.Alternate);
+                foreach (LegacyNativeGameItemRuntime msgGameItem in wornObjects)
+                {
+                    uint id = msgGameItem.ITEM_ID;
+                    if (LegacyNativeItemTypeRuneMetadata.IsRune(id) &&
+                        metadata.TryGetValue(id, out var row) && row is not null && row.ID == id &&
+                        !string.IsNullOrEmpty(row.Name) &&
+                        LegacyNativeItemTypeRuneMetadata.EquipPassJobReq(row, context.Client) &&
+                        row.Name.Contains(runeName, StringComparison.OrdinalIgnoreCase) &&
+                        ReferenceEquals(LegacyNativePoolItems.ItemsBase, metadata) && IsCurrent(context))
+                    {
+                        item = msgGameItem;
+                        return true;
+                    }
+                }
+                return false;
             }
         }
-        return false;
     }
 
     public bool IsEquipped(string runeName)

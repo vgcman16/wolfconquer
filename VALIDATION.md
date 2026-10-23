@@ -1,5 +1,17 @@
 # Publication validation
 
+## Current rune-storage and batched-readability checkpoint
+
+Private/public Release **2896/2896** each,0failed/0skipped. Rune additions stage
+complete real dictionary/cache state before current-owner commitment; counts no
+longer wrap and returned arrays cannot corrupt the cache. Valid row aliases,
+equipped rules and independent item-loading/save consumer tests remain (FSB034).
+Nineteen precedence findings across10files are one explicit-parentheses batch,
+with unchanged operation order/formulas. No complexity-driven packet rewrite.
+Full CI/remote analysis are pending for this successor; the exact preceding
+behavioral checkpoint receipt follows below. Whole equip/load/save/economy,
+SQL, host adoption and global item-UID authority remain unfinished.
+
 ## Current prepared-status and required-goal checkpoint
 
 Private/public Release each passed **2392/2392**,0failed/0skipped. Genuine Sage
@@ -11,8 +23,14 @@ required goal103; native goal loads stage the complete counted record first.
 Valid wire/order/duplicate/animation goldens and accepted transport-loss behavior
 remain. FSB030..033 record sources, proof and remaining boundaries.
 
-Full Windows CI and CodeFactor analysis are pending for this successor. The
-preceding committed receipt below is not a result for these newer changes.
+[Windows39955050650](https://github.com/vgcman16/wolfconquer/actions/runs/39955050650)
+passed4m21s on exactbd69741bcb8dd6a5e64ce6724d99e045ab2b00bd, completed
+2026-10-23T12:45:01Z. Core22951passed/0failed of23116 (165externalfixturecases
+excluded), updater301/301, launcher49/49; all8stageexit0. Receipt
+20261023T124055209Z-b222361a finished12:44:53.9462471Z;206build warnings remain.
+CodeFactor28NEW/1FIXED,total2294:19precedence/readability records are batched
+mechanically;9complexity findings deferred, not rewritten for a threshold.
+This verifies the behavioral checkpoint, not an unfinished quality/gameplay audit.
 No live process, client, original save, SQL, routing or restore point changed.
 Rune writes/full refinement procs, general native packet IO, host recovery and
 global item-UID authority for safe reward grants remain separate unfinished work.

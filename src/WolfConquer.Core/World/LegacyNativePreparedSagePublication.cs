@@ -81,8 +81,8 @@ internal sealed class LegacyNativePreparedSagePublication : IDisposable
         var statusPacket = status?.GetStream();
         var archivePacket = archive?.GetStream();
         return archivePacket is not null && archivePacket.Memory != null && archivePacket.Capacity >= archiveLength &&
-            (status is null || statusPacket is not null && statusPacket.Memory != null &&
-                statusPacket.Capacity >= statusLength && !ReferenceEquals(statusPacket, archivePacket));
+            (status is null || (statusPacket is not null && statusPacket.Memory != null &&
+                statusPacket.Capacity >= statusLength && !ReferenceEquals(statusPacket, archivePacket)));
     }
 
     internal bool HasPreparedStorage() => HasLiveStorage() &&

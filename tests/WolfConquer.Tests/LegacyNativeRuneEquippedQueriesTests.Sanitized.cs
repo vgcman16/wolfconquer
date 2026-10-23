@@ -38,14 +38,14 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
             case "unowned-storage":
                 queried = new(null) { Owner = f.Client };
                 f.Client.Rune = queried;
-                Assert.True(queried.Add(rune));
+                Assert.False(queried.Add(rune));
                 break;
         }
         var owner = queried.Owner;
         var player = f.Client.Player;
         var equipment = f.Client.Equipment;
         var slot = f.Client.Rune;
-        var cache = queried.Objects;
+        var cache = (LegacyNativeGameItemRuntime[])ReviewCache.GetValue(queried)!;
         Assert.False(queried.IsEquipped("XP", out var found));
         Assert.Null(found);
         byte level = 99;
@@ -58,8 +58,9 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         Assert.Same(player, f.Client.Player);
         Assert.Same(equipment, f.Client.Equipment);
         Assert.Same(slot, f.Client.Rune);
-        Assert.Same(cache, queried.Objects);
-        Assert.Same(rune, Assert.Single(cache));
+        Assert.Same(cache, ReviewCache.GetValue(queried));
+        if (corruption == "unowned-storage") Assert.Empty(cache);
+        else Assert.Same(rune, Assert.Single(cache));
     }
 
     [Theory]
@@ -83,14 +84,14 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
             case "null-name": table[invalid.ITEM_ID].Name = null; break;
             case "empty-name": table[invalid.ITEM_ID].Name = ""; break;
         }
-        var cached = f.Storage.Objects;
+        var cached = (LegacyNativeGameItemRuntime[])ReviewCache.GetValue(f.Storage)!;
         Assert.True(f.Storage.IsEquipped("XP", out var found));
         Assert.Same(valid, found);
         byte level = 77;
         Assert.True(f.Storage.IsEquipped("xpBOOSTER", ref level));
         Assert.Equal((byte)9, level);
         Assert.Same(table, LegacyNativePoolItems.ItemsBase);
-        Assert.Same(cached, f.Storage.Objects);
+        Assert.Same(cached, ReviewCache.GetValue(f.Storage));
         Assert.Same(invalid, cached[0]);
         Assert.Same(valid, cached[1]);
         if (corruption == "missing") Assert.False(table.ContainsKey(invalid.ITEM_ID));
@@ -109,10 +110,10 @@ public sealed partial class LegacyNativeRuneEquippedQueriesTests
         using var f = new Fixture();
         for (uint uid = 1; uid <= count; uid++)
             Assert.True(f.Storage.Add(new() { Uid = uid, Position = 101 }));
-        var cache = f.Storage.Objects;
+        var cache = (LegacyNativeGameItemRuntime[])ReviewCache.GetValue(f.Storage)!;
         Assert.Equal((byte)0, f.Storage.EquippedCount);
         Assert.Empty(f.Storage.WornObjects);
-        Assert.Same(cache, f.Storage.Objects);
+        Assert.Same(cache, ReviewCache.GetValue(f.Storage));
         Assert.Equal(count, cache.Length);
     }
 

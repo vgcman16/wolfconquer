@@ -26,5 +26,5 @@ internal sealed class LegacyNativeSageModeBindings
     internal bool IsCurrent() => ReferenceEquals(ninja.user, Client) && ReferenceEquals(Client.Player, Player) &&
         ReferenceEquals(Player.Owner, Client) && ReferenceEquals(Player.BitVector, Vector) &&
         ReferenceEquals(Player.View, View) && ReferenceEquals(View.Owner, Client) && Player.UID == Uid &&
-        ReferenceEquals(Client.Map, map) && (map is null || mapView is not null && ReferenceEquals(map.View, mapView));
+        ReferenceEquals(Client.Map, map) && (map is null || (mapView is not null && ReferenceEquals(map.View, mapView)));
 }

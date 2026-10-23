@@ -98,7 +98,7 @@ public sealed partial class LegacyNativeStatusFlagsTests
     {
         internal bool Armed;
         internal int Reads;
-        public bool Equals(int left, int right) => left == right || Armed && (left == 6 && right == 18 || left == 18 && right == 6);
+        public bool Equals(int left, int right) => left == right || (Armed && ((left == 6 && right == 18) || (left == 18 && right == 6)));
         public int GetHashCode(int value) { if (Armed) Reads++; return 0; }
     }
 }

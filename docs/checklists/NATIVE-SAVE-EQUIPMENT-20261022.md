@@ -7,13 +7,22 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Private/public Release **2896/2896** each,0failed/0skipped: complete owned
+  Rune Add/cache publication, exact count, defensive arrays and explicit invalid
+  queries, with source-valid position/equipped rules retained (FSB034). Includes
+  one mechanical19-record precedence batch across10files; no risky complexity
+  rewrite. Full CI and fresh remote analysis are pending for this new successor.
+
 - [x] Private/public Release **2392/2392** each,0failed/0skipped: complete prepared
   Sage status/archive and Shield/Stigma status/animation; final real state/loan
   integrity; XP20 with required goal103; complete bounded native goal loading.
   Valid protocol goldens, caller buffers, duplicates and accepted transport-loss
-  semantics remain. FSB030..033 document exact limits. Full CI/publication is
-  pending for this successor; the preceding committed CI receipt follows below.
-- [ ] Native Rune writes and full refinement procs are being authored separately.
+  semantics remain. FSB030..033 document exact limits. FullWindows39955050650
+  passed4m21s on exactbd69741b: core22951/0failed (165excluded), updater301/301,
+  launcher49/49, all8stageexit0. Build206warnings; CodeFactor28NEW/1FIXED,
+  total2294. Nineteen precedence records are batched mechanically; nine complex
+  methods are deferred, not reshaped for the grade. This is not deployment.
+- [ ] Full Rune equip/load/save/economy and refinement procs remain open.
   Active managed reward grants remain held for a genuine durable shared item-UID
   registry and adoption/fencing of every competing producer. No account-local
   max+1 allocator is certified globally safe; SQL/eager lifecycle remain open.

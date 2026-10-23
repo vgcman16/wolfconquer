@@ -64,8 +64,8 @@ internal partial class LegacyNativeStatusFlagsBigVector32
         if (!ReferenceEquals(client.Player, player) || !ReferenceEquals(player.Owner, client) ||
             !ReferenceEquals(player.BitVector, this) || !ReferenceEquals(player.View, view) ||
             !ReferenceEquals(view.Owner, client) || player.UID != uid ||
-            publication is not null && !publication.HasPreparedStorage() ||
-            message is not null && !message.HasPreparedStorage()) return false;
+            (publication is not null && !publication.HasPreparedStorage()) ||
+            (message is not null && !message.HasPreparedStorage())) return false;
         CommitPreparedState(staged!);
         return true;
     }
