@@ -1,5 +1,21 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on combat effects and native health publication
+
+- [x] Whole blue-damage/refinement codecs, eight complete Perfection proc methods,
+  fourteen-priority XP-skill query, auxiliary shield/stigma executors, source
+  durability methods and complete SendUpdateHP/NotLife:87 new cases.
+- [x] Private and independent sanitized-public Release each passed2198/2198,
+  zero failures/skips (87 new +2111 retained), first run in each copy.
+  Exact packet bytes, both genuine RNG owners, flags, cooldown stamps and mutation
+  before faults are retained. Health fixtures restore RNG before/after Player birth.
+- [x] HP sender preserves cumulative MaxHP then MaxHP+HP frames. NotLife's setter
+  still throws as native. DrainingTouch and durability wear bodies are truly empty;
+  no healing or item wear is invented. Shield/stigma have no found native callers.
+- [ ] Full CheckEffects/BloodSpawn/StraightLife, writable HP/Team/death/revive and
+  general attack dispatch remain held. This does not reduce the62 remaining
+  dispatch owners or prove actual-client combat, SQL, host or full Windows success.
+
 ## Follow-on terrain maps, housing and reward records
 
 - [x] Whole terrain index/map loading, genuine map dictionary storage and monster

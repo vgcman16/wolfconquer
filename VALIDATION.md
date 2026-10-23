@@ -1,5 +1,24 @@
 # Publication validation
 
+## Native combat effects and health publication
+
+Private Release and independent sanitized-public Release each passed2198/2198,
+zero failures/skips:87 new cases and2111 retained, first run in each copy.
+Whole blue-damage/refinement writers, eight Perfection methods, all fourteen native
+XP-skill priorities, auxiliary shield/stigma executors, durability methods and the
+complete native SendUpdateHP/NotLife property use actual native owners.
+
+Literal packet expectations cover signed damage widths and cumulative MaxHP then
+MaxHP+HP updates. Tests cover real RNG draw counts, existing flag retention, guard
+stamps before faults, suppressed transport and restored fixture global state.
+The original NotLife setter throws; DrainingTouch and durability wear bodies really
+are empty. No native callers were found for auxiliary shield/stigma, so these are
+not represented as additional completed main-dispatch owners.
+
+Full CheckEffects/BloodSpawn/StraightLife, writable HP/Team/death/revive and general
+attack dispatch remain unfinished. No actual-client, SQL, host, full Windows,
+deployment or overall parity acceptance follows from this focused checkpoint.
+
 ## Native terrain maps, housing and reward records
 
 Private Release and independent sanitized-public Release each passed2111/2111,
