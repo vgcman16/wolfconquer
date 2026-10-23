@@ -1,5 +1,20 @@
 # Publication validation
 
+## Selected native DivineGuard checkpoint
+
+Private/public Release **3214/3214** each,0failed/0skipped, including98new
+controls and14 retained ProcRates cases. Complete real current-owner/status
+and bounded frame preparation precede cooldown/status/success effects (FSB039).
+Valid absent-flag5%, flag177/15seconds, selected-trigger10minute stamp and exact
+owner/peer packet order remain. Invalid preparation no longer dirties cooldown
+or publishes refinement. Actual loan/state drift, seeded outcomes, token replay,
+wire goldens and accepted transport failure are checked.
+
+The deferred one-line testconstant parentheses joins this behavioral batch;
+full CI and current CodeFactor analysis are not yet measured. Full outer
+CheckEffects authorization/combat/HP/Team/revive/host activation stays open.
+Offline component proof only; no live client, original save or SQL changed.
+
 ## Current atomic native save and fixed-text checkpoint
 
 Private/public Release **3116/3116** each,0failed/0skipped, including51new controls.
@@ -22,7 +37,7 @@ passed4m45s on exact01431fe340e63bf0f99452f5f49302867db438ed, completed
 excluded), updater301/301, launcher49/49; all8stageexit0. Receipt
 20261023T131620699Z-d343aea0 finished13:19:58.8004245Z;206build warnings remain.
 CodeFactor11FIXED (all10precedence targets plus1older),4NEW (3complexity+
-1testconstant),total2287. The testconstant joins the next behavior batch; risky
+1testconstant),total2287. The testconstant is in the DivineGuard batch; risky
 complexity edits/per-warning CI loops are not started.
 
 This is an offline one-file component, not native loader/host/SQL activation, cross-account UID closure or

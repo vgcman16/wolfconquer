@@ -81,11 +81,16 @@ public sealed partial class LegacyNativeAttackExecutorTests
     });
 
     [Fact]
-    public Task DivineGuardViewFaultRetainsEarlierStampAndDoesNotReachRateOrGrantFlag() => NativePacketTestThread.Run(() =>
+    public Task DivineGuardViewFaultPreservesStampStatusAndPoolWithoutReachingChanceOrPublication() => NativePacketTestThread.Run(() =>
     {
-        using var s = new Scope(); s.Player.View = null!; LegacyNativePoolRandom.GetRandom = new(79); var reference = new LegacyNativeSafeRandom(79);
-        DateTime before = DateTime.Now.AddMinutes(10); Assert.Throws<NullReferenceException>(() => Proc("DivineGuard", s.Client)); DateTime after = DateTime.Now.AddMinutes(10);
-        Assert.InRange(s.Player.LastDivineGuard, before, after); Assert.False(s.Player.ContainFlag(Flag.DivineGuard)); Assert.Empty(s.Queue);
+        using var s = new Scope(); s.Player.LastDivineGuard = new DateTime(2026, 1, 3);
+        s.Player.View = null!; LegacyNativePoolRandom.GetRandom = new(79); var reference = new LegacyNativeSafeRandom(79);
+        var before = RefinementStateSnapshot.Capture(s.Player); var stamp = s.Player.LastDivineGuard;
+        int poolCount = WolfConquer.Core.Networking.LegacyNativePacketRecycle.Count;
+        Proc("DivineGuard", s.Client);
+        before.Unchanged(s.Player); Assert.Equal(stamp, s.Player.LastDivineGuard);
+        Assert.False(s.Player.ContainFlag(Flag.DivineGuard)); Assert.Empty(s.Queue);
+        Assert.Equal(poolCount, WolfConquer.Core.Networking.LegacyNativePacketRecycle.Count);
         Assert.Equal(reference.Next(), LegacyNativePoolRandom.GetRandom.Next());
     });
 }

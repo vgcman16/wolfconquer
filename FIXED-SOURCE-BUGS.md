@@ -448,6 +448,27 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Limits: whole reader/postlude/load transaction remains separate audit work;
   bounded accessors alone do not authorize an item or make partial loads safe.
 
+### FSB-039: Prepare selected DivineGuard before cooldown or success publication
+
+- Owner: complete native selected DivineGuard proc. The source reset its stamp
+  and sent refinement11 before fallible status/view work; an old test required
+  that dirty prefix. Invalid preflight now preserves stamp/status/resources,
+  consumes no chance draw and sends no success frames.
+- Capture the genuine client/player/vector/map/view and prepare all bounded,
+  disjoint real frames before the genuine absent-flag5% draw. Final pure owner,
+  status and loan checks precede plain commitment. Preserve flag177/15seconds,
+  selected-trigger now+10minute stamp even on loss/present, and exact owner
+  refine/status/Azure versus peer refine/status order. Present skips RNG.
+- Verification: private/public Release **3214/3214** each,0failed/0skipped,
+  including98new controls and14 retained ProcRates cases. Seeded win/loss,
+  malformed owners/status, actual loan corruption/disposal, stale state,
+  token replay, independent wire goldens and accepted send failure are checked.
+  The previously deferred testconstant parentheses joins this behavior batch.
+- Limits: no full outer CheckEffects authorization, combat/HP/Team/revive or
+  host activation. Eligible loss prepares three potential-success loans; this
+  is a safety tradeoff, not a speed claim. No RNG rollback, raw-writer global
+  atomicity or confirmed network delivery is claimed. Offline only.
+
 ## Active audit
 
 | ID | Defect / affected owner | Required invariant | Status |
@@ -490,8 +511,13 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator component53/53 owned-file controls pass; host activation, trusted historical migration and all-producer adoption HOLD |
 | FSB-037 | Native save truncates before validation, persists prefixes or loses nested deposits | Complete owned image and truthful atomic file outcome before acknowledgement | Scoped native save verified3116 both trees and full Windows39959714814; host/loader/SQL recovery open |
 | FSB-038 | Fixed32 text reads/writes escape buffers or retain stale tails | Bounded field access, validate before write and explicit null admission | Scoped record verified34cases within3116 both trees; full load/postlude audit open |
+| FSB-039 | Selected DivineGuard resets cooldown and publishes refinement before fallible status work | Complete real preparation and final ownership before stamp/status/draw effects | Scoped proc verified3214 both trees; outer authorization/combat/HP/host remains open |
 
 ## CodeFactor cleanup
+
+The next DivineGuard behavior batch passes3214/3214 in both trees and includes
+the one deferred testconstant parentheses fix. Its full CI/remote analysis is
+not yet measured; do not infer a cleared finding from local tests.
 
 Latest verified behavioral checkpoint: public01431fe3,
 [Windows39959714814](https://github.com/vgcman16/wolfconquer/actions/runs/39959714814)
@@ -502,8 +528,8 @@ remain. This is offline automated proof, not deployment/live-client/full parity.
 
 CodeFactor on that exact commit reports4NEW (3complexity+1testconstant),11FIXED,
 total2287. All10precedence targets from256d7a18 are confirmed cleared, plus1older
-native-save existence finding. Defer that one testconstant to the next real
-behavior batch, not a separate edit/test/commit/fullCI ceremony. Complexity debt
+native-save existence finding. That one testconstant is now included with the
+next real behavior batch, not a separate edit/test/commit/fullCI ceremony. Complexity debt
 is retained, not hidden or reshaped solely for a grade. No zero-issues or finished
 gameplay claim is made.
 

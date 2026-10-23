@@ -183,7 +183,7 @@ public sealed partial class LegacyNativeClientItemSaveTests
     public void OversizedExistingImageRefusesBeforeAnyStageOrDestinationWrite()
     {
         using var owned = SeededSave(); var client = ClientWithNativeItemOwners();
-        const long size = 64L * 1024 * 1024 + 1;
+        const long size = (64L * 1024 * 1024) + 1;
         using (var file = new FileStream(owned.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             file.SetLength(size);
         var result = LegacyNativeClientItemSave.TrySaveClientItems(client);
