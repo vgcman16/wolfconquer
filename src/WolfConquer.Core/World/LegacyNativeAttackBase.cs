@@ -1,7 +1,8 @@
 namespace WolfConquer.Core.World;
 
-// Native Calculate.Base25/156..164 only. Its shared RNG is distinct from Pool and BaseFunc.
-internal static class LegacyNativeAttackBase
+// Native Calculate.Base shared RNG/Rate; complete sibling method families live in partials.
+// Its shared RNG is distinct from Pool and BaseFunc.
+internal static partial class LegacyNativeAttackBase
 {
     public static LegacyNativeSafeRandom MyRandom = new LegacyNativeSafeRandom();
 

@@ -1,5 +1,30 @@
 # Publication validation
 
+## Native spell training, restoration and attack prerequisites
+
+Private Release and independent sanitized-public Release each passed1748/1748,
+zero failures/skips:123 new component cases and1625 retained. Whole UpdateSpell
+and four mana/stamina/shield executors use real mutable spell/proficiency/status/
+player owners and actual packet queues. Complete Calculate.Base math/random/
+geometry methods, attributed interaction reads and auto-attack copying are included.
+
+The initial1747-pass/1-fail result exposed an incorrect test expectation: whole
+CanUseSpell catches a missing status owner and rejects before ShieldBlock changes
+damage. Only the test was corrected; no admission guard/catch was weakened.
+New source files have no blanket nullable suppression. Public existing-owner
+changes are narrow reviewed attribute/partial-declaration edits.
+
+Scalar conversion tests retain32 source-shaped rows independently observed in
+default and optimized owned Framework4/x86 probes (256 controls each). Scope is
+only the specified restoration/shield cast sites, not other attack expressions.
+Shield status tests preserve native append-at-current-cursor behavior.
+
+The whole ProcescMagic dispatcher is still held:67 labels map to64 switch
+callees, of which62 remain missing after these two switch owners. Other genuine
+combat-gear dispatch, targeting, receive/death, Team/HP/level and host dependencies
+remain. These focused results are not full combat, SQL, live-client, deployment,
+full Windows or project-parity acceptance.
+
 ## Native equipment scoring, rank files and complete status components
 
 Private Release and independent sanitized-public Release each passed1625/1625,

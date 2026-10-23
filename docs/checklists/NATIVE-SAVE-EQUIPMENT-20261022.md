@@ -1,5 +1,22 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on spell training, restoration executors and attack math
+
+- [x] Whole native UpdateSpell, AddMana, EffectMP, ShieldBlock and BreathFocus;
+  all27 remaining Calculate.Base methods/constants; complete attributed interaction
+  owner/read, CreateAutoAtack and six physical attack fields:123 new cases.
+- [x] Private and independent sanitized-public Release each passed1748/1748,
+  zero failures/skips (123 new +1625 retained). A1747-pass/1-fail run exposed a
+  test expecting a late shield fault; genuine CanUseSpell catches the missing flag
+  owner and rejects earlier. Test now asserts no mutation/send, not a fake throw.
+- [x] Scoped scalar cast tests match32 rows from owned Framework4/x86 default and
+  optimized probes (256 controls each). No extrapolation to other spell expressions.
+  Shield tests retain dirty caller prefixes; protobuf attributes match prior wire.
+- [ ] Whole ProcescMagic remains held:67 labels resolve to64 switch callees;
+  this batch closes two of those owners, leaving62 plus the other real dispatch/
+  receive-damage/death/lifecycle dependencies. No modern adapter or reduced native
+  dispatcher, host registration, actual client or full combat acceptance was added.
+
 ## Follow-on complete equipment scoring, rank records and status methods
 
 - [x] Whole GetItemPoints/GetPerfectionPosition, RankItems queries/update/binary
