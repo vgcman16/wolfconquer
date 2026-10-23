@@ -27,6 +27,7 @@ internal static partial class Program
         var timedOut = false;
         var killAttempted = false;
         var killed = false;
+        var readiness = PendingClientNativeLaunchReadiness(options);
 
         try
         {
@@ -44,6 +45,7 @@ internal static partial class Program
                 startInfo.ArgumentList.Add(argument);
             }
 
+            ValidateClientNativeLaunchReadinessPath(options);
             process = Process.Start(startInfo);
             if (process is null)
             {
@@ -62,7 +64,14 @@ internal static partial class Program
                     debugLogBaselines,
                     options.TopThreadCount));
 
-                var waitMilliseconds = options.KillAfterMs ?? options.TimeoutMs;
+                readiness = WaitForClientNativeLaunchReadiness(options, process, stopwatch);
+                if (readiness.Requested && readiness.Observed && readiness.Error.Length == 0)
+                {
+                    readiness = ResolveClientNativeLaunchReadyWindow(options, stopwatch.ElapsedMilliseconds);
+                }
+
+                var waitMilliseconds = readiness.WaitMilliseconds;
+                timedOut = readiness.TimedOut;
                 if (process.WaitForExit(waitMilliseconds))
                 {
                     exited = true;
@@ -76,7 +85,9 @@ internal static partial class Program
                         options.TopThreadCount);
                     snapshots.Add(exitSnapshot);
 
-                    if (options.KillAfterMs is not null && exitSnapshot.Processes.Any(process => process.Exists))
+                    if ((options.KillAfterMs is not null ||
+                        (readiness.Requested && !readiness.Observed && options.KillOnTimeout)) &&
+                        exitSnapshot.Processes.Any(process => process.Exists))
                     {
                         killAttempted = true;
                         TryKillClientNativeRuntimeProcessTree(
@@ -96,9 +107,12 @@ internal static partial class Program
                 }
                 else
                 {
-                    timedOut = options.KillAfterMs is null;
+                    timedOut = readiness.TimedOut ||
+                        (options.KillAfterMs is null && (!readiness.Requested || readiness.Observed));
                     snapshots.Add(CaptureClientNativeRuntimeSnapshot(
-                        options.KillAfterMs is null ? "timeout-before-kill" : "before-kill-after-bound",
+                        readiness.Requested && (!readiness.Observed || readiness.Error.Length != 0)
+                            ? "readiness-before-kill"
+                            : options.KillAfterMs is null ? "timeout-before-kill" : "before-kill-after-bound",
                         stopwatch.ElapsedMilliseconds,
                         process,
                         observedProcessIds,
@@ -128,6 +142,21 @@ internal static partial class Program
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
         {
             nativeError = FormatClientNativeLaunchProbeException(ex);
+            if (readiness.Requested)
+            {
+                readiness = readiness with { Error = nativeError, WaitMilliseconds = 0 };
+                if (startSucceeded && process is not null &&
+                    (options.KillAfterMs is not null || options.KillOnTimeout))
+                {
+                    killAttempted = true;
+                    TryKillClientNativeRuntimeProcessTree(
+                        process,
+                        observedProcessIds,
+                        out killed,
+                        out exitCode,
+                        out killError);
+                }
+            }
         }
         finally
         {
@@ -146,7 +175,8 @@ internal static partial class Program
             killed,
             killError,
             stopwatch.ElapsedMilliseconds,
-            snapshots);
+            snapshots,
+            readiness);
     }
 
     private static ClientNativeRuntimeSnapshot CaptureClientNativeRuntimeSnapshot(
@@ -1223,7 +1253,8 @@ internal sealed record ClientNativeRuntimeLaunchReport(
     bool Killed,
     string KillError,
     long ElapsedMilliseconds,
-    IReadOnlyList<ClientNativeRuntimeSnapshot> Snapshots);
+    IReadOnlyList<ClientNativeRuntimeSnapshot> Snapshots,
+    ClientNativeLaunchReadiness Readiness);
 
 internal sealed record ClientNativeRuntimeSnapshot(
     string Reason,

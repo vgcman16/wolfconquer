@@ -24,8 +24,8 @@
   scalar writer and ten receive fields are implemented, without host activation.
 - [x] Whole Taoist power family and genuine GUILDWAR state/constructor/conductor,
   gate/query/policy/AddNpc prerequisites are implemented. Full war remains held.
-- [x] Private and independent sanitized-public Release each passed4331/4331,
-  zero failures/skips:4230 retained +75 new +26 existing Rifinery controls.
+- [x] Private and independent sanitized-public Release each passed4366/4366,
+  zero failures/skips:4331 retained +23 new readiness +12 existing tool controls.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
@@ -39,8 +39,9 @@
 - [ ] Newer Windows39905802844 on5a394cd7 failed:20844 passed/2 failed/165
   unexecuted of21011; updater262 passed; later stages did not run. The Rifinery
   field-shape assertion is corrected and all26 cases pass. The native process
-  fixture can be killed before TCP readiness; bounded-handshake repair is pending.
-  No newer full green proof or status/guild-war full-CI proof is claimed.
+  fixture has a kill-before-ready race. Opt-in bounded readiness now passes all31
+  probe cases, preserving original module/thread/TCP/log assertions and default
+  no-ready behavior. Fresh full Windows proof is pending; no new green claim yet.
 
 ## Correctness findings retained
 

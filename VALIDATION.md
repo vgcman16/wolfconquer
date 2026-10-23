@@ -1,5 +1,29 @@
 # Publication validation
 
+## Bounded native-launch readiness repair
+
+Private and independent sanitized-public Release each passed4366/4366 selected
+cases, zero failures/skips:4331 retained +23 new readiness +12 existing tool cases.
+All31 native-probe cases pass, retaining the eight original tests and every
+module/thread/TCP/debug-log assertion. The real delayed-readiness control holds
+a connected target behind a socket token beyond the old1500ms boundary, then
+requires the full unchanged1500ms capture window and actual runtime evidence.
+
+The optional --ready-file protocol requires a fresh path and complete bounded
+UTF8 marker identifying the actual target PID and process birth. It is written
+only after the synthetic target connects and flushes its debug log. The new
+startup and steady waits share the original5000ms stopwatch budget; late readiness
+fails explicitly rather than extending or truncating a successful window.
+No-ready invocations retain their original wait/default behavior. Early exit,
+missing/stale/invalid markers and cleanup errors cannot produce false readiness
+success. New policy/wait code is separate from the existing snapshot owner.
+
+Tests use only owned synthetic processes, loopback sockets and exact GUID temp
+roots. No game/client/server, login, original saves/SQL or routing changed.
+Snapshot/cleanup cost is not a hard real-time wall-clock guarantee. Full Windows
+proof on the published repair is pending; focused success does not erase the
+earlier failed run or establish gameplay/host/deployment parity.
+
 ## Taoist power and native guild-war prerequisites
 
 Private and independent sanitized-public Release each passed4331/4331 selected
@@ -27,7 +51,8 @@ above. The other timed out awaiting TCP acceptance after the bounded probe had
 returned. The1500ms kill has no readiness gate, exposing a kill-before-ready race;
 the exact reason no connection arrived is unproven. An isolated8/8 baseline pass
 is not a fix.
-Bounded opt-in readiness repair and fresh full Windows proof are still pending.
+The bounded opt-in readiness repair is focused-tested above. Fresh full Windows
+proof remains pending.
 
 ## Complete Pole Domination component and shared-owner controls
 

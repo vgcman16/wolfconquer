@@ -7,10 +7,10 @@ using System.Text.RegularExpressions;
 
 namespace WolfConquer.Tests;
 
-public sealed class DataToolClientNativeLaunchProbeTests
+public sealed partial class DataToolClientNativeLaunchProbeTests
 {
     private const string Usage =
-        "WolfConquer.DataTool client-native-launch-probe <exePath> [--workdir path] [--arg value] [...] [--timeout-ms N] [--kill-after-ms N] [--kill-on-timeout|--no-kill-on-timeout] [--debug-log path] [...] [--top-threads N] [--args arg ...]";
+        "WolfConquer.DataTool client-native-launch-probe <exePath> [--workdir path] [--arg value] [...] [--timeout-ms N] [--kill-after-ms N] [--kill-on-timeout|--no-kill-on-timeout] [--debug-log path] [...] [--top-threads N] [--ready-file path] [--args arg ...]";
 
     [Fact]
     public async Task HelpMentionsClientNativeLaunchProbeUsage()
@@ -284,16 +284,24 @@ public sealed class DataToolClientNativeLaunchProbeTests
             var powershellPath = GetWindowsPowerShellPath();
             var debugLogPath = Path.Combine(tempRoot, "client-debug.log");
             var scriptPath = Path.Combine(tempRoot, "probe-runtime-target.ps1");
+            var readyPath = Path.Combine(tempRoot, "probe-ready.txt");
             await File.WriteAllTextAsync(debugLogPath, "seed");
             await File.WriteAllTextAsync(
                 scriptPath,
                 """
+                $ErrorActionPreference = 'Stop'
                 $port = [int]$args[0]
                 $logPath = $args[1]
+                $readyPath = $args[2]
                 $client = New-Object Net.Sockets.TcpClient
-                $client.Connect('127.0.0.1', $port)
-                Add-Content -LiteralPath $logPath -Value 'connected'
-                Start-Sleep -Seconds 30
+                try {
+                    $client.Connect('127.0.0.1', $port)
+                    [IO.File]::AppendAllText($logPath, "connected" + [Environment]::NewLine)
+                    [IO.File]::WriteAllText($readyPath, "pid=$PID`nready`n", [Text.UTF8Encoding]::new($false))
+                    $null = $client.GetStream().ReadByte()
+                } finally {
+                    $client.Dispose()
+                }
                 """);
 
             var result = await RunDataToolAsync(
@@ -309,6 +317,8 @@ public sealed class DataToolClientNativeLaunchProbeTests
                 debugLogPath,
                 "--top-threads",
                 "8",
+                "--ready-file",
+                readyPath,
                 "--args",
                 "-NoProfile",
                 "-NonInteractive",
@@ -317,9 +327,24 @@ public sealed class DataToolClientNativeLaunchProbeTests
                 "-File",
                 scriptPath,
                 port.ToString(CultureInfo.InvariantCulture),
-                debugLogPath);
+                debugLogPath,
+                readyPath);
 
-            acceptedClient = await acceptTask.WaitAsync(TimeSpan.FromSeconds(5));
+            try
+            {
+                acceptedClient = await acceptTask.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (TimeoutException)
+            {
+                throw new Xunit.Sdk.XunitException(
+                    "The real fixture never connected before the probe completed. " +
+                    $"stdout: {result.StandardOutput} stderr: {result.StandardError}");
+            }
+
+            Assert.Contains("ReadinessRequested: True", result.StandardOutput);
+            Assert.Contains("ReadinessObserved: True", result.StandardOutput);
+            Assert.Contains("ReadinessError: <none>", result.StandardOutput);
+            Assert.Contains("TimedOut: False", result.StandardOutput);
 
             Assert.Equal(2, result.ExitCode);
             Assert.Contains("KillAttempted: True", result.StandardOutput);
@@ -403,7 +428,7 @@ public sealed class DataToolClientNativeLaunchProbeTests
                     'Bypass',
                     '-Command',
                     'Start-Sleep -Seconds 30'
-                ) -PassThru
+                ) -PassThru -WindowStyle Hidden
                 Set-Content -LiteralPath $childPidPath -Value $child.Id
                 exit 0
                 """);
@@ -504,10 +529,7 @@ public sealed class DataToolClientNativeLaunchProbeTests
 
     private static void DeleteTempRoot(string tempRoot)
     {
-        if (Directory.Exists(tempRoot))
-        {
-            Directory.Delete(tempRoot, recursive: true);
-        }
+        DeleteOwnedNativeLaunchTempRoot(tempRoot);
     }
 
     private static bool IsProcessRunning(int processId)

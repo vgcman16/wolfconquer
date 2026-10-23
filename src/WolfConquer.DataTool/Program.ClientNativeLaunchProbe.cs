@@ -5,7 +5,7 @@ using System.Globalization;
 internal static partial class Program
 {
     private const string ClientNativeLaunchProbeUsage =
-        "Usage: WolfConquer.DataTool client-native-launch-probe <exePath> [--workdir path] [--arg value] [...] [--timeout-ms N] [--kill-after-ms N] [--kill-on-timeout|--no-kill-on-timeout] [--debug-log path] [...] [--top-threads N] [--args arg ...]";
+        "Usage: WolfConquer.DataTool client-native-launch-probe <exePath> [--workdir path] [--arg value] [...] [--timeout-ms N] [--kill-after-ms N] [--kill-on-timeout|--no-kill-on-timeout] [--debug-log path] [...] [--top-threads N] [--ready-file path] [--args arg ...]";
 
     static int ClientNativeLaunchProbe(string[] args)
     {
@@ -29,6 +29,13 @@ internal static partial class Program
             return 1;
         }
 
+        if (report.Readiness.Requested &&
+            (!report.Readiness.Observed || report.Readiness.Error.Length != 0 || report.NativeError.Length != 0) &&
+            !report.TimedOut && !report.KillAttempted)
+        {
+            return 1;
+        }
+
         return report.TimedOut || report.KillAttempted ? 2 : 0;
     }
 
@@ -47,6 +54,7 @@ internal static partial class Program
         var killOnTimeout = true;
         var debugLogPaths = new List<string>();
         var topThreadCount = 5;
+        string? readyFilePath = null;
 
         for (var index = 2; index < args.Length; index++)
         {
@@ -132,6 +140,24 @@ internal static partial class Program
                 continue;
             }
 
+            if (string.Equals(argument, "--ready-file", StringComparison.OrdinalIgnoreCase))
+            {
+                if (index + 1 >= args.Length)
+                {
+                    throw new ArgumentException("client-native-launch-probe --ready-file requires a path.");
+                }
+
+                readyFilePath = Path.GetFullPath(args[++index]);
+                continue;
+            }
+
+            const string readyFilePrefix = "--ready-file=";
+            if (argument.StartsWith(readyFilePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                readyFilePath = Path.GetFullPath(argument[readyFilePrefix.Length..]);
+                continue;
+            }
+
             if (string.Equals(argument, "--args", StringComparison.OrdinalIgnoreCase))
             {
                 for (var argumentIndex = index + 1; argumentIndex < args.Length; argumentIndex++)
@@ -209,6 +235,11 @@ internal static partial class Program
             throw new ArgumentException($"Unknown client-native-launch-probe option: {argument}");
         }
 
+        if (readyFilePath is not null && killAfterMs is int boundedKillAfter && boundedKillAfter >= timeoutMs)
+        {
+            throw new ArgumentException("--ready-file requires --kill-after-ms to be less than --timeout-ms.");
+        }
+
         return new ClientNativeLaunchProbeOptions(
             executablePath,
             Path.GetFullPath(workingDirectory),
@@ -217,7 +248,8 @@ internal static partial class Program
             killAfterMs,
             killOnTimeout,
             debugLogPaths.Distinct(ClientNativeRuntimePathComparer).ToArray(),
-            topThreadCount);
+            topThreadCount,
+            readyFilePath);
     }
 
     private static ClientNativeLaunchProbeReport RunClientNativeLaunchProbe(ClientNativeLaunchProbeOptions options)
@@ -235,7 +267,8 @@ internal static partial class Program
             runtimeReport.Killed,
             runtimeReport.KillError,
             runtimeReport.ElapsedMilliseconds,
-            runtimeReport.Snapshots);
+            runtimeReport.Snapshots,
+            runtimeReport.Readiness);
     }
 
     private static string FormatClientNativeLaunchProbeException(Exception ex)
@@ -262,6 +295,10 @@ internal static partial class Program
         Console.WriteLine($"Kill on timeout: {FormatClientLaunchEvidenceBool(report.Options.KillOnTimeout)}");
         Console.WriteLine($"Debug logs: {FormatClientNativeRuntimeDebugLogPaths(report.Options.DebugLogPaths)}");
         Console.WriteLine($"Top threads: {report.Options.TopThreadCount.ToString(CultureInfo.InvariantCulture)}");
+        Console.WriteLine($"Ready file: {report.Options.ReadyFilePath ?? "<none>"}");
+        Console.WriteLine($"ReadinessRequested: {FormatClientLaunchEvidenceBool(report.Readiness.Requested)}");
+        Console.WriteLine($"ReadinessObserved: {FormatClientLaunchEvidenceBool(report.Readiness.Observed)}");
+        Console.WriteLine($"ReadinessError: {(report.Readiness.Error.Length == 0 ? "<none>" : report.Readiness.Error)}");
         Console.WriteLine($"StartSucceeded: {FormatClientLaunchEvidenceBool(report.StartSucceeded)}");
         Console.WriteLine($"ProcessId: {(report.ProcessId is int processId ? processId.ToString(CultureInfo.InvariantCulture) : "<none>")}");
         Console.WriteLine($"Exited: {FormatClientLaunchEvidenceBool(report.Exited)}");
@@ -284,7 +321,8 @@ internal sealed record ClientNativeLaunchProbeOptions(
     int? KillAfterMs,
     bool KillOnTimeout,
     IReadOnlyList<string> DebugLogPaths,
-    int TopThreadCount)
+    int TopThreadCount,
+    string? ReadyFilePath = null)
 {
     public int TimeoutMilliseconds => TimeoutMs;
 
@@ -303,4 +341,5 @@ internal sealed record ClientNativeLaunchProbeReport(
     bool Killed,
     string KillError,
     long ElapsedMilliseconds,
-    IReadOnlyList<ClientNativeRuntimeSnapshot> RuntimeSnapshots);
+    IReadOnlyList<ClientNativeRuntimeSnapshot> RuntimeSnapshots,
+    ClientNativeLaunchReadiness Readiness);
