@@ -1,6 +1,38 @@
 # Publication validation
 
-## Current name and older-quality checkpoint
+## Current defect-first checkpoint
+
+Private/public Release each passed **2646/2646**,0fail/0skip. RandomLite inclusive
+width/final-offset arithmetic now uses Int64, preventing the full signed interval
+from throwing after a draw. All44 RNG controls pass (31 new), with an independent
+BigInteger mapping, six seeds and retained ordinary Chi bands/state. The old
+crash-enforcing test is corrected. Full-width coverage, modulo bias and compound
+RNG concurrency remain open; this is not a uniform or cryptographic generator.
+
+One genuine shared HW/Ninja capped-ranking algorithm retains typed fields,
+constructors, real gate/ref dictionary/ref cap, stable unsigned ties/caps and row
+identity. UID is captured once for upsert. Nineteen new controls pass; malformed
+rollback and mutation-before-fallible-sort are not fixed. Two test expectation
+constructors now use nameof while literal ParamName assertions remain unchanged.
+No protocol/packet switch was reshaped for a complexity score.
+
+User guardrail: real defects first; mechanical cosmetic changes batched by rule,
+with focused checks per coherent batch and full CI for behavioral/integration
+checkpoints, not each warning. Current combined successor needs clean committed-
+tree CI and fresh analysis. Further style work must not displace gameplay safety.
+
+## Latest preceding full Windows receipt
+
+[Windows39943323494](https://github.com/vgcman16/wolfconquer/actions/runs/39943323494)
+passed4m09s on exact5a62e0d47751583f866a52c4fb910afec532f532, completed
+2026-10-23T11:08:27Z. Actual TRX: core22146 passed/0failed of22311 (165 external-
+fixture cases excluded), updater301/301, launcher49/49, all8 stages0.
+Receipt20261023T110433716Z-671600c3 finished11:08:20.2704671Z;203 build warnings
+remain. CodeFactor reports8FIXED/3NEW,total2272: all7 targeted API findings cleared,
+one old duplicate retired/reissued, plus two test-nameof records. The current
+combined successor targets those three follow-ups without suppressions.
+
+## Previous name and older-quality checkpoint
 
 Private/public Release each passed **2596/2596**,0fail/0skip. Whole-string name
 validation now rejects invalid interior characters without changing the existing
@@ -14,9 +46,9 @@ Fourteen new real-owner controls pass. Two CA1507 parameter-name expressions kee
 the identical exception strings, with nine new exception/seeded-state controls.
 The separate full-range RandomLite arithmetic/fairness defect remains FSB025.
 No suppressions, exclusions, public API or valid packet changes were introduced.
-Clean committed-tree CI and remote analysis of this next batch are pending.
+This batch now has full CI and remote analysis above.
 
-## Latest verified published Windows and CodeFactor checkpoint
+## Earlier verified published Windows and CodeFactor checkpoint
 
 [Windows39941895742](https://github.com/vgcman16/wolfconquer/actions/runs/39941895742)
 passed in4m55s on exact1990e8bccbc33bfede505b567ef3aaf5698a5db5, completed

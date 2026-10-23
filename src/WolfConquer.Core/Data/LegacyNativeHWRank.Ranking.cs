@@ -22,33 +22,14 @@ internal partial class LegacyNativeHWRank
 
         public void Remove(uint UID)
         {
-            lock (SynRoot)
-            {
-                if (RankingList.Remove(UID))
-                {
-                    RankingList = RankingList.OrderByDescending((KeyValuePair<uint, Entry> p) => p.Value.TotalPoints)
-                        .Take(MaxItems).ToDictionary((KeyValuePair<uint, Entry> pair) => pair.Key,
-                            (KeyValuePair<uint, Entry> pair) => pair.Value);
-                }
-            }
+            LegacyNativeCappedRankingMutations.Remove(SynRoot, ref RankingList, UID,
+                ref MaxItems, static entry => entry.TotalPoints);
         }
 
         public void UpdateItem(Entry item)
         {
-            lock (SynRoot)
-            {
-                if (!RankingList.ContainsKey(item.UID))
-                {
-                    RankingList.Add(item.UID, item);
-                }
-                else if (RankingList.ContainsKey(item.UID))
-                {
-                    RankingList[item.UID] = item;
-                }
-                RankingList = RankingList.OrderByDescending((KeyValuePair<uint, Entry> p) => p.Value.TotalPoints)
-                    .Take(MaxItems).ToDictionary((KeyValuePair<uint, Entry> pair) => pair.Key,
-                        (KeyValuePair<uint, Entry> pair) => pair.Value);
-            }
+            LegacyNativeCappedRankingMutations.Update(SynRoot, ref RankingList, item,
+                ref MaxItems, static entry => entry.UID, static entry => entry.TotalPoints);
         }
     }
 

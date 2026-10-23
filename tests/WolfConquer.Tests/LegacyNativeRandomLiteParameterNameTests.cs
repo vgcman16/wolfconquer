@@ -15,7 +15,7 @@ public sealed class LegacyNativeRandomLiteParameterNameTests
         var error = Assert.Throws<ArgumentOutOfRangeException>(() => random.Next(upperBound));
         Assert.Equal("upperBound", error.ParamName);
         Assert.Equal(upperBound, error.ActualValue);
-        Assert.Equal(new ArgumentOutOfRangeException("upperBound", upperBound,
+        Assert.Equal(new ArgumentOutOfRangeException(nameof(upperBound), upperBound,
             "upperBound must be >=0").Message, error.Message);
         Assert.Equal(273262797, random.Next());
         Assert.Equal(512644276, random.Next());
@@ -32,7 +32,7 @@ public sealed class LegacyNativeRandomLiteParameterNameTests
         var error = Assert.Throws<ArgumentOutOfRangeException>(() => random.Next(lowerBound, upperBound));
         Assert.Equal("upperBound", error.ParamName);
         Assert.Equal(upperBound, error.ActualValue);
-        Assert.Equal(new ArgumentOutOfRangeException("upperBound", upperBound,
+        Assert.Equal(new ArgumentOutOfRangeException(nameof(upperBound), upperBound,
             "upperBound must be >=lowerBound").Message, error.Message);
         Assert.Equal(273262797, random.Next());
         Assert.Equal(512644276, random.Next());

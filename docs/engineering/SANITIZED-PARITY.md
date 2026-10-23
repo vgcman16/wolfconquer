@@ -78,6 +78,19 @@ CodeFactor cleanup is authorized for new and existing code. Triage actual curren
 findings, then fix readability, maintainability, complexity, duplication and other
 actionable issues in reviewable batches. Verify behavior after refactors.
 
+Prioritize genuine defect findings (null/lifetime/resource faults, unreachable
+logic and invalid state) over cosmetic debt. Batch mechanical style fixes by
+rule across a safely bounded explicit file set, using automation where suitable;
+preserve unrelated/held edits. Do not turn every warning into a separate
+edit-test-commit-full-CI loop. Use focused checks per coherent batch and full CI
+for behavioral changes or a meaningful integration/publication checkpoint.
+
+Do not split or rewrite a working protocol/packet switch solely to meet a
+cyclomatic-complexity threshold when doing so risks message ordering, formulas
+or runtime side effects. Defer and record low-value/risky cosmetic findings;
+static issue-count reduction must not displace unfinished gameplay or safety
+transactions. Zero CodeFactor findings would not prove gameplay completion.
+
 Inspect every caller before changing a query's failure behavior or replacing a
 complete scan with early exit. Returning false for corrupt state is not fail-closed
 when a caller treats `!query()` as permission to mutate. Preserve the distinction

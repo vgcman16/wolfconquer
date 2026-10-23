@@ -7,6 +7,20 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Combined defect-first successor passes private/public2646/2646,0fail/0skip:
+  real RandomLite wide-range fault correction (44 RNG cases,31 new), one shared
+  typed HW/Ninja mutation algorithm (19 new controls), and two test nameof fixes.
+  RNG full-domain/fairness and whole rank transaction safety remain open. Current
+  successor still needs committed-tree CI and fresh CodeFactor analysis.
+- [x] Full Windows39943323494 on exact5a62e0d4 passed4m09s: core22146/0failed,
+  165 excluded, updater301/301, launcher49/49, all8 stages0. CodeFactor reports
+  8FIXED/3NEW,total2272; all7 older API targets cleared. The three follow-ups are
+  addressed in the combined successor above, not a new cosmetic work queue.
+- [x] User guardrail is explicit: defects first, mechanical style by rule in
+  bounded automated batches; full CI for behavioral/integration checkpoints,
+  not individual warnings. No risky protocol-switch reshape just for a threshold.
+  Next genuine safety priority is AddFlag and its consuming caller transactions.
+
 - [x] Whole-string name validation and seven older CodeFactor API records are
   locally verified: private/public Release2596/2596,0fail/0skip. Includes40 new
   name/caller controls (262144 bounded code-unit observations),14 real ranking
@@ -15,8 +29,8 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 - [x] Full Windows39941895742 on exact1990e8bc passed in4m55s: core22083/0failed
   (165 excluded), updater301/301, launcher49/49, all8 check steps exit0.
   CodeFactor confirms0NEW/15FIXED,total2277, net50 fewer than2327. This verifies
-  the previous semantic cleanup; the next name/older-API batch still needs full CI
-  and fresh analysis. No live-client, deployment or full parity claim follows.
+  the previous semantic cleanup; the name/older-API batch is also verified above.
+  No live-client, deployment or full parity claim follows.
 
 - [x] Current semantic cleanup and corrected missing-rune assertions passed
   private/public Release2255/2255,0fail/0skip, including22 new classic/shop phase

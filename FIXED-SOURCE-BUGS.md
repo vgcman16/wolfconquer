@@ -214,6 +214,20 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Limits: no stored-name migration/deletion, normalized uniqueness, rename-queue
   validation or admin-authority claim. Those portions of FSB022 remain open.
 
+### FSB-025: Widen inclusive RNG range arithmetic before taking a draw
+
+- Owner: RandomLite bounded Next overloads. Full signed width2^32 previously
+  overflowed to zero and threw after advancing the RNG. Compute width and final
+  offset in Int64; retain guards, constant-range no-draw behavior and the genuine
+  unbounded generator. Current Chi type/stat bands keep their seeded sequences.
+- Verification: private/public Release2646/2646,0fail/0skip, including44 complete
+  RNG controls (31 new), six seeds, signed width boundaries through2^32 and an
+  independent BigInteger mapping. The old crash-enforcing test now requires the
+  literal corrected seed97 result -1874220851 and next draw512644276.
+- Limits: bounds safety only. The existing31-bit domain cannot cover a full-width
+  interval and modulo remains biased. Uniform/full-domain sampling, fairness,
+  concurrency and cryptographic security are not fixed or certified.
+
 ## Active audit
 
 | ID | Defect / affected owner | Required invariant | Status |
@@ -242,11 +256,34 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-022 | Name policy regex checks only the final character; rename and uniqueness policies differ | Complete validated name policy and consistent authoritative uniqueness | Whole-string repertoire check fixed; rename/uniqueness and stored-name migration remain open |
 | FSB-023 | Flag registration/reset/publication can mutate before a null bitmap/view or later failure | Validate/prepare before coherent current-owner registration; duplicates reject without side effects | Isolated implementation in progress; not integrated |
 | FSB-024 | Broader prestige rebuild still has legacy partial-publication, foreign-owner, duplicate-slot and arithmetic-wrap assumptions | Validate the whole genuine graph and prepare complete rank/guild state before coherent publication | Audit required; missing named-rune metadata is handled, not the whole rebuild |
-| FSB-025 | RandomLite inclusive-range arithmetic can overflow or fault after consuming a draw; old full-range test enforces the fault | Bounded representable results, validation before draws and an explicit distribution/domain policy | Open; parameter-name cleanup does not certify range arithmetic or fairness |
+| FSB-025 | RandomLite inclusive-range arithmetic can overflow or fault after consuming a draw; full-width sampling has limited domain and modulo bias | Bounded representable results, validation before draws and an explicit distribution/domain policy | Arithmetic bounds fixed; full-domain/distribution/fairness and concurrency remain open |
 
 ## CodeFactor cleanup
 
-Current published checkpoint1990e8bc reports **0NEW/15FIXED**, **2277 total**
+Latest published5a62e0d4: **8FIXED/3NEW**, **2272 total**. All seven older API
+targets cleared; the eighth fixed record is an older duplicate that was reissued
+under a new key. Two new findings are nameof suggestions in test expectation
+constructors; literal ParamName assertions remain independent. The third is the
+existing HW/Ninja Rank mutation duplication, not new gameplay functionality.
+
+Current combined defect-first successor passes private/public2646/2646,0fail/
+0skip. It includes the real FSB025 range repair, two test-expression fixes and one
+shared typed HW/Ninja capped-ranking algorithm with19 new controls. Genuine
+fields/constructor/gate/ref dictionary/ref cap remain; UID is captured once and
+upsert uses one lookup. Stable unsigned ties/caps/row identity and late cap reads
+remain tested. Mutation-before-fallible-sort/raw-race safety is still open.
+No packet switch, protocol layout or handler ordering was refactored for score.
+Remote analysis and full CI for this combined behavioral checkpoint are pending;
+no per-warning full-CI loop is intended. Defect-first batching is now explicit in
+the engineering policy.
+
+Full Windows39943323494 passed on exact5a62e0d47751583f866a52c4fb910afec532f532
+in4m09s: core22146 passed/0failed of22311 (165 excluded), updater301/301,
+launcher49/49, all8 stages0. Receipt20261023T110433716Z-671600c3 finished
+11:08:20.2704671Z. This verifies the preceding name/API batch, not the current
+uncommitted successor, deployment or live-client play.
+
+Earlier published checkpoint1990e8bc reports **0NEW/15FIXED**, **2277 total**
 findings, net50 below the2327 baseline. All15 complexity/arithmetic records
 introduced by2b are confirmed inactive. Full Windows39941895742 passed on exact
 1990e8bccbc33bfede505b567ef3aaf5698a5db5: core22083 passed/0failed of22248
@@ -262,7 +299,7 @@ remaining rows even when the key is absent. Fourteen genuine owner/API controls
 check single lookup, ordering and row identity. Nine exception/seeded-state cases
 retain exact parameter messages and no draw on invalid ranges. The known
 RandomLite full-range bug is separate FSB025 debt, not new safety acceptance.
-Remote analysis and clean committed-tree CI for this next batch are pending.
+Its actual full CI and remote analysis are now recorded above.
 
 Earlier CodeFactor analyzed public2b993ece: **18FIXED/15NEW**, total **2292 findings**.
 All seven targeted CA1827 and six CA1847 records cleared, plus five older records.

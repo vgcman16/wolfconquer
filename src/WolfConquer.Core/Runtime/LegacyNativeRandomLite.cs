@@ -2,6 +2,8 @@ using System;
 
 namespace WolfConquer.Core.Runtime;
 
+// Range arithmetic is widened; the underlying 31-bit draw domain and modulo
+// distribution are unchanged. This is not a uniform full-width sampler.
 internal class LegacyNativeRandomLite
 {
 	private const uint Y = 842502087u;
@@ -61,7 +63,9 @@ internal class LegacyNativeRandomLite
 		{
 			return 0;
 		}
-		return Next() % (upperBound + 1);
+		// Widen before adding: Int32.MaxValue has inclusive width 2147483648.
+		long width = (long)upperBound + 1;
+		return (int)(Next() % width);
 	}
 
 	public int Next(int lowerBound, int upperBound)
@@ -74,6 +78,9 @@ internal class LegacyNativeRandomLite
 		{
 			return lowerBound;
 		}
-		return lowerBound + Next() % (upperBound + 1 - lowerBound);
+		// Every ordered Int32 interval has width 1..4294967296. Keep both
+		// width and offset arithmetic wide; this preserves the real Next() draw.
+		long width = ((long)upperBound - lowerBound) + 1;
+		return (int)(lowerBound + (Next() % width));
 	}
 }

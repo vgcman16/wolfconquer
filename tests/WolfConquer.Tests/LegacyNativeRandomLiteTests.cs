@@ -38,12 +38,15 @@ public sealed class LegacyNativeRandomLiteTests
     }
 
     [Fact]
-    public void FullSignedRangeKeepsNativeUncheckedDenominatorZeroFaultAfterOneDraw()
+    public void FullSignedRangeHasNoArithmeticFaultAndConsumesOneRealDraw()
     {
         var random = new LegacyNativeRandomLite(97);
-        Assert.Throws<DivideByZeroException>(() => random.Next(int.MinValue,int.MaxValue));
+        int value = random.Next(int.MinValue, int.MaxValue);
+        Assert.Equal(-1874220851, value);
+        Assert.InRange(value, int.MinValue, int.MaxValue);
         Assert.Equal(512644276, random.Next());
         random.Reseed(97);
         Assert.Equal(273262797, random.Next(int.MaxValue));
+        Assert.Equal(512644276, random.Next());
     }
 }
