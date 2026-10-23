@@ -201,6 +201,19 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Limits: calendar-wall-time countdown, not monotonic/DST elapsed-time accuracy,
   scheduler completion or an atomic daily-reward/reset transaction.
 
+### FSB-022: Validate every character in the existing name repertoire
+
+- Owner: NameStrCheck, used by the genuine Clan creation query. The source regex
+  examined only the final character, accepting invalid interiors such as A B/A@B.
+  Remove only its trailing anchor: retain exact ASCII/Arabic/CJK ranges, allowed
+  punctuation, case-sensitive reserved tokens, UTF16 size bound and size opt-out.
+- Verification: private/public Release2596/2596,0fail/0skip includes40 new
+  controls, all262144 bounded UTF16-unit/position observations, existing name/API
+  controls and the full Clan family. Old invalid-interior acceptance assertions
+  now require refusal. Valid names and real Clan dictionaries/counter stay intact.
+- Limits: no stored-name migration/deletion, normalized uniqueness, rename-queue
+  validation or admin-authority claim. Those portions of FSB022 remain open.
+
 ## Active audit
 
 | ID | Defect / affected owner | Required invariant | Status |
@@ -226,17 +239,36 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-019 | Rune effects accept foreign owners, incomplete/duplicate slots and fault on missing metadata | Genuine current complete ownership and safe deterministic query | Equipped queries fixed; writers/full lifecycle open |
 | FSB-020 | Shop refresh can loop forever or lose stock; counters wrap and Load publishes prefixes | Bounded staged book operations and truthful prepared publication | Native component fixed; economy receivers/durability held |
 | FSB-021 | Shop countdown targets midnight plus a minute using three clocks | One bounded local-calendar countdown sample | Display calculation fixed; scheduler/reset transaction open |
-| FSB-022 | Name policy regex checks only the final character; rename and uniqueness policies differ | Complete validated name policy and consistent authoritative uniqueness | Open; mechanical character-search cleanup is not a policy fix |
+| FSB-022 | Name policy regex checks only the final character; rename and uniqueness policies differ | Complete validated name policy and consistent authoritative uniqueness | Whole-string repertoire check fixed; rename/uniqueness and stored-name migration remain open |
 | FSB-023 | Flag registration/reset/publication can mutate before a null bitmap/view or later failure | Validate/prepare before coherent current-owner registration; duplicates reject without side effects | Isolated implementation in progress; not integrated |
 | FSB-024 | Broader prestige rebuild still has legacy partial-publication, foreign-owner, duplicate-slot and arithmetic-wrap assumptions | Validate the whole genuine graph and prepare complete rank/guild state before coherent publication | Audit required; missing named-rune metadata is handled, not the whole rebuild |
+| FSB-025 | RandomLite inclusive-range arithmetic can overflow or fault after consuming a draw; old full-range test enforces the fault | Bounded representable results, validation before draws and an explicit distribution/domain policy | Open; parameter-name cleanup does not certify range arithmetic or fairness |
 
 ## CodeFactor cleanup
 
-CodeFactor analyzed public2b993ece: **18FIXED/15NEW**, total **2292 findings**.
+Current published checkpoint1990e8bc reports **0NEW/15FIXED**, **2277 total**
+findings, net50 below the2327 baseline. All15 complexity/arithmetic records
+introduced by2b are confirmed inactive. Full Windows39941895742 passed on exact
+1990e8bccbc33bfede505b567ef3aaf5698a5db5: core22083 passed/0failed of22248
+(165 fixture-dependent cases excluded), updater301/301, launcher49/49, all8
+check stages exit0. Receipt20261023T105105363Z-d2463376 finished10:55:38.2705674Z;
+the job completed10:55:45Z in4m55s. Build warnings remain; this is not deployment.
+
+The next older-quality batch passes private/public Release2596/2596,0fail/0skip.
+It includes the FSB022 correction above, five CA1853 ranking Remove lookups and
+two CA1507 parameter-name literals. Four ranking owners retain successful-removal
+sorting/caps and missing-key reference identity; Nobility still refreshes real
+remaining rows even when the key is absent. Fourteen genuine owner/API controls
+check single lookup, ordering and row identity. Nine exception/seeded-state cases
+retain exact parameter messages and no draw on invalid ranges. The known
+RandomLite full-range bug is separate FSB025 debt, not new safety acceptance.
+Remote analysis and clean committed-tree CI for this next batch are pending.
+
+Earlier CodeFactor analyzed public2b993ece: **18FIXED/15NEW**, total **2292 findings**.
 All seven targeted CA1827 and six CA1847 records cleared, plus five older records.
 The15 new records are12 complexity and3 arithmetic-readability findings. They
-are addressed in the current semantic preparation/admission/parsing successor,
-not hidden by suppressions/exclusions. Remote analysis of this successor is pending.
+were addressed by1990e8bc through semantic preparation/admission/parsing phases,
+not hidden by suppressions/exclusions; all15 are confirmed cleared above.
 
 Private and independent public Release each passed **2255/2255**,0fail/0skip,
 including22 new classic/shop phase controls and the expanded full XP-flag/
@@ -253,7 +285,7 @@ coherent XP replacement/addition with zero bonus, complete status/timer/packet
 state, and complete prestige/rank/guild updates with no named rune bonus.
 No malformed vector was made a valid fixture; the broader flag transaction and
 prestige rebuild remain separate audit work. The current2255-case selections
-pass all five corrected cases. Clean committed-tree full CI is still pending.
+pass all five corrected cases. Full CI1990e8bc now passes as recorded above.
 
 The unchanged native CRT controls require a measured PowerShell7 binding. An
 earlier missing/array-valued environment caused8 probe failures in both trees;
@@ -264,7 +296,7 @@ Previous verified checkpoint: full Windows39933407353 passed in4m06s on exact
 (165 excluded), updater301/301, launcher49/49 and all eight check steps exit0.
 This is offline/synthetic CI, not deployment or complete gameplay parity.
 
-Latest remote snapshot: **2295 findings**, net32 fewer than the2327 baseline.
+Earlier remote snapshot: **2295 findings**, net32 fewer than the2327 baseline.
 Commit8f7ea7 reports0NEW/7FIXED; follow-up eae56f67 reports0NEW/3FIXED. The ten
 fixed records include all seven newly introduced warnings and three older ones.
 The entire TitleStorage.cs file report now has zero active findings. Its handler

@@ -1,5 +1,32 @@
 # Publication validation
 
+## Current name and older-quality checkpoint
+
+Private/public Release each passed **2596/2596**,0fail/0skip. Whole-string name
+validation now rejects invalid interior characters without changing the existing
+allowed repertoire, reserved tokens or size opt-out. Forty new name/real-Clan
+controls include262144 bounded code-unit/position observations. Existing invalid-
+interior acceptance tests now require refusal; no stored names were migrated.
+
+Five CA1853 ranking removals now avoid redundant lookups while retaining real
+sort/cap/identity behavior and Nobility refresh even when removal finds no key.
+Fourteen new real-owner controls pass. Two CA1507 parameter-name expressions keep
+the identical exception strings, with nine new exception/seeded-state controls.
+The separate full-range RandomLite arithmetic/fairness defect remains FSB025.
+No suppressions, exclusions, public API or valid packet changes were introduced.
+Clean committed-tree CI and remote analysis of this next batch are pending.
+
+## Latest verified published Windows and CodeFactor checkpoint
+
+[Windows39941895742](https://github.com/vgcman16/wolfconquer/actions/runs/39941895742)
+passed in4m55s on exact1990e8bccbc33bfede505b567ef3aaf5698a5db5, completed
+2026-10-23T10:55:45Z. Actual TRX: core22083 passed/0failed of22248 (165 external-
+fixture cases excluded), updater301/301, launcher49/49. All eight stages exit0.
+Receipt20261023T105105363Z-d2463376 finished10:55:38.2705674Z. Build warnings
+remain. CodeFactor confirms0NEW/15FIXED and2277 total findings, net50 below2327.
+This is offline CI for the preceding semantic cleanup, not deployment, a live
+game/client check, full parity or a completed bug/quality audit.
+
 ## Current sanitized component and quality checkpoint
 
 Private and independent public Release each passed **2255/2255**, zero failures/
@@ -15,8 +42,8 @@ assert coherent flag/timer/packet and rank/guild updates with no named rune bonu
 
 CodeFactor on public2b993ece reports18FIXED/15NEW and2292 total findings. All13
 targeted CA1827/CA1847 records cleared, plus five older records. The15 new
-complexity/arithmetic findings are addressed locally through semantic phases and
-explicit grouping; remote analysis of this successor is pending. No suppression,
+complexity/arithmetic findings were cleared by1990e8bc through semantic phases and
+explicit grouping; actual remote closure is recorded above. No suppression,
 exclusion or fake saver was introduced. Name controls use only the published
 real Clan owner, not held Guild/Union APIs. Full name policy remains audit debt.
 
@@ -29,8 +56,7 @@ These are working-copy focused results. Full Windows39939873007 on2b failed:
 core22056 passed/5failed,165 excluded; updater301/301 passed. Launcher/later checks
 were not run. Receipt20261023T103337163Z-06e30071 finished2026-10-23T10:37:01Z.
 All five failures were the old exception assertions corrected above; all five
-now pass within2255/2255 in both trees. Clean committed-tree CI for this successor
-is pending. The green receipt below is an older code revision, not this batch.
+now pass within2255/2255 in both trees. Full CI1990e8bc now passes above.
 See FIXED-SOURCE-BUGS.md FSB017..024 for completed scopes and remaining holds.
 Whole economy and
 weapon receivers, raw-writer synchronization, durable crash recovery, native eager

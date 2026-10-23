@@ -14,7 +14,9 @@ public static bool NameStrCheck(string? name, bool ExceptedSize = true)
 		{
 			return false;
 		}
-		string pattern = "[^A-Za-z0-9ء-ي*~.&.$一-龥]$";
+		// Deny an invalid character anywhere, not only in the final position.
+		// The existing allowed ranges/punctuation and later policy stay unchanged.
+		string pattern = "[^A-Za-z0-9ء-ي*~.&.$一-龥]";
 		Regex regex = new Regex(pattern);
 		if (regex.IsMatch(name))
 		{

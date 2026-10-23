@@ -24,9 +24,8 @@ internal partial class LegacyNativePrestigeRanking
 		{
 			lock (SynRoot)
 			{
-				if (Items.ContainsKey(UID))
+				if (Items.Remove(UID))
 				{
-					Items.Remove(UID);
 					Items = Items.OrderByDescending((KeyValuePair<uint, Entry> p) => p.Value.TotalPoints).Take(MaxItems).ToDictionary((KeyValuePair<uint, Entry> pair) => pair.Key, (KeyValuePair<uint, Entry> pair) => pair.Value);
 				}
 			}

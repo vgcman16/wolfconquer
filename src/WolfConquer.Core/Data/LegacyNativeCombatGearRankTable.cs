@@ -78,9 +78,8 @@ internal partial class LegacyNativeCombatGearRankTable
         {
             lock (SynRoot)
             {
-                if (RankingList.ContainsKey(UID))
+                if (RankingList.Remove(UID))
                 {
-                    RankingList.Remove(UID);
                     RankingList = RankingList.OrderByDescending((KeyValuePair<uint, Entry> p) => p.Value.TotalPoints)
                         .Take(MaxItems).ToDictionary((KeyValuePair<uint, Entry> pair) => pair.Key,
                             (KeyValuePair<uint, Entry> pair) => pair.Value);

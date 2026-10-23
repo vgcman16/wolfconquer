@@ -55,7 +55,7 @@ internal class LegacyNativeRandomLite
 	{
 		if (upperBound < 0)
 		{
-			throw new ArgumentOutOfRangeException("upperBound", upperBound, "upperBound must be >=0");
+			throw new ArgumentOutOfRangeException(nameof(upperBound), upperBound, "upperBound must be >=0");
 		}
 		if (upperBound == 0)
 		{
@@ -68,7 +68,7 @@ internal class LegacyNativeRandomLite
 	{
 		if (lowerBound > upperBound)
 		{
-			throw new ArgumentOutOfRangeException("upperBound", upperBound, "upperBound must be >=lowerBound");
+			throw new ArgumentOutOfRangeException(nameof(upperBound), upperBound, "upperBound must be >=lowerBound");
 		}
 		if (lowerBound == upperBound)
 		{

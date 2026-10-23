@@ -7,6 +7,17 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Whole-string name validation and seven older CodeFactor API records are
+  locally verified: private/public Release2596/2596,0fail/0skip. Includes40 new
+  name/caller controls (262144 bounded code-unit observations),14 real ranking
+  removal controls and9 exact exception/seeded-state cases. Rename/uniqueness,
+  ranking transaction safety and RandomLite range/fairness remain separate debt.
+- [x] Full Windows39941895742 on exact1990e8bc passed in4m55s: core22083/0failed
+  (165 excluded), updater301/301, launcher49/49, all8 check steps exit0.
+  CodeFactor confirms0NEW/15FIXED,total2277, net50 fewer than2327. This verifies
+  the previous semantic cleanup; the next name/older-API batch still needs full CI
+  and fresh analysis. No live-client, deployment or full parity claim follows.
+
 - [x] Current semantic cleanup and corrected missing-rune assertions passed
   private/public Release2255/2255,0fail/0skip, including22 new classic/shop phase
   controls and the expanded full XP-flag/prestige families. Earlier2164 coverage
@@ -17,7 +28,7 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 - [ ] Full Windows39939873007 on2b failed5 obsolete missing-rune exception
   assertions: core22056 passed/5failed,165 excluded; updater301/301 passed.
   Launcher/later stages were not run. All five now assert safe coherent outcomes
-  and pass within2255/2255 both trees. New clean committed-tree CI is pending.
+  and pass within2255/2255 both trees. Corrected1990 full CI passes above.
 - [ ] Whole weapon receivers2353/2354, shop paid refresh/purchase wallet/item
   transactions, native title eager lifecycle, Rune writers and flag transactions
   remain held. Query/component proof is not host adoption or durable recovery.

@@ -15,8 +15,8 @@ public sealed partial class LegacyNativeClanTests
     [InlineData("None", false)]
     [InlineData("guard1", false)]
     [InlineData("guard", true)]
-    [InlineData("A B", true)]
-    [InlineData("A@B", true)]
+    [InlineData("A B", false)]
+    [InlineData("A@B", false)]
     [InlineData("@", false)]
     [InlineData("A/B", false)]
     [InlineData("A\\B", false)]
@@ -24,7 +24,7 @@ public sealed partial class LegacyNativeClanTests
     [InlineData("A[B", false)]
     [InlineData("A\u0019B", false)]
     [InlineData("12345678901234567", false)]
-    public void WholeNamePolicyPreservesTrailingOnlyRegexAndCaseSensitiveForbiddenTokens(string? name, bool expected) =>
+    public void WholeNamePolicyRejectsInvalidCharactersAndKeepsExactReservedTokens(string? name, bool expected) =>
         Assert.Equal(expected, LegacyNativeBaseFunc.NameStrCheck(name));
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed partial class LegacyNativeClanTests
         Assert.False(LegacyNativeClanRuntime.AllowCreateClan("GM"));
         Assert.True(LegacyNativeClanRuntime.AllowCreateClan("wolf"));
         Assert.True(LegacyNativeClanRuntime.AllowCreateClan("queued"));
-        Assert.True(LegacyNativeClanRuntime.AllowCreateClan("A@B"));
+        Assert.False(LegacyNativeClanRuntime.AllowCreateClan("A@B"));
     }
 
     [Theory]

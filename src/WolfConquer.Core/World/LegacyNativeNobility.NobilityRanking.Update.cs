@@ -8,10 +8,7 @@ internal partial class LegacyNativeNobility
     {
         public void RemoveAndUpdateTheRest(uint UID)
         {
-            if (ClientPoll.ContainsKey(UID))
-            {
-                ClientPoll.Remove(UID);
-            }
+            ClientPoll.Remove(UID);
             LegacyNativeNobility[] array = GetArray();
             foreach (LegacyNativeNobility user in array)
             {
