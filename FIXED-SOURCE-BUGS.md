@@ -4,6 +4,22 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Latest integration gate — full CI remains RED
+
+Full [Windows40032574805](https://github.com/vgcman16/wolfconquer/actions/runs/40032574805)
+FAILED exact public0deb1e46117858ba7d1533ea8895aa845f11311e in4m39s;
+jobcompleted22:22:02Z. Receipt20261023T221739757Z-8629d86e finished
+22:21:53.15871Z: core24176passed/1failed/165existing NotExecuted of24342;
+updater301passed; launcher/parsers did not run; build190warnings/0errors.
+All534 public cases selected by the same chest/NPC/Trade/session/barrier filter
+passed, including127 chest,95 NPC and14 codec. Two older Trade partner fact
+names differ between private/public; whole-name inventory identity is not claimed.
+The sole failure is the old runtime Reviver test: expected StatusFlag, got
+Stamina. Exact historical stamina value/interleaving was not recorded. Source
+inspection confirms a real competing-loop stale-stamina risk (FSB068), not proof
+that only the assertion is wrong. Corrected seed failure remains fixed; full-CI
+acceptance is still RED. No live,SQL,original-save,routing or deployment action.
+
 ## Verified fixes
 
 ### FSB-001: Reject spell admissions before spending resources
@@ -1186,6 +1202,19 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   No original saves, live client/server or routing were changed.
 
 ## Active audit
+
+### FSB-068: Prevent player ticks overwriting revived stamina (OPEN)
+
+- Source-confirmed risk: the player runtime loop prepares a stamina value,
+  awaits its send, then rereads/merges onto the latest session. The global
+  Reviver publishes stamina100 and sends its multi-frame sequence across awaits.
+  Both own Shared leases; an older prepared5 can overwrite100 and interleave output.
+- Required invariant: real per-connection async ownership around fresh capture,
+  commit and publication of these two phases. No monitor across awaits or nested
+  Shared-to-Exclusive upgrade; no unaudited global-exclusive switch.
+- Status: source diagnosis, not fixed. Controlled actual timers/paused sends,
+  real worker-lifetime evidence and the bounded gate are next. Preserve existing
+  wire/state assertions; do not filter stale packets away. Broader writers open.
 
 ### FSB-067: Commit Victory chest quest claim and reward together (OPEN)
 

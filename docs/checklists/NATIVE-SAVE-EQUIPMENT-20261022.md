@@ -7,6 +7,13 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [ ] FullWindows40032574805 remains RED on exactpublic0deb1e46:24176corepass/
+  1fail/165existing exclusions of24342,updater301pass,launcher/parsersnotrun,
+  build190warnings/0errors,4m39s. The same publicfocusedfilter534/534 allpassed,
+  including127chest/95NPC/14codec. Solefailure:oldRuntimeReviver expectedStatusFlag
+  gotStamina. Sourceconfirms competing-loop stale-stamina risk; FSB068OPEN is
+  priority beforeVictory,not an assertion-filtering fix. Actualtrace/fix pending.
+
 - [x] Scoped chest transaction (FSB066): validate complete actual owners and
   required files before debit, journal Character/Items together, then publish
   current session and prepared packets. Real recovery fences uncertain outcomes;
