@@ -40,10 +40,10 @@ Chi's uint selector binds LINQ Int64 Sum before final Int32 wrap; under-minimum
 double-to-uint terms and Rate(double)'s NaN/infinity casts preserve original
 conversion behavior. No rate, rank reward or balance retuning was performed.
 
-Offline-only: no deployment, original executable, DB write, routing change,
-login attempt or game/service restart. Historical game PIDs are now absent;
-their prior running state is not asserted current. Restore ZIP metadata remains
-34,082,707,691 bytes /2026-10-21T19:53:09.2405123Z, not a new integrity scan.
+Source-validation only: no deployment, original executable, DB write, routing
+change, login attempt or game/service restart. Public packet controls use
+constructed synthetic fixtures, not the private recorded-traffic fixtures.
+Game assets, original saves and private operational records remain excluded.
 Standing55% rough estimate (40–70%, low confidence, October19) is unchanged.
 
 Next: review/integrate the genuine stat and player/map owner graphs, rerun

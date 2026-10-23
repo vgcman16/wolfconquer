@@ -23,6 +23,12 @@ Complete native Chi ranking/load, full Equipment.QueryEquipment/UpdateStats,
 Inventory mutations, native save/login/startup and host adoption remain open.
 No live-client, English-client, deployment or full-parity acceptance follows.
 
+Publication-specific packet fixtures remain synthetic. A follow-up restored the
+six constructed round-trip cases and synthetic2369 zero-suffix assertion, and
+uses constructed achievement requests in both rejection/host-gap controls. The
+same focused Release selection passed374/374,0 failures/skips again. Private
+recorded-traffic fixtures and operational restore metadata are not imported.
+
 ## Interrupted full Windows run on21723558
 
 Run39875129428 on21723558d2b582f7272d54a22a1560bf14c36314 ended failure at
