@@ -1,5 +1,22 @@
 # Publication validation
 
+## Character owners, warehouse, blessing and Clan persistence
+
+Private and independent sanitized-public Release each passed3496/3496 selected
+cases, zero failures/skips:199 new DataCore/character48, warehouse23, player
+lifecycle58 and Clan70 cases;3256 retained native component cases,26 trade and15
+BaseFunc controls. Child probes used measured PS7 and its SHA binding.
+
+Whole concrete owner methods and file save/load/query/wire behavior were checked
+against the original source. NameStrCheck keeps its public bool(string,bool=true)
+contract; all earlier API assertions remain. File tests use guarded owned temporary
+INI/count files, not original data or SQL. Eager queues, full login/save, Team/HP/
+progression/dispatcher cycle and host adoption remain incomplete. These199 cases
+do not establish a deployed account, warehouse mutation or live Clan operation.
+
+Fresh full Windows CI for this newer source snapshot is still required; the
+successful run39893758446 below belongs specifically to9dc97795.
+
 ## Offline clone/combat/arena/item continuation — public focused proof passed
 
 Private Release passed3224 selected cases, zero failures/skips, including400 new
@@ -24,7 +41,12 @@ Full Windows39892756807 built, then core20103 passed/1 failed/165 unexecuted of
 capture in the retained trade-recovery fixture, not a gameplay assertion. The
 test capture now shares a lock for writes/snapshots. All26 public trade cases
 passed, including one new1024-line sync/async concurrent-capture test; all25
-existing trade cases and their assertions remain. Full corrected rerun is pending.
+existing trade cases and their assertions remain.
+
+[Corrected full Windows39893758446](https://github.com/vgcman16/wolfconquer/actions/runs/39893758446)
+passed all eight stages on9dc97795d1fecaf9ad396249884ff27f648981bd: core20105
+passed/0 failed/165 unexecuted of20270, updater262/262, launcher49/49, synthetic
+status-parser20 and smoke-parser13 cases. HTTP/service probes were skipped.
 
 ## CI recovery — full Windows rerun passed
 

@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 namespace WolfConquer.Core.World;
 
 // Concrete native Warehouse storage/constructor and non-wire item methods.
-// NOT Show/Send/RemoveItem/Inventory.Update, the raw loader, or full Warehouse.
-internal sealed class LegacyNativeWarehouseRuntime
+// Show is an explicit partial; send/removal/Inventory.Update and full host remain held.
+internal sealed partial class LegacyNativeWarehouseRuntime
 {
     public const byte Max_Count = 60;
     public ConcurrentDictionary<uint, ConcurrentDictionary<uint, LegacyNativeGameItemRuntime>> ClientItems;

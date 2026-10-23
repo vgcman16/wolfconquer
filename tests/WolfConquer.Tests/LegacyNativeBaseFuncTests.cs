@@ -51,7 +51,16 @@ public sealed class LegacyNativeBaseFuncTests
         Assert.Equal(typeof(uint[]), selectionParameter.ParameterType);
         Assert.Equal("nums", selectionParameter.Name);
         Assert.False(selectionParameter.IsOptional);
-        Assert.Equal(new[] { "ProficiencyLevelExperience", "RandFromGivingNums", "RandGet", "rand", "srand" },
+        // Whole native BaseFunc88..132 retains its public policy and optional-size contract.
+        var nameCheck = typeof(LegacyNativeBaseFunc).GetMethod("NameStrCheck")!;
+        Assert.True(nameCheck.IsPublic && nameCheck.IsStatic);
+        Assert.Equal(typeof(bool), nameCheck.ReturnType);
+        Assert.Equal(new[] { typeof(string), typeof(bool) }, nameCheck.GetParameters().Select(p => p.ParameterType));
+        Assert.Equal(new[] { "name", "ExceptedSize" }, nameCheck.GetParameters().Select(p => p.Name));
+        Assert.False(nameCheck.GetParameters()[0].IsOptional);
+        Assert.True(nameCheck.GetParameters()[1].IsOptional);
+        Assert.Equal(true, nameCheck.GetParameters()[1].DefaultValue);
+        Assert.Equal(new[] { "NameStrCheck", "ProficiencyLevelExperience", "RandFromGivingNums", "RandGet", "rand", "srand" },
             typeof(LegacyNativeBaseFunc).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
                 .Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
     }
