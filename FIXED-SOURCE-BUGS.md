@@ -599,10 +599,42 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   Child OS handles are restored; cached real console initialization failure is
   proved afterward. No main process handle/logger or game session is changed.
 - One xUnit2017 Shop fixture assertion is corrected mechanically in this batch.
-  Full Windows publication CI is pending; focused success is not a CI claim.
+- Full [Windows39975270475](https://github.com/vgcman16/wolfconquer/actions/runs/39975270475)
+  passes4m11s on exact39eaaf458e4526555de2e682298b94c80ff172c2: core23552/
+  0failed of23717 (165externalfixtureexcluded), updater301/301, launcher49/49,
+  8stageexit0,204build warnings. Receipt20261023T150622623Z-73fd3de4 finished
+  15:10:11.1538337Z. CodeFactor3NEW complexity/0FIXED,total2301; no score-only rewrite.
 - Limits: native acceptance callers/host are not activated. FinishQuest, full GUI,
   awards, automatic disk/SQL saves, raw competing writers, delivery recovery and
   whole quest lifecycle remain open. No live client or original save was used.
+
+### FSB-045: Aggregate exchange material costs before preparing a purchase
+
+- Owner: registered Goods exchange route. Repeated material IDs checked the same
+  stock independently; the shared consumer could silently pay only a prefix and
+  still award the reward. Checked quantity multiplication could escape as an error.
+- Check UInt32 products and repeated-ID sums, then validate complete captured
+  stock before preparing any debit/reward. Consume only private rows and frames
+  in original definition/physical-stack order; any unpaid remainder discards the
+  entire plan. Leave the shared helper's25+ unrelated callers unchanged.
+- Tests-first baseline: **10 failed/15 passed** of25. Three failures demonstrate
+  genuine changed sessions on unpaid duplicate costs, two are escaped product
+  overflows, and five are diagnostic-classification differences rather than
+  additional economic exploit proofs.
+- Verification: private Release **446 passed/0 failed/0 skipped**; independent
+  public **442 passed/0 failed/4 existing external-fixture skips** of446. All25
+  new finite registered-handler cases pass, including7 success/order cases with
+  complete saved/reloaded native-image comparisons and18 refusal cases. Retained
+  exchange, shop and native quest controls remain. No old test was removed.
+- Existing count/shop/amount/reward/capacity guards, active exact-ID/mixed-binding/
+  zero-stack-as-one policy, reward values, per-definition update/remove frames
+  and reward/echo order remain. The handler extraction is a semantic material
+  phase boundary, not a complexity-score rewrite. Full Windows CI is pending.
+- Limits: current creator UID policy and unconditional session publication are
+  unchanged. Global UID activation, raw/cross-await writers, duplicate physical
+  ownership, save-before-publication and durable multifile economy remain open.
+  GoodsEx donation/selection and native interchangeable-material/binding parity
+  are separate work; no live client, SQL or original save was used.
 
 ## Active audit
 
@@ -657,8 +689,15 @@ work, not safety proved by the isolated UID-adoption proposals.
 | FSB-042 | Quest objective mutation precedes unsafe packet work; counter wrap and split aliases | Complete current canonical graph, checked counters and real bounded frame before writes | Scoped whole operations verified292 both trees; native callers/full awards/delivery recovery open |
 | FSB-043 | Normal and point shops append/debit without full modeled capacity | Complete required inventory rows fit before costs/publication | Scoped guards verified334 private;325public plus9existing external skips; native stack/partial/whole transaction work open |
 | FSB-044 | Quest acceptance mutates shared metadata, can split indexes or throw after committed send failure | Prepare complete canonical maps/frame first; truthful accepted result after commit | Scoped acceptance verified418 both trees; native callers/awards/durable lifecycle remain open |
+| FSB-045 | Duplicate exchange requirements reuse stock; partial consumption still awards; products can overflow | Complete summed material admission and private ordered full debit before reward | Scoped material repair verified446 private;442public plus4existing external skips; whole economy/UID lifecycle open |
 
 ## CodeFactor cleanup
+
+Acceptance public39eaaf45 is full-Windows verified above. Its3 new findings are
+complexity in Acceptance, AcceptanceGraph and the isolated child scenario;0fixed,
+global2301. They are deliberately deferred while economic defects are repaired.
+The one observed xUnit2017 build warning was removed in the same behavior batch;
+the build now reports204 warnings, not a zero-warning or zero-CodeFactor claim.
 
 Latest shop checkpoint publica92b1fb0 passes full
 [Windows39972176836](https://github.com/vgcman16/wolfconquer/actions/runs/39972176836)

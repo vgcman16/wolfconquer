@@ -7,6 +7,15 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Exchange material preparation (FSB045): private446passed/0failed/0skipped;
+  public442passed/0failed/4existing external-fixture skips of446. All25 new
+  registered controls pass, with full native save/reload images on7 successes.
+  Baseline10failures include3 real unpaid-cost publications,2 product overflows
+  and5 reason differences. Aggregate cost checks precede private per-definition
+  debit; valid wire order and active binding/count/stack policy remain. Shared
+  consumption callers are unchanged. Full Windows CI is pending. Whole session/
+  save/economy atomicity, GoodsEx and global UID activation remain open.
+
 - [x] Native quest acceptance (FSB044): private/public Release418/418 each,
   zero failures/skips, including75 new acceptance and2 real isolated delivery
   failures plus341 retained controls. Catalog1469/409 metadata stays unchanged;
@@ -14,7 +23,10 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   comparer-preserving maps precede publication. Unguarded send baseline fails2/2
   after commitment; guarded acceptance returns true without rollback/retry even
   if native diagnostics fail. One Shop assertion-style warning joins this batch.
-  Full Windows publication CI is pending. Native callers/host, FinishQuest,
+  FullWindows39975270475 passes4m11s on exact39eaaf45: core23552/0failed
+  (165excluded), updater301/301, launcher49/49,8stageexit0,204build warnings.
+  CodeFactor3NEW complexity/0FIXED,total2301; score-only splitting is deferred.
+  Native callers/host, FinishQuest,
   full GUI/awards, automatic save/SQL and delivery recovery remain open.
 
 - [x] Shop-only capacity admission (FSB043): private334passed/0failed/0skipped;

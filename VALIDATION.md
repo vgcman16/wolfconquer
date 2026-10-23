@@ -1,5 +1,19 @@
 # Publication validation
 
+## Exchange material checkpoint
+
+Private Release446passed/0failed/0skipped; independent public442passed/0failed/
+4existing external-fixture skips of446. All25 new registered finite-catalog cases
+pass, including7 complete saved/reloaded success images. Tests-first baseline
+10failed/15passed includes3 unpaid-cost session publications,2 escaped product
+overflows and5 diagnostic differences, not10 separate economic exploit proofs.
+
+Complete repeated-ID totals and checked products precede private ordered debits;
+all existing reward/update/remove/echo bytes and active exact-ID/binding/stack
+rules remain. Shared consumption callers and GoodsEx are unchanged. Full Windows
+publication CI is pending. Current UID creator, cross-await/session/file atomicity,
+durable economy and live-client acceptance are not certified by this fix.
+
 ## Native quest acceptance checkpoint
 
 Private and independent public Release each418/418 passed, zero failures/skips:
@@ -10,10 +24,15 @@ The guard contains only postcommit Send failures; precommit validation still
 rejects. Shared catalog metadata is unchanged, canonical indexes and real2120
 frames prepare before publication, and owned child handles are restored.
 
-One Shop xUnit2017 assertion-style correction joins this behavior batch. Full
-Windows publication CI is pending; this focused proof does not activate native
-callers, host, FinishQuest/full GUI/awards, automatic saves, SQL, delivery recovery
-or a live client. Original saves and existing game sessions remain untouched.
+One Shop xUnit2017 assertion-style correction joins this behavior batch.
+[Windows39975270475](https://github.com/vgcman16/wolfconquer/actions/runs/39975270475)
+passes4m11s on exact39eaaf458e4526555de2e682298b94c80ff172c2, completed
+2026-10-23T15:10:18Z: core23552passed/0failed of23717 (165externalfixturecases
+excluded), updater301/301, launcher49/49;8stageexit0,204build warnings.
+Receipt20261023T150622623Z-73fd3de4 finished15:10:11.1538337Z. CodeFactor3NEW
+complexity/0FIXED,total2301; deferred score-only refactoring. This does not
+activate native callers, host, FinishQuest/full GUI/awards, automatic saves, SQL,
+delivery recovery or a live client. Original saves and game sessions are untouched.
 
 ## Shop inventory-capacity checkpoint
 
