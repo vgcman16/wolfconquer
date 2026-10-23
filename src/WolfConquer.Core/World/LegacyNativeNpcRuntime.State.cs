@@ -3,8 +3,8 @@ using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
-// Genuine native Npc physical owner/prerequisites, NOT IMapObj adoption.
-// Complete GMap/Send/Procesor remain held on native map-loader/tournament graph.
+// Genuine native Npc physical owner. Whole GMap/Send/interface live in a partial;
+// the packet receiver remains held on its actual tournament/inventory graph.
 internal partial class LegacyNativeNpcRuntime
 {
 	public const byte SeedDistance = 19;
@@ -27,9 +27,7 @@ internal partial class LegacyNativeNpcRuntime
 
 	public ushort ServerID;
 
-	#pragma warning disable CS0169 // Read only by the genuine held GMap getter.
-	private LegacyNativeGameMap _gmap;
-#pragma warning restore CS0169
+	private LegacyNativeGameMap? _gmap;
 
 	public uint IndexInScreen { get; set; }
 

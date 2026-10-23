@@ -1,5 +1,33 @@
 # Publication validation
 
+## Native complete lazy world population and monster prerequisites
+
+Private Release and independent sanitized-public Release each passed2570/2570,
+zero failures/skips:372 new cases and2198 retained. Whole EnterMap/CheckMap and
+real lazy map lookup load actual NPC/SobNpc/floor/monster actors, portals and traps.
+Tests exercise all32 native monster-file cases with nonempty real Family.Copy/Add,
+all remaps and actual collision, counter, cache, packet and failure-prefix effects.
+
+Complete monster family/generator/view/spawn/flags/respawn/placement/admission,
+floor role/codecs, NPC map-interface adoption, statue lifecycle and owned Save/Load,
+both NPC removers, player distances and native wallet/dialog leaves are included.
+The private first compile exposed missing Player distance methods; all three whole
+methods and12 boundary cases were added. A subsequent2569-pass/1-fail result came
+from an older test forbidding NPC interface adoption. It now checks the genuine
+same-object interface aliases while retaining every factory/default assertion.
+Final private and first sanitized-public runs passed all2570 selected cases.
+
+All file fixtures are owned GUID temporary files; no original assets, maps, saves
+or database files are opened. Monster-family DB startup remains absent; tests seed
+the actual isolated native catalog. Ordinary loot selection/AlterItemLevel/boss
+generation retain original CRT calls but lack deterministic path tests here.
+
+Full AI/combat/death/loot/receive, SobNpc tournament death, Booth client admission,
+HP/Team/Level/Class/Inventory and eager login/full SaveClient remain unfinished.
+Full ConquerPoints is still held on its eager logger; other tested wallet leaves
+do not replace it. No actual-client, SQL, host startup, full Windows, deployment
+or overall parity acceptance follows from this focused offline checkpoint.
+
 ## Native combat effects and health publication
 
 Private Release and independent sanitized-public Release each passed2198/2198,

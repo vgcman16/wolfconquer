@@ -17,7 +17,10 @@ public sealed class LegacyNativeNpcPersistencePrerequisiteTests
         Assert.True(created.Alive); Assert.False(created.AllowDynamic);
         Assert.Equal(LegacyNativeMapObjectType.Npc, created.ObjType);
         Assert.False(created.IsTrap());
-        Assert.False(typeof(ILegacyNativeMapObj).IsAssignableFrom(typeof(LegacyNativeNpcRuntime)));
+        // Whole lazy GMap/Send now completes the genuine native map interface;
+        // the same zero/factory objects retain their distinct physical defaults.
+        Assert.Same(created, Assert.IsAssignableFrom<ILegacyNativeMapObj>(created));
+        Assert.Same(zero, Assert.IsAssignableFrom<ILegacyNativeMapObj>(zero));
     }
 
     [Theory]

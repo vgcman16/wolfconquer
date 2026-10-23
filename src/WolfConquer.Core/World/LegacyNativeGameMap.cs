@@ -4,7 +4,7 @@ using System.Drawing;
 namespace WolfConquer.Core.World;
 
 // Native GameMap constructor/storage (GameMap.cs485..491). Whole terrain loading,
-// membership and collision families live in partials; host population is still held.
+// membership, collision and lazy population live in partials; host startup is not adopted.
 internal partial class LegacyNativeGameMap
 {
     public Size bounds;

@@ -1,7 +1,7 @@
 namespace WolfConquer.Core.World;
 
 // Genuine native storage and full independent method families. Not a plain-Dict
-// substitute: lazy ContainsKey/indexer remain whole typed-held with EnterMap.
+// substitute: whole lazy ContainsKey/indexer and EnterMap live in actual partials.
 internal partial class LegacyNativeMapDictionary<T1, T2>
 {
     private Dictionary<T1, T2> DictBase;

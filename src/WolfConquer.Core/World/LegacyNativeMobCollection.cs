@@ -1,7 +1,7 @@
 namespace WolfConquer.Core.World;
 
-// Whole native birth and map-binding family. MonsterRole spawning remains held,
-// not acknowledged through a fake monster or a synthetic Add callback.
+// Whole native birth and map-binding family. The spawning partial reuses the real
+// MonsterRole/Family/Map graph, not a fake monster or a synthetic Add callback.
 internal partial class LegacyNativeMobCollection
 {
 	public const byte Multiple = 3;

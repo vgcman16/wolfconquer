@@ -1,5 +1,28 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on complete lazy world population, monsters and wallet leaves
+
+- [x] Whole native EnterMap/CheckMap and lazy dictionary lookup now load real NPC,
+  SobNpc, portal, trap and monster roles. All32 native monster-file cases exercise
+  actual Family.Copy/Add and nonempty spatial actors; all remaps remain literal.
+- [x] Complete monster family/drop-generator/view/spawn/flags/respawn/membership/
+  target-admission families, full floor role/codecs, statue lifecycle/owned saves,
+  both NPC removers, whole player distance methods and money/bound/domino/donation/
+  box-dialog leaves:372 new cases (181+132+12+47).
+- [x] Private and independent sanitized-public Release each passed2570/2570,
+  zero failures/skips (372 new +2198 retained). Private first compile exposed a
+  missing whole Player distance dependency; the next2569-pass/1-fail run caught an
+  older test forbidding NPC interface adoption. Full methods and12 boundary cases
+  were added; the test now checks genuine interface aliases and keeps birth checks.
+- [x] Owned cold-map/INI/text fixtures retain real population/fault prefixes,
+  duplicated references, collision/RNG/counter effects, exact spawn/floor bytes and
+  statue cache quirks. No original assets, maps, saves, DB or workers were used.
+- [ ] Monster family DB startup loading, full AI/combat/death/loot/receive, SobNpc
+  tournament death, Booth client admission, HP/Team/Level/Class/Inventory and full
+  eager login/SaveClient remain unfinished. CRT-dependent ordinary loot selection
+  is implemented but lacks deterministic path tests. No live/SQL/full Windows/
+  deployment or parity-percentage acceptance follows from this component suite.
+
 ## Follow-on combat effects and native health publication
 
 - [x] Whole blue-damage/refinement codecs, eight complete Perfection proc methods,
