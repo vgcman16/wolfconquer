@@ -1244,7 +1244,16 @@ controls are synthetic only. This does not close the explicit gameplay limits.
 
 ## Active audit
 
-### FSB-067: Commit Victory chest quest claim and reward together (OPEN)
+### FSB-067: Commit Victory chest quest claim and reward together (scoped verified)
+
+Full Windows [40040302782](https://github.com/vgcman16/wolfconquer/actions/runs/40040302782)
+passed on exact `df2881ce5911bab1ad6da9fc6a9400ec31ffc820` in4m19s. Actual
+terminal results: core24299 passed/0failed,165 existing NotExecuted rows;
+updater301/301; launcher57/57; synthetic parser20+13; build190warnings/0errors.
+All8 local-check stages exited0. Receipt20261023T233344597Z-56e69ade finished
+2026-10-23T23:37:39.5183865Z; job120709561180 completed23:37:48Z. Root read
+exact runner HEAD, receipt, all TRX outcomes and terminal logs before cleanup.
+This verifies offline Victory integration, not deployment or complete gameplay.
 
 - Source-confirmed owner: TryUnlockLegacyVictoryChestAsync in
   WorldPacketHandlers.NpcEntrypoints.Deityland.cs. It publishes Finished quest
@@ -1297,7 +1306,7 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   read/write sharing and no delete sharing passes BOTH original controls unchanged.
   Required list-directory access fails closed; no write/delete access is requested.
 - Status: ordinary/cooperating-writer registered and Frame paths verified offline;
-  public implementation is now integrated; full Windows CI is pending. This is not full Victory, hostile
+  public source and full Windows CI are verified above. This is not full Victory, hostile
   filesystem, actual-client, outbox, power-loss, all-raw-writer or global UID proof.
   Existing max+1 remains globally unsafe; canonical UID/Host activation stays HOLD.
   Hostile namespace retargeting, handle-relative replacement and whole-domain
