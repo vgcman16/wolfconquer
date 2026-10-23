@@ -49,6 +49,10 @@ internal static partial class Program
         }
     }
 
+    private const int WindowsTcpOwnerTableMaximumBytes = 64 * 1024 * 1024;
+    private const int WindowsTcpOwnerTableMaximumReadAttempts = 4;
+    private const int WindowsTcpOwnerTableErrorInvalidData = 13;
+
     static IReadOnlyList<WorldRelayCaptureTcpConnection> EnumerateWindowsIPv4TcpConnections()
     {
         if (!OperatingSystem.IsWindows())
@@ -56,8 +60,17 @@ internal static partial class Program
             throw new PlatformNotSupportedException("Windows TCP owner tables are required.");
         }
 
+        return ReadWindowsIPv4TcpConnections(NativeMethods.GetExtendedTcpTable);
+    }
+
+    // The provider is the real native API in production; the internal seam allows
+    // deterministic buffer-growth/error controls without opening live sockets.
+    internal static IReadOnlyList<WorldRelayCaptureTcpConnection> ReadWindowsIPv4TcpConnections(
+        WindowsTcpOwnerTableQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
         var bufferLength = 0;
-        var result = NativeMethods.GetExtendedTcpTable(
+        var result = query(
             IntPtr.Zero,
             ref bufferLength,
             sort: true,
@@ -69,45 +82,88 @@ internal static partial class Program
             throw new Win32Exception(result);
         }
 
-        var buffer = Marshal.AllocHGlobal(bufferLength);
-        try
+        for (var attempt = 0; attempt < WindowsTcpOwnerTableMaximumReadAttempts; attempt++)
         {
-            result = NativeMethods.GetExtendedTcpTable(
-                buffer,
-                ref bufferLength,
-                sort: true,
-                NativeMethods.AfInet,
-                NativeMethods.TcpTableOwnerPidAll,
-                reserved: 0);
-            if (result != NativeMethods.ErrorSuccess)
+            if (bufferLength < sizeof(int) || bufferLength > WindowsTcpOwnerTableMaximumBytes)
             {
-                throw new Win32Exception(result);
+                throw new Win32Exception(
+                    WindowsTcpOwnerTableErrorInvalidData,
+                    $"Windows TCP owner table size {bufferLength} is outside the supported buffer bounds.");
             }
 
-            var rowCount = Marshal.ReadInt32(buffer);
-            var rowPointer = IntPtr.Add(buffer, sizeof(int));
-            var rowSize = Marshal.SizeOf<NativeMethods.MibTcpRowOwnerPid>();
-            var connections = new List<WorldRelayCaptureTcpConnection>(rowCount);
-
-            for (var index = 0; index < rowCount; index++)
+            var allocatedLength = bufferLength;
+            var buffer = Marshal.AllocHGlobal(allocatedLength);
+            try
             {
-                var row = Marshal.PtrToStructure<NativeMethods.MibTcpRowOwnerPid>(
-                    IntPtr.Add(rowPointer, index * rowSize));
-                connections.Add(new WorldRelayCaptureTcpConnection(
-                    (int)row.OwningPid,
-                    FormatIPv4Address(row.LocalAddr),
-                    FormatTcpPort(row.LocalPort),
-                    FormatIPv4Address(row.RemoteAddr),
-                    FormatTcpPort(row.RemotePort),
-                    FormatTcpState(row.State)));
-            }
+                var returnedLength = allocatedLength;
+                result = query(
+                    buffer,
+                    ref returnedLength,
+                    sort: true,
+                    NativeMethods.AfInet,
+                    NativeMethods.TcpTableOwnerPidAll,
+                    reserved: 0);
+                if (result == NativeMethods.ErrorInsufficientBuffer)
+                {
+                    if (returnedLength <= allocatedLength)
+                    {
+                        throw new Win32Exception(
+                            result,
+                            "Windows TCP owner table requested a retry without increasing its required buffer size.");
+                    }
 
-            return connections;
+                    bufferLength = returnedLength;
+                    continue;
+                }
+
+                if (result != NativeMethods.ErrorSuccess)
+                {
+                    throw new Win32Exception(result);
+                }
+
+                if (returnedLength < sizeof(int) || returnedLength > allocatedLength)
+                {
+                    throw new Win32Exception(
+                        WindowsTcpOwnerTableErrorInvalidData,
+                        "Windows TCP owner table returned a length outside its allocated buffer.");
+                }
+
+                var rowCount = Marshal.ReadInt32(buffer);
+                var rowSize = Marshal.SizeOf<NativeMethods.MibTcpRowOwnerPid>();
+                if (rowCount < 0 || rowCount > (returnedLength - sizeof(int)) / rowSize)
+                {
+                    throw new Win32Exception(
+                        WindowsTcpOwnerTableErrorInvalidData,
+                        "Windows TCP owner table row count exceeds its returned buffer length.");
+                }
+
+                var rowPointer = IntPtr.Add(buffer, sizeof(int));
+                var connections = new List<WorldRelayCaptureTcpConnection>(rowCount);
+
+                for (var index = 0; index < rowCount; index++)
+                {
+                    var row = Marshal.PtrToStructure<NativeMethods.MibTcpRowOwnerPid>(
+                        IntPtr.Add(rowPointer, index * rowSize));
+                    connections.Add(new WorldRelayCaptureTcpConnection(
+                        (int)row.OwningPid,
+                        FormatIPv4Address(row.LocalAddr),
+                        FormatTcpPort(row.LocalPort),
+                        FormatIPv4Address(row.RemoteAddr),
+                        FormatTcpPort(row.RemotePort),
+                        FormatTcpState(row.State)));
+                }
+
+                return connections;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
         }
-        finally
-        {
-            Marshal.FreeHGlobal(buffer);
-        }
+
+        throw new Win32Exception(
+            NativeMethods.ErrorInsufficientBuffer,
+            $"Windows TCP owner table kept growing across {WindowsTcpOwnerTableMaximumReadAttempts} bounded read attempts.");
     }
 
     static string FormatIPv4Address(uint address)
@@ -210,3 +266,11 @@ internal static partial class Program
             .ToArray();
     }
 }
+
+internal delegate int WindowsTcpOwnerTableQuery(
+    IntPtr table,
+    ref int tableLength,
+    bool sort,
+    int ipVersion,
+    int tableClass,
+    int reserved);

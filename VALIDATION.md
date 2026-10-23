@@ -1,5 +1,21 @@
 # Publication validation
 
+## Native-launch TCP reader resilience
+
+Full Windows39896336932 on5df9e6a1 built successfully, then core20363 passed/
+1 failed/165 unexecuted of20529; updater262 passed. An existing native-launch
+test lacked a TCP snapshot row. Its independent eight-case rerun passed; the
+truncated old output cannot establish the historical cause.
+
+The concrete one-shot TCP-table resize gap is repaired with at most four fills,
+strict growth/size/row bounds, original native errors and buffer cleanup. This
+follows Microsoft's [GetExtendedTcpTable contract](https://learn.microsoft.com/en-us/windows/desktop/api/iphlpapi/nf-iphlpapi-getextendedtcptable).
+Private and independent sanitized-public Release each passed60/60 focused cases,
+zero failures/skips:35 new deterministic native-layout/error controls and25
+existing launch/preflight/status cases. The TCP/module/thread/log/kill assertions
+remain required; missing TCP now preserves full synthetic output. No timeout was
+increased. Fresh full Windows CI is still required for this correction.
+
 ## Saved state, race setup and football round components
 
 Private and independent sanitized-public Release each passed3556/3556 selected

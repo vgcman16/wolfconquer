@@ -361,7 +361,9 @@ public sealed class DataToolClientNativeLaunchProbeTests
 
             Assert.True(sawStartAddress, "Expected at least one thread start address.");
             Assert.True(sawResolvedStartModule, "Expected at least one thread start module and RVA.");
-            Assert.Contains("Tcp: pid=", result.StandardOutput);
+            Assert.True(
+                result.StandardOutput.Contains("Tcp: pid=", StringComparison.Ordinal),
+                $"Expected a captured TCP row. stdout: {result.StandardOutput} stderr: {result.StandardError}");
             Assert.Contains($"remote=127.0.0.1:{port.ToString(CultureInfo.InvariantCulture)}", result.StandardOutput);
             Assert.Matches(
                 new Regex(@"DebugLog: path=" + Regex.Escape(debugLogPath) + @".*delta=[1-9]\d*"),

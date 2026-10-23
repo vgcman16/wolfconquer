@@ -26,6 +26,8 @@
 - [x] The newer3496-case source snapshot now has fresh full Windows proof;
   run39894908849 completed successfully in3m58s on the exactf6ac68fa source.
 - [ ] Fresh full Windows proof is required for the newer3556-case snapshot.
+  Run39896336932 on5df9e6a1 built, then core20363 passed/1 failed/165 unexecuted;
+  updater262 passed. The one native-launch TCP snapshot failure was intermittent.
 
 ## Correctness findings retained
 
@@ -39,6 +41,10 @@
 - [x] Full Windows39892756807 found a real trade-fixture StringWriter capture race
   (20103 pass/1 fail/165 unexecuted). Shared locking and a1024-line concurrent
   control retained all25 trade tests;26/26 focused and corrected fullCI passed.
+- [x] Native TCP-table reads now retry strictly growing122 buffers at most4 times,
+  validate bounds and retain native errors/cleanup. Private/public60/60 focused
+  cases passed; all TCP/module/thread/log assertions remain. Historical cause
+  is unconfirmed, and future failures preserve full synthetic snapshot output.
 - [ ] Whole IncreaseExperience arithmetic is still gated: primitive-only differed
   on15/1280 rows; normalized proposal matched1284 controls, but its call-shaped
   successor differed on18/14080. All rows were compared despite a digest collision.
