@@ -1,5 +1,22 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on native player/map and complete achievement receiver
+
+- [x] Complete native SpawnPacketProto/GetArray (both branches), real Player map
+  contract, BP/Union/Poker prerequisites and actual interface eligibility:104 cases.
+- [x] Re-admit the WHOLE achievement receiver, both raw-map-view and queue actions,
+  with eight formerly held cases. Modern host routing remains explicitly unadopted.
+- [x] Private and independent sanitized-public Release each passed1211/1211,
+  zero failures/skips:112 new +1076 retained +23 adjacent existing owner cases.
+  Initial private compile exposed an old null call made ambiguous by the genuine
+  second Union factory; its test now explicitly selects the original Guild type.
+- [x] Public-only compile exposed a missing inherited GetEffect prerequisite;
+  the complete native method was reviewed/imported, retaining class-specific
+  shapes and null behavior. Both public/private map tests exercise real gear.
+- [ ] HP is the genuine physical backing/read getter only, not a writable facade.
+  Team/HP/level/equipment cycles, whole native save/login and live-host adoption
+  remain unfinished. Interface eligibility is not live-client spawn proof.
+
 ## Follow-on JiangHu and complete prestige rebuild
 
 - [x] Whole JiangHu state/rank/stat/training/reward/roll/record owner methods,
@@ -29,7 +46,7 @@
   Original Finalize leaves Position4; corrected assertions retain exact bytes,
   size and later read-cursor checks. Production was not changed to suit tests.
 - [ ] Full Team/HP/level/equipment cycle, native save/login and host adoption remain.
-  Player/map and mentor candidates still require parent intake/proof; JiangHu is
+  Mentor candidates still require parent intake/proof; player/map and JiangHu are
   independently proven above.
 - Owned HP expression probe:18 result values match expected formulas under both
   default and optimized Framework4/x86; separate10 cast controls also pass.
@@ -88,16 +105,15 @@ replacement-server, live-client, English-client or full-parity completion claim.
   October23. Runner is offline; local worker/test processes were absent. Receipt
   20261022T235827741Z-4359532b remains unfinished after successful restore/build;
   no completed test TRX or later-stage result exists. This is not full acceptance.
-- [ ] Full native Chi ranking/load, Achievement receiver and Player IMapObj/
-  GetArray, Equipment.QueryEquipment/OnDequeue/UpdateStats, Inventory mutations,
+- [ ] Full native Chi ranking/load, Equipment.QueryEquipment/OnDequeue/UpdateStats, Inventory mutations,
   SaveClient/LoadCharacter/ExecuteLogin and startup/host adoption remain open.
 - [x] InnerPower, Rune stats and Prestige/Perfection components passed independent
   private/public focused runs above. Remaining helper candidates are unexecuted.
 
-The achievement receiver and its eight receiver cases are retained whole in
-ignored candidates, not compiled in reduced SendQueue-only form. The actual
-Player still lacks the full IMapObj spawn contract. No synthetic owner is born
-to make a modern host call succeed.
+The whole achievement receiver and its eight receiver cases are now admitted
+against the genuine Player IMapObj/GetArray graph. No reduced SendQueue-only
+receiver or synthetic owner makes a modern host call succeed; actual native
+host/load/save adoption remains held.
 
 Numerical compatibility: an owned Framework4/x86 probe passed17 controls. Native
 Chi's uint selector binds LINQ Int64 Sum before final Int32 wrap; under-minimum

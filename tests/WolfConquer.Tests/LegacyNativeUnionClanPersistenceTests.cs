@@ -29,7 +29,7 @@ public sealed class LegacyNativeUnionClanPersistenceTests
         source.UnionMem = member;
         Assert.Same(member, source.UnionMem);
         Assert.NotSame(member, LegacyNativeUnionMember.CreateMember(source));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeUnionMember.CreateMember(null!));
+        Assert.Throws<NullReferenceException>(() => LegacyNativeUnionMember.CreateMember((LegacyNativeGuildRuntime.Member)null!));
     }
 
     [Fact]

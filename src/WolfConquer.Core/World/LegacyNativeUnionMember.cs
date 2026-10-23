@@ -3,10 +3,10 @@
 namespace WolfConquer.Core.World;
 
 // Complete native Union.Member storage/enums, implicit construction, IsOnline and
-// pure GetRank and Guild.Member factory. The game-client factory still requires
-// the genuine Player.NobilityRank owner and is absent, not a partial substitute.
+// pure GetRank and Guild.Member factory. The complete game-client factory now
+// lives in its own partial and reads the genuine physical Player owners.
 // This standalone nested-member equivalent does not invent a cold Union birth.
-internal class LegacyNativeUnionMember
+internal partial class LegacyNativeUnionMember
 {
     public enum Ranks : uint
     {

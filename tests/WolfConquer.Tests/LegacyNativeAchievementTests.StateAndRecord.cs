@@ -17,9 +17,12 @@ public sealed partial class LegacyNativeAchievementTests
         var fields = typeof(LegacyNativeClientAchievement).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         var field = Assert.Single(fields); Assert.Equal("BitVector32", field.Name); Assert.True(field.IsPrivate);
         Assert.Equal(typeof(LegacyNativeBitVector32), field.FieldType);
-        // The whole receiver requires the genuine Player IMapObj/GetArray graph.
-        // Keep it absent rather than compile a reduced SendQueue-only handler.
-        Assert.Null(typeof(LegacyNativeClientAchievement).GetMethod("AchievementHandler"));
+        // Whole receiver now uses the genuine Player IMapObj/GetArray graph, not a reduced branch.
+        // It remains unregistered until the actual native host/load/save adoption exists.
+        var handler = typeof(LegacyNativeClientAchievement).GetMethod("AchievementHandler");
+        Assert.NotNull(handler); Assert.True(handler.IsPublic && handler.IsStatic);
+        Assert.DoesNotContain(handler.GetCustomAttributes(inherit: false),
+            attribute => attribute.GetType().Name is "Packet" or "PacketAttribute");
         Assert.Equal(typeof(LegacyNativeAchievementCollection), typeof(LegacyNativeGameClientRuntime)
             .GetField("Achievement", BindingFlags.Instance | BindingFlags.NonPublic)!.FieldType);
         Assert.Equal(typeof(LegacyNativeClientAchievement), typeof(LegacyNativePlayerRuntime)

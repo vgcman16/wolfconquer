@@ -1,5 +1,26 @@
 # Publication validation
 
+## Native player/map contract and complete achievement receiver
+
+Private Release and independent sanitized-public Release each passed1211/1211,
+zero failures/skips:104 new player/map/BP/Union/Poker cases,8 formerly held whole
+achievement-receiver cases,1076 retained and23 adjacent existing owner cases.
+Both complete native spawn branches use genuine state owners and protobuf
+metadata; map eligibility is real, not a fake object or modern spawn projection.
+Achievement covers raw map lookup and flag-queue actions without host adoption.
+
+Private compilation exposed an old null factory call made ambiguous by the new
+native overload; the test now explicitly requests its original Guild-member type.
+Initial public compilation exposed an omitted inherited combat-gear GetEffect;
+the complete native method was reviewed/imported with literal class shapes/null
+behavior. Independent public rerun passes. All failed compile observations remain
+local. Existing synthetic packet fixtures and publication-specific edits remain.
+
+HP exposes only genuine backing/read access until the whole Team/HP/level cycle
+can be admitted. Native save/login/startup/host adoption and live rendering are
+still unfinished; the modern achievement route honestly logs this gap without
+fabricating a native player or reply. No live process or route was changed.
+
 ## Native JiangHu and whole prestige-points rebuilding
 
 Private Release and independent sanitized-public Release each passed1076/1076,
