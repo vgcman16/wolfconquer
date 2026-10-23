@@ -4,25 +4,29 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest integration gate — public transfer correction awaiting CI
+## Latest integration gate — full Windows CI GREEN
 
-[Windows40036236341](https://github.com/vgcman16/wolfconquer/actions/runs/40036236341)
-FAILED public5c4948d034ada5a68b69c7730592663574c945a7 at build,190warnings/4errors;
-no solution/updater/launcher/parser tests ran. Receipt20261023T225156495Z-b4f315dc
-finished22:52:51.7972066Z; job completed22:52:59Z. Root read actual runnerHEAD,
-receipt and build stdout. A root patch-transfer mistake placed the manual-clock
-declaration in another test, leaving Reviver's timeProvider undefined. The
-two-line placement correction is now reviewed; the entire public Reviver fact
-matches the passing private method except its existing generic ticket username.
-No assertions were removed. This was an integration error, not a gameplay failure
-or permission to mark CI green. One successor full Windows check remains pending.
+[Windows40036685838](https://github.com/vgcman16/wolfconquer/actions/runs/40036685838)
+passed exact public `c90122abc1961cef8c8f4a90f6dec623a3ddbaf8`; job120697981313
+completed2026-10-23T23:01:24Z in4m21s. Receipt20261023T225718764Z-c6c587e8
+finished23:01:13.5433267Z; all8 sequential stages exited0.
+Actual terminal TRXs: core **24183passed/0failed**,165 existing NotExecuted
+rows (24348 total); updater301/301; launcher57/57. Build190warnings/0errors.
+Synthetic updater-status/parser controls20+13 passed, with no HTTP/service
+probes. Root read actual runnerHEAD, receipt, build/parser stdout, TRXs and
+GitHub terminal state before report cleanup. This is public source verification,
+not live-client, deployment, complete English or full-parity acceptance.
 
-Private FSB068 focused proof remains556/556 passed,0fail/skip,5s. Both actual
-D11/D13 controlled old-production race cases first failed alive/stamina5; the
-per-connection fix retains100. Earlier full40032574805 on0deb1e46 executed:
-core24176pass/1fail/165excluded,updater301pass; sole old Reviver expectedStatusFlag/
-receivedStamina (exact historical value/interleaving unknown). All534 selected
-chest/NPC/Trade/session/barrier neighbors passed then. Full acceptance remains RED.
+FSB068 private focused proof is556/556,0fail/skip,5s, including both controlled
+D11/D13 race cases now retaining stamina100 and unchanged old packet assertions.
+The first public transfer5c4948d0 failed build40036236341 (190warnings/4CS0103,
+no tests ran): root placed its manual-clock declaration in another test.
+Corrected in publicd218770e; c90122ab merges only reviewed generated parity
+assets from534c26ab. No force/reset/stash. An accidental pre-correction workflow
+40036614525 is terminal canceled; its source is not the accepted checkpoint.
+Earlier full40032574805 on0deb1e46 failed the old Reviver assertion; its exact
+historical stamina value/interleaving remains unknown. Those failures are
+superseded by this exact accepted run, not silently reclassified as passes.
 No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
@@ -1235,7 +1239,7 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   stamina (not a current scalar-save key). Other runtime/Frame/raw writers,
   recipient delivery recovery, fairness and stalled dead/invisible candidates
   remain open. No general shutdown, live-client or full-parity proof.
-  Full Windows successor CI is still pending; old CI remains RED until terminal.
+  Full Windows successor40036685838 on c90122ab is accepted; see exact proof above.
   No live server/client, SQL, original saves, routing or deployment changed.
 
 ## Active audit
@@ -1255,7 +1259,13 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   Quests target/root/recovery shape is required; do not disguise quests as items
   or replace coordination with reordered bool saves. Keep old v1/v2 behavior,
   the shared pending slot, explicit configured roots and fail-closed recovery.
-- Status: source diagnosis only, not an executed failure or fixed claim.
+- Tests-first registered D13 proof: **2passed/4failed/0skipped**,822ms behavior.
+  Both healthy NPCs passed; actual Items/Quests leaf locks, missing explicit
+  Quest authority and durable-Finished/live-Accepted faults all failed the first
+  exact-current-session unchanged assertion. Later file/output/retry assertions
+  were not reached on those RED rows; no fixture/cleanup failure was reported.
+- Status: real v3 journal/capture/coordinator is now privately intaken but
+  UNVERIFIED. No Frame constructor activation or public production transfer.
   Next tests use complete owned files, both NPC positives, actual item/quest
   sharing faults, absent quest authority and stale Finished baseline, followed
   by real journal interruption/replay controls. Preserve the three old Victory
