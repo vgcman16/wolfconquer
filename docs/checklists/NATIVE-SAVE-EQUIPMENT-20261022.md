@@ -12,8 +12,13 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   Deityland capacity and Epic3303974 key identity. Tests-first76=52pass/24fail
   across50+26 selections;43 net new cases and four unsafe old methods corrected.
   Private and independent public Release326/326 each passed,zero failed/skipped;
-  full Windows CI pending. D13 offline component/registered and owned-file checks preserve
-  valid economics/frames; server-export item names are not client-table proof.
+  fullWindows40022478743 on306ec9ec failed1native-readiness test:24074corepass,
+  165existing exclusions,updater301;launcher/laternotrun. Build190warnings/0errors.
+  Full probe diagnostics are being retained without changing readiness assertions
+  or timebounds; cause remains unconfirmed. Private readiness selection23/23
+  passed,zero failed/skipped; this is not a fixed-flake claim. Independent full-CI
+  successor remains pending. D13 offline/owned-file checks preserve valid
+  economics/frames; server-export item names are not client-table proof.
   Whole transactions,zero-stack admission,respawn/claims,UID/Host activation,
   crash recovery,SQL/live/full parity remain open. Fourteen xUnit2031 substitutions
   in eight files are local hygiene only, not measured CodeFactor portal cleanup.

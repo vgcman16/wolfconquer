@@ -1063,7 +1063,15 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   four unsafe old test methods. Private widened Release selection passed
   **326/326**, zero failed/skipped (`claim-chest-green.trx`, terminal exit0).
   Independent public Release also passed326/326,zero failed/skipped. Full
-  Windows CI is pending; focused checks are not a full-CI claim.
+  Windows40022478743 on exactpublic306ec9ec failed one native-readiness test:
+  core24074passed/1failed/165existing exclusions(total24240),updater301/301;
+  launcher/later checks did not run. Build190warnings/0errors. The saved failure
+  lacks the full probe report, so historical cause is unconfirmed. A test-only
+  diagnostic successor retains all14assertions and unchanged5000/1500/1700
+  bounds while including complete actual stdout/stderr on failure. This is not
+  a runtime repair, fixed-flake claim or full-CI acceptance.
+  Private diagnostic/readiness selection passed23/23,zero failed/skipped,8s;
+  the original failure did not reproduce. Independent full-CI successor pending.
 - D13 offline registered/component fixtures and owned files only. Private-method
   post-roll controls are not registered Epic/Frame/client proof. No live client,
   SQL, crash safety, coherent multi-file atomicity or full-parity acceptance.

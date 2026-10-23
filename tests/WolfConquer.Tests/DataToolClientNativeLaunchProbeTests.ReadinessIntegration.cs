@@ -58,20 +58,39 @@ public sealed partial class DataToolClientNativeLaunchProbeTests
             await accepted.GetStream().WriteAsync(new byte[] { 71 });
             var result = await running;
 
-            Assert.Equal(2, result.ExitCode);
-            Assert.True(elapsed.ElapsedMilliseconds >= 3200, "The unchanged post-ready1500 interval was not preserved.");
-            Assert.Contains("ReadinessObserved: True", result.StandardOutput);
-            Assert.Contains("ReadinessError: <none>", result.StandardOutput);
-            Assert.Contains("TimedOut: False", result.StandardOutput);
-            Assert.Contains("RuntimeSnapshot: reason=before-kill-after-bound", result.StandardOutput);
-            Assert.Contains("KillAttempted: True", result.StandardOutput);
-            Assert.Contains("Killed: True", result.StandardOutput);
-            Assert.Contains("Tcp: pid=", result.StandardOutput);
-            Assert.Contains("remote=127.0.0.1:" + port.ToString(CultureInfo.InvariantCulture), result.StandardOutput);
-            Assert.Matches(@"DebugLog: path=.*delta=[1-9]\d*", result.StandardOutput);
-            Assert.Matches(@"Modules: pid=\d+ count=[1-9]\d*", result.StandardOutput);
-            Assert.Contains("Thread: pid=", result.StandardOutput);
-            Assert.Empty(result.StandardError);
+            try
+            {
+                Assert.Equal(2, result.ExitCode);
+                Assert.True(elapsed.ElapsedMilliseconds >= 3200, "The unchanged post-ready1500 interval was not preserved.");
+                Assert.Contains("ReadinessObserved: True", result.StandardOutput);
+                Assert.Contains("ReadinessError: <none>", result.StandardOutput);
+                Assert.Contains("TimedOut: False", result.StandardOutput);
+                Assert.Contains("RuntimeSnapshot: reason=before-kill-after-bound", result.StandardOutput);
+                Assert.Contains("KillAttempted: True", result.StandardOutput);
+                Assert.Contains("Killed: True", result.StandardOutput);
+                Assert.Contains("Tcp: pid=", result.StandardOutput);
+                Assert.Contains("remote=127.0.0.1:" + port.ToString(CultureInfo.InvariantCulture), result.StandardOutput);
+                Assert.Matches(@"DebugLog: path=.*delta=[1-9]\d*", result.StandardOutput);
+                Assert.Matches(@"Modules: pid=\d+ count=[1-9]\d*", result.StandardOutput);
+                Assert.Contains("Thread: pid=", result.StandardOutput);
+                Assert.Empty(result.StandardError);
+            }
+            catch (Exception failure)
+            {
+                throw new InvalidOperationException(
+                    $"""
+                    Native readiness integration failed; complete real DataTool result follows.
+                    TestElapsedMs: {elapsed.ElapsedMilliseconds}
+                    DataToolExitCode: {result.ExitCode}
+                    --- stdout begin ---
+                    {result.StandardOutput}
+                    --- stdout end ---
+                    --- stderr begin ---
+                    {result.StandardError}
+                    --- stderr end ---
+                    """,
+                    failure);
+            }
         }
         finally
         {
