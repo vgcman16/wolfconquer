@@ -1,6 +1,6 @@
 # Publication validation
 
-## CI recovery — test-only correction awaiting full rerun
+## CI recovery — full Windows rerun passed
 
 The registered self-hosted Windows runner was restarted with human approval;
 queued Parity tracker39889055900 passed. Only its three generated tracker files
@@ -16,7 +16,13 @@ inbound diagnostic assertions added. Production and skip behavior are unchanged.
 Focused sanitized-public API/selection/dispatch checks passed309/309 with the
 normal measured PS7 probe binding, zero failures/skips. An initial direct run
 passed301/309 with8 environment-binding failures; no production fix was needed.
-Fresh full Windows CI remains required; this entry does not claim CI-green.
+
+[Fresh full Windows CI39890690396](https://github.com/vgcman16/wolfconquer/actions/runs/39890690396)
+passed all eight stages on source commitf29841d59315c79a40c8d8b00b7888849ca9e525.
+Core19672 passed,0 failed,165 unexecuted of19837; updater262/262 and launcher49/49
+passed. Status-parser20 and smoke-parser13 synthetic cases passed; these do not
+probe a live updater service, and HTTP/service checks were skipped. The registered
+runner remains online. This proves Windows CI, not gameplay/deployment/parity.
 
 
 ## Native solo arena load/reset and genuine instance graph

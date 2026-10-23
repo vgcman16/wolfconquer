@@ -14,8 +14,11 @@
 - [x] Sanitized-public focused API/selection/dispatch checks passed309/309,
   zero failures/skips. First direct run301/309 lacked the required measured PS7
   probe binding; matching the normal pipeline environment passed all309.
-- [ ] Fresh full Windows CI rerun is required after this test-only correction.
-  Focused proof is not full CI, gameplay, deployment or overall parity acceptance.
+- [x] Fresh full Windows run39890690396 onf29841d5 passed all eight stages:
+  core19672 passed/0 failed/165 unexecuted of19837; updater262/262 and
+  launcher49/49 passed. Synthetic status/parser checks passed20+13 cases;
+  HTTP/service probes were skipped. The registered runner remains online.
+  This is full Windows CI proof, not gameplay, deployment or overall parity.
 
 
 ## Follow-on complete solo arena load/reset and instance prerequisites
