@@ -772,7 +772,9 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Tests-only baseline13:7passed/6failed. One unsafe old expectation corrected;
   three old valid/no-op controls retained, nine new controls added. Private Release
   complete boss/reward class now439/439, zero failed/skipped, including all13.
-  Clean public full CI is pending for this checkpoint.
+  Clean public Windows39998007520 passes4m39s on exact7c9e9a11a47fda490f43124b71587198ee9725d0:
+  23687core/0failed of23852 (165externalfixtureexcluded), updater301/301,
+  launcher49/49;8stageexit0,204warnings. Completed2026-10-23T17:52:55Z.
 - Limits: existing local max+1 UID API, postcommit observer/cancellation/delivery
   failures, raw writers, cross-file recovery and whole-combat atomicity remain
   open. The isolated canonical UID equivalent separately passed17/17 within
@@ -794,7 +796,8 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   Existing generic kill-CP no-award controls isolate the new scenes; assertions
   were not weakened. The unregistered connection stops at the real earlier
   ArrowBlades session refresh: its control requires no frames/no reward branch,
-  not a fabricated later diagnostic. Clean public full CI is pending.
+  not a fabricated later diagnostic. The passing full Windows checkpoint above
+  includes all25 message controls as well as the retained boss/reward family.
 - Limits: WarDevil grant enablement still needs an authoritative definition and
   real entitlement transaction. Current item creation, durable rewards/outbox,
   whole-kill atomicity, unrelated later writers and check/send races remain open.

@@ -13,8 +13,10 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   30 new controls retained. Plume prepares quest+item before current-session CAS;
   Earth full bag reports capacity, Cloud announces only committed grants, and
   undefined WarDevil payouts cannot spend luck or announce treasure. Valid reward
-  values and objective/item or receipt/item order remain. Clean public full CI
-  is pending for this checkpoint. No global economy/UID/durable recovery closure.
+  values and objective/item or receipt/item order remain. Clean public full
+  Windows39998007520 passes4m39s on exact7c9e9a11:23687core/0failed,
+  165externalfixtureexcluded, updater301/301, launcher49/49;8stageexit0,
+  204warnings. No global economy/UID/durable recovery closure.
 
 - [x] Adjacent admitted-cost repair (FSB048): private/public Release374/374each,0failed/
   0skipped across all seven pack families. New3-owner baseline119pass/16fail

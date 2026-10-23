@@ -15,7 +15,11 @@ Plume prepares quest/item/frame data before one current-session CAS. Earth full
 bag reports capacity; Cloud receipt follows a prepared committed grant with the
 same receipt-before-item bytes/order; undefined WarDevil payout refuses before
 luck/RNG/treasure output. Actual owned quest-file persistence and its truthful
-postcommit failure diagnostic are covered. Full public Windows CI is pending.
+postcommit failure diagnostic are covered. Full public Windows39998007520 passes
+4m39s on exact7c9e9a11a47fda490f43124b71587198ee9725d0, completed17:52:55Z:
+23687corepassed/0failed of23852 (165existing externalfixtureexcluded),
+updater301/301, launcher49/49; all8 stages exit0,204warnings/0build errors.
+Receipt20261023T174830984Z-fb0be48c finished2026-10-23T17:52:48.6136926Z.
 This is not cross-file/durable reward recovery, global UID activation, a live
 client test, deployment or complete gameplay parity.
 
