@@ -11,7 +11,10 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   longer authorize/payment/free slots; first real key pays one unit. CP saves use
   account301 path with actual character1293600 validation. Tests-first75=
   35pass/40fail;50 new cases plus25 retained. Private Release184/184 passed,
-  zero failed/skipped. Public full Windows verification pending. Valid any-binding
+  zero failed/skipped. Public Windows40027179762 passed05e0feb1 in4m55s,
+  all8stages0,build190warnings/0errors;receipt finished21:34:38.6025377Z,
+  jobcompleted21:34:45Z. Exact fullTRXcounts unavailable after next checkout;
+  not extrapolated. Valid any-binding
   policy, key IDs, costs, random rates,200000CP and packet order remain unchanged.
   Lower-owner fault controls are not whole-chest save-failure safety. Separate
   best-effort saves, durable transaction/replay/delivery/global UID and live

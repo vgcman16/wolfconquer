@@ -1121,7 +1121,14 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   Four distinct-ID positives verify complete actual account301/character1293600
   files and unrelated UID-named-file preservation; four negatives exercise the
   real lower persistence owner only, not whole-handler save-failure atomicity.
-  Independent public full Windows verification is pending for this batch.
+  Independent full [Windows40027179762](https://github.com/vgcman16/wolfconquer/actions/runs/40027179762)
+  passed exactpublic05e0feb186495b77871c487e8918dda4c7001dd7 in4m55s,
+  jobcompleted2026-10-23T21:34:45Z. Root read terminalreceipt all8stagesexit0,
+  finished21:34:38.6025377Z (20261023T213005152Z-2aa361a9),actualrunnerHEAD,
+  GitHubterminaljob/log andbuild190warnings/0errors. The next tracker checkout
+  cleared local reports before terminalTRX/stdout counts were read; exact full
+  core/updater/launcher counts are unavailable for this run,not extrapolated.
+  This is independent offline CI acceptance,not live/deployment/fullparity.
 - Explicit VisibleDx8D13 offline registered/component fixtures and owned files
   only. Post-roll CP calls are component proof, not registered RNG/client proof.
   English key-name evidence remains a SERVER export, not client-table proof.
