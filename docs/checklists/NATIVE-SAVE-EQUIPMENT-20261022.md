@@ -1,5 +1,22 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on genuine monster targeting and movement
+
+- [x] Whole CheckTarget/SearchTarget/CheckGuardPosition, source geometry and
+  independent monster damage/dodge/blessing calculations; full walk codec and
+  monster animation chunk sender:77 new cases with nonempty movement/fallbacks.
+- [x] Private and independent sanitized-public Release each passed2647/2647,
+  zero failures/skips (77 new +2570 retained), first run in each copy.
+  Native target choice/dead-target quirks, actual cells/view publication, distinct
+  MSRandom draws, full walk/chunk bytes and partial-fault state remain intact.
+- [x] Owned Framework4/x86 angle probes passed16723 controls in default and
+  optimized builds. Actual modern GetAngle matches the16705 grid/boundary vector
+  digest2201143353 and observed axes/diagonals. Cast translation is method-scoped.
+- [ ] Whole AI dispatcher/attack/player damage/HP/death/Receive, PoolProcesses and
+  player Movement receiver remain held; no scheduler or route is installed.
+  Existing SystemRandom default birth is not newly accepted for held PhysicalAttack.
+  This is not live AI/PvE, SQL, host startup, full Windows or parity acceptance.
+
 ## Follow-on complete lazy world population, monsters and wallet leaves
 
 - [x] Whole native EnterMap/CheckMap and lazy dictionary lookup now load real NPC,

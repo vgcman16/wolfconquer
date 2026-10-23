@@ -2,7 +2,8 @@ using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
-// Native monster ActionHandler17..24 birth and Rate only. Monster AI is not ported here.
+// Native ActionHandler17..24 birth/Rate. Whole targeting/movement lives in partials;
+// damage dispatch, HP/death and scheduler adoption remain held on their real graph.
 internal partial class LegacyNativeMonsterActionHandler
 {
     public LegacyNativeMSRandom Random = new LegacyNativeMSRandom();

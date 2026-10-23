@@ -1,5 +1,24 @@
 # Publication validation
 
+## Native monster targeting and movement
+
+Private Release and independent sanitized-public Release each passed2647/2647,
+zero failures/skips:77 new cases and2570 retained, first run in each copy.
+Whole CheckTarget/SearchTarget/CheckGuardPosition exercise actual nonempty target
+acquisition, pursuit, blocked-step fallback, cell/view publication and fault state.
+Full native walk serialization and monster animation chunk sends use real owners.
+
+The actual modern GetAngle matches the literal16705-vector grid/boundary digest
+2201143353 plus observed axes/diagonals. Root-owned source-shaped Framework4/x86
+default and optimized probes passed16723 controls each before admitting the scoped
+bounded byte(int(expression)) translation. This does not validate other casts.
+All original Atan2/Floor order, unknown directions and coordinate wrap remain.
+
+Whole AI dispatch/attack/player damage/HP/death/Receive, PoolProcesses and player
+Movement remain held. Existing SystemRandom default birth has not been newly
+accepted for held PhysicalAttack. No scheduler/receiver registration, actual-client
+AI/PvE, SQL, host startup, full Windows, deployment or parity acceptance follows.
+
 ## Native complete lazy world population and monster prerequisites
 
 Private Release and independent sanitized-public Release each passed2570/2570,
