@@ -182,7 +182,7 @@ public static partial class WorldPacketHandlers
                 $"consumedStackUids={string.Join(',', commit.ConsumedItemUids)} " +
                 $"rewardItemId={commit.RewardItemId} rewardCount={commit.RewardItems.Count} " +
                 $"rewardEvidence={commit.RewardEvidence} itemFile={Path.GetFileName(commit.ItemPath)} " +
-                "eligibility=unbound-diamonds removalRule=lowest-uid-any-binding " +
+                "eligibility=unbound-diamonds removalRule=lowest-uid-positive-unbound " +
                 "persistenceBeforeSessionCommit=true activeNpcId=cleared " +
                 "packetOrder=all-diamond-consumption-frames,all-reward-Add-frames,success-dialog broadcast=false.")
             .ConfigureAwait(false);
@@ -407,9 +407,9 @@ public static partial class WorldPacketHandlers
         var consumedUids = new List<uint>();
         var remaining = LegacySimonDiamondRequiredCount;
 
-        // Contain(id, 17, 0) requires unbound units, while source Remove(id, 17) ignores binding.
+        // Authorization and debit must use the same positive unbound units.
         foreach (var diamond in sourceItems.InventoryItems
-                     .Where(item => item.ItemId == spec.DiamondItemId)
+                     .Where(item => item.ItemId == spec.DiamondItemId && item.Bound == 0 && item.StackSize > 0)
                      .OrderBy(item => item.Uid))
         {
             if (remaining == 0)
@@ -424,7 +424,7 @@ public static partial class WorldPacketHandlers
                 return false;
             }
 
-            var available = diamond.StackSize == 0 ? 1U : diamond.StackSize;
+            var available = (uint)diamond.StackSize;
             var consumed = Math.Min(available, remaining);
             consumedUids.Add(diamond.Uid);
             if (consumed == available)
@@ -490,9 +490,9 @@ public static partial class WorldPacketHandlers
     {
         var available = 0UL;
         foreach (var item in items.InventoryItems.Where(item =>
-                     item.ItemId == diamondItemId && item.Bound == 0))
+                     item.ItemId == diamondItemId && item.Bound == 0 && item.StackSize > 0))
         {
-            available += item.StackSize == 0 ? 1UL : item.StackSize;
+            available += item.StackSize;
             if (available >= LegacySimonDiamondRequiredCount)
             {
                 return true;

@@ -964,6 +964,45 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   2026-10-23T19:43:59Z. Parsers20+13 are synthetic, no network/service probes.
   This is offline source acceptance, not deployment or complete gameplay parity.
 
+### FSB-058: Debit only admitted positive unbound NPC exchange costs
+
+- Owners: Arthur VIP quest rewards, EventUtility flower/Stardust/Buddha
+  exchanges and Labyrinth Simon diamond rewards. Native NPC handlers authorize
+  ordinary costs with `Inventory.Contain(id, count, 0)`, but native `Remove`
+  ignores binding. The old managed debit copied that flaw after an unbound gate.
+  Simon additionally counted empty rows as one diamond; Buddha selected an empty
+  necklace. These are server defects, not packet compatibility requirements.
+- Debit now selects only matching `Bound == 0 && StackSize > 0` rows, retaining
+  lowest eligible UID order. Simon authorization and debit count actual positive
+  stack units. All four Arthur costs/rewards, four-red/four-white flower costs,
+  30-percent branches, one-Stardust choices, one-necklace cost and exact17-diamond
+  rewards remain unchanged. Diagnostics no longer claim any-binding removal.
+- Combined tests-first batch with FSB059:108 cases,82 passed/26 failed. Six old
+  facts that required wrong binding/lock behavior were corrected;39 new cases
+  were added, including seventeen empty diamond rows and16 positive+one empty.
+  The wider private Release NPC/reward selection passed338/338,zero failed/skipped.
+  Independent public Release also passed338/338,zero failed/skipped.
+- Controls retain full saved item comparisons, valid economics, metadata and
+  successful packet order. Arthur covers all four chains and binding255;
+  Event/Simon cover noncanonical bindings2/7 and empty rows before real costs.
+  These are admitted-cost repairs, not whole current-owner NPC transactions,
+  crash recovery, global UID safety, SQL or live-client/deployment acceptance.
+
+### FSB-059: Preserve existing item locks when granting RedBodhi stack units
+
+- Owner: FullAccount option16 RedBodhiBean grant. Updating a compatible existing
+  stack called `WithLocked(0)`, silently unlocking player stock. Remove only that
+  existing-row reset; genuinely new rows retain the original unlocked defaults.
+  Ten1000-unit calls, capacity policy, metadata, binding and frame order remain.
+- Two unsafe old facts now require the existing lock to survive. Three new
+  Locked0/1/2 cases check every saved-file byte (only StackSize changes), retained
+  UnlockTimer/perfection/owner metadata, unchanged source/character files and
+  all ten independent206-byte opcode2116 goldens. The Locked1/2 controls and both
+  unsafe old facts failed before repair; Locked0 already passed.
+- Included in private/public338/338 above. Full CI is pending at this local
+  record. This is metadata preservation, not a whole grant journal,
+  recovery/delivery guarantee, global allocator activation or live proof.
+
 ## Active audit
 
 Current work does not close whole managed reward transactions. SuperGuildWar's

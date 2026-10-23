@@ -9,7 +9,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyLabyrinthSimonDiamondRewardParityTests : IDisposable
+public sealed partial class LegacyLabyrinthSimonDiamondRewardParityTests : IDisposable
 {
     private const long CharacterUid = 1_293_600;
     private const uint SimonNpcId = 1_152;
@@ -158,38 +158,31 @@ public sealed class LegacyLabyrinthSimonDiamondRewardParityTests : IDisposable
     }
 
     [Fact]
-    public async Task UnboundEligibilityStillRemovesLowestUidUnitsAcrossBindings()
+    public async Task RewardConsumesOnlyEligibleUnboundUnitsAndPreservesBoundStock()
     {
         var originalItems = Items(
             InventoryItem(10, CloudDiamondItemId, stackSize: 12, bound: 1, seed: 8),
             InventoryItem(20, CloudDiamondItemId, stackSize: 17, bound: 0, seed: 9),
             InventoryItem(30, 410_003, stackSize: 2, seed: 10));
-        using var harness = CreateHarness(optionId: 15, originalItems);
+        await RunHarnessAsync(optionId: 15, originalItems, async harness =>
+        {
 
-        Assert.True(await harness.InvokeAsync());
+            Assert.True(await harness.InvokeAsync());
 
-        var updated = harness.CurrentSession.PlayerItems;
-        Assert.Equal(17, StackUnits(harness.OriginalSession.PlayerItems, CloudDiamondItemId) -
-            StackUnits(updated, CloudDiamondItemId));
-        Assert.DoesNotContain(updated.InventoryItems, item => item.Uid == 10);
-        var remainingUnbound = Assert.Single(updated.InventoryItems, item => item.Uid == 20);
-        Assert.Equal((byte)0, remainingUnbound.Bound);
-        Assert.Equal((ushort)12, remainingUnbound.StackSize);
-        AssertInventoryItemEqual(
-            Assert.Single(harness.OriginalSession.PlayerItems.InventoryItems, item => item.Uid == 20)
-                .WithStackSize(12),
-            remainingUnbound);
-        AssertItemsEqual(updated, harness.ReloadItems());
-
-        AssertRemoveInventory(harness.ClientSent[0], uid: 10);
-        var partialUpdate = AssertGameItem(harness.ClientSent[1]);
-        Assert.Equal(20U, partialUpdate.Uid);
-        Assert.Equal((byte)0, partialUpdate.Bound);
-        Assert.Equal((ushort)12, partialUpdate.StackSize);
-        AssertSourceOrderedSuccessPackets(
-            harness.ClientSent,
-            consumptionFrameCount: 2,
-            [AncestorBoxItemId]);
+            var updated = harness.CurrentSession.PlayerItems;
+            Assert.Equal(17, StackUnits(harness.OriginalSession.PlayerItems, CloudDiamondItemId) -
+                StackUnits(updated, CloudDiamondItemId));
+            AssertInventoryItemEqual(
+                Assert.Single(harness.OriginalSession.PlayerItems.InventoryItems, item => item.Uid == 10),
+                Assert.Single(updated.InventoryItems, item => item.Uid == 10));
+            Assert.DoesNotContain(updated.InventoryItems, item => item.Uid == 20);
+            AssertItemsEqual(updated, harness.ReloadItems());
+            AssertRemoveInventory(harness.ClientSent[0], uid: 20);
+            AssertSourceOrderedSuccessPackets(
+                harness.ClientSent,
+                consumptionFrameCount: 1,
+                [AncestorBoxItemId]);
+        });
     }
 
     [Theory]

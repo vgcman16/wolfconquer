@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyArthurVipQuestPersistenceTests : IDisposable
+public sealed partial class LegacyArthurVipQuestPersistenceTests : IDisposable
 {
     private const uint ArthurNpcId = 3_601;
     private const uint MossItemId = 722_723;
@@ -119,7 +119,7 @@ public sealed class LegacyArthurVipQuestPersistenceTests : IDisposable
     }
 
     [Fact]
-    public async Task RemoveAfterUnboundGateCanConsumeLowerUidBoundMaterial()
+    public async Task RemoveAfterUnboundGatePreservesLowerUidBoundMaterial()
     {
         var playerItemsRoot = CreatePlayerItemsRoot();
         var originalItems = CreatePlayerItems(
@@ -132,17 +132,15 @@ public sealed class LegacyArthurVipQuestPersistenceTests : IDisposable
             optionId: 2);
 
         Assert.NotSame(result.OriginalSession, result.UpdatedSession);
-        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10);
-        var remainingUnbound = Assert.Single(
-            result.UpdatedSession.PlayerItems.InventoryItems,
-            item => item.Uid == 20);
-        Assert.Equal(1, remainingUnbound.StackSize);
-        Assert.Equal(0, remainingUnbound.Bound);
+        var bound = Assert.Single(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10);
+        Assert.Equal(1, bound.StackSize);
+        Assert.Equal(1, bound.Bound);
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
         Assert.Single(result.UpdatedSession.PlayerItems.InventoryItems, item => item.ItemId == EvilToothItemId);
 
-        AssertMaterialRemoval(result.Sent[0], uid: 10);
-        AssertMaterialUpdate(result.Sent[1], uid: 20, itemId: GhostHornItemId, stackSize: 2);
-        AssertMaterialUpdate(result.Sent[2], uid: 20, itemId: GhostHornItemId, stackSize: 1);
+        AssertMaterialUpdate(result.Sent[0], uid: 20, itemId: GhostHornItemId, stackSize: 2);
+        AssertMaterialUpdate(result.Sent[1], uid: 20, itemId: GhostHornItemId, stackSize: 1);
+        AssertMaterialRemoval(result.Sent[2], uid: 20);
         var rewardPacket = AssertGameItem(result.Sent[3]);
         Assert.Equal(EvilToothItemId, rewardPacket.ItemId);
         Assert.Equal(LegacyGameItemPacket.AddItemMode, rewardPacket.Mode);
@@ -381,13 +379,14 @@ public sealed class LegacyArthurVipQuestPersistenceTests : IDisposable
         IReadOnlyList<ArthurItemCost> costs,
         PlayerItemSnapshotItem reward,
         string? successText,
-        bool broadcastsCompletion)
+        bool broadcastsCompletion,
+        IReadOnlyList<uint>? costUids = null)
     {
         var offset = 0;
         for (var costIndex = 0; costIndex < costs.Count; costIndex++)
         {
             var cost = costs[costIndex];
-            var uid = checked((uint)(10 + costIndex * 10));
+            var uid = costUids?[costIndex] ?? checked((uint)(10 + costIndex * 10));
             for (var remaining = cost.Count - 1; remaining >= 0; remaining--)
             {
                 if (remaining == 0)

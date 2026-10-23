@@ -262,7 +262,7 @@ public static partial class WorldPacketHandlers
         CancellationToken cancellationToken)
     {
         var necklace = session.PlayerItems.InventoryItems
-            .Where(item => item.ItemId == LegacyVicotryBuddhaNecklaceItemId && item.Bound == 0)
+            .Where(item => item.ItemId == LegacyVicotryBuddhaNecklaceItemId && item.Bound == 0 && item.StackSize > 0)
             .OrderBy(item => item.Uid)
             .FirstOrDefault();
         if (necklace is null)
@@ -693,13 +693,13 @@ public static partial class WorldPacketHandlers
         }
 
         var mutationFrames = new List<byte[]>();
-        if (!TryConsumeLegacyEventUtilityItemsBoundAgnostic(
+        if (!TryConsumeLegacyEventUtilityEligibleItems(
                 session.PlayerItems,
                 LegacySwapperStarryRedFlowerItemId,
                 LegacySwapperStarryFlowerCount,
                 mutationFrames,
                 out var updatedItems) ||
-            !TryConsumeLegacyEventUtilityItemsBoundAgnostic(
+            !TryConsumeLegacyEventUtilityEligibleItems(
                 updatedItems,
                 LegacySwapperStarryWhiteFlowerItemId,
                 LegacySwapperStarryFlowerCount,
@@ -732,7 +732,7 @@ public static partial class WorldPacketHandlers
                         context,
                         sourceMethod,
                         optionId,
-                        "Rate(30) hit but the source Add would fail after bound-agnostic flower removal because inventory is full; no flowers were consumed")
+                        "Rate(30) hit but the source Add would fail after eligible flower removal because inventory is full; no flowers were consumed")
                     .ConfigureAwait(false);
                 return;
             }
@@ -1095,7 +1095,7 @@ public static partial class WorldPacketHandlers
         }
 
         var mutationFrames = new List<byte[]>(1);
-        if (!TryConsumeLegacyEventUtilityItemsBoundAgnostic(
+        if (!TryConsumeLegacyEventUtilityEligibleItems(
                 session.PlayerItems,
                 LegacyElementalPoolStardustItemId,
                 1,
@@ -1117,7 +1117,7 @@ public static partial class WorldPacketHandlers
                     context,
                     sourceMethod,
                     optionId,
-                    "source Add would fail after bound-agnostic Stardust removal because inventory is full; no Stardust was consumed")
+                    "source Add would fail after eligible Stardust removal because inventory is full; no Stardust was consumed")
                 .ConfigureAwait(false);
             return;
         }
@@ -1231,7 +1231,7 @@ public static partial class WorldPacketHandlers
         ulong available = 0;
         foreach (var item in items.InventoryItems)
         {
-            if (item.ItemId != itemId || item.Bound != 0)
+            if (item.ItemId != itemId || item.Bound != 0 || item.StackSize == 0)
             {
                 continue;
             }
@@ -1246,7 +1246,7 @@ public static partial class WorldPacketHandlers
         return false;
     }
 
-    private static bool TryConsumeLegacyEventUtilityItemsBoundAgnostic(
+    private static bool TryConsumeLegacyEventUtilityEligibleItems(
         PlayerItemSnapshot items,
         uint itemId,
         uint count,
@@ -1257,7 +1257,7 @@ public static partial class WorldPacketHandlers
         for (var removed = 0U; removed < count; removed++)
         {
             var item = updatedItems.InventoryItems
-                .Where(candidate => candidate.ItemId == itemId)
+                .Where(candidate => candidate.ItemId == itemId && candidate.Bound == 0 && candidate.StackSize > 0)
                 .OrderBy(candidate => candidate.Uid)
                 .FirstOrDefault();
             if (item is null)

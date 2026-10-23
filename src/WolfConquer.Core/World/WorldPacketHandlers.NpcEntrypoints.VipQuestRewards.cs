@@ -243,9 +243,9 @@ public static partial class WorldPacketHandlers
         {
             for (var removed = 0U; removed < cost.Count; removed++)
             {
-                // Inventory.Remove checks an unbound gate, then removes matching items without a bound filter.
+                // Debit only positive rows in the binding class admitted above.
                 var material = updatedItems.InventoryItems
-                    .Where(item => item.ItemId == cost.ItemId)
+                    .Where(item => item.ItemId == cost.ItemId && item.Bound == 0 && item.StackSize > 0)
                     .OrderBy(item => item.Uid)
                     .FirstOrDefault();
                 if (material is null)

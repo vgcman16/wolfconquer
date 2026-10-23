@@ -80,8 +80,7 @@ public static partial class WorldPacketHandlers
             {
                 var updatedStack = compatibleStack
                     .WithStackSize(checked((ushort)(
-                        compatibleStack.StackSize + LegacyFullAccountRedBodhiBeanAmountPerCall)))
-                    .WithLocked(0);
+                        compatibleStack.StackSize + LegacyFullAccountRedBodhiBeanAmountPerCall)));
                 workingItems = ReplaceInventoryItem(workingItems, compatibleStack, updatedStack);
                 mutations.Add((updatedStack, LegacyGameItemPacket.UpdateItemMode));
                 continue;

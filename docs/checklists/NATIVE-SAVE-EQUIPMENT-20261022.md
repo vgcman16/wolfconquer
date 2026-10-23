@@ -7,6 +7,17 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] NPC admitted-cost and existing-lock safety (FSB058/059): real tests-first
+  108=82passed/26failed; six unsafe old facts corrected and39 new cases added.
+  Private and independent public Release338/338 each passed,zero failed/skipped
+  across wider NPC/reward families. Full CI is pending.
+  Arthur/Event/Simon spend only admitted positive unbound rows in lowest eligible
+  UID order; Simon empty rows cannot supply diamond units. RedBodhi preserves
+  existing locks/timers/metadata, with complete saved bytes and ten independent
+  wire goldens per Locked0/1/2 case. Valid costs/rewards/rates/order remain.
+  Whole NPC transactions,global UID/Host activation,SQL/live/deployment/full
+  parity remain open. No score-only protocol refactor or per-warning fullCI.
+
 - [x] Scoped DragonSkin item/skin transaction (FSB057): registered baseline
   89=8 passed/81 failed; first admitted 186=161 passed/25 component-fixture
   failures. Real-loader fixture correction preserves raw bytes and strict

@@ -96,7 +96,7 @@ public sealed class LegacyFullAccountRedBodhiBeanMutationTests : IDisposable
         Assert.Equal(2, stacks.Length);
         Assert.Equal(42U, stacks[0].Uid);
         Assert.Equal(StackLimit, stacks[0].StackSize);
-        Assert.Equal((byte)0, stacks[0].Locked);
+        Assert.Equal((byte)1, stacks[0].Locked);
         Assert.Equal(7U, stacks[0].Color);
         Assert.Equal(43U, stacks[1].Uid);
         AssertCreatedRewardStack(stacks[1], expectedStackSize: 6_000);
@@ -134,7 +134,7 @@ public sealed class LegacyFullAccountRedBodhiBeanMutationTests : IDisposable
                 (ushort)6_000,
             ],
             packets.Select(packet => packet.StackSize).ToArray());
-        Assert.All(packets, packet => Assert.Equal((byte)0, packet.Locked));
+        Assert.Equal(new byte[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }, packets.Select(packet => packet.Locked));
     }
 
     [Fact]
@@ -235,11 +235,15 @@ public sealed class LegacyFullAccountRedBodhiBeanMutationTests : IDisposable
             item => item.ItemId == RewardItemId);
         Assert.Equal(5U, reward.Uid);
         Assert.Equal(StackLimit, reward.StackSize);
-        Assert.Equal((byte)0, reward.Locked);
+        Assert.Equal((byte)1, reward.Locked);
         Assert.Equal(10, result.ClaimantSent.Count);
         Assert.All(
             ParseItemPackets(result.ClaimantSent),
-            packet => Assert.Equal(LegacyGameItemPacket.UpdateItemMode, packet.Mode));
+            packet =>
+            {
+                Assert.Equal(LegacyGameItemPacket.UpdateItemMode, packet.Mode);
+                Assert.Equal((byte)1, packet.Locked);
+            });
     }
 
     [Theory]

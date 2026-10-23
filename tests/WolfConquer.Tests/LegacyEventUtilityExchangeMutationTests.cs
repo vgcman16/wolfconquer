@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyEventUtilityExchangeMutationTests : IDisposable
+public sealed partial class LegacyEventUtilityExchangeMutationTests : IDisposable
 {
     private const uint SwapperStarryNpcId = 832_663;
     private const uint ElementalPoolNpcId = 832_664;
@@ -27,7 +27,7 @@ public sealed class LegacyEventUtilityExchangeMutationTests : IDisposable
         "WolfConquer-LegacyEventUtilityExchangeMutationTests-" + Guid.NewGuid().ToString("N"));
 
     [Fact]
-    public async Task FlowerRateHitConsumesRedThenWhiteBoundAgnosticallyAndGrantsSeal()
+    public async Task FlowerRateHitConsumesEligibleRedThenWhiteAndGrantsSeal()
     {
         var originalItems = Items(
             Item(10, RedFlowerItemId, stackSize: 2, bound: 1),
@@ -44,18 +44,16 @@ public sealed class LegacyEventUtilityExchangeMutationTests : IDisposable
         Assert.True(result.Handled);
         Assert.Equal(1, result.CommitCount);
         Assert.NotSame(result.OriginalSession, result.UpdatedSession);
-        Assert.Equal((ushort)2, Assert.Single(
-            result.UpdatedSession.PlayerItems.InventoryItems,
-            item => item.Uid == 20).StackSize);
-        Assert.Equal((ushort)1, Assert.Single(
-            result.UpdatedSession.PlayerItems.InventoryItems,
-            item => item.Uid == 40).StackSize);
-        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid is 10 or 30);
+        Assert.Same(originalItems.InventoryItems[0], Assert.Single(
+            result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10));
+        Assert.Same(originalItems.InventoryItems[2], Assert.Single(
+            result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 30));
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid is 20 or 40);
 
         var seal = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
             item => item.ItemId == YinYangSealItemId);
-        Assert.Equal((uint)41, seal.Uid);
+        Assert.Equal(41U, seal.Uid);
         Assert.Equal((ushort)321, seal.Durability);
         Assert.Equal((ushort)321, seal.MaximumDurability);
         Assert.Equal((byte)0, seal.Bound);
@@ -63,15 +61,15 @@ public sealed class LegacyEventUtilityExchangeMutationTests : IDisposable
 
         Assert.Collection(
             result.Sent,
-            frame => AssertItemUpdate(frame, 10, RedFlowerItemId, stackSize: 1, bound: 1),
-            frame => AssertItemRemoval(frame, 10),
             frame => AssertItemUpdate(frame, 20, RedFlowerItemId, stackSize: 3, bound: 0),
             frame => AssertItemUpdate(frame, 20, RedFlowerItemId, stackSize: 2, bound: 0),
-            frame => AssertItemRemoval(frame, 30),
+            frame => AssertItemUpdate(frame, 20, RedFlowerItemId, stackSize: 1, bound: 0),
+            frame => AssertItemRemoval(frame, 20),
             frame => AssertItemUpdate(frame, 40, WhiteFlowerItemId, stackSize: 3, bound: 0),
             frame => AssertItemUpdate(frame, 40, WhiteFlowerItemId, stackSize: 2, bound: 0),
             frame => AssertItemUpdate(frame, 40, WhiteFlowerItemId, stackSize: 1, bound: 0),
-            frame => AssertGrant(frame, 41, YinYangSealItemId, durability: 321));
+            frame => AssertItemRemoval(frame, 40),
+            frame => AssertGrant(frame, seal.Uid, YinYangSealItemId, durability: 321));
         Assert.True(result.PersistenceMatchedAtCommit);
         Assert.True(result.SessionCommittedBeforeFirstSend);
         AssertPlayerItemsEqual(result.UpdatedSession.PlayerItems, Assert.IsType<PlayerItemSnapshot>(result.PersistedItems));
@@ -277,7 +275,7 @@ public sealed class LegacyEventUtilityExchangeMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task StardustUnboundGatePassesButRemoveConsumesLowerUidBoundItem()
+    public async Task StardustConsumesEligibleUnboundItemAndPreservesLowerUidBoundItem()
     {
         var originalItems = Items(
             Item(10, StardustItemId, stackSize: 2, bound: 1),
@@ -291,10 +289,11 @@ public sealed class LegacyEventUtilityExchangeMutationTests : IDisposable
         var boundDust = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
             item => item.Uid == 10);
-        Assert.Equal((ushort)1, boundDust.StackSize);
+        Assert.Equal((ushort)2, boundDust.StackSize);
         Assert.Equal((byte)1, boundDust.Bound);
-        Assert.Contains(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20 && item.Bound == 0);
-        AssertItemUpdate(result.Sent[0], 10, StardustItemId, stackSize: 1, bound: 1);
+        Assert.Same(originalItems.InventoryItems[0], boundDust);
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        AssertItemRemoval(result.Sent[0], 20);
         Assert.Equal(ShadowScrollItemId, AssertGameItem(result.Sent[1]).ItemId);
     }
 
@@ -359,12 +358,12 @@ public sealed class LegacyEventUtilityExchangeMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task FullInventoryAfterBoundAgnosticStardustUpdateDoesNotConsume()
+    public async Task FullInventoryAfterEligibleStardustUpdateDoesNotConsume()
     {
         var inventory = new List<PlayerItemSnapshotItem>
         {
             Item(10, StardustItemId, stackSize: 2, bound: 1),
-            Item(20, StardustItemId),
+            Item(20, StardustItemId, stackSize: 2),
         };
         inventory.AddRange(Enumerable.Range(0, 38)
             .Select(index => Item(checked((uint)(100 + index)), checked((uint)(410_000 + index)))));
@@ -517,6 +516,7 @@ public sealed class LegacyEventUtilityExchangeMutationTests : IDisposable
         var attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["LegacySwapperStarryRateRoll"] = rateRoll.ToString(CultureInfo.InvariantCulture),
+            ["LegacyVicotryBuddhaRateRoll"] = rateRoll.ToString(CultureInfo.InvariantCulture),
         };
         var session = CreateSession(
             originalItems,
