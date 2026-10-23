@@ -37,7 +37,7 @@ internal partial class LegacyNativeStatusFlagsBigVector32
                 (!TryPrepareAdd((int)LegacyNativeMsgUpdate.Flags.XPList, 20, true, 0, false, out change) ||
                  !TryGetPreparedWords(change, out words))) return false;
             if (!IsCurrent(before!) || !bindings.IsCurrent() ||
-                bindings.Kind == LegacyNativePerfectionEffects.RefinementKind.Stamina && bindings.Player.Stamina != stamina) return false;
+                (bindings.Kind == LegacyNativePerfectionEffects.RefinementKind.Stamina && bindings.Player.Stamina != stamina)) return false;
             var prepared = new RefinementChange();
             refinementChanges.Add(prepared, new(bindings, before!, change, bindings.Kind, eligible, words, stamina));
             token = prepared;

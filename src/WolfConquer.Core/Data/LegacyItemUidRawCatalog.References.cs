@@ -8,14 +8,14 @@ internal static partial class LegacyItemUidRawCatalog
     private const int MailStrings = LegacyMailboxEntry.TitleByteLength + LegacyMailboxEntry.SenderNameByteLength +
         LegacyMailboxEntry.ContentByteLength;
     private const int MailItemOffset = MailStrings + sizeof(uint) + sizeof(ulong) + sizeof(uint);
-    private const int MailRecordSize = MailStrings + sizeof(uint) * 5 + sizeof(ulong) + sizeof(long);
+    private const int MailRecordSize = MailStrings + (sizeof(uint) * 5) + sizeof(ulong) + sizeof(long);
     private const int DetainedRecordSize = 322; // Actual StructLayout.Size, not a marshaled bool projection.
 
     private static void ReadMailbox(byte[] bytes, Scan scan)
     {
         var offset = 0;
         var count = ReadCount(bytes, ref offset);
-        if ((long)offset + (long)count * MailRecordSize != bytes.Length)
+        if ((long)offset + ((long)count * MailRecordSize) != bytes.Length)
             throw new FormatException("Invalid mailbox record size.");
         var mailIds = new HashSet<uint>();
         for (var index = 0; index < count; index++)
@@ -33,7 +33,7 @@ internal static partial class LegacyItemUidRawCatalog
     {
         var offset = 0;
         var count = ReadCount(bytes, ref offset);
-        if ((long)offset + (long)count * DetainedRecordSize != bytes.Length)
+        if ((long)offset + ((long)count * DetainedRecordSize) != bytes.Length)
             throw new FormatException("Invalid detained record size.");
         var recordIds = new HashSet<uint>();
         for (var index = 0; index < count; index++, offset += DetainedRecordSize)
@@ -46,8 +46,8 @@ internal static partial class LegacyItemUidRawCatalog
             if (recordId == 0 || !recordIds.Add(recordId)) throw new FormatException("Duplicate detained record identity.");
             if (action == (uint)LegacyNativeMsgDetainedItem.ContainerType.RewardCps)
             { scan.AddReference(itemUid); continue; }
-            if (action != (uint)LegacyNativeMsgDetainedItem.ContainerType.DetainPage &&
-                action != (uint)LegacyNativeMsgDetainedItem.ContainerType.ClaimPage || itemUid == 0 || itemId == 0)
+            if ((action != (uint)LegacyNativeMsgDetainedItem.ContainerType.DetainPage &&
+                action != (uint)LegacyNativeMsgDetainedItem.ContainerType.ClaimPage) || itemUid == 0 || itemId == 0)
                 throw new FormatException("Invalid detained physical identity.");
             if (scan.Escrow.TryGetValue(itemUid, out var previous))
             {

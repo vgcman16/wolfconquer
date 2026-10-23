@@ -7,7 +7,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LegacyNativeClientItemPerfectionRecordTests
+public sealed partial class LegacyNativeClientItemPerfectionRecordTests
 {
     [Fact]
     public void SixNativeFieldsAreSequentialEightyBytesWithFixedSignedByteBuffers()
@@ -87,7 +87,7 @@ public sealed class LegacyNativeClientItemPerfectionRecordTests
         var bytes = Bytes(ref record);
         Assert.Equal((byte)0x41, bytes[16]);
         Assert.Equal((byte)0xAC, bytes[17]);
-        Assert.Equal((byte)0, bytes[18]); // Untouched default storage; setter did not append it.
+        Assert.Equal((byte)0, bytes[18]); // Bounded replacement clears the remainder of this field.
     }
 
     [Fact]
@@ -102,25 +102,25 @@ public sealed class LegacyNativeClientItemPerfectionRecordTests
     }
 
     [Fact]
-    public void ShortOwnerOverwriteRetainsExistingTailWithoutTerminatorInsertion()
+    public void ShortOwnerOverwriteClearsItsUnusedFixedFieldTail()
     {
         var record = default(LegacyNativeClientItemPerfectionRecord);
         record.OwnerName = "abcdef";
         record.OwnerName = "Q";
-        Assert.Equal("Qbcdef", record.OwnerName);
+        Assert.Equal("Q", record.OwnerName);
     }
 
     [Fact]
-    public void ShortSpecialOverwriteRetainsExistingTailWithoutTerminatorInsertion()
+    public void ShortSpecialOverwriteClearsItsUnusedFixedFieldTail()
     {
         var record = default(LegacyNativeClientItemPerfectionRecord);
         record.SpecialText = "abcdef";
         record.SpecialText = "Q";
-        Assert.Equal("Qbcdef", record.SpecialText);
+        Assert.Equal("Q", record.SpecialText);
     }
 
     [Fact]
-    public void EmptySettersLeaveEveryExistingByteUntouched()
+    public void EmptySettersClearTheirOwnFieldsWithoutChangingHeader()
     {
         var record = default(LegacyNativeClientItemPerfectionRecord);
         record.OwnerName = "owner";
@@ -128,7 +128,9 @@ public sealed class LegacyNativeClientItemPerfectionRecordTests
         var before = Bytes(ref record);
         record.OwnerName = "";
         record.SpecialText = "";
-        Assert.Equal(before, Bytes(ref record));
+        var after = Bytes(ref record);
+        Assert.Equal(before.AsSpan(0, 16).ToArray(), after.AsSpan(0, 16).ToArray());
+        Assert.All(after.AsSpan(16).ToArray(), value => Assert.Equal((byte)0, value));
     }
 
     [Fact]
@@ -137,7 +139,7 @@ public sealed class LegacyNativeClientItemPerfectionRecordTests
         var record = default(LegacyNativeClientItemPerfectionRecord);
         record.OwnerName = "owner";
         var before = Bytes(ref record);
-        Assert.Throws<NullReferenceException>(() => record.OwnerName = null!);
+        Assert.Throws<ArgumentNullException>(() => record.OwnerName = null!);
         Assert.Equal(before, Bytes(ref record));
     }
 
@@ -147,7 +149,7 @@ public sealed class LegacyNativeClientItemPerfectionRecordTests
         var record = default(LegacyNativeClientItemPerfectionRecord);
         record.SpecialText = "signature";
         var before = Bytes(ref record);
-        Assert.Throws<NullReferenceException>(() => record.SpecialText = null!);
+        Assert.Throws<ArgumentNullException>(() => record.SpecialText = null!);
         Assert.Equal(before, Bytes(ref record));
     }
 
@@ -169,7 +171,8 @@ public sealed class LegacyNativeClientItemPerfectionRecordTests
         var bytes = Bytes(ref record);
         Assert.Equal(Enumerable.Repeat((byte)65, 32), bytes.AsSpan(16, 32).ToArray());
         Assert.Equal(Enumerable.Repeat((byte)66, 32), bytes.AsSpan(48, 32).ToArray());
-        // Neither buffer is terminated: do NOT call either getter on this value.
+        Assert.Equal(new string('A', 32), record.OwnerName);
+        Assert.Equal(new string('B', 32), record.SpecialText); // Each getter is bounded to its own field.
     }
 
     [Fact]
@@ -206,8 +209,9 @@ public sealed class LegacyNativeClientItemPerfectionRecordTests
     [Fact]
     public void NativeFactoryNullItemIsNotSilentlyReplacedByAnEmptyRecord()
     {
-        Assert.Throws<NullReferenceException>(() =>
+        var error = Assert.Throws<ArgumentNullException>(() =>
             LegacyNativeClientItemPerfectionRecord.GetPerfectionInfo(null!));
+        Assert.Equal("dataItem", error.ParamName);
     }
 
     [Fact]
@@ -239,10 +243,11 @@ public sealed class LegacyNativeClientItemPerfectionRecordTests
     }
 
     [Fact]
-    public void PostludeApplyNullItemFaultsRatherThanSkippingItsFirstStore()
+    public void PostludeApplyNullItemRejectsExplicitlyBeforeItsFirstStore()
     {
         var record = default(LegacyNativeClientItemPerfectionRecord);
-        Assert.Throws<NullReferenceException>(() => record.ApplyTo(null!));
+        var error = Assert.Throws<ArgumentNullException>(() => record.ApplyTo(null!));
+        Assert.Equal("item", error.ParamName);
     }
 
     [Fact]

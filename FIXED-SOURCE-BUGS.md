@@ -397,9 +397,54 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   controls, retained proc-rate/wire/visible-peer goldens and the corrected old
   test that required a refinement prefix before a NullReferenceException.
   The selection also includes53 genuine owned-file UID registry controls.
+  FullWindows39958461749 on exact256d7a18 passed: core23176/0failed (165excluded),
+  updater301/301, launcher49/49; this is offline proof, not host activation.
 - Limits: no general CheckEffects activation, full HP/death/cast transaction,
   raw-writer isolation, live client or packet delivery atomicity. Other refinement
   procs and host recovery remain unfinished.
+
+### FSB-037: Prepare a complete native item image before atomic destination replacement
+
+- Owner: complete native SaveClientItems. Original FileMode.Create truncated
+  before row enumeration/conversion, ignored failed writes and could leak its
+  open handle after a later owner/row failure. Nested deposits were silently lost.
+- Capture the real current client/Player/UID/configured root and complete owned
+  containers/rows. Prepare checked184-byte item and80-byte perfection image first;
+  stage in the same directory, flush/close/verify, recheck the exact baseline and
+  owners under the genuine file coordinator, then Replace or no-overwrite Move.
+- Distinct duplicate UIDs and unrelated repeated physical owners reject. Only
+  the source-proven exact wardrobe/equipment indexes of one physical row emit
+  once. Reject unsupported nested deposits instead of discarding grandchildren.
+  Preserve native flat ordering, ownerless deposited-perfection predicate and
+  independent successful bytes. The obsolete unsafe SaveOpenedFile is retired.
+- Ordinary rejection requires unchanged destination proof; unknown replace
+  outcome fences that canonical path in this owner. The void entry cannot
+  silently acknowledge a failed save. Own validation InvalidDataException is
+  explicitly classified; it does not derive from IOException.
+- Verification: private/public Release **3116/3116** each,0failed/0skipped,
+  including51 new save/text controls, genuine Windows replace-sharing denial,
+  late shared-file-gate retirement, retained native ABI/reader/roundtrip goldens.
+  The initial local run exposed the validation-exception omission; fixed in
+  production without weakening rejection/no-prefix assertions.
+- Limits: one-file component, process-local fence only. Unknown post-replace
+  fault classification is source-reviewed, not a fabricated runtime proof.
+  Full loader/host/SQL/multi-file recovery, raw writers, hostile path ABA and
+  power-loss/directory durability remain open. No original save/client was used.
+
+### FSB-038: Bound native fixed32 text and reject null records explicitly
+
+- Owner: native item perfection record. Unterminated getters could read beyond
+  their buffers; oversized setters overran them and shorter text kept stale tails.
+- Getters stop within32 bytes. Setters reject null/oversize before any write,
+  accept full32, retain genuine low-eight-bit/Windows ANSI behavior and clear
+  unused field bytes. No UTF8 guess, truncation or struct-layout change.
+  Factory/ApplyTo reject null arguments explicitly before stores.
+- Verification: all34 perfection-record cases pass within both **3116/3116**
+  selections, including13 new boundary/field-isolation cases. Valid80-byte
+  layout/offset/raw/header/ANSI/factory assertions remain; unsafe tail/NRE
+  expectations and the dependent null-recipient assertion are corrected.
+- Limits: whole reader/postlude/load transaction remains separate audit work;
+  bounded accessors alone do not authorize an item or make partial loads safe.
 
 ## Active audit
 
@@ -439,19 +484,26 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-032 | Shield/Stigma flag precedes animation/caller preparation | Complete bounded frames and caller before typed acceptance | Scoped effects verified2392; full cast/HP/durability open |
 | FSB-033 | Final comparer can change earlier state or prepared native loan metadata | Pure complete state and exact live frame checks after last comparer | Scoped status/flag/potion paths verified2392; general packet/raw-writer audit open |
 | FSB-034 | Rune insertion/cache publication can split; Count wraps; public arrays corrupt ownership | Complete owned staged publication, exact count and explicit unavailable queries | Scoped storage verified2896; full equip/load/save/economy/host remains open |
-| FSB-035 | Refinement publishes before late status failure or spends chance/stamina before preparation | Complete real state/frames before scoped proc acceptance | Scoped procs verified3065 both trees; full CI pending; full cast/HP remains open |
+| FSB-035 | Refinement publishes before late status failure or spends chance/stamina before preparation | Complete real state/frames before scoped proc acceptance | Scoped procs verified3065 both trees and full Windows39958461749; full cast/HP remains open |
 | FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator component53/53 owned-file controls pass; host activation, trusted historical migration and all-producer adoption HOLD |
+| FSB-037 | Native save truncates before validation, persists prefixes or loses nested deposits | Complete owned image and truthful atomic file outcome before acknowledgement | Scoped native save verified3116 both trees; full CI/host/loader/SQL recovery pending |
+| FSB-038 | Fixed32 text reads/writes escape buffers or retain stale tails | Bounded field access, validate before write and explicit null admission | Scoped record verified34cases within3116 both trees; full load/postlude audit open |
 
 ## CodeFactor cleanup
 
-Latest verified behavioral checkpoint: public7879381d,
-[Windows39956832738](https://github.com/vgcman16/wolfconquer/actions/runs/39956832738)
-passed4m10s, completed2026-10-23T12:59:40Z. Core23007passed/0failed of23172
+Latest verified behavioral checkpoint: public256d7a18,
+[Windows39958461749](https://github.com/vgcman16/wolfconquer/actions/runs/39958461749)
+passed4m23s, completed2026-10-23T13:11:40Z. Core23176passed/0failed of23341
 (165externalfixturecasesexcluded), updater301/301, launcher49/49, all8stageexit0.
-Receipt20261023T125545947Z-27bda340 finished12:59:29.9904268Z;206build warnings
+Receipt20261023T130732453Z-ed1b2de7 finished13:11:31.2659709Z;206build warnings
 remain. This is offline automated proof, not deployment/live-client/full parity.
 
-CodeFactor on that exact commit reports2NEW complexity/21FIXED,total2275. All
+CodeFactor on that exact commit reports19NEW=10readability+9complexity,0FIXED,
+total2294. The10readability records are one6-file mechanical batch with the next
+native-save behavioral checkpoint; nine complex methods are deferred, not split
+merely for thresholds. No zero-issues or finished gameplay claim is made.
+
+Previous public7879381d reports2NEW complexity/21FIXED,total2275. All
 nineteen targeted precedence/readability records across10C#files are confirmed
 cleared, plus2older findings. The two new complex methods and older nine complex
 findings are deferred per the defect-first guardrail. No packet switch/control

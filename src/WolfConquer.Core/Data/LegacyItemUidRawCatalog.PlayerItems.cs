@@ -23,7 +23,7 @@ internal static partial class LegacyItemUidRawCatalog
         }
         var perfectionCount = ReadCount(bytes, ref offset);
         if (perfectionCount > ids.Count ||
-            (long)offset + (long)perfectionCount * PlayerItemSnapshotLoader.LegacyPerfectionSize != bytes.Length)
+            (long)offset + ((long)perfectionCount * PlayerItemSnapshotLoader.LegacyPerfectionSize) != bytes.Length)
             throw new FormatException("Invalid perfection table or trailing item bytes.");
         var perfectionIds = new HashSet<uint>();
         for (var index = 0; index < perfectionCount; index++)

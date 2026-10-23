@@ -1,63 +1,47 @@
-using WolfConquer.Core.Runtime;
+using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Native ServerDatabase.SaveClientItems1354..1410 over concrete native owners.
-// No host/autosave/snapshot caller is installed. This is NOT the managed WAL path:
-// native FileMode.Create and partial-write/fault semantics are intentionally kept.
-internal static class LegacyNativeClientItemSave
+// Complete one-file native item save. No host/autosave/SQL route is installed here.
+internal static partial class LegacyNativeClientItemSave
 {
+    internal enum Outcome { Committed, Rejected, RecoveryRequired }
+    internal readonly record struct Result(Outcome Status, string Reason);
+
+    // Existing callers cannot silently treat a failed or unproven write as success.
     internal static void SaveClientItems(LegacyNativeGameClientRuntime client)
     {
-        var file = new LegacyNativeItemRecordFile();
-        if (!file.Open(LegacyNativeServerConfig.DbLocation + "\\PlayersItems\\" +
-            client.Player.UID + ".bin", FileMode.Create))
-            return;
-        SaveOpenedFile(file, client);
+        var result = TrySaveClientItems(client);
+        if (result.Status != Outcome.Committed)
+            throw new IOException("Native item save did not commit: " + result.Reason);
     }
 
-    // The same opened file and reused DB record survive the entire native body.
-    // No finally: a native conversion/enumeration/write fault skips Close.
-    internal static void SaveOpenedFile(LegacyNativeItemRecordFile file, LegacyNativeGameClientRuntime client)
+    internal static Result TrySaveClientItems(LegacyNativeGameClientRuntime client)
     {
-        var depositedPerfection = new Dictionary<uint, LegacyNativeGameItemRuntime>();
-        var record = default(LegacyNativeClientItemRecord);
-        var items = client.AllMyItems().ToArray();
-        int count = items.Length;
-        _ = file.WriteCount(ref count);
-        foreach (var item in items)
+        ArgumentNullException.ThrowIfNull(client);
+        lock (client.SpellAdmissionSyncRoot)
         {
-            _ = record.GetDBItem(item);
-            if (!file.WriteRecord(ref record))
-                LegacyNativeConsole.WriteLine("Unable to save an item!", ConsoleColor.DarkRed);
-            if (item.Deposite.Count <= 0)
-                continue;
-            foreach (var child in item.Deposite.Values)
+            var player = client.Player;
+            if (player is null || !ReferenceEquals(player.Owner, client) || player.UID == 0)
+                return new(Outcome.Rejected, "invalidPlayer");
+            lock (player.SpellAdmissionSyncRoot)
             {
-                _ = record.GetDBItem(child);
-                _ = file.WriteRecord(ref record);
-                // Native deposit predicate deliberately has NO OwnerUID check.
-                if ((child.PerfectionLevel != 0 || child.PerfectionProgress != 0) && child.IsEquip &&
-                    !depositedPerfection.ContainsKey(child.Uid))
-                    depositedPerfection.Add(child.Uid, child);
+                try
+                {
+                    var location = SaveLocation.Capture(player.UID);
+                    return SnapshotFileLockCoordinator.ExecuteLocked(location.Path,
+                        () => SaveLocked(client, player, location));
+                }
+                catch (Exception exception) when (IsOrdinaryFailure(exception))
+                {
+                    // Actual write attempts classify uncertain destination state inside SaveLocked.
+                    return new(Outcome.Rejected, "preparation:" + exception.GetType().Name);
+                }
             }
         }
-
-        var perfectionItems = client.AllPerfectionItems().ToArray();
-        count = perfectionItems.Length + depositedPerfection.Count;
-        _ = file.WriteCount(ref count);
-        foreach (var item in perfectionItems)
-        {
-            var perfection = LegacyNativeClientItemPerfectionRecord.GetPerfectionInfo(item);
-            if (!file.WritePerfection(ref perfection))
-                LegacyNativeConsole.WriteLine("Unable to save an item!", ConsoleColor.DarkRed);
-        }
-        foreach (var item in depositedPerfection.Values)
-        {
-            var perfection = LegacyNativeClientItemPerfectionRecord.GetPerfectionInfo(item);
-            if (!file.WritePerfection(ref perfection))
-                LegacyNativeConsole.WriteLine("Unable to save an item!", ConsoleColor.DarkRed);
-        }
-        file.Close();
     }
+
+    private static bool IsOrdinaryFailure(Exception exception) => exception is IOException or InvalidDataException or
+        UnauthorizedAccessException or InvalidOperationException or ArgumentException or
+        OverflowException or NotSupportedException or System.Security.SecurityException;
 }

@@ -114,8 +114,8 @@ internal sealed partial class LegacyItemUidRegistry
         {
             if (++count > 3) return false;
             EnsureOrdinaryPath(entry);
-            if (Directory.Exists(entry) || !PathComparer.Equals(entry, paths.Lease) &&
-                !PathComparer.Equals(entry, paths.State) && !PathComparer.Equals(entry, paths.Pending)) return false;
+            if (Directory.Exists(entry) || (!PathComparer.Equals(entry, paths.Lease) &&
+                !PathComparer.Equals(entry, paths.State) && !PathComparer.Equals(entry, paths.Pending))) return false;
         }
         reason = string.Empty;
         return true;

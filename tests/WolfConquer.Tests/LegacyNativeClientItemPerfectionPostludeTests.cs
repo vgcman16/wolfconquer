@@ -254,7 +254,7 @@ public sealed class LegacyNativeClientItemPerfectionPostludeTests
     }
 
     [Fact]
-    public void WindowsNullDepositedValueFaultDoesNotFallThroughToEquipmentOrClose()
+    public void WindowsNullDepositedValueRejectsExplicitlyWithoutMutatingEquipment()
     {
         var client = Client();
         var equipped = Item(7);
@@ -264,9 +264,10 @@ public sealed class LegacyNativeClientItemPerfectionPostludeTests
         using var file = new OwnedFile(Image(1, Record(7), marker));
         var reader = file.Open();
         int count = 0;
-        Assert.Throws<NullReferenceException>(() =>
+        var error = Assert.Throws<ArgumentNullException>(() =>
             LegacyNativeClientItemPerfectionPostlude.ReadAndApply(
                 reader, client, new() { [7] = null! }, ref count));
+        Assert.Equal("item", error.ParamName);
         AssertUntouched(equipped);
         int next = 0;
         Assert.True(reader.ReadCount(ref next));

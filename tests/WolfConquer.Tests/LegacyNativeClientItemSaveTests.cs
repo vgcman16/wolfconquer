@@ -6,10 +6,10 @@ namespace WolfConquer.Tests;
 
 // Real native save composition on owned disposable files, not host/autosave wiring.
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LegacyNativeClientItemSaveTests
+public sealed partial class LegacyNativeClientItemSaveTests
 {
     [Fact]
-    public void SuccessfulSaveUsesConfiguredPlayerPathTruncatesOldContentsAndCloses()
+    public void SuccessfulSaveAtomicallyReplacesConfiguredPlayerPathAndCloses()
     {
         using var owned = new OwnedSave();
         owned.Seed(Enumerable.Repeat((byte)0xA5, 512).ToArray());
@@ -18,7 +18,7 @@ public sealed class LegacyNativeClientItemSaveTests
         LegacyNativeClientItemSave.SaveClientItems(client);
 
         Assert.Equal(Image(0, [], []), File.ReadAllBytes(owned.FilePath));
-        // A new exclusive writer can open only after the native successful Close.
+        // Real staging/verification handles are all closed after the atomic result.
         using var exclusive = new FileStream(owned.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         Assert.Equal(8, exclusive.Length);
         Assert.Equal(1293600u, client.Player.UID);
@@ -71,24 +71,22 @@ public sealed class LegacyNativeClientItemSaveTests
     }
 
     [Fact]
-    public void HeaderCountsOnlyRootsAndDepositWritesStopAfterOneLevel()
+    public void HeaderCountsOnlyRootsAndFlatDepositBytesKeepNativeOrder()
     {
         using var owned = new OwnedSave();
         var client = ClientWithNativeItemOwners();
         var parent = Item(21, 1001000);
         var child = Item(22, 410003, level: 7, owner: 0, name: "child", signature: "one-level");
-        var grandchild = Item(23, 410004, level: 9, owner: 55, name: "grandchild");
         parent.Deposite.TryAdd(child.Uid, child);
-        child.Deposite.TryAdd(grandchild.Uid, grandchild);
         client.Inventory!.AddDBItem(parent);
 
         LegacyNativeClientItemSave.SaveClientItems(client);
 
         Assert.Equal(Image(1,
-            [Db(21, 1001000, deposits: 1), Db(22, 410003, deposits: 1)],
+            [Db(21, 1001000, deposits: 1), Db(22, 410003)],
             [Perfection(22, 7, 0, 0, "child", "one-level")]), File.ReadAllBytes(owned.FilePath));
         Assert.Same(child, parent.Deposite[22]);
-        Assert.Same(grandchild, child.Deposite[23]);
+        Assert.Empty(child.Deposite);
     }
 
     [Fact]
@@ -127,35 +125,19 @@ public sealed class LegacyNativeClientItemSaveTests
     }
 
     [Fact]
-    public void MainDuplicatesStayAndDepositedUidDedupKeepsFirstReferenceAfterAllMainPerfections()
+    public void DistinctMainItemsSharingUidRejectBeforeReplacingExistingBytes()
     {
         using var owned = new OwnedSave();
+        byte[] sentinel = [1, 9, 3, 7]; owned.Seed(sentinel);
         var client = ClientWithNativeItemOwners();
-        var firstMain = Item(51, 410003, level: 5, owner: 1, name: "main-first");
-        var secondMain = Item(51, 410004, level: 6, owner: 2, name: "main-second");
-        var firstChild = Item(51, 410005, level: 7, owner: 0, name: "child-first");
-        var secondChild = Item(51, 410006, level: 8, owner: 0, name: "child-second");
-        firstMain.Deposite.TryAdd(51, firstChild);
-        secondMain.Deposite.TryAdd(51, secondChild);
-        client.Inventory!.AddDBItem(firstMain);
-        client.Equipment!.ClientItems.TryAdd(51, secondMain);
-
-        LegacyNativeClientItemSave.SaveClientItems(client);
-
-        Assert.Equal(Image(2,
-        [
-            Db(51, 410003, deposits: 1), Db(51, 410005),
-            Db(51, 410004, deposits: 1), Db(51, 410006)
-        ],
-        [
-            Perfection(51, 5, 0, 1, "main-first"),
-            Perfection(51, 6, 0, 2, "main-second"),
-            Perfection(51, 7, 0, 0, "child-first")
-        ]), File.ReadAllBytes(owned.FilePath));
-        Assert.Same(firstMain, client.Inventory.ClientItems[51]);
-        Assert.Same(secondMain, client.Equipment.ClientItems[51]);
-        Assert.Same(firstChild, firstMain.Deposite[51]);
-        Assert.Same(secondChild, secondMain.Deposite[51]);
+        var first = Item(51, 410003, level: 5, owner: 1, name: "first");
+        var second = Item(51, 410004, level: 6, owner: 2, name: "second");
+        client.Inventory!.AddDBItem(first); client.Equipment!.ClientItems.TryAdd(51, second);
+        var result = LegacyNativeClientItemSave.TrySaveClientItems(client);
+        Assert.Equal(LegacyNativeClientItemSave.Outcome.Rejected, result.Status);
+        Assert.Equal(sentinel, File.ReadAllBytes(owned.FilePath));
+        Assert.Same(first, client.Inventory.ClientItems[51]); Assert.Same(second, client.Equipment.ClientItems[51]);
+        using var exclusive = new FileStream(owned.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
     }
 
     [Fact]
@@ -221,7 +203,8 @@ public sealed class LegacyNativeClientItemSaveTests
         var client = new LegacyNativeGameClientRuntime();
         client.Player.UID = 1293600;
 
-        LegacyNativeClientItemSave.SaveClientItems(client);
+        var result = LegacyNativeClientItemSave.TrySaveClientItems(client);
+        Assert.Equal(LegacyNativeClientItemSave.Outcome.Rejected, result.Status);
 
         Assert.False(Directory.Exists(owned.PlayersItemsDirectory));
         Assert.False(File.Exists(owned.FilePath));
@@ -238,7 +221,8 @@ public sealed class LegacyNativeClientItemSaveTests
         client.Player.UID = 1293600;
         using (var locked = new FileStream(owned.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
         {
-            LegacyNativeClientItemSave.SaveClientItems(client);
+            var result = LegacyNativeClientItemSave.TrySaveClientItems(client);
+            Assert.Equal(LegacyNativeClientItemSave.Outcome.Rejected, result.Status);
             Assert.Equal(sentinel.Length, locked.Length);
             AssertNoItemOwners(client);
         }
@@ -246,50 +230,29 @@ public sealed class LegacyNativeClientItemSaveTests
     }
 
     [Fact]
-    public void InitialEnumerationFaultLeavesEmptyCreatedFileOpenInsteadOfInventingFinally()
+    public void MissingLaterOwnerRejectsWithoutTruncatingExistingDestinationOrLeakingAHandle()
     {
-        using var owned = new OwnedSave();
-        var client = new LegacyNativeGameClientRuntime();
-        client.Inventory = new LegacyNativeInventoryRuntime(client);
-        client.Inventory.AddDBItem(Item(71, 1001000));
-        var file = owned.Open(FileMode.Create);
-
-        Assert.Throws<NullReferenceException>(() => LegacyNativeClientItemSave.SaveOpenedFile(file, client));
-
-        Assert.Equal(Array.Empty<byte>(), ReadWhileWriterOpen(owned.FilePath));
-        Assert.True(file.Success);
-        int untouched = 99;
-        Assert.False(file.ReadCount(ref untouched)); // A real open kernel handle at EOF, not Success alone.
-        Assert.Equal(99, untouched);
-        Assert.Null(client.Equipment);
-        file.Close(); // Test cleanup, not an invented production finally.
-        Assert.Throws<ObjectDisposedException>(() => file.ReadCount(ref untouched));
+        using var owned = new OwnedSave(); byte[] sentinel = [7, 1, 7, 1]; owned.Seed(sentinel);
+        var client = new LegacyNativeGameClientRuntime(); client.Player.UID = 1293600;
+        client.Inventory = new LegacyNativeInventoryRuntime(client); client.Inventory.AddDBItem(Item(71, 1001000));
+        var result = LegacyNativeClientItemSave.TrySaveClientItems(client);
+        Assert.Equal(LegacyNativeClientItemSave.Outcome.Rejected, result.Status);
+        Assert.Equal(sentinel, File.ReadAllBytes(owned.FilePath)); Assert.Null(client.Equipment);
+        using var exclusive = new FileStream(owned.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
     }
 
     [Fact]
-    public void LaterConversionFaultKeepsCountAndEarlierRecordPrefixAndSkipsNativeClose()
+    public void MalformedLaterRowRejectsWithoutPersistingEarlierPreparedPrefix()
     {
-        using var owned = new OwnedSave();
-        var client = ClientWithNativeItemOwners();
-        var first = Item(81, 1001000);
-        var broken = Item(82, 410003);
-        broken.RelicAttributes = [];
-        client.Inventory!.AddDBItem(first);
-        client.Equipment!.ClientItems.TryAdd(82, broken);
-        var file = owned.Open(FileMode.Create);
-
-        Assert.Throws<IndexOutOfRangeException>(() => LegacyNativeClientItemSave.SaveOpenedFile(file, client));
-
-        Assert.Equal(Int32(2).Concat(Db(81, 1001000)).ToArray(), ReadWhileWriterOpen(owned.FilePath));
-        Assert.True(file.Success);
-        int untouched = 123;
-        Assert.False(file.ReadCount(ref untouched));
-        Assert.Equal(123, untouched);
-        Assert.Same(first, client.Inventory.ClientItems[81]);
-        Assert.Same(broken, client.Equipment.ClientItems[82]);
+        using var owned = new OwnedSave(); byte[] sentinel = [8, 1, 8, 2]; owned.Seed(sentinel);
+        var client = ClientWithNativeItemOwners(); var first = Item(81, 1001000); var broken = Item(82, 410003);
+        broken.RelicAttributes = []; client.Inventory!.AddDBItem(first); client.Equipment!.ClientItems.TryAdd(82, broken);
+        var result = LegacyNativeClientItemSave.TrySaveClientItems(client);
+        Assert.Equal(LegacyNativeClientItemSave.Outcome.Rejected, result.Status);
+        Assert.Equal(sentinel, File.ReadAllBytes(owned.FilePath));
+        Assert.Same(first, client.Inventory.ClientItems[81]); Assert.Same(broken, client.Equipment.ClientItems[82]);
         Assert.Empty(broken.RelicAttributes);
-        file.Close();
-        Assert.Throws<ObjectDisposedException>(() => file.ReadCount(ref untouched));
+        using var exclusive = new FileStream(owned.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
     }
 
     private static LegacyNativeGameClientRuntime ClientWithNativeItemOwners()
@@ -336,7 +299,7 @@ public sealed class LegacyNativeClientItemSaveTests
 
     private static byte[] Perfection(uint uid, uint level, uint progress, uint owner, string name, string signature = "")
     {
-        Assert.True(name.Length < 32 && signature.Length < 32);
+        Assert.True(name.Length <= 32 && signature.Length <= 32);
         var bytes = new byte[80];
         Put32(bytes, 0, uid);
         Put32(bytes, 4, level);
@@ -387,6 +350,8 @@ public sealed class LegacyNativeClientItemSaveTests
         private readonly string directory;
         private readonly string priorDbLocation;
         private readonly List<LegacyNativeItemRecordFile> files = [];
+        private readonly LegacyNativeSafeRandom priorRandom = LegacyNativePoolRandom.GetRandom;
+        private readonly DateTime priorReset = LegacyNativePoolRandom.ResetRandom;
         internal string PlayersItemsDirectory { get; }
         internal string FilePath { get; }
 
@@ -424,6 +389,8 @@ public sealed class LegacyNativeClientItemSaveTests
         public void Dispose()
         {
             LegacyNativeServerConfig.DbLocation = priorDbLocation;
+            LegacyNativePoolRandom.GetRandom = priorRandom;
+            LegacyNativePoolRandom.ResetRandom = priorReset;
             foreach (var file in files)
                 if (file.Success) file.Close();
             Guard();

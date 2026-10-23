@@ -1,8 +1,9 @@
+using System.Runtime.InteropServices;
+
 namespace WolfConquer.Core.World;
 
-// Native ClientItems.Perfection storage and literal string accessors.
-// No cap, terminator insertion, clearing, UTF8 replacement or null repair.
-// Malformed/overlong buffers retain the native unsafe boundary; not a DTO.
+// Native 80-byte ClientItems.Perfection layout. Bounded fixed32 low-byte fields;
+// no UTF8 substitution, overrun, unterminated scan or silent truncation.
 internal struct LegacyNativeClientItemPerfectionRecord
 {
     public uint ItemUID;
@@ -18,17 +19,19 @@ internal struct LegacyNativeClientItemPerfectionRecord
         {
             fixed (sbyte* ownerName = _OwnerName)
             {
-                return new string(ownerName);
+                int length = 0;
+                while (length < 32 && ownerName[length] != 0) length++;
+                return Marshal.PtrToStringAnsi((IntPtr)ownerName, length) ?? string.Empty;
             }
         }
         set
         {
+            ArgumentNullException.ThrowIfNull(value);
+            if (value.Length > 32) throw new ArgumentOutOfRangeException(nameof(value), "Fixed item text cannot exceed 32 characters.");
             fixed (sbyte* ownerName = _OwnerName)
             {
-                for (int i = 0; i < value.Length; i++)
-                {
-                    ownerName[i] = (sbyte)value[i];
-                }
+                for (int i = 0; i < 32; i++)
+                    ownerName[i] = i < value.Length ? unchecked((sbyte)value[i]) : (sbyte)0;
             }
         }
     }
@@ -39,17 +42,19 @@ internal struct LegacyNativeClientItemPerfectionRecord
         {
             fixed (sbyte* specialText = _SpecialText)
             {
-                return new string(specialText);
+                int length = 0;
+                while (length < 32 && specialText[length] != 0) length++;
+                return Marshal.PtrToStringAnsi((IntPtr)specialText, length) ?? string.Empty;
             }
         }
         set
         {
+            ArgumentNullException.ThrowIfNull(value);
+            if (value.Length > 32) throw new ArgumentOutOfRangeException(nameof(value), "Fixed item text cannot exceed 32 characters.");
             fixed (sbyte* specialText = _SpecialText)
             {
-                for (int i = 0; i < value.Length; i++)
-                {
-                    specialText[i] = (sbyte)value[i];
-                }
+                for (int i = 0; i < 32; i++)
+                    specialText[i] = i < value.Length ? unchecked((sbyte)value[i]) : (sbyte)0;
             }
         }
     }
@@ -57,6 +62,7 @@ internal struct LegacyNativeClientItemPerfectionRecord
     // Extracted DBItem.GetPerfectionInfo body; native receiver state is unused.
     internal static LegacyNativeClientItemPerfectionRecord GetPerfectionInfo(LegacyNativeGameItemRuntime dataItem)
     {
+        ArgumentNullException.ThrowIfNull(dataItem);
         return new LegacyNativeClientItemPerfectionRecord
         {
             ItemUID = dataItem.Uid,
@@ -72,6 +78,7 @@ internal struct LegacyNativeClientItemPerfectionRecord
     // Lookup priority/containers/ReadFile are absent, not simulated here.
     internal void ApplyTo(LegacyNativeGameItemRuntime item)
     {
+        ArgumentNullException.ThrowIfNull(item);
         item.PerfectionLevel = Level;
         item.OwnerUID = OwnerUID;
         item.OwnerName = OwnerName;

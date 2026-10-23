@@ -72,8 +72,8 @@ internal sealed partial class LegacyItemUidRegistry
         if (!hasState && !hasPending) return false;
         var current = hasState ? ReadState(paths.State) : null;
         var pending = hasPending ? ReadState(paths.Pending) : null;
-        if (current is not null && !MatchesConfiguration(current, paths, options) ||
-            pending is not null && !MatchesConfiguration(pending, paths, options))
+        if ((current is not null && !MatchesConfiguration(current, paths, options)) ||
+            (pending is not null && !MatchesConfiguration(pending, paths, options)))
         { reason = RecoveryRequired + ":configurationChanged"; return false; }
         if (pending is not null)
         {

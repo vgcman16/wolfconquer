@@ -1,5 +1,26 @@
 # Publication validation
 
+## Current atomic native save and fixed-text checkpoint
+
+Private/public Release **3116/3116** each,0failed/0skipped, including51new controls.
+Complete genuine native item/perfection bytes are prepared before same-directory
+staging, real Flush(true), close/verification and atomic Replace/no-overwrite Move.
+Rejected malformed/foreign/duplicate/nested-deposit inputs cannot truncate the
+destination or persist prefixes. Real Windows sharing denial and shared-file-gate
+identity retirement are checked. Valid flat bytes/ABI/reader/roundtrip goldens
+remain; the source-backed wardrobe/equipment alias serializes once (FSB037).
+
+Fixed32 getters/setters are bounded, null/oversize reject before stores, shorter
+text clears only its own tail and native low-byte/ANSI encoding stays unchanged
+(FSB038). The first local run caught missing validation-exception classification;
+production was corrected without weakening tests. Ten CodeFactor precedence
+records are one6-file parentheses batch retaining formulas/short-circuit order.
+
+Full committed-tree CI and fresh analysis are pending. This is an offline one-file
+component, not native loader/host/SQL activation, cross-account UID closure or
+multi-file/crash recovery. The path fence is process-local; unknown post-replace
+fault classification has no invented runtime proof. No original/client was used.
+
 ## Current prepared refinement and durable UID component checkpoint
 
 Private/public Release **3065/3065** each,0failed/0skipped. Complete scoped
@@ -15,8 +36,17 @@ controls: exclusive lease, flushed forward-only reservation/restart recovery,
 bounded complete184/80/740/322-byte store scanning and exact escrow aliases.
 It is NOT enabled in any host or creator. Trusted historical migration,
 before-actors quiescence, all-producer adoption/fencing, drained shutdown and
-real whole reward transactions remain HOLD (FSB036). Full committed-tree CI and
-fresh remote analysis are pending. No live client, original save or SQL changed.
+real whole reward transactions remain HOLD (FSB036).
+
+[Windows39958461749](https://github.com/vgcman16/wolfconquer/actions/runs/39958461749)
+passed4m23s on exact256d7a1899230a38cd8bf185dbc751cb972c0676, completed
+2026-10-23T13:11:40Z. Core23176passed/0failed of23341 (165externalfixturecases
+excluded), updater301/301, launcher49/49; all8stageexit0. Receipt
+20261023T130732453Z-ed1b2de7 finished13:11:31.2659709Z;206build warnings remain.
+CodeFactor19NEW=10readability+9complexity,0FIXED,total2294. The10readability
+findings are one6-file mechanical successor batch; complex methods are deferred.
+No live client, original save or SQL changed. This is not host activation or
+global duplicate-prevention proof.
 
 ## Current rune-storage and batched-readability checkpoint
 
