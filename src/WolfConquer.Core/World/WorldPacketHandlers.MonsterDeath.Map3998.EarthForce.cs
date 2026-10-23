@@ -23,8 +23,6 @@ public static partial class WorldPacketHandlers
         const uint earthForceItemId = 3_008_745;
         const ushort requiredFragments = 5;
         const string autoRouteKey = "map3998-earth-force-autopatcher";
-        const string autoRouteMessage =
-            "You received the Earth Force! Hurry and transform it into Metal Force through the Wheel of Nature!";
         const string sourceBranch =
             "MonsterRole.cs killer.Player.Map == 3998 && Family.ID == 40906 quest 3646 Earth Force";
         if (!session.Character.PlayerQuests.TryGetQuest(questId, out var quest) ||
@@ -36,14 +34,14 @@ public static partial class WorldPacketHandlers
         if (!HasLegacyInventorySpace(session.PlayerItems, 1))
         {
             await context.Connection.SendAsync(
-                    LegacyNpcReplyPacket.ForMessageBox(autoRouteMessage).ToFrameBytes(),
+                    LegacyNpcReplyPacket.ForMessageBox("Please make 1 more space in your inventory.").ToFrameBytes(),
                     cancellationToken)
                 .ConfigureAwait(false);
             await context.Log.WriteLineAsync(
                     "WorldServer skipped legacy map 3998 Earth Force reward " +
                     $"{FormatSession(context)} monsterUid={monster.Uid} familyId={monsterFamily.Id} " +
                     $"questId={questId} fragmentItemId={fragmentItemId} earthForceItemId={earthForceItemId} " +
-                    $"reason=inventory-full sourceDialog=\"{autoRouteMessage}\" branch=\"{sourceBranch}\".")
+                    $"reason=inventory-full; no Earth Force was granted branch=\"{sourceBranch}\".")
                 .ConfigureAwait(false);
             return session;
         }

@@ -756,6 +756,50 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   atomicity, durable outbox/reconciliation, raw writers and global UID activation
   remain open. No live client, original saves or SQL were used.
 
+### FSB-049: Prepare Plume collection progress and its item together
+
+- Owner: map1002/family2 quest1007 Turtledove Plume. The real mission requires
+  collecting item711236, not independent kill credit. Old code published/saved
+  objective progress before validating or preparing the item; missing metadata
+  advanced2 to3 without granting a plume.
+- Prepare checked private quest/item snapshots and complete objective/item frames
+  first, then publish one combined in-memory candidate through the actual current
+  session CAS. Missing definitions, invalid durability, objective/frame overflow
+  and item creation overflow refuse before either half is published.
+- Valid one-item reward and objective-before-item wire order remain. The existing
+  quest save runs after CAS. Its ordinary I/O failure remains a committed coherent
+  memory reward with an explicit persistence gap, not rollback or file atomicity.
+- Tests-only baseline13:7passed/6failed. One unsafe old expectation corrected;
+  three old valid/no-op controls retained, nine new controls added. Private Release
+  complete boss/reward class now439/439, zero failed/skipped, including all13.
+  Clean public full CI is pending for this checkpoint.
+- Limits: existing local max+1 UID API, postcommit observer/cancellation/delivery
+  failures, raw writers, cross-file recovery and whole-combat atomicity remain
+  open. The isolated canonical UID equivalent separately passed17/17 within
+  791/791 focused integration checks; that family is not activated in main.
+
+### FSB-050: Stop false monster reward receipts and undefined luck charges
+
+- Owners: Earth Force3646 full-bag response, Cloud Riding Scroll1337 reward and
+  Deityland WarDevil reward notice. The recovered WarDevil branch never grants
+  its announced treasure; it now refuses itemRewardDefinitionUnavailable before
+  luck debit, reward RNG, treasure broadcast or effect. No payout was invented.
+- Earth full inventory reports the existing capacity wording in the same
+  MessageBox layout. Valid fragments/conversion stay unchanged. Cloud prepares
+  the genuine grant and both complete frames before exact-current CAS, then
+  retains MessageBox-before-item order and rechecks the committed owner before
+  each send. No-owned-scroll remains a no-add branch without a false receipt.
+- Corrected tests-only baseline25:4passed/21failed. Four unsafe old facts corrected,
+  21 new cases added; complete private boss/reward class439/439, zero failed/skipped.
+  Existing generic kill-CP no-award controls isolate the new scenes; assertions
+  were not weakened. The unregistered connection stops at the real earlier
+  ArrowBlades session refresh: its control requires no frames/no reward branch,
+  not a fabricated later diagnostic. Clean public full CI is pending.
+- Limits: WarDevil grant enablement still needs an authoritative definition and
+  real entitlement transaction. Current item creation, durable rewards/outbox,
+  whole-kill atomicity, unrelated later writers and check/send races remain open.
+  Observer retirement after Cloud CAS suppresses stale output, not claimed rollback.
+
 ## Active audit
 
 Current work does not close whole managed reward transactions. SuperGuildWar's

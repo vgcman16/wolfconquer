@@ -310,86 +310,15 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
-        const string sourceBranch = "MonsterRole.cs killer.Player.Map == 10250 && Name.Contains(\"WarDevil\")";
-        var updatedSession = session;
-        uint itemId;
-        string rollBranch;
-        byte? sourceCount = null;
-        var luckyPoints = ReadAttributeUInt64(session.Character.Attributes, RuntimeLegacyDeityLandLuckyPointsAttribute);
-        if (luckyPoints >= 10)
-        {
-            var remainingLuckyPoints = checked(luckyPoints - 10);
-            var attributes = new Dictionary<string, string>(
-                session.Character.Attributes,
-                StringComparer.OrdinalIgnoreCase)
-            {
-                [RuntimeLegacyDeityLandLuckyPointsAttribute] =
-                    remainingLuckyPoints.ToString(CultureInfo.InvariantCulture),
-            };
-            updatedSession = session with
-            {
-                Character = session.Character with { Attributes = attributes },
-            };
-            context.Sessions?.Set(context.Connection, updatedSession);
-            await context.Connection.SendAsync(
-                    LegacyMsgMessagePacket
-                        .SystemTalk(
-                            "You've consumed 10 Luck Points, and still have " +
-                            $"{remainingLuckyPoints.ToString(CultureInfo.InvariantCulture)} Luck Points.")
-                        .ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            var luckyRoll = SelectLegacyDeityLandWarDevilLuckyRewardRoll(session.Character);
-            itemId = LegacyDeityLandWarDevilLuckyRewardItems[luckyRoll - 1];
-            rollBranch =
-                FormattableString.Invariant(
-                    $"DeityLandLuckyPoints >= 10 Pool.GetRandom.Next(1, 24) roll={luckyRoll}");
-        }
-        else
-        {
-            var baseRoll = SelectLegacyDeityLandWarDevilBaseRewardRoll(session.Character);
-            var selected = LegacyDeityLandWarDevilBaseRewardItems[baseRoll - 1];
-            itemId = selected.ItemId;
-            sourceCount = selected.SourceCount;
-            rollBranch =
-                FormattableString.Invariant(
-                    $"DeityLandLuckyPoints < 10 Pool.GetRandom.Next(1, 6) roll={baseRoll} sourceCount={selected.SourceCount}");
-        }
-
-        var itemName = ResolveLegacyItemName(context.WorldData, itemId);
-        var message =
-            $"{session.Character.Name} defeated a devil in the Deityland and received a rare treasure {itemName}!";
-        var messageFrame = LegacyMsgMessagePacket.SystemTalk(message).ToFrameBytes();
-        var activeSessions = context.Sessions?.Snapshot();
-        var sent = 0;
-        if (activeSessions is { Count: > 0 })
-        {
-            foreach (var active in activeSessions)
-            {
-                await active.Connection.SendAsync(messageFrame, cancellationToken).ConfigureAwait(false);
-                sent++;
-            }
-        }
-        else
-        {
-            await context.Connection.SendAsync(messageFrame, cancellationToken).ConfigureAwait(false);
-            sent = 1;
-        }
-
-        await context.Connection.SendAsync(
-                LegacyStringPacket
-                    .PlayerEffect(CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)), "angelwing")
-                    .ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
+        // The recovered branch chooses names/counts but never performs a grant.
+        // A treasure definition and atomic entitlement/grant owner are required
+        // before either luck points, reward RNG, a receipt or an effect is spent.
         await context.Log.WriteLineAsync(
-                "WorldServer applied legacy DeityLand WarDevil reward notice " +
-                $"{FormatSession(context with { Session = updatedSession })} monsterUid={monster.Uid} " +
-                $"itemId={itemId} sourceCount={(sourceCount is { } count ? count.ToString(CultureInfo.InvariantCulture) : "n/a")} " +
-                $"broadcastCount={sent} branch=\"{sourceBranch}; {rollBranch}\".")
+                "WorldServer refused legacy DeityLand WarDevil reward " +
+                $"{FormatSession(context)} monsterUid={monster.Uid} " +
+                "reason=itemRewardDefinitionUnavailable; no luck points, reward roll, receipt or effect was committed.")
             .ConfigureAwait(false);
-        return updatedSession;
+        return session;
     }
 
     private static async ValueTask TryApplyLegacyDeityLandSpriteRewardAsync(

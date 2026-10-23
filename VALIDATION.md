@@ -1,5 +1,24 @@
 # Publication validation
 
+## Monster reward safety checkpoint
+
+Private Release complete boss/reward class439/439, zero failed/skipped. Separate
+tests-only baselines reproduce Plume progress without its item (7pass/6fail of13)
+and false reward messages/undefined luck debit (4pass/21fail of25). Five old unsafe
+expectations are corrected;30 new controls supplement retained valid paths.
+One initial scene exposed unrelated generic kill-CP RNG; existing real no-award
+controls isolate that branch. An unregistered-player diagnostic expectation was
+corrected to the actual earlier session refresh, strengthening no-frame assertions.
+No production behavior or assertion was weakened for either fixture repair.
+
+Plume prepares quest/item/frame data before one current-session CAS. Earth full
+bag reports capacity; Cloud receipt follows a prepared committed grant with the
+same receipt-before-item bytes/order; undefined WarDevil payout refuses before
+luck/RNG/treasure output. Actual owned quest-file persistence and its truthful
+postcommit failure diagnostic are covered. Full public Windows CI is pending.
+This is not cross-file/durable reward recovery, global UID activation, a live
+client test, deployment or complete gameplay parity.
+
 ## Adjacent pack cost checkpoint
 
 Private and independent public Release each374/374,0failed/0skipped across all

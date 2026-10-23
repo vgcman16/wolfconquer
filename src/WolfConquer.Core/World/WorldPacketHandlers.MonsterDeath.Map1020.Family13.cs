@@ -301,11 +301,6 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
-        await context.Connection.SendAsync(
-                LegacyNpcReplyPacket.ForMessageBox("You~received~the~Cloud~Riding~Scroll!").ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-
         if (CountLegacyInventoryItem(session.PlayerItems, itemId) == 0)
         {
             await context.Log.WriteLineAsync(
@@ -342,20 +337,60 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
-        var itemCountBefore = CountLegacyInventoryItem(session.PlayerItems, itemId);
-        var updatedItems = AddLegacyInventoryItem(
-            session.PlayerItems,
-            itemType,
-            stackCount: 1,
-            out var rewardItem,
-            out var itemMode);
-        var updatedSession = session with { PlayerItems = updatedItems };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        if (context.Sessions is not { } sessions ||
+            !sessions.TryGet(context.Connection, out var currentSession) ||
+            !ReferenceEquals(currentSession, session))
+        {
+            await context.Log.WriteLineAsync(
+                    "WorldServer skipped legacy map 1020 family 13 Cloud Riding Scroll reward " +
+                    $"{FormatSession(context)} reason=session-registration-missing-or-stale; no grant or receipt was committed.")
+                .ConfigureAwait(false);
+            return session;
+        }
 
-        await context.Connection.SendAsync(
-                LegacyGameItemPacket.FromSnapshotItem(rewardItem, mode: itemMode).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
+        var itemCountBefore = CountLegacyInventoryItem(session.PlayerItems, itemId);
+        WorldSession updatedSession;
+        byte[] receiptFrame;
+        byte[] itemFrame;
+        ushort itemMode;
+        try
+        {
+            var updatedItems = AddLegacyInventoryItem(
+                session.PlayerItems, itemType, stackCount: 1,
+                out var rewardItem, out itemMode);
+            updatedSession = session with { PlayerItems = updatedItems };
+            receiptFrame = LegacyNpcReplyPacket
+                .ForMessageBox("You~received~the~Cloud~Riding~Scroll!").ToFrameBytes();
+            itemFrame = LegacyGameItemPacket.FromSnapshotItem(rewardItem, mode: itemMode).ToFrameBytes();
+        }
+        catch (OverflowException)
+        {
+            await context.Log.WriteLineAsync(
+                    "WorldServer skipped legacy map 1020 family 13 Cloud Riding Scroll reward " +
+                    $"{FormatSession(context)} reason=reward-preparation-overflow; no grant or receipt was committed.")
+                .ConfigureAwait(false);
+            return session;
+        }
+
+        if (!sessions.TryCompareAndSet(context.Connection, session, updatedSession))
+        {
+            await context.Log.WriteLineAsync(
+                    "WorldServer skipped legacy map 1020 family 13 Cloud Riding Scroll reward " +
+                    $"{FormatSession(context)} reason=session-changed-before-commit; no grant or receipt was committed.")
+                .ConfigureAwait(false);
+            return session;
+        }
+
+        // A synchronous real session observer may retire the committed owner.
+        // This is a committed grant with suppressed publication, never rollback.
+        if (!sessions.TryGet(context.Connection, out currentSession) ||
+            !ReferenceEquals(currentSession, updatedSession))
+            return updatedSession;
+        await context.Connection.SendAsync(receiptFrame, cancellationToken).ConfigureAwait(false);
+        if (!sessions.TryGet(context.Connection, out currentSession) ||
+            !ReferenceEquals(currentSession, updatedSession))
+            return updatedSession;
+        await context.Connection.SendAsync(itemFrame, cancellationToken).ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer applied legacy map 1020 family 13 Cloud Riding Scroll reward " +
                 $"{FormatSession(context with { Session = updatedSession })} monsterUid={monster.Uid} familyId={monsterFamily.Id} " +
