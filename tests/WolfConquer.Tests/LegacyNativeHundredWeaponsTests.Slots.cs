@@ -6,15 +6,15 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeHundredWeaponsTests
 {
     [Fact]
-    public Task SlotQueriesAndAppearanceUsePhysicalValuesWhileEquipUsesDictionaryKeys() => NativePacketTestThread.Run(() =>
+    public Task ValidSlotQueriesAndAppearanceRetainPhysicalItemsAndLevelAdmission() => NativePacketTestThread.Run(() =>
     {
-        using var scope = new Scope(); var row = scope.Item(Weapon.Blade, 2, Weapon.Sword); row.BitVector.Add(3);
-        Assert.True(scope.Owner.ContainsWeapon(Weapon.Blade)); Assert.False(scope.Owner.ContainsWeapon(Weapon.Sword));
+        using var scope = new Scope(); var row = scope.Item(Weapon.Sword, 2); row.BitVector.Add(3);
+        Assert.True(scope.Owner.ContainsWeapon(Weapon.Sword)); Assert.False(scope.Owner.ContainsWeapon(Weapon.Blade));
         Assert.Same(row, scope.Owner.TryGetItem(3)); Assert.Null(scope.Owner.TryGetItem(4));
         Assert.False(scope.Owner.Free(3)); Assert.True(scope.Owner.Free(4)); Assert.False(scope.Owner.FreeAppearance(0));
-        Assert.True(scope.Owner.Show(Weapon.Blade, 7)); Assert.Equal((byte)0, row.AppearancePosition);
-        row.Level = 3; Assert.True(scope.Owner.Show(Weapon.Blade, 7)); Assert.Equal((byte)7, row.AppearancePosition);
-        Assert.False(scope.Owner.Show(Weapon.Sword, 9)); Assert.False(scope.Owner.FreeAppearance(7));
+        Assert.False(scope.Owner.Show(Weapon.Sword, 7)); Assert.Equal((byte)0, row.AppearancePosition);
+        row.Level = 3; Assert.True(scope.Owner.Show(Weapon.Sword, 7)); Assert.Equal((byte)7, row.AppearancePosition);
+        Assert.False(scope.Owner.Show(Weapon.Blade, 9)); Assert.False(scope.Owner.FreeAppearance(7));
         Assert.True(scope.Owner.checkDuplicatedAppearance(Weapon.Sword, 99, out var duplicate)); Assert.Equal((byte)7, duplicate);
         Assert.True(scope.Owner.Hide(Weapon.Sword)); Assert.Equal((byte)0, row.AppearancePosition);
         Assert.True(scope.Owner.Hide((byte)0)); Assert.False(scope.Owner.Hide((byte)7));
@@ -29,7 +29,7 @@ public sealed partial class LegacyNativeHundredWeaponsTests
     [InlineData(17, 25)]
     public Task DuplicationChecksEntireNativeBandAndReturnsFirstPhysicalMatch(int first, int requested) => NativePacketTestThread.Run(() =>
     {
-        using var scope = new Scope(); var row = scope.Item(Weapon.Blade, 1, Weapon.Sword);
+        using var scope = new Scope(); var row = scope.Item(Weapon.Sword);
         row.BitVector.Add(first); row.BitVector.Add(requested);
         Assert.True(scope.Owner.checkDuplication(Weapon.Sword, requested, out var found)); Assert.Equal(first, found);
         Assert.False(scope.Owner.checkDuplication(Weapon.Blade, requested, out found)); Assert.Equal(0, found);
@@ -69,32 +69,41 @@ public sealed partial class LegacyNativeHundredWeaponsTests
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
-    public Task RecycleFaultOccursAfterEquipUnequipOrSwapBitMutation(int operation) => NativePacketTestThread.Run(() =>
+    public Task RecycleFaultRejectsEquipUnequipOrSwapBeforeAnyBitMutation(int operation) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var left = scope.Item(Weapon.Blade); var right = scope.Item(Weapon.Sword);
         if (operation != 0) left.BitVector.Add(2);
-        right.BitVector.Add(3); scope.NullBin();
-        if (operation == 0) Assert.Throws<NullReferenceException>(() => scope.Owner.Equip(Weapon.Blade, 2));
-        else if (operation == 1) Assert.Throws<NullReferenceException>(() => scope.Owner.Unequip(2));
-        else Assert.Throws<NullReferenceException>(() => scope.Owner.Swap(2, 3));
-        scope.RestoreBin();
-        Assert.Equal(operation == 0, left.BitVector.Contain(2));
-        Assert.Equal(operation == 2, left.BitVector.Contain(3));
-        Assert.Equal(operation == 2, right.BitVector.Contain(2));
-        Assert.Equal(operation != 2, right.BitVector.Contain(3));
+        right.BitVector.Add(3); uint beforeLeft = left.BitVector.bits[0], beforeRight = right.BitVector.bits[0];
+        scope.NullBin();
+        try
+        {
+            Assert.False(operation switch
+            {
+                0 => scope.Owner.Equip(Weapon.Blade, 2),
+                1 => scope.Owner.Unequip(2),
+                _ => scope.Owner.Swap(2, 3),
+            });
+        }
+        finally { scope.RestoreBin(); }
+        Assert.Equal(beforeLeft, left.BitVector.bits[0]); Assert.Equal(beforeRight, right.BitVector.bits[0]);
         Assert.Empty(scope.Queue); Assert.Equal(16, scope.Available);
     });
 
     [Fact]
-    public Task InvalidBitmapIndexFaultsRatherThanRepairingStorage() => NativePacketTestThread.Run(() =>
+    public Task InvalidBitmapIndexesAndUnknownRowsRejectAllDirectSlotConsumers() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var row = scope.Item(Weapon.Blade);
-        Assert.Throws<IndexOutOfRangeException>(() => scope.Owner.Equip(Weapon.Blade, 32, false));
-        Assert.Throws<IndexOutOfRangeException>(() => scope.Owner.Free(-32));
+        Assert.False(scope.Owner.Equip(Weapon.Blade, 32, false));
+        Assert.False(scope.Owner.Free(-32));
+        Assert.False(scope.Owner.Free(32));
+        var bitmap = row.BitVector;
         row.BitVector = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Owner.Free(1));
-        Assert.Throws<NullReferenceException>(() => scope.Owner.TryGetItem(1));
-        Assert.False(scope.Owner.checkDuplication(Weapon.Blade, 1, out var ignored)); Assert.Equal(0, ignored);
+        Assert.False(scope.Owner.Free(1));
+        Assert.Null(scope.Owner.TryGetItem(1));
+        Assert.False(scope.Owner.Equip(Weapon.Blade, 1, false));
+        Assert.False(scope.Owner.Unequip(1, false)); Assert.False(scope.Owner.Swap(1, 2, false));
+        Assert.Null(row.BitVector);
+        Assert.NotNull(bitmap);
         Assert.Empty(scope.Queue);
     });
 }

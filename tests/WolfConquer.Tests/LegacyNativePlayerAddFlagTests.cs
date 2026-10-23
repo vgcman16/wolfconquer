@@ -75,8 +75,8 @@ public sealed partial class LegacyNativePlayerAddFlagTests
     [InlineData((byte)0, (ushort)140, (byte)0)]
     [InlineData((byte)1, (ushort)140, (byte)0)]
     [InlineData((byte)2, (ushort)14, (byte)0)]
-    [InlineData((byte)2, (ushort)15, (byte)7)]
-    public Task XpLookupReadsCurrentForeignRuneOwnerGatesRatherThanReceivingPlayer(
+    [InlineData((byte)2, (ushort)15, (byte)0)]
+    public Task XpLookupRejectsForeignRuneOwnersRegardlessOfTheirEligibility(
         byte reborn, ushort level, byte expected) => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeAddFlagTestFixture();
@@ -105,25 +105,22 @@ public sealed partial class LegacyNativePlayerAddFlagTests
     });
 
     [Fact]
-    public Task DuplicateXpQueryUsesMutatedItemAndCurrentRuneOwnerPlayerOnEveryCall() => NativePacketTestThread.Run(() =>
+    public Task DuplicateXpQueryUsesCurrentBoundPlayerAndMutableItemWithoutRenewingRegistration() => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeAddFlagTestFixture();
         var item = f.Rune();
-        var foreign = new LegacyNativeGameClientRuntime();
-        foreign.Equipment = new(foreign);
-        NativeAddFlagTestFixture.Ready(foreign);
-        f.Runes.Owner = foreign;
+        NativeAddFlagTestFixture.Ready(f.Owner);
         Assert.True(f.Player.AddFlag(Flag.Superman, 20, false));
         var row = f.Row(Flag.Superman);
         var timer = row.Timer;
         Assert.Equal((byte)7, f.Player.XPBooster);
-        LegacyNativePoolItems.ItemsBase![4_031_109] = new() { Name = "XPBooster" };
+        LegacyNativePoolItems.ItemsBase![4_031_109] = new() { ID = 4_031_109, Name = "XPBooster" };
         item.ITEM_ID = 4_031_109; // Actual setter requires the new metadata row to exist first.
         f.Player.XPKiller = 33;
         Assert.False(f.Player.AddFlag(Flag.Superman, 999, true));
         Assert.Equal((byte)9, f.Player.XPBooster);
         Assert.Equal((byte)0, f.Player.XPKiller);
-        foreign.Player = new LegacyNativePlayerRuntime(foreign); // Gate now fails on the CURRENT foreign Player.
+        f.Player.Reborn = 0; // The same bound player's current gate is read on every query.
         f.Player.XPKiller = 44;
         Assert.False(f.Player.AddFlag(Flag.Superman, 999, true));
         Assert.Equal((byte)0, f.Player.XPBooster);

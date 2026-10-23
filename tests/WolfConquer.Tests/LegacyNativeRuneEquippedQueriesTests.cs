@@ -5,7 +5,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LegacyNativeRuneEquippedQueriesTests
+public sealed partial class LegacyNativeRuneEquippedQueriesTests
 {
     [Fact]
     public void WornObjectsReturnsFreshArraysOfTheSameItemsAndKeepsTheNativeAlternateShadowRules()
@@ -26,7 +26,7 @@ public sealed class LegacyNativeRuneEquippedQueriesTests
     }
 
     [Fact]
-    public void ExcludedPositionsSkipNullEquipmentButEligibleItemsAndNullRowsFaultWithoutFiltering()
+    public void MissingEquipmentOrNullRowsRefuseWornQueriesWithoutRepairingStorage()
     {
         using var f = new Fixture();
         f.Client.Equipment = null;
@@ -34,9 +34,13 @@ public sealed class LegacyNativeRuneEquippedQueriesTests
             f.Storage.Add(new() { Uid = (uint)position + 1, Position = position });
         Assert.Empty(f.Storage.WornObjects);
         f.Storage.Add(new() { Uid = 999, Position = 101 });
-        Assert.Throws<NullReferenceException>(() => f.Storage.WornObjects);
-        f.Storage.Objects[0] = null!;
-        Assert.Throws<NullReferenceException>(() => f.Storage.WornObjects);
+        Assert.Empty(f.Storage.WornObjects);
+        f.Client.Equipment = new(f.Client);
+        var cache = f.Storage.Objects;
+        cache[0] = null!;
+        Assert.Empty(f.Storage.WornObjects);
+        Assert.Same(cache, f.Storage.Objects);
+        Assert.Null(cache[0]);
     }
 
     [Theory]
@@ -79,7 +83,7 @@ public sealed class LegacyNativeRuneEquippedQueriesTests
     }
 
     [Fact]
-    public void LookupUsesCurrentRuneOwnerEquipmentPlayerAndPoolReferencesNotTheHoldingClient()
+    public void ForeignRuneOwnerCannotTransferEffectsAndRestoredOwnerUsesCurrentEquipmentAndMetadata()
     {
         using var f = new Fixture();
         f.Ready();
@@ -91,53 +95,68 @@ public sealed class LegacyNativeRuneEquippedQueriesTests
         foreign.Player.Reborn = 2;
         SetLevel(foreign.Player, 15);
         f.Storage.Owner = foreign;
-        Assert.True(f.Storage.IsEquipped("alternate", out LegacyNativeGameItemRuntime? item));
-        Assert.Same(alternate, item);
+        Assert.False(f.Storage.IsEquipped("alternate", out LegacyNativeGameItemRuntime? item));
+        Assert.Null(item);
         Assert.False(f.Storage.IsEquipped("base"));
         Assert.Same(baseRune, f.Storage.Objects[0]);
-        LegacyNativePoolItems.ItemsBase = new() { [alternate.ITEM_ID] = new() { Name = "Replacement" } };
+        Assert.Same(foreign, f.Storage.Owner);
+        f.Storage.Owner = f.Client;
+        f.Client.Equipment!.Alternante = true;
+        Assert.True(f.Storage.IsEquipped("alternate", out item));
+        Assert.Same(alternate, item);
+        LegacyNativePoolItems.ItemsBase = new() { [alternate.ITEM_ID] = new() { ID = alternate.ITEM_ID, Name = "Replacement" } };
         Assert.True(f.Storage.IsEquipped("replacement"));
         Assert.False(f.Storage.IsEquipped("alternate"));
-        foreign.Player.Reborn = 0;
+        f.Client.Player.Reborn = 0;
         Assert.False(f.Storage.IsEquipped("replacement"));
     }
 
     [Fact]
-    public void MetadataAndJobRequirementPrecedeRuneClassificationAndNameEvaluation()
+    public void OrdinaryItemsNeverRequireRuneMetadataAndValidRunesKeepRealJobRequirements()
     {
         using var f = new Fixture();
         f.Ready();
         var ordinary = new LegacyNativeGameItemRuntime { Uid = 1, ITEM_ID = 100000, Position = 101 };
         f.Storage.Add(ordinary);
-        Assert.Throws<KeyNotFoundException>(() => f.Storage.IsEquipped("x"));
+        Assert.False(f.Storage.IsEquipped("x"));
         LegacyNativePoolItems.ItemsBase![100000] = new() { Name = null, Class = 0 };
         Assert.False(f.Storage.IsEquipped(null!)); // Non-rune gate precedes ToLower on either name.
         LegacyNativePoolItems.ItemsBase[100000].Class = 1000;
         Assert.False(f.Storage.IsEquipped(null!)); // Job rejection precedes classification/name.
         LegacyNativePoolItems.ItemsBase[100000] = null!;
-        Assert.Throws<NullReferenceException>(() => f.Storage.IsEquipped("x"));
+        Assert.False(f.Storage.IsEquipped("x"));
+        var rune = f.Rune(2, 4_031_107, 102, "XPBooster");
+        LegacyNativePoolItems.ItemsBase[rune.ITEM_ID].Class = 1000;
+        Assert.False(f.Storage.IsEquipped("XP"));
+        typeof(LegacyNativePlayerRuntime).GetField("_class", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(f.Client.Player, 1000u);
+        Assert.True(f.Storage.IsEquipped("XP", out var result));
+        Assert.Same(rune, result);
     }
 
     [Fact]
-    public void MatchingRuneWithNullNameOrQueryFaultsButUnwornRunesDoNotTouchMetadata()
+    public void MissingRuneNameQueryOrCatalogRefusesWithoutThrowingOrRepairingState()
     {
         using var f = new Fixture();
         f.Ready();
         var rune = f.Rune(1, 4_031_107, 101, "XPBooster");
-        Assert.Throws<NullReferenceException>(() => f.Storage.IsEquipped(null!));
+        Assert.False(f.Storage.IsEquipped(null!));
         LegacyNativePoolItems.ItemsBase![rune.ITEM_ID].Name = null;
-        Assert.Throws<NullReferenceException>(() => f.Storage.IsEquipped("XP"));
+        Assert.False(f.Storage.IsEquipped("XP"));
         rune.Position = 211;
         LegacyNativePoolItems.ItemsBase = null;
         f.Client.Equipment = null;
         Assert.False(f.Storage.IsEquipped(null!));
         rune.Position = 101;
         f.Client.Equipment = new(f.Client);
-        Assert.Throws<NullReferenceException>(() => f.Storage.IsEquipped("XP"));
+        Assert.False(f.Storage.IsEquipped("XP", out var item));
+        Assert.Null(item);
+        Assert.Null(LegacyNativePoolItems.ItemsBase);
+        Assert.Same(rune, f.Storage.Objects[0]);
     }
 
     [Fact]
-    public void NativeLookupUsesCurrentCultureLowercasingRatherThanOrdinalIgnoreCase()
+    public void RuneKeywordMatchingIsOrdinalIgnoreCaseInEveryHostCulture()
     {
         using var f = new Fixture();
         f.Ready();
@@ -146,8 +165,8 @@ public sealed class LegacyNativeRuneEquippedQueriesTests
         try
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
-            Assert.True(f.Storage.IsEquipped("ınert"));
-            Assert.False(f.Storage.IsEquipped("inert"));
+            Assert.False(f.Storage.IsEquipped("ınert"));
+            Assert.True(f.Storage.IsEquipped("inert"));
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             Assert.True(f.Storage.IsEquipped("inert"));
             Assert.False(f.Storage.IsEquipped("ınert"));
@@ -156,7 +175,7 @@ public sealed class LegacyNativeRuneEquippedQueriesTests
     }
 
     [Fact]
-    public void FaultClearsTheOutItemButLeavesTheRefLevelUntouchedAndDoesNotRepairOwners()
+    public void MissingEquipmentRefusesLookupAndClearsResultsWithoutRepairingOwners()
     {
         using var f = new Fixture();
         f.Ready();
@@ -164,30 +183,33 @@ public sealed class LegacyNativeRuneEquippedQueriesTests
         LegacyNativeGameItemRuntime? item = rune;
         byte level = 77;
         f.Client.Equipment = null;
-        Assert.Throws<NullReferenceException>(() => f.Storage.IsEquipped("XP", out item));
+        Assert.False(f.Storage.IsEquipped("XP", out item));
         Assert.Null(item);
-        Assert.Throws<NullReferenceException>(() => f.Storage.IsEquipped("XP", ref level));
-        Assert.Equal((byte)77, level);
+        Assert.False(f.Storage.IsEquipped("XP", ref level));
+        Assert.Equal((byte)0, level);
         Assert.Null(f.Client.Equipment);
         f.Storage.Owner = null;
-        Assert.Throws<NullReferenceException>(() => f.Storage.IsEquipped("XP"));
+        Assert.Empty(f.Storage.WornObjects);
         Assert.Null(f.Storage.Owner);
     }
 
     [Fact]
-    public void QueriesUseTheActualCachedArrayEvenWhenItDiffersFromThePrivateDictionary()
+    public void CorruptCachedAliasCannotAuthorizeWornRunesOrDuplicateEffects()
     {
         using var f = new Fixture();
         f.Ready();
         var first = f.Rune(1, 4_031_107, 101, "First");
         var second = f.Rune(2, 4_031_109, 102, "Second");
-        f.Storage.Objects[0] = second;
+        var cache = f.Storage.Objects;
+        cache[0] = second;
         Assert.True(f.Storage.ContainsUID(first.Uid));
         Assert.False(f.Storage.IsEquipped("First"));
-        Assert.True(f.Storage.IsEquipped("Second", out LegacyNativeGameItemRuntime? item));
-        Assert.Same(second, item);
-        Assert.Equal(2, f.Storage.WornObjects.Length);
-        Assert.All(f.Storage.WornObjects, row => Assert.Same(second, row));
+        Assert.False(f.Storage.IsEquipped("Second", out LegacyNativeGameItemRuntime? item));
+        Assert.Null(item);
+        Assert.Empty(f.Storage.WornObjects);
+        Assert.Same(cache, f.Storage.Objects);
+        Assert.Same(second, cache[0]);
+        Assert.Same(second, cache[1]);
     }
 
     private static void SetLevel(LegacyNativePlayerRuntime player, ushort level) =>
@@ -197,11 +219,14 @@ public sealed class LegacyNativeRuneEquippedQueriesTests
     private sealed class Fixture : IDisposable
     {
         private readonly LegacyNativeItemTypeRuneMetadata? prior = LegacyNativePoolItems.ItemsBase;
-        internal LegacyNativeGameClientRuntime Client { get; } = new();
+        private readonly LegacyNativeSafeRandom priorRandom = LegacyNativePoolRandom.GetRandom;
+        internal LegacyNativeGameClientRuntime Client { get; }
         internal LegacyNativeRuneItemStorage Storage { get; }
 
         internal Fixture()
         {
+            LegacyNativePoolRandom.GetRandom = new LegacyNativeSafeRandom(71);
+            Client = new();
             LegacyNativePoolItems.ItemsBase = new();
             Client.Equipment = new(Client);
             Storage = new(Client);
@@ -222,6 +247,10 @@ public sealed class LegacyNativeRuneEquippedQueriesTests
             return item;
         }
 
-        public void Dispose() => LegacyNativePoolItems.ItemsBase = prior;
+        public void Dispose()
+        {
+            LegacyNativePoolItems.ItemsBase = prior;
+            LegacyNativePoolRandom.GetRandom = priorRandom;
+        }
     }
 }

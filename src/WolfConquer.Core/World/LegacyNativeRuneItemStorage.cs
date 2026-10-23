@@ -9,6 +9,7 @@ namespace WolfConquer.Core.World;
 internal sealed partial class LegacyNativeRuneItemStorage
 {
     public LegacyNativeGameClientRuntime? Owner;
+    private readonly LegacyNativeGameClientRuntime? constructorOwner;
     private Dictionary<uint, LegacyNativeGameItemRuntime> items;
     private LegacyNativeGameItemRuntime[] objects;
 
@@ -32,6 +33,7 @@ internal sealed partial class LegacyNativeRuneItemStorage
     public LegacyNativeRuneItemStorage(LegacyNativeGameClientRuntime? client)
     {
         Owner = client;
+        constructorOwner = client;
         items = new Dictionary<uint, LegacyNativeGameItemRuntime>();
         objects = new LegacyNativeGameItemRuntime[0];
     }

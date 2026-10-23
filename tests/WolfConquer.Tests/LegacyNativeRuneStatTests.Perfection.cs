@@ -43,28 +43,28 @@ public sealed partial class LegacyNativeRuneStatTests
     }
 
     [Fact]
-    public void SlotPropertiesUseActualFirstMatchingPositionsNotFamilyClassificationOrDictionaryKey()
+    public void SlotPropertiesUseActualPositionsNotFamilyClassificationOrDictionaryKey()
     {
         using var scope = new Scope();
         var red = scope.Add(1, 7000000, 101);
         var blue = scope.Add(2, 7000027, 102);
-        scope.Add(3, 4020001, 102);
         Assert.Equal(3000u, scope.Rune.PerfectionRedRune); Assert.Same(red, scope.Rune.EquippedRedRune);
         Assert.Equal(31000u, scope.Rune.PerfectionBlueRune); Assert.Same(blue, scope.Rune.EquippedBlueRune);
         red.Position = 212; blue.Position = 212;
+        scope.Add(3, 4020001, 102);
         Assert.Null(scope.Rune.EquippedRedRune); Assert.Equal(0u, scope.Rune.PerfectionRedRune);
         Assert.Equal(1100u, scope.Rune.PerfectionBlueRune);
     }
 
     [Fact]
-    public void YellowPerfectionChoosesFirstPerSlotAndExcludesTheExtraEquippedCountSlot()
+    public void YellowPerfectionUsesEachPhysicalSlotAndExcludesTheExtraEquippedCountSlot()
     {
         using var scope = new Scope();
         scope.Add(1, 4030002, 103);
-        scope.Add(2, 4030009, 103);
+        scope.Add(2, 4030009, 105);
         scope.Add(3, 4030003, 104);
         scope.Add(4, 4030009, 115); // EquippedCount accepts it; perfection loop ends114.
-        Assert.Equal(3800u, scope.Rune.PerfectionYellowRune);
+        Assert.Equal(14800u, scope.Rune.PerfectionYellowRune);
         Assert.Equal((byte)4, scope.Rune.EquippedCount);
         Assert.Equal(0u, scope.Rune.PerfectionBlueRune);
     }
@@ -83,16 +83,20 @@ public sealed partial class LegacyNativeRuneStatTests
     }
 
     [Fact]
-    public void EquippedCountSkipsNullAfterOwnerReadAndRetainsNativeByteWrap()
+    public void EquippedCountRejectsUnrepresentableCountsCorruptCacheAndMissingOwnerWithoutRepair()
     {
         using var scope = new Scope();
         for (uint uid = 1; uid <= 257; uid++) scope.Add(uid, 7000001, 101);
-        Assert.Equal((byte)1, scope.Rune.EquippedCount);
+        Assert.Equal((byte)0, scope.Rune.EquippedCount);
+        var cache = scope.Rune.Objects;
         scope.Rune.Objects[0] = null!;
         Assert.Equal((byte)0, scope.Rune.EquippedCount);
         scope.Rune.Owner = null;
-        Assert.Throws<NullReferenceException>(() => scope.Rune.EquippedCount);
-        Assert.Throws<NullReferenceException>(() => scope.Rune.EquippedRedRune);
+        Assert.Equal((byte)0, scope.Rune.EquippedCount);
+        Assert.Null(scope.Rune.EquippedRedRune);
+        Assert.Same(cache, scope.Rune.Objects);
+        Assert.Null(cache[0]);
+        Assert.Null(scope.Rune.Owner);
     }
 
     [Fact]
@@ -130,7 +134,7 @@ public sealed partial class LegacyNativeRuneStatTests
     public void FullRequiresAtLeastElevenWornValuesAndUsesActualNativeMaxLevelForEach()
     {
         using var scope = new Scope();
-        for (uint uid = 1; uid <= 10; uid++) scope.Add(uid, 4030009, 103);
+        for (uint uid = 1; uid <= 10; uid++) scope.Add(uid, 4030009, (ushort)(102 + uid));
         Assert.False(scope.Rune.Full());
         var last = scope.Add(11, 4020026, 102);
         Assert.False(scope.Rune.Full());
@@ -139,7 +143,7 @@ public sealed partial class LegacyNativeRuneStatTests
         scope.Add(12, 4010001, 101);
         Assert.True(scope.Rune.Full());
         last.Position = 211;
-        Assert.True(scope.Rune.Full()); //Still eleven; uniqueness/slot validation is not added.
+        Assert.True(scope.Rune.Full()); // Still eleven distinct physical worn slots.
         scope.Rune.Objects[0].Position = 211;
         Assert.False(scope.Rune.Full());
     }

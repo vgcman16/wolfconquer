@@ -32,7 +32,8 @@ public sealed partial class LegacyNativePlayerRuntime
             case LegacyNativeMsgUpdate.Flags.DragonCyclone:
             case LegacyNativeMsgUpdate.Flags.Omnipotence:
             case LegacyNativeMsgUpdate.Flags.ThunderRampage:
-                Owner.Rune!.IsEquipped("XPBooster", ref XPBooster);
+                XPBooster = 0;
+                Owner.Rune?.IsEquipped("XPBooster", ref XPBooster);
                 XPKiller = 0;
                 break;
         }

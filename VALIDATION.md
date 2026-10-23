@@ -1,5 +1,33 @@
 # Publication validation
 
+## Current sanitized component and quality checkpoint
+
+Private and independent public Release each passed **2164/2164**, zero failures/
+skips. This includes real classic2152 save-before-session/acknowledgment, complete
+native weapon-slot admission and captured-seal packet bounds, genuine equipped-
+rune ownership and safe metadata queries, staged shop refresh/counters/load/Open,
+and the corrected one-sample daily countdown. Retained packet/PIN/spell-admission
+goldens remain. New classic controls68, stationary/captured seal12+14, countdown26
+and name-search31 are included; these overlap the wider selection, not extra totals.
+
+Thirteen observed CodeFactor findings are targeted: seven CA1827 queries and six
+CA1847 name-character searches. No warning suppression, exclusion or fake saver
+was introduced. The new mechanical name controls call only the published real
+Clan owner, not uncommitted Guild/Union APIs. Full name policy remains audit debt.
+
+Eight unchanged native CRT tests initially refused a missing/array-valued probe
+environment. The exact measured PowerShell7 path/hash, already configured by the
+Windows check tool, passed all eight without changing/skipping tests. Earlier
+private1086/1086 and2118/2118 selections passed too.
+
+These are working-copy focused results. Clean committed-tree full CI and remote
+CodeFactor analysis for this successor are pending; the receipt below is the
+previous code revision, not proof of this new batch. See FIXED-SOURCE-BUGS.md
+FSB017..023 for exact completed scopes and remaining holds. Whole economy and
+weapon receivers, raw-writer synchronization, durable crash recovery, native eager
+lifecycle and live-client acceptance are not inferred. Held Guild work, original
+data, assets/configuration and local audit artifacts are not published.
+
 ## Current title-file follow-up
 
 Private/public Release each passed **1119/1119** again after one Core file was

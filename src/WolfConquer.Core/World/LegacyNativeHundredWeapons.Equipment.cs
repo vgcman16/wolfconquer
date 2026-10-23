@@ -1,6 +1,4 @@
-#nullable disable
 using WolfConquer.Core.Data;
-using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
 
@@ -8,117 +6,114 @@ internal partial class LegacyNativeHundredWeapons
 {
     public bool Equip(LegacyNativeMagicType.WeaponsType WeaponSubType, int Position, bool update = true)
     {
-        if (Objects.ContainsKey(WeaponSubType))
+        lock (slotSyncRoot)
         {
-            if (!Objects[WeaponSubType].BitVector.Contain(Position))
+            if (!IsSlotPosition(Position) || !TryGetSlotMutationPlayer(out var player) ||
+                !TrySnapshotSlotStorage(requireBitmap: true, out var rows)) return false;
+            uint uid = player.UID;
+            var item = rows.FirstOrDefault(row => row.WeaponSubtype == WeaponSubType);
+            if (item is null) return false;
+            var occupant = rows.FirstOrDefault(row => row.BitVector.Contain(Position));
+            if (occupant is not null) return ReferenceEquals(occupant, item);
+            using var packet = update ? LegacyNativeHundredWeaponsSlotPacket.TryPrepare(new()
             {
-                Objects[WeaponSubType].BitVector.Add(Position);
-                if (update)
-                {
-                    using LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket();
-                    LegacyNativePacket stream = recycledPacket.GetStream();
-                    Owner.Send(stream.CreateHundredWeaponsOpt(new LegacyNativeMsgHundredWeaponsOpt.MsgHundredWeaponsOptProto
-                    {
-                        Type = LegacyNativeMsgHundredWeaponsOpt.ActionID.Equip,
-                        WeaponSubtype = WeaponSubType,
-                        Position = Position
-                    }));
-                }
-            }
+                Type = LegacyNativeMsgHundredWeaponsOpt.ActionID.Equip,
+                WeaponSubtype = WeaponSubType, Position = Position
+            }) : null;
+            if ((update && packet is null) || !IsCurrentSlotMutationPlayer(player, uid)) return false;
+            item.BitVector.Add(Position);
+            packet?.Publish(Owner);
             return true;
         }
-        return false;
     }
 
     public bool Show(LegacyNativeMagicType.WeaponsType WeaponSubType, byte Position)
     {
-        if (Objects.ContainsKey(WeaponSubType))
+        lock (slotSyncRoot)
         {
-            if (Objects[WeaponSubType].AppearancePosition != Position && Objects[WeaponSubType].Level >= 3)
-            {
-                Objects[WeaponSubType].AppearancePosition = Position;
-            }
+            if (!TryGetSlotMutationPlayer(out var player) ||
+                !TrySnapshotSlotStorage(requireBitmap: true, out var rows)) return false;
+            uint uid = player.UID;
+            var item = rows.FirstOrDefault(row => row.WeaponSubtype == WeaponSubType);
+            if (item is null || item.Level < 3 || rows.Any(row => !ReferenceEquals(row, item) &&
+                Position != 0 && row.AppearancePosition == Position) || !IsCurrentSlotMutationPlayer(player, uid)) return false;
+            item.AppearancePosition = Position;
             return true;
         }
-        return false;
     }
 
     public bool Unequip(int Position, bool update = true)
     {
-        foreach (LegacyNativeHundredWeaponInfo value in Objects.Values)
+        lock (slotSyncRoot)
         {
-            if (!value.BitVector.Contain(Position))
+            if (!IsSlotPosition(Position) || !TryGetSlotMutationPlayer(out var player) ||
+                !TrySnapshotSlotStorage(requireBitmap: true, out var rows)) return false;
+            uint uid = player.UID;
+            var item = rows.FirstOrDefault(row => row.BitVector.Contain(Position));
+            if (item is null) return false;
+            using var packet = update ? LegacyNativeHundredWeaponsSlotPacket.TryPrepare(new()
             {
-                continue;
-            }
-            value.BitVector.Remove(Position);
-            if (update)
-            {
-                using LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket();
-                LegacyNativePacket stream = recycledPacket.GetStream();
-                Owner.Send(stream.CreateHundredWeaponsOpt(new LegacyNativeMsgHundredWeaponsOpt.MsgHundredWeaponsOptProto
-                {
-                    Type = LegacyNativeMsgHundredWeaponsOpt.ActionID.Unequip,
-                    Position = Position
-                }));
-            }
+                Type = LegacyNativeMsgHundredWeaponsOpt.ActionID.Unequip, Position = Position
+            }) : null;
+            if ((update && packet is null) || !IsCurrentSlotMutationPlayer(player, uid)) return false;
+            item.BitVector.Remove(Position);
+            packet?.Publish(Owner);
             return true;
         }
-        return false;
     }
 
     public bool Hide(byte Position)
     {
-        foreach (LegacyNativeHundredWeaponInfo value in Objects.Values)
+        lock (slotSyncRoot)
         {
-            if (value.AppearancePosition == Position)
-            {
-                value.AppearancePosition = 0;
-                return true;
-            }
+            if (!TryGetSlotMutationPlayer(out var player) ||
+                !TrySnapshotSlotStorage(requireBitmap: true, out var rows)) return false;
+            uint uid = player.UID;
+            var item = rows.FirstOrDefault(row => row.AppearancePosition == Position);
+            if (item is null || !IsCurrentSlotMutationPlayer(player, uid)) return false;
+            item.AppearancePosition = 0;
+            return true;
         }
-        return false;
     }
 
     public bool Hide(LegacyNativeMagicType.WeaponsType subtype)
     {
-        foreach (LegacyNativeHundredWeaponInfo value in Objects.Values)
+        lock (slotSyncRoot)
         {
-            if (value.WeaponSubtype == subtype)
-            {
-                value.AppearancePosition = 0;
-                return true;
-            }
+            if (!TryGetSlotMutationPlayer(out var player) ||
+                !TrySnapshotSlotStorage(requireBitmap: true, out var rows)) return false;
+            uint uid = player.UID;
+            var item = rows.FirstOrDefault(row => row.WeaponSubtype == subtype);
+            if (item is null || !IsCurrentSlotMutationPlayer(player, uid)) return false;
+            item.AppearancePosition = 0;
+            return true;
         }
-        return false;
     }
 
     public bool Swap(int Position1, int Position2, bool update = true)
     {
-        if (!Free(Position1) && !Free(Position2))
+        lock (slotSyncRoot)
         {
-            LegacyNativeHundredWeaponInfo hundredWeaponInfo = TryGetItem(Position1);
-            LegacyNativeHundredWeaponInfo hundredWeaponInfo2 = TryGetItem(Position2);
-            hundredWeaponInfo.BitVector.Remove(Position1);
-            hundredWeaponInfo2.BitVector.Remove(Position2);
-            hundredWeaponInfo.BitVector.Add(Position2);
-            hundredWeaponInfo2.BitVector.Add(Position1);
-            if (update)
+            // Unknown is not occupied: no !Free(...) test is an admission decision.
+            if (!IsSlotPosition(Position1) || !IsSlotPosition(Position2) ||
+                !TryGetSlotMutationPlayer(out var player) ||
+                !TrySnapshotSlotStorage(requireBitmap: true, out var rows)) return false;
+            uint uid = player.UID;
+            var left = rows.FirstOrDefault(row => row.BitVector.Contain(Position1));
+            var right = rows.FirstOrDefault(row => row.BitVector.Contain(Position2));
+            if (left is null || right is null) return false;
+            using var packet = update ? LegacyNativeHundredWeaponsSlotPacket.TryPrepare(new()
             {
-                using LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket();
-                LegacyNativePacket stream = recycledPacket.GetStream();
-                Owner.Send(stream.CreateHundredWeaponsOpt(new LegacyNativeMsgHundredWeaponsOpt.MsgHundredWeaponsOptProto
-                {
-                    Type = LegacyNativeMsgHundredWeaponsOpt.ActionID.Swap,
-                    Exchange = new LegacyNativeMsgHundredWeaponsOpt.ExchangePositions
-                    {
-                        Position1 = Position1,
-                        Position2 = Position2
-                    }
-                }));
-            }
+                Type = LegacyNativeMsgHundredWeaponsOpt.ActionID.Swap,
+                Exchange = new() { Position1 = Position1, Position2 = Position2 }
+            }) : null;
+            if ((update && packet is null) || !IsCurrentSlotMutationPlayer(player, uid)) return false;
+            left.BitVector.Remove(Position1);
+            right.BitVector.Remove(Position2);
+            left.BitVector.Add(Position2);
+            right.BitVector.Add(Position1);
+            packet?.Publish(Owner);
             return true;
         }
-        return false;
     }
 }

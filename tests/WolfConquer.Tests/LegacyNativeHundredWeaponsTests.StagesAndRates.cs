@@ -38,14 +38,16 @@ public sealed partial class LegacyNativeHundredWeaponsTests
     });
 
     [Fact]
-    public Task StagesCountMatchingRowsNotDistinctSlotsAndDoNotRequireUnlockOrValidClass() => NativePacketTestThread.Run(() =>
+    public Task StagesCountValidOwnedRowsAcrossTheWholeBandsWithoutRequiringUnlockOrValidClass() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); scope.SetClass(5000);
         Weapon[] keys = [Weapon.Blade, Weapon.Sword, Weapon.Hook, Weapon.Whip, Weapon.Axe];
         Assert.False(scope.Owner.StageActivated(1));
         for (int index = 0; index < keys.Length; index++)
         {
-            var row = scope.Item(keys[index]); row.BitVector.Add(2); row.BitVector.Add(5);
+            var row = scope.Item(keys[index]);
+            if (index < 3) row.BitVector.Add(2 + index);
+            row.BitVector.Add(5 + index);
             Assert.Equal(index >= 2, scope.Owner.StageActivated(2)); Assert.Equal(index >= 4, scope.Owner.StageActivated(3));
         }
         scope.Owner.Objects[Weapon.Blade].BitVector.Add(1);

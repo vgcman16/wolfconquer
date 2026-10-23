@@ -82,6 +82,7 @@ public sealed partial class LegacyNativeExchangeShopTests
         internal PacketScope()
         {
             Shop = new Shop(Client);
+            Client.MyExchangeShop = Shop; // Genuine current render owner; pure book tests need no binding.
             Reset();
         }
 
@@ -183,18 +184,18 @@ public sealed partial class LegacyNativeExchangeShopTests
         Assert.Equal(times, row.times);
     }
 
-    private static int Delta(DateTime time) =>
-        (23 - time.Hour) * 3600 + (60 - time.Minute) * 60 + (60 - time.Second);
-
     private static void TimeBetween(uint actual, DateTime before, DateTime after)
     {
-        // Native uses three Now samples and subtraction of large double-valued
-        // TimeSpan totals. Allow their measured elapsed time plus 1s rounding;
-        // do not replace the source's midnight+60s arithmetic with midnight.
-        int elapsed = checked((int)Math.Ceiling(Math.Abs((after - before).TotalSeconds)));
-        uint low = (uint)Math.Max(0, Math.Min(Delta(before), Delta(after)) - 1);
-        uint high = (uint)(Math.Max(Delta(before), Delta(after)) + elapsed + 1);
-        Assert.InRange(actual, low, high);
+        uint first = Shop.RemainingUntilNextDailyReset(before);
+        uint last = Shop.RemainingUntilNextDailyReset(after);
+        Assert.InRange(actual, 1u, 86400u);
+        if (before.Date == after.Date)
+            Assert.InRange(actual, Math.Min(first, last), Math.Max(first, last));
+        else
+            // A real sample window crossing midnight wraps to the next day's
+            // countdown; neither a +60s allowance nor a flat whole-day range.
+            Assert.True(actual <= first || actual >= last,
+                $"Countdown {actual} was outside midnight-wrapping samples {first}..{last}.");
     }
 
     private static byte[] Frame(uint npc, uint shop, uint uid, uint time,

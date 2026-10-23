@@ -10,7 +10,7 @@ public sealed partial class LegacyNativePlayerAddFlagTests
     [InlineData("rune-owner")]
     [InlineData("equipment")]
     [InlineData("metadata")]
-    public Task FailedXpQueryLeavesXpBytesAndExistingRegistrationUntouchedBeforeDuplicateCheck(string missing) => NativePacketTestThread.Run(() =>
+    public Task InvalidXpQueryClearsStaleBonusWithoutFaultingOrRenewingExistingRegistration(string missing) => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeAddFlagTestFixture();
         NativeAddFlagTestFixture.Ready(f.Owner);
@@ -26,13 +26,10 @@ public sealed partial class LegacyNativePlayerAddFlagTests
         else if (missing == "equipment") f.Owner.Equipment = null;
         else LegacyNativePoolItems.ItemsBase!.Clear();
 
-        if (missing == "metadata")
-            Assert.Throws<KeyNotFoundException>(() => f.Player.AddFlag(Flag.Superman, 999, true));
-        else
-            Assert.Throws<NullReferenceException>(() => f.Player.AddFlag(Flag.Superman, 999, true));
+        Assert.False(f.Player.AddFlag(Flag.Superman, 999, true));
 
-        Assert.Equal((byte)99, f.Player.XPBooster);
-        Assert.Equal((byte)88, f.Player.XPKiller); // Reset follows successful return from the Rune query.
+        Assert.Equal((byte)0, f.Player.XPBooster);
+        Assert.Equal((byte)0, f.Player.XPKiller);
         Assert.Same(vector, f.Player.BitVector);
         Assert.Same(row, f.Row(Flag.Superman));
         Assert.Equal(timer, row.Timer);

@@ -1,47 +1,42 @@
 #nullable disable
-using System.Collections.Generic;
-using System.Linq;
+using System;
 
 namespace WolfConquer.Core.World;
 
 internal sealed partial class LegacyNativeRuneItemStorage
 {
-    // Complete native Rune123..138; exclusions and current-equipment reads are not normalized.
+    // Validated physical cache snapshot; unknown or duplicated item identity cannot grant rune effects.
     public LegacyNativeGameItemRuntime[] WornObjects
     {
         get
         {
-            List<LegacyNativeGameItemRuntime> list = new List<LegacyNativeGameItemRuntime>();
-            LegacyNativeGameItemRuntime[] array = objects;
-            foreach (LegacyNativeGameItemRuntime item in array)
-            {
-                if (item.Position != 211 && item.Position != 0 && item.Position != 212 &&
-                    (!Owner.Equipment.Alternante || item.Position >= 120 ||
-                        objects.Count((LegacyNativeGameItemRuntime msgGameItem) => msgGameItem.Position == item.Position + 20) <= 0) &&
-                    (Owner.Equipment.Alternante || item.Position <= 120))
-                {
-                    list.Add(item);
-                }
-            }
-            return list.ToArray();
+            if (!TryCaptureEquipped(out var context, out var snapshot)) return [];
+            var worn = SelectWorn(snapshot, context.Alternate);
+            return IsCurrent(context) ? worn : [];
         }
     }
 
-    // Complete native Rune328..365, including current-culture case conversion and lookup order.
+    // Keep valid first-match/job rules, but invalid metadata cannot grant effects or crash the caller.
     public bool IsEquipped(string runeName, out LegacyNativeGameItemRuntime item)
     {
         item = null;
-        if (Owner.Player.Reborn < 2 || Owner.Player.Level < 15)
+        if (runeName is null || !TryCaptureEquipped(out var context, out var snapshot) ||
+            context.Player.Reborn < 2 || context.Player.Level < 15)
         {
             return false;
         }
-        LegacyNativeGameItemRuntime[] wornObjects = WornObjects;
+        var metadata = LegacyNativePoolItems.ItemsBase;
+        if (metadata is null) return false;
+        LegacyNativeGameItemRuntime[] wornObjects = SelectWorn(snapshot, context.Alternate);
         foreach (LegacyNativeGameItemRuntime msgGameItem in wornObjects)
         {
-            if (msgGameItem != null &&
-                LegacyNativeItemTypeRuneMetadata.EquipPassJobReq(LegacyNativePoolItems.ItemsBase[msgGameItem.ITEM_ID], Owner) &&
-                LegacyNativeItemTypeRuneMetadata.IsRune(msgGameItem.ITEM_ID) &&
-                LegacyNativePoolItems.ItemsBase[msgGameItem.ITEM_ID].Name.ToLower().Contains(runeName.ToLower()))
+            uint id = msgGameItem.ITEM_ID;
+            if (LegacyNativeItemTypeRuneMetadata.IsRune(id) &&
+                metadata.TryGetValue(id, out var row) && row is not null && row.ID == id &&
+                !string.IsNullOrEmpty(row.Name) &&
+                LegacyNativeItemTypeRuneMetadata.EquipPassJobReq(row, context.Client) &&
+                row.Name.Contains(runeName, StringComparison.OrdinalIgnoreCase) &&
+                ReferenceEquals(LegacyNativePoolItems.ItemsBase, metadata) && IsCurrent(context))
             {
                 item = msgGameItem;
                 return true;

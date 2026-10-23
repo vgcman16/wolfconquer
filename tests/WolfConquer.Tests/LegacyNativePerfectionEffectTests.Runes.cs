@@ -33,7 +33,7 @@ public sealed partial class LegacyNativePerfectionEffectTests
     [InlineData(4)]
     [InlineData(5)]
     [InlineData(6)]
-    public void MissingMetadataFaultLeavesExactlyTheEarlierRuneAdditionsPublished(int failingRune)
+    public void MissingMetadataGrantsNoBonusAndDoesNotInterruptValidRuneEffects(int failingRune)
     {
         using var fixture = new Fixture(eligible: true);
         var expected = Expected(601);
@@ -49,7 +49,7 @@ public sealed partial class LegacyNativePerfectionEffectTests
         Assert.True(LegacyNativePoolItems.ItemsBase.Remove(4_039_999));
         Poison(fixture.Client.PerfectionStatus);
 
-        Assert.Throws<KeyNotFoundException>(() => fixture.Client.PerfectionStatus.Update(601, fixture.Client));
+        fixture.Client.PerfectionStatus.Update(601, fixture.Client);
 
         Assert.Equal(expected, Values(fixture.Client.PerfectionStatus));
         Assert.False(LegacyNativePoolItems.ItemsBase!.ContainsKey(4_039_999));

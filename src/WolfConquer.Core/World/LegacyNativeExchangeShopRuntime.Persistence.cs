@@ -4,30 +4,50 @@ namespace WolfConquer.Core.World;
 
 internal partial class LegacyNativeExchangeShopRuntime
 {
+    // Engineering persisted-book bounds, not wire/shop catalog constants.
+    internal const int MaximumSavedRecords = 4096;
+    internal const int MaximumSavedCharacters = 1024 * 1024;
+
     public override string ToString()
     {
-        LegacyNativeDbWriteLine writeLine = new LegacyNativeDbWriteLine('/');
-        writeLine.Add(Items.Values.Count);
-        foreach (Item value in Items.Values)
+        lock (bookSyncRoot)
         {
-            writeLine.Add(value.shopid);
-            writeLine.Add(value.goods_rec_id);
-            writeLine.Add(value.times);
+            if (!TryCaptureBook(out var book, out var reason)) throw new InvalidDataException(reason);
+            var line = new LegacyNativeDbWriteLine('/').Add(book!.Rows.Length);
+            foreach (var row in book.Rows) line.Add(row.ShopId).Add(row.GoodsId).Add(row.Times);
+            string saved = line.Close();
+            if (saved.Length > MaximumSavedCharacters) throw new InvalidDataException("exchangeShopSavedStateTooLarge");
+            return saved;
         }
-        return writeLine.Close();
     }
 
     public void Load(string? Line)
     {
-        LegacyNativeDbReadLine readLine = new LegacyNativeDbReadLine(Line, '/');
-        int num = readLine.Read(0);
-        for (int i = 0; i < num; i++)
+        if (!TryLoad(Line, out var reason)) throw new FormatException("Invalid ExchangeShop saved state: " + reason);
+    }
+
+    public bool TryLoad(string? Line, out string reason)
+    {
+        lock (bookSyncRoot)
         {
-            Item item = new Item();
-            item.shopid = readLine.Read(0u);
-            item.goods_rec_id = readLine.Read(0u);
-            item.times = readLine.Read(0u);
-            Items.Add(item.goods_rec_id, item);
+            try
+            {
+                if (!TryCaptureBook(out var book, out reason) || !TryParseBook(Line, out var incoming, out reason)) return false;
+                if (incoming!.Length == 0) { reason = string.Empty; return true; }
+                if (incoming.Length > MaximumSavedRecords - book!.Rows.Length)
+                { reason = "exchangeShopBookLimit"; return false; }
+                var staged = CopyBook(book!);
+                foreach (var row in incoming)
+                {
+                    if (!staged.TryAdd(row.goods_rec_id, row))
+                    { reason = "exchangeShopSavedDuplicateRecord"; return false; }
+                }
+                if (!BookIsCurrent(book!)) { reason = "exchangeShopStateChanged"; return false; }
+                Items = staged;
+                reason = string.Empty;
+                return true;
+            }
+            catch (Exception error) { reason = PreparationFailure(error); return false; }
         }
     }
 }

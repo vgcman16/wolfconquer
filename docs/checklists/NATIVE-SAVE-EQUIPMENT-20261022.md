@@ -7,12 +7,27 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] New sanitized native weapon slots, complete rune equipped queries, staged
+  shop refresh/counters/load/Open, corrected daily countdown and active managed
+  classic2152 persisted selection passed private/public Release2164/2164,0fail/0skip.
+  Includes68 classic safety cases, retained11 codec/handler cases,12 stationary
+  and14 captured-seal bounds cases, and26 literal countdown cases. Also31 name
+  character-search controls target six more CodeFactor findings. Clean committed
+  CI and remote-analysis successor verification are pending; see ledgerFSB017..021.
+- [ ] Whole weapon receivers2353/2354, shop paid refresh/purchase wallet/item
+  transactions, native title eager lifecycle, Rune writers and flag transactions
+  remain held. Query/component proof is not host adoption or durable recovery.
+- [ ] Current Windows exposes no D: drive. Before any future live work, locate
+  and revalidate the preserved client baseline; no remount/migration is attempted
+  by this offline pass. The restore ZIP metadata is unchanged, not rehashed.
+
 - [x] Active managed title opcode2313 now validates full ownership/catalog data,
   persists before session publication and checks exact source/peer lifecycle
   identities before delivery. Private and public Release each passed1008/1008,
   including80 active-route and55 real-file/shared-reader controls. PIN invariants
-  remain covered. Durable title recovery, native titles and classic2152 remain open.
-- [x] Current combined local checks: private/public each1119/1119 selected core
+  remain covered. Durable recovery/native titles remain open; managed2152 now
+  has its separate bounded save-before-publication fix above.
+- [x] Prior combined local checks: private/public each1119/1119 selected core
   and301/301 complete updater tests, zero failures/skips. Includes15 additional
   CodeFactor API fixes, retained-handle process attribution and the seven-warning
   successor cleanup. Seven new cleanup error/skip/stack controls pass.

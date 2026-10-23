@@ -40,59 +40,64 @@ public sealed partial class LegacyNativeRuneStatTests
         Assert.Equal(122u, RuneTable.GetRunePlusPoints(item));
         item.StackSize = 0;
         Assert.Equal(48u, RuneTable.GetRunePlusPoints(item));
-        Assert.Equal((ushort)1, item.StackSize);
+        Assert.Equal((ushort)0, item.StackSize);
         var stone = Item(2, 730008); stone.RuneEXP = 99;
         Assert.Equal(0u, RuneTable.GetRunePlusPoints(stone));
-        Assert.Equal((ushort)1, stone.StackSize);
+        Assert.Equal((ushort)0, stone.StackSize);
     }
 
     [Fact]
-    public void ItemPlusPointsMutatesStackBeforeMissingRowOrOwnerFaultButAfterPrefixConversion()
+    public void ItemPlusPointsRefusesUnknownInputsWithoutMutatingStack()
     {
         using var scope = new Scope();
         var item = Item(1, 4030001); item.RuneEXP = 999;
         Assert.Equal(0u, RuneTable.GetRunePlusPoints(item));
-        Assert.Equal((ushort)1, item.StackSize);
-        item.StackSize = 0; RuneTable.RuneLevelEXPList = null!;
-        Assert.Throws<NullReferenceException>(() => RuneTable.GetRunePlusPoints(item));
-        Assert.Equal((ushort)1, item.StackSize);
+        Assert.Equal((ushort)0, item.StackSize);
+        RuneTable.RuneLevelEXPList = null!;
+        Assert.Equal(0u, RuneTable.GetRunePlusPoints(item));
+        Assert.Equal((ushort)0, item.StackSize);
         var shortId = Item(2, 99999);
-        Assert.Throws<ArgumentOutOfRangeException>(() => RuneTable.GetRunePlusPoints(shortId));
+        Assert.Equal(0u, RuneTable.GetRunePlusPoints(shortId));
         Assert.Equal((ushort)0, shortId.StackSize);
-        Assert.Throws<NullReferenceException>(() => RuneTable.GetRunePlusPoints(null!));
+        Assert.Equal(0u, RuneTable.GetRunePlusPoints(null!));
     }
 
     [Theory]
     [InlineData(0u)] [InlineData(999u)] [InlineData(1000u)] [InlineData(99999u)]
-    public void RawPlusPointsRetainsSubstringFaultForShortTypePrefixBeforeAnyTableRead(uint value)
+    public void RawPlusPointsRefusesShortTypePrefixesWithoutReadingMissingMetadata(uint value)
     {
         using var scope = new Scope();
         RuneTable.RuneLevelEXPList = null!;
-        Assert.Throws<ArgumentOutOfRangeException>(() => RuneTable.GetRunePlusPoints(value));
+        Assert.Equal(0u, RuneTable.GetRunePlusPoints(value));
     }
 
     [Fact]
-    public void ItemPlusPointsRetainsUInt32ProductAndAdditionWrapAndFirstDuplicateTypeLevel()
+    public void ItemPlusPointsRejectsOverflowAndKeepsFirstPhysicalMatchWithoutDoubleCredit()
     {
         using var scope = new Scope();
         RuneTable.RuneLevelEXPList[10] = Exp(403, 9, uint.MaxValue);
         RuneTable.RuneLevelEXPList[1] = Exp(403, 9, 999);
         var item = Item(1, 4030009); item.StackSize = 2; item.RuneEXP = 3;
-        Assert.Equal(1u, RuneTable.GetRunePlusPoints(item));
+        Assert.Equal(0u, RuneTable.GetRunePlusPoints(item));
+        Assert.Equal((ushort)2, item.StackSize); Assert.Equal(3u, item.RuneEXP);
         item.StackSize = ushort.MaxValue; item.RuneEXP = uint.MaxValue;
-        Assert.Equal(unchecked(uint.MaxValue * (uint)ushort.MaxValue + uint.MaxValue), RuneTable.GetRunePlusPoints(item));
+        Assert.Equal(0u, RuneTable.GetRunePlusPoints(item));
+        RuneTable.RuneLevelEXPList[10].RequiredProgress = 7;
+        item.StackSize = 2; item.RuneEXP = 3;
+        Assert.Equal(17u, RuneTable.GetRunePlusPoints(item));
     }
 
     [Fact]
-    public void PlusPointsDoesNotSkipNullRowsEvenWhenLaterTypeWouldMatch()
+    public void NullCatalogRowsRefusePointsWithoutRepairingItemState()
     {
         using var scope = new Scope();
         RuneTable.RuneLevelEXPList[99] = null!;
         RuneTable.RuneLevelEXPList[1] = Exp(403, 9, 3);
-        Assert.Throws<NullReferenceException>(() => RuneTable.GetRunePlusPoints(4030009));
+        Assert.Equal(0u, RuneTable.GetRunePlusPoints(4030009));
         var item = Item(1, 4030009);
-        Assert.Throws<NullReferenceException>(() => RuneTable.GetRunePlusPoints(item));
-        Assert.Equal((ushort)1, item.StackSize);
+        Assert.Equal(0u, RuneTable.GetRunePlusPoints(item));
+        Assert.Equal((ushort)0, item.StackSize);
+        Assert.Null(RuneTable.RuneLevelEXPList[99]);
     }
 
     [Fact]

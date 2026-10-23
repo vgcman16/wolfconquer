@@ -1,42 +1,103 @@
-using WolfConquer.Core.Data;
-
 namespace WolfConquer.Core.World;
 
 internal partial class LegacyNativeExchangeShopRuntime
 {
     public void GetRandomEx(uint shopid, uint Count)
     {
-        List<uint> list = new List<uint>();
-        foreach (LegacyNativeExchangeShopGoodsEx.item item in LegacyNativeExchangeShopGoodsEx.exchange_shop_goods_ex.Values.Where((LegacyNativeExchangeShopGoodsEx.item p) => p.shopid == shopid))
+        if (!TryGetRandomEx(shopid, Count, out var reason)) ReportRefusal(nameof(GetRandomEx), reason);
+    }
+
+    public bool TryGetRandomEx(uint shopid, uint Count, out string reason)
+    {
+        lock (bookSyncRoot)
         {
-            if (Items.ContainsKey(item.id))
+            try
             {
-                Items.Remove(item.id);
+                if (!TryCaptureBook(out var book, out reason)) return false;
+                return TryRefresh(book!, shopid, Count, resetAll: false, out reason);
             }
-            list.Add(item.id);
-        }
-        int num = 0;
-        while (num < Count)
-        {
-            uint num2 = list[LegacyNativePoolRandom.GetRandom.Next(0, list.Count)];
-            if (!Items.ContainsKey(num2) && AddItemEx(shopid, num2, 0u))
-            {
-                num++;
-            }
+            catch (Exception error) { reason = PreparationFailure(error); return false; }
         }
     }
 
     public void Reset()
     {
-        Items.Clear();
-        GetRandomEx(168u, 8u);
+        if (!TryReset(out var reason)) ReportRefusal(nameof(Reset), reason);
+    }
+
+    public bool TryReset(out string reason)
+    {
+        lock (bookSyncRoot)
+        {
+            try
+            {
+                if (!TryCaptureBook(out var book, out reason)) return false;
+                return TryRefresh(book!, 168u, 8u, resetAll: true, out reason);
+            }
+            catch (Exception error) { reason = PreparationFailure(error); return false; }
+        }
     }
 
     public void Loading()
     {
-        if (Items.Values.Count((Item p) => p.goods_rec_id == 168) == 0)
+        if (!TryLoading(out var reason)) ReportRefusal(nameof(Loading), reason);
+    }
+
+    public bool TryLoading(out string reason)
+    {
+        lock (bookSyncRoot)
         {
-            GetRandomEx(168u, 8u);
+            try
+            {
+                if (!TryCaptureBook(out var book, out reason)) return false;
+                // Retain v2's physical goods168 (NOT shop/key) single-scan gate.
+                bool hasPhysicalGoods168 = false;
+                foreach (var row in book!.Rows) hasPhysicalGoods168 |= row.GoodsId == 168;
+                if (hasPhysicalGoods168) { reason = string.Empty; return true; }
+                return TryRefresh(book, 168u, 8u, resetAll: false, out reason);
+            }
+            catch (Exception error) { reason = PreparationFailure(error); return false; }
         }
+    }
+
+    private bool TryRefresh(BookState book, uint shopid, uint count, bool resetAll, out string reason)
+    {
+        if (!TryCaptureExCatalog(out var catalog, out reason)) return false;
+        if (HasForeignExCollision(book, catalog!))
+        { reason = "exchangeShopForeignStockCollision"; return false; }
+        var candidates = catalog!.Rows.Where(row => row.ShopId == shopid).ToArray();
+        if (count > (uint)candidates.Length)
+        { reason = "exchangeShopInsufficientCandidates"; return false; }
+        var retiredIds = new HashSet<uint>(candidates.Select(row => row.Id));
+        var staged = new Dictionary<uint, Item>(book.Source.Comparer);
+        int removed = 0;
+        foreach (var existing in book.Rows)
+        {
+            if (resetAll || retiredIds.Contains(existing.GoodsId)) { removed++; continue; }
+            staged.Add(existing.Key, existing.Row);
+        }
+        if ((long)book.Rows.Length - removed + count > MaximumSavedRecords)
+        { reason = "exchangeShopBookLimit"; return false; }
+        if (count != 0)
+        {
+            var random = LegacyNativePoolRandom.GetRandom;
+            if (random is null) { reason = "exchangeShopRandomUnavailable"; return false; }
+            // Uniform ordered sampling without replacement, like the valid native
+            // rejection loop, but exactly count bounded draws. Weight was never used.
+            for (int selected = 0; selected < (int)count; selected++)
+            {
+                int index = random.Next(selected, candidates.Length);
+                (candidates[selected], candidates[index]) = (candidates[index], candidates[selected]);
+                var goods = candidates[selected];
+                staged.Add(goods.Id, new Item { shopid = goods.ShopId, goods_rec_id = goods.Id, times = 0u });
+            }
+        }
+        if (!BookIsCurrent(book) || !ExCatalogIsCurrent(catalog))
+        { reason = "exchangeShopStateChanged"; return false; }
+        // A valid zero count intentionally retires target IDs without RNG. A genuine
+        // no-change zero request leaves the existing dictionary reference intact.
+        if (removed != 0 || count != 0) Items = staged;
+        reason = string.Empty;
+        return true;
     }
 }

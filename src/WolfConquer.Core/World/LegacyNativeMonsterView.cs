@@ -22,12 +22,10 @@ internal class LegacyNativeMonsterView
 
 	public ILegacyNativeMapObj? GetTarget(LegacyNativeGameMap map, LegacyNativeMapObjectType typ)
 	{
-		IEnumerable<ILegacyNativeMapObj> source = map.View!.Roles(typ, role.X, role.Y, (ILegacyNativeMapObj p) => CanSee(p) && p.ObjType == LegacyNativeMapObjectType.Player);
-		if (source.Count() > 0)
-		{
-			return source.OrderByDescending((ILegacyNativeMapObj p) => p.IndexInScreen).FirstOrDefault();
-		}
-		return null;
+		if (map?.View is not { } view || role is null) return null;
+		return view.Roles(typ, role.X, role.Y,
+			(ILegacyNativeMapObj p) => CanSee(p) && p.ObjType == LegacyNativeMapObjectType.Player)
+			.OrderByDescending((ILegacyNativeMapObj p) => p.IndexInScreen).FirstOrDefault();
 	}
 
 	public void SendScreen(LegacyNativePacket msg, LegacyNativeGameMap map)

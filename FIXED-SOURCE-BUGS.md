@@ -94,7 +94,8 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   arbitrary transport race. The frame-admission fence does not prove every
   background writer honors it. It is not a durable title journal,
   all-crash recovery, multi-file atomicity or hostile filesystem-race immunity.
-  Classic opcode2152 Change and the native title successor remain separate.
+  Classic opcode2152 has its separate FSB-017 correction below; native title
+  lifecycle and durable recovery remain separate unfinished work.
 
 ### FSB-016: Retain real read-only process image attribution
 
@@ -117,6 +118,89 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   startup, filesystem-alias resolution, process birth identity before opening
   the handle, deployment or a claim that every possible race was reproduced.
 
+### FSB-017: Persist classic title selection before acknowledging it
+
+- Owner: registered managed opcode2152 List/Change. Replace stale-context Set
+  with the genuine current-session commit and store-issued native identity.
+  Validate the complete owned-byte list, prepare replies, persist MyTitle only,
+  then publish the session and lifecycle-bound acknowledgment. Failed writes
+  require exact unchanged preimage evidence; unknown outcomes block recovery.
+- Compatibility: retain fixed2152 bytes/order and valid clear0. Initial file
+  admission compares the exact IniDocument-trimmed session projection; after
+  writing, raw ownership, complete lines and encoding must still match. Without
+  a load-time raw token, whitespace-only historical edits are not detectable.
+- Local evidence: all68 new classic controls and retained11 codec/handler cases
+  passed within private and independent public Release2164/2164 selections.
+  Clean committed-tree CI is pending below. Tests use genuine temporary files and commit owners,
+  not accepting saver callbacks. The first fixture failed strict parsing and was
+  corrected to provide mandatory fields; the parser was not weakened.
+- Limits: no durable crash journal, hostile filesystem/external-writer proof,
+  complete native title granting/login/save lifecycle or new live-client proof.
+
+### FSB-018: Admit complete weapon slots and prepare bounded responses first
+
+- Owners: native HundredWeapons slot queries and complete Equip/Unequip/Swap/
+  Show/Hide methods. Reject corrupt tails, duplicate physical rows/appearances,
+  aliased bitmaps/word arrays and overlapping occupied bits before mutation.
+  Check the genuine current client/player/weapon owner, not matching IDs alone.
+- Prepare the real2353 response before changing bits. Capture the seal once and
+  construct complete private bytes before renting/checking actual capacity;
+  mutable global seal activation cannot grow a later unsafe Finalize write.
+  Transport or cleanup failure after commitment cannot turn it into a refusal.
+- Local evidence: complete Hundred families, all12 stationary seal bounds and
+  all14 captured-seal controls passed within private/public2164/2164. Prior-frame
+  references AND cloned bytes are checked; existing protobuf goldens remain.
+- Limits: whole2353/2354 multi-step receivers remain uninstalled/held. Add/remove,
+  ranking/loading and raw public writers are not made globally transactional.
+
+### FSB-019: Reject corrupt or foreign equipped-rune ownership safely
+
+- Owners: WornObjects, named effects and equipped-slot/count queries. Require
+  constructor/current client binding, genuine Player/equipment ownership,
+  complete authoritative/cache membership, nonzero unique UIDs and unique
+  equipped physical positions. Inactive0/211/212 may legitimately repeat.
+- Missing/null/wrong-ID metadata grants no effect and cannot crash the caller;
+  valid other runes still work. Keyword matching is ordinal-ignore-case, not
+  host-culture dependent. Invalid queries clear out/ref results. Equipped count
+  does not wrap. Old tests demanding crashes, foreign-owner effects or duplicate
+  slot bonuses were replaced with refusal/no-repair controls and valid fixtures.
+- Local evidence: full Rune/query/perfection/XP/related admission families and
+  new ownership, metadata, culture, cache/slot controls passed within2164/2164 in both trees.
+  The small AddFlag null-Rune guard only prevents that dereference/stale bonus.
+- Limits: full AddFlag transaction, Rune Add/Count/Score, family-to-slot policy,
+  raw-writer races, inventory transfers and persistence remain separate work.
+
+### FSB-020: Stage bounded shop refresh, counters and saved-book loading
+
+- Owner: native ExchangeShop component. Complete book/catalog validation and
+  finite uniform ordered sampling replace the unbounded rejection loop and
+  prefix removal. Refresh/Reset, checked counters and strict append loading
+  publish one prepared dictionary under the cooperating method gate; escaped
+  previous rows/books remain unchanged. Valid zero-count retirement is retained.
+- All cooperating writers/save enforce explicit4096-row/1MiB-text engineering
+  limits; these are not client protocol constants. Open requires the genuine
+  current shop/player, prepares complete2317 bytes and checks real allocation
+  and native send bounds before output. True means publication attempted, never
+  delivered; false precedes caller-buffer writes.
+- Local evidence: full shop family including143 authored refreshed/new controls
+  passed in private/public2164/2164. Real comparer materialization faults preserve the
+  old book; sealed wire goldens and prior-frame bytes remain covered.
+- Limits: sampling distribution/order is preserved, not the old PRNG draw trace.
+  No PRNG rollback, whole paid refresh/purchase receiver, wallet/item grant,
+  SQL/file crash recovery or globally synchronized raw fields is claimed.
+
+### FSB-021: Count down to the actual local daily boundary
+
+- Owner: ExchangeShop.GetTime. Original arithmetic targeted midnight+60seconds
+  using three Now samples and large doubles, while Server.Reset follows the
+  local DayOfYear boundary. Use one Now sample and bounded integer ceiling of
+  remaining day ticks:1..86400 seconds. Keep UInt32 protobuf field4/opcode2317.
+- Local evidence:26 deterministic literal calendar/subsecond/kind/extrema cases
+  and retained real-clock/wire/shop tests passed in private/public2164/2164. Old tests
+  requiring the extra minute were corrected, not retained as gameplay rules.
+- Limits: calendar-wall-time countdown, not monotonic/DST elapsed-time accuracy,
+  scheduler completion or an atomic daily-reward/reset transaction.
+
 ## Active audit
 
 | ID | Defect / affected owner | Required invariant | Status |
@@ -134,14 +218,34 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-011 | Packet byte-array constructor can overrun fixed allocation | Allocate complete input and expose truthful capacity before unsafe use | Constructor fixed; wider bounds audit open |
 | FSB-012 | General native packet readers/writers trust mutable Size or MAX_SIZE instead of actual allocation | Check allocation, cursor, frame and lifetime before every unsafe access | Open |
 | FSB-013 | Existing spell executors have late eligibility gates, resource wraps and shared metadata mutations; old tests preserve these | Full-cast preflight, bounded arithmetic and no shared metadata mutation on cast | Retroactive executor audit open |
-| FSB-014 | Active managed title receiver changes memory before save success, mishandles wing4001 and untrusted subtype/catalog fields | Validated save-before-session commit, authoritative metadata and lifecycle-bound publication | Scoped opcode2313 fixed; durable recovery and adjacent native/classic paths open |
+| FSB-014 | Active managed title receiver changes memory before save success, mishandles wing4001 and untrusted subtype/catalog fields | Validated save-before-session commit, authoritative metadata and lifecycle-bound publication | Scoped opcode2313 fixed; durable recovery/native lifecycle open; classic route tracked separately |
 | FSB-015 | Repeated ranking scans crash on invalid rows; Rune.Free can reopen occupied211 after byte-count wrap | Single current-owner queries and fail-closed capacity/occupancy checks | Affected queries fixed; broader owner audit open |
 | FSB-016 | Updater relies on transient MainModule image enumeration; synthetic pipeline names collide with a real owned namesake test | Retained read-only image/exit attribution; unknown live state refuses; isolated signed fixture identities | Reader/isolation fixed301/301 both trees; point-in-time scan limits remain |
-| FSB-017 | Classic opcode2152 Change uses unconditional Set from a potentially stale context | Current authenticated owner and persisted commit before publication; no replacement-session overwrite | Open, not part of opcode2313 fix |
+| FSB-017 | Classic opcode2152 Change uses unconditional Set from a potentially stale context | Current authenticated owner and persisted commit before publication; no replacement-session overwrite | Scoped managed route fixed; native lifecycle/durable recovery open |
+| FSB-018 | Weapon slot aliases/corrupt tails and seal growth can authorize partial state or exceed response allocation | Complete physical admission and captured bounded packet before mutation | Scoped slot methods fixed; full2353/2354 receivers held |
+| FSB-019 | Rune effects accept foreign owners, incomplete/duplicate slots and fault on missing metadata | Genuine current complete ownership and safe deterministic query | Equipped queries fixed; writers/full lifecycle open |
+| FSB-020 | Shop refresh can loop forever or lose stock; counters wrap and Load publishes prefixes | Bounded staged book operations and truthful prepared publication | Native component fixed; economy receivers/durability held |
+| FSB-021 | Shop countdown targets midnight plus a minute using three clocks | One bounded local-calendar countdown sample | Display calculation fixed; scheduler/reset transaction open |
+| FSB-022 | Name policy regex checks only the final character; rename and uniqueness policies differ | Complete validated name policy and consistent authoritative uniqueness | Open; mechanical character-search cleanup is not a policy fix |
+| FSB-023 | Flag registration/reset/publication can mutate before a null bitmap/view or later failure | Validate/prepare before coherent current-owner registration; duplicates reject without side effects | Isolated implementation in progress; not integrated |
 
 ## CodeFactor cleanup
 
-Latest verified checkpoint: full Windows39933407353 passed in4m06s on exact
+Current implemented successor targets seven observed CA1827 records across
+MonsterView, Rune equipped queries/PlusPoints, HundredWeapons queries and
+ExchangeShop.Loading, plus six CA1847 single-character name searches. Behavioral
+safety fixes accompany the query refactors; no suppressions/exclusions are used.
+Private and independent public Release each passed2164/2164,0fail/0skip,
+including31 additional delimiter/name/culture controls and retained API checks.
+The unchanged native CRT controls require a measured PowerShell7 binding; an
+initial missing/array-valued test environment caused8 probe failures in both trees.
+Binding the exact measured executable, as the CI tool already does, passed all
+eight without changing or skipping tests. Earlier1086/2118 selections also passed.
+The name cleanup does not fix FSB022. New tests use only the published genuine
+Clan caller, not APIs from the uncommitted Guild/Union HOLD. The remote analysis
+has not yet assessed this unpublished successor; do not subtract13 from its total.
+
+Previous verified checkpoint: full Windows39933407353 passed in4m06s on exact
 `eae56f67e7ba11216b605c108a32abd54d40c73f`: core21682 passed/0failed
 (165 excluded), updater301/301, launcher49/49 and all eight check steps exit0.
 This is offline/synthetic CI, not deployment or complete gameplay parity.

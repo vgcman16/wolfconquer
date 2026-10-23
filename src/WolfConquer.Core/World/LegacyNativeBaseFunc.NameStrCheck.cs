@@ -24,15 +24,15 @@ public static bool NameStrCheck(string? name, bool ExceptedSize = true)
 		{
 			return false;
 		}
-		if (name.Contains("\\"))
+		if (name.Contains('\\'))
 		{
 			return false;
 		}
-		if (name.Contains("'"))
+		if (name.Contains('\''))
 		{
 			return false;
 		}
-		if (name.Contains("GM") || name.Contains("PM") || name.Contains("MrRayzo") || name.Contains("Rayzo") || name.Contains("SYSTEM") || name.Contains("None") || name.Contains("Clicker") || name.Contains("SpeedHack") || name.Contains("Aimbot") || name.Contains("CheatEngine") || name.Contains("Hack") || name.Contains("Engine") || name.Contains("Cheat") || name.Contains("clicker") || name.Contains("speed") || name.Contains("GM") || name.Contains("PM") || name.Contains("GMPM") || name.Contains("Moksha") || name.Contains("TQ") || name.Contains("TQGMPM") || name.Contains("TQPM") || name.Contains("TQGM") || name.Contains("guard1") || name.Contains("Guard") || name.Contains("Guard1") || name.Contains("Guard") || name.Contains("Kosamk") || name.Contains("kosamk") || name.Contains("{") || name.Contains("}") || name.Contains("[") || name.Contains("]"))
+		if (name.Contains("GM") || name.Contains("PM") || name.Contains("MrRayzo") || name.Contains("Rayzo") || name.Contains("SYSTEM") || name.Contains("None") || name.Contains("Clicker") || name.Contains("SpeedHack") || name.Contains("Aimbot") || name.Contains("CheatEngine") || name.Contains("Hack") || name.Contains("Engine") || name.Contains("Cheat") || name.Contains("clicker") || name.Contains("speed") || name.Contains("GM") || name.Contains("PM") || name.Contains("GMPM") || name.Contains("Moksha") || name.Contains("TQ") || name.Contains("TQGMPM") || name.Contains("TQPM") || name.Contains("TQGM") || name.Contains("guard1") || name.Contains("Guard") || name.Contains("Guard1") || name.Contains("Guard") || name.Contains("Kosamk") || name.Contains("kosamk") || name.Contains('{') || name.Contains('}') || name.Contains('[') || name.Contains(']'))
 		{
 			return false;
 		}

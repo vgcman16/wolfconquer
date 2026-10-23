@@ -2,28 +2,20 @@ namespace WolfConquer.Core.World;
 
 internal sealed partial class LegacyNativeRuneItemStorage
 {
-    // Complete native Rune157..211. Count and worn-selection policies are intentionally distinct.
+    // Count uses native active ranges, not worn fallback; corrupt or unrepresentable state refuses.
     public byte EquippedCount
     {
         get
         {
-            byte b = 0;
-            LegacyNativeGameItemRuntime[] array = objects;
-            foreach (LegacyNativeGameItemRuntime msgGameItem in array)
+            if (!TryCaptureEquipped(out var context, out var snapshot)) return 0;
+            int count = 0;
+            ushort first = context.Alternate ? (ushort)121 : (ushort)101;
+            ushort last = context.Alternate ? (ushort)135 : (ushort)115;
+            foreach (var row in snapshot)
             {
-                if (!Owner!.Equipment!.Alternante)
-                {
-                    if (msgGameItem != null && msgGameItem.Position >= 101 && msgGameItem.Position <= 115)
-                    {
-                        b++;
-                    }
-                }
-                else if (msgGameItem != null && msgGameItem.Position >= 121 && msgGameItem.Position <= 135)
-                {
-                    b++;
-                }
+                if (row.Position >= first && row.Position <= last && ++count > byte.MaxValue) return 0;
             }
-            return b;
+            return IsCurrent(context) ? (byte)count : (byte)0;
         }
     }
 

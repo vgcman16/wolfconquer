@@ -41,17 +41,23 @@ internal partial class LegacyNativeHundredWeapons
 
     public bool Free(int Position)
     {
-        return Objects.Values.Count((LegacyNativeHundredWeaponInfo i) => i.BitVector.Contain(Position)) == 0;
+        lock (slotSyncRoot)
+            return IsSlotPosition(Position) && TrySnapshotSlotStorage(requireBitmap: true, out var rows) &&
+                !rows.Any(item => item.BitVector.Contain(Position));
     }
 
     public bool FreeAppearance(byte Position)
     {
-        return Objects.Values.Count((LegacyNativeHundredWeaponInfo i) => i.AppearancePosition == Position) == 0;
+        lock (slotSyncRoot)
+            return TrySnapshotSlotStorage(requireBitmap: false, out var rows) &&
+                !rows.Any(item => item.AppearancePosition == Position);
     }
 
     public LegacyNativeHundredWeaponInfo TryGetItem(int Position)
     {
-        return Objects.Values.Where((LegacyNativeHundredWeaponInfo i) => i.BitVector.Contain(Position)).FirstOrDefault();
+        lock (slotSyncRoot)
+            return IsSlotPosition(Position) && TrySnapshotSlotStorage(requireBitmap: true, out var rows)
+                ? rows.FirstOrDefault(item => item.BitVector.Contain(Position)) : null;
     }
 
     public bool ValidWeapon(LegacyNativeMagicType.WeaponsType subType, byte Level)
