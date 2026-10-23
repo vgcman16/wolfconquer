@@ -24,8 +24,8 @@
   scalar writer and ten receive fields are implemented, without host activation.
 - [x] Whole Taoist power family and genuine GUILDWAR state/constructor/conductor,
   gate/query/policy/AddNpc prerequisites are implemented. Full war remains held.
-- [x] Private and independent sanitized-public Release each passed4366/4366,
-  zero failures/skips:4331 retained +23 new readiness +12 existing tool controls.
+- [x] Private and independent sanitized-public Release each passed4410/4410,
+  zero failures/skips:4366 retained +44 deferred-money cases (39 existing,5 net new).
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
@@ -41,7 +41,13 @@
   field-shape assertion is corrected and all26 cases pass. The native process
   fixture has a kill-before-ready race. Opt-in bounded readiness now passes all31
   probe cases, preserving original module/thread/TCP/log assertions and default
-  no-ready behavior. Fresh full Windows proof is pending; no new green claim yet.
+  no-ready behavior. Newer Windows39908229600 on9d29b7c3 passed those repairs but
+  failed one unrelated deferred-money fixture:20943 passed/1 failed/165 unexecuted
+  of21109; updater262 passed; later stages did not run. Map10250's independent3%
+  special item precedes the generic blocked-map gate. The test now forces that
+  roll and retains zero-money/terrain checks for all five blocked maps, plus a
+  positive special-item control. No production drop behavior changed. Fresh full
+  Windows proof is pending; no new green claim yet.
 
 ## Correctness findings retained
 

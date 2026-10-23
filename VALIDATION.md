@@ -1,5 +1,24 @@
 # Publication validation
 
+## Deterministic deferred-money blocked-map controls
+
+[Windows39908229600](https://github.com/vgcman16/wolfconquer/actions/runs/39908229600)
+on9d29b7c398cc3c2a95c59536bb33223e5e754c14 passed all31 native-probe cases and the
+Rifinery repair, but failed one unrelated blocked-map test: core20943 passed/
+1 failed/165 unexecuted of21109; updater262 passed; later stages did not run.
+The test forced generic money roll49 but left map10250's independent3% special
+item roll random. The native source and replacement both perform the special
+item branch before the generic blocked-map early return, so terrain/item work
+can correctly occur while money remains unread.
+
+Private and independent sanitized-public Release each passed4410/4410 selected
+cases, zero failures/skips:4366 retained plus all44 deferred-money cases, including
+five net new cases. Only the test fixture changes: all five blocked maps disable that
+special roll and retain zero money/terrain/floor assertions. A forced-hit control
+requires the actual item3330770, terrain placement and visible floor entry before
+the generic money gate, with zero money reads. Production ordering and random
+behavior are unchanged. Fresh full Windows validation is pending.
+
 ## Bounded native-launch readiness repair
 
 Private and independent sanitized-public Release each passed4366/4366 selected

@@ -186,10 +186,16 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
         });
     }
 
-    [Fact]
-    public async Task ActualBlockedMapEarlyReturnDoesNotDemandMoney()
+    [Theory]
+    [InlineData(10_250)]
+    [InlineData(3_846)]
+    [InlineData(2_351)]
+    [InlineData(2_352)]
+    [InlineData(2_353)]
+    public async Task ActualBlockedMapEarlyReturnDoesNotDemandMoney(int mapId)
     {
-        using var fixture = new Fixture(49, [50_000], mapId: 10_250);
+        // Map 10250's independent special-item roll precedes the generic blocked-map gate.
+        using var fixture = new Fixture(49, [50_000], mapId: mapId, deityLandRandomDrop: false);
 
         await InvokeActualDropBodyAsync(fixture);
 
@@ -197,6 +203,24 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
         Assert.Equal(0, fixture.Cells.Reads);
         Assert.Empty(FloorPackets(fixture));
         Assert.Empty(fixture.Floor.SnapshotVisible(DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public async Task ActualDeityLandSpecialItemPrecedesBlockedGenericMoneyWithoutDemandingAmount()
+    {
+        using var fixture = new Fixture(49, [50_000], mapId: 10_250, deityLandRandomDrop: true);
+
+        await InvokeActualDropBodyAsync(fixture);
+
+        Assert.Equal(0, fixture.Attributes.MoneyReads);
+        Assert.Equal(1, fixture.Cells.Reads);
+        var packet = Assert.Single(FloorPackets(fixture));
+        Assert.Equal(3_330_770u, packet.ItemId); // Forced special roll 16, not the generic money roll 49.
+        var entry = Assert.Single(fixture.Floor.SnapshotVisible(DateTimeOffset.UtcNow));
+        Assert.Equal(FloorItemRuntimePickupKind.Item, entry.Kind);
+        Assert.Equal(0, entry.Amount);
+        Assert.Equal(packet, entry.Packet);
+        Assert.Contains("Core.Rate(3) random item ladder", fixture.Log.ToString());
     }
 
     [Fact]
@@ -338,9 +362,9 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
 
         internal Fixture(int roll, uint[] amounts, Func<int, int, bool>? ground = null,
             FloorItemRuntimeStateStore? floor = null, int mapId = 1002, bool worldDataLoaded = true,
-            uint monsterDynamicId = 0, uint killerDynamicId = 0)
+            uint monsterDynamicId = 0, uint killerDynamicId = 0, bool? deityLandRandomDrop = null)
         {
-            Attributes = new MoneyAttributes(roll, amounts, killerDynamicId);
+            Attributes = new MoneyAttributes(roll, amounts, killerDynamicId, deityLandRandomDrop);
             Cells = new CountingCells(ground ?? (static (_, _) => true));
             Floor = floor ?? new FloorItemRuntimeStateStore();
             Family = new Monster(9_901, "DeferredMoneyFixture", new Dictionary<string, string>
@@ -394,7 +418,7 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
         internal int MoneyReads { get; private set; }
         internal Action<int>? BeforeMoneyRead { get; set; }
 
-        internal MoneyAttributes(int roll, uint[] amounts, uint dynamicId = 0)
+        internal MoneyAttributes(int roll, uint[] amounts, uint dynamicId = 0, bool? deityLandRandomDrop = null)
         {
             Assert.NotEmpty(amounts);
             this.amounts = amounts;
@@ -402,6 +426,11 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
             values[MoneyAttribute] = amounts[0].ToString(CultureInfo.InvariantCulture);
             values["PkMode"] = "3";
             values["DynamicID"] = dynamicId.ToString(CultureInfo.InvariantCulture);
+            if (deityLandRandomDrop is { } specialDrop)
+            {
+                values["LegacyDeityLandRandomDropRate"] = specialDrop ? "1" : "0";
+                values["LegacyDeityLandRandomDropRoll"] = "16";
+            }
         }
 
         public bool TryGetValue(string key, out string value)
