@@ -17,7 +17,11 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   Full probe diagnostics are being retained without changing readiness assertions
   or timebounds; cause remains unconfirmed. Private readiness selection23/23
   passed,zero failed/skipped; this is not a fixed-flake claim. Independent full-CI
-  successor remains pending. D13 offline/owned-file checks preserve valid
+  successor40024325826 nowpassed4m40s on exactpublicfdec0466:24075corepass,
+  0failed/165existing exclusions,updater301/301,launcher57/57,all8stages0,
+  190buildwarnings/0errors. Receipt20261023T210825276Z-b839ee31 finished
+  21:12:43.7712151Z;jobcompleted21:12:50Z. Earlier readiness cause remains
+  unconfirmed,not a fixed-flake claim. D13 offline/owned-file checks preserve valid
   economics/frames; server-export item names are not client-table proof.
   Whole transactions,zero-stack admission,respawn/claims,UID/Host activation,
   crash recovery,SQL/live/full parity remain open. Fourteen xUnit2031 substitutions

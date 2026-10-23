@@ -1071,12 +1071,24 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   bounds while including complete actual stdout/stderr on failure. This is not
   a runtime repair, fixed-flake claim or full-CI acceptance.
   Private diagnostic/readiness selection passed23/23,zero failed/skipped,8s;
-  the original failure did not reproduce. Independent full-CI successor pending.
+  the original failure did not reproduce. Full successor acceptance follows.
 - D13 offline registered/component fixtures and owned files only. Private-method
   post-roll controls are not registered Epic/Frame/client proof. No live client,
   SQL, crash safety, coherent multi-file atomicity or full-parity acceptance.
   Fourteen equivalent xUnit2031 substitutions in eight test files are local
   hygiene, not a verified CodeFactor portal finding reduction.
+
+- Full Windows [40024325826](https://github.com/vgcman16/wolfconquer/actions/runs/40024325826)
+  passed on exactpublicfdec04667add46095956374371ab5faddd3f6af4 in4m40s,
+  jobcompleted2026-10-23T21:12:50Z. ActualterminalTRXs:core24075passed/0failed,
+  165existing external-fixture exclusions(total24240);updater301/301;
+  launcher57/57. All8stagesexit0,build190warnings/0errors. Receipt
+  20261023T210825276Z-b839ee31 finished21:12:43.7712151Z. Root read actual
+  runnerHEAD,receipt/stdouts/all3terminalTRXs andGitHubjobstate. Parsers20+13
+  are synthetic,noHTTP/serviceprobes. The readiness case passed4.897785s;
+  earlier40022478743 cause remains unconfirmed,not a proven fixed flake.
+  This accepts the coherent offline source batch,notSQL/live/deployment,
+  globalUIDactivation,whole transactions or fullgameplayparity.
 
 ## Active audit
 
