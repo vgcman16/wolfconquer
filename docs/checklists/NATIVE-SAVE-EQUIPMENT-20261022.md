@@ -1,5 +1,21 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on InnerPower and Rune proof
+
+- [x] Complete InnerPower owner, stages/status/rank, actual INI definition loader,
+  count-record save/load, potency packet and equipment attribute method:60 cases.
+- [x] Complete Rune table/load/plus-points and actual score/perfection/slot/Full/
+  Check methods plus two native buff fields:131 cases.
+- [x] Private and independent sanitized-public Release each passed565/565,
+  0 failures/skips (191 new +374 retained). All five Win32 INI controls executed.
+- [ ] Full Equipment.UpdateStats/QueryEquipment, Rune mutation actions, Team/HP
+  lifecycle, whole save/login and host adoption remain unfinished.
+- Aura numerical review: an owned Framework4/x86 probe passed66 controls in both
+  default and optimized builds. Direct float-multiply/cast retains x87 precision;
+  a stored float product can differ. This is not original-executable/live proof.
+
+
+
 Updated: October 22, 2026 (local time). This is component progress, not a
 replacement-server, live-client, English-client or full-parity completion claim.
 

@@ -1,5 +1,20 @@
 # Publication validation
 
+## Native InnerPower and Rune stat prerequisites
+
+Private Release and independent sanitized-public Release each passed565/565,
+zero failures/skips:60 new complete InnerPower/table/INI/record/rank/potency/
+equipment cases,131 new Rune/table/load/plus-points/score/perfection/slot cases,
+and374 retained. All five real Win32 INI controls executed on Windows. Native
+array order, null defaults, integer truncation/overflow, prefix-on-fault state,
+same-object caches, actual spell/packet effects and owned file round-trips remain
+tested without a database, client, original executable or ignored game fixture.
+
+Full native equipment rebuild, Rune mutation/receive actions, Team/HP lifecycle,
+SaveClient/LoadCharacter/startup/login and host adoption remain open. The full
+Windows run interruption below remains unqualified; these focused passes do not
+prove deployment, English-client completion or a higher parity percentage.
+
 ## Native Chi, achievement state and equipment prerequisites
 
 Private Release and independently built sanitized-public Release both passed374/
