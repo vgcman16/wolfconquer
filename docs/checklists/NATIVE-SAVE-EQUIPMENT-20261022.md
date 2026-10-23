@@ -15,9 +15,13 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 - [x] Current combined local checks: private/public each1112/1112 selected core
   and301/301 complete updater tests, zero failures/skips. Includes15 additional
   CodeFactor API fixes and the retained-handle process attribution repair.
-- [ ] Full Windows39926199302 on ec7e19c0 failed one updater process-attribution
-  case: core21476 passed/0 failed, updater261/262. Local repair is verified above;
-  fresh full Windows CI is still required for the new combined checkpoint.
+- [x] Full Windows39930101290 on exact7a41ea63 passed in4m03s: core21675 passed/
+  0failed (165 excluded), updater301/301, launcher49/49, all8 check steps exit0.
+  This closes failed39926199302, which had core21476 green and updater261/262.
+  CI is not deployment, live-client proof or full parity.
+- [x] CodeFactor confirms the15 new character-overload fixes absent, with current
+  total2305. Seven newly introduced style/complexity warnings are now identified
+  for a separate reviewed cleanup, not ignored or hidden.
 
 - [x] Sanitized spell admission and allocation: private and independent public
   Release each passed 510/510 selected cases, zero failures/skips. Rejected

@@ -1,5 +1,19 @@
 # Publication validation
 
+## Latest full Windows receipt
+
+[Windows39930101290](https://github.com/vgcman16/wolfconquer/actions/runs/39930101290)
+passed in4m03s on exact `7a41ea63809b6f0a1fd84ec5ff00c574d81c9668`, completed
+`2026-10-23T09:17:24Z`. Actual terminalTRX: core21675 passed/0failed of21840
+(165 excluded), updater301/301 and launcher49/49. All eight local-check stages
+exited0. Receipt `20261023T091336414Z-43a27591` finished
+`2026-10-23T09:17:17.5667121Z`. HTTP/service deployment probes were not enabled.
+
+CodeFactor now confirms the15 selected character-overload findings absent, with
+2305 total findings. Seven new style/complexity warnings from this work are
+identified and queued separately. Green CI/static grades are not deployment,
+live-client proof, a completed bug audit or full gameplay parity.
+
 ## Combined sanitized and quality checkpoint
 
 Private and independent public Release each passed **1112/1112** selected core
@@ -12,7 +26,8 @@ independent signed/configured/protected names.
 Fifteen additional observed CA1865 findings use equivalent ordinal character
 overloads, with78 new parser/path/comment/status controls across the two suites.
 No suppression, exclusion, measured-speedup or remote-closure claim is made.
-Current remote report2314 predates these15 fixes. Fresh full CI remains required.
+The older report2314 predates these15 fixes. The newer full receipt and remote
+snapshot are recorded above.
 
 ## Active title storage safety and current CI boundary
 
@@ -32,8 +47,8 @@ classic title completion. Classic2152 Change remains separately open.
 on exact ec7e19c08299bc0b486695ddae06a12c20e9036d failed one updater case:
 core21476 passed/0failed (165 excluded), updater261/262. The updater failed closed
 on unavailable process-image attribution; exact startup/exit timing is unproven.
-The local repair passed301/301 as recorded above; a new full CI run is still
-required. This failed historical run is not a new full-CI-green claim.
+The local repair passed301/301 and full39930101290 is green as recorded above.
+This failed historical run is retained as diagnostic evidence only.
 
 ## Bounded CodeFactor ranking/rune cleanup
 
@@ -50,7 +65,7 @@ SQL, worker or deployed process changed. Broader ranking writers, BestOf, Rune.A
 and public mutable owner graphs still require audit. Remote CodeFactor reanalysis
 now confirms these eight findings absent alongside the earlier five. Current
 overall snapshot is2314 findings. Another15 precise character-overload fixes are
-locally verified above; they are not yet claimed remotely cleared.
+locally verified above and subsequently confirmed absent in the latest report.
 
 [Windows 39924242810](https://github.com/vgcman16/wolfconquer/actions/runs/39924242810)
 passed on exact `7781b6208956887992b1716d2848e78d09f7a9fc` in 3m 56s; the job completed

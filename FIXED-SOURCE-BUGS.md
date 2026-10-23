@@ -141,6 +141,18 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## CodeFactor cleanup
 
+Latest verified checkpoint: full Windows39930101290 passed in4m03s on exact
+`7a41ea63809b6f0a1fd84ec5ff00c574d81c9668`: core21675 passed/0failed
+(165 excluded), updater301/301, launcher49/49 and all eight check steps exit0.
+This is offline/synthetic CI, not deployment or complete gameplay parity.
+
+Latest remote snapshot: **2305 findings**. The15 selected CA1865 records are now
+absent; that group contains only the deliberately held Guild persistence record.
+Commit reports identify seven NEW warnings (six title-related style/complexity/
+test-cleanup findings and one process-reader argument-check recommendation), plus
+one additional fixed updater finding. These new warnings remain queued for
+reviewed cleanup; no suppression or empty NO-ISSUES interpretation is used.
+
 Authorized alongside behavioral repairs. The public report was retrieved on
 2026-10-23: grade A, 2,327 findings across 4,864 files. Category counts: complexity
 822; duplication 196; performance 106; maintainability 1,203. This is a snapshot,
