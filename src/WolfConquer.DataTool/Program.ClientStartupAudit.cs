@@ -1297,7 +1297,7 @@ internal static partial class Program
         }
 
         return segments.Any(segment =>
-            segment.StartsWith(".", StringComparison.Ordinal) ||
+            segment.StartsWith('.') ||
             string.Equals(segment, "ini.oldcompat", StringComparison.OrdinalIgnoreCase) ||
             segment.StartsWith("ini.oldcompat-", StringComparison.OrdinalIgnoreCase) ||
             segment.StartsWith("Env_DX", StringComparison.OrdinalIgnoreCase));
@@ -1848,8 +1848,8 @@ internal static partial class Program
     static bool IsRelativeClientStartupCandidate(string value)
     {
         if (value.Length == 0 ||
-            value.StartsWith("/", StringComparison.Ordinal) ||
-            value.StartsWith("\\", StringComparison.Ordinal) ||
+            value.StartsWith('/') ||
+            value.StartsWith('\\') ||
             (value.Length >= 2 && char.IsLetter(value[0]) && value[1] == ':'))
         {
             return false;

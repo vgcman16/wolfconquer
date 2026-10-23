@@ -764,7 +764,7 @@ public sealed class LegacyDragonWarRuntimeStateStore
 
         parts[wordIndex] = (word & ~mask).ToString(CultureInfo.InvariantCulture);
         updated = string.Join(separator.ToString(), parts) +
-            (usesSlash && raw.EndsWith("/", StringComparison.Ordinal) ? "/" : "");
+            (usesSlash && raw.EndsWith('/') ? "/" : "");
         return true;
     }
 

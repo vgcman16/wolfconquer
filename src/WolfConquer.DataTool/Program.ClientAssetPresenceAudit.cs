@@ -229,8 +229,8 @@ internal static partial class Program
 
     private static bool IsRootedClientAssetPresencePath(string value)
     {
-        return value.StartsWith("/", StringComparison.Ordinal) ||
-            value.StartsWith("\\", StringComparison.Ordinal) ||
+        return value.StartsWith('/') ||
+            value.StartsWith('\\') ||
             (value.Length >= 2 && char.IsLetter(value[0]) && value[1] == ':') ||
             Path.IsPathRooted(value.Replace('/', Path.DirectorySeparatorChar));
     }

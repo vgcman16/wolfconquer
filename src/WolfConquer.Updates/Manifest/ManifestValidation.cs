@@ -15,7 +15,7 @@ internal static class ManifestValidation
         if (uri is null || !uri.IsAbsoluteUri || string.IsNullOrEmpty(uri.Host) ||
             !(uri.Scheme == Uri.UriSchemeHttps || allowLoopbackHttp && uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback) ||
             uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0 ||
-            !uri.OriginalString.EndsWith("/", StringComparison.Ordinal) ||
+            !uri.OriginalString.EndsWith('/') ||
             uri.OriginalString.Any(character => char.IsControl(character) || char.IsWhiteSpace(character) || character == '\\'))
             throw new InvalidDataException("Content base must be a credential-free HTTPS directory URL.");
         if (manifest.Files.Count > SignedUpdateManifest.MaximumFiles)

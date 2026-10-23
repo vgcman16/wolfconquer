@@ -185,8 +185,8 @@ internal static class ClientStringRefAuditor
 
         var trimmed = relativePath.Trim();
         var normalized = trimmed.Replace('\\', '/');
-        if (normalized.StartsWith("/", StringComparison.Ordinal) ||
-            normalized.StartsWith("\\", StringComparison.Ordinal) ||
+        if (normalized.StartsWith('/') ||
+            normalized.StartsWith('\\') ||
             IsWindowsDriveRootedPath(normalized) ||
             Path.IsPathRooted(trimmed) ||
             normalized.Split('/', StringSplitOptions.RemoveEmptyEntries).Any(static segment => segment == ".."))

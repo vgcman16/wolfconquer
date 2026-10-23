@@ -93,10 +93,10 @@ internal static class ClientTextCjkDebtClassifier
         var trimmed = line.TrimStart();
         return trimmed.StartsWith("//", StringComparison.Ordinal) ||
             trimmed.StartsWith("--", StringComparison.Ordinal) ||
-            trimmed.StartsWith(";", StringComparison.Ordinal) ||
-            trimmed.StartsWith("#", StringComparison.Ordinal) ||
+            trimmed.StartsWith(';') ||
+            trimmed.StartsWith('#') ||
             trimmed.StartsWith("/*", StringComparison.Ordinal) ||
-            trimmed.StartsWith("*", StringComparison.Ordinal) ||
+            trimmed.StartsWith('*') ||
             IsIniSectionCommentOnlyLine(line) ||
             HasOnlyInlineCommentCjk(line);
     }
@@ -133,7 +133,7 @@ internal static class ClientTextCjkDebtClassifier
     private static bool IsIniSectionCommentOnlyLine(string line)
     {
         var trimmed = line.TrimStart();
-        if (!trimmed.StartsWith("[", StringComparison.Ordinal))
+        if (!trimmed.StartsWith('['))
         {
             return false;
         }

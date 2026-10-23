@@ -47,7 +47,7 @@ internal static class PublishingCommand
         return 0;
     }
 
-    private static DateTimeOffset ParseUtc(string value) => (value.EndsWith("Z", StringComparison.Ordinal) ||
+    private static DateTimeOffset ParseUtc(string value) => (value.EndsWith('Z') ||
         value.EndsWith("+00:00", StringComparison.Ordinal)) && DateTimeOffset.TryParse(value,
         System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var parsed) &&
         parsed.Offset == TimeSpan.Zero ? parsed : throw new InvalidDataException("Publication timestamps must be explicit UTC.");

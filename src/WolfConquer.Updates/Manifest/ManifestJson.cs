@@ -59,7 +59,7 @@ internal static class ManifestJson
     private static DateTimeOffset Timestamp(JsonElement element)
     {
         string value = Text(element);
-        if (!value.Contains('T') || !(value.EndsWith("Z", StringComparison.Ordinal) ||
+        if (!value.Contains('T') || !(value.EndsWith('Z') ||
                                       value.EndsWith("+00:00", StringComparison.Ordinal)) ||
             !element.TryGetDateTimeOffset(out var timestamp) || timestamp.Offset != TimeSpan.Zero)
             throw new InvalidDataException("Manifest timestamps require an explicit UTC timezone.");
