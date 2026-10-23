@@ -4,25 +4,26 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest integration gate — full CI remains RED
+## Latest integration gate — public transfer correction awaiting CI
 
-Full [Windows40032574805](https://github.com/vgcman16/wolfconquer/actions/runs/40032574805)
-FAILED exact public0deb1e46117858ba7d1533ea8895aa845f11311e in4m39s;
-jobcompleted22:22:02Z. Receipt20261023T221739757Z-8629d86e finished
-22:21:53.15871Z: core24176passed/1failed/165existing NotExecuted of24342;
-updater301passed; launcher/parsers did not run; build190warnings/0errors.
-All534 public cases selected by the same chest/NPC/Trade/session/barrier filter
-passed, including127 chest,95 NPC and14 codec. Two older Trade partner fact
-names differ between private/public; whole-name inventory identity is not claimed.
-The sole failure is the old runtime Reviver test: expected StatusFlag, got
-Stamina. Exact historical stamina value/interleaving was not recorded. Source
-inspection confirms a real competing-loop stale-stamina risk (FSB068), not proof
-that only the assertion is wrong. Corrected seed failure remains fixed; full-CI
-acceptance is still RED. No live,SQL,original-save,routing or deployment action.
+[Windows40036236341](https://github.com/vgcman16/wolfconquer/actions/runs/40036236341)
+FAILED public5c4948d034ada5a68b69c7730592663574c945a7 at build,190warnings/4errors;
+no solution/updater/launcher/parser tests ran. Receipt20261023T225156495Z-b4f315dc
+finished22:52:51.7972066Z; job completed22:52:59Z. Root read actual runnerHEAD,
+receipt and build stdout. A root patch-transfer mistake placed the manual-clock
+declaration in another test, leaving Reviver's timeProvider undefined. The
+two-line placement correction is now reviewed; the entire public Reviver fact
+matches the passing private method except its existing generic ticket username.
+No assertions were removed. This was an integration error, not a gameplay failure
+or permission to mark CI green. One successor full Windows check remains pending.
 
-Successor runtime fix is now privately focused-GREEN at556/556 (FSB068 below).
-Both controlled old-production race cases first failed alive/stamina5; the
-per-connection fix retains100. Full Windows successor acceptance is pending.
+Private FSB068 focused proof remains556/556 passed,0fail/skip,5s. Both actual
+D11/D13 controlled old-production race cases first failed alive/stamina5; the
+per-connection fix retains100. Earlier full40032574805 on0deb1e46 executed:
+core24176pass/1fail/165excluded,updater301pass; sole old Reviver expectedStatusFlag/
+receivedStamina (exact historical value/interleaving unknown). All534 selected
+chest/NPC/Trade/session/barrier neighbors passed then. Full acceptance remains RED.
+No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
 

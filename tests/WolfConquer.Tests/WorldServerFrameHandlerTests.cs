@@ -26967,7 +26967,6 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
         using var log = new RuntimeThreadSafeStringWriter();
         using var cancel = new CancellationTokenSource();
-        var timeProvider = new BossRuntimeManualTimeProvider(deathAt.AddSeconds(2));
         var handler = new WorldServerFrameHandler(
             new CharacterSnapshotLoader(_usersRoot),
             handoff,
@@ -33215,6 +33214,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
         using var log = new RuntimeThreadSafeStringWriter();
         using var cancel = new CancellationTokenSource();
+        var timeProvider = new BossRuntimeManualTimeProvider(deathAt.AddSeconds(2));
         var handler = new WorldServerFrameHandler(
             new CharacterSnapshotLoader(_usersRoot),
             handoff,
