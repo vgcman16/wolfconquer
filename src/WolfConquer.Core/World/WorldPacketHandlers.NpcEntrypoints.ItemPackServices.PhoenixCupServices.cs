@@ -573,13 +573,15 @@ public static partial class WorldPacketHandlers
         for (var pass = 0; pass < LegacyItemPackServicesPhoenixSpiritCost; pass++)
         {
             var passTargets = consumedItems.InventoryItems
-                .Where(item => item.ItemId == LegacyItemPackServicesSpiritOfLegendItemId)
+                .Where(item => item.ItemId == LegacyItemPackServicesSpiritOfLegendItemId &&
+                    item.Bound == 0 && item.StackSize > 0)
                 .ToArray();
             foreach (var passTarget in passTargets)
             {
                 var currentTarget = consumedItems.InventoryItems.FirstOrDefault(
                     item => item.Uid == passTarget.Uid &&
-                        item.ItemId == LegacyItemPackServicesSpiritOfLegendItemId);
+                        item.ItemId == LegacyItemPackServicesSpiritOfLegendItemId &&
+                        item.Bound == 0 && item.StackSize > 0);
                 if (currentTarget is null)
                 {
                     continue;

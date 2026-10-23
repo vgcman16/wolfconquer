@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyPhoenixCupServicesMutationTests : IDisposable
+public sealed partial class LegacyPhoenixCupServicesMutationTests : IDisposable
 {
     private const uint NpcId = 19_436;
     private const uint SpiritItemId = 3_300_056;
@@ -359,7 +359,7 @@ public sealed class LegacyPhoenixCupServicesMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task SpiritGateIsUnboundButRemovalFollowsSourceInventoryOrder()
+    public async Task SpiritCostDebitsOnlyEligibleUnboundRowsAndPreservesForeignStack()
     {
         var originalItems = Items(
             Item(10, SpiritItemId, stackSize: 2, bound: 1),
@@ -371,24 +371,24 @@ public sealed class LegacyPhoenixCupServicesMutationTests : IDisposable
             rewardRoll: 1,
             rewardAmount: 2);
 
-        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10);
         var remainingSpirit = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
             item => item.ItemId == SpiritItemId);
-        Assert.Equal(20U, remainingSpirit.Uid);
-        Assert.Equal(2, remainingSpirit.StackSize);
+        Assert.Equal(10U, remainingSpirit.Uid);
+        AssertPlayerItemsEqual(Items(originalItems.InventoryItems[0]), Items(remainingSpirit));
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
         var reward = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
             item => item.ItemId == SilverFragmentItemId);
-        Assert.Equal(21U, reward.Uid);
+        Assert.Equal(11U, reward.Uid);
         Assert.Equal(2, reward.StackSize);
 
         Assert.Equal(7, result.Sent.Count);
-        AssertItemUpdate(result.Sent[0], uid: 10, stackSize: 1);
-        AssertItemUpdate(result.Sent[1], uid: 20, stackSize: 4);
-        AssertRemoval(result.Sent[2], uid: 10);
-        AssertItemUpdate(result.Sent[3], uid: 20, stackSize: 3);
-        AssertItemUpdate(result.Sent[4], uid: 20, stackSize: 2);
+        AssertItemUpdate(result.Sent[0], uid: 20, stackSize: 4);
+        AssertItemUpdate(result.Sent[1], uid: 20, stackSize: 3);
+        AssertItemUpdate(result.Sent[2], uid: 20, stackSize: 2);
+        AssertItemUpdate(result.Sent[3], uid: 20, stackSize: 1);
+        AssertRemoval(result.Sent[4], uid: 20);
         AssertSystemTalk(result.Sent[5], "You received SilverPhoenixCupFragment*2!");
         Assert.Equal(LegacyGameItemPacket.AddItemMode, AssertGameItem(result.Sent[6]).Mode);
         AssertPlayerItemsEqual(
@@ -399,7 +399,7 @@ public sealed class LegacyPhoenixCupServicesMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task ReversingSpiritInventoryOrderReversesSourceRemovalPackets()
+    public async Task ForeignSpiritAfterEligibleStackIsNotChargedByLaterPasses()
     {
         var originalItems = Items(
             Item(10, SpiritItemId, stackSize: 5),
@@ -412,10 +412,16 @@ public sealed class LegacyPhoenixCupServicesMutationTests : IDisposable
             rewardAmount: 1);
 
         AssertItemUpdate(result.Sent[0], uid: 10, stackSize: 4);
-        AssertItemUpdate(result.Sent[1], uid: 20, stackSize: 1);
-        AssertItemUpdate(result.Sent[2], uid: 10, stackSize: 3);
-        AssertRemoval(result.Sent[3], uid: 20);
-        AssertItemUpdate(result.Sent[4], uid: 10, stackSize: 2);
+        AssertItemUpdate(result.Sent[1], uid: 10, stackSize: 3);
+        AssertItemUpdate(result.Sent[2], uid: 10, stackSize: 2);
+        AssertItemUpdate(result.Sent[3], uid: 10, stackSize: 1);
+        AssertRemoval(result.Sent[4], uid: 10);
+        AssertPlayerItemsEqual(
+            Items(originalItems.InventoryItems[1]),
+            Items(Assert.Single(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20)));
+        AssertPlayerItemsEqual(
+            result.UpdatedSession.PlayerItems,
+            Assert.IsType<PlayerItemSnapshot>(result.PersistedItems));
     }
 
     [Fact]

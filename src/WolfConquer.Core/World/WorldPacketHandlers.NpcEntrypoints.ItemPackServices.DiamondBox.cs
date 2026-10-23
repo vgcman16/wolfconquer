@@ -181,7 +181,7 @@ public static partial class WorldPacketHandlers
 
         var box = session.PlayerItems.InventoryItems.FirstOrDefault(item =>
             item.ItemId == LegacyItemPackServicesDazzlingDiamondBoxItemId &&
-            item.StackSize > 0);
+            item.Bound == 0 && item.StackSize > 0);
         if (!LegacyItemPackServicesHasUnboundDazzlingDiamondBox(session) || box is null)
         {
             await LogLegacyItemPackServicesDazzlingDiamondFenceAsync(

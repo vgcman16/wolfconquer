@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyCatalogSelectorPackMutationTests : IDisposable
+public sealed partial class LegacyCatalogSelectorPackMutationTests : IDisposable
 {
     private const long AccountId = 1_293_600;
     private const long CharacterUid = 1_293_600;
@@ -235,7 +235,7 @@ public sealed class LegacyCatalogSelectorPackMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task UnboundPackGateThenBoundAgnosticRemovalConsumesFirstBoundMatch()
+    public async Task UnboundPackGateConsumesEligibleRowAndPreservesForeignBoundMatch()
     {
         var originalItems = Items(
             Item(10, BlackFridayAccessoryPackItemId, bound: 1),
@@ -247,9 +247,12 @@ public sealed class LegacyCatalogSelectorPackMutationTests : IDisposable
             SourceCatalog(),
             selectedItemId: FirstAccessoryItemId);
 
-        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10);
-        Assert.Contains(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20 && item.Bound == 0);
-        AssertItemRemoval(result.Sent[0], uid: 10);
+        AssertItemsEqual(
+            Items(originalItems.InventoryItems[0]),
+            Items(Assert.Single(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10)));
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        AssertItemRemoval(result.Sent[0], uid: 20);
+        AssertItemsEqual(result.UpdatedSession.PlayerItems, Assert.IsType<PlayerItemSnapshot>(result.PersistedItems));
     }
 
     [Fact]
@@ -269,7 +272,7 @@ public sealed class LegacyCatalogSelectorPackMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task PositiveUnboundGateStillRemovesFirstMatchingZeroStackPack()
+    public async Task PositiveUnboundGatePreservesZeroStackAndConsumesEligiblePack()
     {
         var originalItems = Items(
             Item(10, BlackFridayAccessoryPackItemId, stackSize: 0),
@@ -281,11 +284,12 @@ public sealed class LegacyCatalogSelectorPackMutationTests : IDisposable
             SourceCatalog(),
             selectedItemId: FirstAccessoryItemId);
 
-        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10);
-        Assert.Contains(
-            result.UpdatedSession.PlayerItems.InventoryItems,
-            item => item.Uid == 20 && item.StackSize == 1);
-        AssertItemRemoval(result.Sent[0], uid: 10);
+        AssertItemsEqual(
+            Items(originalItems.InventoryItems[0]),
+            Items(Assert.Single(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10)));
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        AssertItemRemoval(result.Sent[0], uid: 20);
+        AssertItemsEqual(result.UpdatedSession.PlayerItems, Assert.IsType<PlayerItemSnapshot>(result.PersistedItems));
     }
 
     [Fact]

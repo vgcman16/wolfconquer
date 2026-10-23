@@ -411,7 +411,8 @@ public static partial class WorldPacketHandlers
         CancellationToken cancellationToken)
     {
         var packItemId = service.RequiredPackItemId!.Value;
-        var packItem = session.PlayerItems.InventoryItems.FirstOrDefault(item => item.ItemId == packItemId);
+        var packItem = session.PlayerItems.InventoryItems.FirstOrDefault(item =>
+            item.ItemId == packItemId && item.Bound == 0 && item.StackSize > 0);
         if (packItem is null)
         {
             await LegacyItemPackServicesLogCatalogFenceAsync(

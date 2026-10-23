@@ -7,12 +7,21 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Adjacent admitted-cost repair (FSB048): private/public Release374/374each,0failed/
+  0skipped across all seven pack families. New3-owner baseline119pass/16fail
+  of135;5 unsafe old expectations corrected,30 new controls retained. Required
+  BlackFriday/Diamond and five-Spirit Phoenix debit only positive unbound rows,
+  keeping physical/round-robin order, exact costs/rewards/frames and persistence.
+  Full Windows CI pending; no UID/economy/global closure.
+
 - [x] Admitted pack cost selection (FSB047): private/public Release239/239each,0failed/
   0skipped after213pass/26fail baseline. Four consumers spend only a positive
   row in the admitted binding class, retaining first eligible inventory order.
   Wrong-binding/empty rows, full40-slot capacity, saved item metadata and exact
   debit/reward frame order are covered;10 unsafe old expectations corrected,
-  34 new controls added. Full Windows CI for this fix is pending.
+  34 new controls added. FullWindows39989920933 passes4m37s on exact8411bb61:
+  23627core/0failed (165externalfixtureexcluded), updater301/301, launcher49/49,
+  8stageexit0,204warnings.
   No client/server/SQL/original-save action; global UID and economy remain open.
 
 - [x] Late-accepted TCP shutdown drain (FSB046): private/public Release25/25

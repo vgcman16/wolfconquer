@@ -688,7 +688,37 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   full40-slot rejection are checked.
 - Limits: bounded selector repair, not whole economy atomicity, duplicate-UID
   validation, concurrent raw-writer/session safety, multi-file recovery, global
-  UID activation or live-client proof. Full Windows CI for this fix is pending.
+  UID activation or live-client proof. FullWindows39989920933 passes4m37s on
+  exact8411bb619ec53477a6eb035aa96db29c45c0e4d9, completed16:54:13Z:
+  23627corepassed/0failed of23792 (165externalfixtureexcluded), updater301/301,
+  launcher49/49;8stageexit0,204warnings. Receipt20261023T164951218Z-143565ae
+  finished16:54:06.1546457Z.
+
+
+### FSB-048: Keep adjacent pack debits in their admitted binding class
+
+- Owners: required-pack Black Friday catalog grants, Dazzling Diamond Box and
+  the five-Spirit Phoenix exchange. Their unbound-stock gate was followed by
+  ID-only debit. Phoenix also included empty rows in its per-pass targets.
+- Capture positive unbound costs in original physical order. Phoenix filters
+  both pass snapshots and current targets, preserving eligible round-robin order
+  and exactly five cost frames. Black Friday/Diamond rewards, CP branches, RNG,
+  capacity policy, UID API and debit/message/reward ordering are unchanged.
+- Tests-first baseline:135 total,119 passed/16 failed. Five old unsafe debit
+  expectations and11 new preserved-row cases reproduce the bug on unchanged
+  production. All105 retained intentions remain, plus30 modular new controls.
+- Verification: private and independent public Release each374/374,0failed/
+  0skipped across all seven pack
+  families (this135 plus retained FSB047239). Full item preimages, genuine saved/
+  reloaded images, exact frame sequences, first-eligible/round-robin order and
+  insufficient eligible stock are covered.
+  Phoenix's old max-plus-one fixture reward UID changes21 to11 when the correct
+  eligible20 is consumed and foreign10 survives; no payout or allocator tuning.
+- Limits: bounded selectors, not duplicate-UID/raw-writer/current-session safety,
+  multi-file/economy/outbox recovery or canonical UID activation. Future UID
+  producer predicates are authored separately; genuine legacy fixture migration
+  remains open. Full Windows CI for this fix is pending. No live client, SQL or
+  original-save action.
 
 
 ### FSB-009 (partial): Prepare Super Guild War rewards before consuming claims

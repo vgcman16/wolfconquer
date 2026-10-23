@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyDazzlingDiamondBoxMutationTests : IDisposable
+public sealed partial class LegacyDazzlingDiamondBoxMutationTests : IDisposable
 {
     private const uint DazzlingDiamondBoxNpcId = 4_294_967_279;
     private const uint DazzlingDiamondBoxItemId = 3_008_732;
@@ -170,7 +170,7 @@ public sealed class LegacyDazzlingDiamondBoxMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task BoundFirstBoxIsConsumedAfterUnboundEligibilityGate()
+    public async Task UnboundBoxIsConsumedAndForeignBoundStackIsPreserved()
     {
         var playerItemsRoot = CreatePlayerItemsRoot();
         var originalItems = CreatePlayerItems(
@@ -187,19 +187,22 @@ public sealed class LegacyDazzlingDiamondBoxMutationTests : IDisposable
             .Where(item => item.ItemId == DazzlingDiamondBoxItemId)
             .OrderBy(item => item.Uid)
             .ToArray();
-        Assert.Equal(2, boxes.Length);
-        Assert.Equal(10U, boxes[0].Uid);
-        Assert.Equal(1, boxes[0].Bound);
-        Assert.Equal(1, boxes[0].StackSize);
-        Assert.Equal(11U, boxes[1].Uid);
-        Assert.Equal(0, boxes[1].Bound);
-        Assert.Equal(1, boxes[1].StackSize);
-
-        var consumption = AssertGameItem(result.Sent[0]);
-        Assert.Equal(10U, consumption.Uid);
-        Assert.Equal(1, consumption.Bound);
-        Assert.Equal(1, consumption.StackSize);
-        Assert.Equal(LegacyGameItemPacket.UpdateItemMode, consumption.Mode);
+        var remainingBox = Assert.Single(boxes);
+        Assert.Equal(10U, remainingBox.Uid);
+        Assert.Equal(1, remainingBox.Bound);
+        Assert.Equal(2, remainingBox.StackSize);
+        AssertPlayerItemsEqual(
+            CreatePlayerItems(originalItems.InventoryItems[0]),
+            CreatePlayerItems(remainingBox));
+        var consumption = AssertItemUsage(result.Sent[0]);
+        Assert.Equal(11U, consumption.Id);
+        Assert.Equal(MsgItemUsageAction.RemoveInventory, consumption.Action);
+        Assert.Equal(3, result.Sent.Count);
+        Assert.Equal(30, AssertGameItem(result.Sent[1]).StackSize);
+        Assert.Equal("You receive 30 pieces of the Star~Diamond.", AssertMessageBox(result.Sent[2]).Text);
+        AssertPlayerItemsEqual(
+            result.UpdatedSession.PlayerItems,
+            new PlayerItemSnapshotLoader(playerItemsRoot).LoadByCharacterUid(CharacterUid));
     }
 
     [Fact]

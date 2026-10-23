@@ -1,5 +1,19 @@
 # Publication validation
 
+## Adjacent pack cost checkpoint
+
+Private and independent public Release each374/374,0failed/0skipped across all
+seven pack families. This
+batch retains105 Catalog/Diamond/Phoenix intentions and adds30 new controls;
+five unsafe old debit expectations are corrected, not removed. Actual tests-only
+baseline119pass/16fail of135 precedes the three production predicate fixes.
+Unbound positive costs, preserved full item bytes, real saved/reloaded images,
+physical/eligible-round-robin order and exact five-Spirit cost/wire tail are
+checked. Reward/CP/RNG/capacity policies and UID API are unchanged. Full Windows
+CI pending. Current max-plus-one Phoenix UID expectation
+changes only as a consequence of spending the correct row, not allocator tuning.
+No live client/server/SQL/original saves or global UID/economy closure is claimed.
+
 ## Pack cost selection checkpoint
 
 Private and independent public Release each239/239,0failed/0skipped after an
@@ -9,7 +23,11 @@ class, not an earlier foreign-binding/empty row.205 retained cases include10
 corrected unsafe expectations;34 new controls cover eligible source order,
 full40-slot capacity, exact frames and saved/reloaded full item metadata.
 Initial fixture-only compilation errors were corrected before the real baseline;
-no assertions were removed. Full Windows CI for this fix is pending.
+no assertions were removed. FullWindows39989920933 passes4m37s on exact
+8411bb619ec53477a6eb035aa96db29c45c0e4d9, completed2026-10-23T16:54:13Z:
+23627corepassed/0failed of23792 (165externalfixtureexcluded), updater301/301,
+launcher49/49;8stageexit0,204warnings. Receipt20261023T164951218Z-143565ae
+finished16:54:06.1546457Z.
 Reward/CP/RNG/wire order is unchanged. This is not whole economy/UID/session/
 multi-file atomicity, deployment or live-client proof.
 
