@@ -1,5 +1,19 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on Prestige and Perfection proof
+
+- [x] Whole native Prestige ranking buckets, queries, record/file persistence,
+  appearance and packet conversion; complete Perfection effects and Rune lookups.
+- [x] Private Release and independent sanitized-public Release each passed800/800,
+  zero failures/skips:235 new cases plus565 retained, including two fixture-owner
+  isolation controls. The initial793-pass/7-fail receipt is retained: seven tests
+  faulted during real item construction; corrected setup removes catalog metadata
+  only after construction, so the intended production fault order is exercised.
+- [ ] Full CreatePrestigePoints, equipment rebuild, startup/load/save/host adoption
+  and live-client proof remain open. These are component checks, not deployment.
+- HP arithmetic review: owned Framework4/x86 default and optimized probes each
+  passed10 finite double-to-UInt16 controls for the actual formula range only.
+
 ## Follow-on InnerPower and Rune proof
 
 - [x] Complete InnerPower owner, stages/status/rank, actual INI definition loader,
@@ -43,8 +57,8 @@ replacement-server, live-client, English-client or full-parity completion claim.
 - [ ] Full native Chi ranking/load, Achievement receiver and Player IMapObj/
   GetArray, Equipment.QueryEquipment/OnDequeue/UpdateStats, Inventory mutations,
   SaveClient/LoadCharacter/ExecuteLogin and startup/host adoption remain open.
-- [ ] InnerPower, Rune stats and prestige-ranking candidates await parent review
-  and execution. Helper static counts are not passing tests.
+- [x] InnerPower, Rune stats and Prestige/Perfection components passed independent
+  private/public focused runs above. Remaining helper candidates are unexecuted.
 
 The achievement receiver and its eight receiver cases are retained whole in
 ignored candidates, not compiled in reduced SendQueue-only form. The actual

@@ -1,5 +1,21 @@
 # Publication validation
 
+## Native Prestige ranking and Perfection effects
+
+Private Release and independent sanitized-public Release each passed800/800,
+zero failures/skips:235 new cases plus565 retained. Whole native rank buckets,
+ordering/alias behavior, queries, record/file persistence, appearance/protobuf
+conversion and all Perfection thresholds/Rune additions are covered. Two fixture
+isolation controls preserve real catalog/rank/RNG owners across nested scopes.
+
+The initial private793-pass/7-fail receipt remains local: missing metadata faulted
+at the genuine item setter during fixture construction, before the method under
+test. Setup now constructs with metadata, removes it, then asserts the real
+Perfection fault and preceding state. No production behavior was weakened.
+Full CreatePrestigePoints, equipment rebuilding, login/save/startup/host adoption
+and live-client acceptance remain open. No original executable or private data is
+needed by this synthetic/owned component selection; full Windows is not accepted.
+
 ## Native InnerPower and Rune stat prerequisites
 
 Private Release and independent sanitized-public Release each passed565/565,
