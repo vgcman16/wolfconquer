@@ -1,5 +1,27 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on arena records and complete map-spawn methods
+
+- [x] Complete solo/team arena records, handlers/codecs, point accessors, ranking
+  refresh and actual table Save; whole monster-family database/directory/text
+  loaders, Server/GameMap dynamic spawn helpers, remaining map item/NPC/static
+  queries, entire StaticRole and primitive race codecs:134 new cases (52+82).
+- [x] Private Release passed2781/2781 after fixture corrections; independent
+  sanitized-public Release passed2781/2781 first run, zero failures/skips.
+  First private run2774/2781 exposed seven test assumptions: native path spelling
+  retains doubled separators and SafeRandom seed0 is clock-seeded. Production
+  stayed unchanged; tests now assert raw/canonical path identity and nonzero seeds.
+- [x] Actual Core.GetAngle passes all16723 owned controls and digest2201143353.
+  Tests retain shadowed map/family IDs, duplicate floor-role aliases, malformed
+  record/fault prefixes, arena rank aliases and native raw Save prefixes.
+  Arena handlers stay private; tests invoke them through test-only reflection.
+- [ ] Arena Load/Reset/matches, inventory grants, RoleView.CanAdd/Booth admission,
+  race gameplay receiver, full combat/death/HP and eager login/SaveClient remain
+  unfinished. Loader definitions are not startup registration or live spawning.
+  No original files/processes, SQL, routes, full Windows, deployment or overall
+  parity acceptance follows from this owned offline component suite.
+
+
 ## Follow-on genuine monster targeting and movement
 
 - [x] Whole CheckTarget/SearchTarget/CheckGuardPosition, source geometry and

@@ -1,5 +1,31 @@
 # Publication validation
 
+## Native arena records and map-spawn families
+
+Private Release and independent sanitized-public Release each passed2781/2781,
+zero failures/skips:134 new cases (52 arena +82 map-spawn) and2647 retained.
+This covers complete solo/team arena record/save/rank/point/packet families,
+whole monster-family DB/directory/text loaders, complete Server/GameMap dynamic
+spawn helpers, remaining map item/NPC/static queries and entire StaticRole owner.
+No loader or packet handler is registered into a host by this checkpoint.
+
+First private run passed2774/2781. Its seven failures were fixture assumptions:
+native concatenated paths retain doubled separators, and SafeRandom(0) selects
+clock-based birth rather than Random(0). Production was unchanged; corrected
+fixtures assert raw plus canonical path identity and use32/128 nonzero seeds.
+Private rerun and first public run passed all2781. Actual Core.GetAngle also
+matches all16723 owned controls and independent digest2201143353.
+
+Arena handlers retain native private visibility with test-only reflection.
+Source quirks include duplicate floor-role aliases, shadowed map/family IDs,
+rank aliases, malformed-row/fault prefixes and raw Save paths. All temporary-file
+tests use isolated GUID-owned fixtures, not original maps, saves or database data.
+
+Arena Load/Reset/matches, inventory grants, CanAdd/Booth admission, race receiver,
+full combat/death/HP and eager login/SaveClient remain unfinished. No SQL/live
+client/host startup/full Windows/deployment or overall parity claim follows.
+
+
 ## Native monster targeting and movement
 
 Private Release and independent sanitized-public Release each passed2647/2647,
