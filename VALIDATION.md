@@ -1,5 +1,34 @@
 # Publication validation
 
+## Taoist power and native guild-war prerequisites
+
+Private and independent sanitized-public Release each passed4331/4331 selected
+cases, zero failures/skips:4230 retained +75 new +26 existing Rifinery cases.
+The whole Taoist power generation/send/update family uses the real equipment,
+class, flag, packet and view owners. GUILDWAR retains its complete state and
+constructor, GuildConductor load/coordinates, all gate meshes, full queries,
+Verified policy, walk/jump queries and AddNpc. NEWGUILDWAR remains the exact
+internal implicit-null scheduler field; no Create or event activation is added.
+
+Review kept the source's signed-short distance wrap: extreme coordinates can
+take the bypass before map indexing. Tests retain that behavior plus real
+out-of-range faults. Direct packet callers now supply the real recycler's writer
+prestate; literal byte assertions remain. Existing item Uid naming is reused,
+not replaced by a new public field. The original five cache names/order and
+Refinary mutability checks remain, with the new sixth mutable list recognized.
+Full guild war, status executors, progression, scheduler and host adoption remain
+held. No new floating-point compatibility translation was admitted.
+
+[Windows39905802844](https://github.com/vgcman16/wolfconquer/actions/runs/39905802844)
+on5a394cd7c397b76ccfe482ff3be271539a5101dc failed in4m27s: core20844 passed/
+2 failed/165 unexecuted of21011; updater262 passed; later stages did not run.
+One failure was the old Rifinery field-shape assertion, corrected and verified
+above. The other timed out awaiting TCP acceptance after the bounded probe had
+returned. The1500ms kill has no readiness gate, exposing a kill-before-ready race;
+the exact reason no connection arrived is unproven. An isolated8/8 baseline pass
+is not a fix.
+Bounded opt-in readiness repair and fresh full Windows proof are still pending.
+
 ## Complete Pole Domination component and shared-owner controls
 
 Private and independent sanitized-public Release each passed4230/4230 selected

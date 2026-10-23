@@ -22,8 +22,10 @@
   writers are implemented as components; full damage receive/login remain held.
 - [x] Entire PoleDomination state/round/scoring/furniture component, TeamArena
   scalar writer and ten receive fields are implemented, without host activation.
-- [x] Private and independent sanitized-public Release each passed4230/4230,
-  zero failures/skips:4157 retained +57 new +16 existing cache-owner controls.
+- [x] Whole Taoist power family and genuine GUILDWAR state/constructor/conductor,
+  gate/query/policy/AddNpc prerequisites are implemented. Full war remains held.
+- [x] Private and independent sanitized-public Release each passed4331/4331,
+  zero failures/skips:4230 retained +75 new +26 existing Rifinery controls.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
@@ -34,8 +36,11 @@
   parser20+13 cases. HTTP/service probes were skipped.
 - [x] Logging/ranking/login-wire source has full Windows proof in3m52s on exact
   b75f29ab. Hair setter/getter and earlier component controls remain intact.
-- [ ] Fresh full Windows proof for the newer Pole/logger/trade-list batch is
-  pending. The preceding green run does not validate these newer source changes.
+- [ ] Newer Windows39905802844 on5a394cd7 failed:20844 passed/2 failed/165
+  unexecuted of21011; updater262 passed; later stages did not run. The Rifinery
+  field-shape assertion is corrected and all26 cases pass. The native process
+  fixture can be killed before TCP readiness; bounded-handshake repair is pending.
+  No newer full green proof or status/guild-war full-CI proof is claimed.
 
 ## Correctness findings retained
 

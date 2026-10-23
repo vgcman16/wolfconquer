@@ -46,10 +46,12 @@ public sealed class LegacyNativeRifineryTests
     {
         var fields = typeof(ItemTable).GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
             .OrderBy(field => field.MetadataToken).ToArray();
-        Assert.Equal(new[] { "PurificationItems", "Accessorys", "Refinary", "Garments", "SteedMounts" },
+        Assert.Equal(new[] { "PurificationItems", "Accessorys", "Refinary", "Garments", "SteedMounts", "unabletradeitem" },
             fields.Select(field => field.Name));
         Assert.Equal(typeof(Dictionary<uint, Dictionary<uint, Rifinery.Item>>), fields[2].FieldType);
         Assert.False(fields[2].IsInitOnly);
+        Assert.Equal(typeof(List<uint>), fields[5].FieldType);
+        Assert.False(fields[5].IsInitOnly);
         var before = ItemTable.Refinary;
         try
         {
