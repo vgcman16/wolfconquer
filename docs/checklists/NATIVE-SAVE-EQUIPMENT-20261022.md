@@ -1,5 +1,25 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on complete solo arena load/reset and instance prerequisites
+
+- [x] Genuine arena instance and match constructors/state, complete Winner/Loser/
+  opponent queries, both instance rank builders, tournament contracts and entire
+  ArenaTable.Load/Reset:36 cases plus7 parent rank-evaluation controls.
+- [x] Private and independent sanitized-public Release each passed2824/2824,
+  zero failures/skips (43 new +2781 retained). Initial private2816/2817 exposed
+  net9 singleton OrderBy key skipping; the test was retained.
+- [x] Owned Framework4/x86 default and optimized rank probes each passed18/18.
+  Scoped arena ordering now snapshots every key once before stable sorting, as
+  Framework does, including singleton faults. Both instance and existing solo/team
+  static rank methods preserve array publication, resets, aliases and fault order.
+- [ ] Scheduler Create is not called; Arena remains genuinely null unless an owner
+  supplies the real instance. Successful fixtures bind a preexisting real Arena;
+  separate tests prove null faults after row/reset mutation, with no fallback.
+  Team Load/Reset/matches, solo matchmaking/win/watch/teleport, full Team/HP/
+  Inventory/login/SaveClient and host adoption remain unfinished. No live/SQL/
+  full Windows/deployment or overall parity acceptance follows.
+
+
 ## Follow-on arena records and complete map-spawn methods
 
 - [x] Complete solo/team arena records, handlers/codecs, point accessors, ranking

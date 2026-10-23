@@ -1,5 +1,27 @@
 # Publication validation
 
+## Native solo arena load/reset and genuine instance graph
+
+Private and independent sanitized-public Release each passed2824/2824, zero
+failures/skips:36 new arena-load/match/rank cases +7 parent rank-evaluation controls
+and2781 retained. Whole ArenaTable.Load/Reset, actual arena/match constructors,
+three match queries, both instance rank builders and tournament contracts are in.
+
+Initial private2816/2817 exposed a genuine runtime difference: net9 can skip the
+OrderBy key selector for one entry. Owned Framework4/x86 default and optimized
+probes each passed18/18 controls proving once-per-entry source-order reads, stable
+ties and singleton null faults. A scoped arena ordering translation precomputes
+keys once then stably sorts indices, without rereading mutable Info. Both instance
+and existing solo/team static rank methods keep original publication/reset order.
+Private rerun and first sanitized-public run passed all2824 selected cases.
+
+Arena scheduler references remain default-null; no Create or fallback allocator
+runs. Success fixtures supply an already constructed genuine Arena; null fixtures
+prove row/reset mutation before native faults. Team load/reset/matches, solo arena
+matchmaking/watch/win/teleport, full Team/HP/Inventory/login/SaveClient and host
+adoption remain held. No actual-client/SQL/full Windows/deployment/parity claim.
+
+
 ## Native arena records and map-spawn families
 
 Private Release and independent sanitized-public Release each passed2781/2781,

@@ -22,7 +22,7 @@ internal static class LegacyNativeArenaRankings
             {
                 user.Info.TodayRank = 0u;
             }
-            LegacyNativeArenaUser[] array3 = array.OrderByDescending((LegacyNativeArenaUser p) => p.Info.ArenaPoints).ToArray();
+            LegacyNativeArenaUser[] array3 = LegacyNativeArenaRankingOrder.Descending(array, (LegacyNativeArenaUser p) => p.Info.ArenaPoints);
             for (int num = 0; num < array3.Length && num != 1000; num++)
             {
                 Top1000Today[num] = array3[num];
