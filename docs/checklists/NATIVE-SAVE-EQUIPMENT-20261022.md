@@ -7,6 +7,16 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Selected-status and adjacent reward safety (FSB053/054): private Release
+  721/721, zero failed/skipped (545 boss/reward,79 Status,97 rank/query).
+  Tests-first baselines reproduced32 dirty-status and35 reward failures.
+  Valid formulas/rates/quantities/full item goldens remain; selected inputs and
+  complete grants prepare before effects/CAS/output. Full launcher57/57 also
+  passes after real cleanup-masking repair (FSB055; baseline5pass/3fail of8).
+  Independent public core707/707 and launcher57/57 pass, zero failed/skipped;
+  full Windows verification follows the checkpoint. No new
+  live/server/SQL/UID-activation or full-parity claim.
+
 - [x] Earth Force conversion/rank safety (FSB051/052): private Release592/592,
   zero failed/skipped (471boss/reward,46rank-effect,30rank table/persistence,
   45Status). Earth tests-only32:10pass/22fail; corrected early-ingress diagnostic

@@ -8,6 +8,7 @@ internal partial class LegacyNativeMyCombatGear
     // Whole native MyCombatGear.Status542..732. No optional branch removed.
 	public void Status()
 	{
+		var selected = PrepareSelectedStatusFlagValues();
 		using LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket();
 		LegacyNativePacket stream = recycledPacket.GetStream();
 		if (Check(user.Player.Class))
@@ -89,112 +90,112 @@ internal partial class LegacyNativeMyCombatGear
 				user.Status.Counteraction += (uint)magic.Damage3;
 			}
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.CannonBarrage | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.HolyProtection.Active)
 		{
-			user.Status.ItemBless += NativeCombatStatusUInt32(GetValue("HolyProtection")[0]);
+			user.Status.ItemBless += NativeCombatStatusUInt32(selected.HolyProtection.First);
 			user.Status.ItemBless = Math.Min(user.Status.ItemBless, 60u);
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.Top8Weekly | LegacyNativeMsgUpdate.Flags.Top4Weekly | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.PhoenixBlessing.Active)
 		{
-			user.Status.ItemBless += NativeCombatStatusUInt32(GetValue("PhoenixBlessing")[0]);
+			user.Status.ItemBless += NativeCombatStatusUInt32(selected.PhoenixBlessing.First);
 			user.Status.ItemBless = Math.Min(user.Status.ItemBless, 60u);
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.DragonPierceTortoise | LegacyNativeMsgUpdate.Flags.Top4Weekly))
+		if (selected.NobleSpirit.Active)
 		{
-			user.Status.MagicDefence += NativeCombatStatusUInt32(GetValue("NobleSpirit")[0]) / 100;
-			user.Status.Penetration += NativeCombatStatusUInt32(GetValue("NobleSpirit")[0] % 100.0) * 100;
+			user.Status.MagicDefence += NativeCombatStatusUInt32(selected.NobleSpirit.First) / 100;
+			user.Status.Penetration += NativeCombatStatusUInt32(selected.NobleSpirit.First % 100.0) * 100;
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.Confused | LegacyNativeMsgUpdate.Flags.Top4Weekly | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.FlameShield.Active)
 		{
-			user.Status.PhysicalDamageDecrease += NativeCombatStatusUInt32(GetValue("FlameShield")[0]);
-			user.Status.MagicDamageDecrease += NativeCombatStatusUInt32(GetValue("FlameShield")[1]);
+			user.Status.PhysicalDamageDecrease += NativeCombatStatusUInt32(selected.FlameShield.First);
+			user.Status.MagicDamageDecrease += NativeCombatStatusUInt32(selected.FlameShield.Second);
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.TopWaterTaoist | LegacyNativeMsgUpdate.Flags.Top4Weekly | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.FlowKnack.Active)
 		{
-			user.Status.PhysicalDamageDecrease += NativeCombatStatusUInt32(GetValue("FlowKnack")[0]);
-			user.Status.MagicDamageDecrease += NativeCombatStatusUInt32(GetValue("FlowKnack")[1]);
+			user.Status.PhysicalDamageDecrease += NativeCombatStatusUInt32(selected.FlowKnack.First);
+			user.Status.MagicDamageDecrease += NativeCombatStatusUInt32(selected.FlowKnack.Second);
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.AzureShield | LegacyNativeMsgUpdate.Flags.PaperDance))
+		if (selected.DivineEmptiness.Active)
 		{
-			user.Status.DodgeRate += NativeCombatStatusUInt32((double)user.Status.Dodge * (GetValue("DivineEmptiness")[0] / 100.0 / 100.0));
+			user.Status.DodgeRate += NativeCombatStatusUInt32((double)user.Status.Dodge * (selected.DivineEmptiness.First / 100.0 / 100.0));
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.CTF_Flag | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.WackeSpirit.Active)
 		{
-			user.Status.DodgeRate += NativeCombatStatusUInt32(GetValue("WackeSpirit")[0]);
+			user.Status.DodgeRate += NativeCombatStatusUInt32(selected.WackeSpirit.First);
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.TopPirate | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.CrackMantra1.Active)
 		{
-			if ((double)user.Status.Defence >= GetValue("CrackMantra1")[0])
+			if ((double)user.Status.Defence >= selected.CrackMantra1.First)
 			{
-				user.Status.Defence -= NativeCombatStatusUInt32(GetValue("CrackMantra1")[0]);
+				user.Status.Defence -= NativeCombatStatusUInt32(selected.CrackMantra1.First);
 			}
 			else
 			{
 				user.Status.Defence = 0u;
 			}
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.Freeze | LegacyNativeMsgUpdate.Flags.Top4Weekly | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.CrackMantra2.Active)
 		{
-			if ((double)user.Status.MagicDefence >= GetValue("CrackMantra2")[0])
+			if ((double)user.Status.MagicDefence >= selected.CrackMantra2.First)
 			{
-				user.Status.MagicDefence -= NativeCombatStatusUInt32(GetValue("CrackMantra2")[0]);
+				user.Status.MagicDefence -= NativeCombatStatusUInt32(selected.CrackMantra2.First);
 			}
 			else
 			{
 				user.Status.MagicDefence = 0u;
 			}
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.WildSigilBurning | LegacyNativeMsgUpdate.Flags.MagicDefender))
+		if (selected.Sense.Active)
 		{
-			user.Status.DodgeRate += NativeCombatStatusUInt32(GetValue("Sense")[1]);
+			user.Status.DodgeRate += NativeCombatStatusUInt32(selected.Sense.Second);
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.Ghost | LegacyNativeMsgUpdate.Flags.MagicDefender | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.Diabolize.Active)
 		{
-			user.Status.DodgeRate += NativeCombatStatusUInt32(GetValue("Diabolize")[0]);
+			user.Status.DodgeRate += NativeCombatStatusUInt32(selected.Diabolize.First);
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.Water | LegacyNativeMsgUpdate.Flags.MagicDefender))
+		if (selected.Barrier.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.AntiBreak, NativeCombatStatusUInt32(GetValue("Barrier")[0]) * 10);
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.AntiBreak, NativeCombatStatusUInt32(selected.Barrier.First) * 10);
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.TopSuperGuildWarFiveStars | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.Shell.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.Immunity, NativeCombatStatusUInt32(GetValue("Shell")[0]));
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.Immunity, NativeCombatStatusUInt32(selected.Shell.First));
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.BladeFlurry | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.Storm.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.PStrike, NativeCombatStatusUInt32(GetValue("Storm")[0]));
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.PStrike, NativeCombatStatusUInt32(selected.Storm.First));
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.KineticSpark | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.Thrash.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.FinalPDamage, NativeCombatStatusUInt32(GetValue("Thrash")[0]));
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.FinalPDamage, NativeCombatStatusUInt32(selected.Thrash.First));
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.PathOfShadow | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.Thunder.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.FinalPDamage, NativeCombatStatusUInt32(GetValue("Thunder")[0]));
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.FinalPDamage, NativeCombatStatusUInt32(selected.Thunder.First));
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.Lightning | LegacyNativeMsgUpdate.Flags.MagicDefender))
+		if (selected.Torrent.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.PAttack, NativeCombatStatusUInt32(GetValue("Torrent")[0]));
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.PAttack, NativeCombatStatusUInt32(selected.Torrent.First));
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.Wind | LegacyNativeMsgUpdate.Flags.MagicDefender))
+		if (selected.Tide.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.PDefense, NativeCombatStatusUInt32(GetValue("Tide")[0]));
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.PDefense, NativeCombatStatusUInt32(selected.Tide.First));
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.SuperCyclone | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.Splash.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.MaxHP, NativeCombatStatusUInt32(GetValue("Splash")[0]));
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.MaxHP, NativeCombatStatusUInt32(selected.Splash.First));
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.LotusDemon | LegacyNativeMsgUpdate.Flags.MagicDefender))
+		if (selected.Sailing.Active)
 		{
-			user.Status.Block += NativeCombatStatusUInt32(GetValue("Sailing")[0]) * 100;
+			user.Status.Block += NativeCombatStatusUInt32(selected.Sailing.First) * 100;
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.Earth | LegacyNativeMsgUpdate.Flags.MagicDefender))
+		if (selected.Vast.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.Break, NativeCombatStatusUInt32(GetValue("Vast")[0]) * 10);
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.Break, NativeCombatStatusUInt32(selected.Vast.First) * 10);
 		}
-		if (user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.TopDragonLee | LegacyNativeMsgUpdate.Flags.HawksAmbition))
+		if (selected.ColdBloodline.Active)
 		{
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.PDefense, NativeCombatStatusUInt32(GetValue("ColdBloodline")[0]));
+			A(LegacyNativeDaoqiDictTypeTable.AttrType.PDefense, NativeCombatStatusUInt32(selected.ColdBloodline.First));
 		}
 	}
 }

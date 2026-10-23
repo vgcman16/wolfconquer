@@ -105,6 +105,18 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
+        var existingCount = CountLegacyInventoryItem(session.PlayerItems, itemId);
+        if (existingCount >= requiredFragments)
+        {
+            await LogLegacyNatureRuneThresholdAsync(context, monster, monsterFamily).ConfigureAwait(false);
+            await context.Log.WriteLineAsync(
+                    "WorldServer applied legacy map 3998 Rune Fragment auto-route check " +
+                    $"{FormatSession(context)} monsterUid={monster.Uid} familyId={monsterFamily.Id} " +
+                    $"questId={questId} itemId={itemId} existingCount={existingCount} addedItem=False branch=\"{sourceBranch}\".")
+                .ConfigureAwait(false);
+            return session;
+        }
+
         if (!TryReadItemType(context.WorldData, itemId, out var itemType))
         {
             await LogParityGapAsync(
@@ -128,43 +140,22 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
-        var updatedItems = AddOrStackLegacyInventoryItem(
-            session.PlayerItems,
-            itemType,
-            itemId,
-            stackCount: 1,
-            out var rewardItem,
-            out var itemMode);
-        var updatedSession = session with { PlayerItems = updatedItems };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        if (!TryCommitLegacyNatureForceItem(context, session, itemType, itemId, stackReward: true,
+                out var prepared, out var reason))
+        {
+            await LogLegacyNatureForceRefusalAsync(context, monsterFamily.Id, reason).ConfigureAwait(false);
+            return session;
+        }
+        var rewardItem = prepared.Item;
+        var itemMode = prepared.Mode;
+        var updatedSession = prepared.Session;
         var updatedContext = context with { Session = updatedSession };
-
-        await context.Connection.SendAsync(
-                LegacyGameItemPacket.FromSnapshotItem(rewardItem, mode: itemMode).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (!IsLegacyNatureForceSessionCurrent(context, updatedSession)) return updatedSession;
+        await context.Connection.SendAsync(prepared.Frame, cancellationToken).ConfigureAwait(false);
 
         if (CountLegacyInventoryItem(updatedSession.PlayerItems, itemId) >= requiredFragments)
         {
-            await LogParityGapAsync(
-                    updatedContext,
-                    LegacyParityGapDiagnostics.RuntimeStateNotLoaded(
-                        "QuestGUI.SendAutoPatcher",
-                        "map3998-rune-fragment-autopatcher",
-                        reason: "source sends QuestGUI.SendAutoPatcher after collecting eight Rune Fragments for quest 3636; modern runtime grants/stacks the fragment but the optional client auto-route prompt is not modeled yet",
-                        facts:
-                        [
-                            LegacyParityGapDiagnostics.Fact("map", monster.MapId),
-                            LegacyParityGapDiagnostics.Fact("monsterId", monster.MonsterId),
-                            LegacyParityGapDiagnostics.Fact("familyId", monsterFamily.Id),
-                            LegacyParityGapDiagnostics.Fact("questId", questId),
-                            LegacyParityGapDiagnostics.Fact("itemId", itemId),
-                        ],
-                        dedupeFacts:
-                        [
-                            LegacyParityGapDiagnostics.Fact("questId", questId),
-                            LegacyParityGapDiagnostics.Fact("itemId", itemId),
-                        ]))
+            await LogLegacyNatureRuneThresholdAsync(updatedContext, monster, monsterFamily)
                 .ConfigureAwait(false);
         }
 
@@ -252,21 +243,17 @@ public static partial class WorldPacketHandlers
                 return session;
             }
 
-            var updatedItems = AddLegacyInventoryItem(
-                updatedSession.PlayerItems,
-                itemType,
-                stackCount: 1,
-                out var rewardItem,
-                out var itemMode);
-            updatedSession = updatedSession with { PlayerItems = updatedItems };
-            context.Sessions?.Set(context.Connection, updatedSession);
+            if (!TryCommitLegacyNatureForceItem(context, session, itemType, itemId, stackReward: false,
+                    out var prepared, out var reason))
+            {
+                await LogLegacyNatureForceRefusalAsync(context, monsterFamily.Id, reason).ConfigureAwait(false);
+                return session;
+            }
+            updatedSession = prepared.Session;
             updatedContext = context with { Session = updatedSession };
             addedItem = true;
-
-            await context.Connection.SendAsync(
-                    LegacyGameItemPacket.FromSnapshotItem(rewardItem, mode: itemMode).ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            if (!IsLegacyNatureForceSessionCurrent(context, updatedSession)) return updatedSession;
+            await context.Connection.SendAsync(prepared.Frame, cancellationToken).ConfigureAwait(false);
         }
 
         await LogParityGapAsync(

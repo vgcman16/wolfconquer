@@ -107,21 +107,18 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
-        var updatedItems = AddOrStackLegacyInventoryItem(
-            updatedSession.PlayerItems,
-            itemType,
-            itemId,
-            stackCount: 1,
-            out var rewardItem,
-            out var itemMode);
-        updatedSession = updatedSession with { PlayerItems = updatedItems };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        if (!TryCommitLegacyNatureForceItem(context, session, itemType, itemId, stackReward: true,
+                out var prepared, out var reason))
+        {
+            await LogLegacyNatureForceRefusalAsync(context, monsterFamily.Id, reason).ConfigureAwait(false);
+            return session;
+        }
+        var rewardItem = prepared.Item;
+        var itemMode = prepared.Mode;
+        updatedSession = prepared.Session;
         updatedContext = context with { Session = updatedSession };
-
-        await context.Connection.SendAsync(
-                LegacyGameItemPacket.FromSnapshotItem(rewardItem, mode: itemMode).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (!IsLegacyNatureForceSessionCurrent(context, updatedSession)) return updatedSession;
+        await context.Connection.SendAsync(prepared.Frame, cancellationToken).ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer applied legacy map 3998 Wheel of Nature reward " +
                 $"{FormatSession(updatedContext)} monsterUid={monster.Uid} familyId={monsterFamily.Id} " +

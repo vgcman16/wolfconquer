@@ -87,23 +87,6 @@ public sealed partial class LegacyNativeMyCombatGearStatusTests
             Assert.Equal(0u, (uint)typeof(LegacyNativeMsgStatus).GetField(target)!.GetValue(fixture.Owner.Status)!);
         });
 
-    [Fact]
-    public Task BothBlessBranchesClampAfterEachAdditionAndMissingSecondValueRetainsTheFirstMutation() =>
-        NativePacketTestThread.Run(() =>
-        {
-            using var metadata = new NativeCombatGearQueryScope();
-            using var fixture = new NativeSpellTestFixture();
-            var gear = new LegacyNativeMyCombatGear(fixture.Owner);
-            gear.SetValue("HolyProtection", 25.9);
-            fixture.Owner.Status.ItemBless = 50;
-            fixture.Owner.Player.BitVector.TryAdd(376, 60, false, 0);
-            fixture.Owner.Player.BitVector.TryAdd(383, 60, false, 0);
-            Assert.Throws<IndexOutOfRangeException>(() => gear.Status());
-            Assert.Equal(60u, fixture.Owner.Status.ItemBless);
-            gear.SetValue("PhoenixBlessing", 1000.0);
-            gear.Status();
-            Assert.Equal(60u, fixture.Owner.Status.ItemBless);
-        });
 
     [Fact]
     public Task DisabledClassMetadataDoesNotSkipTheGenuineSpellAndCompositeFlagPostlude() =>

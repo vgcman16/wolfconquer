@@ -1,5 +1,29 @@
 # Publication validation
 
+## Selected-status, nature-force and launcher diagnostics checkpoint
+
+Private Release core721/721 and launcher57/57 pass, zero failed/skipped.
+Independent public Release core707/707 and launcher57/57 also pass. Core includes
+all545 boss/reward and79 Status cases; private/public rank export shapes retain
+their separate established controls. Counts overlap, not aggregate coverage.
+
+Tests-first baselines: Status47passed/32failed of79, Nature39passed/35failed of74,
+and launcher5passed/3failed of8. FSB053 prepares22 selected named-value inputs
+before Status effects; FSB054 prepares five nature-force grants/full frames
+before exact-session CAS and restores the native Rune8 ceiling; FSB055 preserves
+original test errors alongside cleanup failures on real STA dispatchers.
+Existing formulas/rates/quantities/packet goldens remain; predicate assertions
+are batched without suppressions, exclusions or score-only packet refactoring.
+
+Fresh pre-checkpoint CodeFactor main read: gradeA,2318issues/5000files, including
+1202maintainability,863complexity,194duplication and59performance. These static
+counts are not gameplay parity. The confirmed CA2219 diagnostic-loss path is
+fixed here; intentional missing-path catches and wire enum aliases are not
+blindly rewritten. One full Windows run will verify this coherent checkpoint.
+
+Offline only. UID activation, durable reward recovery, raw writer closure,
+whole-Status/whole-kill atomicity, SQL and new client acceptance remain open.
+
 ## Earth Force and rank-admission safety checkpoint
 
 Private Release focused batch592/592, zero failed/skipped:471boss/reward,

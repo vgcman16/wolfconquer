@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.IO;
+using System.Runtime.ExceptionServices;
 using System.Windows.Threading;
 
 namespace WolfConquer.Launcher.Tests;
@@ -10,6 +12,7 @@ public sealed partial class LauncherViewModelTests
     private static async Task OnDispatcher(Func<Task> test)
     {
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cleanupFailures = new ConcurrentQueue<Exception>();
         Dispatcher? dispatcher = null;
         var thread = new Thread(() =>
         {
@@ -21,16 +24,40 @@ public sealed partial class LauncherViewModelTests
                 {
                     try { await test(); finished.TrySetResult(); }
                     catch (Exception error) { finished.TrySetException(error); }
-                    finally { dispatcher.BeginInvokeShutdown(DispatcherPriority.Send); }
+                    finally { RequestShutdown(); }
                 }));
                 Dispatcher.Run();
             }
-            catch (Exception error) { finished.TrySetException(error); }
+            catch (Exception error)
+            {
+                if (!finished.TrySetException(error)) cleanupFailures.Enqueue(error);
+            }
         }) { IsBackground = true, Name = "WolfConquer owned presentation test" };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
+
+        var failures = new List<Exception>();
         try { await finished.Task.WaitAsync(TimeSpan.FromSeconds(10)); }
-        finally
+        catch (Exception error) { failures.Add(error); }
+
+        RequestShutdown();
+        try
+        {
+            if (!thread.Join(TimeSpan.FromSeconds(1)))
+                throw new TimeoutException("Owned presentation dispatcher did not shut down.");
+        }
+        catch (Exception error) { cleanupFailures.Enqueue(error); }
+
+        // Include a body failure that completed during cleanup after the bounded wait expired.
+        if (finished.Task.IsFaulted) failures.AddRange(finished.Task.Exception!.InnerExceptions);
+        failures.AddRange(cleanupFailures);
+        var distinctFailures = failures.Distinct<Exception>(ReferenceEqualityComparer.Instance).ToArray();
+        if (distinctFailures.Length > 1)
+            throw new AggregateException("Owned presentation test and/or dispatcher cleanup failed; preserve all diagnostics.", distinctFailures);
+        if (distinctFailures.Length == 1)
+            ExceptionDispatchInfo.Capture(distinctFailures[0]).Throw();
+
+        void RequestShutdown()
         {
             try
             {
@@ -38,8 +65,7 @@ public sealed partial class LauncherViewModelTests
                     dispatcher.BeginInvokeShutdown(DispatcherPriority.Send);
             }
             catch (InvalidOperationException) when (dispatcher?.HasShutdownStarted == true) { }
-            if (!thread.Join(TimeSpan.FromSeconds(1)))
-                throw new TimeoutException("Owned presentation dispatcher did not shut down.");
+            catch (Exception error) { cleanupFailures.Enqueue(error); }
         }
     }
 

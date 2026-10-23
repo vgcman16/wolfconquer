@@ -850,6 +850,52 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   lifecycle and Host activation remain open. The clean full public CI above
   includes all34 new public rank/Status controls and6 retained bonus controls.
 
+### FSB-053: Preflight selected status values before applying effects
+
+- MyCombatGear.Status previously read selected named coefficients after rank,
+  spell and earlier flag effects; a missing second bless row was explicitly
+  tested to retain the dirty prefix. Now capture the same 22 predicates and
+  their required scalar slots before any Status effects or packet rental.
+  Missing/null/short active values refuse with InvalidDataException; inactive
+  optional metadata stays unconsulted. Valid formulas, conversions, per-addition
+  clamps, composite indices and output order are unchanged.
+- Tests-only Status79:47passed/32failed. After repair, surrounding rank/query/
+  Status176/176 and combined reward/status721/721 pass, zero failed/skipped.
+  One unsafe old bless fact is corrected;34 additional controls compare complete
+  stat/perfection/spell/queue/caller-packet/flag preimages.
+- Limits: selected-input preparation, not a whole Status transaction, immutable
+  raw owners, global lifecycle authorization, spell persistence or delivery.
+
+### FSB-054: Prepare five nature-force grants before session publication
+
+- Map3998 families40900/40902/40905/40907/40908 previously Set inventory before
+  complete item-frame preparation and could overwrite stale owners. Prepare
+  strict required metadata, items and full frames privately, CAS the exact
+  current session once, and check the committed owner before item output.
+  Loaded Effect256, malformed durability and UID overflow refuse unchanged.
+  A committed observer retirement/send failure is not misreported as rollback.
+- Restore the native eight-Rune-Fragment ceiling; retain quest/rate/capacity
+  ordering, one unbound grant, stack UIDs, quantities and complete2116 goldens.
+  Tests-only74:39passed/35failed; all74 pass within combined721/721, including
+  all545 boss/reward cases. New predicate assertions were batched on intake,
+  without exclusions, suppressions or protocol refactoring.
+- Limits: in-memory grant boundary, not durable files/rewards, whole-kill atomicity,
+  auto-route implementation, outbox/delivery or global UID safety. The separately
+  composed canonical UID successor remains isolated and unactivated.
+
+### FSB-055: Retain primary launcher-test failures during dispatcher cleanup
+
+- Current CodeFactor CA2219 identified the launcher test helper throwing a join
+  timeout from finally, hiding assertion/skip/operation failures. Capture the
+  primary error, independently attempt shutdown/join, retain distinct observed
+  cleanup errors, and rethrow one original error with its stack or aggregate
+  primary-first. Already-safe updater aggregation is unchanged.
+- Real STA tests-only8:5passed/3failed; repaired full launcher57/57 passes, zero
+  failed/skipped. Held shutdown threads are always released and actually joined
+  in fixture cleanup. No game/client execution or accepting fake dispatcher.
+- Limits: bounded test-harness diagnostics, not gameplay or production shutdown
+  completion; work still live beyond the helper deadlines is not certified.
+
 ## Active audit
 
 Current work does not close whole managed reward transactions. SuperGuildWar's
