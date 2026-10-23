@@ -68,6 +68,55 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Limits: no benchmark or general concurrent catalog/lifecycle proof. Public
   mutable arrays/rows, Rune.Count/Add, BestOf and other writers still need audit.
 
+### FSB-014: Persist active title changes before publishing session or packets
+
+- Owner: registered opcode2313 `WorldPacketHandlers.TitleStorage`. The old route
+  changed memory and sent success even when saving failed, treated wing4001 as a
+  normal title on removal and echoed untrusted subtype metadata.
+- Corrected invariant: validate the complete owned-title list and authoritative
+  representable catalog identity; prepare real acknowledgement/UseTitle/spawn
+  bytes; commit the four title fields through the genuine current-session gate
+  and file coordinator before publishing the updated session. Canonical numeric
+  fields are identical in memory and disk, including initially absent zeros.
+- A bounded shared snapshot reader proves the expected UID/title baseline and
+  validates the written title/non-title Character fields. A failed replacement
+  is ordinary rejection only when the complete preimage is unchanged; otherwise
+  the genuine recovery owner is blocked. The PIN reader now reuses this bounded
+  reader without changing its exact-value/reason-prefix contract.
+- Prepared owner and peer delivery revalidates captured native identity and exact
+  session references. Changed/retired recipients do not receive stale packets.
+  The real @@ catalog columns preserve spaced-name title2149 score150.
+- Verification: private and independent public Release each passed **1008/1008**,
+  zero failures/skips, including 80 active-route guards, 55 persistence/baseline
+  controls, retained PIN/title goldens and the prior754 selection.
+- Limits: offline owned files only; no live client or SQL. Real sharing-failure
+  and postcondition/classifier controls do not prove every OS rollback fault or
+  arbitrary transport race. The frame-admission fence does not prove every
+  background writer honors it. It is not a durable title journal,
+  all-crash recovery, multi-file atomicity or hostile filesystem-race immunity.
+  Classic opcode2152 Change and the native title successor remain separate.
+
+### FSB-016: Retain real read-only process image attribution
+
+- Owner: `ConfiguredExecutableProcessGuard`. CI39926199302 failed closed when
+  MainModule returned null; that API can be transient during process startup.
+  The historical TRX does not prove the exact process or startup/exit timing.
+- Corrected invariant: matching names enter one retained noninheritable Windows
+  handle with limited-query and synchronization rights only. Query the image
+  directly; ignore image-query failure only when that same handle proves exit.
+  Missing handles, unknown/live-uninspectable state and protected exact paths
+  still refuse. No preliminary PID-reopening HasExited escape remains.
+- Both generic and layout never-launched pipeline fixtures now use independent
+  per-root signed/configured/protected executable names. Intentional real running
+  exact-path, attributable namesake and legacy-shared-name controls remain.
+- Verification: the complete updater suite passed **301/301** in private and
+  independent public Release, zero failures/skips. Includes25 new controls and
+  14 quality-parser controls, actual Win32 image reads and retained owned-command
+  lifecycle tests. Fixture cleanup boundaries were strengthened, not relaxed.
+- Limits: a point-in-time read-only scan is not prevention of later process
+  startup, filesystem-alias resolution, process birth identity before opening
+  the handle, deployment or a claim that every possible race was reproduced.
+
 ## Active audit
 
 | ID | Defect / affected owner | Required invariant | Status |
@@ -85,8 +134,10 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-011 | Packet byte-array constructor can overrun fixed allocation | Allocate complete input and expose truthful capacity before unsafe use | Constructor fixed; wider bounds audit open |
 | FSB-012 | General native packet readers/writers trust mutable Size or MAX_SIZE instead of actual allocation | Check allocation, cursor, frame and lifetime before every unsafe access | Open |
 | FSB-013 | Existing spell executors have late eligibility gates, resource wraps and shared metadata mutations; old tests preserve these | Full-cast preflight, bounded arithmetic and no shared metadata mutation on cast | Retroactive executor audit open |
-| FSB-014 | Active managed title receiver changes memory before save success, mishandles wing4001 and untrusted subtype/catalog fields | Validated save-before-session commit, authoritative metadata and lifecycle-bound publication | Implementation and failure-proof tests in progress |
+| FSB-014 | Active managed title receiver changes memory before save success, mishandles wing4001 and untrusted subtype/catalog fields | Validated save-before-session commit, authoritative metadata and lifecycle-bound publication | Scoped opcode2313 fixed; durable recovery and adjacent native/classic paths open |
 | FSB-015 | Repeated ranking scans crash on invalid rows; Rune.Free can reopen occupied211 after byte-count wrap | Single current-owner queries and fail-closed capacity/occupancy checks | Affected queries fixed; broader owner audit open |
+| FSB-016 | Updater relies on transient MainModule image enumeration; synthetic pipeline names collide with a real owned namesake test | Retained read-only image/exit attribution; unknown live state refuses; isolated signed fixture identities | Reader/isolation fixed301/301 both trees; point-in-time scan limits remain |
+| FSB-017 | Classic opcode2152 Change uses unconditional Set from a potentially stale context | Current authenticated owner and persisted commit before publication; no replacement-session overwrite | Open, not part of opcode2313 fix |
 
 ## CodeFactor cleanup
 
@@ -106,10 +157,15 @@ strengthen all 71 affected existing cases. All 72 are in the **510/510** selecti
 No gameplay or packet field was changed. The refreshed CA2244 report now returns
 zero active findings; overall snapshot is **2,322 findings across 4,875 files**.
 
-The next eight CA1827 findings across five ranking/rune owners are locally
-repaired and verified in both 754-case selections. Only these named eight were
-deeply inspected from the report's first page; other findings remain queued.
-Remote reanalysis is pending; do not subtract eight speculatively.
+The eight CA1827 findings across five ranking/rune owners are repaired and
+verified in both 754-case selections. The refreshed report now shows **2314**
+findings: the eight selected records are gone, in addition to the earlier five.
+Only the named findings were deeply inspected; this is not a full debt audit.
+Another15 CA1865 character-overload fixes are verified in private/public Release:
+**1112/1112** selected core tests and **301/301** complete updater tests, all green.
+The78 new controls retain path/comment/status/UTC/URL decisions and actual parser
+outputs; no measured speedup is claimed. One held Guild-persistence finding is
+excluded from this batch. Remote closure of these15 remains pending.
 Report: https://www.codefactor.io/repository/github/vgcman16/wolfconquer/issues
 
 No blanket warning suppression or exclusion is authorized. An A grade is not

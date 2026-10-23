@@ -12,6 +12,7 @@ public sealed partial class UpdaterPipelineTests
     private sealed class Fixture : IAsyncDisposable
     {
         internal string Root { get; } = Path.Combine(Path.GetTempPath(), "wolf-updater-pipeline-" + Guid.NewGuid().ToString("N"));
+        internal string ExecutableName => "WolfPipelineFixture-" + Path.GetFileName(Root)["wolf-updater-pipeline-".Length..] + ".exe";
         internal string Source => Path.Combine(Root, "source");
         internal string Published => Path.Combine(Root, "published");
         internal string Bootstrap => Path.Combine(Root, "bootstrap");
@@ -23,9 +24,11 @@ public sealed partial class UpdaterPipelineTests
 
         private Fixture()
         {
+            ValidateOwnedRoot();
+            if (Directory.Exists(Root)) throw new IOException("Owned pipeline root already exists.");
             Directory.CreateDirectory(Source); Directory.CreateDirectory(Published); Directory.CreateDirectory(Bootstrap);
             Directory.CreateDirectory(Path.Combine(Source, "data"));
-            File.WriteAllBytes(Path.Combine(Source, "FixtureClient.exe"), Executable);
+            File.WriteAllBytes(Path.Combine(Source, ExecutableName), Executable);
         }
 
         internal static async Task<Fixture> CreateAsync()
@@ -45,7 +48,7 @@ public sealed partial class UpdaterPipelineTests
             var now = DateTimeOffset.UtcNow;
             return ReleasePublisher.Publish(new ReleasePublishOptions(Source, Published, "fixture-client", "preview", sequence,
                 Host.BaseAddress, now.AddMinutes(-1), now.AddHours(1), includeBundle: true, allowLoopbackHttp: true),
-                [new("FixtureClient.exe", sequence == 1 ? null : Convert.ToHexString(SHA256.HashData(Executable))),
+                [new(ExecutableName, sequence == 1 ? null : Convert.ToHexString(SHA256.HashData(Executable))),
                  new("data/catalog.dat", previousDataHash)], Key, "pipeline-test-key");
         }
 
@@ -57,8 +60,8 @@ public sealed partial class UpdaterPipelineTests
                 schemaVersion = 1, productId = "fixture-client", channel = "preview",
                 feedUrl = new Uri(Host.BaseAddress, "feeds/fixture-client-preview.json").AbsoluteUri,
                 keyId = "pipeline-test-key", publicKeySpkiPem = PublicKey, installDirectory = client,
-                launchRelativePath = "FixtureClient.exe", launchArguments = Array.Empty<string>(),
-                protectedExecutables = new[] { "FixtureClient.exe" }, allowLoopbackHttp = true
+                launchRelativePath = ExecutableName, launchArguments = Array.Empty<string>(),
+                protectedExecutables = new[] { ExecutableName }, allowLoopbackHttp = true
             });
             File.WriteAllBytes(path, bytes);
             return path;
@@ -107,12 +110,23 @@ public sealed partial class UpdaterPipelineTests
             finally
             {
                 Key.Dispose();
-                string root = Path.GetFullPath(Root);
-                if (!root.StartsWith(Path.GetFullPath(Path.GetTempPath()), StringComparison.OrdinalIgnoreCase) ||
-                    !Path.GetFileName(root).StartsWith("wolf-updater-pipeline-", StringComparison.Ordinal))
-                    throw new InvalidOperationException("Refusing unsafe pipeline-fixture cleanup.");
-                Directory.Delete(root, recursive: true);
+                ValidateOwnedRoot();
+                if (Directory.Exists(Root)) Directory.Delete(Path.GetFullPath(Root), recursive: true);
             }
+        }
+
+        private void ValidateOwnedRoot()
+        {
+            string root = Path.GetFullPath(Root);
+            string parent = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.GetTempPath()));
+            const string prefix = "wolf-updater-pipeline-";
+            string name = Path.GetFileName(root);
+            if (!string.Equals(Path.GetDirectoryName(root), parent, StringComparison.OrdinalIgnoreCase) ||
+                !name.StartsWith(prefix, StringComparison.Ordinal) ||
+                !Guid.TryParseExact(name[prefix.Length..], "N", out _) ||
+                (File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0 ||
+                (Directory.Exists(root) && (File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0))
+                throw new InvalidOperationException("Refusing unsafe pipeline-fixture boundary.");
         }
     }
 

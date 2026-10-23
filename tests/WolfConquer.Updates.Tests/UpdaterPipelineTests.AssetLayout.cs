@@ -21,7 +21,7 @@ public sealed partial class UpdaterPipelineTests
         Assert.Equal(12, result.Installation!.InstalledFiles);
         Assert.Null(result.LaunchedProcessId);
         Assert.True(result.LaunchCandidateAvailable);
-        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile(LayoutEngine)));
+        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile(LayoutEngine(f))));
         foreach (string name in LayoutAssets)
         {
             Assert.Equal("owned " + name, File.ReadAllText(f.ClientFile(name + "/asset.bin")));
@@ -65,7 +65,7 @@ public sealed partial class UpdaterPipelineTests
         await Assert.ThrowsAsync<InvalidDataException>(() => LauncherWorkflow.RunClientAsync(config,
             fresh: true, cancellationToken: deadline.Token));
         Assert.All(LayoutAssets, name => Assert.False(Directory.Exists(f.ClientFile(name))));
-        Assert.False(File.Exists(f.ClientFile(LayoutEngine)));
+        Assert.False(File.Exists(f.ClientFile(LayoutEngine(f))));
         Assert.False(File.Exists(f.ClientFile(".wolfconquer-updates/state.json")));
         Assert.False(Directory.Exists(Path.Combine(f.Bootstrap, ".wolfconquer-cache")));
         Assert.Equal(configuration, File.ReadAllBytes(config));

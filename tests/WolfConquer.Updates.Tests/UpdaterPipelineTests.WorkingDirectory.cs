@@ -20,7 +20,7 @@ public sealed partial class UpdaterPipelineTests
             string systemCommand = Path.Combine(Environment.SystemDirectory, "cmd.exe");
             Assert.True(File.Exists(systemCommand), "The harmless Windows command fixture requires the OS cmd.exe.");
             // Copy the OS executable into this fixture's real signed release. Never launch the synthetic bytes.
-            File.Copy(systemCommand, Path.Combine(f.Source, "FixtureClient.exe"), overwrite: true);
+            File.Copy(systemCommand, Path.Combine(f.Source, f.ExecutableName), overwrite: true);
             f.Publish(1, "owned working-directory fixture", null);
             string config = f.WriteConfig(f.Client);
             string expected = relative is null ? f.Client : Path.Combine(f.Client, relative);
@@ -37,12 +37,12 @@ public sealed partial class UpdaterPipelineTests
                 cancellationToken: deadline.Token);
 
             Assert.NotNull(result.LaunchedProcessId);
-            await WaitForOwnedCommand(result.LaunchedProcessId.Value, f.ClientFile("FixtureClient.exe"));
+            await WaitForOwnedCommand(result.LaunchedProcessId.Value, f.ClientFile(f.ExecutableName));
             Assert.Equal("launched", result.Status);
             Assert.True(result.LaunchCandidateAvailable);
             Assert.Equal(expected, File.ReadAllText(observed, Encoding.Unicode).TrimEnd('\r', '\n'), StringComparer.OrdinalIgnoreCase);
             Assert.Equal(originalConfig, File.ReadAllBytes(config));
-            Assert.Equal(File.ReadAllBytes(systemCommand), File.ReadAllBytes(f.ClientFile("FixtureClient.exe")));
+            Assert.Equal(File.ReadAllBytes(systemCommand), File.ReadAllBytes(f.ClientFile(f.ExecutableName)));
             Assert.Equal("owned working-directory fixture", File.ReadAllText(f.ClientFile("data/catalog.dat")));
             await WaitForOwnedDirectoryRelease(f, expected);
             Assert.True(Directory.Exists(expected));

@@ -8,7 +8,8 @@ namespace WolfConquer.Updates.Tests;
 public sealed partial class UpdaterPipelineTests
 {
     private const string LayoutPreset = "legacy-dx8-v1";
-    private const string LayoutEngine = "Env_DX8/FixtureClient.exe";
+    private static string LayoutEngine(Fixture f) =>
+        "Env_DX8/WolfPipelineLayout-" + Path.GetFileName(f.Root)["wolf-updater-pipeline-".Length..] + ".exe";
     private static readonly string[] LayoutAssets = ["ani", "c3", "data", "data2", "Font", "Help", "ini", "map", "Script", "sound", "video"];
     private static string LayoutAliasPath(Fixture f, string name) => Path.Combine(f.Client, "Env_DX8", name);
     private static string LayoutTargetPath(Fixture f, string name) => Path.Combine(f.Client, name);
@@ -24,8 +25,8 @@ public sealed partial class UpdaterPipelineTests
             plan.Add(new(path, null));
         }
         Directory.CreateDirectory(Path.Combine(f.Source, "Env_DX8"));
-        File.WriteAllBytes(Path.Combine(f.Source, LayoutEngine), f.Executable);
-        plan.Add(new(LayoutEngine, null));
+        File.WriteAllBytes(Path.Combine(f.Source, LayoutEngine(f)), f.Executable);
+        plan.Add(new(LayoutEngine(f), null));
         if (aliasPayload is not null)
         {
             string path = Path.Combine(f.Source, aliasPayload);
@@ -43,8 +44,8 @@ public sealed partial class UpdaterPipelineTests
         string config = f.WriteConfig(f.Client);
         var json = JsonNode.Parse(File.ReadAllBytes(config))!.AsObject();
         json["publicKeySpkiPem"] = key.ExportSubjectPublicKeyInfoPem();
-        json["launchRelativePath"] = LayoutEngine;
-        json["protectedExecutables"] = new JsonArray(LayoutEngine);
+        json["launchRelativePath"] = LayoutEngine(f);
+        json["protectedExecutables"] = new JsonArray(LayoutEngine(f));
         if (preset is not null) json["clientAssetLayoutPreset"] = preset;
         if (cwd is not null) json["launchWorkingDirectoryRelativePath"] = cwd;
         File.WriteAllText(config, json.ToJsonString());

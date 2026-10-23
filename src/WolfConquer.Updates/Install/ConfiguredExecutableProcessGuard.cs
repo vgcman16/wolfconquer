@@ -23,14 +23,13 @@ public sealed class ConfiguredExecutableProcessGuard : IUpdateProcessGuard
                 cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    if (!names.Contains(process.ProcessName) || process.HasExited) continue;
-                    var image = process.MainModule?.FileName;
-                    if (string.IsNullOrEmpty(image)) throw new IOException("Client image attribution unavailable.");
-                    if (paths.Contains(Path.GetFullPath(image)))
+                    if (!names.Contains(process.ProcessName)) continue;
+                    var image = ConfiguredProcessImageReader.Read(process.Id);
+                    if (image is null) continue; // Exact retained process handle is signaled.
+                    if (paths.Contains(image))
                         throw new ClientRunningException("Close the configured client before installing updates.");
                 }
                 catch (ClientRunningException) { throw; }
-                catch (InvalidOperationException) when (HasExited(process)) { }
                 catch (Exception error)
                 {
                     throw new IOException("A process cannot be safely attributed; update refused.", error);
@@ -39,12 +38,6 @@ public sealed class ConfiguredExecutableProcessGuard : IUpdateProcessGuard
         }
         finally { foreach (var process in processes) process.Dispose(); }
         return Task.CompletedTask;
-    }
-
-    private static bool HasExited(Process process)
-    {
-        try { return process.HasExited; }
-        catch { return false; }
     }
 
     private sealed class ClientRunningException(string message) : IOException(message);

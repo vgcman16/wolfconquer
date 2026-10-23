@@ -33,14 +33,14 @@ public sealed partial class UpdaterPipelineTests
         Assert.False(result.MetadataOnly);
         Assert.True(result.LaunchCandidateAvailable);
         Assert.Null(result.LaunchedProcessId);
-        Assert.Equal(f.Executable, File.ReadAllBytes(Path.Combine(selected, "FixtureClient.exe")));
+        Assert.Equal(f.Executable, File.ReadAllBytes(Path.Combine(selected, f.ExecutableName)));
         Assert.Equal("selected-target-data", File.ReadAllText(Path.Combine(selected, "data/catalog.dat")));
         Fixture.AssertSnapshot(defaultBefore, Fixture.Snapshot(f.Client));
         Assert.Equal(configBytes, File.ReadAllBytes(config));
         var settings = LauncherWorkflow.ReadClientSettings(config);
         Assert.Equal(f.Client, settings.InstallDirectory);
         Assert.Equal(config, settings.ConfigurationPath);
-        Assert.Equal("FixtureClient.exe", settings.LaunchRelativePath);
+        Assert.Equal(f.ExecutableName, settings.LaunchRelativePath);
     }
 
     [WindowsTheory]
@@ -54,8 +54,8 @@ public sealed partial class UpdaterPipelineTests
         var plan = new List<PublishEntry> { new("data/catalog.dat", null) };
         if (caseMismatch)
         {
-            File.WriteAllBytes(Path.Combine(f.Source, "fixtureclient.exe"), f.Executable);
-            plan.Add(new("fixtureclient.exe", null));
+            File.WriteAllBytes(Path.Combine(f.Source, f.ExecutableName.ToLowerInvariant()), f.Executable);
+            plan.Add(new(f.ExecutableName.ToLowerInvariant(), null));
         }
         var now = DateTimeOffset.UtcNow;
         ReleasePublisher.Publish(new ReleasePublishOptions(f.Source, f.Published, "fixture-client", "preview", 1,
@@ -74,7 +74,7 @@ public sealed partial class UpdaterPipelineTests
         Assert.Null(result.LaunchedProcessId);
         Assert.Equal(plan.Count, result.Installation!.InstalledFiles);
         Assert.Equal("data-only-release", File.ReadAllText(f.ClientFile("data/catalog.dat")));
-        Assert.Equal(caseMismatch, File.Exists(f.ClientFile("fixtureclient.exe")));
+        Assert.Equal(caseMismatch, File.Exists(f.ClientFile(f.ExecutableName.ToLowerInvariant())));
     }
 
     [WindowsFact]
@@ -173,7 +173,7 @@ public sealed partial class UpdaterPipelineTests
         Assert.Equal("updated", result.Status);
         Assert.Equal(2, result.Installation!.InstalledFiles);
         Assert.Null(result.LaunchedProcessId);
-        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile("FixtureClient.exe")));
+        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile(f.ExecutableName)));
         Assert.Equal("observer-safe-data", File.ReadAllText(f.ClientFile("data/catalog.dat")));
         Assert.Equal(beforeConfig, File.ReadAllBytes(config));
         Assert.Contains(observer.Events, p => p.Phase == UpdateOperationPhase.Downloading && p.Completed > 0);
@@ -199,7 +199,7 @@ public sealed partial class UpdaterPipelineTests
         Fixture.AssertSnapshot(payloadBefore, Fixture.Snapshot(f.Client));
         Fixture.AssertSnapshot(bootstrapBefore, Fixture.Snapshot(f.Bootstrap));
         Assert.Equal("local custom edit", File.ReadAllText(f.ClientFile("data/catalog.dat")));
-        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile("FixtureClient.exe")));
+        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile(f.ExecutableName)));
     }
 
     private sealed class WorkflowProgress(bool throws = false) : IProgress<UpdateOperationProgress>

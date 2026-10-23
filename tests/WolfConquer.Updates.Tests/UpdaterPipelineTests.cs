@@ -18,7 +18,7 @@ public sealed partial class UpdaterPipelineTests
         string config = f.WriteConfig(f.Client);
         var install = await f.Run("client", "--config", config, "--install");
         Assert.Equal(0, install.ExitCode); Assert.Equal("", install.Error);
-        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile("FixtureClient.exe")));
+        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile(f.ExecutableName)));
         Assert.Equal("data-v1", File.ReadAllText(f.ClientFile("data/catalog.dat")));
         var before = Fixture.Snapshot(f.Client);
         var cacheBefore = Fixture.Snapshot(Path.Combine(f.Bootstrap, ".wolfconquer-cache"));
@@ -33,7 +33,7 @@ public sealed partial class UpdaterPipelineTests
         var update = await f.Run("client", "--config", config);
         Assert.Equal(0, update.ExitCode); Assert.Equal("", update.Error);
         Assert.Equal("data-v2", File.ReadAllText(f.ClientFile("data/catalog.dat")));
-        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile("FixtureClient.exe")));
+        Assert.Equal(f.Executable, File.ReadAllBytes(f.ClientFile(f.ExecutableName)));
         byte[] committedState = File.ReadAllBytes(f.ClientFile(".wolfconquer-updates/state.json"));
         File.WriteAllText(f.ClientFile("data/catalog.dat"), "owned local edit", new UTF8Encoding(false));
         string secondDataHash = second.Manifest.Files.Single(file => file.Path == "data/catalog.dat").Sha256;
@@ -51,7 +51,7 @@ public sealed partial class UpdaterPipelineTests
         Assert.NotNull(latest.Manifest.Bundle);
         Assert.NotNull(latest.Manifest.Files.Single(file => file.Path == "data/catalog.dat").BaseSha256);
         Assert.Equal("data-v3", File.ReadAllText(Path.Combine(freshClient, "data/catalog.dat")));
-        Assert.Equal(f.Executable, File.ReadAllBytes(Path.Combine(freshClient, "FixtureClient.exe")));
+        Assert.Equal(f.Executable, File.ReadAllBytes(Path.Combine(freshClient, f.ExecutableName)));
         Assert.DoesNotContain("Started configured", install.Output + update.Output + fresh.Output, StringComparison.Ordinal);
     }
 
@@ -125,12 +125,12 @@ public sealed partial class UpdaterPipelineTests
         string config = f.WriteConfig(f.Client);
         Assert.Equal(0, (await f.Run("client", "--config", config, "--install")).ExitCode);
         const string modified = "not-an-executable: local fixture edit";
-        File.WriteAllText(f.ClientFile("FixtureClient.exe"), modified, new UTF8Encoding(false));
+        File.WriteAllText(f.ClientFile(f.ExecutableName), modified, new UTF8Encoding(false));
         var result = await f.Run("client", "--config", config, "--launch");
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("Launch executable differs from the signed release; no process started.", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("Started configured", result.Output, StringComparison.Ordinal);
-        Assert.Equal(modified, File.ReadAllText(f.ClientFile("FixtureClient.exe")));
+        Assert.Equal(modified, File.ReadAllText(f.ClientFile(f.ExecutableName)));
     }
 
     private static void AssertReceipt(string path, string outcome, bool reachable, string reason)

@@ -7,6 +7,18 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Active managed title opcode2313 now validates full ownership/catalog data,
+  persists before session publication and checks exact source/peer lifecycle
+  identities before delivery. Private and public Release each passed1008/1008,
+  including80 active-route and55 real-file/shared-reader controls. PIN invariants
+  remain covered. Durable title recovery, native titles and classic2152 remain open.
+- [x] Current combined local checks: private/public each1112/1112 selected core
+  and301/301 complete updater tests, zero failures/skips. Includes15 additional
+  CodeFactor API fixes and the retained-handle process attribution repair.
+- [ ] Full Windows39926199302 on ec7e19c0 failed one updater process-attribution
+  case: core21476 passed/0 failed, updater261/262. Local repair is verified above;
+  fresh full Windows CI is still required for the new combined checkpoint.
+
 - [x] Sanitized spell admission and allocation: private and independent public
   Release each passed 510/510 selected cases, zero failures/skips. Rejected
   admissions preserve resources/authorization/soul/cooldown and return null outputs;
@@ -18,7 +30,9 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 - [x] Eight ranking/rune CodeFactor query findings are locally repaired; private
   and independent public Release each passed 754/754, zero failures/skips.
   Invalid query rows no longer crash those lookups, and a wrapped byte Count
-  cannot reopen an occupied rune bag. Remote reanalysis of these eight is pending.
+  cannot reopen an occupied rune bag. All eight are now absent from the refreshed
+  report; current total2314. Another15 character-overload fixes are locally
+  verified; remote reanalysis is pending. No suppressions or weakened tests.
 
 - [x] Source authority remains the local simplified-复 decompile; staged DX8
   VisibleDx8D13 is explicit. No switch to the old Wolves/DX9/default-D11 baseline.

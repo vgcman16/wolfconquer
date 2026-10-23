@@ -1,5 +1,40 @@
 # Publication validation
 
+## Combined sanitized and quality checkpoint
+
+Private and independent public Release each passed **1112/1112** selected core
+tests and **301/301** complete updater tests, zero failures/skips. The updater
+uses retained limited-query/synchronization process handles and direct executable
+image attribution. Unknown live state still refuses; real exact-path/namesake/
+exited-image protection remains tested. Synthetic generic/layout fixtures have
+independent signed/configured/protected names.
+
+Fifteen additional observed CA1865 findings use equivalent ordinal character
+overloads, with78 new parser/path/comment/status controls across the two suites.
+No suppression, exclusion, measured-speedup or remote-closure claim is made.
+Current remote report2314 predates these15 fixes. Fresh full CI remains required.
+
+## Active title storage safety and current CI boundary
+
+Private and independent public Release each passed **1008/1008**, zero failures/
+skips. The selected opcode2313 route now prepares real frames, validates the
+complete ownership/catalog state and persists through the real session/file gates
+before updating memory. Whole-file failed-write evidence distinguishes unchanged
+rejection from recovery-required uncertainty. Source/peer native identities and
+exact session references prevent stale prepared publication.
+
+This includes80 registry guards,55 title/shared-file controls, retained PIN/title
+controls and the previous754 selection. Tests use guarded synthetic temporary
+saves only. It is not live-client proof, SQL, durable all-crash recovery or native/
+classic title completion. Classic2152 Change remains separately open.
+
+[Windows39926199302](https://github.com/vgcman16/wolfconquer/actions/runs/39926199302)
+on exact ec7e19c08299bc0b486695ddae06a12c20e9036d failed one updater case:
+core21476 passed/0failed (165 excluded), updater261/262. The updater failed closed
+on unavailable process-image attribution; exact startup/exit timing is unproven.
+The local repair passed301/301 as recorded above; a new full CI run is still
+required. This failed historical run is not a new full-CI-green claim.
+
 ## Bounded CodeFactor ranking/rune cleanup
 
 Private and independent public Release each passed **754/754** selected tests,
@@ -13,8 +48,9 @@ The selection includes 24 new controls, three corrected old crash assertions and
 the retained 510-case selection. No gameplay packet fields, client, original saves,
 SQL, worker or deployed process changed. Broader ranking writers, BestOf, Rune.Add
 and public mutable owner graphs still require audit. Remote CodeFactor reanalysis
-of these eight findings remains pending. Earlier five fixes are confirmed absent
-from their reports; current overall snapshot is 2,322 findings across 4,875 files.
+now confirms these eight findings absent alongside the earlier five. Current
+overall snapshot is2314 findings. Another15 precise character-overload fixes are
+locally verified above; they are not yet claimed remotely cleared.
 
 [Windows 39924242810](https://github.com/vgcman16/wolfconquer/actions/runs/39924242810)
 passed on exact `7781b6208956887992b1716d2848e78d09f7a9fc` in 3m 56s; the job completed
@@ -44,7 +80,7 @@ No warning suppression, original save, SQL, live client/server, host route or
 deployment was involved. Full-cast executor transactions and the remaining source
 bug audit stay open. The following full Windows receipt predates this new batch.
 
-## Latest completed full Windows check
+## Earlier full green Windows receipt
 
 [Windows 39922519332](https://github.com/vgcman16/wolfconquer/actions/runs/39922519332)
 passed all eight stages in 3m 56s on exact `ed5e765ec59a7e98bc31a5f73e6551588ce12f63`.
