@@ -153,6 +153,24 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        LegacySuperGuildWarPreparedReward? prepared = null;
+        var preparedKind = ResolveLegacySuperGuildWarPreparedKind(guildRank);
+        if (preparedKind != LegacySuperGuildWarRewardKind.None)
+        {
+            try
+            {
+                var leaderItem = preparedKind == LegacySuperGuildWarRewardKind.Leader
+                    ? CreateLegacyNpcItemGrant(context, session.PlayerItems, LegacySuperGuildWarLeaderRewardItemId)
+                    : null;
+                prepared = PrepareLegacySuperGuildWarReward(context, session, preparedKind, leaderItem);
+            }
+            catch (Exception error) when (IsLegacySuperGuildWarPreparationFailure(error))
+            {
+                await LogLegacySuperGuildWarPreparationRefusalAsync(context, sourceMethod, error).ConfigureAwait(false);
+                return;
+            }
+        }
+
         var claim = LegacySuperGuildWarStates.TryClaimReward(
             checked((uint)session.Character.Uid),
             playerGuildId,
@@ -165,10 +183,10 @@ public static partial class WorldPacketHandlers
                 when claim.Kind == LegacySuperGuildWarRewardKind.Leader:
                 await GrantLegacySuperGuildWarLeaderRewardAsync(
                         context,
-                        session,
                         optionId,
                         sourceMethod,
                         claim,
+                        prepared!,
                         cancellationToken)
                     .ConfigureAwait(false);
                 return;
@@ -177,10 +195,10 @@ public static partial class WorldPacketHandlers
                 when claim.Kind == LegacySuperGuildWarRewardKind.DeputyLeader:
                 await GrantLegacySuperGuildWarDeputyRewardAsync(
                         context,
-                        session,
                         optionId,
                         sourceMethod,
                         claim,
+                        prepared!,
                         cancellationToken)
                     .ConfigureAwait(false);
                 return;
@@ -233,80 +251,18 @@ public static partial class WorldPacketHandlers
 
     private static async ValueTask GrantLegacySuperGuildWarLeaderRewardAsync(
         WorldPacketHandlerContext context,
-        WorldSession session,
         byte optionId,
         string sourceMethod,
         LegacySuperGuildWarRewardClaim claim,
+        LegacySuperGuildWarPreparedReward prepared,
         CancellationToken cancellationToken)
     {
-        var grantedItem = CreateLegacyNpcItemGrant(
-            context,
-            session.PlayerItems,
-            LegacySuperGuildWarLeaderRewardItemId);
-        var updatedItems = session.PlayerItems with
-        {
-            InventoryItems = session.PlayerItems.InventoryItems.Concat([grantedItem]).OrderBy(item => item.Uid).ToArray(),
-        };
-        var updatedConquerPoints = checked(session.Character.ConquerPoints + LegacySuperGuildWarSourceConquerPointsReward);
-        var updatedMoney = checked(session.Character.Money + TunedLegacySuperGuildWarMoneyReward);
-        var updatedCharacter = session.Character with
-        {
-            ConquerPoints = updatedConquerPoints,
-            Money = updatedMoney,
-        };
-        updatedCharacter = WithCharacterAttribute(
-            updatedCharacter,
-            "ConquerPoints",
-            CheckedUInt64(updatedConquerPoints, nameof(updatedConquerPoints)));
-        updatedCharacter = WithCharacterAttribute(
-            updatedCharacter,
-            "Money",
-            CheckedUInt64(updatedMoney, nameof(updatedMoney)));
-        updatedCharacter = WithLegacyStatusFlag(updatedCharacter, LegacySuperGuildWarFiveStarsFlag);
-        updatedCharacter = WithLegacySuperGuildWarRewardClaimed(updatedCharacter, claim.Kind);
-
-        var updatedSession = session with
-        {
-            Character = updatedCharacter,
-            PlayerItems = updatedItems,
-        };
+        var updatedSession = prepared.Session;
+        var updatedContext = prepared.Context;
         context.Sessions?.Set(context.Connection, updatedSession);
-        var updatedContext = context with { Session = updatedSession };
-
-        await PersistLegacySuperGuildWarRewardAsync(updatedContext, updatedSession, sourceMethod, claim.Kind)
-            .ConfigureAwait(false);
-        await PersistLegacyNpcItemsAsync(
-                updatedContext,
-                LegacySuperGuildWarLeaderRewardItemId,
-                sourceMethod)
-            .ConfigureAwait(false);
-        await SendScalarUpdateAsync(
-                updatedContext,
-                updatedCharacter,
-                LegacyMsgUpdateDataType.ConquerPoints,
-                checked((ulong)updatedCharacter.ConquerPoints),
-                cancellationToken)
-            .ConfigureAwait(false);
-        await SendWalletMoneyUpdateAsync(updatedContext, updatedCharacter, cancellationToken)
-            .ConfigureAwait(false);
-        await context.Connection.SendAsync(
-                LegacyGameItemPacket.FromSnapshotItem(grantedItem).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacyItemFollowupsAsync(updatedContext, grantedItem, cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacySuperGuildWarStatusFlagsAsync(updatedContext, updatedCharacter, cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacyNpcDialogAsync(
-                updatedContext,
-                sourceMethod,
-                [$"You claimed {LegacySuperGuildWarSourceConquerPointsReward.ToString(CultureInfo.InvariantCulture)} CPs, {TunedLegacySuperGuildWarMoneyReward.ToString(CultureInfo.InvariantCulture)} silver, and item {LegacySuperGuildWarLeaderRewardItemId.ToString(CultureInfo.InvariantCulture)} for winning Super Guild War."],
-                LegacyCompetitionCloseOptions,
-                LegacyCaptureTheFlagRewardAvatarId,
-                cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacySuperGuildWarRewardBroadcastAsync(updatedContext, updatedCharacter, claim.Kind, cancellationToken)
-            .ConfigureAwait(false);
+        await PersistLegacySuperGuildWarPreparedRewardAsync(prepared, sourceMethod).ConfigureAwait(false);
+        await PersistLegacySuperGuildWarPreparedItemsAsync(prepared, sourceMethod).ConfigureAwait(false);
+        await PublishLegacySuperGuildWarClaimFramesAsync(prepared, sourceMethod, cancellationToken).ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer handled LegacyNpc SuperGuildWar reward " +
                 $"{FormatSession(updatedContext)} source={sourceMethod} option={optionId} kind={claim.Kind} " +
@@ -322,32 +278,17 @@ public static partial class WorldPacketHandlers
 
     private static async ValueTask GrantLegacySuperGuildWarDeputyRewardAsync(
         WorldPacketHandlerContext context,
-        WorldSession session,
         byte optionId,
         string sourceMethod,
         LegacySuperGuildWarRewardClaim claim,
+        LegacySuperGuildWarPreparedReward prepared,
         CancellationToken cancellationToken)
     {
-        var updatedCharacter = WithLegacyStatusFlag(session.Character, LegacySuperGuildWarThreeStarsFlag);
-        updatedCharacter = WithLegacySuperGuildWarRewardClaimed(updatedCharacter, claim.Kind);
-        var updatedSession = session with { Character = updatedCharacter };
+        var updatedSession = prepared.Session;
+        var updatedContext = prepared.Context;
         context.Sessions?.Set(context.Connection, updatedSession);
-        var updatedContext = context with { Session = updatedSession };
-
-        await PersistLegacySuperGuildWarRewardAsync(updatedContext, updatedSession, sourceMethod, claim.Kind)
-            .ConfigureAwait(false);
-        await SendLegacySuperGuildWarStatusFlagsAsync(updatedContext, updatedCharacter, cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacyNpcDialogAsync(
-                updatedContext,
-                sourceMethod,
-                ["You claimed the Deputy Leader Super Guild War title flag."],
-                LegacyCompetitionCloseOptions,
-                LegacyCaptureTheFlagRewardAvatarId,
-                cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacySuperGuildWarRewardBroadcastAsync(updatedContext, updatedCharacter, claim.Kind, cancellationToken)
-            .ConfigureAwait(false);
+        await PersistLegacySuperGuildWarPreparedRewardAsync(prepared, sourceMethod).ConfigureAwait(false);
+        await PublishLegacySuperGuildWarClaimFramesAsync(prepared, sourceMethod, cancellationToken).ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer handled LegacyNpc SuperGuildWar reward " +
                 $"{FormatSession(updatedContext)} source={sourceMethod} option={optionId} kind={claim.Kind} " +
@@ -468,70 +409,6 @@ public static partial class WorldPacketHandlers
         return character with { Attributes = attributes };
     }
 
-    private static async ValueTask PersistLegacySuperGuildWarRewardAsync(
-        WorldPacketHandlerContext context,
-        WorldSession session,
-        string sourceMethod,
-        LegacySuperGuildWarRewardKind kind)
-    {
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["ConquerPoints"] = session.Character.ConquerPoints.ToString(CultureInfo.InvariantCulture),
-            ["Money"] = session.Character.Money.ToString(CultureInfo.InvariantCulture),
-            ["StatusFlags"] = ReadAttributeString(session.Character.Attributes, "StatusFlags"),
-            ["BitVector"] = ReadAttributeString(session.Character.Attributes, "BitVector"),
-            [LegacySuperGuildWarRewardClaimedAttribute] = "true",
-            ["SuperGuildWarRewardClaimed"] = "true",
-            ["LegacySuperGuildWarRewardKind"] = kind.ToString(),
-            ["SuperGuildWarRewardKind"] = kind.ToString(),
-        };
-
-        if (kind == LegacySuperGuildWarRewardKind.Leader)
-        {
-            values[LegacySuperGuildWarLeaderRewardClaimedAttribute] = "true";
-            values["SuperGuildWarLeaderRewardClaimed"] = "true";
-        }
-        else if (kind == LegacySuperGuildWarRewardKind.DeputyLeader)
-        {
-            values[LegacySuperGuildWarDeputyRewardClaimedAttribute] = "true";
-            values["SuperGuildWarDeputyRewardClaimed"] = "true";
-        }
-
-        if (!TryPersistLegacyCharacterAttributes(
-                session.UsersRoot,
-                session.AccountId,
-                session.Character.Uid,
-                values,
-                out var path,
-                out var reason))
-        {
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP LegacyNpc SuperGuildWar reward persistence " +
-                    $"{FormatSession(context)} source={sourceMethod} reason={reason}.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        await context.Log.WriteLineAsync(
-                "WorldServer persisted LegacyNpc SuperGuildWar reward " +
-                $"{FormatSession(context)} source={sourceMethod} path={Path.GetFileName(path)} keys={string.Join(',', values.Keys)}.")
-            .ConfigureAwait(false);
-    }
-
-    private static ValueTask SendLegacySuperGuildWarStatusFlagsAsync(
-        WorldPacketHandlerContext context,
-        CharacterSnapshot character,
-        CancellationToken cancellationToken)
-    {
-        return context.Connection.SendAsync(
-            LegacyMsgUpdatePacket
-                .CreateLegacyRuntimeStatusFlagVectorUpdate(
-                    CheckedUInt32(character.Uid, nameof(character.Uid)),
-                    CreateLegacyRuntimeStatusFlagVector(character))
-                .ToFrameBytes(),
-            cancellationToken);
-    }
-
     private static async ValueTask SendLegacySuperGuildWarRewardDialogAndLogAsync(
         WorldPacketHandlerContext context,
         byte optionId,
@@ -554,47 +431,4 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
     }
 
-    private static async ValueTask SendLegacySuperGuildWarRewardBroadcastAsync(
-        WorldPacketHandlerContext context,
-        CharacterSnapshot winner,
-        LegacySuperGuildWarRewardKind kind,
-        CancellationToken cancellationToken)
-    {
-        var role = kind == LegacySuperGuildWarRewardKind.Leader
-            ? "GuildLeader"
-            : "DeputyLeader";
-        var guildName = ReadAttributeString(winner.Attributes, "GuildName", "LegacyGuildName", "SuperGuildWarWinnerGuildName");
-        if (string.IsNullOrWhiteSpace(guildName))
-        {
-            guildName = "the winning guild";
-        }
-
-        var message = kind == LegacySuperGuildWarRewardKind.Leader
-            ? $"{winner.Name} , {role} from {guildName} was rewarded with {LegacySuperGuildWarSourceConquerPointsReward.ToString(CultureInfo.InvariantCulture)} Cps for the domination the SuperGuildWar."
-            : $"{winner.Name} , {role} from {guildName} claimed the SuperGuildWar title reward.";
-        var frame = new LegacyMsgMessagePacket(
-                LegacyMsgMessagePacket.RedColor,
-                ChatType: 2_010,
-                MessageUid1: 0,
-                MessageUid2: 0,
-                ServerId: 0,
-                Mesh: 0,
-                UnionType: 0,
-                Count: 1,
-                New1: 0,
-                New2: 0,
-                ["SYSTEM", "ALL", string.Empty, message, string.Empty, string.Empty, string.Empty])
-            .ToFrameBytes();
-        var activeSessions = context.Sessions?.Snapshot();
-        if (activeSessions is null || activeSessions.Count == 0)
-        {
-            await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        foreach (var active in activeSessions)
-        {
-            await active.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
-        }
-    }
 }

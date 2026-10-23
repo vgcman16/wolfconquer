@@ -311,7 +311,6 @@ public static partial class WorldPacketHandlers
         return counts;
     }
 
-
     private static async ValueTask HandleLegacyExchangeShopBuyGoodsExAsync(
         WorldPacketHandlerContext context,
         WorldSession session,

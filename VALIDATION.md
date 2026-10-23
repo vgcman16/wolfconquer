@@ -1,5 +1,21 @@
 # Publication validation
 
+## SuperGuild preparation checkpoint
+
+Private Release468passed/0failed/0skipped; independent public464passed/0failed/
+4existing external-exchange skips of468. All12 new registered2084 cases pass;
+old baseline8failed/4passed proves same-UID retry loss after late preparation
+faults, not missing NPC/catalog refusals. Old5 reward and5 backend controls stay.
+Complete owned file images, wallets/flags, remaining pool and exact owner/peer
+wire order are checked. No existing positive was removed or changed to refusal.
+
+Checked private reward/image/frame preparation now precedes the unchanged claim
+decision. Leader300000CP/tuned500000silver/item2100065/flag151, deputy152-only,
+and source2/4-space gates remain. Two observed exchange mechanical corrections
+join this batch. Full Windows CI pending; no deployment/client/SQL/original-save
+action. Durable claim+session+two-file recovery, Lottery, raw-writer races and
+global UID activation remain open; this is partial FSB009 repair, not closure.
+
 ## Exchange material checkpoint
 
 Private Release446passed/0failed/0skipped; independent public442passed/0failed/
@@ -10,8 +26,13 @@ overflows and5 diagnostic differences, not10 separate economic exploit proofs.
 
 Complete repeated-ID totals and checked products precede private ordered debits;
 all existing reward/update/remove/echo bytes and active exact-ID/binding/stack
-rules remain. Shared consumption callers and GoodsEx are unchanged. Full Windows
-publication CI is pending. Current UID creator, cross-await/session/file atomicity,
+rules remain. Shared consumption callers and GoodsEx are unchanged.
+[Windows39976822207](https://github.com/vgcman16/wolfconquer/actions/runs/39976822207)
+passes4m05s on exact8abeec78727a476675861f4853f87e3a1cd4c444, completed
+2026-10-23T15:21:24Z: core23577passed/0failed of23742 (165externalfixturecases
+excluded), updater301/301, launcher49/49;8stageexit0,204build warnings.
+Receipt20261023T151734524Z-050a9ec1. CodeFactor3NEW/1FIXED,total2303; two mechanical
+corrections join the next behavior batch. Current UID creator, cross-await/session/file atomicity,
 durable economy and live-client acceptance are not certified by this fix.
 
 ## Native quest acceptance checkpoint

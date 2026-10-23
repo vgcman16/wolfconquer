@@ -16,7 +16,7 @@ public sealed partial class LegacyExchangeMaterialTests
         byte[] character = File.ReadAllBytes(fixture.CharacterFile);
         await fixture.Buy(count);
         Assert.Equal(4, fixture.Sent.Count);
-        var afterFirst = original.WithStackSize(checked((ushort)(available - 2 * count)));
+        var afterFirst = original.WithStackSize(checked((ushort)(available - (2 * count))));
         Assert.Equal(LegacyGameItemPacket.FromSnapshotItem(afterFirst, mode: LegacyGameItemPacket.UpdateItemMode).ToFrameBytes(), fixture.Sent[0]);
         Assert.Equal(RemovalFrame(101), fixture.Sent[1]);
         var current = fixture.Current();

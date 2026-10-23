@@ -7,13 +7,26 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] SuperGuild reward preparation (partial FSB009): private468passed/0failed/
+  0skipped; public464passed/0failed/4existing external-exchange skips of468.
+  All12 new registered controls pass after8 failed retries/4 valid boundaries
+  on old code. Same UID can retry after a preparation failure without losing
+  entitlement; other recipients/pool exhaustion, complete saved/reloaded values
+  and exact packet order checked. Leader300000CP/tuned500000silver/item2100065/
+  flag151 and deputy flag152-only remain. Two exchange style corrections batched.
+  Full Windows CI pending; no deployment. Full claim/session/two-file recovery,
+  Lottery cadence and shared UID/host lifecycle remain open.
+
 - [x] Exchange material preparation (FSB045): private446passed/0failed/0skipped;
   public442passed/0failed/4existing external-fixture skips of446. All25 new
   registered controls pass, with full native save/reload images on7 successes.
   Baseline10failures include3 real unpaid-cost publications,2 product overflows
   and5 reason differences. Aggregate cost checks precede private per-definition
   debit; valid wire order and active binding/count/stack policy remain. Shared
-  consumption callers are unchanged. Full Windows CI is pending. Whole session/
+  consumption callers are unchanged. FullWindows39976822207 passes4m05s on exact
+  8abeec78: core23577/0failed (165excluded), updater301/301, launcher49/49,
+  8stageexit0,204warnings. CodeFactor3NEW/1FIXED,total2303; two mechanical fixes
+  join the next behavior batch. Whole session/
   save/economy atomicity, GoodsEx and global UID activation remain open.
 
 - [x] Native quest acceptance (FSB044): private/public Release418/418 each,

@@ -629,19 +629,53 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Existing count/shop/amount/reward/capacity guards, active exact-ID/mixed-binding/
   zero-stack-as-one policy, reward values, per-definition update/remove frames
   and reward/echo order remain. The handler extraction is a semantic material
-  phase boundary, not a complexity-score rewrite. Full Windows CI is pending.
+  phase boundary, not a complexity-score rewrite.
+- Full [Windows39976822207](https://github.com/vgcman16/wolfconquer/actions/runs/39976822207)
+  passes4m05s on exact8abeec78727a476675861f4853f87e3a1cd4c444, completed
+  15:21:24Z: core23577/0failed of23742 (165externalfixtureexcluded), updater301/301,
+  launcher49/49,8stageexit0,204warnings. Receipt20261023T151734524Z-050a9ec1.
+  CodeFactor3NEW (complexity,blank-line,precedence)/1FIXED old complexity,total2303.
+  The2 mechanical corrections join the next behavior batch, not a separate CI.
 - Limits: current creator UID policy and unconditional session publication are
   unchanged. Global UID activation, raw/cross-await writers, duplicate physical
   ownership, save-before-publication and durable multifile economy remain open.
   GoodsEx donation/selection and native interchangeable-material/binding parity
   are separate work; no live client, SQL or original save was used.
 
+### FSB-009 (partial): Prepare Super Guild War rewards before consuming claims
+
+- Owner: the sole registered SuperGuildWar TryClaimReward caller. The in-memory
+  claim pool/UID marker changed before item creation, checked wallet arithmetic,
+  attribute copies and complete save/frame preparation. A later fault could lose
+  the claim or expose partial rewards; retrying the same UID could not recover it.
+- Prepare the private complete candidate, persistence values/item image and exact
+  owner/dialog/broadcast frames before the unchanged real claim decision. Expected
+  preparation faults leave claim, reward state, files and output unchanged. Grant
+  reuses prepared values/bytes; no speculative claim/refund or accepting callback.
+- Genuine registered2084 baseline **8 failed/4 passed** of12: every failure is a
+  repaired SAME UID unable to claim after an earlier late fault, with no event
+  reset/reseed. Four leader2-slot/deputy4-slot boundary controls already passed.
+- Verification: private Release **468 passed/0 failed/0 skipped**; independent
+  public **464 passed/0 failed/4 existing external-exchange skips** of468. All12
+  new controls pass, plus the old5 reward/5 backend and446 retained cases. Full
+  physical files, wallets/flags, claim-pool exhaustion and exact owner/broadcast
+  frames are checked. Two exchange mechanical style corrections join this batch.
+- Existing active payouts remain leader300000CP + tuned500000silver + one2100065
+  item/flag151, deputy flag152 only. Source7770 documents the older model with
+  50000000source silver; neither that amount nor the newer decompile's mail branch
+  replaces the current approved tuning. No wire format or live routing changed.
+- Full Windows publication CI is pending. This is NOT full FSB009 closure:
+  Lottery cadence, unconditional session publication, claim+memory+two-file crash
+  atomicity, durable outbox/reconciliation, raw writers and global UID activation
+  remain open. No live client, original saves or SQL were used.
+
 ## Active audit
 
-Current source review does not close whole managed reward transactions: Lottery
-cadence can precede cancellation/persistence, and SuperGuildWar entitlement can
-precede checked wallet arithmetic/frame preparation. These remain open FSB009
-work, not safety proved by the isolated UID-adoption proposals.
+Current work does not close whole managed reward transactions. SuperGuildWar's
+checked preparation now precedes its claim decision as verified above, but the
+claim/session/two-file durable transaction remains open. Lottery cadence can
+still precede cancellation/persistence. These remain FSB009 work, not safety
+proved by the isolated UID-adoption proposals.
 
 | ID | Defect / affected owner | Required invariant | Status |
 | --- | --- | --- | --- |
@@ -653,7 +687,7 @@ work, not safety proved by the isolated UID-adoption proposals.
 | FSB-006 | SQL multi-row save/load and native eager lifecycle are incomplete | Real transaction boundaries, constraints and recovery proof | Open |
 | FSB-007 | Guild/league/title/catalog loaders publish partial state; file saves rewrite in place | Stage valid state; coherent publication and recoverable file replacement | Implementation/audit in progress |
 | FSB-008 | Name-based GM/PM privileges and inconsistent title4001 equip/remove classification | Server-owned authority and validated consistent title metadata | Implementation/audit in progress |
-| FSB-009 | Rewards record claim/MAC before grants; partial failure loses claim; IP/MAC indexing differs | Validate full reward; atomic/idempotent claim and grant; correct identity checks | Open, reward execution held |
+| FSB-009 | Rewards record claim/MAC before grants; partial failure loses claim; IP/MAC indexing differs | Validate full reward; atomic/idempotent claim and grant; correct identity checks | Scoped SuperGuild preparation verified468 private/464public+4external skips; Lottery and durable whole claims remain open |
 | FSB-010 | Guild/league lookups, appointment bounds and caller-selected guild IDs lack validation | Validate request, role, capacity and own-guild authority before effects | Implementation/audit in progress |
 | FSB-011 | Packet byte-array constructor can overrun fixed allocation | Allocate complete input and expose truthful capacity before unsafe use | Constructor fixed; wider bounds audit open |
 | FSB-012 | General native packet readers/writers trust mutable Size or MAX_SIZE instead of actual allocation | Check allocation, cursor, frame and lifetime before every unsafe access | Open |
@@ -692,6 +726,11 @@ work, not safety proved by the isolated UID-adoption proposals.
 | FSB-045 | Duplicate exchange requirements reuse stock; partial consumption still awards; products can overflow | Complete summed material admission and private ordered full debit before reward | Scoped material repair verified446 private;442public plus4existing external skips; whole economy/UID lifecycle open |
 
 ## CodeFactor cleanup
+
+Exchange public8abeec78 is full-Windows verified above. Its two mechanical new
+findings are corrected in the SuperGuild behavior batch; the new semantic
+handler's complexity is deferred. Current published report3NEW/1FIXED,total2303
+does not certify those uncommitted style corrections or full gameplay completion.
 
 Acceptance public39eaaf45 is full-Windows verified above. Its3 new findings are
 complexity in Acceptance, AcceptanceGraph and the isolated child scenario;0fixed,
