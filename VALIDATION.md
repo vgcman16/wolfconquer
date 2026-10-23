@@ -1,5 +1,24 @@
 # Publication validation
 
+## Native death and tournament prerequisites
+
+Private and independent sanitized-public Release each passed4902/4902 selected
+cases, zero failures/skips:4858 retained +44 new death/tournament controls. Exact
+native death storage, source map lists and complete Jiang2309 writer are included,
+alongside whole tournament constructors/query methods and ExtremePk.SharePoints.
+Controls retain unsigned score wrap, floor division, self-alias effects, exact
+message bytes and mutation-before-fault order. Packet-owning tests return Task.
+
+An owned CPU-only x86 probe matched52/52 rows between default/optimized Framework
+builds and the modern scoped candidate. Literal modern LINQ differs on3 singleton
+controls; the admitted full-array key sorts preserve native faults and stable ties.
+This is not a rule for all LINQ, map traversal or concurrent mutations. Compilation
+also exposed a duplicate already-owned client slot and a false Player field test;
+parent reconciled both against original GameClient135/Player3917 without inventing
+storage. Full Dead/CheckUp/reward/ITournament/eager startup owners remain held.
+No live game, original save, SQL, worker, routing or deployment was exercised.
+The latest full Windows receipt below predates this new component batch.
+
 ## Native table and login-catalog dependencies
 
 Private Release passed 4858/4858 selected cases, then all 28 final catalog controls
@@ -17,7 +36,7 @@ implicit-null List<int> slot; no startup producer was invented. Roulette's defau
 Random uses the previously scoped Framework TickCount-seeding translation only;
 its separate Pool RNG remains separate. No payout, wallet, round worker, handler,
 SQL, eager queue, original save or live host was executed/adopted. Full Windows
-proof for this new batch is pending; the receipt below belongs to its exact commit.
+39915624769 now confirms this batch on exact `0c3a4533`, as recorded below.
 
 ## Native timer/login and world-view/event prerequisites
 
@@ -67,13 +86,13 @@ Windows result below now verifies this batch; it is not live event proof.
 
 ## Current full Windows result
 
-[Windows39914155501](https://github.com/vgcman16/wolfconquer/actions/runs/39914155501)
-passed in 4m 12s on exact commit `4cb41b155d300255321223cea2de4a13cbc1a15a`.
-All eight sequential stages exited 0. Actual terminal TRX: core 21,258 passed /
-0 failed / 165 unexecuted of 21,423; updater 262/262; Windows launcher 49/49.
+[Windows39915624769](https://github.com/vgcman16/wolfconquer/actions/runs/39915624769)
+passed in 4m 3s on exact commit `0c3a4533f5a3af914772c2125b453694d3cd9036`.
+All eight sequential stages exited 0. Actual terminal TRX: core 21,345 passed /
+0 failed / 165 unexecuted of 21,510; updater 262/262; Windows launcher 49/49.
 Synthetic status and TRX-parser controls passed 20 + 13; HTTP/service probes were
-skipped. Runner receipt `20261023T065304426Z-c3543ad7` finished at
-`2026-10-23T06:56:53.8732556Z`.
+skipped. Runner receipt `20261023T070752720Z-8a99758c` finished at
+`2026-10-23T07:11:34.0592319Z`.
 This closes the three test regressions described below. Earlier red receipts
 remain historical evidence, not current failures. This is build/component proof,
 not a new live-client, SQL, deployment or full-gameplay-parity claim.

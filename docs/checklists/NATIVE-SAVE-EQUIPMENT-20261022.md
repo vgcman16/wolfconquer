@@ -40,16 +40,22 @@
   codecs are implemented. Currency payouts, round worker and handlers remain held.
   Complete RuneRank/RechargeShop file/cache owners and the exact NameUsed slot
   now support the login graph; they do not prove eager account login or SQL.
-- [x] Private Release passed 4858/4858, then final catalog-fixture 28/28. Independent
-  sanitized-public Release passed 4858/4858, zero failures/skips: 4771 retained
-  + 59 table and 28 catalog controls. The unused test console capture was removed.
+- [x] Genuine death state, Jiang 2309 writer, complete source map lists, four
+  tournament state/query owners and whole ExtremePk.SharePoints are implemented.
+  The three scoped full-array sorts retain stable ties and singleton key faults;
+  owned default/optimized Framework and modern candidate agree on52/52 rows.
+  Full Dead/CheckUp/rewards/interface and eager lifecycle remain unadmitted.
+- [x] Private and independent sanitized-public Release each passed4902/4902,
+  zero failures/skips:4858 retained +44 death/tournament controls. Parent corrected
+  an invented Player.OnSoulSpell test expectation: only the genuine client field
+  exists; no field was fabricated. Packet-owning tests return their awaited Task.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run 39914155501 on `4cb41b15` passed all 8 stages: core 21,258
-  passed / 0 failed / 165 unexecuted of 21,423; updater 262/262; launcher 49/49;
+  Full Windows run 39915624769 on `0c3a4533` passed all 8 stages: core 21,345
+  passed / 0 failed / 165 unexecuted of 21,510; updater 262/262; launcher 49/49;
   synthetic parser 20 + 13 cases. HTTP/service probes were skipped.
 - [x] Logging/ranking/login-wire source has full Windows proof in3m52s on exact
   b75f29ab. Hair setter/getter and earlier component controls remain intact.
