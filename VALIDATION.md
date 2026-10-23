@@ -1,5 +1,24 @@
 # Publication validation
 
+## Saved state, race setup and football round components
+
+Private and independent sanitized-public Release each passed3556/3556 selected
+cases, zero failures/skips:3496 retained cases plus60 new save-state/scheduler
+controls. The field manifest checks72 declarations, but only71 are newly added:
+the first compile caught duplicate SpecialGarment, and the existing genuine
+owner was retained. Champion's three fields and PDinamycID add four more slots.
+
+Tests exercise complete champion/day/ban properties, whole real race Create
+with100 generated potion roles, gate publication/native record packets, genuine
+football constructor/NPC/round/map behavior and scheduler all-online sends.
+No event worker, socket pump, host, original save, SQL or live client was used.
+Football is not ITournament-adopted; complete event lifecycles, teleport and
+full login/save remain held. Fresh full Windows CI is required for this snapshot.
+
+The XP arithmetic successor remains excluded: both owned Framework/x86 builds
+agreed on14080 call-shaped rows, while the modern proposal differed on18.
+Matching aggregate digests were a collision; row-by-row outputs rejected it.
+
 ## Character owners, warehouse, blessing and Clan persistence
 
 Private and independent sanitized-public Release each passed3496/3496 selected

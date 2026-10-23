@@ -11,9 +11,11 @@
   warehouse Show/codecs, XP counter/duration/status, attributes/blessing/mentor
   grants, genuine Clan owners/query/removal/codecs and entire ClanTable save/load
   are now implemented as explicit components, not registered live receivers.
-- [x] Private and independent sanitized-public Release each passed3496/3496,
-  zero failures/skips:3256 retained component cases +199 new +26 trade and15
-  BaseFunc cases. BaseFunc keeps the exact public NameStrCheck optional-bool
+- [x] Exact saved state, whole champion/day/ban queries, race setup/record packets
+  and football round/NPC/map methods are implemented without full event adoption.
+- [x] Private and independent sanitized-public Release each passed3556/3556,
+  zero failures/skips:3496 retained cases +60 save-state/scheduler cases.
+  BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count files. They
   prove those component paths, not original saves, SQL or full account creation.
@@ -23,6 +25,7 @@
   parser20+13 cases. HTTP/service probes were skipped.
 - [x] The newer3496-case source snapshot now has fresh full Windows proof;
   run39894908849 completed successfully in3m58s on the exactf6ac68fa source.
+- [ ] Fresh full Windows proof is required for the newer3556-case snapshot.
 
 ## Correctness findings retained
 
@@ -36,9 +39,9 @@
 - [x] Full Windows39892756807 found a real trade-fixture StringWriter capture race
   (20103 pass/1 fail/165 unexecuted). Shared locking and a1024-line concurrent
   control retained all25 trade tests;26/26 focused and corrected fullCI passed.
-- [ ] Whole IncreaseExperience arithmetic is still gated: owned Framework1284
-  controls passed, but the modern primitive-only pipeline differs on15/1280 rows,
-  including the no-grant decision. Extended-expression successor is unapproved.
+- [ ] Whole IncreaseExperience arithmetic is still gated: primitive-only differed
+  on15/1280 rows; normalized proposal matched1284 controls, but its call-shaped
+  successor differed on18/14080. All rows were compared despite a digest collision.
 
 ## Remaining end-to-end work
 
