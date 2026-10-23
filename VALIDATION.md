@@ -1,5 +1,23 @@
 # Publication validation
 
+## Native mentor sharing and complete social records
+
+Private Release and independent sanitized-public Release each passed1424/1424,
+zero failures/skips:88 new native TutorInfo/share/Associate/packet/persistence
+cases and1336 retained. Whole nonempty mentor/apprentice publication and all
+friend/enemy/partner lifecycle branches are exercised through genuine owners.
+Owned-file Save/Load verifies native count headers, field widths, overwrite,
+aliases and existing-state retention without touching original player saves.
+
+The source's SetMentorBattlePowers body really is empty; it remains empty and
+does not establish a working mentor BP bonus. PKPoints has genuine read access
+only until its entire status chain is ready. No fake writable property or
+implicit player/record rebinding was added to admit these complete methods.
+
+Native interaction handlers, Team/HP/level/equipment cycles, startup/login/save
+and live-host adoption remain unfinished. Focused component proof is not actual
+client, deployment, full Windows or full gameplay-parity acceptance.
+
 ## Native VIP publication and experience calculations
 
 Private Release and independent sanitized-public Release each passed1336/1336,

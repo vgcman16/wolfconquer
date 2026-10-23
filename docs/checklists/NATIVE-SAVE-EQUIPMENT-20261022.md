@@ -1,5 +1,20 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on mentor sharing and complete Associate records
+
+- [x] Whole TutorInfo loader/share arithmetic, all apprentice-information fields/
+  codecs, Equip.SendMentorShare and remaining native Associate methods:88 cases.
+- [x] Private and independent sanitized-public Release each passed1424/1424,
+  zero failures/skips (88 new +1336 retained), including complete nonempty online/
+  offline mentor/apprentice/friend/enemy/partner branches and owned-file Save/Load.
+  Native record aliases, duplicate/cache guards, signed narrowing and publication
+  before later faults remain; no player rebinding or rollback was fabricated.
+- [x] Source Player.SetMentorBattlePowers is genuinely empty and stays empty.
+  This is NOT a working mentor BP bonus; the tests explicitly preserve that gap.
+- [ ] PKPoints exposes its genuine backing/read getter only. Its full setter,
+  Team/HP/level/equipment cycles, interaction handlers and native host/login/save
+  adoption remain unfinished. File proof uses owned fixtures, not original saves.
+
 ## Follow-on VIP publication and experience calculations
 
 - [x] Whole native VipLevel/ExpireVip state, UpdateVip, all VIP flags and status
@@ -62,8 +77,8 @@
   Original Finalize leaves Position4; corrected assertions retain exact bytes,
   size and later read-cursor checks. Production was not changed to suit tests.
 - [ ] Full Team/HP/level/equipment cycle, native save/login and host adoption remain.
-  Mentor candidates still require parent intake/proof; player/map and JiangHu are
-  independently proven above.
+  Mentor components, player/map and JiangHu are independently proven above;
+  full lifecycle adoption is not established by those focused results.
 - Owned HP expression probe:18 result values match expected formulas under both
   default and optimized Framework4/x86; separate10 cast controls also pass.
 
