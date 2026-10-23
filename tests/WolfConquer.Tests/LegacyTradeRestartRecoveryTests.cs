@@ -19,6 +19,39 @@ public sealed class LegacyTradeRestartRecoveryTests : IDisposable
     private readonly string root = Path.Combine(Path.GetTempPath(), "wolf-trade-restart-" + Guid.NewGuid().ToString("N"));
     private readonly List<Player> players = [];
 
+    [Fact]
+    public async Task CapturedTradeLogKeepsConcurrentLineWritesAndSnapshotsConsistent()
+    {
+        using var log = new CapturedTradeLog();
+        const int count = 512;
+        string padding = new('x', 128);
+        var synchronous = Task.Run(() =>
+        {
+            for (int i = 0; i < count; i++) log.WriteLine($"sync-{i}:{padding}");
+        });
+        var asynchronous = Task.Run(async () =>
+        {
+            for (int i = 0; i < count; i++) await log.WriteLineAsync($"async-{i}:{padding}");
+        });
+        var writing = Task.WhenAll(synchronous, asynchronous);
+        do
+        {
+            string snapshot = log.ToString();
+            Assert.True(snapshot.Length == 0 || snapshot.EndsWith(Environment.NewLine, StringComparison.Ordinal));
+            await Task.Yield();
+        }
+        while (!writing.IsCompleted);
+        await writing;
+        string[] lines = log.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(count * 2, lines.Length);
+        Assert.Equal(count * 2, lines.Distinct(StringComparer.Ordinal).Count());
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Contains($"sync-{i}:{padding}", lines);
+            Assert.Contains($"async-{i}:{padding}", lines);
+        }
+    }
+
     public LegacyTradeRestartRecoveryTests()
     {
         Directory.CreateDirectory(UsersRoot);
@@ -487,7 +520,7 @@ public sealed class LegacyTradeRestartRecoveryTests : IDisposable
 
     private Owner NewOwner()
     {
-        var log = new StringWriter();
+        var log = new CapturedTradeLog();
         var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(UsersRoot, ItemsRoot),
             ConquerProtocolProfile.VisibleDx8D13, log);
         var field = typeof(WorldServerFrameHandler).GetField("_sessions", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -641,6 +674,45 @@ public sealed class LegacyTradeRestartRecoveryTests : IDisposable
     {
         Assert.True(PacketFrameDecoder.TryRead(new ReadOnlySequence<byte>(bytes), out var frame, out _, out _));
         return frame;
+    }
+
+    // The handler and retained disconnect cleanup can log on different threads.
+    // Writes and diagnostic snapshots must share the same lock.
+    private sealed class CapturedTradeLog : StringWriter
+    {
+        private readonly object gate = new();
+
+        public override void Write(char value)
+        {
+            lock (gate) base.Write(value);
+        }
+
+        public override void Write(string? value)
+        {
+            lock (gate) base.Write(value);
+        }
+
+        public override void WriteLine(string? value)
+        {
+            lock (gate) base.WriteLine(value);
+        }
+
+        public override Task WriteAsync(string? value)
+        {
+            lock (gate) base.Write(value);
+            return Task.CompletedTask;
+        }
+
+        public override Task WriteLineAsync(string? value)
+        {
+            lock (gate) base.WriteLine(value);
+            return Task.CompletedTask;
+        }
+
+        public override string ToString()
+        {
+            lock (gate) return base.ToString();
+        }
     }
 
     private sealed record Owner(WorldServerFrameHandler Handler, WorldSessionStore Sessions, StringWriter Log);

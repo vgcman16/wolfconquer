@@ -19,6 +19,13 @@ failures/skips, including the32 restored gear numeric controls. Fresh full
 Windows CI for these source changes remains required. No live client, SQL/save,
 deployment, receiver registration or overall parity acceptance follows.
 
+Full Windows39892756807 built, then core20103 passed/1 failed/165 unexecuted of
+20269; updater262/262 passed. The single failure was concurrent StringWriter
+capture in the retained trade-recovery fixture, not a gameplay assertion. The
+test capture now shares a lock for writes/snapshots. All26 public trade cases
+passed, including one new1024-line sync/async concurrent-capture test; all25
+existing trade cases and their assertions remain. Full corrected rerun is pending.
+
 ## CI recovery — full Windows rerun passed
 
 The registered self-hosted Windows runner was restarted with human approval;

@@ -15,7 +15,13 @@
   zero failures/skips, including32 retained gear numeric controls. The public
   export now includes that source-checked prerequisite; its first compile had
   exposed missing GetDamage rather than a test failure.
-- [ ] New full Windows CI on this gameplay-source snapshot remains required.
+- [x] Full Windows39892756807 built, then core20103 passed/1 failed/165
+  unexecuted of20269; updater262/262 passed. The lone failure was a real
+  concurrent StringWriter read/write race in the retained trade fixture.
+  Capture now locks writes and snapshots; all26 public trade tests passed,
+  including a new1024-line sync/async concurrent capture control. No trade
+  assertion, production behavior or skip was removed.
+- [ ] Fresh full Windows CI with the fixture race correction remains required.
   Full HP/Team/XP/Inventory/login/save/receivers and host adoption are still open;
   no live client, original save/SQL, routing or deployment was changed.
 
