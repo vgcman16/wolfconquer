@@ -14,7 +14,9 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   complete grants prepare before effects/CAS/output. Full launcher57/57 also
   passes after real cleanup-masking repair (FSB055; baseline5pass/3fail of8).
   Independent public core707/707 and launcher57/57 pass, zero failed/skipped;
-  full Windows verification follows the checkpoint. No new
+  clean full Windows40008366439 passes4m14s on exact8843a638:23861corepassed/
+  0failed,165existing externalfixtureexcluded, updater301/301, launcher57/57;
+  8stageexit0,204warnings/0buildErrors. No new
   live/server/SQL/UID-activation or full-parity claim.
 
 - [x] Earth Force conversion/rank safety (FSB051/052): private Release592/592,

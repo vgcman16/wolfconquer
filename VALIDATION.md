@@ -19,7 +19,13 @@ Fresh pre-checkpoint CodeFactor main read: gradeA,2318issues/5000files, includin
 1202maintainability,863complexity,194duplication and59performance. These static
 counts are not gameplay parity. The confirmed CA2219 diagnostic-loss path is
 fixed here; intentional missing-path catches and wire enum aliases are not
-blindly rewritten. One full Windows run will verify this coherent checkpoint.
+blindly rewritten. Clean full Windows40008366439 passes4m14s on exact
+8843a6384f167b9e16a19b30e8d6b93c6a7efc74, completed2026-10-23T19:09:18Z:
+23861corepassed/0failed of24026,165existing externalfixtureexcluded; updater
+301/301, launcher57/57; all8stages exit0,204warnings/0buildErrors. Synthetic
+status/parser controls20+13 passed without HTTP/service probes. Local receipt
+20261023T190520259Z-2e3a0f3c finished19:09:11.1545465Z. Later documentation and
+tracker-only updates do not change that tested production snapshot.
 
 Offline only. UID activation, durable reward recovery, raw writer closure,
 whole-Status/whole-kill atomicity, SQL and new client acceptance remain open.
