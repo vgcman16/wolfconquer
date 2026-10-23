@@ -60,7 +60,7 @@ public sealed class LegacyNativeBaseFuncTests
         Assert.False(nameCheck.GetParameters()[0].IsOptional);
         Assert.True(nameCheck.GetParameters()[1].IsOptional);
         Assert.Equal(true, nameCheck.GetParameters()[1].DefaultValue);
-        Assert.Equal(new[] { "NameStrCheck", "ProficiencyLevelExperience", "RandFromGivingNums", "RandGet", "rand", "srand" },
+        Assert.Equal(new[] { "NameStrCheck", "ProficiencyLevelExperience", "RandFromGivingNums", "RandGet", "ReverseString", "rand", "srand" },
             typeof(LegacyNativeBaseFunc).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
                 .Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
     }

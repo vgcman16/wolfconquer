@@ -1,5 +1,27 @@
 # Publication validation
 
+## Native item loading, detained records and hair/face ownership
+
+Private and independent sanitized-public Release each passed3651/3651 selected
+cases, zero failures/skips:3556 retained cases plus95 new loader, detained-record,
+container/file, hair/face receiver and required owner controls. Root reviewed the
+whole native method families and all candidate production/tests before intake.
+
+The first Debug runs each passed3633 and failed18 new cases:15 packet-owning
+fixture births hit the native stack-depth guard, two expected the old chat opcode,
+and one omitted the genuine map view. Tests now use the existing owned-thread
+fixture, real MapView and source opcode2179. No production guard, fault, assertion
+or skip policy was weakened; corrected Release runs retained every case.
+
+Tests exercise nonempty item routing/deposit/perfection, raw322-byte detained
+records and248-byte wire frames, both owned container files, real cost and
+publication order, complete hair mutation/admission/equipment and the whole
+unregistered2282 receiver. Files are guarded GUID-owned temporary fixtures only.
+Full LoadCharacter's initial unfiltered SQL update, eager LoginQueue/ExecuteLogin,
+full login/save and host adoption remain held. No original save, SQL, worker,
+socket pump, live client or routing changed. Fresh full Windows proof is pending;
+the earlier3646f1ef green run below does not validate these newer source changes.
+
 ## Native-launch TCP reader resilience
 
 Full Windows39896336932 on5df9e6a1 built successfully, then core20363 passed/

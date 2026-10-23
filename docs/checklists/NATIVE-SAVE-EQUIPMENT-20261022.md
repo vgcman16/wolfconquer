@@ -13,11 +13,13 @@
   are now implemented as explicit components, not registered live receivers.
 - [x] Exact saved state, whole champion/day/ban queries, race setup/record packets
   and football round/NPC/map methods are implemented without full event adoption.
-- [x] Private and independent sanitized-public Release each passed3556/3556,
-  zero failures/skips:3496 retained cases +60 save-state/scheduler cases.
+- [x] Whole LoadClientItems routing/perfection, Confiscator records/containers/files
+  and hair/face admission/equipment/2282 receiver are implemented as components.
+- [x] Private and independent sanitized-public Release each passed3651/3651,
+  zero failures/skips:3556 retained cases +95 loader/detained/hair/owner cases.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
-- [x] File tests used only guarded GUID-owned temporary INI/count files. They
+- [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
   Full Windows run39897664958 on3646f1ef passed all8stages: core20399 passed/
@@ -25,6 +27,8 @@
   parser20+13 cases. HTTP/service probes were skipped.
 - [x] The3556-case native snapshot and35 new tool controls now have fresh full
   Windows proof on exact3646f1ef; run39897664958 completed successfully in3m54s.
+- [ ] The newer95-case loader batch has focused Release proof above; its new full
+  Windows run is not yet accepted. Full LoadCharacter/SQL/eager queues stay held.
 
 ## Correctness findings retained
 

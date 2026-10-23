@@ -21,7 +21,8 @@ public sealed partial class LegacyNativePlayerRuntime
 
     public ushort Strength;
 
-    // Native Player1115/1127/1165, implicit zero. Their full setters remain absent.
+    // Native Player1115/1127/1165, implicit zero. Class/Level setters remain absent;
+    // the whole Hair property is owned by its dedicated partial.
     private uint _class;
 
     private ushort _level;
@@ -63,11 +64,4 @@ public sealed partial class LegacyNativePlayerRuntime
         }
     }
 
-    public uint Hair
-    {
-        get
-        {
-            return _hair;
-        }
-    }
 }

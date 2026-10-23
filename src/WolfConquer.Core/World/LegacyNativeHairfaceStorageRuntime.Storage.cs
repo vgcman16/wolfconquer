@@ -55,13 +55,7 @@ internal partial class LegacyNativeHairfaceStorageRuntime
                 item.Sex = hairface.Sex;
                 item.Type = hairface.Type;
 
-                // Native Load calls Add(item, Send:false). Inline that exact reachable
-                // branch: no owner lookup, send callback or public Add/send substitute.
-                if (!Exists(item.ID, item.Type))
-                {
-                    items.Add(item);
-                    objects = items.ToArray();
-                }
+                Add(item, Send: false);
             }
         }
     }
