@@ -32,7 +32,7 @@ public sealed partial class LegacyNativeCombatGearEntryTests
     }
 
     [Fact]
-    public void NewGetterOnlyMembersReadActualBackingFieldsWithoutCreatingColdOrHotSetters()
+    public void BackingFieldGettersRemainLiteralAndHairNowHasTheWholeNativeSetter()
     {
         var owner = new LegacyNativeGameClientRuntime();
         var player = owner.Player;
@@ -56,7 +56,6 @@ public sealed partial class LegacyNativeCombatGearEntryTests
         {
             var property = typeof(LegacyNativePlayerRuntime).GetProperty(name)!;
             Assert.Equal(type, property.PropertyType);
-            Assert.Null(property.SetMethod);
             var field = PlayerField(backing);
             Assert.True(field.IsPrivate);
             Assert.False(field.IsInitOnly);
@@ -64,6 +63,31 @@ public sealed partial class LegacyNativeCombatGearEntryTests
             var member = Assert.Single(Members(property.GetMethod!).Where(instruction => instruction.Member is not null));
             Assert.Equal(OpCodes.Ldfld, member.Op);
             Assert.Equal(field, member.Member);
+            if (name != "Hair")
+            {
+                Assert.Null(property.SetMethod); // Whole Class/Level setters remain held.
+            }
+            else
+            {
+                // Whole native Player2727..2750 supersedes the earlier getter-only boundary.
+                // Behavioral loaded/unloaded/send/admission/fault coverage lives in CharacterRead.
+                var setter = property.SetMethod!;
+                Assert.NotNull(setter);
+                Assert.True(setter.IsPublic);
+                Assert.Equal(typeof(void), setter.ReturnType);
+                var parameter = Assert.Single(setter.GetParameters());
+                Assert.Equal(typeof(uint), parameter.ParameterType);
+                Assert.Equal("value", parameter.Name);
+                Assert.False(parameter.IsOptional);
+                var instructions = Members(setter);
+                Assert.Contains(instructions, i => i.Op == OpCodes.Stfld && i.Member == field);
+                Assert.Contains(instructions, i => i.Member is FieldInfo f &&
+                    f.DeclaringType == typeof(LegacyNativeGameClientRuntime) && f.Name == "FullLoading");
+                Assert.Contains(instructions, i => i.Member is MethodInfo m &&
+                    m.DeclaringType == typeof(LegacyNativePlayerRuntime) && m.Name == "SendUpdate");
+                Assert.Contains(instructions, i => i.Member is MethodInfo m &&
+                    m.DeclaringType == typeof(LegacyNativeHairfaceStorageRuntime) && m.Name == "Add");
+            }
         }
         owner.FullLoading = true;
         PhysicalPrestate(player, uint.MaxValue, ushort.MaxValue, uint.MaxValue);

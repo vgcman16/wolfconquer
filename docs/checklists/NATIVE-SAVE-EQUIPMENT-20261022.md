@@ -15,8 +15,8 @@
   and football round/NPC/map methods are implemented without full event adoption.
 - [x] Whole LoadClientItems routing/perfection, Confiscator records/containers/files
   and hair/face admission/equipment/2282 receiver are implemented as components.
-- [x] Private and independent sanitized-public Release each passed3651/3651,
-  zero failures/skips:3556 retained cases +95 loader/detained/hair/owner cases.
+- [x] Private and independent sanitized-public Release each passed3652/3652,
+  zero failures/skips:3556 retained +95 new cases +1 existing Hair API control.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
@@ -27,8 +27,10 @@
   parser20+13 cases. HTTP/service probes were skipped.
 - [x] The3556-case native snapshot and35 new tool controls now have fresh full
   Windows proof on exact3646f1ef; run39897664958 completed successfully in3m54s.
-- [ ] The newer95-case loader batch has focused Release proof above; its new full
-  Windows run is not yet accepted. Full LoadCharacter/SQL/eager queues stay held.
+- [ ] New loader full Windows39899616012 on e511c12b failed one stale Hair
+  getter-only contract: core20493/1/165 unexecuted of20659; updater262/262.
+  The source-backed setter contract is corrected;3652/3652 focused passed in both
+  copies. A corrected full Windows run remains required.
 
 ## Correctness findings retained
 
@@ -53,6 +55,8 @@
 
 ## Remaining end-to-end work
 
+- [ ] Compare inherited timed purification/refinery expiry across Framework/x86
+  and modern .NET; permanent-extra controls do not prove large-duration semantics.
 - [ ] Close real Team/HP/aura and XP/RemoveFlag/Level/Class/equipment mutual cycle.
   Keep whole methods; do not substitute absent-flag or low-XP success branches.
 - [ ] Close the full spell dispatcher and all required spell-sort/receive/death

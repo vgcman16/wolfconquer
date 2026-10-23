@@ -22,6 +22,17 @@ full login/save and host adoption remain held. No original save, SQL, worker,
 socket pump, live client or routing changed. Fresh full Windows proof is pending;
 the earlier3646f1ef green run below does not validate these newer source changes.
 
+Full Windows39899616012 on e511c12b built successfully, then core20493 passed/
+1 failed/165 unexecuted of20659; updater262/262 passed. The failure is an older
+combat-gear test still requiring Hair.SetMethod to be null. That contract now
+retains all backing-field/getter controls and Class/Level read-only assertions,
+while requiring Hair's whole native setter signature, physical store, loading
+gate, SendUpdate and genuine storage admission. Corrected private and independent
+sanitized-public Release each passed3652/3652 selected cases, zero failures/skips:
+the prior3651 plus this existing contract control. A corrected full run is pending.
+The inherited timed purification/refinery expiry expressions also remain under
+Framework/x86 comparison; permanent-extra controls do not prove large durations.
+
 ## Native-launch TCP reader resilience
 
 Full Windows39896336932 on5df9e6a1 built successfully, then core20363 passed/
