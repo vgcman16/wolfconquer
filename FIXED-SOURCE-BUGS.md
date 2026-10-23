@@ -1255,21 +1255,54 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   prepare exact claim/reward images and output, journal item+quest commitment
   before session/output, and reconcile interrupted claims without duplication.
   Retain valid objective100 threshold, random rewards, capacity and wire order.
-- Current shared journal supports Character/Items only. A genuine versioned
-  Quests target/root/recovery shape is required; do not disguise quests as items
-  or replace coordination with reordered bool saves. Keep old v1/v2 behavior,
-  the shared pending slot, explicit configured roots and fail-closed recovery.
+- The prior shared journal supported Character/Items only. The private successor
+  adds genuine v3 Character(no-op)+Items+Quests with an explicit configured triple,
+  one shared pending slot, strict record/domain shape and retained v1/v2 bytes.
+  No quests-as-items disguise, second journal, accepting saver or guessed root.
 - Tests-first registered D13 proof: **2passed/4failed/0skipped**,822ms behavior.
   Both healthy NPCs passed; actual Items/Quests leaf locks, missing explicit
   Quest authority and durable-Finished/live-Accepted faults all failed the first
   exact-current-session unchanged assertion. Later file/output/retry assertions
   were not reached on those RED rows; no fixture/cleanup failure was reported.
-- Status: real v3 journal/capture/coordinator is now privately intaken but
-  UNVERIFIED. No Frame constructor activation or public production transfer.
-  Next tests use complete owned files, both NPC positives, actual item/quest
-  sharing faults, absent quest authority and stale Finished baseline, followed
-  by real journal interruption/replay controls. Preserve the three old Victory
-  facts/goldens. No live/SQL/original-save action; UID/Host activation stays HOLD.
+- Private focused Release **690/690 passed,0failed/0skipped,5s**: prior556,
+  6 registered Victory cases,41 real v3 journal/recovery,42 strict quest capture,
+  36 retained v2 journal and9 retained quest-loader controls. All four fault
+  cases now reach unchanged state/files/output assertions, repair/retry and
+  same-session/file-reloaded replay. Generic journal controls cover all four
+  durable prefixes, fresh recovery, unknown images, shared pending slot,
+  malformed domains and a real late Quest replacement failure/rollback/retry.
+- The coordinator validates complete account/items/quest captures, prepares
+  every image/output, then uses real Trades -> Store persisted CAS -> ordered
+  file locks -> v3 journal. It proves full postimages before Store/output.
+  Complete malformed quest capture precedes permissive claim lookup.
+- One retained old NPC positive now uses genuine full files/triple recovery,
+  with all19 original assertions plus complete send-time saved-image controls.
+  The two read-only Victory facts remain unchanged; default Rare/Epic fixtures
+  retain their pair-only roots and Name-aware seeds. No reward amount/layout
+  or daily reset rule was invented.
+- Private successor Release: **717/717 passed,0failed/0skipped,5s**. This retains
+  all690 cases above, plus6 postcommit/malformed-tail,15 native directory identity
+  and6 actual D13 Frame startup/recovery controls. Send failure or owner retirement
+  cannot reopen a committed claim; malformed complete quest tails reject unchanged.
+- Actual Frame now receives precisely the loader's explicit PlayerQuestsRoot.
+  Real handoff/login/SetLocation/NPC controls cover both NPCs, quest-file replacement
+  refusal and same-login retry, omitted-root/no-sibling-inference refusal, recovery
+  of a genuine interrupted v3 prefix before login, and unknown-image admission
+  refusal preserving files/journal. No test-created session or recovery readiness.
+- V3 physically rejects same/ancestor configured directories, including actual
+  DOS/Volume-GUID aliases. Inspection is scoped to trusted ordinary directories
+  and cooperating writers, not retained target/namespace ownership. Initial
+ 714/715 exposed metadata-only handles not pinning rename; adding directory-read
+  access then exposed blocked child replacement (714/715). Final read+attributes,
+  read/write sharing and no delete sharing passes BOTH original controls unchanged.
+  Required list-directory access fails closed; no write/delete access is requested.
+- Status: ordinary/cooperating-writer registered and Frame paths verified offline;
+  public implementation is now integrated; full Windows CI is pending. This is not full Victory, hostile
+  filesystem, actual-client, outbox, power-loss, all-raw-writer or global UID proof.
+  Existing max+1 remains globally unsafe; canonical UID/Host activation stays HOLD.
+  Hostile namespace retargeting, handle-relative replacement and whole-domain
+  lifetime hardening are separate explicit debt, not silently claimed solved.
+  No live/SQL/original-save/routing/deployment action.
 
 Current work does not close whole managed reward transactions. SuperGuildWar's
 checked preparation now precedes its claim decision as verified above, but the

@@ -4,6 +4,14 @@ namespace WolfConquer.Core.World;
 // replay service for an already-running world: a pending write needs a fresh owner.
 internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot)
 {
+    private readonly string? _questsRoot;
+
+    internal LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot, string? questsRoot)
+        : this(usersRoot, itemsRoot)
+    {
+        _questsRoot = questsRoot;
+    }
+
     private readonly object _gate = new();
     private bool _initialized;
     private string? _failureReason;
@@ -24,6 +32,25 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
             try
             {
                 return SameReadyRoot(usersRoot, expectedUsersRoot) && SameReadyRoot(itemsRoot, expectedItemsRoot);
+            }
+            catch (Exception error) when (error is ArgumentException or NotSupportedException or System.Security.SecurityException)
+            { return false; }
+        }
+    }
+
+    // Triple readiness is explicit; old pair-only owners never acquire quest
+    // authority merely because no recovery record happens to be pending.
+    internal bool IsReadyFor(string? expectedUsersRoot, string? expectedItemsRoot, string? expectedQuestsRoot)
+    {
+        lock (_gate)
+        {
+            if (!IsReadyFor(expectedUsersRoot, expectedItemsRoot) ||
+                string.IsNullOrWhiteSpace(_questsRoot) || string.IsNullOrWhiteSpace(expectedQuestsRoot) ||
+                !Path.IsPathFullyQualified(_questsRoot) || !Path.IsPathFullyQualified(expectedQuestsRoot)) return false;
+            try
+            {
+                return SameReadyRoot(_questsRoot, expectedQuestsRoot) &&
+                    LegacyTradeJournal.IsQuestDomainConfigured(usersRoot!, itemsRoot!, _questsRoot);
             }
             catch (Exception error) when (error is ArgumentException or NotSupportedException or System.Security.SecurityException)
             { return false; }
@@ -62,7 +89,7 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
                         return false;
                     }
                 }
-                else if (!LegacyTradeJournal.TryRecover(usersRoot, itemsRoot, out _, out reason))
+                else if (!LegacyTradeJournal.TryRecover(usersRoot, itemsRoot, _questsRoot, out _, out reason))
                 {
                     Block(reason);
                     return false;

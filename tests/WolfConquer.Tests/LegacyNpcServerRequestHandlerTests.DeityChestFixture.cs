@@ -30,7 +30,7 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
             throw new AggregateException($"Deity chest fixture failed; ownedRoot={fixture.Root}", errors);
     }
 
-    private sealed class DeityChestFixture
+    private sealed partial class DeityChestFixture
     {
         private const string RootPrefix = "wolf-current-deity-npc-";
         private const long CharacterUid = 1_293_600;
@@ -69,7 +69,8 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
                 // Real registered sends observe the committed store and files, not an accepting writer.
                 if (MsgItemUsagePacket.TryParse(ReadFrame(bytes), out _) ||
                     LegacyGameItemPacket.TryParse(ReadFrame(bytes), out _) ||
-                    LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out _))
+                    LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out _) ||
+                    LegacyQuestListPacket.TryParse(ReadFrame(bytes), out var quest) && quest.Mode == LegacyQuestListMode.FinishQuest)
                     AssertSavedCurrent();
                 Sent.Add(bytes);
                 return ValueTask.CompletedTask;
@@ -122,14 +123,15 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
         {
             AssertReady();
             var context = new WorldPacketHandlerContext(Connection, Log, Session: Current,
-                Sessions: Sessions, PlayerItemsRoot: Items, ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13)
+                Sessions: Sessions, PlayerItemsRoot: Items, PlayerQuestsRoot: victoryQuestRoot,
+                ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13)
             { Trades = trades, TradeOperations = operations, TradeRecovery = recovery };
             Assert.Same(Connection, context.Connection);
             Assert.Same(Current, context.Session);
             Assert.Contains(frame.Header.Opcode, Registry.Opcodes);
             var budget = new CancellationTokenSource(Bound);
             budgets.Add(budget);
-            var actual = Registry.HandleAsync(context, frame, budget.Token).AsTask();
+            var actual = HandleRegisteredWithOperationAsync(context, frame, budget.Token);
             calls.Add(actual);
             try { await actual.WaitAsync(Bound + Bound); }
             finally { if (actual.IsCompleted) budget.CancelAfter(Timeout.InfiniteTimeSpan); }
@@ -138,7 +140,10 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
         private void AssertReady()
         {
             Assert.False(recovery.IsBlocked);
-            Assert.True(recovery.IsReadyFor(Current.UsersRoot, Items));
+            if (victoryQuestRoot is null)
+                Assert.True(recovery.IsReadyFor(Current.UsersRoot, Items));
+            else
+                Assert.True(recovery.IsReadyFor(Current.UsersRoot, Items, victoryQuestRoot));
             Assert.False(Current.LegacyTradeActive);
             lock (trades.SyncRoot)
             {
@@ -153,6 +158,7 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
             Assert.Equal(characterBefore, File.ReadAllBytes(CharacterPath));
             Assert.Equal(itemsBefore, File.ReadAllBytes(ItemPath));
             Assert.Equal(itemsBefore, PlayerItemSnapshotLoader.ToLegacyBytes(Current.PlayerItems));
+            AssertVictoryDialogOnly();
             AssertOnlyExpectedFiles();
         }
 
@@ -215,10 +221,11 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
             Assert.Equal(current.Character.Money, saved.Money);
             Assert.Equal(current.Character.BoundConquerPoints, saved.BoundConquerPoints);
             Assert.Equal(current.Character.BankConquerPoints, saved.BankConquerPoints);
+            AssertSavedVictoryQuest();
         }
 
         private void AssertOnlyExpectedFiles() => Assert.Equal(
-            new[] { CharacterPath, ItemPath }.Order(StringComparer.Ordinal),
+            new[] { CharacterPath, ItemPath }.Concat(VictoryExpectedFiles).Order(StringComparer.Ordinal),
             Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal));
 
         internal async Task CleanupAsync(List<Exception> errors)
@@ -230,6 +237,16 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
             foreach (var actual in calls)
             {
                 if (!await ObserveTerminalAsync(actual, errors)) drained = false;
+            }
+            if (drained)
+            {
+                try
+                {
+                    currentChestOperationProbe ??= ProbeCurrentChestOperationReleaseAsync();
+                    drained = await ObserveTerminalAsync(currentChestOperationProbe, errors) &&
+                        currentChestOperationProbe.IsCompletedSuccessfully;
+                }
+                catch (Exception error) { AddFailure(errors, error); drained = false; }
             }
             var closed = false;
             if (drained)
@@ -251,6 +268,7 @@ public sealed partial class LegacyNpcServerRequestHandlerTests
             }
             foreach (var budget in budgets)
                 try { budget.Dispose(); } catch (Exception error) { AddFailure(errors, error); }
+            try { currentChestOperationProbeBudget?.Dispose(); } catch (Exception error) { AddFailure(errors, error); }
             try { if (ownsRoot) { ValidateRoot(); DeleteOrdinaryTree(Root); } }
             catch (Exception error) { AddFailure(errors, error); }
             try { Log.Dispose(); } catch (Exception error) { AddFailure(errors, error); }

@@ -19,9 +19,15 @@ internal static partial class LegacyTradeJournal
         var bytes = new byte[checked((int)stream.Length)];
         stream.ReadExactly(bytes);
         using var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 8 });
-        var root = GetProperties(document.RootElement, "Version", "TransactionId", "Changes");
+        var rootElement = document.RootElement;
+        var isQuestRecord = rootElement.ValueKind == JsonValueKind.Object &&
+            rootElement.TryGetProperty("Version", out var candidate) && candidate.ValueKind == JsonValueKind.Number &&
+            candidate.TryGetInt32(out var candidateVersion) && candidateVersion == 3;
+        var root = isQuestRecord
+            ? GetProperties(rootElement, "Version", "TransactionId", "Changes", "Domain")
+            : GetProperties(rootElement, "Version", "TransactionId", "Changes");
         if (root["Version"].ValueKind != JsonValueKind.Number ||
-            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2) ||
+            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3) ||
             root["TransactionId"].ValueKind != JsonValueKind.String)
             throw new JsonException("Unsupported journal version or identity.");
         var transactionId = root["TransactionId"].GetString();
@@ -42,7 +48,10 @@ internal static partial class LegacyTradeJournal
         }
         var result = changes.ToArray();
         ValidateChanges(result, version);
-        return new(version, transactionId!, result);
+        return new(version, transactionId!, result)
+        {
+            Domain = version == 3 ? ReadQuestDomain(root["Domain"]) : null,
+        };
     }
 
     private static Dictionary<string, JsonElement> GetProperties(JsonElement element, params string[] names)

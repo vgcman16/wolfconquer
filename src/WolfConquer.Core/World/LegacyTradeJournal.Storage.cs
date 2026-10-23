@@ -4,8 +4,18 @@ namespace WolfConquer.Core.World;
 
 internal static partial class LegacyTradeJournal
 {
-    private sealed record JournalRoots(string Users, string Items, string Journal);
-    private sealed record JournalRecord(int Version, string TransactionId, LegacyTradeJournalChange[] Changes);
+    private sealed record JournalRoots(string Users, string Items, string Journal)
+    {
+        internal string? Quests { get; init; }
+    }
+
+    private sealed record JournalRecord(int Version, string TransactionId, LegacyTradeJournalChange[] Changes)
+    {
+        // Null is omitted so v1/v2 keep their original serialized properties/order.
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public QuestJournalDomain? Domain { get; init; }
+    }
+
     private sealed record JournalTarget(string Path, LegacyTradeJournalChange Change);
 
     private static JournalRoots GetRoots(string usersRoot, string itemsRoot)
@@ -41,7 +51,7 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(copied, version);
         // The single-owner API's failpoint contract is character first, then items.
         // Do not reorder v1: its established four-target contract remains unchanged.
-        if (version == 2) copied = copied.OrderBy(change => change.Kind).ToArray();
+        if (version is 2 or 3) copied = copied.OrderBy(change => change.Kind).ToArray();
         return new(version, Guid.NewGuid().ToString("N"), copied);
     }
 
@@ -49,11 +59,17 @@ internal static partial class LegacyTradeJournal
     {
         1 => 4,
         2 => 2,
+        3 => 3,
         _ => throw new ArgumentException("Unsupported journal version."),
     };
 
     private static void ValidateChanges(LegacyTradeJournalChange[] changes, int version)
     {
+        if (version == 3)
+        {
+            ValidateQuestChanges(changes);
+            return;
+        }
         var count = TargetCount(version);
         if (changes.Length != count || changes.Count(c => c.Kind == LegacyTradeJournalFileKind.Character) != count / 2 ||
             changes.Count(c => c.Kind == LegacyTradeJournalFileKind.Items) != count / 2)
@@ -71,6 +87,7 @@ internal static partial class LegacyTradeJournal
     private static JournalTarget[] GetTargets(JournalRoots roots, JournalRecord record)
     {
         ValidateChanges(record.Changes, record.Version);
+        if (record.Version == 3) return GetQuestTargets(roots, record);
         var targets = record.Changes.Select(change => new JournalTarget(Path.Combine(
             change.Kind == LegacyTradeJournalFileKind.Character ? roots.Users : roots.Items,
             change.FileId.ToString(CultureInfo.InvariantCulture) +

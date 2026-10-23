@@ -4,7 +4,11 @@ namespace WolfConquer.Core.World;
 
 internal static partial class LegacyTradeJournal
 {
-    internal static bool TryRecover(string usersRoot, string itemsRoot, out int recovered, out string reason)
+    internal static bool TryRecover(string usersRoot, string itemsRoot, out int recovered, out string reason) =>
+        TryRecover(usersRoot, itemsRoot, questsRoot: null, out recovered, out reason);
+
+    internal static bool TryRecover(string usersRoot, string itemsRoot, string? questsRoot,
+        out int recovered, out string reason)
     {
         recovered = 0;
         reason = string.Empty;
@@ -21,6 +25,15 @@ internal static partial class LegacyTradeJournal
                 return false;
             }
             var record = ReadRecord(pending);
+            if (record.Version == 3)
+            {
+                if (string.IsNullOrWhiteSpace(questsRoot))
+                {
+                    reason = RecoveryRequired + ":questsRootMissing";
+                    return false;
+                }
+                roots = GetQuestRoots(usersRoot, itemsRoot, questsRoot);
+            }
             var targets = GetTargets(roots, record);
             var lockedReason = string.Empty;
             var result = SnapshotFileLockCoordinator.ExecuteLocked(targets.Select(target => target.Path).ToArray(),
