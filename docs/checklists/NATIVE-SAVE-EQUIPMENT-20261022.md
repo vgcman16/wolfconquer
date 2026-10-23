@@ -1,5 +1,21 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on terrain maps, housing and reward records
+
+- [x] Whole terrain index/map loading, genuine map dictionary storage and monster
+  collection binding, map membership/cache/messages, collision/placement/coordinate
+  families; complete House, Flowers, HeroRewards and Activeness record owners and
+  their actual tables/codecs/NPC record prerequisites:195 new cases.
+- [x] Private and independent sanitized-public Release each passed2111/2111,
+  zero failures/skips (195 new +1916 retained), first run in each copy.
+  Owned GUID map/INI/binary fixtures use real readers and exact record/packet bytes.
+- [x] Native quirks remain: duplicate map publication rebinds the retained monster
+  owner, stale recipient caches stay stale until refreshed, housing uses zero-born
+  NPC records, and Activeness loads points through its original byte reader.
+- [ ] Whole lazy EnterMap/world population, NPC interface/lifecycle, full SaveClient,
+  eager login, writable HP/Team/Level/equipment/Inventory cycles remain unfinished.
+  No original files, server/client processes, SQL, routing or deployment were used.
+
 ## Follow-on quest objectives, quest files and relic selection
 
 - [x] Whole quest constructor/query/objective methods and direct auto-patcher,

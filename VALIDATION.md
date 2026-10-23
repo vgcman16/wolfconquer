@@ -1,5 +1,24 @@
 # Publication validation
 
+## Native terrain maps, housing and reward records
+
+Private Release and independent sanitized-public Release each passed2111/2111,
+zero failures/skips:195 new cases and1916 retained, first run in each copy.
+Whole terrain index/map loaders, actual map membership and collision/placement/
+coordinate families, genuine map dictionary storage and monster collection binding
+reuse real owners. Full housing, flowers, hero rewards and activity record families
+use genuine INI/BinaryFile/packet operations over owned GUID fixtures.
+
+Tests retain duplicate-publication aliases, stale map recipient caches, exact NPC
+28-byte records and zero-born versus factory-created NPC state, flower rank/icon
+quirks, full spawn reload broadcasts and the original byte-based activity reload.
+No original client/maps/database/save files are opened by these fixture tests.
+
+Whole lazy EnterMap/world population, NPC lifecycle/interface, full SaveClient and
+eager login remain separate dependencies, alongside HP/Team/Level/equipment/
+Inventory cycles. This is not SQL, host startup, actual-client, full Windows,
+deployment or overall parity acceptance.
+
 ## Native quest objectives, binary records and relic selection
 
 Private Release and independent sanitized-public Release each passed1916/1916,
