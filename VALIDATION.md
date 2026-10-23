@@ -21,8 +21,21 @@ enum casts fixed CS0051 without widening production access or deleting controls.
 Tests exercise actual nonzero wallet escrow and partial faults, real map-member
 removal/broadcast, required protobuf bytes, native match admission/pairing and
 callback cleanup/fault order. No socket pump, worker, original saves, SQL, live
-client, host or routing changed. Fresh full Windows proof for this newer batch is
-pending; the following245a06b7 green run predates these117 cases.
+client, host or routing changed.
+
+[Full Windows39902878432](https://github.com/vgcman16/wolfconquer/actions/runs/39902878432)
+passed all eight stages in3m50s on60c821b7dfd8851fc2225a8e1627b10244e3d5c4:
+core20728 passed/0 failed/165 unexecuted of20893, updater262/262, launcher49/49,
+synthetic status-parser20 and smoke-parser13. HTTP/service probes were skipped.
+This validates the committed timer/geometry/ban/lifecycle components, not full
+gameplay, SQL integration, host adoption or a live deployment.
+
+Next review found an inherited path-compatibility gap: the whole original
+RemoveIllegalCharacters uses Framework's invalid-path set, which includes quote
+and angle characters34/60/62; target.NET9 omits them. Owned whole-source CPU
+probes confirmed the differing path-only results. The correction and next real
+monster-scoring/logger fault controls are not yet admitted; green CI is not proof
+that this or every other missing gameplay/compatibility seam is complete.
 
 ## Native geometry and complete ban-file owners
 

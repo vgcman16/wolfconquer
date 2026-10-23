@@ -25,16 +25,17 @@
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run39902156552 on245a06b7 passed all8stages: core20611 passed/
-  0 failed/165 unexecuted of20776; updater262/262; launcher49/49; synthetic
+  Full Windows run39902878432 on60c821b7 passed all8stages: core20728 passed/
+  0 failed/165 unexecuted of20893; updater262/262; launcher49/49; synthetic
   parser20+13 cases. HTTP/service probes were skipped.
-- [x] Timer, geometry and ban-owner source has full Windows proof in4m05s on
-  exact245a06b7. The corrected complete Hair setter/getter controls remain intact.
-- [ ] Newer lifecycle prerequisites have focused proof above; fresh full Windows
-  proof is pending. The preceding green run does not validate this newer batch.
+- [x] Timer, geometry, ban-owner and lifecycle-prerequisite source has full Windows
+  proof in3m50s on exact60c821b7. Hair setter/getter controls remain intact.
 
 ## Correctness findings retained
 
+- [ ] Preserve Framework path-only quote/angle sanitization before admitting the
+  next monster-scoring owner. Owned whole-source probes confirmed Framework4
+  replaces34/60/62 while target.NET9 leaves them, affecting lambda log paths.
 - [x] Complete native degree/sector geometry matches all17512 ordered observations
   from both owned Framework builds; both actual copies match, not just digests.
   Wrapped distance, coordinate narrowing and sticky Arrange quirks are retained.
