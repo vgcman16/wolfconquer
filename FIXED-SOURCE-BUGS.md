@@ -955,7 +955,14 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   not power-loss, multiprocess, raw external-writer or ABA proof. Durable outbox/
   delivery and global UID safety remain open: the current creator is still max+1;
   the canonical alternative is not installed. No SQL/live/original-save action,
-  routing change, Host activation or new full-CI claim.
+  routing change or Host activation.
+- Full Windows [40013043779](https://github.com/vgcman16/wolfconquer/actions/runs/40013043779)
+  passed on exact public `f2f122f2a9f337ec0bcb80332f1d93579c2868ca` in 4m11s:
+  core 23993 passed/0 failed of24158 (165 existing external-fixture exclusions),
+  updater301/301, launcher57/57, all8 stages exit0, build204 warnings/0errors.
+  Receipt20261023T194003090Z-230b1736 finished19:43:51.8908154Z; job completed
+  2026-10-23T19:43:59Z. Parsers20+13 are synthetic, no network/service probes.
+  This is offline source acceptance, not deployment or complete gameplay parity.
 
 ## Active audit
 

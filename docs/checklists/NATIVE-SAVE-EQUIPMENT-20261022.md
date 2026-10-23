@@ -19,7 +19,12 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   stale/replayed/retired owners and transport/presentation observers are covered.
   This is process-restart reconciliation, not power-loss/multiprocess/raw-writer/
   ABA/outbox or global UID proof. Creator remains max+1; no canonical alternative,
-  Host activation, SQL/live/original-save/routing change or new full-CI claim.
+  Host activation or SQL/live/original-save/routing change.
+  Full Windows40013043779 passes4m11s on exactpublicf2f122f2:
+  core23993passed/0failed of24158,165existing externalfixtureexcluded;
+  updater301/301,launcher57/57,all8stageexit0,build204warnings/0errors.
+  Receipt20261023T194003090Z-230b1736 finished19:43:51.8908154Z.
+  No deployment, live-client or full-parity acceptance follows.
 
 - [x] DragonSkin cost admission (FSB056): real tests-first baseline failed all
   16 new cases; repaired focused private 70/70 and public 70/70 passed. Unlock
