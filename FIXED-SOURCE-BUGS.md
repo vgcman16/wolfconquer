@@ -642,6 +642,27 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   GoodsEx donation/selection and native interchangeable-material/binding parity
   are separate work; no live client, SQL or original save was used.
 
+### FSB-046: Drain late-accepted TCP clients before shutdown completes
+
+- Owner: local ConquerTcpServer.DisposeAsync, not a decompiled gameplay rule.
+  The client-task snapshot preceded cancellation and accept-loop completion.
+  A client accepted concurrently could be registered after that snapshot, so
+  shutdown returned while its real frame handler/transport cleanup still ran.
+- Cancel and stop listener admission, await the actual accept producer, then
+  capture client tasks under the existing gate and await their real completion.
+  Wire formats, handling order and awaited transport-close ownership are unchanged.
+- Tests-first baseline:3 passed/1 failed of4; the genuine late-accepted handler
+  was still held when Dispose had already completed. Scheduling uses the actual
+  registration gate and real loopback socket, not injected task-list entries.
+- Verification: private and independent public Release each25/25, zero failures
+  or skips, including all4 new shutdown controls and21 retained networking/
+  disconnect cases. Held handler and asynchronous transport cleanup both delay
+  shutdown; peer EOF follows cleanup. Never-started/empty listeners are covered.
+- Limits: normal single-owner shutdown only; concurrent/repeated disposal,
+  failing cancellation/log callbacks, all detached runtime producers and full
+  borrowed-Host lifetime are separate work. This is not global quiescence,
+  UID activation, deployment or actual-client proof. Full CI for this batch pending.
+
 ### FSB-009 (partial): Prepare Super Guild War rewards before consuming claims
 
 - Owner: the sole registered SuperGuildWar TryClaimReward caller. The in-memory
@@ -667,7 +688,9 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - FullWindows39978653171 ran all12 guild cases successfully but failed one old
   RiseOfTaoism timer/log race (23588corepassed/1failed/165excluded). The fixture
   now waits for actual async completion; private/public focused15/15each pass.
-  Full publication CI rerun is pending. This is NOT full FSB009 closure:
+  FullWindows39980179395 now passes4m15s on exact16763a82:23589core/0failed,
+  165excluded, updater301/301, launcher49/49,8stageexit0,204warnings.
+  This is NOT full FSB009 closure:
   Lottery cadence, unconditional session publication, claim+memory+two-file crash
   atomicity, durable outbox/reconciliation, raw writers and global UID activation
   remain open. No live client, original saves or SQL were used.

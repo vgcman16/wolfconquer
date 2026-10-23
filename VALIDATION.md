@@ -1,5 +1,16 @@
 # Publication validation
 
+## TCP shutdown checkpoint
+
+Private and independent public Release each25/25,0failed/0skipped. Four new
+real-loopback shutdown controls reproduce the old late-accept race (3pass/1fail
+baseline);21 retained networking/disconnect checks remain. Shutdown now awaits
+the accept producer before capturing/draining client tasks, including their real
+asynchronous transport cleanup before EOF. Full Windows CI for this batch is
+pending. No wire/routing/Program activation, live server/client restart, SQL or
+original-save action. Concurrent disposal and full detached-producer/Host drain
+remain separate work.
+
 ## SuperGuild preparation checkpoint
 
 Private Release468passed/0failed/0skipped; independent public464passed/0failed/
@@ -18,8 +29,13 @@ all12 guild cases passed, updater301passed. Launcher/later stages did not run.
 The retained RiseOfTaoism timer test observed session publication before async
 log completion; the fixture now waits for both with synchronized log access,
 retaining all state/vector assertions. Private and independent public focused
-checks each15/15pass with no failures/skips; full CI rerun pending.
-Receipt20261023T152955200Z-4d087c62.
+checks each15/15pass with no failures/skips. Failed-run receipt
+20261023T152955200Z-4d087c62 is retained, not replaced with a green claim.
+[Windows39980179395](https://github.com/vgcman16/wolfconquer/actions/runs/39980179395)
+passes4m15s on exact16763a82794203fdf4abf08a9fa93556a34f9592, completed
+2026-10-23T15:44:30Z:23589corepassed/0failed of23754 (165externalfixturecases
+excluded), updater301/301, launcher49/49;8stageexit0,204build warnings.
+Receipt20261023T154030682Z-c43cd71c finished15:44:23.7611299Z.
 No deployment/client/SQL/original-save action. Durable claim+session+two-file recovery, Lottery, raw-writer races and
 global UID activation remain open; this is partial FSB009 repair, not closure.
 

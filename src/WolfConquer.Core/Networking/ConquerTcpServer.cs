@@ -69,13 +69,11 @@ public sealed class ConquerTcpServer : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         Task? acceptTask;
-        Task[] clientTasks;
         CancellationTokenSource? stop;
 
         lock (_gate)
         {
             acceptTask = _acceptTask;
-            clientTasks = _clientTasks.ToArray();
             stop = _stop;
         }
 
@@ -87,6 +85,13 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         await stop.CancelAsync().ConfigureAwait(false);
         _listener.Stop();
         await IgnoreShutdownExceptionAsync(acceptTask).ConfigureAwait(false);
+        // An accept already in progress may register its client while shutdown
+        // is starting. Only snapshot after that producer has fully stopped.
+        Task[] clientTasks;
+        lock (_gate)
+        {
+            clientTasks = _clientTasks.ToArray();
+        }
         await IgnoreShutdownExceptionAsync(Task.WhenAll(clientTasks)).ConfigureAwait(false);
         stop.Dispose();
     }

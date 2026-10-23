@@ -7,6 +7,13 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Late-accepted TCP shutdown drain (FSB046): private/public Release25/25
+  each,0failed/0skipped, after3pass/1fail baseline. Real late-accepted and
+  already-registered client handlers plus asynchronous transport cleanup must
+  finish before shutdown/peer EOF. Empty/never-started controls retained.
+  Full CI for this batch pending; no running server/client was restarted.
+  Detached runtime/Host lifetime and global UID activation remain separate.
+
 - [x] SuperGuild reward preparation (partial FSB009): private468passed/0failed/
   0skipped; public464passed/0failed/4existing external-exchange skips of468.
   All12 new registered controls pass after8 failed retries/4 valid boundaries
@@ -19,8 +26,9 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   RiseOfTaoism timer test checking its log before async completion; launcher and
   later stages did not run. Its fixture now waits for state AND synchronized
   completion log, retaining the state/vector assertions. Private focused15/15
-  passes, and independent public focused15/15passes; full CI rerun pending.
-  No deployment.
+  passes, and independent public focused15/15passes. FullWindows39980179395
+  SUCCESS4m15s on exact16763a82: core23589/0failed (165excluded), updater301/301,
+  launcher49/49;8stageexit0,204warnings. No deployment.
   Full claim/session/two-file recovery,
   Lottery cadence and shared UID/host lifecycle remain open.
 
