@@ -14,8 +14,11 @@ INI/count files, not original data or SQL. Eager queues, full login/save, Team/H
 progression/dispatcher cycle and host adoption remain incomplete. These199 cases
 do not establish a deployed account, warehouse mutation or live Clan operation.
 
-Fresh full Windows CI for this newer source snapshot is still required; the
-successful run39893758446 below belongs specifically to9dc97795.
+[Full Windows39894908849](https://github.com/vgcman16/wolfconquer/actions/runs/39894908849)
+passed all eight stages in3m58s onf6ac68fa56bfe7d51b024f4542c232aefb6e2c59:
+core20304 passed/0 failed/165 unexecuted of20469, updater262/262, launcher49/49,
+synthetic status-parser20 and smoke-parser13 cases. HTTP/service probes were
+skipped. This is source/test proof, not a live deployment or full parity claim.
 
 ## Offline clone/combat/arena/item continuation — public focused proof passed
 

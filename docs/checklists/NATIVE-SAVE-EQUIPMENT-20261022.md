@@ -18,11 +18,11 @@
 - [x] File tests used only guarded GUID-owned temporary INI/count files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run39893758446 on9dc97795 passed all8stages: core20105 passed/
-  0 failed/165 unexecuted of20270; updater262/262; launcher49/49; synthetic
+  Full Windows run39894908849 onf6ac68fa passed all8stages: core20304 passed/
+  0 failed/165 unexecuted of20469; updater262/262; launcher49/49; synthetic
   parser20+13 cases. HTTP/service probes were skipped.
-- [ ] Fresh full Windows CI for the newer3496-case source snapshot is required;
-  the prior full-CI source hash must not be treated as this snapshot's proof.
+- [x] The newer3496-case source snapshot now has fresh full Windows proof;
+  run39894908849 completed successfully in3m58s on the exactf6ac68fa source.
 
 ## Correctness findings retained
 
