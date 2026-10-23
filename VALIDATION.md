@@ -10,7 +10,11 @@ baseline119pass/16fail of135 precedes the three production predicate fixes.
 Unbound positive costs, preserved full item bytes, real saved/reloaded images,
 physical/eligible-round-robin order and exact five-Spirit cost/wire tail are
 checked. Reward/CP/RNG/capacity policies and UID API are unchanged. Full Windows
-CI pending. Current max-plus-one Phoenix UID expectation
+CI39991776324 passes4m57s on exact918899075bce5d8ddc1d0e8127d8c1cb87c9d810,
+completed2026-10-23T17:08:04Z:23657corepassed/0failed of23822 (165externalfixture
+excluded), updater301/301, launcher49/49;8stageexit0,204warnings. Receipt
+20261023T170347775Z-bb22ad8a finished17:07:57.7038917Z.
+Current max-plus-one Phoenix UID expectation
 changes only as a consequence of spending the correct row, not allocator tuning.
 No live client/server/SQL/original saves or global UID/economy closure is claimed.
 

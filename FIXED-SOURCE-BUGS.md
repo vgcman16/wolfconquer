@@ -717,8 +717,11 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Limits: bounded selectors, not duplicate-UID/raw-writer/current-session safety,
   multi-file/economy/outbox recovery or canonical UID activation. Future UID
   producer predicates are authored separately; genuine legacy fixture migration
-  remains open. Full Windows CI for this fix is pending. No live client, SQL or
-  original-save action.
+  remains open. FullWindows39991776324 passes4m57s on exact
+  918899075bce5d8ddc1d0e8127d8c1cb87c9d810, completed17:08:04Z:
+  23657corepassed/0failed of23822 (165externalfixtureexcluded), updater301/301,
+  launcher49/49;8stageexit0,204warnings. Receipt20261023T170347775Z-bb22ad8a
+  finished17:07:57.7038917Z. No live client, SQL or original-save action.
 
 
 ### FSB-009 (partial): Prepare Super Guild War rewards before consuming claims

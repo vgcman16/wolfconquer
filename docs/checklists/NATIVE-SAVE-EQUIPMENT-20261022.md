@@ -12,7 +12,9 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   of135;5 unsafe old expectations corrected,30 new controls retained. Required
   BlackFriday/Diamond and five-Spirit Phoenix debit only positive unbound rows,
   keeping physical/round-robin order, exact costs/rewards/frames and persistence.
-  Full Windows CI pending; no UID/economy/global closure.
+  FullWindows39991776324 passes4m57s on exact91889907:23657core/0failed,
+  165externalfixtureexcluded, updater301/301, launcher49/49;8stageexit0,
+  204warnings. No UID/economy/global closure.
 
 - [x] Admitted pack cost selection (FSB047): private/public Release239/239each,0failed/
   0skipped after213pass/26fail baseline. Four consumers spend only a positive
