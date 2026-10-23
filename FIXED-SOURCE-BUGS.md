@@ -4,7 +4,19 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest integration gate — full Windows CI GREEN
+## Latest integration gate — quest/updater full Windows CI GREEN
+
+[Windows40041857100](https://github.com/vgcman16/wolfconquer/actions/runs/40041857100)
+passed exact public `999ce3262dcf5d6ac9c365af3670b542a7339952`; job120714544998
+completed2026-10-23T23:55:01Z. Receipt20261023T235053615Z-3475fa2f finished
+23:54:52.1499601Z; all8 sequential stages exited0.
+Actual runner HEAD, receipt, TRXs and terminal logs were read before cleanup:
+core **24340passed/0failed**,165 existing NotExecuted rows (24505 total);
+updater305/305; launcher57/57; synthetic parser20+13 (no HTTP/service probes).
+Build190warnings/0errors. This verifies the quest-loader/Frame and updater-pin
+batch in offline CI, not live-client, deployment, complete English or full parity.
+
+## Previous integration gate — runtime full Windows CI GREEN
 
 [Windows40036685838](https://github.com/vgcman16/wolfconquer/actions/runs/40036685838)
 passed exact public `c90122abc1961cef8c8f4a90f6dec623a3ddbaf8`; job120697981313
@@ -1333,12 +1345,14 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 - Private Release776/776 passed,0failed/0skipped,5s: retained717, new39, existing19
   Character loader and1 legacy-login error-admission control. This is a scoped
   loader repair, not a file-size cap, immutable borrowed-span guarantee, all-sidecar
-  transaction, handoff rollback or new-character creation rollback. Public full CI pending.
+  transaction, handoff rollback or new-character creation rollback.
 - Successor778/778 passed,0failed/0skipped,5s, adds two actual D13 Frame admission
   cases over the existing real fixture: malformed quest count/final intention plus
   expired paid nobility yield exactly one SnapshotError, no session admission and
   unchanged complete User/item/injected-quest files. Real recovery is ready, not
   a missing-owner refusal. No new fixture/provider or ticket rollback claim.
+- Public999ce326 and full Windows40041857100 are verified above: all41 added
+  core cases retained alongside24299 prior passes and165 existing exclusions.
 
 ### FSB-070: Make updater parent-directory rename pins genuine
 
@@ -1357,7 +1371,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   hostile-writer defense, live updater deployment or whole-update safety proof.
   [Windows sharing rules](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/8c0e3f4f-0729-49f4-a14d-7f7add593819)
   distinguish metadata access from participating read/write/delete access.
-  Public full successor CI remains pending.
+  Public999ce326 and full Windows40041857100 passed all305 updater cases;
+  exact shared receipt and remaining verification boundaries are recorded above.
 
 Current work does not close whole managed reward transactions. SuperGuildWar's
 checked preparation now precedes its claim decision as verified above, but the
