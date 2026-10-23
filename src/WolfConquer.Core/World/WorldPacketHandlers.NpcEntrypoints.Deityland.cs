@@ -633,7 +633,7 @@ public static partial class WorldPacketHandlers
         uint keyItemId,
         CancellationToken cancellationToken)
     {
-        var options = HasLegacyInventoryStackCount(items, keyItemId, 1)
+        var options = FindLegacyPositiveDeitylandChestKey(items, keyItemId) >= 0
             ? LegacyDeitylandChestKeyOptions
             : LegacyDeitylandChestNoKeyOptions;
         await SendLegacyNpcDialogAsync(
@@ -655,7 +655,8 @@ public static partial class WorldPacketHandlers
         uint conquerPointsReward,
         CancellationToken cancellationToken)
     {
-        if (!HasLegacyInventoryStackCount(session.PlayerItems, keyItemId, 1))
+        var keyIndex = FindLegacyPositiveDeitylandChestKey(session.PlayerItems, keyItemId);
+        if (keyIndex < 0)
         {
             await context.Log.WriteLineAsync(
                     "WorldServer skipped LegacyNpc Deityland chest unlock " +
@@ -665,7 +666,7 @@ public static partial class WorldPacketHandlers
         }
 
         var consumeFrames = new List<byte[]>();
-        var updatedItems = ConsumeLegacyInventoryStack(session.PlayerItems, keyItemId, 1, consumeFrames);
+        var updatedItems = PrepareLegacyDeitylandChestKeyDebit(session.PlayerItems, keyIndex, consumeFrames);
 
         if (rewardItemId != 0 && !HasLegacyInventorySpace(updatedItems, 1))
         {
@@ -788,6 +789,7 @@ public static partial class WorldPacketHandlers
             if (!TryPersistLegacyCharacterAttributes(
                     session.UsersRoot,
                     session.AccountId,
+                    session.Character.Uid,
                     values,
                     out _,
                     out var characterReason))

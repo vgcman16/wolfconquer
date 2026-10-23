@@ -7,6 +7,16 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Positive chest payment and CP identity (FSB064/065): empty rows no
+  longer authorize/payment/free slots; first real key pays one unit. CP saves use
+  account301 path with actual character1293600 validation. Tests-first75=
+  35pass/40fail;50 new cases plus25 retained. Private Release184/184 passed,
+  zero failed/skipped. Public full Windows verification pending. Valid any-binding
+  policy, key IDs, costs, random rates,200000CP and packet order remain unchanged.
+  Lower-owner fault controls are not whole-chest save-failure safety. Separate
+  best-effort saves, durable transaction/replay/delivery/global UID and live
+  acceptance remain open; no deployment, SQL or original-save action.
+
 - [x] Admitted-claim/chest safety (FSB060–063): Vote full-bag rejection,
   positive unbound Lottery costs/capacity-before-allocation, exact post-debit
   Deityland capacity and Epic3303974 key identity. Tests-first76=52pass/24fail

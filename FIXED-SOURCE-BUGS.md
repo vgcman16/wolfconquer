@@ -1090,6 +1090,46 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   This accepts the coherent offline source batch,notSQL/live/deployment,
   globalUIDactivation,whole transactions or fullgameplayparity.
 
+### FSB-064: Require a real positive Deityland chest key
+
+- Owners: chest-local dialog/admission/debit in Deityland and ChestKeys.
+  Shared legacy helpers treated zero stock as one, allowing empty-key rewards
+  or charging an empty row instead of later real stock, falsely freeing a slot.
+- Dialog and unlock now select the same first matching positive row. Stage
+  exactly one unit and its existing removal/update frame from that physical row;
+  zero rows remain unchanged and provide neither payment nor capacity.
+  Preserve any-binding policy, enumeration order, Rare3303973/Epic3303974,
+  one-key cost, random rates/rewards,200000CP and debit-before-reward frames.
+- Native Inventory.Contain sums actual stack quantities; community defects are
+  not client wire requirements. This is chest-local: other shared-helper callers
+  and global graph/UID policy are not changed.
+
+### FSB-065: Validate chest CP saves against the actual character UID
+
+- Owner: chest call to the existing TryPersistLegacyCharacterAttributes overload.
+  The convenience overload selected Users/{AccountId}.ini correctly but also
+  treated AccountId as the expected character UID. Distinct identities caused
+  uidMismatch after memory/output publication, leaving the old CP value on disk.
+- Pass both the real account ID and session.Character.Uid to the existing
+  explicit-identity owner. No filename convention, loader/auth rule, payout,
+  parser, save coordinator or protocol layout changes.
+- Shared verification for FSB064/065: tests-first67=31pass/36fail, then the
+  disjoint8account cases=4pass/4fail; combined75=35pass/40fail. All25 retained
+  chest cases remain;50 new cases added. Repaired private Release **184/184**,
+  zero failed/skipped (75chest+95NPC-handler+14packet cases),
+  .artifacts/positive-key-safety/results/chest-payment-green.trx, terminal exit0.
+  Four distinct-ID positives verify complete actual account301/character1293600
+  files and unrelated UID-named-file preservation; four negatives exercise the
+  real lower persistence owner only, not whole-handler save-failure atomicity.
+  Independent public full Windows verification is pending for this batch.
+- Explicit VisibleDx8D13 offline registered/component fixtures and owned files
+  only. Post-roll CP calls are component proof, not registered RNG/client proof.
+  English key-name evidence remains a SERVER export, not client-table proof.
+  The existing max+1 creator, publication before separate best-effort saves,
+  whole reward transactions/CAS/journal/replay/delivery, respawn/claim lifecycle,
+  SQL, live/deployment/full parity and global UID/Host activation remain open.
+
+
 ## Active audit
 
 Current work does not close whole managed reward transactions. SuperGuildWar's

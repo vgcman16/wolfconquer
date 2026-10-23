@@ -41,12 +41,13 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
         return frame;
     }
 
-    private sealed class Fixture
+    private sealed partial class Fixture
     {
         private const string RootPrefix = "wolf-deity-capacity-";
         private const long CharacterUid = 1_293_600;
         private const uint KeyItemId = 3_303_973;
         private readonly string root = Path.Combine(Path.GetTempPath(), RootPrefix + Guid.NewGuid().ToString("N"));
+        private long accountId = CharacterUid;
         private readonly WorldSessionStore sessions = new();
         private readonly PacketHandlerRegistry<WorldPacketHandlerContext> registry =
             PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
@@ -59,7 +60,7 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
         internal WorldSession Session { get; private set; } = null!;
         private string Users => Path.Combine(root, "Users");
         private string Items => Path.Combine(root, "PlayersItems");
-        private string CharacterPath => Path.Combine(Users, CharacterUid + ".ini");
+        private string CharacterPath => Path.Combine(Users, accountId + ".ini");
         private string ItemPath => Path.Combine(Items, CharacterUid + ".bin");
         internal WorldSession Current
         {
@@ -80,8 +81,10 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
         }
 
         internal void Seed(int slots, ushort firstStack, ushort secondStack, byte firstBound, bool includeKeys = true,
-            uint firstKeyItemId = KeyItemId, uint secondKeyItemId = KeyItemId, uint npcId = 22_598)
+            uint firstKeyItemId = KeyItemId, uint secondKeyItemId = KeyItemId, uint npcId = 22_598,
+            long accountId = CharacterUid)
         {
+            this.accountId = accountId;
             ValidateRoot();
             if (Directory.Exists(root) || File.Exists(root)) throw new IOException("Fixture root already exists.");
             Directory.CreateDirectory(root);
@@ -124,7 +127,7 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
             Assert.Equal(new uint[] { 900, 800 }, loaded.InventoryItems.Take(2).Select(item => item.Uid));
             characterBefore = File.ReadAllBytes(CharacterPath);
             var character = CharacterSnapshotParser.ParseText(text, CharacterPath);
-            Session = new WorldSession(CharacterUid, "fixture", character, loaded, PlayerSpellSnapshot.Empty,
+            Session = new WorldSession(accountId, "fixture", character, loaded, PlayerSpellSnapshot.Empty,
                 PlayerProficiencySnapshot.Empty, UsersRoot: Users, ActiveNpcId: npcId);
             sessions.Set(Connection, Session);
         }
@@ -260,7 +263,7 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
         }
 
         private void AssertOnlyExpectedFiles() => Assert.Equal(
-            new[] { ItemPath, CharacterPath }.Order(StringComparer.Ordinal),
+            new[] { ItemPath, CharacterPath }.Concat(accountProofFiles).Order(StringComparer.Ordinal),
             Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal));
 
         private static PlayerItemSnapshotItem Item(uint uid, uint itemId, ushort stack) => new()
