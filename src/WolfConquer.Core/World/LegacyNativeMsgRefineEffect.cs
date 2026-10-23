@@ -48,4 +48,11 @@ internal static class LegacyNativeMsgRefineEffect
 		stream.Finalize(2319);
 		return stream;
 	}
+
+    internal static byte[] PrepareRefinementPayload(uint uid, RefineEffects effect)
+    {
+        using var serialized = new System.IO.MemoryStream();
+        Serializer.Serialize(serialized, new RefineEffectProto { Id = uid, dwParam = uid, Effect = effect });
+        return serialized.ToArray();
+    }
 }

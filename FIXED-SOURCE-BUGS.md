@@ -379,6 +379,28 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   global item-UID ownership or arbitrary raw-writer isolation. The unsafe native
   save truncation/partial-write owner is being replaced separately, not certified.
 
+### FSB-035: Prepare complete refinement procs before status, chance or stamina effects
+
+- Owners: native MirrorOfSin, KillingFlash and LightOfStamina. Old methods could
+  emit a success refinement before invalid status was discovered, consume chance
+  before known preparation failure, or change stamina before its scalar existed.
+- Complete genuine captured status/owner state and bounded native2319/2176
+  refinement/status/scalar frames now precede acceptance. XPList remains20seconds
+  without XPCount reset; Light still restores only values below100. Successful
+  native packet order, predicate priority and one genuine eligible Killing draw
+  are retained. Invalid state cannot contribute a grant, stamina change or prefix.
+- The eligible Killing loss now borrows three potential-success packets rather
+  than one: an explicit bounded-allocation tradeoff, not a speedup. Post-draw raw
+  mutation may still refuse; no RNG rollback is claimed. Accepted transport loss
+  does not turn a committed grant into a retryable rejection.
+- Verification: private/public Release **3065/3065** each,0failed/0skipped, including116 new
+  controls, retained proc-rate/wire/visible-peer goldens and the corrected old
+  test that required a refinement prefix before a NullReferenceException.
+  The selection also includes53 genuine owned-file UID registry controls.
+- Limits: no general CheckEffects activation, full HP/death/cast transaction,
+  raw-writer isolation, live client or packet delivery atomicity. Other refinement
+  procs and host recovery remain unfinished.
+
 ## Active audit
 
 | ID | Defect / affected owner | Required invariant | Status |
@@ -417,27 +439,29 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-032 | Shield/Stigma flag precedes animation/caller preparation | Complete bounded frames and caller before typed acceptance | Scoped effects verified2392; full cast/HP/durability open |
 | FSB-033 | Final comparer can change earlier state or prepared native loan metadata | Pure complete state and exact live frame checks after last comparer | Scoped status/flag/potion paths verified2392; general packet/raw-writer audit open |
 | FSB-034 | Rune insertion/cache publication can split; Count wraps; public arrays corrupt ownership | Complete owned staged publication, exact count and explicit unavailable queries | Scoped storage verified2896; full equip/load/save/economy/host remains open |
+| FSB-035 | Refinement publishes before late status failure or spends chance/stamina before preparation | Complete real state/frames before scoped proc acceptance | Scoped procs verified3065 both trees; full CI pending; full cast/HP remains open |
+| FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator component53/53 owned-file controls pass; host activation, trusted historical migration and all-producer adoption HOLD |
 
 ## CodeFactor cleanup
 
-Latest verified behavioral checkpoint: publicbd69741b,
-[Windows39955050650](https://github.com/vgcman16/wolfconquer/actions/runs/39955050650)
-passed4m21s, completed2026-10-23T12:45:01Z. Core22951passed/0failed of23116
+Latest verified behavioral checkpoint: public7879381d,
+[Windows39956832738](https://github.com/vgcman16/wolfconquer/actions/runs/39956832738)
+passed4m10s, completed2026-10-23T12:59:40Z. Core23007passed/0failed of23172
 (165externalfixturecasesexcluded), updater301/301, launcher49/49, all8stageexit0.
-Receipt20261023T124055209Z-b222361a finished12:44:53.9462471Z;206build warnings
+Receipt20261023T125545947Z-27bda340 finished12:59:29.9904268Z;206build warnings
 remain. This is offline automated proof, not deployment/live-client/full parity.
 
-CodeFactor on that exact commit reports28NEW/1FIXED,total2294. Nineteen new
-precedence/readability records across10C#files are one mechanical parentheses
-batch; nine new method-complexity findings are deferred per the defect-first
-guardrail. No packet switch/control flow is rewritten merely for a score.
-Follow-up analysis must confirm any claimed clearance; no zero-issues claim.
+CodeFactor on that exact commit reports2NEW complexity/21FIXED,total2275. All
+nineteen targeted precedence/readability records across10C#files are confirmed
+cleared, plus2older findings. The two new complex methods and older nine complex
+findings are deferred per the defect-first guardrail. No packet switch/control
+flow is rewritten merely for a score; no zero-issues/gameplay-completion claim.
 
 Rune plus the single19-record parentheses batch now passes private/public
 Release2896/2896 each,0failed/0skipped. Parentheses only make existing operator
 precedence explicit; no formula, ordering or packet-switch body changed. One
-fullCI is intended for this coherent Rune behavior checkpoint, not each warning.
-Remote analysis for the new commit is pending; complexity debt stays explicit.
+fullCI passed for this coherent Rune behavior checkpoint, not each warning.
+Actual remote analysis confirms the claimed targets; complexity debt stays explicit.
 
 Latest verified public code4727d8b3:
 

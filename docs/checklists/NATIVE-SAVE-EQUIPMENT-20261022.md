@@ -7,11 +7,21 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Private/public Release **3065/3065** each,0failed/0skipped: complete scoped MirrorOfSin,
+  KillingFlash and LightOfStamina admission/publication,116new controls (FSB035),
+  plus the real durable item-UID component53owned-file controls. No host/producer
+  activation: migration authority, every creator adoption and lifecycle drain
+  remain HOLD (FSB036). Full committed-tree CI and remote analysis are pending.
+
 - [x] Private/public Release **2896/2896** each,0failed/0skipped: complete owned
   Rune Add/cache publication, exact count, defensive arrays and explicit invalid
   queries, with source-valid position/equipped rules retained (FSB034). Includes
   one mechanical19-record precedence batch across10files; no risky complexity
-  rewrite. Full CI and fresh remote analysis are pending for this new successor.
+  rewrite. FullWindows39956832738 passed4m10s on exact7879381d: core23007/0failed
+  (165excluded), updater301/301, launcher49/49; all8stageexit0,206build warnings.
+  CodeFactor confirms21FIXED (all19 targeted precedence records plus2 older),
+  2NEW complex methods,total2275. The2 complexity findings are deferred; no
+  packet/control-flow rewrite, suppression or reduced coverage for the grade.
 
 - [x] Private/public Release **2392/2392** each,0failed/0skipped: complete prepared
   Sage status/archive and Shield/Stigma status/animation; final real state/loan

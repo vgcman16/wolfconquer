@@ -1,5 +1,23 @@
 # Publication validation
 
+## Current prepared refinement and durable UID component checkpoint
+
+Private/public Release **3065/3065** each,0failed/0skipped. Complete scoped
+MirrorOfSin, KillingFlash and LightOfStamina prepare genuine status and bounded
+2319/2176 frames before acceptance.116new controls retain valid wire order,
+one eligible Killing draw, visible-peer behavior and safe accepted transport
+loss. The old test requiring a success prefix before a null-vector fault is
+corrected (FSB035). Eligible Killing loss now borrows three potential-success
+packets: a safety tradeoff, not a speedup; no raw RNG rollback is claimed.
+
+The genuine durable item-UID allocator/raw catalog contributes53 owned-file
+controls: exclusive lease, flushed forward-only reservation/restart recovery,
+bounded complete184/80/740/322-byte store scanning and exact escrow aliases.
+It is NOT enabled in any host or creator. Trusted historical migration,
+before-actors quiescence, all-producer adoption/fencing, drained shutdown and
+real whole reward transactions remain HOLD (FSB036). Full committed-tree CI and
+fresh remote analysis are pending. No live client, original save or SQL changed.
+
 ## Current rune-storage and batched-readability checkpoint
 
 Private/public Release **2896/2896** each,0failed/0skipped. Rune additions stage
@@ -8,9 +26,15 @@ longer wrap and returned arrays cannot corrupt the cache. Valid row aliases,
 equipped rules and independent item-loading/save consumer tests remain (FSB034).
 Nineteen precedence findings across10files are one explicit-parentheses batch,
 with unchanged operation order/formulas. No complexity-driven packet rewrite.
-Full CI/remote analysis are pending for this successor; the exact preceding
-behavioral checkpoint receipt follows below. Whole equip/load/save/economy,
-SQL, host adoption and global item-UID authority remain unfinished.
+[Windows39956832738](https://github.com/vgcman16/wolfconquer/actions/runs/39956832738)
+passed4m10s on exact7879381d7049f48f9b6db0f32ccc6a1ff18a5eba, completed
+2026-10-23T12:59:40Z. Core23007passed/0failed of23172 (165externalfixturecases
+excluded), updater301/301, launcher49/49; all8stageexit0. Receipt
+20261023T125545947Z-27bda340 finished12:59:29.9904268Z;206build warnings remain.
+CodeFactor confirms21FIXED (all19precedence targets plus2older),2NEW complexity,
+total2275. Complex methods are deferred, not reshaped for a threshold. Whole
+equip/load/save/economy, SQL, host adoption and global item-UID authority remain
+unfinished. No live client, original save or SQL was used.
 
 ## Current prepared-status and required-goal checkpoint
 

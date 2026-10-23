@@ -67,11 +67,12 @@ public sealed partial class LegacyNativeAttackExecutorTests
     });
 
     [Fact]
-    public Task MirrorKeepsEarlierRefinementFrameWhenActualVectorReadFailsWithoutInventingARecoveryFlag() => NativePacketTestThread.Run(() =>
+    public Task MirrorRejectsUnavailableVectorBeforeAnyRefinementPrefixOrRecoveryFlag() => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); s.Player.BitVector = null!;
-        Assert.Throws<NullReferenceException>(() => Proc("MirrorOfSin", s.Player));
-        Assert.Equal(Refine(17, 17, 10), Assert.Single(s.Queue)); Assert.Null(s.Player.BitVector);
+        var before = RefinementStateSnapshot.Capture(s.Player);
+        Proc("MirrorOfSin", s.Player);
+        before.Unchanged(s.Player); Assert.Empty(s.Queue); Assert.Null(s.Player.BitVector);
     });
 
     [Fact]
