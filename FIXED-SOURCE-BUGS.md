@@ -803,6 +803,50 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   whole-kill atomicity, unrelated later writers and check/send races remain open.
   Observer retirement after Cloud CAS suppresses stale output, not claimed rollback.
 
+### FSB-051: Prepare Earth Force conversion before fragment debit output
+
+- Owner: map3998/family40906/quest3646, native MonsterRole2131..2160.
+  Previously the fragment update and five-fragment removal frames could precede
+  final Earth Force preparation; missing/malformed metadata or checked UID/
+  durability failure could leave a prefix without the earned reward.
+- Prepare the complete fragment/conversion inventory and all frames privately.
+  Validate each required physical metadata row and bounded durability, require
+  the exact current session, then CAS only the final inventory. Publish the same
+  fragment/update/removal/Earth frames in order, checking the committed owner.
+  After-commit notification failure is not a rejection or rollback.
+- Actual tests-only32:10passed/22failed. One unreachable unregistered diagnostic
+  was corrected to the real earlier ArrowBlades refusal, retaining all state/file
+  checks and requiring EMPTY all frames. All32 then pass. Full private focused
+  reward/rank/Status batch592/592, zero failed/skipped; all471 boss/reward cases
+  pass. Valid0/3/4/5/6 and split-row conversions retain quantities, binding,
+  independent full2116 bytes and consume order; FSB050 capacity wording remains.
+- Limits: operation-local memory/output boundary, not whole-kill, durable game-file
+  transactions, entitlement/outbox, delivery or global UID closure. Current
+  max+1 remains until the separate canonical registry cutover; its equivalent
+  overlay/real-ledger fixtures are isolated and not yet executed or activated.
+  Full public CI is pending for this checkpoint.
+
+### FSB-052: Unavailable rankings cannot authorize bonuses or spell removal
+
+- Owners: complete combat-gear rank effects and the real MyCombatGear.Status
+  caller. The prior query returned ordinary rank0 for absent/null owners/lists
+  and could accept a winning prefix before a malformed tail. In particular an
+  unavailable Pirate family could authorize removal of existing spell21930.
+- Capture and validate every class-required physical family, including complete
+  tails, under its real rank gates before producing detached UID ordinals or any
+  Status rank mutation. Observed unavailable/drifting state throws explicit
+  InvalidDataException; valid empty/nonmembership remains rank0. No repair,
+  dictionary callback, new rank order, numeric formula or wire format is used.
+- Independent real Status baseline8:2valid controls passed/6unsafe cases failed;
+  after correction all45 Status cases and46 rank-effect cases pass within592/592.
+  Seven old private exception-oriented cases now assert safe unavailability/no
+  publication;20 other effect controls stay. Private/public export shapes differ:
+  public retains its RankBonuses owner and all6 existing bonus tests, adds34
+  controls, and does not import duplicate private mapping/query methods.
+- Limits: prepared rank reads, not whole-Status/global rank transactions. Raw
+  mutable owners/ABA, later non-rank failures, spell persistence, concurrent
+  lifecycle and Host activation remain open. Full public CI is pending.
+
 ## Active audit
 
 Current work does not close whole managed reward transactions. SuperGuildWar's

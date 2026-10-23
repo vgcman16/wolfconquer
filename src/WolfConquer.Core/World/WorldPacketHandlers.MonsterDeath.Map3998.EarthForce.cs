@@ -21,7 +21,6 @@ public static partial class WorldPacketHandlers
         const uint questId = 3_646;
         const uint fragmentItemId = 3_008_754;
         const uint earthForceItemId = 3_008_745;
-        const ushort requiredFragments = 5;
         const string autoRouteKey = "map3998-earth-force-autopatcher";
         const string sourceBranch =
             "MonsterRole.cs killer.Player.Map == 3998 && Family.ID == 40906 quest 3646 Earth Force";
@@ -77,148 +76,60 @@ public static partial class WorldPacketHandlers
             return updatedSession;
         }
 
-        var fragmentsBefore = CountLegacyInventoryItem(updatedSession.PlayerItems, fragmentItemId);
-        var addedFragment = false;
-        if (fragmentsBefore < requiredFragments)
+        if (context.Sessions is not { } sessions ||
+            !sessions.TryGet(context.Connection, out var current) ||
+            !ReferenceEquals(current, session))
         {
-            if (!TryReadItemType(context.WorldData, fragmentItemId, out var fragmentItemType))
-            {
-                await LogParityGapAsync(
-                        context,
-                        LegacyParityGapDiagnostics.RuntimeStateNotLoaded(
-                            "itemtype.txt",
-                            "map3998-earth-force-fragment",
-                            reason: "source AddItemWitchStack(3008754) grants an Earth Force fragment for quest 3646, but the item type row was not loaded",
-                            facts:
-                            [
-                                LegacyParityGapDiagnostics.Fact("map", monster.MapId),
-                                LegacyParityGapDiagnostics.Fact("monsterId", monster.MonsterId),
-                                LegacyParityGapDiagnostics.Fact("familyId", monsterFamily.Id),
-                                LegacyParityGapDiagnostics.Fact("itemId", fragmentItemId),
-                            ],
-                            dedupeFacts:
-                            [
-                                LegacyParityGapDiagnostics.Fact("itemId", fragmentItemId),
-                            ]))
-                    .ConfigureAwait(false);
-                return session;
-            }
-
-            var updatedItems = AddOrStackLegacyInventoryItem(
-                updatedSession.PlayerItems,
-                fragmentItemType,
-                fragmentItemId,
-                stackCount: 1,
-                out var fragmentItem,
-                out var fragmentItemMode);
-            updatedSession = updatedSession with { PlayerItems = updatedItems };
-            context.Sessions?.Set(context.Connection, updatedSession);
-            updatedContext = context with { Session = updatedSession };
-            addedFragment = true;
-
-            await context.Connection.SendAsync(
-                    LegacyGameItemPacket.FromSnapshotItem(fragmentItem, mode: fragmentItemMode).ToFrameBytes(),
-                    cancellationToken)
+            await LogLegacyEarthForcePreparationRefusalAsync(context, "session-registration-missing-or-stale")
                 .ConfigureAwait(false);
+            return session;
         }
 
-        var fragmentsAfter = CountLegacyInventoryItem(updatedSession.PlayerItems, fragmentItemId);
-        if (fragmentsAfter < requiredFragments)
+        if (!TryPrepareLegacyEarthForceReward(context, session, out var reward, out var reason))
+        {
+            await LogLegacyEarthForcePreparationRefusalAsync(context, reason).ConfigureAwait(false);
+            return session;
+        }
+
+        updatedSession = session with { PlayerItems = reward.Items };
+        if (!sessions.TryCompareAndSet(context.Connection, session, updatedSession))
+        {
+            await LogLegacyEarthForcePreparationRefusalAsync(context, "session-changed-before-commit")
+                .ConfigureAwait(false);
+            return session;
+        }
+        updatedContext = context with { Session = updatedSession };
+
+        // The full state and all native frames are prepared before this single
+        // commit. Observer retirement suppresses stale output, not the grant.
+        foreach (var frame in reward.Frames)
+        {
+            if (!sessions.TryGet(context.Connection, out current) ||
+                !ReferenceEquals(current, updatedSession))
+                return updatedSession;
+            await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!reward.Converted)
         {
             await context.Log.WriteLineAsync(
                     "WorldServer applied legacy map 3998 Earth Force fragment reward " +
                     $"{FormatSession(updatedContext)} monsterUid={monster.Uid} familyId={monsterFamily.Id} " +
-                    $"questId={questId} fragmentItemId={fragmentItemId} fragmentsBefore={fragmentsBefore} " +
-                    $"fragmentsAfter={fragmentsAfter} addedFragment={addedFragment} converted=False branch=\"{sourceBranch}\".")
+                    $"questId={questId} fragmentItemId={fragmentItemId} fragmentsBefore={reward.FragmentsBefore} " +
+                    $"fragmentsAfter={reward.FragmentsAfter} addedFragment={reward.AddedFragment} converted=False branch=\"{sourceBranch}\".")
                 .ConfigureAwait(false);
             return updatedSession;
         }
 
-        if (!TryReadItemType(context.WorldData, earthForceItemId, out var earthForceItemType))
-        {
-            await LogParityGapAsync(
-                    updatedContext,
-                    LegacyParityGapDiagnostics.RuntimeStateNotLoaded(
-                        "itemtype.txt",
-                        "map3998-earth-force",
-                        reason: "source Inventory.Add(3008745) grants Earth Force for quest 3646 after five fragments, but the item type row was not loaded",
-                        facts:
-                        [
-                            LegacyParityGapDiagnostics.Fact("map", monster.MapId),
-                            LegacyParityGapDiagnostics.Fact("monsterId", monster.MonsterId),
-                            LegacyParityGapDiagnostics.Fact("familyId", monsterFamily.Id),
-                            LegacyParityGapDiagnostics.Fact("itemId", earthForceItemId),
-                        ],
-                        dedupeFacts:
-                        [
-                            LegacyParityGapDiagnostics.Fact("itemId", earthForceItemId),
-                        ]))
-                .ConfigureAwait(false);
-            return updatedSession;
-        }
-
-        if (!TryConsumeLegacyInventoryItemCount(
-                updatedSession.PlayerItems,
-                fragmentItemId,
-                requiredFragments,
-                out var consumedItems,
-                out var consumeFrames))
-        {
-            await LogParityGapAsync(
-                    updatedContext,
-                    LegacyParityGapDiagnostics.RuntimeStateNotLoaded(
-                        "Inventory.Remove",
-                        "map3998-earth-force-fragment-remove",
-                        reason: "source Inventory.Remove(3008754, 5) converts five Earth Force fragments, but the modern inventory snapshot could not consume five loaded fragments",
-                        facts:
-                        [
-                            LegacyParityGapDiagnostics.Fact("map", monster.MapId),
-                            LegacyParityGapDiagnostics.Fact("monsterId", monster.MonsterId),
-                            LegacyParityGapDiagnostics.Fact("familyId", monsterFamily.Id),
-                            LegacyParityGapDiagnostics.Fact("itemId", fragmentItemId),
-                            LegacyParityGapDiagnostics.Fact("count", requiredFragments),
-                        ],
-                        dedupeFacts:
-                        [
-                            LegacyParityGapDiagnostics.Fact("itemId", fragmentItemId),
-                        ]))
-                .ConfigureAwait(false);
-            return updatedSession;
-        }
-
-        foreach (var frame in consumeFrames)
-        {
-            await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
-        }
-
-        var earthForceItems = AddLegacyInventoryItem(
-            consumedItems,
-            earthForceItemType,
-            stackCount: 1,
-            out var earthForceItem,
-            out var earthForceItemMode);
-        updatedSession = updatedSession with { PlayerItems = earthForceItems };
-        context.Sessions?.Set(context.Connection, updatedSession);
-        updatedContext = context with { Session = updatedSession };
-
-        await context.Connection.SendAsync(
-                LegacyGameItemPacket.FromSnapshotItem(earthForceItem, mode: earthForceItemMode).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
         await LogLegacyMap3998EarthForceAutoRouteGapAsync(
-                updatedContext,
-                monster,
-                monsterFamily,
-                questId,
-                earthForceItemId,
-                autoRouteKey)
+                updatedContext, monster, monsterFamily, questId, earthForceItemId, autoRouteKey)
             .ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer applied legacy map 3998 Earth Force reward " +
                 $"{FormatSession(updatedContext)} monsterUid={monster.Uid} familyId={monsterFamily.Id} " +
                 $"questId={questId} fragmentItemId={fragmentItemId} earthForceItemId={earthForceItemId} " +
-                $"fragmentsBefore={fragmentsBefore} fragmentsAfter={fragmentsAfter} addedFragment={addedFragment} " +
-                $"converted=True earthForceItemMode={earthForceItemMode} branch=\"{sourceBranch}\".")
+                $"fragmentsBefore={reward.FragmentsBefore} fragmentsAfter={reward.FragmentsAfter} addedFragment={reward.AddedFragment} " +
+                $"converted=True earthForceItemMode={reward.EarthForceItemMode} branch=\"{sourceBranch}\".")
             .ConfigureAwait(false);
         return updatedSession;
     }

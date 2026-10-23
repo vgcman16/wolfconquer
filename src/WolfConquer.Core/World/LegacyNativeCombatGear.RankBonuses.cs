@@ -12,28 +12,31 @@ internal partial class LegacyNativeCombatGear
         {
             return null;
         }
+        var promotion = GetType(Class);
+        var snapshot = LegacyNativeCombatGearRankTable.CaptureEffectRanks(
+            GetEffectRankFamilies(promotion), UserID);
         VRANK vRANK = new VRANK();
-        switch (GetType(Class))
+        switch (promotion)
         {
         case Promotion.Warrior:
         {
-            uint myRank2 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Warrior, UserID);
+            uint myRank2 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Warrior);
             if (myRank2 == 1)
             {
                 vRANK.LukyStrike += 2.0;
                 vRANK.Parry += 3.5;
             }
-            myRank2 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Dragonhowl, UserID);
+            myRank2 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Dragonhowl);
             if (myRank2 == 1)
             {
                 vRANK.Parry += 0.5;
             }
-            myRank2 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Bloodlust, UserID);
+            myRank2 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Bloodlust);
             if (myRank2 == 1)
             {
                 vRANK.Parry += 0.5;
             }
-            myRank2 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Redcurse, UserID);
+            myRank2 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Redcurse);
             if (myRank2 == 1)
             {
                 vRANK.Parry += 0.5;
@@ -42,30 +45,30 @@ internal partial class LegacyNativeCombatGear
         }
         case Promotion.Archer:
         {
-            uint myRank4 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Archer, UserID);
+            uint myRank4 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Archer);
             if (myRank4 == 1)
             {
                 vRANK.LukyStrike += 2.0;
                 vRANK.Parry += 3.5;
             }
-            myRank4 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Archer, UserID);
+            myRank4 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Archer);
             if (myRank4 == 1)
             {
                 vRANK.PAttack = 500u;
                 vRANK.PDefense = 500u;
                 vRANK.MDefense = 300u;
             }
-            myRank4 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.StoneCracker, UserID);
+            myRank4 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.StoneCracker);
             if (myRank4 == 1)
             {
                 vRANK.Parry += 0.5;
             }
-            myRank4 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.ColdMoon, UserID);
+            myRank4 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.ColdMoon);
             if (myRank4 == 1)
             {
                 vRANK.Parry += 0.5;
             }
-            myRank4 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.TharnCutter, UserID);
+            myRank4 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.TharnCutter);
             if (myRank4 == 1)
             {
                 vRANK.Parry += 0.5;
@@ -74,39 +77,39 @@ internal partial class LegacyNativeCombatGear
         }
         case Promotion.Water:
         {
-            uint myRank3 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Taoist, UserID);
+            uint myRank3 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Taoist);
             if (myRank3 == 1)
             {
                 vRANK.Parry += 3.5;
             }
-            myRank3 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Taoist, UserID);
+            myRank3 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Taoist);
             if (myRank3 == 1)
             {
                 vRANK.PrestigeScore = 500u;
                 vRANK.PDefense = 500u;
                 vRANK.MDefense = 300u;
             }
-            myRank3 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist1, UserID);
+            myRank3 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist1);
             if (myRank3 == 1)
             {
                 vRANK.Parry += 0.5;
             }
-            myRank3 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist2, UserID);
+            myRank3 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist2);
             if (myRank3 == 1)
             {
                 vRANK.Parry += 0.5;
             }
-            myRank3 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist3, UserID);
+            myRank3 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist3);
             if (myRank3 == 1)
             {
                 vRANK.Parry += 0.5;
             }
-            myRank3 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist4, UserID);
+            myRank3 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist4);
             if (myRank3 == 1)
             {
                 vRANK.Parry += 0.5;
             }
-            myRank3 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist5, UserID);
+            myRank3 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist5);
             if (myRank3 == 1)
             {
                 vRANK.Parry += 0.5;
@@ -115,39 +118,39 @@ internal partial class LegacyNativeCombatGear
         }
         case Promotion.Fire:
         {
-            uint myRank5 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Taoist, UserID);
+            uint myRank5 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Taoist);
             if (myRank5 == 1)
             {
                 vRANK.CoreStrike += 4.0;
             }
-            myRank5 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Taoist, UserID);
+            myRank5 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Taoist);
             if (myRank5 == 1)
             {
                 vRANK.PrestigeScore = 500u;
                 vRANK.PDefense = 500u;
                 vRANK.MDefense = 300u;
             }
-            myRank5 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist1, UserID);
+            myRank5 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist1);
             if (myRank5 == 1)
             {
                 vRANK.CoreStrike += 1.0;
             }
-            myRank5 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist2, UserID);
+            myRank5 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist2);
             if (myRank5 == 1)
             {
                 vRANK.CoreStrike += 1.0;
             }
-            myRank5 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist3, UserID);
+            myRank5 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist3);
             if (myRank5 == 1)
             {
                 vRANK.CoreStrike += 1.0;
             }
-            myRank5 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist4, UserID);
+            myRank5 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist4);
             if (myRank5 == 1)
             {
                 vRANK.CoreStrike += 1.0;
             }
-            myRank5 = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist5, UserID);
+            myRank5 = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Taoist5);
             if (myRank5 == 1)
             {
                 vRANK.CoreStrike += 1.0;
@@ -156,12 +159,12 @@ internal partial class LegacyNativeCombatGear
         }
         case Promotion.Pirate:
         {
-            uint myRank = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Pirate, UserID);
+            uint myRank = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Pirate);
             if (myRank >= 1 && myRank <= 10)
             {
                 vRANK.Magic = 21930;
             }
-            myRank = LegacyNativeCombatGearRankTable.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Pirate, UserID);
+            myRank = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Pirate);
             if (myRank >= 1 && myRank <= 10)
             {
                 vRANK.Magic = 21930;
@@ -175,4 +178,41 @@ internal partial class LegacyNativeCombatGear
         }
         return vRANK;
     }
+
+    private static LegacyNativeCombatGearRankTable.Type[] GetEffectRankFamilies(Promotion promotion) =>
+        promotion switch
+        {
+            Promotion.Warrior =>
+            [
+                LegacyNativeCombatGearRankTable.Type.Overall_Warrior,
+                LegacyNativeCombatGearRankTable.Type.Dragonhowl,
+                LegacyNativeCombatGearRankTable.Type.Bloodlust,
+                LegacyNativeCombatGearRankTable.Type.Redcurse,
+            ],
+            Promotion.Archer =>
+            [
+                LegacyNativeCombatGearRankTable.Type.Overall_Archer,
+                LegacyNativeCombatGearRankTable.Type.WEEK_Archer,
+                LegacyNativeCombatGearRankTable.Type.StoneCracker,
+                LegacyNativeCombatGearRankTable.Type.ColdMoon,
+                LegacyNativeCombatGearRankTable.Type.TharnCutter,
+            ],
+            Promotion.Water or Promotion.Fire =>
+            [
+                LegacyNativeCombatGearRankTable.Type.Overall_Taoist,
+                LegacyNativeCombatGearRankTable.Type.WEEK_Taoist,
+                LegacyNativeCombatGearRankTable.Type.Taoist1,
+                LegacyNativeCombatGearRankTable.Type.Taoist2,
+                LegacyNativeCombatGearRankTable.Type.Taoist3,
+                LegacyNativeCombatGearRankTable.Type.Taoist4,
+                LegacyNativeCombatGearRankTable.Type.Taoist5,
+            ],
+            Promotion.Pirate =>
+            [
+                LegacyNativeCombatGearRankTable.Type.Overall_Pirate,
+                LegacyNativeCombatGearRankTable.Type.WEEK_Pirate,
+            ],
+            _ => [],
+        };
+
 }

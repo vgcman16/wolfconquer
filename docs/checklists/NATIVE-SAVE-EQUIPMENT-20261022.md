@@ -7,6 +7,15 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Earth Force conversion/rank safety (FSB051/052): private Release592/592,
+  zero failed/skipped (471boss/reward,46rank-effect,30rank table/persistence,
+  45Status). Earth tests-only32:10pass/22fail; corrected early-ingress diagnostic
+  retains EMPTY all frames. Rank Status baseline8:2valid pass/6unsafe fail.
+  Complete Earth preparation precedes one CAS/output; required complete rank
+  data is validated before bonuses or spell removal. Valid quantities/formulas/
+  packet goldens remain. Public CI pending; UID activation, durable reward
+  recovery, raw writers and whole-Status transactions remain open.
+
 - [x] Monster reward safety (FSB049/050): private complete boss/reward class
   439/439,0failed/0skipped. Tests-only baselines13:7pass/6fail (Plume) and
   25:4pass/21fail (messages) precede the fixes. Five unsafe old facts corrected,

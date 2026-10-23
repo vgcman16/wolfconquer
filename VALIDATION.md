@@ -1,5 +1,21 @@
 # Publication validation
 
+## Earth Force and rank-admission safety checkpoint
+
+Private Release focused batch592/592, zero failed/skipped:471boss/reward,
+46rank-effect,30rank table/persistence and45Status. Earth tests-only32 had10pass/
+22fail; all32 pass after preparation/CAS/output repair and exact earlier-ingress
+diagnostic correction. Rank Status tests-only8 had2valid pass/6unsafe fail; all
+pass after complete required-rank capture. Valid reward/wire and rank arithmetic
+controls remain;7 old private exception-oriented tests now enforce safe refusal.
+
+Public retains its separate RankBonuses owner and all6 existing bonus controls;
+34new rank/Status plus32new Earth controls are included. No duplicate private
+GetValueRank or unrelated mapping/check methods are imported. One full public
+Windows CI run is pending; this is not an independent public passing result yet.
+Durable rewards/outbox, whole-Status, raw writers, global UID adoption, deployment
+and actual-client proof remain outside this checkpoint.
+
 ## Monster reward safety checkpoint
 
 Private Release complete boss/reward class439/439, zero failed/skipped. Separate
