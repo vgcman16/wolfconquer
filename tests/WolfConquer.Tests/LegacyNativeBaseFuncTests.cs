@@ -60,7 +60,16 @@ public sealed class LegacyNativeBaseFuncTests
         Assert.False(nameCheck.GetParameters()[0].IsOptional);
         Assert.True(nameCheck.GetParameters()[1].IsOptional);
         Assert.Equal(true, nameCheck.GetParameters()[1].DefaultValue);
-        Assert.Equal(new[] { "NameStrCheck", "ProficiencyLevelExperience", "RandFromGivingNums", "RandGet", "ReverseString", "rand", "srand" },
+        // Whole native BaseFunc29..50 is public, with only forging optional.
+        var animaRate = typeof(LegacyNativeBaseFunc).GetMethod("AnimaUpgradeRate")!;
+        Assert.True(animaRate.IsPublic && animaRate.IsStatic);
+        Assert.Equal(typeof(byte), animaRate.ReturnType);
+        Assert.Equal(new[] { typeof(uint), typeof(bool) }, animaRate.GetParameters().Select(p => p.ParameterType));
+        Assert.Equal(new[] { "AnimaID", "forging" }, animaRate.GetParameters().Select(p => p.Name));
+        Assert.False(animaRate.GetParameters()[0].IsOptional);
+        Assert.True(animaRate.GetParameters()[1].IsOptional);
+        Assert.Equal(false, animaRate.GetParameters()[1].DefaultValue);
+        Assert.Equal(new[] { "AnimaUpgradeRate", "NameStrCheck", "ProficiencyLevelExperience", "RandFromGivingNums", "RandGet", "ReverseString", "rand", "srand" },
             typeof(LegacyNativeBaseFunc).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
                 .Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
     }

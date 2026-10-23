@@ -24,8 +24,12 @@
   scalar writer and ten receive fields are implemented, without host activation.
 - [x] Whole Taoist power family and genuine GUILDWAR state/constructor/conductor,
   gate/query/policy/AddNpc prerequisites are implemented. Full war remains held.
-- [x] Private and independent sanitized-public Release each passed4410/4410,
-  zero failures/skips:4366 retained +44 deferred-money cases (39 existing,5 net new).
+- [x] Whole SpiritTable loader, anima upgrade rules, monster-reward state and native
+  poison/map-effect/Blackspot methods are implemented. Power Arena guardian and
+  countdown/finish methods, Dis City map/query/Pluto announcement methods and
+  Saturn state use genuine owners. Full event entry/rewards/startup remain held.
+- [x] Private and independent sanitized-public Release each passed 4552/4552,
+  zero failures/skips: 4410 retained + 53 monster support + 89 event controls.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They

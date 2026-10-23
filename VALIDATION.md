@@ -1,5 +1,24 @@
 # Publication validation
 
+## Native monster-death support and event prerequisites
+
+Private and independent sanitized-public Release each passed 4552/4552 selected
+cases with zero failures/skips: 4410 retained + 53 monster-death support + 89 event
+controls. The new complete reference methods cover SpiritTable file loading and
+accumulation, anima upgrade rates, physical reward fields, poison membership,
+map effects, Blackspot 2188, Power Arena guardian counts/countdown/finish, Dis City
+map caching/class-kill rules/global Pluto announcement, and Saturn state/query.
+The closed BaseFunc API control retains every earlier signature and adds the
+exact public `AnimaUpgradeRate(uint AnimaID, bool forging = false)` contract.
+
+Controls use guarded temporary files, real map/view/packet/flag owners and owned
+queues. No original saves, SQL, client or runtime routing changed. Production
+startup was not synthesized: the source constructs Saturn and Dis City in its
+whole scheduler Create, but never assigns PowerArena. Full invitations, teleport,
+XP/inventory rewards and event/monster-death adoption remain unfinished. Fresh
+full Windows validation is pending; the prior full result below is historical
+proof for its exact source, not this new batch.
+
 ## Current full Windows result
 
 [Windows39909496494](https://github.com/vgcman16/wolfconquer/actions/runs/39909496494)
