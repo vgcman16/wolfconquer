@@ -1,5 +1,18 @@
 # Publication validation
 
+## Current full Windows result
+
+[Windows39909496494](https://github.com/vgcman16/wolfconquer/actions/runs/39909496494)
+passed in 3m 52s on exact commit `bf6b9eef7cde69eaadad1f21ea0a566acf5883a9`.
+All eight sequential stages exited 0. Actual terminal TRX: core 20,949 passed /
+0 failed / 165 unexecuted of 21,114; updater 262/262; Windows launcher 49/49.
+Synthetic status and TRX-parser controls passed 20 + 13; HTTP/service probes were
+skipped. Runner receipt `20261023T060659989Z-a336c97e` finished at
+`2026-10-23T06:10:30.3932319Z`.
+This closes the three test regressions described below. Earlier red receipts
+remain historical evidence, not current failures. This is build/component proof,
+not a new live-client, SQL, deployment or full-gameplay-parity claim.
+
 ## Deterministic deferred-money blocked-map controls
 
 [Windows39908229600](https://github.com/vgcman16/wolfconquer/actions/runs/39908229600)
@@ -17,7 +30,7 @@ five net new cases. Only the test fixture changes: all five blocked maps disable
 special roll and retain zero money/terrain/floor assertions. A forced-hit control
 requires the actual item3330770, terrain placement and visible floor entry before
 the generic money gate, with zero money reads. Production ordering and random
-behavior are unchanged. Fresh full Windows validation is pending.
+behavior are unchanged. The full Windows result above now verifies this repair.
 
 ## Bounded native-launch readiness repair
 
@@ -40,7 +53,7 @@ success. New policy/wait code is separate from the existing snapshot owner.
 Tests use only owned synthetic processes, loopback sockets and exact GUID temp
 roots. No game/client/server, login, original saves/SQL or routing changed.
 Snapshot/cleanup cost is not a hard real-time wall-clock guarantee. Full Windows
-proof on the published repair is pending; focused success does not erase the
+proof is now recorded above; focused or full test success does not erase the
 earlier failed run or establish gameplay/host/deployment parity.
 
 ## Taoist power and native guild-war prerequisites
@@ -70,8 +83,8 @@ above. The other timed out awaiting TCP acceptance after the bounded probe had
 returned. The1500ms kill has no readiness gate, exposing a kill-before-ready race;
 the exact reason no connection arrived is unproven. An isolated8/8 baseline pass
 is not a fix.
-The bounded opt-in readiness repair is focused-tested above. Fresh full Windows
-proof remains pending.
+The bounded opt-in readiness repair is focused-tested above and included in the
+current full Windows success.
 
 ## Complete Pole Domination component and shared-owner controls
 
@@ -98,7 +111,7 @@ guarded temporary roots. Four native trade-restriction-list cases retain its17
 ordered entries, aliases, mutability and replacement/null behavior. The list is
 declared after the five original ItemType caches; all cache controls remain.
 This does not prove full trading, NPC death/receive, scheduled events, SQL,
-host activation, deployment or a live client. Fresh full Windows proof is pending.
+host activation, deployment or a live client. Current full Windows proof is above.
 
 ## Native logging compatibility, monster ranking and login wire prerequisites
 

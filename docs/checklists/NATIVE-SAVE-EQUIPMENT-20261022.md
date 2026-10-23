@@ -31,23 +31,19 @@
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run39904151049 onb75f29ab passed all8stages: core20789 passed/
-  0 failed/165 unexecuted of20954; updater262/262; launcher49/49; synthetic
-  parser20+13 cases. HTTP/service probes were skipped.
+  Full Windows run 39909496494 on `bf6b9eef` passed all 8 stages: core 20,949
+  passed / 0 failed / 165 unexecuted of 21,114; updater 262/262; launcher 49/49;
+  synthetic parser 20 + 13 cases. HTTP/service probes were skipped.
 - [x] Logging/ranking/login-wire source has full Windows proof in3m52s on exact
   b75f29ab. Hair setter/getter and earlier component controls remain intact.
-- [ ] Newer Windows39905802844 on5a394cd7 failed:20844 passed/2 failed/165
-  unexecuted of21011; updater262 passed; later stages did not run. The Rifinery
-  field-shape assertion is corrected and all26 cases pass. The native process
-  fixture has a kill-before-ready race. Opt-in bounded readiness now passes all31
-  probe cases, preserving original module/thread/TCP/log assertions and default
-  no-ready behavior. Newer Windows39908229600 on9d29b7c3 passed those repairs but
-  failed one unrelated deferred-money fixture:20943 passed/1 failed/165 unexecuted
-  of21109; updater262 passed; later stages did not run. Map10250's independent3%
-  special item precedes the generic blocked-map gate. The test now forces that
-  roll and retains zero-money/terrain checks for all five blocked maps, plus a
-  positive special-item control. No production drop behavior changed. Fresh full
-  Windows proof is pending; no new green claim yet.
+- [x] Earlier Windows 39905802844 failed two cases and 39908229600 failed one.
+  Current run 39909496494 closes those regressions: the exact Rifinery cache shape,
+  opt-in bounded native-probe readiness and deterministic deferred-money tests.
+  Every original module/thread/TCP/log assertion and no-ready default remains.
+  Map 10250's special item still precedes the generic blocked-map gate; all five
+  blocked-map controls and a forced-hit positive case preserve that source order.
+  No production drop behavior changed. Full run completed in 3m 52s on `bf6b9eef`;
+  [receipt](https://github.com/vgcman16/wolfconquer/actions/runs/39909496494).
 
 ## Correctness findings retained
 
