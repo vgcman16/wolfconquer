@@ -79,9 +79,10 @@ public static partial class WorldPacketHandlers
         uint rewardItemId,
         CancellationToken cancellationToken)
     {
-        // Contain gates on unbound items, while Remove consumes the first matching item regardless of binding.
+        // Debit the first positive unbound row that actually satisfies admission.
         var packItem = session.PlayerItems.InventoryItems.FirstOrDefault(item =>
-            item.ItemId == LegacyItemPackServicesSacredRefineryPackItemId);
+            item.ItemId == LegacyItemPackServicesSacredRefineryPackItemId &&
+            item.Bound == 0 && item.StackSize > 0);
         if (packItem is null || !LegacyItemPackServicesHasUnboundSacredRefineryPack(session))
         {
             await LegacyItemPackServicesLogSacredRefineryFenceAsync(

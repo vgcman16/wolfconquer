@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyP7SoulPackMutationTests : IDisposable
+public sealed partial class LegacyP7SoulPackMutationTests : IDisposable
 {
     private const uint EquipmentNpcId = 4_294_967_293;
     private const uint WeaponNpcId = 4_294_967_294;
@@ -159,7 +159,7 @@ public sealed class LegacyP7SoulPackMutationTests : IDisposable
     [Theory]
     [InlineData(EquipmentNpcId, EquipmentPackItemId, (byte)1, 820_073U)]
     [InlineData(WeaponNpcId, WeaponPackItemId, (byte)1, 800_020U)]
-    public async Task UnboundGateThenBoundAgnosticRemoveConsumesFirstBoundStack(
+    public async Task UnboundGateConsumesOnlyPositiveUnboundCostAndPreservesBoundStack(
         uint npcId,
         uint packItemId,
         byte optionId,
@@ -179,12 +179,11 @@ public sealed class LegacyP7SoulPackMutationTests : IDisposable
         var boundPack = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
             item => item.Uid == 10);
-        Assert.Equal((ushort)1, boundPack.StackSize);
+        Assert.Equal((ushort)2, boundPack.StackSize);
         Assert.Equal((byte)1, boundPack.Bound);
-        Assert.Contains(
-            result.UpdatedSession.PlayerItems.InventoryItems,
-            item => item.Uid == 20 && item.Bound == 0 && item.StackSize == 1);
-        AssertItemUpdate(result.Sent[0], uid: 10, packItemId, stackSize: 1, bound: 1);
+        AssertPlayerItemsEqual(Items(originalItems.InventoryItems[0]), Items(boundPack));
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        AssertItemRemoval(result.Sent[0], 20);
         AssertSoulGrant(result.Sent[1], uid: 21, rewardItemId, durability: 1);
         AssertPersistedEquals(playerItemsRoot, result.UpdatedSession.PlayerItems);
     }

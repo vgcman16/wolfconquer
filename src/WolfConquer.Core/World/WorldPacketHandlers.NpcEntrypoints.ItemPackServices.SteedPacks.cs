@@ -311,8 +311,11 @@ public static partial class WorldPacketHandlers
         string sourceLines,
         CancellationToken cancellationToken)
     {
-        // Inventory.Remove gates by one binding class, then removes the first matching item without that filter.
-        var packItem = session.PlayerItems.InventoryItems.FirstOrDefault(item => item.ItemId == packItemId);
+        // Colored callers admit nonzero binding; simple/rare callers admit unbound.
+        // Charge that same positive class in original inventory order.
+        var packItem = session.PlayerItems.InventoryItems.FirstOrDefault(item =>
+            item.ItemId == packItemId && item.StackSize > 0 &&
+            (selection.Bound ? item.Bound != 0 : item.Bound == 0));
         if (packItem is null)
         {
             await LegacyItemPackServicesLogSteedFenceAsync(

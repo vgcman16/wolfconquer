@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyP7SacredTreasuresMutationTests : IDisposable
+public sealed partial class LegacyP7SacredTreasuresMutationTests : IDisposable
 {
     private const uint NpcId = 16_849;
     private const uint SavageBoneItemId = 3_004_181;
@@ -104,7 +104,7 @@ public sealed class LegacyP7SacredTreasuresMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task SavageBoneGateIsUnboundButRemovalConsumesFirstBoundMatch()
+    public async Task SavageBoneGateConsumesPositiveUnboundCostAndPreservesForeignBoundStack()
     {
         var originalItems = Items(
             Item(10, SavageBoneItemId, stackSize: 2, bound: 1),
@@ -119,20 +119,18 @@ public sealed class LegacyP7SacredTreasuresMutationTests : IDisposable
             .Where(item => item.ItemId == SavageBoneItemId)
             .OrderBy(item => item.Uid)
             .ToArray();
-        Assert.Equal(2, bones.Length);
+        Assert.Single(bones);
         Assert.Equal(10U, bones[0].Uid);
         Assert.Equal(1, bones[0].Bound);
-        Assert.Equal(1, bones[0].StackSize);
-        Assert.Equal(20U, bones[1].Uid);
-        Assert.Equal(0, bones[1].Bound);
-        Assert.Equal(1, bones[1].StackSize);
-        var update = AssertGameItem(result.Sent[0]);
-        Assert.Equal(10U, update.Uid);
-        Assert.Equal(LegacyGameItemPacket.UpdateItemMode, update.Mode);
+        Assert.Equal(2, bones[0].StackSize);
+        AssertPlayerItemsEqual(Items(originalItems.InventoryItems[0]), Items(bones[0]));
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        AssertRemoval(result.Sent[0], 20);
+        AssertPlayerItemsEqual(result.UpdatedSession.PlayerItems, Assert.IsType<PlayerItemSnapshot>(result.PersistedItems));
     }
 
     [Fact]
-    public async Task BoundAgnosticRemovalCanTakeZeroStackRecordBeforeGateItem()
+    public async Task SavageBoneGatePreservesZeroStackForeignRowAndConsumesEligibleBone()
     {
         var originalItems = Items(
             Item(5, SavageBoneItemId, stackSize: 0, bound: 1),
@@ -143,9 +141,11 @@ public sealed class LegacyP7SacredTreasuresMutationTests : IDisposable
             Catalog(ItemType(WeaponSoulPackItemId)),
             treasureRoll: 1);
 
-        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 5);
-        Assert.Contains(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
-        AssertRemoval(result.Sent[0], 5);
+        var preservedZero = Assert.Single(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 5);
+        AssertPlayerItemsEqual(Items(originalItems.InventoryItems[0]), Items(preservedZero));
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        AssertRemoval(result.Sent[0], 20);
+        AssertPlayerItemsEqual(result.UpdatedSession.PlayerItems, Assert.IsType<PlayerItemSnapshot>(result.PersistedItems));
     }
 
     [Fact]

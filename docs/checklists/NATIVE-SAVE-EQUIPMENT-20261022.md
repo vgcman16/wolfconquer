@@ -7,11 +7,21 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Admitted pack cost selection (FSB047): private/public Release239/239each,0failed/
+  0skipped after213pass/26fail baseline. Four consumers spend only a positive
+  row in the admitted binding class, retaining first eligible inventory order.
+  Wrong-binding/empty rows, full40-slot capacity, saved item metadata and exact
+  debit/reward frame order are covered;10 unsafe old expectations corrected,
+  34 new controls added. Full Windows CI for this fix is pending.
+  No client/server/SQL/original-save action; global UID and economy remain open.
+
 - [x] Late-accepted TCP shutdown drain (FSB046): private/public Release25/25
   each,0failed/0skipped, after3pass/1fail baseline. Real late-accepted and
   already-registered client handlers plus asynchronous transport cleanup must
   finish before shutdown/peer EOF. Empty/never-started controls retained.
-  Full CI for this batch pending; no running server/client was restarted.
+  FullWindows39986796881 passes4m41s on exact93e7259:23593core/0failed,
+  165externalfixtureexcluded, updater301/301, launcher49/49,8stageexit0,
+  204warnings. No running server/client was restarted.
   Detached runtime/Host lifetime and global UID activation remain separate.
 
 - [x] SuperGuild reward preparation (partial FSB009): private468passed/0failed/

@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacySteedPackMutationTests : IDisposable
+public sealed partial class LegacySteedPackMutationTests : IDisposable
 {
     private const uint Steed3PackNpcId = 4_294_967_264;
     private const uint Steed1PackNpcId = 4_294_967_265;
@@ -144,7 +144,7 @@ public sealed class LegacySteedPackMutationTests : IDisposable
         Assert.Contains($"sourceOrder={(bound ? "talk+remove+add-steed" : "remove+add-steed")}", result.Log);
     }
 
-    public static TheoryData<uint, uint, byte, byte, byte> BindingRemovalQuirkCases => new()
+    public static TheoryData<uint, uint, byte, byte, byte> BindingCostCases => new()
     {
         { Steed1PackNpcId, Steed1PackItemId, 2, 0, 2 },
         { Steed1NpcId, Steed1ItemId, 1, 1, 0 },
@@ -152,8 +152,8 @@ public sealed class LegacySteedPackMutationTests : IDisposable
     };
 
     [Theory]
-    [MemberData(nameof(BindingRemovalQuirkCases))]
-    public async Task BindingGateThenBoundAgnosticRemoveConsumesFirstMatchingPack(
+    [MemberData(nameof(BindingCostCases))]
+    public async Task BindingGateConsumesOnlyItsPositiveBindingClass(
         uint npcId,
         uint packItemId,
         byte optionId,
@@ -172,12 +172,13 @@ public sealed class LegacySteedPackMutationTests : IDisposable
             playerItemsRoot);
 
         Assert.True(result.Handled);
-        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10);
-        var preservedGateItem = Assert.Single(
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        var preservedForeignItem = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
-            item => item.Uid == 20);
-        Assert.Equal(gateItemBound, preservedGateItem.Bound);
-        AssertPackRemoval(result.Sent[firstItemBound == 0 && gateItemBound > 0 ? 1 : 0], uid: 10);
+            item => item.Uid == 10);
+        Assert.Equal(firstItemBound, preservedForeignItem.Bound);
+        AssertPlayerItemsEqual(CreatePlayerItems(originalItems.InventoryItems[0]), CreatePlayerItems(preservedForeignItem));
+        AssertPackRemoval(result.Sent[gateItemBound > 0 ? 1 : 0], uid: 20);
         AssertPersistedEquals(playerItemsRoot, result.UpdatedSession.PlayerItems);
     }
 

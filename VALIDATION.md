@@ -1,13 +1,29 @@
 # Publication validation
 
+## Pack cost selection checkpoint
+
+Private and independent public Release each239/239,0failed/0skipped after an
+actual213pass/26fail baseline.
+Four pack consumers now debit the first positive row in the admitted binding
+class, not an earlier foreign-binding/empty row.205 retained cases include10
+corrected unsafe expectations;34 new controls cover eligible source order,
+full40-slot capacity, exact frames and saved/reloaded full item metadata.
+Initial fixture-only compilation errors were corrected before the real baseline;
+no assertions were removed. Full Windows CI for this fix is pending.
+Reward/CP/RNG/wire order is unchanged. This is not whole economy/UID/session/
+multi-file atomicity, deployment or live-client proof.
+
 ## TCP shutdown checkpoint
 
 Private and independent public Release each25/25,0failed/0skipped. Four new
 real-loopback shutdown controls reproduce the old late-accept race (3pass/1fail
 baseline);21 retained networking/disconnect checks remain. Shutdown now awaits
 the accept producer before capturing/draining client tasks, including their real
-asynchronous transport cleanup before EOF. Full Windows CI for this batch is
-pending. No wire/routing/Program activation, live server/client restart, SQL or
+asynchronous transport cleanup before EOF. FullWindows39986796881 passes4m41s
+on exact93e7259168ad0a4d2eb0718f8c0db6af41261200, completed16:31:18Z:
+23593corepassed/0failed of23758 (165externalfixtureexcluded), updater301/301,
+launcher49/49;8stageexit0,204warnings. Receipt20261023T162652064Z-8218bc29
+finished16:31:10.4777032Z. No wire/routing/Program activation, live server/client restart, SQL or
 original-save action. Concurrent disposal and full detached-producer/Host drain
 remain separate work.
 

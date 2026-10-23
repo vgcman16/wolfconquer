@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacySacredRefineryPackMutationTests : IDisposable
+public sealed partial class LegacySacredRefineryPackMutationTests : IDisposable
 {
     private const uint NpcId = 4_294_967_292;
     private const uint PackItemId = 3_004_249;
@@ -220,7 +220,7 @@ public sealed class LegacySacredRefineryPackMutationTests : IDisposable
     }
 
     [Fact]
-    public async Task UnboundGateThenBoundAgnosticRemovalConsumesFirstBoundPack()
+    public async Task UnboundGateConsumesEligiblePackAndPreservesForeignBoundRow()
     {
         var playerItemsRoot = CreatePlayerItemsRoot();
         var originalItems = CreatePlayerItems(
@@ -233,17 +233,18 @@ public sealed class LegacySacredRefineryPackMutationTests : IDisposable
             playerItemsRoot);
 
         Assert.True(result.Handled);
-        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10);
-        var unboundGateItem = Assert.Single(
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        var preservedForeignItem = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
-            item => item.Uid == 20);
-        Assert.Equal(0, unboundGateItem.Bound);
-        AssertPackRemoval(result.Sent[0], 10);
+            item => item.Uid == 10);
+        Assert.Equal(1, preservedForeignItem.Bound);
+        AssertPlayerItemsEqual(CreatePlayerItems(originalItems.InventoryItems[0]), CreatePlayerItems(preservedForeignItem));
+        AssertPackRemoval(result.Sent[0], 20);
         AssertPersistedEquals(playerItemsRoot, result.UpdatedSession.PlayerItems);
     }
 
     [Fact]
-    public async Task UnboundGateThenRemovalConsumesFirstZeroStackMatchingRecord()
+    public async Task UnboundGatePreservesZeroStackForeignRowAndConsumesEligiblePack()
     {
         var playerItemsRoot = CreatePlayerItemsRoot();
         var originalItems = CreatePlayerItems(
@@ -256,12 +257,13 @@ public sealed class LegacySacredRefineryPackMutationTests : IDisposable
             playerItemsRoot);
 
         Assert.True(result.Handled);
-        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 10);
-        var unboundGateItem = Assert.Single(
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        var preservedZeroItem = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
-            item => item.Uid == 20);
-        Assert.Equal(1, unboundGateItem.StackSize);
-        Assert.Equal(0, unboundGateItem.Bound);
+            item => item.Uid == 10);
+        Assert.Equal(0, preservedZeroItem.StackSize);
+        Assert.Equal(1, preservedZeroItem.Bound);
+        AssertPlayerItemsEqual(CreatePlayerItems(originalItems.InventoryItems[0]), CreatePlayerItems(preservedZeroItem));
 
         var reward = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
@@ -272,14 +274,14 @@ public sealed class LegacySacredRefineryPackMutationTests : IDisposable
         Assert.InRange(reward.Color, 3U, 8U);
 
         Assert.Equal(3, result.Sent.Count);
-        AssertPackRemoval(result.Sent[0], 10);
+        AssertPackRemoval(result.Sent[0], 20);
         Assert.Equal(SuccessText, AssertNpcReply(result.Sent[1]).Text);
         Assert.Equal(3_004_160U, AssertGameItem(result.Sent[2]).ItemId);
         AssertPersistedEquals(playerItemsRoot, result.UpdatedSession.PlayerItems);
     }
 
     [Fact]
-    public async Task StackedBoundFirstPackEmitsUpdateAfterUnboundEligibilityGate()
+    public async Task UnboundGatePreservesForeignBoundStackAndRemovesEligibleSingleton()
     {
         var playerItemsRoot = CreatePlayerItemsRoot();
         var originalItems = CreatePlayerItems(
@@ -294,14 +296,12 @@ public sealed class LegacySacredRefineryPackMutationTests : IDisposable
         var updatedBoundPack = Assert.Single(
             result.UpdatedSession.PlayerItems.InventoryItems,
             item => item.Uid == 10);
-        Assert.Equal(1, updatedBoundPack.StackSize);
+        Assert.Equal(2, updatedBoundPack.StackSize);
         Assert.Equal(1, updatedBoundPack.Bound);
-        var updatePacket = AssertGameItem(result.Sent[0]);
-        Assert.Equal(10U, updatePacket.Uid);
-        Assert.Equal(PackItemId, updatePacket.ItemId);
-        Assert.Equal(1, updatePacket.StackSize);
-        Assert.Equal(1, updatePacket.Bound);
-        Assert.Equal(LegacyGameItemPacket.UpdateItemMode, updatePacket.Mode);
+        AssertPlayerItemsEqual(CreatePlayerItems(originalItems.InventoryItems[0]), CreatePlayerItems(updatedBoundPack));
+        Assert.DoesNotContain(result.UpdatedSession.PlayerItems.InventoryItems, item => item.Uid == 20);
+        AssertPackRemoval(result.Sent[0], 20);
+        AssertPersistedEquals(playerItemsRoot, result.UpdatedSession.PlayerItems);
     }
 
     [Fact]

@@ -227,9 +227,9 @@ public static partial class WorldPacketHandlers
         string sourceLines,
         CancellationToken cancellationToken)
     {
-        // Inventory.Remove selects the first matching item after the separate unbound Contain gate.
+        // The admitted unbound positive row is the actual cost, not another matching ID.
         var packItem = session.PlayerItems.InventoryItems.FirstOrDefault(item =>
-            item.ItemId == packItemId);
+            item.ItemId == packItemId && item.Bound == 0 && item.StackSize > 0);
         if (!LegacyItemPackServicesHasUnboundP7SoulPack(session, packItemId) || packItem is null)
         {
             await LegacyItemPackServicesLogP7SoulFenceAsync(

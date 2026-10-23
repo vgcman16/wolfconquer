@@ -661,7 +661,35 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 - Limits: normal single-owner shutdown only; concurrent/repeated disposal,
   failing cancellation/log callbacks, all detached runtime producers and full
   borrowed-Host lifetime are separate work. This is not global quiescence,
-  UID activation, deployment or actual-client proof. Full CI for this batch pending.
+  UID activation, deployment or actual-client proof. FullWindows39986796881
+  passes4m41s on exact93e7259168ad0a4d2eb0718f8c0db6af41261200, completed
+  16:31:18Z:23593corepassed/0failed of23758 (165externalfixtureexcluded),
+  updater301/301, launcher49/49,8stageexit0,204warnings. Receipt
+  20261023T162652064Z-8218bc29 finished16:31:10.4777032Z.
+
+### FSB-047: Spend the pack row that actually passed admission
+
+- Owners: SacredRefinery, P7Soul, Steed and P7SacredTreasures pack consumers.
+  Admission required a positive stack in the selected binding class, but debit
+  selected an earlier matching ID regardless of binding and/or positive stock.
+  This could convert the wrong binding class or falsely free inventory capacity.
+- Debit now selects the first positive eligible row in original inventory order.
+  Colored Steed retains its existing nonzero-bound class; other listed costs
+  remain unbound. Reward values, CP costs, RNG, update/remove/reward frame order,
+  shared consumption helpers and post-debit capacity policy are unchanged.
+- Tests-first baseline:239 total,213 passed/26 failed. Ten corrected old unsafe
+  expectations and16 new zero-stock/false-capacity controls fail on old code.
+  The initial fixture-only compile failure executed no tests; setup/import fixes
+  preserved every assertion before that real baseline. No tests were removed.
+- Verification: private and independent public Release each239/239, zero failures/
+  skips:205 retained cases
+  (including10 repaired unsafe expectations) plus34 new controls. Full item
+  metadata, saved/reloaded images, exact debit frames, first-eligible order and
+  full40-slot rejection are checked.
+- Limits: bounded selector repair, not whole economy atomicity, duplicate-UID
+  validation, concurrent raw-writer/session safety, multi-file recovery, global
+  UID activation or live-client proof. Full Windows CI for this fix is pending.
+
 
 ### FSB-009 (partial): Prepare Super Guild War rewards before consuming claims
 

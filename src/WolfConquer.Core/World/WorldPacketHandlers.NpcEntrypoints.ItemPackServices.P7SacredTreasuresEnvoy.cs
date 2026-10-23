@@ -217,8 +217,10 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        // Pay the same positive unbound Savage Bone admitted by the gate.
         var removalTarget = session.PlayerItems.InventoryItems.FirstOrDefault(
-            item => item.ItemId == LegacyItemPackServicesSavageBoneItemId);
+            item => item.ItemId == LegacyItemPackServicesSavageBoneItemId &&
+                item.Bound == 0 && item.StackSize > 0);
         if (removalTarget is null)
         {
             await LegacyItemPackServicesLogP7SacredFenceAsync(
