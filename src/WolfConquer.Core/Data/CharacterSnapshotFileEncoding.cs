@@ -32,7 +32,7 @@ internal static class CharacterSnapshotFileEncoding
         return lines.ToArray();
     }
 
-    private static string Decode(byte[] bytes, out Encoding encoding)
+    internal static string Decode(byte[] bytes, out Encoding encoding)
     {
         var utf8Offset = HasUtf8Preamble(bytes) ? Utf8Bom.GetPreamble().Length : 0;
         try

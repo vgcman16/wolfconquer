@@ -1703,13 +1703,14 @@ public sealed class WorldPacketDispatchTests
                 SpecialTitleScore=0
                 """);
             var session = CreateTitleStorageSession(usersRoot, "1,8007,0,");
+            session = session with { Character = CharacterSnapshotParser.ParseText(File.ReadAllText(snapshotPath), snapshotPath) };
             sessions.Set(connection, session);
             var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
             var context = new WorldPacketHandlerContext(
                 connection,
                 log,
                 session,
-                Sessions: sessions);
+                Sessions: sessions) { TradeRecovery = new LegacyTradeRecoveryState(usersRoot, null) };
 
             await registry.HandleAsync(context, CreateSyntheticLegacyMsgTitleStorageEquipFrame());
 
@@ -1781,13 +1782,14 @@ public sealed class WorldPacketDispatchTests
                     ["SpecialTitleID"] = "0",
                     ["SpecialTitleScore"] = "0",
                 });
+            session = session with { Character = CharacterSnapshotParser.ParseText(File.ReadAllText(snapshotPath), snapshotPath) };
             sessions.Set(connection, session);
             var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
             var context = new WorldPacketHandlerContext(
                 connection,
                 log,
                 session,
-                Sessions: sessions);
+                Sessions: sessions) { TradeRecovery = new LegacyTradeRecoveryState(usersRoot, null) };
             var request = new LegacyTitleStoragePacket(
                 LegacyTitleStorageAction.UnEquip,
                 DwParam1: 0,

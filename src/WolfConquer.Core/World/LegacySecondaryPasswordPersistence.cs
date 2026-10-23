@@ -84,7 +84,8 @@ internal static partial class LegacySecondaryPasswordPersistence
         // complete preimage, including unrelated fields, before allowing live mutations.
         try
         {
-            if (TryValidateSafePath(path, out _) && File.ReadAllBytes(path).AsSpan().SequenceEqual(beforeBytes))
+            if (CharacterSnapshotFileBaseline.TryReadBytes(path, "secondaryPassword", out var actualBytes, out _) &&
+                actualBytes.AsSpan().SequenceEqual(beforeBytes))
             { reason = "secondaryPasswordWriteFailed:" + writeReason; return false; }
         }
         catch (Exception ex) when (IsFileFailure(ex)) { }

@@ -79,6 +79,29 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (context.TradeRecovery is null || context.TradeRecovery.IsBlocked)
+        {
+            await LogLegacyTitleStorageCommitFailureAsync(context, "recoveryOwnerUnavailableOrBlocked").ConfigureAwait(false);
+            return;
+        }
+
+        if (context.Sessions is null || session.AccountId <= 0 || session.Character.Uid != session.AccountId ||
+            title.Id != packet.DwParam2 || !IsRepresentableLegacyRuntimeTitle(title))
+        {
+            await context.Log.WriteLineAsync("WorldServer skipped LegacyMsgTitleStorage; session store or valid title metadata unavailable.")
+                .ConfigureAwait(false);
+            return;
+        }
+
+        if (packet.Title is { } nested && (nested.Id != title.Id || nested.SubId != title.SubId))
+        {
+            await context.Log.WriteLineAsync("WorldServer skipped LegacyMsgTitleStorage; nested title identity mismatch.")
+                .ConfigureAwait(false);
+            return;
+        }
+
+        // Do not trust a client-supplied subtype in a server-issued title response.
+        packet = packet with { DwParam2 = title.Id, DwParam3 = title.SubId };
         if (packet.Action == LegacyTitleStorageAction.Equip)
         {
             await HandleLegacyMsgTitleStorageEquipAsync(context, session, packet, title, cancellationToken)
@@ -105,29 +128,27 @@ public static partial class WorldPacketHandlers
                 activeTitleValue)
             : WithCharacterAttribute(session.Character, "SpecialWingID", activeTitleValue);
         updatedCharacter = WithLegacySpecialTitleActiveFlag(updatedCharacter, title.Id, active: true);
+        updatedCharacter = CanonicalizeLegacyTitleNumericAttributes(updatedCharacter);
         var updatedSession = session with { Character = updatedCharacter };
-        context.Sessions?.Set(context.Connection, updatedSession);
         var updatedContext = context with { Session = updatedSession };
-        await TryPersistLegacyMsgTitleStorageStateAsync(context, updatedSession).ConfigureAwait(false);
-
-        await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-
         var useTitle = packet with
         {
             Action = LegacyTitleStorageAction.UseTitle,
-            Title = new LegacyTitleStorageTitle(
-                packet.DwParam2,
-                packet.DwParam3,
-                title.Id >= 4_001 ? 1U : title.Score),
+            Title = new LegacyTitleStorageTitle(title.Id, title.SubId, title.Id >= 4_001 ? 1U : title.Score),
         };
-        await context.Connection.SendAsync(useTitle.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-        await SendPlayerSpawnToVisiblePeersAsync(updatedContext, updatedSession, cancellationToken)
-            .ConfigureAwait(false);
+        var publication = PrepareLegacyTitleStoragePublication(context, updatedSession, packet, useTitle);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!TryCommitLegacyTitleStorage(context, session, updatedSession, publication, cancellationToken, out var reason))
+        {
+            await LogLegacyTitleStorageCommitFailureAsync(context, reason).ConfigureAwait(false);
+            return;
+        }
+        await PublishLegacyTitleStorageAsync(updatedContext, publication, cancellationToken).ConfigureAwait(false);
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled LegacyMsgTitleStorage " +
                 $"{FormatSession(updatedContext)} action={packet.Action} titleId={packet.DwParam2} " +
-                $"subId={packet.DwParam3} activeValue={activeTitleValue} sentPackets=2. " +
+                $"subId={packet.DwParam3} activeValue={activeTitleValue} outcome=committed delivery=bestEffort. " +
                 $"sourceName={LegacyTitleStorageSourceName} sourceEvidence={LegacyTitleStorageSourceEvidence}")
             .ConfigureAwait(false);
     }
@@ -139,60 +160,37 @@ public static partial class WorldPacketHandlers
             LegacyRuntimeTitleType title,
             CancellationToken cancellationToken)
     {
-        var updatedCharacter = title.Id <= 4_001
+        var slot = IsLegacyTitleSlot(title.Id) ? "SpecialTitleID" : "SpecialWingID";
+        var expectedActive = checked((ulong)title.Id * 10_000UL + title.SubId);
+        if (ReadAttributeUInt64(session.Character.Attributes, slot) != expectedActive)
+        {
+            await LogLegacyTitleStorageCommitFailureAsync(context, "requestedTitleIsNotEquipped").ConfigureAwait(false);
+            return;
+        }
+        var updatedCharacter = title.Id < 4_001
             ? WithCharacterAttribute(
                 WithCharacterAttribute(session.Character, "SpecialTitleScore", 0UL),
                 "SpecialTitleID",
                 0UL)
             : WithCharacterAttribute(session.Character, "SpecialWingID", 0UL);
         updatedCharacter = WithLegacySpecialTitleActiveFlag(updatedCharacter, title.Id, active: false);
+        updatedCharacter = CanonicalizeLegacyTitleNumericAttributes(updatedCharacter);
         var updatedSession = session with { Character = updatedCharacter };
-        context.Sessions?.Set(context.Connection, updatedSession);
         var updatedContext = context with { Session = updatedSession };
-        await TryPersistLegacyMsgTitleStorageStateAsync(context, updatedSession).ConfigureAwait(false);
-
-        await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-        await SendPlayerSpawnToVisiblePeersAsync(updatedContext, updatedSession, cancellationToken)
-            .ConfigureAwait(false);
+        var publication = PrepareLegacyTitleStoragePublication(context, updatedSession, packet, useTitle: null);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!TryCommitLegacyTitleStorage(context, session, updatedSession, publication, cancellationToken, out var reason))
+        {
+            await LogLegacyTitleStorageCommitFailureAsync(context, reason).ConfigureAwait(false);
+            return;
+        }
+        await PublishLegacyTitleStorageAsync(updatedContext, publication, cancellationToken).ConfigureAwait(false);
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled LegacyMsgTitleStorage " +
                 $"{FormatSession(updatedContext)} action={packet.Action} titleId={packet.DwParam2} " +
-                $"subId={packet.DwParam3} sentPackets=1. " +
+                $"subId={packet.DwParam3} outcome=committed delivery=bestEffort. " +
                 $"sourceName={LegacyTitleStorageSourceName} sourceEvidence={LegacyTitleStorageSourceEvidence}")
-            .ConfigureAwait(false);
-    }
-
-    private static async ValueTask TryPersistLegacyMsgTitleStorageStateAsync(
-            WorldPacketHandlerContext context,
-            WorldSession session)
-    {
-        var attributes = session.Character.Attributes;
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["SpecialTitleID"] = ReadAttributeUInt64(attributes, "SpecialTitleID").ToString(CultureInfo.InvariantCulture),
-            ["SpecialWingID"] = ReadAttributeUInt64(attributes, "SpecialWingID").ToString(CultureInfo.InvariantCulture),
-            ["SpecialTitleScore"] = ReadAttributeUInt64(attributes, "SpecialTitleScore").ToString(CultureInfo.InvariantCulture),
-        };
-
-        if (attributes.TryGetValue("SpecialTitles", out var specialTitles))
-        {
-            values["SpecialTitles"] = specialTitles;
-        }
-
-        if (!TryPersistLegacyCharacterAttributes(session.UsersRoot, session.AccountId, values, out var path, out var reason))
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped LegacyMsgTitleStorage persistence " +
-                    $"{FormatSession(context with { Session = session })} reason={reason}.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        await context.Log.WriteLineAsync(
-                "WorldServer persisted LegacyMsgTitleStorage " +
-                $"{FormatSession(context with { Session = session })} path={Path.GetFileName(path)} " +
-                "keys=SpecialTitles,SpecialTitleID,SpecialWingID,SpecialTitleScore.")
             .ConfigureAwait(false);
     }
 
@@ -355,7 +353,9 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
-        var parts = line.Split(["@@", " "], StringSplitOptions.RemoveEmptyEntries);
+        var parts = line.Contains("@@", StringComparison.Ordinal)
+            ? line.Split("@@", StringSplitOptions.None)
+            : line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 8 ||
             !uint.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) ||
             id != titleId ||
@@ -377,22 +377,26 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
-        var parts = rawSpecialTitles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = rawSpecialTitles.Split(',', StringSplitOptions.TrimEntries);
+        if (parts.Length > 0 && parts[^1].Length == 0) parts = parts[..^1];
+        if (parts.Any(static part => part.Length == 0)) return false;
         if (!TryGetLegacySpecialTitlePairRange(parts, out var startIndex, out var endIndex))
         {
             return false;
         }
 
+        var seen = new HashSet<uint>();
+        var found = false;
         for (var index = startIndex; index + 1 < endIndex; index += 2)
         {
-            if (uint.TryParse(parts[index], NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedTitleId) &&
-                parsedTitleId == titleId)
-            {
-                return true;
-            }
+            if (!uint.TryParse(parts[index], NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedTitleId) ||
+                parsedTitleId == 0 || !seen.Add(parsedTitleId) ||
+                !byte.TryParse(parts[index + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var flag) || flag > 1)
+                return false;
+            found |= parsedTitleId == titleId;
         }
 
-        return false;
+        return found;
     }
 
     private static CharacterSnapshot WithLegacySpecialTitleActiveFlag(
