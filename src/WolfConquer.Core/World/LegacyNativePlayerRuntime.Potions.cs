@@ -39,7 +39,8 @@ public sealed partial class LegacyNativePlayerRuntime
                     if (present && (!vector.TryContainFlag((int)flag, out bool stillPresent) || !stillPresent)) return;
                     if (!ReferenceEquals(client.Player, this) || !ReferenceEquals(BitVector, vector) ||
                         !ReferenceEquals(View, view) || !ReferenceEquals(view.Owner, client) || UID != uid ||
-                        (change is not null && !change.TryCommit(vector, this, client, view, uid))) return;
+                        (change is null ? !message.HasPreparedStorage() :
+                            !change.TryCommit(vector, this, client, view, uid, status, message))) return;
 
                     // All fallible preparation is complete. Cooperating potion writers use
                     // these same gates; raw legacy readers/writers are not tuple-atomic.

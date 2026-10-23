@@ -1,5 +1,22 @@
 # Publication validation
 
+## Current prepared-status and required-goal checkpoint
+
+Private/public Release each passed **2392/2392**,0failed/0skipped. Genuine Sage
+status/archive and Shield/Stigma status/animation frames are prepared before
+flag commitment, with exact token/owner pairing, complete caller-buffer controls
+and final bounded loan checks. Ordinary flag/potion packets and physical status
+queries are revalidated after comparer work. XP20 cannot commit without its
+required goal103; native goal loads stage the complete counted record first.
+Valid wire/order/duplicate/animation goldens and accepted transport-loss behavior
+remain. FSB030..033 record sources, proof and remaining boundaries.
+
+Full Windows CI and CodeFactor analysis are pending for this successor. The
+preceding committed receipt below is not a result for these newer changes.
+No live process, client, original save, SQL, routing or restore point changed.
+Rune writes/full refinement procs, general native packet IO, host recovery and
+global item-UID authority for safe reward grants remain separate unfinished work.
+
 ## Current flag/consumer safety checkpoint
 
 Private/public Release each passed1931/1931,0failed/0skipped. The coherent batch

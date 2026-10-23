@@ -22,8 +22,9 @@ internal partial class LegacyNativeStatusFlagsBigVector32
             owner is not null && owner.TryCommitPrepared(this);
 
         internal bool TryCommit(LegacyNativeStatusFlagsBigVector32 owner, LegacyNativePlayerRuntime player,
-            LegacyNativeGameClientRuntime client, LegacyNativeRoleView view, uint uid) =>
-            owner is not null && owner.TryCommitPrepared(this, player, client, view, uid);
+            LegacyNativeGameClientRuntime client, LegacyNativeRoleView view, uint uid,
+            LegacyNativePreparedFlagPublication? publication = null, LegacyNativePreparedPotionMessage? message = null) =>
+            owner is not null && owner.TryCommitPrepared(this, player, client, view, uid, publication, message);
     }
 
     private PreparedChange PrepareChange(State before, ConcurrentDictionary<int, Flag> registrations, uint[] words)
@@ -52,14 +53,19 @@ internal partial class LegacyNativeStatusFlagsBigVector32
     }
 
     private bool TryCommitPrepared(PreparedChange token, LegacyNativePlayerRuntime player,
-        LegacyNativeGameClientRuntime client, LegacyNativeRoleView view, uint uid)
+        LegacyNativeGameClientRuntime client, LegacyNativeRoleView view, uint uid,
+        LegacyNativePreparedFlagPublication? publication, LegacyNativePreparedPotionMessage? message)
     {
+        if (!Monitor.IsEntered(client.SpellAdmissionSyncRoot) ||
+            !Monitor.IsEntered(player.SpellAdmissionSyncRoot)) return false;
         if (!TryTakeCurrent(token, out var staged)) return false;
         // IsCurrent can invoke the actual registration comparer. Check physical
         // publication ownership AFTER it, with only plain assignments remaining.
         if (!ReferenceEquals(client.Player, player) || !ReferenceEquals(player.Owner, client) ||
             !ReferenceEquals(player.BitVector, this) || !ReferenceEquals(player.View, view) ||
-            !ReferenceEquals(view.Owner, client) || player.UID != uid) return false;
+            !ReferenceEquals(view.Owner, client) || player.UID != uid ||
+            publication is not null && !publication.HasPreparedStorage() ||
+            message is not null && !message.HasPreparedStorage()) return false;
         CommitPreparedState(staged!);
         return true;
     }
@@ -118,7 +124,7 @@ internal partial class LegacyNativeStatusFlagsBigVector32
                 row.Key != saved.Key || row.Secounds != saved.Seconds || row.InvokerSecouds != saved.Invoker ||
                 row.Timer != saved.Timer || row.TimerInvoker != saved.InvokeTimer || row.RemoveOnDead != saved.RemoveOnDeath)
                 return false;
-        return true;
+        return HasUnchangedCapturedGraph(state);
     }
 
     private static bool ValidIndex(int index, uint[] words) => index >= 0 && index / 32 < words.Length;

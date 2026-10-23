@@ -9,6 +9,9 @@ internal sealed class LegacyNativePreparedFlagPublication : IDisposable
 {
     private LegacyNativeRecycledPacket? status;
     private LegacyNativeRecycledPacket? timed;
+    private byte[] statusFrame = [];
+    private byte[]? timedFrame;
+    private IntPtr statusAddress, timedAddress;
 
     internal static LegacyNativePreparedFlagPublication Create(uint uid, uint[] words,
         LegacyNativeMsgUpdate.Flags flag, int seconds, uint shown, uint amount)
@@ -20,6 +23,8 @@ internal sealed class LegacyNativePreparedFlagPublication : IDisposable
             byte[] statusFrame = Frame(2176, LegacyNativeMsgUpdate.PrepareStatusFlagPayload(uid, words), seal);
             byte[]? timedFrame = flag >= LegacyNativeMsgUpdate.Flags.Accelerated && flag <= LegacyNativeMsgUpdate.Flags.Confused
                 ? Frame(2215, TimedPayload(uid, flag, seconds, shown, amount), seal) : null;
+            publication.statusFrame = statusFrame;
+            publication.timedFrame = timedFrame;
             publication.status = new();
             var statusPacket = publication.status.GetStream();
             ValidateStorage(statusPacket, statusFrame.Length);
@@ -31,8 +36,10 @@ internal sealed class LegacyNativePreparedFlagPublication : IDisposable
                     throw new InvalidDataException("Flag update rentals cannot alias one packet.");
                 ValidateStorage(timedPacket, timedFrame.Length);
                 CopyFrame(timedPacket, timedFrame);
+                publication.timedAddress = Address(timedPacket);
             }
             CopyFrame(statusPacket, statusFrame);
+            publication.statusAddress = Address(statusPacket);
             return publication;
         }
         catch { publication.Dispose(); throw; }
@@ -40,6 +47,7 @@ internal sealed class LegacyNativePreparedFlagPublication : IDisposable
 
     private static byte[] Frame(ushort opcode, byte[] payload, string? seal)
     {
+        if (seal is not null && seal.Length != 8) throw new InvalidDataException("Invalid native flag packet seal.");
         int sealSize = seal is null ? 0 : 8;
         if (4L + payload.Length + sealSize > 1032) throw new InvalidDataException("Flag update exceeds native send bound.");
         var bytes = new byte[4 + payload.Length + sealSize];
@@ -78,14 +86,24 @@ internal sealed class LegacyNativePreparedFlagPublication : IDisposable
     internal bool ContainsPacket(LegacyNativePacket packet) =>
         ReferenceEquals(status?.GetStream(), packet) || ReferenceEquals(timed?.GetStream(), packet);
 
+    internal bool HasPreparedStorage() => Matches(status?.GetStream(), statusFrame, statusAddress) &&
+        (timedFrame is null || Matches(timed?.GetStream(), timedFrame, timedAddress));
+
+    private static unsafe IntPtr Address(LegacyNativePacket packet) => (IntPtr)packet.Memory;
+
+    private static unsafe bool Matches(LegacyNativePacket? packet, byte[] frame, IntPtr address) =>
+        packet is not null && packet.Memory != null && Address(packet) == address &&
+        packet.Capacity >= frame.Length && packet.Size == frame.Length && packet.Position == 4 &&
+        new ReadOnlySpan<byte>(packet.Memory, frame.Length).SequenceEqual(frame);
+
     internal void Publish(LegacyNativePlayerRuntime player, LegacyNativeGameClientRuntime client,
         LegacyNativeRoleView view, uint uid)
     {
-        if (!IsCurrent(player, client, view, uid)) return;
+        if (!IsCurrent(player, client, view, uid) || !HasPreparedStorage()) return;
         PublishOwner(client, status!);
-        if (!IsCurrent(player, client, view, uid)) return;
+        if (!IsCurrent(player, client, view, uid) || !HasPreparedStorage()) return;
         PublishView(view, status!, false);
-        if (!IsCurrent(player, client, view, uid) || timed is null) return;
+        if (!IsCurrent(player, client, view, uid) || !HasPreparedStorage() || timed is null) return;
         PublishView(view, timed, true);
     }
 

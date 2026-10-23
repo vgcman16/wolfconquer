@@ -1,41 +1,62 @@
-using WolfConquer.Core.Networking;
-
 namespace WolfConquer.Core.World;
 
 internal partial class LegacyNativeNinja
 {
-    public void SageMode(uint Timer)
+    public void SageMode(uint Timer) => TryAdmitSageMode(Timer);
+
+    internal bool TryAdmitSageMode(uint timer)
     {
         var client = user;
         var player = client?.Player;
-        if (client is null || player is null) return;
+        if (client is null || player is null) return false;
         lock (client.SpellAdmissionSyncRoot)
         lock (player.SpellAdmissionSyncRoot)
         {
             var vector = player.BitVector;
             var view = player.View;
-            uint uid = player.UID;
-            if (!ReferenceEquals(user, client) || !ReferenceEquals(client.Player, player) ||
-                !ReferenceEquals(player.Owner, client) || view is null ||
-                !ReferenceEquals(view.Owner, client) || client.Map is { View: null } || vector is null ||
-                !vector.TryContainFlag((int)LegacyNativeMsgUpdate.Flags.SageSpeedMode, out bool present) ||
-                !SageBindingsCurrent(client, player, vector, view, uid)) return;
-
-            // Valid duplicates still publish the requested archive without renewing the row.
-            // A refused absent grant must never be represented as an accepted archive.
-            if (!present && !player.AddFlag(LegacyNativeMsgUpdate.Flags.SageSpeedMode,
-                unchecked((int)Timer), RemoveOnDead: true)) return;
-            if (!SageBindingsCurrent(client, player, vector, view, uid)) return;
-            using var rental = new LegacyNativeRecycledPacket();
-            player.SendUpdate(rental.GetStream(), LegacyNativeMsgUpdate.Flags.SageSpeedMode,
-                Timer, 0u, 0u, LegacyNativeMsgUpdate.DataType.ArchiveSkill, scren: true);
+            if (vector is null || view is null) return false;
+            lock (vector.SyncRoot)
+            {
+                var bindings = new LegacyNativeSageModeBindings(this, client, player, vector, view);
+                return bindings.IsCurrent() && PrepareCommitAndPublishSageMode(bindings, timer);
+            }
         }
     }
 
-    private bool SageBindingsCurrent(LegacyNativeGameClientRuntime client, LegacyNativePlayerRuntime player,
-        LegacyNativeStatusFlagsBigVector32 vector, LegacyNativeRoleView view, uint uid) =>
-        ReferenceEquals(user, client) && ReferenceEquals(client.Player, player) &&
-        ReferenceEquals(player.Owner, client) && ReferenceEquals(player.BitVector, vector) &&
-        ReferenceEquals(player.View, view) && ReferenceEquals(view.Owner, client) &&
-        player.UID == uid && client.Map is not { View: null };
+    private static bool PrepareCommitAndPublishSageMode(LegacyNativeSageModeBindings bindings, uint timer)
+    {
+        LegacyNativePreparedSagePublication? publication = null;
+        bool committed = false;
+        try
+        {
+            var vector = bindings.Vector;
+            int flag = (int)LegacyNativeMsgUpdate.Flags.SageSpeedMode;
+            if (!vector.TryContainFlag(flag, out bool present) || !bindings.IsCurrent()) return false;
+
+            LegacyNativeStatusFlagsBigVector32.PreparedChange? change = null;
+            if (!present && !vector.TryPrepareAdd(flag, unchecked((int)timer), true, 0, false, out change)) return false;
+
+            // Both complete native2176 frames and distinct, bounded loans exist
+            // before any registration/bitmap/cache reference can be published.
+            publication = LegacyNativePreparedSagePublication.Create(bindings, timer, change);
+            if (present)
+            {
+                if (!vector.TryContainFlag(flag, out bool stillPresent) || !stillPresent ||
+                    !bindings.IsCurrent() || !publication.MatchesDuplicate(bindings)) return false;
+            }
+            else if (!vector.TryCommitSage(change!, bindings, publication)) return false;
+
+            // A valid duplicate preserves its original row; its acceptance boundary
+            // is the prepared publication attempt, not a fictional renewed grant.
+            committed = true;
+            publication.Publish();
+            return true;
+        }
+        catch (Exception error)
+        {
+            LegacyNativePlayerRuntime.ReportFlagAdmission(committed ? "Sage publication after commit" : "Sage preparation", error);
+            return committed;
+        }
+        finally { publication?.Dispose(); }
+    }
 }

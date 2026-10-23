@@ -12,6 +12,8 @@ namespace WolfConquer.Core.World;
 internal sealed class LegacyNativePreparedPotionMessage : IDisposable
 {
     private LegacyNativeRecycledPacket? rental;
+    private byte[] frame = [];
+    private IntPtr address;
 
     internal static LegacyNativePreparedPotionMessage Create(bool defense, int minutes,
         LegacyNativePreparedFlagPublication? status)
@@ -29,6 +31,7 @@ internal sealed class LegacyNativePreparedPotionMessage : IDisposable
         Serializer.Serialize(payload, proto);
         byte[] bytes = payload.ToArray();
         string? seal = LegacyNativePacket.SealString;
+        if (seal is not null && seal.Length != 8) throw new InvalidDataException("Invalid native potion packet seal.");
         int sealSize = seal is null ? 0 : 8;
         if (4L + bytes.Length + sealSize > 1032)
             throw new InvalidDataException("Potion message exceeds the native send bound.");
@@ -45,6 +48,8 @@ internal sealed class LegacyNativePreparedPotionMessage : IDisposable
             if (status?.ContainsPacket(packet) == true)
                 throw new InvalidDataException("Potion status and message rentals cannot alias.");
             Copy(packet, frame);
+            prepared.frame = frame;
+            prepared.address = Address(packet);
             return prepared;
         }
         catch { prepared.Dispose(); throw; }
@@ -61,8 +66,19 @@ internal sealed class LegacyNativePreparedPotionMessage : IDisposable
 
     internal void Publish(LegacyNativeGameClientRuntime client)
     {
+        if (!HasPreparedStorage()) return;
         try { client.Send(rental!.GetStream()); }
         catch (Exception error) { LegacyNativePlayerRuntime.ReportFlagAdmission("potion publication after commit", error); }
+    }
+
+    private static unsafe IntPtr Address(LegacyNativePacket packet) => (IntPtr)packet.Memory;
+
+    internal unsafe bool HasPreparedStorage()
+    {
+        var packet = rental?.GetStream();
+        return packet is not null && packet.Memory != null && Address(packet) == address &&
+            packet.Capacity >= frame.Length && packet.Size == frame.Length && packet.Position == 4 &&
+            new ReadOnlySpan<byte>(packet.Memory, frame.Length).SequenceEqual(frame);
     }
 
     public void Dispose()

@@ -88,6 +88,16 @@ internal partial class LegacyNativeMsgSpellAnimation : IDisposable
     private LegacyNativePacket CreateAnimation(Queue<SpellObj> Spells, LegacyNativePacket stream)
     {
         stream.InitWriter();
+        SpellUseProto spellUseProto = CreateAnimationValue(Spells);
+        SerializeTypedSpellUseProtoIntoPacket(stream, spellUseProto);
+        stream.Finalize(2239);
+        return stream;
+    }
+
+    // The whole existing projection is shared by legacy serialization and private
+    // preparation. GamePoll lookup, all targets and beast branches remain genuine.
+    private SpellUseProto CreateAnimationValue(Queue<SpellObj> Spells)
+    {
         SpellUseProto spellUseProto = new SpellUseProto
         {
             Attacker = UID,
@@ -125,9 +135,7 @@ internal partial class LegacyNativeMsgSpellAnimation : IDisposable
                     ? ((uint)((10 + (gameClient.Beasts.Phase - 1)) * 150)) : 0u);
             }
         }
-        SerializeTypedSpellUseProtoIntoPacket(stream, spellUseProto);
-        stream.Finalize(2239);
-        return stream;
+        return spellUseProto;
     }
 
     public void SetStream(LegacyNativePacket stream)

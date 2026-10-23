@@ -19,10 +19,10 @@ public sealed partial class LegacyNativePlayerLifecycleTests
     });
 
     [Fact]
-    public Task XpCounterMissingRewardOwnerFaultsAfterCommitAndOtherValuesDoNotReadIt() => NativePacketTestThread.Run(() =>
+    public Task XpCounterMissingRequiredGoalOwnerRefusesBeforeMutationAndOtherValuesDoNotReadIt() => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); s.Client.HeroRewards = null; s.Player.XPCount = 19;
-        Assert.Throws<NullReferenceException>(() => s.Player.XPCount = 20); Assert.Equal(20, s.Player.XPCount);
+        Assert.Throws<InvalidDataException>(() => s.Player.XPCount = 20); Assert.Equal(19, s.Player.XPCount);
         s.Player.XPCount = 21; Assert.Equal(21, s.Player.XPCount); Assert.Empty(s.Queue);
     });
 

@@ -25,12 +25,16 @@ public sealed partial class LegacyNativeAttackExecutorTests
     });
 
     [Fact]
-    public Task WeaponEffectKeepsRealFlagAndFirstStatusPublicationWhenLaterAnimationPoolReadFaults() => NativePacketTestThread.Run(() =>
+    public Task WeaponEffectRejectsMissingAnimationPoolBeforeFlagOrCallerPublication() => NativePacketTestThread.Run(() =>
     {
-        using var s = new Scope(); LegacyNativePoolClients.GamePoll = null;
-        Assert.Throws<NullReferenceException>(() => LegacyNativeEffectShield.Execute(null!, s.Client, s.Packet, null!));
-        Assert.True(s.Player.ContainFlag(Flag.MagicShield)); Assert.Equal(40, s.Player.BitVector.ArrayFlags[(int)Flag.MagicShield].Secounds);
-        Assert.Equal(NativeAddFlagTestFixture.Status(Flag.MagicShield), Assert.Single(s.Queue));
+        using var s = new Scope();
+        Assert.True(s.Player.BitVector.TryAdd((int)Flag.TeamLeader, 31, true, 3));
+        var retained = s.Player.BitVector.ArrayFlags[(int)Flag.TeamLeader];
+        PrepareEffectResultCallerPacket(s); var before = CaptureEffectResultState(s, retained);
+        LegacyNativePoolClients.GamePoll = null;
+        LegacyNativeEffectShield.Execute(null!, s.Client, s.Packet, null!);
+        Assert.False(s.Player.ContainFlag(Flag.MagicShield));
+        AssertEffectResultUnchanged(s, retained, before);
     });
 
     [Theory]

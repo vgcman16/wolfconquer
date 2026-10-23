@@ -7,13 +7,24 @@ namespace WolfConquer.Tests;
 [Collection("NativeItemCounterSourcePrerequisite")]
 public sealed class LegacyNativeHeroRewardsRecordTests
 {
+    private static LegacyNativeGameClientRuntime RecordClient()
+    {
+        var prior = LegacyNativePoolRandom.GetRandom;
+        try
+        {
+            LegacyNativePoolRandom.GetRandom = new LegacyNativeSafeRandom(821);
+            return new LegacyNativeGameClientRuntime();
+        }
+        finally { LegacyNativePoolRandom.GetRandom = prior; }
+    }
+
     [Fact]
     public void WholeOwnerRetainsActualConstructorIdentityAndIndependentMutableGoals()
     {
-        var owner = new LegacyNativeGameClientRuntime();
+        var owner = RecordClient();
         Assert.Null(owner.HeroRewards);
         var first = new LegacyNativeHeroRewardsRuntime(owner);
-        var other = new LegacyNativeHeroRewardsRuntime(null!);
+        var other = new LegacyNativeHeroRewardsRuntime(RecordClient());
         Assert.Same(owner, typeof(LegacyNativeHeroRewardsRuntime).GetField("Owner", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(first));
         Assert.NotSame(first.ArrayGoals, other.ArrayGoals);
         first.AddGoal(101);
@@ -30,18 +41,18 @@ public sealed class LegacyNativeHeroRewardsRecordTests
     }
 
     [Fact]
-    public void StageQueriesCountDictionaryKeysRatherThanMutableGoalUidsAndUseEqualityNotMinimums()
+    public void StageQueriesUseCoherentPhysicalRowsAndKeepExactCountEquality()
     {
         using var tables = new NativeSaveRecordTables();
-        var rewards = new LegacyNativeHeroRewardsRuntime(null!);
+        var rewards = new LegacyNativeHeroRewardsRuntime(RecordClient());
         LegacyNativePoolSaveRecords.TableHeroRewards[1] = new() { CountGoals = 2 };
-        rewards.ArrayGoals[101] = new() { UID = 999, Claim = 1 };
-        rewards.ArrayGoals[102] = new() { UID = 0, Claim = 2 };
+        rewards.ArrayGoals[101] = new() { UID = 101, Claim = 1 };
+        rewards.ArrayGoals[102] = new() { UID = 102, Claim = 2 };
         Assert.True(rewards.FinishStage(1));
         Assert.False(rewards.ComplateFullStage(1));
-        rewards.ArrayGoals[1] = new() { UID = 999, Claim = 1 };
+        rewards.ArrayGoals[1] = new() { UID = 1, Claim = 1 };
         Assert.True(rewards.ComplateFullStage(1));
-        rewards.ArrayGoals[103] = new() { Claim = 1 };
+        rewards.ArrayGoals[103] = new() { UID = 103, Claim = 1 };
         Assert.False(rewards.FinishStage(1));
         Assert.False(rewards.ComplateFullStage(1));
         Assert.False(rewards.FinishStage(99));
@@ -51,11 +62,11 @@ public sealed class LegacyNativeHeroRewardsRecordTests
     [Fact]
     public void RecordUsesValueEnumerationOrderAndLoadPreservesDuplicatesAndExistingObjectState()
     {
-        var rewards = new LegacyNativeHeroRewardsRuntime(null!);
-        rewards.ArrayGoals[900] = new() { UID = 102, Claim = 2, UnKnow = 77 };
-        rewards.ArrayGoals[800] = new() { UID = 101, Claim = 1 };
+        var rewards = new LegacyNativeHeroRewardsRuntime(RecordClient());
+        rewards.ArrayGoals[102] = new() { UID = 102, Claim = 2, UnKnow = 77 };
+        rewards.ArrayGoals[101] = new() { UID = 101, Claim = 1 };
         Assert.Equal("2/102/2/101/1/", rewards.ToString());
-        var loaded = new LegacyNativeHeroRewardsRuntime(null!);
+        var loaded = new LegacyNativeHeroRewardsRuntime(RecordClient());
         loaded.Load(rewards.ToString());
         var prior = loaded.ArrayGoals[102];
         loaded.Load("3/102/9/103/4/103/8/");
@@ -67,14 +78,17 @@ public sealed class LegacyNativeHeroRewardsRecordTests
     }
 
     [Theory]
-    [InlineData("", "0/")] [InlineData("-1/101/1/", "0/")]
-    [InlineData("2/101/999/102/3/", "2/101/0/102/3/")]
-    [InlineData("1/invalid/invalid/", "1/0/0/")]
-    public void WholeLoadRetainsNativeDefaultParsingRatherThanRejectingOrNormalizingRecords(string input, string expected)
+    [InlineData("", true)] [InlineData("-1/101/1/", false)]
+    [InlineData("2/101/999/102/3/", false)]
+    [InlineData("1/invalid/invalid/", false)]
+    public void GoalRecordsAcceptEmptyButMalformedFieldsNeverPublishDefaultRows(string input, bool valid)
     {
-        var rewards = new LegacyNativeHeroRewardsRuntime(null!);
-        rewards.Load(input);
-        Assert.Equal(expected, rewards.ToString());
+        var rewards = new LegacyNativeHeroRewardsRuntime(RecordClient());
+        var book = rewards.ArrayGoals;
+        Assert.Equal(valid, rewards.TryLoad(input));
+        Assert.Same(book, rewards.ArrayGoals); Assert.Equal("0/", rewards.ToString());
+        if (!valid) Assert.Throws<InvalidDataException>(() => rewards.Load(input));
+        Assert.Same(book, rewards.ArrayGoals); Assert.Empty(rewards.ArrayGoals);
     }
 
     [Theory]

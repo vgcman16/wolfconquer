@@ -43,6 +43,14 @@ internal class LegacyNativeDbSafeDictionary<T1, T2> : Dictionary<T1, T2>
 		SyncRoot = new object();
 	}
 
+	// Engineering staging constructor: retain the genuine dictionary comparer.
+	// Existing constructors and their cache behavior are unchanged.
+	internal LegacyNativeDbSafeDictionary(int cap, IEqualityComparer<T1> comparer)
+		: base(cap, comparer)
+	{
+		SyncRoot = new object();
+	}
+
 	public new void Add(T1 key, T2 value)
 	{
 		try

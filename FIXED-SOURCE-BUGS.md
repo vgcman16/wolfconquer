@@ -296,7 +296,69 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   Real malformed-tail callers, prior frames/buffers and existing valid packet/
   appearance/selection goldens remain; corrupt fixtures are not silently repaired.
 - Limits: full rank publication, map enumeration/AI movement, postcommit animation/
-  Sage archive preparation and complete proc/cast/host recovery remain open.
+  complete refinement procs/casts/host recovery remain open. Prepared Sage and
+  Shield/Stigma successors are recorded separately below.
+
+### FSB-030: Commit required XP goals and load complete goal records safely
+
+- Original Player.XPCount assigned20 before required HeroRewards goal103 could
+  fail; the native goal loader also published valid prefixes/default-zero rows.
+  Stage a complete bounded goal book, preserve valid row/claim aliases, revalidate
+  actual current owners and commit the required goal with the counter under the
+  genuine client/player/goal/book gates. Other XP values do not read goal owners.
+- Reject malformed counted records before merge; preserve valid order/duplicate
+  rules, full uint IDs/byte claims and genuine before-Player constructor timing.
+  Widen stage-count arithmetic so uint.MaxValue cannot wrap into a free completion.
+- Verification: private/public Release **2392/2392** each,0failed/0skipped;
+  includes the186-case lifecycle/goal selection and70 new real-owner controls.
+- Limits: in-process cooperating publication, not durable reward claims, SQL,
+  complete XP/death workers, arbitrary raw writers or host adoption. Active reward
+  grant safety still needs the real shared item-UID authority described in FSB-009.
+
+### FSB-031: Prepare complete Sage status/archive before committing its flag
+
+- Original Ninja.SageMode added its flag before archive preparation could fail.
+  Prepare both genuine2176 frames and distinct bounded real loans first. Typed
+  commitment binds the exact current capture, opaque token, staged words, Sage273
+  policy and full uint archive timer. Valid duplicates retain their prior row.
+- Final checks reject retired owners, disposed loans and changed Size/cursor/
+  bytes. Failed delivery after commitment is not an uncommitted rejection.
+- Verification: private/public Release **2392/2392** each,0failed/0skipped,
+  including104 Sage controls, independent wire/seal/full-uint goldens,12 real
+  final-buffer drift cases and17 mismatched-plan cases.
+- Limits: no complete cast/host/durable replay or delivery acknowledgement;
+  raw asynchronous disposal/field changes after final checks remain separate.
+
+### FSB-032: Prepare Shield/Stigma animations before status acceptance
+
+- Original effects could grant status before animation lookup/serialization or
+  caller-buffer validation failed. Prepare the complete genuine animation and
+  status frames, distinct real loans and caller preimage before opaque typed
+  acceptance. New Stigma90/MagicShield40 and duplicate empty-target behavior stay.
+- Successful operations retain caller2239 bytes/Size/cursor4 and2176→2239 order.
+  Rejection preserves complete caller/state/XP/prior queues; accepted transport
+  loss never refunds the grant or creates a retryable false result.
+- Verification: private/public Release **2392/2392** each,0failed/0skipped;
+ 109 new cases plus retained valid effect and full generic animation goldens.
+- Limits: these effects, not resource admission/full casts/HP/death, durable
+  persistence, arbitrary raw races or per-recipient delivery transactions.
+
+### FSB-033: Revalidate physical state and prepared loans after comparer work
+
+- The sanitized layer still checked some data before its last real dictionary
+  comparer call. A normal-returning comparer could then change an earlier status
+  row/bitmap or a retained packet's Size, allowing stale authority or native send
+  overread. Pure full-graph checks now follow final lookups; membership answers
+  must agree with literal captured keys. Timer permission/renewal is guarded too.
+- AddFlag/AddSpellFlag and potion typed commits also validate captured allocation,
+  actual capacity, exact prepared Size/cursor/bytes after comparer work. Duplicate
+  potions validate their message after the final query. Existing valid packets stay.
+- Verification: private/public Release **2392/2392** each,0failed/0skipped,
+  including118 final-state and54 ordinary flag/potion loan-drift controls.
+  The unsafe unmanaged overread baseline was not executed.
+- Limits: scoped genuine component operations, not all native packet IO, hostile
+  comparers mutating new staged books, raw concurrent lifetime/ABA or full host
+  recovery. General reader/writer audit FSB-012 remains open.
 
 ## Active audit
 
@@ -331,6 +393,10 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-027 | XP duration mutates escaped row unchecked and from stale owner | Checked selected duration, complete graph and final current ownership | Scoped component locally verified1931; whole XP/receive lifecycle remains open |
 | FSB-028 | Physical calculation dirties outputs/RNG before bad status; mutates shared spell factor | Admission before effects; immutable catalog input | Scoped calculation locally verified1931; full cast/HP transaction remains open |
 | FSB-029 | Invalid status can leave stale AI/partial ranks or false-success effects | Explicit unavailability before dependent writes/publication | Scoped callers locally verified1931; broader caller/host recovery remains open |
+| FSB-030 | XP20 precedes required goal admission; malformed goal loads publish prefixes; stage count wraps | Complete validated owned goal/counter publication | Scoped component verified2392; durable claims/whole lifecycle open |
+| FSB-031 | Sage flag precedes archive preparation; typed plans/frames can mismatch | Both genuine frames and exact current plan before flag commit | Scoped Sage verified2392; cast/host/delivery recovery open |
+| FSB-032 | Shield/Stigma flag precedes animation/caller preparation | Complete bounded frames and caller before typed acceptance | Scoped effects verified2392; full cast/HP/durability open |
+| FSB-033 | Final comparer can change earlier state or prepared native loan metadata | Pure complete state and exact live frame checks after last comparer | Scoped status/flag/potion paths verified2392; general packet/raw-writer audit open |
 
 ## CodeFactor cleanup
 

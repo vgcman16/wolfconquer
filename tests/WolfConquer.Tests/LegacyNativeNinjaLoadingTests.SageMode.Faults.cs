@@ -16,11 +16,9 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         scope.UseNullBin();
         try
         {
-            // A duplicate needs only the archive rental; its preparation failure
-            // propagates before any state or output. An absent grant's actual
-            // AddFlag contains its preparation failure and returns false.
-            if (existing) Assert.Throws<NullReferenceException>(() => scope.Ninja.SageMode(10));
-            else scope.Ninja.SageMode(10);
+            // Both absent and duplicate grants contain preparation failure before
+            // registration or success output; no propagated pool fault is required.
+            Assert.False(scope.Ninja.TryAdmitSageMode(10));
         }
         finally { scope.RestoreOwnedBin(); }
         before.Unchanged(scope, player);

@@ -7,6 +7,17 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Private/public Release **2392/2392** each,0failed/0skipped: complete prepared
+  Sage status/archive and Shield/Stigma status/animation; final real state/loan
+  integrity; XP20 with required goal103; complete bounded native goal loading.
+  Valid protocol goldens, caller buffers, duplicates and accepted transport-loss
+  semantics remain. FSB030..033 document exact limits. Full CI/publication is
+  pending for this successor; the preceding committed CI receipt follows below.
+- [ ] Native Rune writes and full refinement procs are being authored separately.
+  Active managed reward grants remain held for a genuine durable shared item-UID
+  registry and adoption/fencing of every competing producer. No account-local
+  max+1 allocator is certified globally safe; SQL/eager lifecycle remain open.
+
 - [x] Private/public Release1931/1931 each verifies the coherent flag/consumer batch:
   prepared real status frames/state, explicit unavailable membership, no dirty
   potion rejection, checked XP duration, stale-target/rank/effect protections,
@@ -15,8 +26,8 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   passed4m02s on exact4727d8b3: core22524/0failed (165 excluded), updater301/301,
   launcher49/49, all8 stages0. CodeFactor6NEW complexity/7FIXED,total2267;
   204 build warnings remain. No risky cosmetic follow-up loop is started.
-- [ ] Full lifecycle/cast/HP/death, rank publication, item/potion expiry, Sage
-  archive precommit preparation, host recovery and raw concurrent writers remain
+- [ ] Full lifecycle/cast/HP/death, rank publication, item/potion expiry,
+  host recovery and raw concurrent writers remain
   open. This offline component checkpoint does not deploy or change a client.
 
 - [x] Published7a79ebc5 passes full Windows39945614990 in4m06s: core22196/0failed

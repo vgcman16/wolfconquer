@@ -38,7 +38,7 @@ public sealed partial class LegacyNativePlayerRuntime
                         flag, seconds, shown, amount);
                     if (!ReferenceEquals(client.Player, this) || !ReferenceEquals(BitVector, vector) ||
                         !ReferenceEquals(View, view) || !ReferenceEquals(view.Owner, client) || UID != uid ||
-                        !change!.TryCommit(vector, this, client, view, uid)) return false;
+                        !change!.TryCommit(vector, this, client, view, uid, publication)) return false;
 
                     // Non-throwing physical commit continuation under all three gates.
                     committed = true;

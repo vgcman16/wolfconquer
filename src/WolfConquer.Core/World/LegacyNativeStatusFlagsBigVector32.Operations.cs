@@ -47,7 +47,9 @@ internal partial class LegacyNativeStatusFlagsBigVector32
             try
             {
                 if (!TryCapture(out var state) || !ValidIndex(flag, state!.Words) || !IsCurrent(state)) return false;
-                present = state!.Registrations.ContainsKey(flag);
+                bool candidate = state!.Registrations.ContainsKey(flag);
+                if (!HasUnchangedCapturedGraph(state) || candidate != (FindCapturedFlag(state, flag) is not null)) return false;
+                present = candidate;
                 return true;
             }
             catch (Exception) { return false; }

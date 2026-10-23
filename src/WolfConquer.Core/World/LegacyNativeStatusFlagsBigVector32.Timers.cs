@@ -8,7 +8,8 @@ internal partial class LegacyNativeStatusFlagsBigVector32
         {
             try
             {
-                if (!TryCapture(out var state) || !state!.Registrations.TryGetValue(flag, out var value)) return false;
+                if (!TryCapture(out var state) || !state!.Registrations.TryGetValue(flag, out var value) ||
+                    value is null || !ReferenceEquals(FindCapturedFlag(state, flag), value)) return false;
                 DateTime timer = value.Timer;
                 int seconds;
                 if (SetNewTimer) { timer = DateTime.Now; seconds = Secounds; }
@@ -28,7 +29,7 @@ internal partial class LegacyNativeStatusFlagsBigVector32
     {
         lock (SyncRoot)
         {
-            try { return TryCapture(out var state) && state!.Registrations.TryGetValue(flag, out var value) && value.Expire(Now64); }
+            try { return TryFindCurrentFlag(flag, out var value) && value!.Expire(Now64); }
             catch (Exception) { return false; }
         }
     }
@@ -37,7 +38,7 @@ internal partial class LegacyNativeStatusFlagsBigVector32
     {
         lock (SyncRoot)
         {
-            try { return TryCapture(out var state) && state!.Registrations.TryGetValue(flag, out var value) && value.CheckInvoke(Now64); }
+            try { return TryFindCurrentFlag(flag, out var value) && value!.CheckInvoke(Now64); }
             catch (Exception) { return false; }
         }
     }
