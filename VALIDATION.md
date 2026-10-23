@@ -13,7 +13,14 @@ image bounds are checked. Existing valid bytes/raw statuses/UID0 remain; no
 five-quest gameplay cap is imposed on persistence.
 
 The first run caught missing-directory attribute classification and production
-was fixed without weakening the test. Full CI pending. This is offline owned-file
+was fixed without weakening the test.
+[Windows39965399561](https://github.com/vgcman16/wolfconquer/actions/runs/39965399561)
+passed4m06s on exact0b0da909c5e207ff3723da0a20b8a6e3bee7f1e4, completed
+2026-10-23T14:01:13Z. Core23360passed/0failed of23525 (165externalfixturecases
+excluded), updater301/301, launcher49/49;8stageexit0,204build warnings.
+Receipt20261023T135722313Z-95cce8c2 finished14:01:06.3980602Z. CodeFactor4NEW
+complexity/0FIXED,total2293; no score-only validation/commit rewrite.
+This is offline owned-file
 component proof, not native host/login/SQL/award activation or multifile recovery.
 Raw writers/readers and unknown post-replace/crash durability remain explicit.
 

@@ -11,7 +11,10 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   quest Save/Load (FSB040), real flushed replacement, full bounded parsing and
   canonical conflict-safe merge. Corrected destructive/partial/split-alias tests;
   valid bytes, raw statuses, UID0 rows and no persistence-level five-quest cap
-  remain. Full CI pending. Native login/SQL/quest-award lifecycle and raw writers
+  remain. FullWindows39965399561 passes4m06s on exact0b0da909: core23360/0failed
+  (165excluded), updater301/301, launcher49/49,8stageexit0,204build warnings.
+  CodeFactor4NEW complexity/0FIXED,total2293; no score-only rewrite.
+  Native login/SQL/quest-award lifecycle and raw writers
   remain open; this does not enable a host or certify multifile recovery.
 
 - [x] Private/public Release **3214/3214** each,0failed/0skipped: complete selected

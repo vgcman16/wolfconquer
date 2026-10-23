@@ -493,12 +493,19 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   drift and oversized file/merged-book controls pass. The first run exposed
   DirectoryInfo's missing sentinel; production now reads actual attributes and
   reports genuine missing directories as NotFound without hiding access errors.
+  FullWindows39965399561 on exact0b0da909 passes: core23360/0failed
+  (165excluded), updater301/301, launcher49/49,8stageexit0.
 - Limits: offline one-file component and cooperating gates, not host/login/SQL,
   all quest/objective/award transactions, multifile/crash recovery or atomic raw
   observation of two public maps. Raw writers/path ABA remain open. Unknown
   post-replace classification is source-reviewed, not invented runtime proof.
 
 ## Active audit
+
+Current source review does not close whole managed reward transactions: Lottery
+cadence can precede cancellation/persistence, and SuperGuildWar entitlement can
+precede checked wallet arithmetic/frame preparation. These remain open FSB009
+work, not safety proved by the isolated UID-adoption proposals.
 
 | ID | Defect / affected owner | Required invariant | Status |
 | --- | --- | --- | --- |
@@ -545,7 +552,16 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## CodeFactor cleanup
 
-Latest DivineGuard checkpoint publicaf3ca964 passes full
+Latest quest checkpoint public0b0da909 passes full
+[Windows39965399561](https://github.com/vgcman16/wolfconquer/actions/runs/39965399561)
+in4m06s, completed2026-10-23T14:01:13Z. Core23360passed/0failed of23525
+(165externalfixturecasesexcluded), updater301/301, launcher49/49;8stageexit0,
+204build warnings. Receipt20261023T135722313Z-95cce8c2 finished14:01:06.3980602Z.
+Both local3465 selections pass. CodeFactor4NEW complexity/0FIXED,total2293.
+These validation/commit methods are not reshaped solely for the score. The debt
+is still open; static findings and test totals are not gameplay completion.
+
+Previous DivineGuard checkpoint publicaf3ca964 passes full
 [Windows39962905914](https://github.com/vgcman16/wolfconquer/actions/runs/39962905914)
 in4m43s, completed2026-10-23T13:44:48Z. Core23325passed/0failed of23490
 (165externalfixturecasesexcluded), updater301/301, launcher49/49;8stageexit0,
