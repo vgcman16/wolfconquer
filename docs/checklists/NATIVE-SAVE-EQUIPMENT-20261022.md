@@ -1,5 +1,24 @@
 # Native saves and equipment — offline checklist
 
+## Clone, combat, arena and item-timer continuation
+
+- [x] Whole clone/pet producer, physical monster calculation, gear effects,
+  solo/team arena query/codecs and item-view/refinement/equipment prerequisites
+  are source-backed and implemented as modular owners; no host registration.
+- [x] Private Release passed2857 clone-expanded,3149 combat/arena-expanded and
+  3224 item/timer-expanded cases, all zero failures/skips (400 new over2824).
+- [x] Framework4/x86 default+optimized and modern comparison each support316
+  timer-expression controls. Cast-only translation was rejected on6 reachable
+  extrema; source tick multiplication plus scoped narrowing matched all316.
+  Existing ItemCreate and whole ItemView preserve receiver identity/two reads.
+- [x] Final private and independent sanitized-public Release each passed3256/3256,
+  zero failures/skips, including32 retained gear numeric controls. The public
+  export now includes that source-checked prerequisite; its first compile had
+  exposed missing GetDamage rather than a test failure.
+- [ ] New full Windows CI on this gameplay-source snapshot remains required.
+  Full HP/Team/XP/Inventory/login/save/receivers and host adoption are still open;
+  no live client, original save/SQL, routing or deployment was changed.
+
 ## CI recovery and source-backed test contract correction
 
 - [x] Human-approved registered Windows runner recovery; queued parity tracker

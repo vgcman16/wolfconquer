@@ -1,5 +1,24 @@
 # Publication validation
 
+## Offline clone/combat/arena/item continuation — public focused proof passed
+
+Private Release passed3224 selected cases, zero failures/skips, including400 new
+clone/pet, complete physical monster calculation, gear effects, arena query/wire,
+equipment/item-view/refinement and timer cases. Public compile initially exposed
+an omitted GetDamage prerequisite; complete native gear numeric methods and their
+32 existing private cases were source-reviewed and restored to the export.
+
+Framework4/x86 default and optimized timer probes each passed316 controls. The
+cast-only proposal was rejected because modern TimeSpan.TotalSeconds differs on6
+reachable extrema. Literal native tick multiplication plus scoped narrowing
+matched Framework NativeAt on all316 modern controls. Actual getter/ItemCreate/
+ItemView tests passed privately; no production clock hook was introduced.
+
+Independent sanitized-public Release passed3256/3256 selected cases, zero
+failures/skips, including the32 restored gear numeric controls. Fresh full
+Windows CI for these source changes remains required. No live client, SQL/save,
+deployment, receiver registration or overall parity acceptance follows.
+
 ## CI recovery — full Windows rerun passed
 
 The registered self-hosted Windows runner was restarted with human approval;

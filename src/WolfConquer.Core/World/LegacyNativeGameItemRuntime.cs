@@ -140,7 +140,9 @@ internal sealed partial class LegacyNativeGameItemRuntime
 		{
 			if (Activate == 1)
 			{
-				return (uint)(EndDate - DateTime.Now).TotalSeconds;
+				// Framework TimeSpan.TotalSeconds multiplies ticks by 1E-07;
+				// modern division and saturating UInt32 narrowing change native wire data.
+				return unchecked((uint)(long)((EndDate - DateTime.Now).Ticks * 1E-07));
 			}
 			return 0u;
 		}
