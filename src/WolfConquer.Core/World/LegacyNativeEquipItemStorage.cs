@@ -4,9 +4,9 @@ using Flags = WolfConquer.Core.World.LegacyNativeGameItemFlags;
 
 namespace WolfConquer.Core.World;
 
-// Literal native Equip declaration-order state, constructor, AllItems and GetItem only.
-// This is the genuine same-item storage prerequisite, NOT QueryEquipment/UpdateStats/Add/Remove.
-internal sealed class LegacyNativeEquipItemStorage
+// Genuine same-item Equip owner: native state/storage plus whole methods in focused partials.
+// Full QueryEquipment/UpdateStats/Add/Remove and their missing native graph remain held.
+internal sealed partial class LegacyNativeEquipItemStorage
 {
     public int Rank;
     public int Chance;

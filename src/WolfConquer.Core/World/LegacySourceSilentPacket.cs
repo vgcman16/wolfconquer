@@ -13,10 +13,8 @@ public sealed class LegacySourceSilentPacket
         "opcode 2369 is absent from MrRayzo.Game.GamePackets and has no [Packet(2369)] attribute or Finalize(2369) serializer in decompiled GameServer; Program.Game_Receive only dispatches registered Pool.MsgInvoker handlers and otherwise sends no response; live log .setup_work\\runtime-parity-input-20260607-ready\\logs\\world.stdout.log captured 4 source-silent frames with payloadLength=74 and sample prefix 0800120208031202080412020807120208091202080C1202080F120208101202";
     private const string SourceUnmapped2433Evidence =
         "opcode 2433 is absent from MrRayzo.Game.GamePackets and has no [Packet(2433)] attribute or Finalize(2433) serializer in decompiled GameServer; Program.Game_Receive only dispatches registered Pool.MsgInvoker handlers and otherwise sends no response; live log .setup_work\\runtime-parity-input-20260607-ready\\logs\\world.stdout.log captured 9 source-silent frames with payloadLength=4 and payloads 08031000, 08051000, 08081000";
-    private const string SourceUnmapped2307Evidence =
-        "opcode 2307 is the outbound LegacyAchievement startup packet in WolfConquer, but the decompiled GameServer search found no [Packet(2307)] attribute or Finalize(2307) inbound handler; Program.Game_Receive only dispatches registered Pool.MsgInvoker handlers and otherwise sends no response; live log .setup_work\\runtime-npc-parity-live\\logs\\WorldServer.out.log captured compact 20-byte client frames with sample payload 020000005AC81300000000007429000000000000";
     private const string SourceUnmapped2311Evidence =
-        "opcode 2311 has no [Packet(2311)] attribute and no [Packet] attribute entry, no Finalize(2311) serializer, and no MrRayzo.Packets/GamePackets catalog name found in decompiled GameServer; Program.Game_Receive only dispatches registered Pool.MsgInvoker handlers and otherwise sends no response; live 2026-07-04 local world route observed an all-zero 516-byte client frame after login startup";
+        "opcode 2311 has no [Packet(2311)] inbound handler or MrRayzo.Packets/GamePackets catalog name found in decompiled GameServer; MsgMessage.cs command ttp writes 21 literal payload bytes and calls Finalize(2311), then GetLeagueMainRank, without sending that packet; this serializer does not establish an inbound handler; Program.Game_Receive only dispatches registered Pool.MsgInvoker handlers and otherwise sends no response; live 2026-07-04 local world route observed an all-zero 516-byte client frame after login startup";
 
     public const ushort LegacyClientOpcode2038 = WorldPacketOpcodes.LegacySourceSilent2038;
     public const ushort LegacyClientOpcode2029 = WorldPacketOpcodes.LegacySourceSilent2029;
@@ -24,6 +22,7 @@ public sealed class LegacySourceSilentPacket
     public const ushort LegacyClientOpcode2163 = WorldPacketOpcodes.LegacySourceSilent2163;
     public const ushort LegacyClientOpcode2196 = WorldPacketOpcodes.LegacySourceSilent2196;
     public const ushort LegacyClientOpcode2234 = WorldPacketOpcodes.LegacySourceSilent2234;
+    // Retained opcode alias for callers; a native receiver exists, so this is not source-silent.
     public const ushort LegacyClientOpcode2307 = WorldPacketOpcodes.LegacyAchievement;
     public const ushort LegacyClientOpcode2311 = WorldPacketOpcodes.LegacySourceSilent2311;
     public const ushort LegacyClientOpcode2357 = WorldPacketOpcodes.LegacySourceSilent2357;
@@ -116,10 +115,6 @@ public sealed class LegacySourceSilentPacket
                 opcode,
                 "CMsgExpPool",
                 SourceCatalogOnlyEvidence),
-            LegacyClientOpcode2307 => new LegacySourceSilentOpcodeInfo(
-                opcode,
-                "CMsgAchievement",
-                SourceUnmapped2307Evidence),
             LegacyClientOpcode2311 => new LegacySourceSilentOpcodeInfo(
                 opcode,
                 null,

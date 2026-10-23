@@ -7,53 +7,59 @@ namespace WolfConquer.Tests;
 public sealed class LegacySourceSilentPacketTests
 {
     [Theory]
-    [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2029, 6, 1)]
-    [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2196, 2, 2)]
-    [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2383, 5, 3)]
-    [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2433, 4, 4)]
-    [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2433, 4, 5)]
-    [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2433, 4, 6)]
-    public void LegacySourceSilentSyntheticFrameParsesAndRoundTripsExactly(
-        ushort opcode, int payloadLength, int seed)
+    [InlineData("0a00ed07080720012806", LegacySourceSilentPacket.LegacyClientOpcode2029, "080720012806")]
+    [InlineData("06009408080b", LegacySourceSilentPacket.LegacyClientOpcode2196, "080b")]
+    [InlineData("09004f090800108f02", LegacySourceSilentPacket.LegacyClientOpcode2383, "0800108f02")]
+    [InlineData("0800810908031000", LegacySourceSilentPacket.LegacyClientOpcode2433, "08031000")]
+    [InlineData("0800810908051000", LegacySourceSilentPacket.LegacyClientOpcode2433, "08051000")]
+    [InlineData("0800810908081000", LegacySourceSilentPacket.LegacyClientOpcode2433, "08081000")]
+    public void LegacySourceSilentCapturedFrameParsesAndRoundTripsExactly(
+        string frameHex,
+        ushort opcode,
+        string payloadHex)
     {
-        var payload = Enumerable.Range(0, payloadLength).Select(index => (byte)(seed + index * 17)).ToArray();
-        var frameBytes = new byte[4 + payloadLength];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(frameBytes.AsSpan(0), (ushort)frameBytes.Length);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(frameBytes.AsSpan(2), opcode);
-        payload.CopyTo(frameBytes, 4);
-        Assert.True(LegacySourceSilentPacket.TryParse(ReadFrame(frameBytes), out var packet));
+        var frameBytes = Convert.FromHexString(frameHex);
+        var frame = ReadFrame(frameBytes);
+
+        Assert.True(LegacySourceSilentPacket.TryParse(frame, out var packet));
+
         Assert.Equal(opcode, packet.Opcode);
-        Assert.Equal(payload, packet.Payload.ToArray());
+        Assert.Equal(Convert.FromHexString(payloadHex), packet.Payload.ToArray());
         Assert.Equal(frameBytes, packet.ToFrameBytes());
     }
 
     [Fact]
-    public void LegacySourceSilent2369RoundTripsSyntheticPrefixAndZeroSuffix()
+    public void LegacySourceSilentLive2369LoggedFrameShapeRoundTripsWithCapturedPrefix()
     {
-        var syntheticPrefix = Enumerable.Range(1, 53).Select(index => (byte)(index * 3)).ToArray();
+        var capturedPrefix = Convert.FromHexString(
+            "0800120208031202080412020807120208091202080C1202080F120208101202");
         var writer = new PacketWriter(LegacySourceSilentPacket.LegacyClientOpcode2369, payloadLength: 74);
-        syntheticPrefix.AsSpan().CopyTo(writer.Payload);
+        capturedPrefix.AsSpan().CopyTo(writer.Payload);
         var frameBytes = writer.ToArray();
+
         Assert.True(LegacySourceSilentPacket.TryParse(ReadFrame(frameBytes), out var packet));
+
         Assert.Equal(LegacySourceSilentPacket.LegacyClientOpcode2369, packet.Opcode);
         Assert.Equal(74, packet.Payload.Length);
-        Assert.True(syntheticPrefix.AsSpan().SequenceEqual(packet.Payload.Span[..syntheticPrefix.Length]));
-        Assert.All(packet.Payload.Span[syntheticPrefix.Length..].ToArray(), value => Assert.Equal(0, value));
+        Assert.True(capturedPrefix.AsSpan().SequenceEqual(packet.Payload.Span[..capturedPrefix.Length]));
         Assert.Equal(frameBytes, packet.ToFrameBytes());
     }
 
     [Fact]
-    public void LegacySourceSilentAchievementRequestRoundTripsSyntheticPayload()
+    public void LegacySourceSilentRejectsAchievementBecauseNativeInboundHandlerExists()
     {
-        var writer = new PacketWriter(LegacySourceSilentPacket.LegacyClientOpcode2307, 20);
-        writer.WriteUInt32(0, 2);
-        writer.WriteUInt32(4, 12_001);
-        writer.WriteUInt32(12, 77);
+        var capturedPayload = Convert.FromHexString("020000005AC81300000000007429000000000000");
+        var writer = new PacketWriter(WorldPacketOpcodes.LegacyAchievement, capturedPayload.Length);
+        capturedPayload.CopyTo(writer.Payload);
         var frameBytes = writer.ToArray();
-        Assert.True(LegacySourceSilentPacket.TryParse(ReadFrame(frameBytes), out var packet));
-        Assert.Equal(LegacySourceSilentPacket.LegacyClientOpcode2307, packet.Opcode);
-        Assert.Equal(writer.Payload.ToArray(), packet.Payload.ToArray());
-        Assert.Equal(frameBytes, packet.ToFrameBytes());
+
+        Assert.False(LegacySourceSilentPacket.TryParse(ReadFrame(frameBytes), out _));
+        Assert.False(LegacySourceSilentPacket.IsSourceSilentOpcode(WorldPacketOpcodes.LegacyAchievement));
+        Assert.False(LegacySourceSilentPacket.TryGetOpcodeInfo(WorldPacketOpcodes.LegacyAchievement, out _));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            LegacySourceSilentPacket.GetOpcodeInfo(WorldPacketOpcodes.LegacyAchievement));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new LegacySourceSilentPacket(WorldPacketOpcodes.LegacyAchievement, capturedPayload));
     }
 
     [Fact]
@@ -76,7 +82,6 @@ public sealed class LegacySourceSilentPacketTests
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2145)]
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2163)]
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2234)]
-    [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2307)]
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2311)]
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2357)]
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2369)]
@@ -120,7 +125,6 @@ public sealed class LegacySourceSilentPacketTests
 
     [Theory]
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2357)]
-    [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2311)]
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2382)]
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2383)]
     [InlineData(LegacySourceSilentPacket.LegacyClientOpcode2417)]
@@ -147,12 +151,8 @@ public sealed class LegacySourceSilentPacketTests
         "opcode 2433 is absent from MrRayzo.Game.GamePackets",
         "captured 9 source-silent frames with payloadLength=4")]
     [InlineData(
-        LegacySourceSilentPacket.LegacyClientOpcode2307,
-        "opcode 2307 is the outbound LegacyAchievement startup packet",
-        "captured compact 20-byte client frames")]
-    [InlineData(
         LegacySourceSilentPacket.LegacyClientOpcode2311,
-        "opcode 2311 has no [Packet(2311)] attribute",
+        "opcode 2311 has no [Packet(2311)] inbound handler",
         "observed an all-zero 516-byte client frame")]
     public void LegacySourceSilentLaneOpcodesCarrySpecificSourceAndLiveEvidence(
         ushort opcode,

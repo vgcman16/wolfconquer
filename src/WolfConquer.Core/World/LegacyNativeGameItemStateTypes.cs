@@ -2,7 +2,7 @@ namespace WolfConquer.Core.World;
 
 // Native construction state types with exact underlying enum widths/zero states.
 // Purification/Refinery retain their value-type mutable availability semantics.
-internal static class LegacyNativeGameItemFlags
+internal static partial class LegacyNativeGameItemFlags
 {
 	[Flags]
 	public enum ItemMode : ushort

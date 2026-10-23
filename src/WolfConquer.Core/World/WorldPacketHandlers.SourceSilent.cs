@@ -66,15 +66,6 @@ public static partial class WorldPacketHandlers
         return HandleLegacySourceSilentAsync(context, frame, cancellationToken);
     }
 
-    [PacketHandler(WorldPacketOpcodes.LegacyAchievement)]
-    private static ValueTask HandleLegacySourceSilent2307Async(
-        WorldPacketHandlerContext context,
-        PacketFrame frame,
-        CancellationToken cancellationToken)
-    {
-        return HandleLegacySourceSilentAsync(context, frame, cancellationToken);
-    }
-
     [PacketHandler(WorldPacketOpcodes.LegacySourceSilent2311)]
     private static ValueTask HandleLegacySourceSilent2311Async(
         WorldPacketHandlerContext context,

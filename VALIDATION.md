@@ -1,5 +1,38 @@
 # Publication validation
 
+## Native Chi, achievement state and equipment prerequisites
+
+Private Release and independently built sanitized-public Release both passed374/
+374 focused checks,0 failures/skips:140 Chi/shared-RNG/records/Fate/packet cases,
+58 achievement component cases,130 equipment/table/stat/appearance cases,2 host/
+evidence controls and44 retained source-silent cases. No private game seed is
+required. The short checklist is in
+[Native save/equipment status](docs/checklists/NATIVE-SAVE-EQUIPMENT-20261022.md).
+
+Achievement2307 has a real native receiver; the previous source-silent claim was
+wrong. It now produces an explicit unsupported host-adoption diagnostic, with no
+reply or fabricated owner.2311 remains without an inbound receiver, but its
+evidence now correctly names the unsent native ttp serializer. Opcode alias2307
+is retained for source compatibility.
+
+Initial private compilation exposed the absent genuine Player IMapObj/GetArray
+graph. The whole achievement receiver and eight receiver cases remain held,
+not reduced to a successful SendQueue-only path. A test namespace typo and stale
+reflection assertion were corrected; v2's373-pass/1-fail receipt remains local.
+Complete native Chi ranking/load, full Equipment.QueryEquipment/UpdateStats,
+Inventory mutations, native save/login/startup and host adoption remain open.
+No live-client, English-client, deployment or full-parity acceptance follows.
+
+## Interrupted full Windows run on21723558
+
+Run39875129428 on21723558d2b582f7272d54a22a1560bf14c36314 ended failure at
+2026-10-23T00:10:12Z. The runner was observed offline and its local worker/test
+processes absent. Receipt20261022T235827741Z-4359532b remains unfinished after
+successful restore/build, with no completed test TRX or later-stage result.
+The GitHub job log was unavailable. Do not infer a gameplay/test failure cause
+or a successful full check from this interrupted observation. No runner/game/
+service restart or replacement workflow dispatch was performed.
+
 ## Latest full Windows rejection on public 9a9cbc7c
 
 Run39867954370 on9a9cbc7ce9e973c0c3e85df8fb47fcb19de4a0d8 failed;
