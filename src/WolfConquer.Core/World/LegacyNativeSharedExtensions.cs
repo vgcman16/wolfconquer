@@ -16,7 +16,16 @@ public static class LegacyNativeSharedExtensions
         }
         if (path)
         {
-            char[] invalidPathChars = Path.GetInvalidPathChars();
+            // Windows Framework4 set: modern .NET omits quote and angle brackets.
+            // Retain the native per-call array, replacement order and null fault.
+            char[] invalidPathChars = new char[]
+            {
+                '"', '<', '>', '|', '\0', '\u0001', '\u0002', '\u0003',
+                '\u0004', '\u0005', '\u0006', '\u0007', '\u0008', '\u0009', '\u000a', '\u000b',
+                '\u000c', '\u000d', '\u000e', '\u000f', '\u0010', '\u0011', '\u0012', '\u0013',
+                '\u0014', '\u0015', '\u0016', '\u0017', '\u0018', '\u0019', '\u001a', '\u001b',
+                '\u001c', '\u001d', '\u001e', '\u001f'
+            };
             foreach (char oldChar2 in invalidPathChars)
             {
                 text = text.Replace(oldChar2, '_');

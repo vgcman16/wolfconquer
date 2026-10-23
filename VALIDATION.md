@@ -1,5 +1,35 @@
 # Publication validation
 
+## Native logging compatibility, monster ranking and login wire prerequisites
+
+Private and independent sanitized-public Release each passed4157/4157 selected
+cases, zero failures/skips:4057 retained +61 new +39 existing shared-owner cases.
+The Windows Framework path-only character set includes quote/angle34/60/62,
+unlike target.NET9. Whole-source owned probes confirmed this difference. The
+whole sanitizer now uses that exact36-character per-call array inside its
+original path branch. File-first/path-second replacement, null faults, reference
+behavior, extension signature and absence of a type initializer are retained.
+Seventeen new controls cover all65536 UTF16 units under all four flag combinations,
+literal lambda/quote paths, file-only symbols and null behavior, with small output.
+
+The complete native monster UpdateScore now mutates the real Hunters aliases,
+preserves UInt32 wrapping and stable score order, writes the full required-field
+2001 protobuf packet and broadcasts through the actual MonsterView. Twenty-one
+controls include nonzero/zero/overflow/tie scoring, dynamic/range filtering and
+six ordered faults requiring two real exception logs each. Logs exist only in
+guarded GUID-owned temporary roots; logger bodies and assertions were not weakened.
+
+Whole native login/version/time/configuration writers have23 controls for literal
+frames, seals, old-buffer tails, all eight real-clock protobuf fields, null faults
+and exact command-builder/signature contracts. The complete Banned12 owner is
+present but never invoked: no SQL connection, reader execution or account update
+is tested or claimed. There is no invented SQL-auth reader or host registration.
+
+Fresh full Windows proof for this newer batch is pending. These component checks
+do not prove full login, damage/death/loot/XP, SQL saves, live-client rendering,
+host adoption or deployment. Original saves, SQL, client/server processes and
+live routing were not changed.
+
 ## Native vendor/trade and lifecycle prerequisites
 
 Private and independent sanitized-public Release each passed4057/4057 selected
@@ -30,12 +60,9 @@ synthetic status-parser20 and smoke-parser13. HTTP/service probes were skipped.
 This validates the committed timer/geometry/ban/lifecycle components, not full
 gameplay, SQL integration, host adoption or a live deployment.
 
-Next review found an inherited path-compatibility gap: the whole original
-RemoveIllegalCharacters uses Framework's invalid-path set, which includes quote
-and angle characters34/60/62; target.NET9 omits them. Owned whole-source CPU
-probes confirmed the differing path-only results. The correction and next real
-monster-scoring/logger fault controls are not yet admitted; green CI is not proof
-that this or every other missing gameplay/compatibility seam is complete.
+That review exposed the inherited Framework path-compatibility gap corrected and
+focused-tested above. This older green source does not validate the newer fix,
+monster scoring or login wire prerequisites; green CI is not full gameplay parity.
 
 ## Native geometry and complete ban-file owners
 

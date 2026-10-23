@@ -18,8 +18,10 @@
 - [x] Genuine Vendor listings/removal, Trade wallet escrow/query/contracts,
   SoloElite construction/pairing, visibility, protection and message responses
   are implemented. Full trading, teleport and tournament lifecycle remain held.
-- [x] Private and independent sanitized-public Release each passed4057/4057,
-  zero failures/skips:3940 retained +117 native lifecycle-prerequisite controls.
+- [x] Whole monster damage-ranking/broadcast and native login/time/configuration
+  writers are implemented as components; full damage receive/login remain held.
+- [x] Private and independent sanitized-public Release each passed4157/4157,
+  zero failures/skips:4057 retained +61 new +39 existing shared-owner controls.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
@@ -30,12 +32,14 @@
   parser20+13 cases. HTTP/service probes were skipped.
 - [x] Timer, geometry, ban-owner and lifecycle-prerequisite source has full Windows
   proof in3m50s on exact60c821b7. Hair setter/getter controls remain intact.
+- [ ] Fresh full Windows proof for the newer logging/ranking/login-wire batch is
+  pending. The preceding green run does not validate these newer source changes.
 
 ## Correctness findings retained
 
-- [ ] Preserve Framework path-only quote/angle sanitization before admitting the
-  next monster-scoring owner. Owned whole-source probes confirmed Framework4
-  replaces34/60/62 while target.NET9 leaves them, affecting lambda log paths.
+- [x] Framework path-only quote/angle sanitization now uses the exact per-call
+  36-character set. AllUTF16/flag controls and genuine monster fault logging pass;
+  no static initializer, public API, null guard or logger shortcut was added.
 - [x] Complete native degree/sector geometry matches all17512 ordered observations
   from both owned Framework builds; both actual copies match, not just digests.
   Wrapped distance, coordinate narrowing and sticky Arrange quirks are retained.
