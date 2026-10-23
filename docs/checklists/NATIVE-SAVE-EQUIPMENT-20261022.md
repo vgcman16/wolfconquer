@@ -13,7 +13,10 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   multirow overcapacity refuse without costs/files/frames; last-slot purchases
   retain exact gold/CP/boundCP/Honor/Race/Champion values and packet order.
   One observed objective-length precedence fix joins the batch with292 retained
-  controls. Full Windows/CodeFactor await publication. Native normal stacking/
+  controls. FullWindows39972176836 passes4m17s on exacta92b1fb0: core23475/
+  0failed (165excluded), updater301/301, launcher49/49,8stageexit0,205warnings.
+  CodeFactor2NEW complexity/1FIXED precedence,total2298. One xUnit2017 assertion
+  style correction is queued with the next behavior batch. Native normal stacking/
   partial affordability and whole wallet/save/session transactions remain open.
 
 - [x] Native whole objective Set/Increase (FSB042): private/public Release292/292

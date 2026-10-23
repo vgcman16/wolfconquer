@@ -567,6 +567,11 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   positive images and packet order across gold/CP/boundCP/Honor/Race/Champion.
 - One observed CodeFactor precedence finding is fixed mechanically in the
   objective length formula and checked by the retained292 cases in this batch.
+- Full [Windows39972176836](https://github.com/vgcman16/wolfconquer/actions/runs/39972176836)
+  passes4m17s on exacta92b1fb0: core23475/0failed (165externalfixtureexcluded),
+  updater301/301, launcher49/49,8stageexit0,205build warnings. CodeFactor2NEW
+  complexity/1FIXED (the observed precedence),total2298. The new xUnit2017
+  assertion-style warning is queued with the next behavior batch, not its own CI.
 - Limits: current normal owner remains all-or-none/one-row-per-unit; original
   stacking/partial affordability, plus/activation/quest hooks and full wallet/
   file/session transactions remain open. No global UID/host/client proof.
@@ -626,7 +631,17 @@ work, not safety proved by the isolated UID-adoption proposals.
 
 ## CodeFactor cleanup
 
-Latest objective checkpoint public8e5ff255 passes full
+Latest shop checkpoint publica92b1fb0 passes full
+[Windows39972176836](https://github.com/vgcman16/wolfconquer/actions/runs/39972176836)
+in4m17s, completed2026-10-23T14:50:09Z. Core23475passed/0failed of23640
+(165externalfixturecasesexcluded), updater301/301, launcher49/49;8stageexit0,
+205build warnings. Receipt20261023T144607865Z-5325d992 finished14:50:02.2305785Z.
+CodeFactor2NEW complexity (Honor shop admission and test wallet/wire assertions),
+1FIXED objective arithmetic precedence,total2298. These methods are not rewritten
+just for the score. The new xUnit2017 test-assertion style warning is queued with
+the next behavior batch; no extra full-CI loop is started for that warning.
+
+Previous objective checkpoint public8e5ff255 passes full
 [Windows39971090546](https://github.com/vgcman16/wolfconquer/actions/runs/39971090546)
 in4m50s, completed2026-10-23T14:41:57Z. Core23442passed/0failed of23607
 (165externalfixturecasesexcluded), updater301/301, launcher49/49;8stageexit0,

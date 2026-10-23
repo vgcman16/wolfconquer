@@ -11,7 +11,13 @@ Last-slot and multirow successes retain exact wallets, bytes, order and reloads.
 Shared creators are unchanged. One observed arithmetic-precedence correction in
 objective preparation is batched here with292 retained component controls.
 
-Full Windows and CodeFactor await publication. Native normal-shop stacking/
+[Windows39972176836](https://github.com/vgcman16/wolfconquer/actions/runs/39972176836)
+passed4m17s on exacta92b1fb0aad7d749803a416890d0eed2d46933d7, completed
+2026-10-23T14:50:09Z. Core23475passed/0failed of23640 (165externalfixturecases
+excluded), updater301/301, launcher49/49;8stageexit0,205build warnings.
+Receipt20261023T144607865Z-5325d992 finished14:50:02.2305785Z. CodeFactor2NEW
+complexity/1FIXED precedence,total2298. One xUnit2017 assertion-style warning is
+queued with the next behavior batch; no separate full-CI cycle. Native normal-shop stacking/
 partial affordability, whole wallet/save/session transactions and UID/host/client
 activation remain open; these guards are not full economy parity.
 
