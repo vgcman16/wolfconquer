@@ -10,7 +10,6 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-
     private readonly record struct LegacyRuntimeTitleType(uint Id, uint SubId, uint Score);
 
     private const string LegacyTitleStorageSourceName = "CMsgTitleStorage";
@@ -45,7 +44,7 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        if (packet.Action is not (LegacyTitleStorageAction.Equip or LegacyTitleStorageAction.UnEquip))
+        if (!IsLegacyTitleStorageMutation(packet.Action))
         {
             await context.Log.WriteLineAsync(
                     "WorldServer ignored LegacyMsgTitleStorage " +
@@ -82,17 +81,22 @@ public static partial class WorldPacketHandlers
         if (!await ValidateLegacyTitleStorageMutationContextAsync(context, session, packet, title).ConfigureAwait(false))
             return;
 
+        await DispatchLegacyTitleStorageMutationAsync(context, session, packet, title, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private static bool IsLegacyTitleStorageMutation(LegacyTitleStorageAction action) =>
+        action is LegacyTitleStorageAction.Equip or LegacyTitleStorageAction.UnEquip;
+
+    private static ValueTask DispatchLegacyTitleStorageMutationAsync(
+        WorldPacketHandlerContext context, WorldSession session, LegacyTitleStoragePacket packet,
+        LegacyRuntimeTitleType title, CancellationToken cancellationToken)
+    {
         // Do not trust a client-supplied subtype in a server-issued title response.
         packet = packet with { DwParam2 = title.Id, DwParam3 = title.SubId };
-        if (packet.Action == LegacyTitleStorageAction.Equip)
-        {
-            await HandleLegacyMsgTitleStorageEquipAsync(context, session, packet, title, cancellationToken)
-                .ConfigureAwait(false);
-            return;
-        }
-
-        await HandleLegacyMsgTitleStorageUnEquipAsync(context, session, packet, title, cancellationToken)
-            .ConfigureAwait(false);
+        return packet.Action == LegacyTitleStorageAction.Equip
+            ? HandleLegacyMsgTitleStorageEquipAsync(context, session, packet, title, cancellationToken)
+            : HandleLegacyMsgTitleStorageUnEquipAsync(context, session, packet, title, cancellationToken);
     }
 
     private static async ValueTask<bool> ValidateLegacyTitleStorageMutationContextAsync(
@@ -425,6 +429,12 @@ public static partial class WorldPacketHandlers
             return character;
         }
 
+        return WithLegacySpecialTitleActiveFlags(character, parts, startIndex, endIndex, titleId, active);
+    }
+
+    private static CharacterSnapshot WithLegacySpecialTitleActiveFlags(
+        CharacterSnapshot character, string[] parts, int startIndex, int endIndex, uint titleId, bool active)
+    {
         var titleSlot = IsLegacyTitleSlot(titleId);
         var matched = false;
         var changed = false;

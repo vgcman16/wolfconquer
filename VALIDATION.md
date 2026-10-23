@@ -1,9 +1,17 @@
 # Publication validation
 
-## Additional quality cleanup - local successor
+## Current title-file follow-up
+
+Private/public Release each passed **1119/1119** again after one Core file was
+refactored into semantic action classification, canonical mutation routing and
+staged active-flag updating. All three remaining reported warnings in that file
+are targeted; fresh full CI and remote analysis are still required. No updater
+source changed from the verified batch below. No new test count is claimed.
+
+## Combined quality cleanup
 
 Private and independent public Release each passed **1119/1119** selected core
-and **301/301** complete updater tests, zero failures/skips. This addresses the
+and **301/301** complete updater tests, zero failures/skips. This targets the
 seven warnings introduced in the title/process-reader work through named semantic
 phases, explicit arithmetic and the standard PID argument guard. Packet bytes,
 validation order/reasons, real persistence and identity gates remain covered.
@@ -11,10 +19,23 @@ validation order/reasons, real persistence and identity gates remain covered.
 Test-only link cleanup now attempts every exact-owned cleanup and retains the
 original failure/skip plus all cleanup errors, with sole-failure stacks preserved.
 All seven new failure-order controls pass. No suppressions or weakened assertions.
-The latest full green receipt below predates this successor; fresh full CI and
-remote CodeFactor reanalysis are still required before claiming remote closure.
+The full green receipt below validates this batch; exact remote accounting is
+recorded with it. The later one-file follow-up is a separate verification scope.
 
 ## Latest full Windows receipt
+
+[Windows39932501975](https://github.com/vgcman16/wolfconquer/actions/runs/39932501975)
+passed in3m59s on exact `8f7ea7f133e2764c4e662cf022a83b8479f465be`, completed
+`2026-10-23T09:36:06Z`. Actual terminalTRX: core21682 passed/0failed of21847
+(165 excluded), updater301/301 and launcher49/49. All eight stages exited0.
+Receipt `20261023T093222494Z-e16390d5` finished `2026-10-23T09:35:59.1384497Z`.
+
+CodeFactor now reports2298 findings and0NEW/7FIXED for8f7ea7. These include six
+of seven introduced warnings plus one older arithmetic warning. Handler complexity
+25-to16 remains reported, with two older warnings in that file. The subsequent
+one-file follow-up passed1119/1119 locally in both trees, with remote proof pending.
+
+## Earlier full Windows receipt
 
 [Windows39930101290](https://github.com/vgcman16/wolfconquer/actions/runs/39930101290)
 passed in4m03s on exact `7a41ea63809b6f0a1fd84ec5ff00c574d81c9668`, completed
