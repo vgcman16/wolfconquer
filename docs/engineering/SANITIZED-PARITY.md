@@ -77,6 +77,18 @@ Keep open defects separate from verified fixes. Do not promise a bug-free server
 CodeFactor cleanup is authorized for new and existing code. Triage actual current
 findings, then fix readability, maintainability, complexity, duplication and other
 actionable issues in reviewable batches. Verify behavior after refactors.
+
+Inspect every caller before changing a query's failure behavior or replacing a
+complete scan with early exit. Returning false for corrupt state is not fail-closed
+when a caller treats `!query()` as permission to mutate. Preserve the distinction
+between valid absence/occupancy and invalid state, or validate the complete real
+owner before the consuming transaction. Test malformed tails through those callers.
+
+Keep failure diagnostics truthful: cleanup must not mask the original assertion,
+skip or operation failure. Preserve primary and cleanup errors, attempt each safe
+owned cleanup, and retain original stacks; do not merely move a finally-thrown
+exception into a helper to hide the warning.
+
 Do not hide problems through blanket exclusions/suppressions or weaken protocol
 and safety coverage to improve a grade. Static quality and gameplay correctness
 are separate measurements; record unavailable reports instead of inventing counts.

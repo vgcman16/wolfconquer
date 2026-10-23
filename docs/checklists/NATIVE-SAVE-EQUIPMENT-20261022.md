@@ -16,14 +16,14 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   and301/301 complete updater tests, zero failures/skips. Includes15 additional
   CodeFactor API fixes, retained-handle process attribution and the seven-warning
   successor cleanup. Seven new cleanup error/skip/stack controls pass.
-- [x] Full Windows39932501975 on exact8f7ea7f1 passed in3m59s: core21682 passed/
+- [x] Full Windows39933407353 on exacteae56f67 passed in4m06s: core21682 passed/
   0failed (165 excluded), updater301/301, launcher49/49, all8 check steps exit0.
-  Earlier39930101290 also closed failed updater run39926199302.
+  Earlier39932501975 was also green;39930101290 closed failed updater39926199302.
   CI is not deployment, live-client proof or full parity.
 - [x] CodeFactor confirms the15 new character-overload fixes absent, with current
-  total2298. Latest8f7ea7 has0NEW/7FIXED (six new warnings plus one older warning).
-  Three remaining warnings in TitleStorage.cs have a reviewed follow-up with
-  private/public1119/1119 passing again; fresh full CI/remote analysis is pending.
+  total2295. Latest two code commits have0NEW/10FIXED, clearing all seven newly
+  introduced warnings and three older ones. TitleStorage.cs now has zero active
+  findings; private/public1119/1119 pass again and final full CI is green above.
 
 - [x] Sanitized spell admission and allocation: private and independent public
   Release each passed 510/510 selected cases, zero failures/skips. Rejected

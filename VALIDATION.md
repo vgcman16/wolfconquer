@@ -4,8 +4,9 @@
 
 Private/public Release each passed **1119/1119** again after one Core file was
 refactored into semantic action classification, canonical mutation routing and
-staged active-flag updating. All three remaining reported warnings in that file
-are targeted; fresh full CI and remote analysis are still required. No updater
+staged active-flag updating. CodeFactor confirms0NEW/3FIXED on eae56f67 and zero
+active findings in the entire TitleStorage.cs file. Overall backlog is2295.
+The latest full receipt below verifies this same code. No updater
 source changed from the verified batch below. No new test count is claimed.
 
 ## Combined quality cleanup
@@ -24,16 +25,27 @@ recorded with it. The later one-file follow-up is a separate verification scope.
 
 ## Latest full Windows receipt
 
+[Windows39933407353](https://github.com/vgcman16/wolfconquer/actions/runs/39933407353)
+passed in4m06s on exact `eae56f67e7ba11216b605c108a32abd54d40c73f`, completed
+`2026-10-23T09:43:46Z`. Actual terminalTRX: core21682 passed/0failed of21847
+(165 fixture-dependent cases excluded), updater301/301 and launcher49/49.
+All eight check stages exited0. Receipt `20261023T093955279Z-006674d8` finished
+`2026-10-23T09:43:39.4075517Z`. No HTTP/service deployment probe or live game
+acceptance was performed. CI and CodeFactor are not gameplay-parity measurements.
+
+## Earlier combined quality full receipt
+
 [Windows39932501975](https://github.com/vgcman16/wolfconquer/actions/runs/39932501975)
 passed in3m59s on exact `8f7ea7f133e2764c4e662cf022a83b8479f465be`, completed
 `2026-10-23T09:36:06Z`. Actual terminalTRX: core21682 passed/0failed of21847
 (165 excluded), updater301/301 and launcher49/49. All eight stages exited0.
 Receipt `20261023T093222494Z-e16390d5` finished `2026-10-23T09:35:59.1384497Z`.
 
-CodeFactor now reports2298 findings and0NEW/7FIXED for8f7ea7. These include six
+At8f7ea7 CodeFactor reported2298 findings and0NEW/7FIXED. These include six
 of seven introduced warnings plus one older arithmetic warning. Handler complexity
 25-to16 remains reported, with two older warnings in that file. The subsequent
-one-file follow-up passed1119/1119 locally in both trees, with remote proof pending.
+one-file follow-up passed1119/1119 in both trees and cleared all three findings,
+as recorded above. The latest two code commits have10FIXED/0NEW total.
 
 ## Earlier full Windows receipt
 

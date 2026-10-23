@@ -141,20 +141,19 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## CodeFactor cleanup
 
-Latest verified checkpoint: full Windows39932501975 passed in3m59s on exact
-`8f7ea7f133e2764c4e662cf022a83b8479f465be`: core21682 passed/0failed
+Latest verified checkpoint: full Windows39933407353 passed in4m06s on exact
+`eae56f67e7ba11216b605c108a32abd54d40c73f`: core21682 passed/0failed
 (165 excluded), updater301/301, launcher49/49 and all eight check steps exit0.
 This is offline/synthetic CI, not deployment or complete gameplay parity.
 
-Latest remote snapshot: **2298 findings**. Commit8f7ea7 reports zero NEW and seven
-FIXED records. Those seven include six of the seven newly introduced warnings
-and one older arithmetic warning; they do not prove all seven new warnings gone.
-The handler's complexity improved25 to16 but remained reported, alongside an
-older active-flag complexity16 and a blank-after-brace warning in the same file.
-A semantic action/routing/flag-update follow-up addresses those three, pending
-fresh full CI/remote analysis. Private/public Release each passed1119/1119 again,
-zero failures/skips, after this one-file change. The15 CA1865 fixes were
-already confirmed absent; their group contains only the held Guild record.
+Latest remote snapshot: **2295 findings**, net32 fewer than the2327 baseline.
+Commit8f7ea7 reports0NEW/7FIXED; follow-up eae56f67 reports0NEW/3FIXED. The ten
+fixed records include all seven newly introduced warnings and three older ones.
+The entire TitleStorage.cs file report now has zero active findings. Its handler
+and flag-update phases remain behaviorally covered, not suppressed or excluded.
+Private/public Release each passed1119/1119 again, zero failures/skips, after
+the one-file follow-up, now also full-CI verified above. The15 CA1865 fixes
+were already confirmed absent; their group contains only the held Guild record.
 
 The seven-warning successor is now locally verified: private and independent
 public Release each passed **1119/1119** selected core tests and **301/301**
@@ -165,9 +164,9 @@ The standard PID guard still rejects nonpositive IDs before native calls.
 Link-control cleanup now attempts every exact-owned cleanup, preserves the
 primary assertion/skip and every cleanup error in order, and retains the original
 stack for a sole failure. Seven new failure/skip/stack/order controls pass.
-No blanket suppression, protocol change or weakened test was used. Full8f7ea7
-and its remote results are recorded above; the later one-file follow-up still
-needs its own verification and remote analysis.
+No blanket suppression, protocol change or weakened test was used. Both8f7ea7
+and its later one-file follow-up passed full Windows CI; the remote report also
+confirms the targeted findings cleared. This is not a completed backlog audit.
 
 Authorized alongside behavioral repairs. The public report was retrieved on
 2026-10-23: grade A, 2,327 findings across 4,864 files. Category counts: complexity
