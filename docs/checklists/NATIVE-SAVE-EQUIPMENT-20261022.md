@@ -7,6 +7,18 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] DragonSkin cost admission (FSB056): real tests-first baseline failed all
+  16 new cases; repaired focused private 70/70 and public 70/70 passed. Unlock
+  consumes only the first mapped positive unbound row, retaining inventory order,
+  one-unit costs, other item fields and existing frames. Bound/zero-only refusals
+  leave session, skin, inventory and saved files unchanged and reply truthfully;
+  mixed-order controls cover all three mappings and valid stacks of one/three.
+  The real frame session callback autosaves inventory, followed separately by
+  explicit character skin persistence: this is not a coherent two-file
+  transaction. Crash/replay, concurrency, persistence/send-failure atomicity and
+  delivery remain open. No new full-CI, live-client, deployment or full-durability
+  claim.
+
 - [x] Selected-status and adjacent reward safety (FSB053/054): private Release
   721/721, zero failed/skipped (545 boss/reward,79 Status,97 rank/query).
   Tests-first baselines reproduced32 dirty-status and35 reward failures.

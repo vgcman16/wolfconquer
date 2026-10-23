@@ -249,12 +249,13 @@ public static partial class WorldPacketHandlers
         var ok = false;
         if (TryGetLegacyDragonSkinItemId(packet.SkinType, out var itemId))
         {
-            var unlockItem = session.PlayerItems.InventoryItems.FirstOrDefault(item => item.ItemId == itemId);
+            var unlockItem = session.PlayerItems.InventoryItems.FirstOrDefault(item =>
+                item.ItemId == itemId && item.Bound == 0 && item.StackSize > 0);
             if (unlockItem is null)
             {
                 await context.Log.WriteLineAsync(
                         "WorldServer skipped LegacyDragonSkin Unlock " +
-                        $"{FormatSession(context)} skinType={packet.SkinType}; itemId={itemId} is not in inventory.")
+                        $"{FormatSession(context)} skinType={packet.SkinType}; itemId={itemId} has no positive unbound inventory stack.")
                     .ConfigureAwait(false);
             }
             else

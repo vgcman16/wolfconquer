@@ -902,6 +902,31 @@ Core23861passed/0failed of24026 (165existing externalfixtureexcluded), updater
 301/301, launcher57/57; all8stages exit0,204warnings/0buildErrors. Parser20+13
 controls are synthetic only. This does not close the explicit gameplay limits.
 
+### FSB-056: Admit only positive unbound DragonSkin unlock costs
+
+- `src/WolfConquer.Core/World/WorldPacketHandlers.AnimaSkin.cs` selected a mapped
+  Unlock item without checking binding or quantity. Retrieve creates an unbound
+  item, permitting bound-to-unbound conversion; an empty stack could also supply
+  a skin. Select the first mapped row with `Bound == 0 && StackSize > 0`, retaining
+  inventory order, the one-unit cost, other item fields and existing frame order.
+  Native `DragonSkin.Process` uses `Inventory.Contain(mappedId, 1, 0)`; this is
+  behavioral reference, not new client authority. Opcode 2415 is unchanged.
+- Real registered-frame tests-first baseline: all 16 new cases failed before the
+  repair. Repaired focused suite: private 70/70 and public 70/70 passed. Refusals
+  cover bound-only/zero-only rows and nonzero binding 255, with truthful actual-UID
+  `OK=false` Unlock/Retrieve replies, no debit/item frames, no skin and unchanged
+  session, full item/character state, file bytes and write times. Mixed-order
+  controls cover all three mappings and valid stacks of one/three after earlier
+  bound/zero rows, preserving later eligible rows, metadata and exact success
+  frames; saved item/skin results are checked.
+- Persistence boundary: the real `WorldServerFrameHandler` session callback does
+  autosave changed inventory. The explicit character skin save is separate;
+  successful individual saves are not a coherent item-plus-skin transaction.
+  Crash/replay recovery, concurrent ownership, persistence/send-failure atomicity
+  and delivery remain open for the separate transaction work. This is admission
+  proof, not full durability, a new full-CI checkpoint or live-client/deployment
+  proof.
+
 ## Active audit
 
 Current work does not close whole managed reward transactions. SuperGuildWar's
