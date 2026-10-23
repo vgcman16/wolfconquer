@@ -11,7 +11,11 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   item-image preparation and real flushed atomic replacement, no truncated
   rejection/prefix, exact wardrobe/equipment alias and duplicate/nested-deposit
   checks, bounded fixed32 perfection fields (FSB037..038). Includes51new controls
-  and one10-record/6-file readability batch; full committed CI/analysis pending.
+  and one10-record/6-file readability batch. FullWindows39959714814 passed4m45s
+  on exact01431fe3: core23227/0failed (165excluded), updater301/301, launcher49/49,
+  all8stageexit0,206build warnings. CodeFactor11FIXED (all10targets plus1older),
+  4NEW (3complexity+1testconstant),total2287. Defer the testconstant to the next
+  behavior batch; do not start a per-warning fullCI loop or risky complexity edit.
   One-file/process-local protection is not host/SQL/multi-file crash recovery.
 
 - [x] Private/public Release **3065/3065** each,0failed/0skipped: complete scoped MirrorOfSin,

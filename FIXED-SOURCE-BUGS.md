@@ -426,6 +426,8 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   late shared-file-gate retirement, retained native ABI/reader/roundtrip goldens.
   The initial local run exposed the validation-exception omission; fixed in
   production without weakening rejection/no-prefix assertions.
+  FullWindows39959714814 on exact01431fe3 passes: core23227/0failed (165excluded),
+  updater301/301, launcher49/49, all8stageexit0. This remains offline component proof.
 - Limits: one-file component, process-local fence only. Unknown post-replace
   fault classification is source-reviewed, not a fabricated runtime proof.
   Full loader/host/SQL/multi-file recovery, raw writers, hostile path ABA and
@@ -486,22 +488,27 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-034 | Rune insertion/cache publication can split; Count wraps; public arrays corrupt ownership | Complete owned staged publication, exact count and explicit unavailable queries | Scoped storage verified2896; full equip/load/save/economy/host remains open |
 | FSB-035 | Refinement publishes before late status failure or spends chance/stamina before preparation | Complete real state/frames before scoped proc acceptance | Scoped procs verified3065 both trees and full Windows39958461749; full cast/HP remains open |
 | FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator component53/53 owned-file controls pass; host activation, trusted historical migration and all-producer adoption HOLD |
-| FSB-037 | Native save truncates before validation, persists prefixes or loses nested deposits | Complete owned image and truthful atomic file outcome before acknowledgement | Scoped native save verified3116 both trees; full CI/host/loader/SQL recovery pending |
+| FSB-037 | Native save truncates before validation, persists prefixes or loses nested deposits | Complete owned image and truthful atomic file outcome before acknowledgement | Scoped native save verified3116 both trees and full Windows39959714814; host/loader/SQL recovery open |
 | FSB-038 | Fixed32 text reads/writes escape buffers or retain stale tails | Bounded field access, validate before write and explicit null admission | Scoped record verified34cases within3116 both trees; full load/postlude audit open |
 
 ## CodeFactor cleanup
 
-Latest verified behavioral checkpoint: public256d7a18,
-[Windows39958461749](https://github.com/vgcman16/wolfconquer/actions/runs/39958461749)
-passed4m23s, completed2026-10-23T13:11:40Z. Core23176passed/0failed of23341
+Latest verified behavioral checkpoint: public01431fe3,
+[Windows39959714814](https://github.com/vgcman16/wolfconquer/actions/runs/39959714814)
+passed4m45s, completed2026-10-23T13:20:50Z. Core23227passed/0failed of23392
 (165externalfixturecasesexcluded), updater301/301, launcher49/49, all8stageexit0.
-Receipt20261023T130732453Z-ed1b2de7 finished13:11:31.2659709Z;206build warnings
+Receipt20261023T131620699Z-d343aea0 finished13:19:58.8004245Z;206build warnings
 remain. This is offline automated proof, not deployment/live-client/full parity.
 
-CodeFactor on that exact commit reports19NEW=10readability+9complexity,0FIXED,
-total2294. The10readability records are one6-file mechanical batch with the next
-native-save behavioral checkpoint; nine complex methods are deferred, not split
-merely for thresholds. No zero-issues or finished gameplay claim is made.
+CodeFactor on that exact commit reports4NEW (3complexity+1testconstant),11FIXED,
+total2287. All10precedence targets from256d7a18 are confirmed cleared, plus1older
+native-save existence finding. Defer that one testconstant to the next real
+behavior batch, not a separate edit/test/commit/fullCI ceremony. Complexity debt
+is retained, not hidden or reshaped solely for a grade. No zero-issues or finished
+gameplay claim is made.
+
+Previous256d7a18 reports19NEW=10readability+9complexity,0FIXED,total2294. Its
+Windows39958461749 passed4m23s; all10readability targets now cleared by01431fe3.
 
 Previous public7879381d reports2NEW complexity/21FIXED,total2275. All
 nineteen targeted precedence/readability records across10C#files are confirmed

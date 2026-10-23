@@ -16,8 +16,16 @@ text clears only its own tail and native low-byte/ANSI encoding stays unchanged
 production was corrected without weakening tests. Ten CodeFactor precedence
 records are one6-file parentheses batch retaining formulas/short-circuit order.
 
-Full committed-tree CI and fresh analysis are pending. This is an offline one-file
-component, not native loader/host/SQL activation, cross-account UID closure or
+[Windows39959714814](https://github.com/vgcman16/wolfconquer/actions/runs/39959714814)
+passed4m45s on exact01431fe340e63bf0f99452f5f49302867db438ed, completed
+2026-10-23T13:20:50Z. Core23227passed/0failed of23392 (165externalfixturecases
+excluded), updater301/301, launcher49/49; all8stageexit0. Receipt
+20261023T131620699Z-d343aea0 finished13:19:58.8004245Z;206build warnings remain.
+CodeFactor11FIXED (all10precedence targets plus1older),4NEW (3complexity+
+1testconstant),total2287. The testconstant joins the next behavior batch; risky
+complexity edits/per-warning CI loops are not started.
+
+This is an offline one-file component, not native loader/host/SQL activation, cross-account UID closure or
 multi-file/crash recovery. The path fence is process-local; unknown post-replace
 fault classification has no invented runtime proof. No original/client was used.
 
