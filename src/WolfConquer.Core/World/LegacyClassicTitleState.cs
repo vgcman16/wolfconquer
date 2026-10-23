@@ -14,9 +14,16 @@ internal static class LegacyClassicTitleState
     {
         selected = 0;
         owned = [];
-        if (attributes is null) return false;
-        string? selectedText = null;
-        string? ownedText = null;
+        if (attributes is null || !TryCaptureClassicTitleTexts(attributes, out var selectedText, out var ownedText)) return false;
+        if (!TryReadClassicTitleSelection(selectedText, out selected)) return false;
+        return TryReadClassicTitleOwnership(ownedText, out owned);
+    }
+
+    private static bool TryCaptureClassicTitleTexts(IReadOnlyDictionary<string, string> attributes,
+        out string? selectedText, out string? ownedText)
+    {
+        selectedText = null;
+        ownedText = null;
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var pair in attributes)
         {
@@ -24,13 +31,24 @@ internal static class LegacyClassicTitleState
             if (pair.Key.Equals(SelectedKey, StringComparison.OrdinalIgnoreCase)) selectedText = pair.Value;
             if (pair.Key.Equals(OwnedKey, StringComparison.OrdinalIgnoreCase)) ownedText = pair.Value;
         }
-        if (selectedText is not null && (!IsSingleLine(selectedText) ||
-            !byte.TryParse(selectedText, NumberStyles.Integer, CultureInfo.InvariantCulture, out selected))) return false;
-        if (ownedText is null) return true;
-        if (!IsSingleLine(ownedText)) return false;
+        return true;
+    }
+
+    private static bool TryReadClassicTitleSelection(string? text, out byte selected)
+    {
+        selected = 0;
+        return text is null || (IsSingleLine(text) &&
+            byte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out selected));
+    }
+
+    private static bool TryReadClassicTitleOwnership(string? text, out byte[] owned)
+    {
+        owned = [];
+        if (text is null) return true;
+        if (!IsSingleLine(text)) return false;
         var titles = new List<byte>();
         var seen = new HashSet<byte>();
-        var remaining = ownedText.AsSpan();
+        var remaining = text.AsSpan();
         while (!remaining.IsEmpty)
         {
             var end = remaining.IndexOfAny(",/;| ");

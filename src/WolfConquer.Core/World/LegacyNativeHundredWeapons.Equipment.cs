@@ -8,8 +8,7 @@ internal partial class LegacyNativeHundredWeapons
     {
         lock (slotSyncRoot)
         {
-            if (!IsSlotPosition(Position) || !TryGetSlotMutationPlayer(out var player) ||
-                !TrySnapshotSlotStorage(requireBitmap: true, out var rows)) return false;
+            if (!TryAdmitSlotMutation(Position, out var player, out var rows)) return false;
             uint uid = player.UID;
             var item = rows.FirstOrDefault(row => row.WeaponSubtype == WeaponSubType);
             if (item is null) return false;
@@ -46,8 +45,7 @@ internal partial class LegacyNativeHundredWeapons
     {
         lock (slotSyncRoot)
         {
-            if (!IsSlotPosition(Position) || !TryGetSlotMutationPlayer(out var player) ||
-                !TrySnapshotSlotStorage(requireBitmap: true, out var rows)) return false;
+            if (!TryAdmitSlotMutation(Position, out var player, out var rows)) return false;
             uint uid = player.UID;
             var item = rows.FirstOrDefault(row => row.BitVector.Contain(Position));
             if (item is null) return false;
@@ -95,9 +93,7 @@ internal partial class LegacyNativeHundredWeapons
         lock (slotSyncRoot)
         {
             // Unknown is not occupied: no !Free(...) test is an admission decision.
-            if (!IsSlotPosition(Position1) || !IsSlotPosition(Position2) ||
-                !TryGetSlotMutationPlayer(out var player) ||
-                !TrySnapshotSlotStorage(requireBitmap: true, out var rows)) return false;
+            if (!IsSlotPosition(Position1) || !TryAdmitSlotMutation(Position2, out var player, out var rows)) return false;
             uint uid = player.UID;
             var left = rows.FirstOrDefault(row => row.BitVector.Contain(Position1));
             var right = rows.FirstOrDefault(row => row.BitVector.Contain(Position2));

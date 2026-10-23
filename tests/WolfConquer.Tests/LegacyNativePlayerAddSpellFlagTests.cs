@@ -69,8 +69,8 @@ public sealed class LegacyNativePlayerAddSpellFlagTests
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public Task RemovalPrecedesFailedXpQueryAndLeavesNoReplacementOrRemovalPublication(
-        bool metadataFault, bool visible) => NativePacketTestThread.Run(() =>
+    public Task MissingOptionalXpRuneAllowsCoherentReplacementOrAdditionWithoutBonus(
+        bool metadataFault, bool hadRegistration) => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeAddFlagTestFixture();
         NativeAddFlagTestFixture.Ready(f.Owner);
@@ -80,27 +80,40 @@ public sealed class LegacyNativePlayerAddSpellFlagTests
         var former = f.Row(Flag.Superman);
         var oldSnapshot = vector.GetFlags();
         Assert.Same(former, Assert.Single(oldSnapshot));
-        if (!visible) vector.Remove((int)Flag.Superman);
+        // Both branches have a coherent prestate. Raw bitmap/dictionary
+        // corruption admission is separate FSB023 work, not a Rune requirement.
+        if (!hadRegistration) Assert.True(vector.TryRemove((int)Flag.Superman));
+        var formerTimer = former.Timer;
         f.Player.XPBooster = 77;
         f.Player.XPKiller = 66;
         if (metadataFault) LegacyNativePoolItems.ItemsBase!.Clear();
         else f.Owner.Rune = null;
 
-        if (metadataFault)
-            Assert.Throws<KeyNotFoundException>(() => f.Player.AddSpellFlag(Flag.Superman, 999, true));
-        else
-            Assert.Throws<NullReferenceException>(() => f.Player.AddSpellFlag(Flag.Superman, 999, true));
+        var before = DateTime.Now;
+        f.Player.AddSpellFlag(Flag.Superman, 999, true);
+        var after = DateTime.Now;
 
         Assert.Same(vector, f.Player.BitVector);
-        Assert.False(vector.ContainFlag((int)Flag.Superman));
-        Assert.False(vector.Contain((int)Flag.Superman));
-        Assert.Empty(vector.GetFlags());
+        Assert.True(vector.ContainFlag((int)Flag.Superman));
+        Assert.True(vector.Contain((int)Flag.Superman));
+        var row = f.Row(Flag.Superman);
+        Assert.NotSame(former, row);
+        Assert.Same(row, Assert.Single(vector.GetFlags()));
+        Assert.Equal((int)Flag.Superman, row.Key);
+        Assert.Equal(999, row.Secounds);
+        Assert.True(row.RemoveOnDead);
+        Assert.Equal(0, row.InvokerSecouds);
+        Assert.Equal(default, row.TimerInvoker);
+        Assert.InRange(row.Timer, before, after);
         Assert.Same(former, Assert.Single(oldSnapshot)); // Captured array still owns the old object.
         Assert.Equal(19, former.Secounds);
+        Assert.Equal(formerTimer, former.Timer);
         Assert.False(former.RemoveOnDead);
-        Assert.Equal((byte)77, f.Player.XPBooster);
-        Assert.Equal((byte)66, f.Player.XPKiller);
-        Assert.Empty(f.Queue); // Inner TryRemove is not general Player.RemoveFlag/UpdateFlagOffset.
+        Assert.Equal((byte)0, f.Player.XPBooster);
+        Assert.Equal((byte)0, f.Player.XPKiller);
+        Assert.Equal(NativeAddFlagTestFixture.Status(Flag.Superman), Assert.Single(f.Queue));
+        if (metadataFault) Assert.Empty(LegacyNativePoolItems.ItemsBase!);
+        else Assert.Null(f.Owner.Rune);
     });
 
     [Fact]

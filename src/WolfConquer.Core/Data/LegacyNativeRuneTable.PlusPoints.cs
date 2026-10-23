@@ -20,7 +20,7 @@ internal partial class LegacyNativeRuneTable
         if (!TryPlusPointsFamily(id, out var type) ||
             !TryPlusPointsRow(type, (byte)(id % 100), out var row) || row is null) return 0;
         uint stack = item.StackSize == 0 ? 1u : item.StackSize;
-        ulong points = (ulong)row.RequiredProgress * stack + item.RuneEXP;
+        ulong points = ((ulong)row.RequiredProgress * stack) + item.RuneEXP;
         return points <= uint.MaxValue ? (uint)points : 0u;
     }
 

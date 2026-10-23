@@ -11,29 +11,17 @@ internal static partial class LegacyClassicTitlePersistence
         path = string.Empty;
         candidate = new(StringComparer.OrdinalIgnoreCase);
         reason = Prefix + "BindingInvalid";
-        if (expected is null || updated is null || expected.Character is null || updated.Character is null ||
-            expected.Character.Attributes is null || updated.Character.Attributes is null ||
-            expected.AccountId <= 0 || expected.AccountId > uint.MaxValue || expected.Character.Uid != expected.AccountId ||
-            string.IsNullOrWhiteSpace(expected.UsersRoot) || string.IsNullOrWhiteSpace(updated.UsersRoot) ||
-            !Path.IsPathFullyQualified(expected.UsersRoot) || !Path.IsPathFullyQualified(updated.UsersRoot)) return false;
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        if (!string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(expected.UsersRoot)),
-            Path.TrimEndingDirectorySeparator(Path.GetFullPath(updated.UsersRoot)), comparison)) return false;
+        if (!HasClassicTitleStateOwners(expected, updated) || !HasClassicTitleAccountBinding(expected) ||
+            !TryResolveClassicTitleStorageRoot(expected, updated, out var root)) return false;
         // TryCommitSession skips autosave. The complete updated value may change
         // MyTitle only; a malicious direct caller cannot smuggle any other state.
-        if (updated != (expected with { Character = updated.Character }) ||
-            (updated.Character with { Attributes = expected.Character.Attributes }) != expected.Character ||
-            !LegacyClassicTitleState.SameExceptSelection(expected.Character.Attributes, updated.Character.Attributes))
+        if (!HasOnlyClassicTitleSelectionChange(expected, updated))
         { reason = Prefix + "UnrelatedStateChanged"; return false; }
-        if (!LegacyClassicTitleState.TryRead(expected.Character.Attributes, out _, out var owned) ||
-            !LegacyClassicTitleState.TryRead(updated.Character.Attributes, out var selected, out _) ||
-            (selected != 0 && !owned.Contains(selected)) ||
-            !updated.Character.Attributes.TryGetValue(LegacyClassicTitleState.SelectedKey, out var text) ||
-            text != selected.ToString(CultureInfo.InvariantCulture))
+        if (!TryReadCanonicalClassicTitleCandidate(expected.Character.Attributes,
+            updated.Character.Attributes, out var text))
         { reason = Prefix + "StateInvalid"; return false; }
         candidate.Add(LegacyClassicTitleState.SelectedKey, text);
-        path = Path.Combine(Path.GetFullPath(expected.UsersRoot),
-            expected.Character.Uid.ToString(CultureInfo.InvariantCulture) + ".ini");
+        path = Path.Combine(root, expected.Character.Uid.ToString(CultureInfo.InvariantCulture) + ".ini");
         return CharacterSnapshotFileBaseline.TryValidateSafePath(path, Prefix, out reason);
     }
 

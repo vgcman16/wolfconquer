@@ -10,12 +10,8 @@ internal partial class LegacyNativeExchangeShopRuntime
         {
             try
             {
-                if (!TryCaptureBook(out var book, out _) || !TryCaptureExCatalog(out var catalog, out _) ||
-                    HasForeignExCollision(book!, catalog!)) return false;
-                var goods = catalog!.Rows.FirstOrDefault(row => row.Id == goods_rec_id);
-                if (goods.Row is null || goods.ShopId != shopid ||
-                    !TryPrepareCounter(book!, shopid, goods_rec_id, times, goods.Amount, out var staged)) return false;
-                if (!BookIsCurrent(book!) || !ExCatalogIsCurrent(catalog)) return false;
+                if (!TryPrepareExCounterUpdate(shopid, goods_rec_id, times, out var book, out var catalog, out var staged)) return false;
+                if (!BookIsCurrent(book!) || !ExCatalogIsCurrent(catalog!)) return false;
                 if (staged is not null) Items = staged;
                 return true;
             }
@@ -29,16 +25,38 @@ internal partial class LegacyNativeExchangeShopRuntime
         {
             try
             {
-                if (!TryCaptureBook(out var book, out _) || !TryCaptureGoodsCatalog(out var catalog)) return false;
-                var goods = catalog!.Rows.FirstOrDefault(row => row.Id == goods_rec_id);
-                if (goods.Row is null || goods.ShopId != shopid ||
-                    !TryPrepareCounter(book!, shopid, goods_rec_id, times, goods.Amount, out var staged)) return false;
-                if (!BookIsCurrent(book!) || !GoodsCatalogIsCurrent(catalog)) return false;
+                if (!TryPrepareGoodsCounterUpdate(shopid, goods_rec_id, times, out var book, out var catalog, out var staged)) return false;
+                if (!BookIsCurrent(book!) || !GoodsCatalogIsCurrent(catalog!)) return false;
                 if (staged is not null) Items = staged;
                 return true;
             }
             catch (Exception error) { ReportRefusal(nameof(AddItem), PreparationFailure(error)); return false; }
         }
+    }
+
+    private bool TryPrepareExCounterUpdate(uint shopid, uint goodsId, uint times, out BookState? book,
+        out ExCatalogState? catalog, out Dictionary<uint, Item>? staged)
+    {
+        catalog = null;
+        staged = null;
+        if (!TryCaptureBook(out book, out _) || !TryCaptureExCatalog(out catalog, out _) ||
+            HasForeignExCollision(book!, catalog!)) return false;
+        var goods = catalog!.Rows.FirstOrDefault(row => row.Id == goodsId);
+        if (goods.Row is null || goods.ShopId != shopid ||
+            !TryPrepareCounter(book!, shopid, goodsId, times, goods.Amount, out staged)) return false;
+        return true;
+    }
+
+    private bool TryPrepareGoodsCounterUpdate(uint shopid, uint goodsId, uint times, out BookState? book,
+        out GoodsCatalogState? catalog, out Dictionary<uint, Item>? staged)
+    {
+        catalog = null;
+        staged = null;
+        if (!TryCaptureBook(out book, out _) || !TryCaptureGoodsCatalog(out catalog)) return false;
+        var goods = catalog!.Rows.FirstOrDefault(row => row.Id == goodsId);
+        if (goods.Row is null || goods.ShopId != shopid ||
+            !TryPrepareCounter(book!, shopid, goodsId, times, goods.Amount, out staged)) return false;
+        return true;
     }
 
     private static bool TryPrepareCounter(BookState book, uint shopid, uint goodsId, uint increment,

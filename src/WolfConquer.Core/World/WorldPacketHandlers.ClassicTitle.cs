@@ -22,38 +22,19 @@ public static partial class WorldPacketHandlers
             return;
         }
         if (packet.Action == LegacyTitleAction.List)
-        {
-            // Prepare the complete immutable wire image before the first awaited
-            // publication. Each send still revalidates the exact live owner.
-            var frames = titles.Select(title => new LegacyTitlePacket((uint)session.Character.Uid,
-                title, LegacyTitleAction.Enqueue).ToFrameBytes()).ToArray();
-            await PublishClassicTitleAsync(context, session, identity, frames, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-        if (packet.Title != 0 && !titles.Contains(packet.Title))
-        {
-            await LogClassicTitleRefusalAsync(context, "titleNotOwned").ConfigureAwait(false);
-            return;
-        }
-        if (context.TradeRecovery is null || context.TradeRecovery.IsBlocked)
-        {
-            await LogClassicTitleRefusalAsync(context, "recoveryOwnerUnavailableOrBlocked").ConfigureAwait(false);
-            return;
-        }
-        var updated = session with { Character = WithCharacterAttribute(session.Character,
-            LegacyClassicTitleState.SelectedKey, packet.Title) };
-        var acknowledgement = new LegacyTitlePacket((uint)session.Character.Uid,
-            packet.Title, LegacyTitleAction.Change).ToFrameBytes();
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!TryCommitClassicTitle(context, session, updated, identity, cancellationToken, out var reason))
-        {
-            await LogClassicTitleRefusalAsync(context, reason).ConfigureAwait(false);
-            return;
-        }
-        var delivered = await PublishClassicTitleAsync(context, updated, identity,
-            [acknowledgement], cancellationToken).ConfigureAwait(false);
-        await context.Log.WriteLineAsync($"WorldServer LegacyTitle outcome=committed delivery={(delivered ? "complete" : "stopped")} title={packet.Title}.")
-            .ConfigureAwait(false);
+            await HandleClassicTitleListAsync(context, session, identity, titles, cancellationToken).ConfigureAwait(false);
+        else
+            await HandleClassicTitleChangeAsync(context, session, identity, titles, packet, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask HandleClassicTitleListAsync(WorldPacketHandlerContext context,
+        WorldSession session, object identity, byte[] titles, CancellationToken cancellationToken)
+    {
+        // Prepare every frame before the first await. Publication independently
+        // checks the exact original owner before each prepared Enqueue response.
+        var frames = titles.Select(title => new LegacyTitlePacket((uint)session.Character.Uid,
+            title, LegacyTitleAction.Enqueue).ToFrameBytes()).ToArray();
+        await PublishClassicTitleAsync(context, session, identity, frames, cancellationToken).ConfigureAwait(false);
     }
 
     private static bool TryResolveClassicTitleOwner(WorldPacketHandlerContext context,

@@ -2,39 +2,48 @@
 
 ## Current sanitized component and quality checkpoint
 
-Private and independent public Release each passed **2164/2164**, zero failures/
+Private and independent public Release each passed **2255/2255**, zero failures/
 skips. This includes real classic2152 save-before-session/acknowledgment, complete
 native weapon-slot admission and captured-seal packet bounds, genuine equipped-
 rune ownership and safe metadata queries, staged shop refresh/counters/load/Open,
 and the corrected one-sample daily countdown. Retained packet/PIN/spell-admission
 goldens remain. New classic controls68, stationary/captured seal12+14, countdown26
 and name-search31 are included; these overlap the wider selection, not extra totals.
+The expanded selection also includes complete XP-flag/prestige families and22
+new classic/shop phase controls. Five old missing-rune crash expectations now
+assert coherent flag/timer/packet and rank/guild updates with no named rune bonus.
 
-Thirteen observed CodeFactor findings are targeted: seven CA1827 queries and six
-CA1847 name-character searches. No warning suppression, exclusion or fake saver
-was introduced. The new mechanical name controls call only the published real
-Clan owner, not uncommitted Guild/Union APIs. Full name policy remains audit debt.
+CodeFactor on public2b993ece reports18FIXED/15NEW and2292 total findings. All13
+targeted CA1827/CA1847 records cleared, plus five older records. The15 new
+complexity/arithmetic findings are addressed locally through semantic phases and
+explicit grouping; remote analysis of this successor is pending. No suppression,
+exclusion or fake saver was introduced. Name controls use only the published
+real Clan owner, not held Guild/Union APIs. Full name policy remains audit debt.
 
 Eight unchanged native CRT tests initially refused a missing/array-valued probe
 environment. The exact measured PowerShell7 path/hash, already configured by the
 Windows check tool, passed all eight without changing/skipping tests. Earlier
 private1086/1086 and2118/2118 selections passed too.
 
-These are working-copy focused results. Clean committed-tree full CI and remote
-CodeFactor analysis for this successor are pending; the receipt below is the
-previous code revision, not proof of this new batch. See FIXED-SOURCE-BUGS.md
-FSB017..023 for exact completed scopes and remaining holds. Whole economy and
+These are working-copy focused results. Full Windows39939873007 on2b failed:
+core22056 passed/5failed,165 excluded; updater301/301 passed. Launcher/later checks
+were not run. Receipt20261023T103337163Z-06e30071 finished2026-10-23T10:37:01Z.
+All five failures were the old exception assertions corrected above; all five
+now pass within2255/2255 in both trees. Clean committed-tree CI for this successor
+is pending. The green receipt below is an older code revision, not this batch.
+See FIXED-SOURCE-BUGS.md FSB017..024 for completed scopes and remaining holds.
+Whole economy and
 weapon receivers, raw-writer synchronization, durable crash recovery, native eager
 lifecycle and live-client acceptance are not inferred. Held Guild work, original
 data, assets/configuration and local audit artifacts are not published.
 
-## Current title-file follow-up
+## Earlier title-file follow-up
 
 Private/public Release each passed **1119/1119** again after one Core file was
 refactored into semantic action classification, canonical mutation routing and
 staged active-flag updating. CodeFactor confirms0NEW/3FIXED on eae56f67 and zero
-active findings in the entire TitleStorage.cs file. Overall backlog is2295.
-The latest full receipt below verifies this same code. No updater
+active findings in the entire TitleStorage.cs file. Then-current backlog was2295.
+The historical full receipt below verifies that same code. No updater
 source changed from the verified batch below. No new test count is claimed.
 
 ## Combined quality cleanup
@@ -51,7 +60,7 @@ All seven new failure-order controls pass. No suppressions or weakened assertion
 The full green receipt below validates this batch; exact remote accounting is
 recorded with it. The later one-file follow-up is a separate verification scope.
 
-## Latest full Windows receipt
+## Earlier green full Windows receipt
 
 [Windows39933407353](https://github.com/vgcman16/wolfconquer/actions/runs/39933407353)
 passed in4m06s on exact `eae56f67e7ba11216b605c108a32abd54d40c73f`, completed

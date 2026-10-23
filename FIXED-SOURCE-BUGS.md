@@ -159,7 +159,7 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   constructor/current client binding, genuine Player/equipment ownership,
   complete authoritative/cache membership, nonzero unique UIDs and unique
   equipped physical positions. Inactive0/211/212 may legitimately repeat.
-- Missing/null/wrong-ID metadata grants no effect and cannot crash the caller;
+- Missing/null/wrong-ID metadata grants no named effect and cannot crash the caller;
   valid other runes still work. Keyword matching is ordinal-ignore-case, not
   host-culture dependent. Invalid queries clear out/ref results. Equipped count
   does not wrap. Old tests demanding crashes, foreign-owner effects or duplicate
@@ -228,22 +228,36 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-021 | Shop countdown targets midnight plus a minute using three clocks | One bounded local-calendar countdown sample | Display calculation fixed; scheduler/reset transaction open |
 | FSB-022 | Name policy regex checks only the final character; rename and uniqueness policies differ | Complete validated name policy and consistent authoritative uniqueness | Open; mechanical character-search cleanup is not a policy fix |
 | FSB-023 | Flag registration/reset/publication can mutate before a null bitmap/view or later failure | Validate/prepare before coherent current-owner registration; duplicates reject without side effects | Isolated implementation in progress; not integrated |
+| FSB-024 | Broader prestige rebuild still has legacy partial-publication, foreign-owner, duplicate-slot and arithmetic-wrap assumptions | Validate the whole genuine graph and prepare complete rank/guild state before coherent publication | Audit required; missing named-rune metadata is handled, not the whole rebuild |
 
 ## CodeFactor cleanup
 
-Current implemented successor targets seven observed CA1827 records across
-MonsterView, Rune equipped queries/PlusPoints, HundredWeapons queries and
-ExchangeShop.Loading, plus six CA1847 single-character name searches. Behavioral
-safety fixes accompany the query refactors; no suppressions/exclusions are used.
-Private and independent public Release each passed2164/2164,0fail/0skip,
-including31 additional delimiter/name/culture controls and retained API checks.
-The unchanged native CRT controls require a measured PowerShell7 binding; an
-initial missing/array-valued test environment caused8 probe failures in both trees.
-Binding the exact measured executable, as the CI tool already does, passed all
-eight without changing or skipping tests. Earlier1086/2118 selections also passed.
-The name cleanup does not fix FSB022. New tests use only the published genuine
-Clan caller, not APIs from the uncommitted Guild/Union HOLD. The remote analysis
-has not yet assessed this unpublished successor; do not subtract13 from its total.
+CodeFactor analyzed public2b993ece: **18FIXED/15NEW**, total **2292 findings**.
+All seven targeted CA1827 and six CA1847 records cleared, plus five older records.
+The15 new records are12 complexity and3 arithmetic-readability findings. They
+are addressed in the current semantic preparation/admission/parsing successor,
+not hidden by suppressions/exclusions. Remote analysis of this successor is pending.
+
+Private and independent public Release each passed **2255/2255**,0fail/0skip,
+including22 new classic/shop phase controls and the expanded full XP-flag/
+prestige families. Validation order, reasons, physical ownership, copy-on-write
+publication, prepared packet bounds and wire goldens remain checked. The prior
+2164/2164 selection and31 name-search controls are retained. Full name policy
+FSB022 remains open; tests do not depend on uncommitted Guild/Union APIs.
+
+Full Windows39939873007 on exact2b993ece failed: core22056 passed/5failed,
+165 excluded; updater301/301 passed; launcher/later checks were not run.
+Receipt20261023T103337163Z-06e30071 finished2026-10-23T10:37:01Z. The five
+failures were old tests requiring missing-rune exceptions. They now assert
+coherent XP replacement/addition with zero bonus, complete status/timer/packet
+state, and complete prestige/rank/guild updates with no named rune bonus.
+No malformed vector was made a valid fixture; the broader flag transaction and
+prestige rebuild remain separate audit work. The current2255-case selections
+pass all five corrected cases. Clean committed-tree full CI is still pending.
+
+The unchanged native CRT controls require a measured PowerShell7 binding. An
+earlier missing/array-valued environment caused8 probe failures in both trees;
+the exact measured executable passed all eight without changing/skipping tests.
 
 Previous verified checkpoint: full Windows39933407353 passed in4m06s on exact
 `eae56f67e7ba11216b605c108a32abd54d40c73f`: core21682 passed/0failed

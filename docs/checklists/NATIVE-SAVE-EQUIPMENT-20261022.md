@@ -7,13 +7,17 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
-- [x] New sanitized native weapon slots, complete rune equipped queries, staged
-  shop refresh/counters/load/Open, corrected daily countdown and active managed
-  classic2152 persisted selection passed private/public Release2164/2164,0fail/0skip.
-  Includes68 classic safety cases, retained11 codec/handler cases,12 stationary
-  and14 captured-seal bounds cases, and26 literal countdown cases. Also31 name
-  character-search controls target six more CodeFactor findings. Clean committed
-  CI and remote-analysis successor verification are pending; see ledgerFSB017..021.
+- [x] Current semantic cleanup and corrected missing-rune assertions passed
+  private/public Release2255/2255,0fail/0skip, including22 new classic/shop phase
+  controls and the expanded full XP-flag/prestige families. Earlier2164 coverage
+  remains: classic68+11, seal12+14, countdown26 and name-search31 controls.
+- [x] CodeFactor on public2b993ece:18FIXED/15NEW,total2292. All13 targeted
+  CA1827/CA1847 records cleared plus5 older ones. The15 new complexity/arithmetic
+  records are addressed locally; remote successor analysis is pending.
+- [ ] Full Windows39939873007 on2b failed5 obsolete missing-rune exception
+  assertions: core22056 passed/5failed,165 excluded; updater301/301 passed.
+  Launcher/later stages were not run. All five now assert safe coherent outcomes
+  and pass within2255/2255 both trees. New clean committed-tree CI is pending.
 - [ ] Whole weapon receivers2353/2354, shop paid refresh/purchase wallet/item
   transactions, native title eager lifecycle, Rune writers and flag transactions
   remain held. Query/component proof is not host adoption or durable recovery.
@@ -35,7 +39,7 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   0failed (165 excluded), updater301/301, launcher49/49, all8 check steps exit0.
   Earlier39932501975 was also green;39930101290 closed failed updater39926199302.
   CI is not deployment, live-client proof or full parity.
-- [x] CodeFactor confirms the15 new character-overload fixes absent, with current
+- [x] Earlier CodeFactor confirmed the15 character-overload fixes absent, with then
   total2295. Latest two code commits have0NEW/10FIXED, clearing all seven newly
   introduced warnings and three older ones. TitleStorage.cs now has zero active
   findings; private/public1119/1119 pass again and final full CI is green above.

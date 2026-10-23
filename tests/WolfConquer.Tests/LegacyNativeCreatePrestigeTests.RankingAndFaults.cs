@@ -80,25 +80,32 @@ public sealed partial class LegacyNativeCreatePrestigeTests
     }
 
     [Fact]
-    public void ActualRuneMetadataFaultOccursAfterRealRankPublicationAndPerfectionThresholdsButBeforeGuildWrite()
+    public void MissingNamedRuneMetadataGrantsNoBonusAndAllowsCompletePrestigeAndGuildUpdate()
     {
         using var fixture=new Fixture();var client=fixture.Client;
         client.Player.ServerID=2;client.Player.Reborn=2;SavedField(client.Player,"_level",(ushort)15);
         client.Player.MyGuild=LegacyNativeGuildRuntime.CreateLoadedGuild("Owned Guild");
-        client.Player.MyGuildMember=new(){PrestigePoints=777};
+        var member=new LegacyNativeGuildRuntime.Member(){PrestigePoints=777};
+        client.Player.MyGuildMember=member;
         client.PrestigeLevel=601;client.Equipment!.CurentEquip=[new(){ItemPoints=10000}];
         const uint id=4010001;
         LegacyNativePoolItems.ItemsBase![id]=new(){ID=id,Name="Sanctity"};
         var item=new LegacyNativeGameItemRuntime(){Uid=1,ITEM_ID=id,Position=101};
         Assert.True(client.Rune!.Add(item));
+        var cache=client.Rune.Objects;
+        var metadata=LegacyNativePoolItems.ItemsBase;
         Assert.True(LegacyNativePoolItems.ItemsBase.Remove(id)); // Real missing metadata only after genuine item birth.
-        Assert.Throws<KeyNotFoundException>(()=>client.CreatePrestigePoints());
+        client.CreatePrestigePoints();
         var entry=client.PrestrigeEntry!;
         Assert.Equal(25150u,entry.TotalPoints);Assert.Equal(25150u,client.MyPrestigePoints);
         Assert.Same(entry,Ranking.Ranks[Ranking.Type.World].Items[41]);
         Assert.Same(entry,Ranking.Ranks[Ranking.Type.WaterTao].Items[41]);
         Assert.Equal(200d,client.PerfectionStatus.ToxinEraser);Assert.Equal(8d,client.PerfectionStatus.DivineGuard);
-        Assert.Equal(777u,client.Player.MyGuildMember.PrestigePoints);
+        Assert.Same(member,client.Player.MyGuildMember);Assert.Equal(25150u,member.PrestigePoints);
+        Assert.Equal(client.PrestigePoints,entry.Points);Assert.NotSame(client.PrestigePoints,entry.Points);
+        Assert.Same(metadata,LegacyNativePoolItems.ItemsBase);Assert.False(metadata!.ContainsKey(id));
+        Assert.Same(cache,client.Rune.Objects);Assert.Same(item,Assert.Single(cache));
+        Assert.Equal(id,item.ITEM_ID);Assert.Equal((ushort)101,item.Position);Assert.Equal(1u,item.Uid);
     }
 
     [Fact]
