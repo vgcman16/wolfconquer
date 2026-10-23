@@ -152,21 +152,22 @@ public sealed partial class LegacyNativeNinjaRankTests
     }
 
     [Fact]
-    public void FlagSelectionUsesRegistrationsNotTheSeparateBitArray()
+    public void FlagSelectionRequiresCoherentRegistrationsAndWordsBeforeAppearance()
     {
         using var state = new State();
         var user = new LegacyNativeGameClientRuntime();
-        user.Player.BitVector.Add((int)LegacyNativeMsgUpdate.Flags.WeeklyPKChampion);
         Assert.True(user.Player.BitVector.TryAdd((int)LegacyNativeMsgUpdate.Flags.TopNinja, 0, false, 0));
-        user.Player.BitVector.Remove((int)LegacyNativeMsgUpdate.Flags.TopNinja);
-        var entry = Entry();
-
-        entry.AddInfo(user);
-
-        Assert.Equal(43u, entry.Flag);
-        Assert.True(user.Player.BitVector.Contain((int)LegacyNativeMsgUpdate.Flags.WeeklyPKChampion));
-        Assert.False(user.Player.BitVector.Contain((int)LegacyNativeMsgUpdate.Flags.TopNinja));
+        var entry = Entry(); var before = Values(entry);
+        user.Player.BitVector.Add((int)LegacyNativeMsgUpdate.Flags.WeeklyPKChampion);
+        Assert.Throws<InvalidDataException>(() => entry.AddInfo(user));
+        Assert.Equal(before, Values(entry));
+        user.Player.BitVector.Remove((int)LegacyNativeMsgUpdate.Flags.WeeklyPKChampion);
+        entry.AddInfo(user); Assert.Equal(43u, entry.Flag);
         Assert.True(user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.TopNinja));
+        before = Values(entry);
+        user.Player.BitVector.Remove((int)LegacyNativeMsgUpdate.Flags.TopNinja);
+        Assert.Throws<InvalidDataException>(() => entry.AddInfo(user));
+        Assert.Equal(before, Values(entry));
     }
 
     [Fact]
@@ -183,30 +184,20 @@ public sealed partial class LegacyNativeNinjaRankTests
     }
 
     [Fact]
-    public void MissingFlagOwnerFaultsAfterAllAppearanceAndGuildFieldsButBeforeChangingOldFlag()
+    public void MissingFlagOwnerRefusesBeforeAllAppearanceAndGuildFields()
     {
         using var state = new State();
         var user = new LegacyNativeGameClientRuntime();
-        PopulateRankAppearance(user.Player);
-        user.Player.SpecialWingID = 4001;
+        PopulateRankAppearance(user.Player); user.Player.SpecialWingID = 4001;
         user.Equipment = new LegacyNativeEquipItemStorage(user)
         {
             HeadID = 3101, LeftWeapon = 3102, RightWeapon = 3103,
         };
-        user.Player.MyGuild = LegacyNativeGuildRuntime.CreateLoadedGuild("Published before fault");
+        user.Player.MyGuild = LegacyNativeGuildRuntime.CreateLoadedGuild("Not published");
         user.Player.BitVector = null!;
-        var entry = Entry();
-
-        Assert.Throws<NullReferenceException>(() => entry.AddInfo(user));
-
-        Assert.Equal(new object[]
-        {
-            41u, "Hero", 2u, 404u, 505u, (byte)206, 707u,
-            3001u, 3101u, 3002u, 3102u, 3004u, 3103u, 3005u,
-            3006u, 3003u, 4001u, 17u, 3008u, 2020u, "Published before fault",
-        }, Values(entry));
-        Assert.Same(user.Player.MyGuild.GuildName, entry.GuildName);
-        Assert.Empty(Ranking.Ranks);
+        var entry = Entry(); var before = Values(entry);
+        Assert.Throws<InvalidDataException>(() => entry.AddInfo(user));
+        Assert.Equal(before, Values(entry)); Assert.Empty(Ranking.Ranks);
     }
 
     [Fact]

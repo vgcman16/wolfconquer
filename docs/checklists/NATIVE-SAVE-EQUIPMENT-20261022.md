@@ -7,6 +7,15 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Private/public Release1931/1931 each verifies the coherent flag/consumer batch:
+  prepared real status frames/state, explicit unavailable membership, no dirty
+  potion rejection, checked XP duration, stale-target/rank/effect protections,
+  final captured-owner commitment and immutable shared physical-spell factors.
+  Existing successful damage/RNG/packet goldens remain. Full Windows CI pending.
+- [ ] Full lifecycle/cast/HP/death, rank publication, item/potion expiry, Sage
+  archive precommit preparation, host recovery and raw concurrent writers remain
+  open. This offline component checkpoint does not deploy or change a client.
+
 - [x] Published7a79ebc5 passes full Windows39945614990 in4m06s: core22196/0failed
   (165 excluded), updater301/301, launcher49/49, all8 stages0. CodeFactor confirms
   0NEW/4FIXED,total2268, net59 fewer than2327. Build warnings and gameplay debt

@@ -11,7 +11,8 @@ internal class LegacyNativeEffectShield
 		LegacyNativeMsgSpellAnimation msgSpellAnimation = new LegacyNativeMsgSpellAnimation(user.Player.UID, 0u, user.Player.X, user.Player.Y, 1020, 4, 0);
 		if (!user.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.MagicShield))
 		{
-			user.Player.AddSpellFlag(LegacyNativeMsgUpdate.Flags.MagicShield, 40, RemoveOnDead: true);
+			// This path observed absence. Refusal must not become a claimed-success animation.
+			if (!user.Player.AddFlag(LegacyNativeMsgUpdate.Flags.MagicShield, 40, RemoveOnDead: true)) return;
 			msgSpellAnimation.Targets.Enqueue(new LegacyNativeMsgSpellAnimation.SpellObj(user.Player.UID, 0u, LegacyNativeMsgAttackPacket.AttackEffect.None));
 		}
 		msgSpellAnimation.SetStream(stream);

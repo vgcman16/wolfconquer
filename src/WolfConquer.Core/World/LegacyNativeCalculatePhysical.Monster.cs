@@ -8,12 +8,17 @@ internal static partial class LegacyNativeCalculatePhysical
     // Whole native Physical.OnMonster14..152. No floor/cold-path-only substitute.
 public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonsterRole monster, LegacyNativeMagicType.Magic? DBSpell, out LegacyNativeMsgSpellAnimation.SpellObj SpellObj, byte MultipleDamage = 0)
 	{
-		SpellObj = new LegacyNativeMsgSpellAnimation.SpellObj(monster.UID, 0u, LegacyNativeMsgAttackPacket.AttackEffect.None);
+		uint targetUid = monster.UID;
 		if (monster.IsFloor)
 		{
+			SpellObj = new LegacyNativeMsgSpellAnimation.SpellObj(targetUid, 0u, LegacyNativeMsgAttackPacket.AttackEffect.None);
 			SpellObj.Damage = 2u;
 			return;
 		}
+		// Admission precedes the output assignment, RNG, local spell floor and proc sends.
+		// It does not turn the later multi-owner calculation into an atomic transaction.
+		RequireMonsterPhysicalStatus(player);
+		SpellObj = new LegacyNativeMsgSpellAnimation.SpellObj(targetUid, 0u, LegacyNativeMsgAttackPacket.AttackEffect.None);
 		int damage = (int)LegacyNativeAttackBase.GetDamage(player.Owner.Status.MaxAttack, player.Owner.Status.MinAttack);
 		damage = (int)player.Owner.AjustAttack((uint)damage, player);
 		damage = (int)player.Owner.AjustMaxAttack((uint)damage);
@@ -23,11 +28,14 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 		{
 			damage += damage * 2;
 		}
-		if (DBSpell != null && DBSpell.Damage < 10f)
+		// Catalog rows are shared: the minimum is an effective value for this hit,
+		// never a write to DBSpell. NaN/Infinity retain the existing comparison path.
+		float effectiveSpellDamage = DBSpell?.Damage ?? 0f;
+		if (DBSpell != null && effectiveSpellDamage < 10f)
 		{
-			DBSpell.Damage = 10f;
+			effectiveSpellDamage = 10f;
 		}
-		damage = (player.ContainFlag(LegacyNativeMsgUpdate.Flags.FatalStrike) ? LegacyNativeAttackBase.MulDiv(damage, 500, 100) : ((DBSpell != null && DBSpell.ID == 12860) ? LegacyNativeAttackBase.MulDiv(damage, 350, 100) : ((MultipleDamage != 0) ? (damage * MultipleDamage) : ((DBSpell != null && DBSpell.ID == 12770) ? ((monster.Boss != 1) ? LegacyNativeAttackBase.MulDiv(damage, 500, 100) : LegacyNativeAttackBase.MulDiv(damage, 350, 100)) : ((DBSpell == null || !LegacyNativeCombatGear.CheckSpells(DBSpell.ID)) ? LegacyNativeAttackBase.MulDiv(damage, PhysicalMonsterFactor(DBSpell?.Damage ?? ((float)LegacyNativeServerConfig.PhysicalDamage)), 100) : LegacyNativeCombatGear.GetDamage(damage, DBSpell.GDamage, DBSpell.DamageOnHuman, DBSpell.Damage2, DBSpell.Damage3, DBSpell.DamageOnMonster, Player: false))))));
+		damage = (player.ContainFlag(LegacyNativeMsgUpdate.Flags.FatalStrike) ? LegacyNativeAttackBase.MulDiv(damage, 500, 100) : ((DBSpell != null && DBSpell.ID == 12860) ? LegacyNativeAttackBase.MulDiv(damage, 350, 100) : ((MultipleDamage != 0) ? (damage * MultipleDamage) : ((DBSpell != null && DBSpell.ID == 12770) ? ((monster.Boss != 1) ? LegacyNativeAttackBase.MulDiv(damage, 500, 100) : LegacyNativeAttackBase.MulDiv(damage, 350, 100)) : ((DBSpell == null || !LegacyNativeCombatGear.CheckSpells(DBSpell.ID)) ? LegacyNativeAttackBase.MulDiv(damage, PhysicalMonsterFactor(DBSpell != null ? effectiveSpellDamage : (float)LegacyNativeServerConfig.PhysicalDamage), 100) : LegacyNativeCombatGear.GetDamage(damage, DBSpell.GDamage, DBSpell.DamageOnHuman, DBSpell.Damage2, DBSpell.Damage3, DBSpell.DamageOnMonster, Player: false))))));
 		if (player.ContainFlag(LegacyNativeMsgUpdate.Flags.ManiacDance))
 		{
 			damage = ((monster.Boss != 0) ? (damage * 3) : (damage * 10));

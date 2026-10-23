@@ -155,24 +155,22 @@ public sealed class LegacyNativeExtraEffectTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public Task AVisibleBitWithoutRegistrationDoesNotBlockAdmission(bool ring) => NativePacketTestThread.Run(() =>
+    public Task IncoherentVisibleStatusCannotAuthorizeExtraEffectAdmissionOrSuccessAnimation(bool ring) => NativePacketTestThread.Run(() =>
     {
         using var f = new ExtraFixture(NativeAttackRandomScope.FindSeed(1, r => r[0] < 20));
         Enable(f, ring);
         var key = (int)(ring ? Status.Stigma : Status.MagicShield);
         f.Owner.Player.BitVector.Add(key);
-        Assert.False(f.Owner.Player.BitVector.ContainFlag(key));
-
-        LegacyNativeGetWeaponSpell.CheckExtraEffects(f.Owner, f.Packet);
-
-        Assert.True(f.Owner.Player.BitVector.ContainFlag(key));
+        var vector = f.Owner.Player.BitVector; var registry = vector.ArrayFlags;
+        var words = vector.bits; var before = words.ToArray();
+        Assert.Throws<InvalidDataException>(() => vector.ContainFlag(key));
+        Assert.Throws<InvalidDataException>(() => LegacyNativeGetWeaponSpell.CheckExtraEffects(f.Owner, f.Packet));
+        Assert.Same(registry, vector.ArrayFlags); Assert.Empty(registry);
+        Assert.Same(words, vector.bits); Assert.Equal(before, vector.bits);
         Assert.True(f.Owner.Player.BitVector.Contain(key));
-        Assert.Equal(ring ? 20 : 15, f.Owner.Player.BitVector.ArrayFlags[key].Secounds);
-        var frames = f.Queue.ToArray();
-        Assert.Equal(2, frames.Length);
-        AssertStatusFrame(frames[0], Mask(ring));
-        AssertAnimationFrame(frames[1], ring ? 1095 : 1020);
-        f.Random.AssertDrawCount(1);
+        Assert.Empty(f.Queue); f.AssertCallerPacketUnchanged();
+        // Pre-query RNG and later proc publication are separate transaction debt.
+        // Do not require a dirty RNG prefix as sanitized acceptance behavior.
     });
 
     [Fact]

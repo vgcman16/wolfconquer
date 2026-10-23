@@ -6,8 +6,9 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeCombatCalculationTests
 {
     [Theory]
-    [InlineData(false, 7)] [InlineData(true, 45)] [InlineData(false, -2)] [InlineData(true, 0)]
-    public Task PotionWritersPublishTimestampThenRealFlagAndFixedThirtyMinuteChat(bool defense, int minutes)
+    [InlineData(false, 7)] [InlineData(true, 45)]
+    [InlineData(false, int.MaxValue)] [InlineData(true, int.MaxValue)]
+    public Task PotionWritersCommitTimestampAndRealFlagBeforeTruthfulDurationChat(bool defense, int minutes)
         => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); DateTime before = DateTime.Now;
@@ -24,8 +25,8 @@ public sealed partial class LegacyNativeCombatCalculationTests
         var talk = Talk(s.Queue.Dequeue());
         Assert.Equal((uint)LegacyNativeMsgMessage.ChatMode.Talk, talk.ChatType);
         Assert.Equal((uint)LegacyNativeMsgMessage.MsgColor.red, talk.Color);
-        Assert.Equal(new[] { "SYSTEM", "ALL", "", defense ? "Your defense will increase during the next 30 minutes." :
-            "Your attack will increase during the next 30 minutes.", "", "", "" }, talk.Content);
+        Assert.Equal(new[] { "SYSTEM", "ALL", "", defense ? $"Your defense will increase during the next {minutes} minutes." :
+            $"Your attack will increase during the next {minutes} minutes.", "", "", "" }, talk.Content);
         Assert.False(defense ? s.Player.OnAttackPotion : s.Player.OnDefensePotion);
     });
 
@@ -45,30 +46,25 @@ public sealed partial class LegacyNativeCombatCalculationTests
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public Task TimestampFailureLeavesBooleanCommittedAndOldStampWithNoFlagOrChat(bool defense) => NativePacketTestThread.Run(() =>
+    public Task InvalidNegativeDurationRefusesWithoutBooleanFlagOrChatMutation(bool defense) => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); DateTime old = new(2001, 2, 3);
         s.Player.OnAttackPotionStamp = old; s.Player.OnDefensePotionStamp = old;
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-        {
-            if (defense) s.Player.ActiveDefensePotion(int.MinValue); else s.Player.ActiveAttackPotion(int.MinValue);
-        });
-        Assert.True(defense ? s.Player.OnDefensePotion : s.Player.OnAttackPotion);
+        if (defense) s.Player.ActiveDefensePotion(int.MinValue); else s.Player.ActiveAttackPotion(int.MinValue);
+        Assert.False(s.Player.OnDefensePotion); Assert.False(s.Player.OnAttackPotion);
         Assert.Equal(old, defense ? s.Player.OnDefensePotionStamp : s.Player.OnAttackPotionStamp);
         Assert.Empty(s.Player.BitVector.ArrayFlags); Assert.Empty(s.Queue);
     });
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public Task RecycleFaultRetainsTimestampAndRealFlagPrefixButNoChat(bool defense) => NativePacketTestThread.Run(() =>
+    public Task RecycleFaultRefusesBeforeTimestampBooleanFlagOrChat(bool defense) => NativePacketTestThread.Run(() =>
     {
-        using var s = new Scope(); s.NullBin(); DateTime before = DateTime.Now;
-        Assert.Throws<NullReferenceException>(() =>
-        {
-            if (defense) s.Player.ActiveDefensePotion(4); else s.Player.ActiveAttackPotion(4);
-        });
-        Assert.True(defense ? s.Player.OnDefensePotion : s.Player.OnAttackPotion);
-        Assert.True((defense ? s.Player.OnDefensePotionStamp : s.Player.OnAttackPotionStamp) >= before.AddMinutes(4));
-        Assert.True(s.Player.ContainFlag(defense ? Flag.MagicShield : Flag.Stigma)); Assert.Empty(s.Queue);
+        using var s = new Scope(); s.NullBin();
+        DateTime attackStamp = s.Player.OnAttackPotionStamp, defenseStamp = s.Player.OnDefensePotionStamp;
+        if (defense) s.Player.ActiveDefensePotion(4); else s.Player.ActiveAttackPotion(4);
+        Assert.False(s.Player.OnDefensePotion); Assert.False(s.Player.OnAttackPotion);
+        Assert.Equal(attackStamp, s.Player.OnAttackPotionStamp); Assert.Equal(defenseStamp, s.Player.OnDefensePotionStamp);
+        Assert.False(s.Player.ContainFlag(defense ? Flag.MagicShield : Flag.Stigma)); Assert.Empty(s.Queue);
     });
 }

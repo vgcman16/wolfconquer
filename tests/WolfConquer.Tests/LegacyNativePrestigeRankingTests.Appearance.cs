@@ -67,7 +67,9 @@ public sealed partial class LegacyNativePrestigeRankingTests
         Assert.Equal(2020u,row.Flag);
         Assert.Equal("Current guild",row.GuildName);
         Assert.Same(points,row.Points);
-        Assert.Throws<NullReferenceException>(()=>row.AddInfo(user));
+        var before = Values(row);
+        Assert.Throws<InvalidDataException>(()=>row.AddInfo(user));
+        Assert.Equal(before, Values(row));
         Assert.Equal(2020u,row.Flag);
         Assert.Equal(88u,row.Wing);
     }

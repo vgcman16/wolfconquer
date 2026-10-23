@@ -8,9 +8,8 @@ internal partial class LegacyNativeStaticRoleRuntime
 {
 	public bool AddFlag(LegacyNativeMsgUpdate.Flags Flag, int Secounds, bool RemoveOnDead, int StampSecounds = 0)
 	{
-		if (!BitVector.ContainFlag((int)Flag))
+		if (BitVector is not null && BitVector.TryAdd((int)Flag, Secounds, RemoveOnDead, StampSecounds))
 		{
-			BitVector.TryAdd((int)Flag, Secounds, RemoveOnDead, StampSecounds);
 			UpdateFlagOffset();
 			return true;
 		}
@@ -19,9 +18,8 @@ internal partial class LegacyNativeStaticRoleRuntime
 
 	public bool RemoveFlag(LegacyNativeMsgUpdate.Flags Flag, LegacyNativeGameMap map)
 	{
-		if (BitVector.ContainFlag((int)Flag))
+		if (BitVector is not null && BitVector.TryRemove((int)Flag))
 		{
-			BitVector.TryRemove((int)Flag);
 			UpdateFlagOffset();
 			return true;
 		}

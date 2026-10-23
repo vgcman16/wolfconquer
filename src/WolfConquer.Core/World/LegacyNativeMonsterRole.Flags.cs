@@ -7,18 +7,14 @@ internal partial class LegacyNativeMonsterRole
 {
 	public void AddSpellFlag(LegacyNativeMsgUpdate.Flags Flag, int Secounds, bool RemoveOnDead, int SecoundStamp = 0)
 	{
-		if (BitVector.ContainFlag((int)Flag))
-		{
-			BitVector.TryRemove((int)Flag);
-		}
-		AddFlag(Flag, Secounds, RemoveOnDead, SecoundStamp);
+		if (BitVector is not null && BitVector.TryReplace((int)Flag, Secounds, RemoveOnDead, SecoundStamp))
+			UpdateFlagOffset();
 	}
 
 	public bool AddFlag(LegacyNativeMsgUpdate.Flags Flag, int Secounds, bool RemoveOnDead, int StampSecounds = 0)
 	{
-		if (!BitVector.ContainFlag((int)Flag))
+		if (BitVector is not null && BitVector.TryAdd((int)Flag, Secounds, RemoveOnDead, StampSecounds))
 		{
-			BitVector.TryAdd((int)Flag, Secounds, RemoveOnDead, StampSecounds);
 			UpdateFlagOffset();
 			return true;
 		}
@@ -27,9 +23,8 @@ internal partial class LegacyNativeMonsterRole
 
 	public bool RemoveFlag(LegacyNativeMsgUpdate.Flags Flag, LegacyNativeGameMap? map)
 	{
-		if (BitVector.ContainFlag((int)Flag))
+		if (BitVector is not null && BitVector.TryRemove((int)Flag))
 		{
-			BitVector.TryRemove((int)Flag);
 			UpdateFlagOffset();
 			return true;
 		}
@@ -43,8 +38,8 @@ internal partial class LegacyNativeMonsterRole
 
 	public void ClearFlags(bool SendScreem = false)
 	{
-		BitVector.GetClear();
-		UpdateFlagOffset(SendScreem);
+		if (BitVector is not null && BitVector.TryClearDeath())
+			UpdateFlagOffset(SendScreem);
 	}
 
 	public bool ContainFlag(LegacyNativeMsgUpdate.Flags Flag)

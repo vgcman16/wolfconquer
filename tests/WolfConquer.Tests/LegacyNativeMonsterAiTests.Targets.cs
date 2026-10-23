@@ -49,11 +49,12 @@ public sealed partial class LegacyNativeMonsterAiTests
     });
 
     [Fact]
-    public Task WholeTargetMethodsKeepNativeNullAndDeadMonsterPrefix()=>NativePacketTestThread.Run(()=>
+    public Task WholeTargetMethodsKeepNullAndDeadMonsterPrefixButRefuseMissingTriggerStatus()=>NativePacketTestThread.Run(()=>
     {
         using var s=new Scope();s.Ai.CheckTarget(null!,null);s.Ai.SearchTarget(null,null);
         var role=s.Monster();role.HitPoints=0;role.Target=s.Player;role.State=LegacyNativeMobStatus.Attacking;
         s.Ai.CheckTarget(null!,role);s.Ai.SearchTarget(null,role);Assert.Same(s.Player,role.Target);Assert.Equal(LegacyNativeMobStatus.Attacking,role.State);
-        role.HitPoints=1;Assert.Throws<NullReferenceException>(()=>s.Ai.CheckTarget(null!,role));
+        role.HitPoints=1;s.Ai.CheckTarget(null!,role);
+        Assert.Null(role.Target);Assert.Equal(LegacyNativeMobStatus.Idle,role.State);Assert.Empty(s.Queue);
     });
 }

@@ -1,4 +1,3 @@
-using WolfConquer.Core.Networking;
 using WolfConquer.Core.World;
 using SageFlag = WolfConquer.Core.World.LegacyNativeMsgUpdate.Flags;
 
@@ -7,99 +6,81 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeNinjaLoadingTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public Task SageModeNullBinFaultDistinguishesNewFlagPublicationFromDuplicateArchiveAdmission(bool existing) =>
-        NativePacketTestThread.Run(() =>
+    [InlineData(false)] [InlineData(true)]
+    public Task SageModeMissingPoolCannotPublishNewRegistrationOrDuplicateArchive(bool existing)
+        => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope(); var player = scope.Client.Player; var vector = player.BitVector;
+        if (existing) Assert.True(vector.TryAdd((int)SageFlag.SageSpeedMode, 77, false, 7));
+        var before = SageAdmissionSnapshot.Capture(scope, player);
+        scope.UseNullBin();
+        try
         {
-            using var scope = new Scope();
-            var vector = scope.Client.Player.BitVector;
-            if (existing) Assert.True(vector.TryAdd((int)SageFlag.SageSpeedMode, 77, false, 7));
-            var priorRow = existing ? vector.ArrayFlags[(int)SageFlag.SageSpeedMode] : null;
-            scope.UseNullBin();
-            try { Assert.Throws<NullReferenceException>(() => scope.Ninja.SageMode(10)); }
-            finally { scope.RestoreOwnedBin(); }
-            var row = vector.ArrayFlags[(int)SageFlag.SageSpeedMode];
-            if (existing) Assert.Same(priorRow, row);
-            Assert.Equal(existing ? 77 : 10, row.Secounds);
-            Assert.Equal(existing ? 7 : 0, row.InvokerSecouds);
-            Assert.Equal(!existing, row.RemoveOnDead);
-            Assert.True(vector.Contain((int)SageFlag.SageSpeedMode));
-            Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available); scope.Untaken(0);
-        });
+            // A duplicate needs only the archive rental; its preparation failure
+            // propagates before any state or output. An absent grant's actual
+            // AddFlag contains its preparation failure and returns false.
+            if (existing) Assert.Throws<NullReferenceException>(() => scope.Ninja.SageMode(10));
+            else scope.Ninja.SageMode(10);
+        }
+        finally { scope.RestoreOwnedBin(); }
+        before.Unchanged(scope, player);
+        Assert.Equal(existing, vector.ArrayFlags.ContainsKey((int)SageFlag.SageSpeedMode));
+    });
 
     [Theory]
-    [InlineData("user")]
-    [InlineData("player")]
-    [InlineData("vector")]
-    public Task SageModeMissingOwnerFaultsBeforeEitherPacketTake(string missing) =>
-        NativePacketTestThread.Run(() =>
-        {
-            using var scope = new Scope();
-            if (missing == "user") scope.Ninja.user = null!;
-            if (missing == "player") scope.Client.Player = null!;
-            if (missing == "vector") scope.Client.Player.BitVector = null!;
-            Assert.Throws<NullReferenceException>(() => scope.Ninja.SageMode(10));
-            Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available); scope.Untaken(0);
-        });
+    [InlineData("user")] [InlineData("player")] [InlineData("vector")]
+    public Task SageModeMissingRequiredOwnerRefusesBeforeEitherPacketTake(string missing)
+        => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope(); var player = scope.Client.Player;
+        if (missing == "user") scope.Ninja.user = null!;
+        if (missing == "player") scope.Client.Player = null!;
+        if (missing == "vector") player.BitVector = null!;
+        var before = SageAdmissionSnapshot.Capture(scope, player);
+        scope.Ninja.SageMode(10);
+        before.Unchanged(scope, player);
+    });
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public Task SageModeNewFlagViewFaultRetainsRegistrationAndOwnerBitmapButPreventsArchive(bool missingMapView) =>
-        NativePacketTestThread.Run(() =>
-        {
-            using var scope = new Scope();
-            if (missingMapView) scope.Client.Map = new LegacyNativeGameMap(72, 72, 1002);
-            else scope.Client.Player.View = null!;
-            Assert.Throws<NullReferenceException>(() => scope.Ninja.SageMode(10));
-            var row = scope.Client.Player.BitVector.ArrayFlags[(int)SageFlag.SageSpeedMode];
-            Assert.Equal(10, row.Secounds); Assert.True(row.RemoveOnDead);
-            scope.Sent(SageBitmap(17)); scope.Serialized(0, SageBitmap(17));
-            Assert.Equal(11, scope.Available); scope.Untaken(1);
-            if (missingMapView) Assert.Null(scope.Client.Map!.View);
-        });
+    [InlineData(false)] [InlineData(true)]
+    public Task SageModeNewFlagRejectsUnavailableViewBeforeRegistrationOrArchive(bool missingMapView)
+        => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope(); var player = scope.Client.Player;
+        if (missingMapView) scope.Client.Map = new LegacyNativeGameMap(72, 72, 1002);
+        else player.View = null!;
+        var before = SageAdmissionSnapshot.Capture(scope, player);
+        scope.Ninja.SageMode(10);
+        before.Unchanged(scope, player);
+        Assert.Empty(player.BitVector.ArrayFlags);
+        if (missingMapView) Assert.Null(scope.Client.Map!.View);
+    });
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public Task SageModeDuplicateViewFaultOccursAfterOwnerArchiveSendWithNoBitmapOrRenewal(bool missingMapView) =>
-        NativePacketTestThread.Run(() =>
-        {
-            using var scope = new Scope();
-            var vector = scope.Client.Player.BitVector;
-            Assert.True(vector.TryAdd((int)SageFlag.SageSpeedMode, 77, false, 7));
-            var row = vector.ArrayFlags[(int)SageFlag.SageSpeedMode];
-            DateTime timer = row.Timer;
-            if (missingMapView) scope.Client.Map = new LegacyNativeGameMap(72, 72, 1002);
-            else scope.Client.Player.View = null!;
-            try
-            {
-                Assert.Throws<NullReferenceException>(() => scope.Ninja.SageMode(20));
-                scope.Sent(SageArchive(17, 20)); AssertSageArchiveBuffer(scope, 0, 17, 20);
-                Assert.Same(row, vector.ArrayFlags[(int)SageFlag.SageSpeedMode]);
-                Assert.Equal(timer, row.Timer); Assert.Equal(77, row.Secounds);
-                Assert.False(row.RemoveOnDead); Assert.Equal(7, row.InvokerSecouds);
-                Assert.Equal(11, scope.Available); scope.Untaken(1);
-                if (missingMapView) Assert.Null(scope.Client.Map!.View);
-            }
-            finally { LegacyNativePacketRecycle.Reuse(scope.Used(0)); }
-        });
+    [InlineData(false)] [InlineData(true)]
+    public Task SageModeDuplicateRejectsUnavailableViewWithoutArchiveOrRenewal(bool missingMapView)
+        => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope(); var player = scope.Client.Player; var vector = player.BitVector;
+        Assert.True(vector.TryAdd((int)SageFlag.SageSpeedMode, 77, false, 7));
+        if (missingMapView) scope.Client.Map = new LegacyNativeGameMap(72, 72, 1002);
+        else player.View = null!;
+        var before = SageAdmissionSnapshot.Capture(scope, player);
+        scope.Ninja.SageMode(20);
+        before.Unchanged(scope, player);
+        Assert.Same(before.Rows[0].Row, vector.ArrayFlags[(int)SageFlag.SageSpeedMode]);
+        if (missingMapView) Assert.Null(scope.Client.Map!.View);
+    });
 
     [Fact]
-    public Task SageModeBrokenBitmapFaultLeavesTheRealRegistrationPrefixBeforeAnyUpdateOrPacketTake() =>
-        NativePacketTestThread.Run(() =>
-        {
-            using var scope = new Scope();
-            var vector = scope.Client.Player.BitVector;
-            vector.bits = null!;
-            var before = DateTime.Now;
-            Assert.Throws<NullReferenceException>(() => scope.Ninja.SageMode(10));
-            var after = DateTime.Now;
-            var row = vector.ArrayFlags[(int)SageFlag.SageSpeedMode];
-            Assert.Equal(10, row.Secounds); Assert.True(row.RemoveOnDead);
-            Assert.InRange(row.Timer, before, after); Assert.Null(vector.bits);
-            Assert.Empty(vector.GetFlags()); // TryAdd faults before publishing its Update=true cache bit.
-            Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available); scope.Untaken(0);
-        });
+    public Task SageModeUnavailableBitmapRefusesWithoutRegistrationOrArchivePrefix()
+        => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope(); var player = scope.Client.Player; var vector = player.BitVector;
+        vector.bits = null!;
+        var before = SageAdmissionSnapshot.Capture(scope, player);
+        scope.Ninja.SageMode(10);
+        before.Unchanged(scope, player);
+        Assert.Empty(vector.ArrayFlags); Assert.Null(vector.bits); Assert.Empty(vector.GetFlags());
+    });
 }

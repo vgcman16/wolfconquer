@@ -1,30 +1,36 @@
-#nullable disable
-
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
-// Complete native component used by the single physical Player.BitVector owner.
-// Player flag wrappers are separate; RemoveFlag/ClearFlags remain unfinished work.
-internal class LegacyNativeStatusFlagsBigVector32 : LegacyNativeBitVector32
+// Sanitized cooperating-method owner. Public raw fields and escaped Flag values
+// are legacy compatibility surfaces, not an atomic read/write transaction API.
+internal partial class LegacyNativeStatusFlagsBigVector32 : LegacyNativeBitVector32
 {
+    public const int PermanentFlag = 2592000;
+    public const int PermanentFlag2 = 604800;
+    public const int PermanentFlag3 = 86400;
+
+    public ConcurrentDictionary<int, Flag> ArrayFlags;
+    private Flag[] Array = new Flag[0];
+    internal object SyncRoot { get; } = new();
+
+    public LegacyNativeStatusFlagsBigVector32(int Size) : base(NonNegativeSize(Size))
+        => ArrayFlags = new();
+
+    private static int NonNegativeSize(int size)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(size);
+        return size;
+    }
+
     public class Flag
     {
-        public int Secounds = 0;
-
-        public int InvokerSecouds = 0;
-
+        public int Secounds;
+        public int InvokerSecouds;
         public int Key;
-
-        public DateTime TimerInvoker = default(DateTime);
-
-        public DateTime Timer = default(DateTime);
-
-        public bool RemoveOnDead = false;
+        public DateTime TimerInvoker;
+        public DateTime Timer;
+        public bool RemoveOnDead;
 
         public Flag(int _flag, int _Secounds, bool _removeondead, int _InvokerSecouds)
         {
@@ -33,155 +39,24 @@ internal class LegacyNativeStatusFlagsBigVector32 : LegacyNativeBitVector32
             Timer = DateTime.Now;
             RemoveOnDead = _removeondead;
             InvokerSecouds = _InvokerSecouds;
-            if (InvokerSecouds != 0)
-            {
-                TimerInvoker = DateTime.Now;
-            }
+            if (InvokerSecouds != 0) TimerInvoker = DateTime.Now;
         }
 
-        public bool Expire(DateTime Now)
-        {
-            if (Now >= Timer.AddSeconds(Secounds))
-            {
-                return true;
-            }
-            return false;
-        }
+        public bool Expire(DateTime Now) =>
+            TryDeadline(Timer, Secounds, out var deadline) && Now >= deadline;
 
         public bool CheckInvoke(DateTime Now)
         {
-            if (InvokerSecouds == 0)
-            {
-                return true;
-            }
-            if (Now >= TimerInvoker.AddSeconds(InvokerSecouds))
-            {
-                TimerInvoker = DateTime.Now;
-                return true;
-            }
-            return false;
-        }
-    }
-
-    public const int PermanentFlag = 2592000;
-
-    public const int PermanentFlag2 = 604800;
-
-    public const int PermanentFlag3 = 86400;
-
-    public ConcurrentDictionary<int, Flag> ArrayFlags;
-
-    private Flag[] Array = new Flag[0];
-
-    private bool Update = false;
-
-    public LegacyNativeStatusFlagsBigVector32(int Size)
-        : base(Size)
-    {
-        ArrayFlags = new ConcurrentDictionary<int, Flag>();
-    }
-
-    public bool TryAdd(int flag, int Secounds, bool RemoveOnDead, int InvokerSecouds)
-    {
-        if (!ArrayFlags.ContainsKey(flag))
-        {
-            ArrayFlags.TryAdd(flag, new Flag(flag, Secounds, RemoveOnDead, InvokerSecouds));
-            Add(flag);
-            Update = true;
+            if (InvokerSecouds == 0) return true;
+            if (!TryDeadline(TimerInvoker, InvokerSecouds, out var deadline) || Now < deadline) return false;
+            TimerInvoker = DateTime.Now;
             return true;
         }
-        return false;
     }
 
-    public bool UpdateFlag(int flag, int Secounds, bool SetNewTimer, int MaxSecounds)
+    private static bool TryDeadline(DateTime timer, int seconds, out DateTime deadline)
     {
-        if (ArrayFlags.TryGetValue(flag, out var value))
-        {
-            if (SetNewTimer)
-            {
-                value.Timer = DateTime.Now;
-                value.Secounds = Secounds;
-            }
-            else if (value.Timer.AddSeconds(value.Secounds) > DateTime.Now.AddSeconds(MaxSecounds))
-            {
-                value.Timer = DateTime.Now;
-                value.Secounds = MaxSecounds;
-            }
-            else
-            {
-                value.Secounds += Secounds;
-            }
-            return true;
-        }
-        return false;
-    }
-
-    public bool TryRemove(int flag)
-    {
-        if (ArrayFlags.TryRemove(flag, out var _))
-        {
-            Remove(flag);
-            Update = true;
-            return true;
-        }
-        return false;
-    }
-
-    public bool InLife(int flag, DateTime Now64)
-    {
-        if (ArrayFlags.TryGetValue(flag, out var value))
-        {
-            return value.Expire(Now64);
-        }
-        return false;
-    }
-
-    public bool CheckInvoke(int flag, DateTime Now64)
-    {
-        if (ArrayFlags.TryGetValue(flag, out var value))
-        {
-            return value.CheckInvoke(Now64);
-        }
-        return false;
-    }
-
-    public bool ContainFlag(int flag)
-    {
-        return ArrayFlags.ContainsKey(flag);
-    }
-
-    public void GetClear()
-    {
-        List<int> list = new List<int>();
-        Flag[] flags = GetFlags();
-        foreach (Flag flag in flags)
-        {
-            if (flag.RemoveOnDead)
-            {
-                list.Add(flag.Key);
-            }
-        }
-        foreach (int item in list)
-        {
-            TryRemove(item);
-        }
-    }
-
-    public Flag[] GetFlags()
-    {
-        try
-        {
-            if (Update)
-            {
-                Array = ArrayFlags.Values.ToArray();
-                Update = false;
-            }
-            return Array;
-        }
-        catch (Exception e)
-        {
-            LegacyNativeConsole.WriteException(e);
-            return new Flag[0];
-        }
+        try { deadline = timer.AddSeconds(seconds); return true; }
+        catch (ArgumentOutOfRangeException) { deadline = default; return false; }
     }
 }

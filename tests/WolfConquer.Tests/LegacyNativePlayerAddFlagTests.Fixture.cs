@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Reflection;
+using WolfConquer.Core.Networking;
 using WolfConquer.Core.World;
 using Flag = WolfConquer.Core.World.LegacyNativeMsgUpdate.Flags;
 
@@ -9,7 +11,13 @@ namespace WolfConquer.Tests;
 internal sealed class NativeAddFlagTestFixture : IDisposable
 {
     private readonly LegacyNativeItemTypeRuneMetadata? priorItems = LegacyNativePoolItems.ItemsBase;
-    private readonly NativeSpellTestFixture packets = new();
+    private static readonly FieldInfo PoolBin = typeof(LegacyNativePacketRecycle)
+        .GetField("bin", BindingFlags.NonPublic | BindingFlags.Static)!;
+    private readonly object? priorPool = PoolBin.GetValue(null);
+    private readonly LegacyNativeSafeRandom priorRandom = LegacyNativePoolRandom.GetRandom;
+    private readonly DateTime priorReset = LegacyNativePoolRandom.ResetRandom;
+    private readonly List<LegacyNativePacket> ownedPackets = new();
+    private readonly NativeSpellTestFixture packets;
     internal LegacyNativeGameClientRuntime Owner => packets.Owner;
     internal LegacyNativePlayerRuntime Player => Owner.Player;
     internal Queue<byte[]> Queue => packets.Queue;
@@ -17,6 +25,10 @@ internal sealed class NativeAddFlagTestFixture : IDisposable
 
     internal NativeAddFlagTestFixture()
     {
+        LegacyNativePoolRandom.GetRandom = new(7531);
+        packets = new();
+        for (int index = 0; index < 16; index++) ownedPackets.Add(new(LegacyNativePacket.MAX_SIZE));
+        PoolBin.SetValue(null, new ConcurrentQueue<LegacyNativePacket>(ownedPackets));
         LegacyNativePoolItems.ItemsBase = new();
         Owner.Equipment = new(Owner);
         Runes = new(Owner);
@@ -79,5 +91,9 @@ internal sealed class NativeAddFlagTestFixture : IDisposable
     {
         LegacyNativePoolItems.ItemsBase = priorItems;
         packets.Dispose();
+        PoolBin.SetValue(null, priorPool);
+        foreach (var packet in ownedPackets) packet.Dispose();
+        LegacyNativePoolRandom.GetRandom = priorRandom;
+        LegacyNativePoolRandom.ResetRandom = priorReset;
     }
 }

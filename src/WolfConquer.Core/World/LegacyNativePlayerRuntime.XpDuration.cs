@@ -4,13 +4,38 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class LegacyNativePlayerRuntime
 {
-public void IncreaseXPDuration(short seconds)
-	{
-		if (BitVector.ArrayFlags.ContainsKey((int)OnXPSkill()))
-		{
-			BitVector.ArrayFlags[(int)OnXPSkill()].Secounds += seconds;
-		}
-	}
+    public void IncreaseXPDuration(short seconds)
+    {
+        if (!TryIncreaseXPDuration(seconds))
+            throw new InvalidDataException("XP duration adjustment requires current ownership and a valid representable status graph.");
+    }
+
+    internal bool TryIncreaseXPDuration(short seconds)
+    {
+        var client = Owner;
+        lock (client.SpellAdmissionSyncRoot)
+        lock (SpellAdmissionSyncRoot)
+        {
+            var vector = BitVector;
+            uint uid = UID;
+            if (vector is null || !ReferenceEquals(client.Player, this)) return false;
+            lock (vector.SyncRoot)
+                return vector.TryAdjustFirstDuration(XpDurationPriority, (int)LegacyNativeMsgUpdate.Flags.Normal,
+                    seconds, this, client, uid);
+        }
+    }
+
+    // Same complete order as the real OnXPSkill. No new wire values or XP kinds.
+    private static ReadOnlySpan<int> XpDurationPriority =>
+    [
+        (int)LegacyNativeMsgUpdate.Flags.Cyclone, (int)LegacyNativeMsgUpdate.Flags.Superman,
+        (int)LegacyNativeMsgUpdate.Flags.Oblivion, (int)LegacyNativeMsgUpdate.Flags.FatalStrike,
+        (int)LegacyNativeMsgUpdate.Flags.ShurikenVortex, (int)LegacyNativeMsgUpdate.Flags.ChaintBolt,
+        (int)LegacyNativeMsgUpdate.Flags.BlackbeardsRage, (int)LegacyNativeMsgUpdate.Flags.CannonBarrage,
+        (int)LegacyNativeMsgUpdate.Flags.BladeFlurry, (int)LegacyNativeMsgUpdate.Flags.SuperCyclone,
+        (int)LegacyNativeMsgUpdate.Flags.DragonCyclone, (int)LegacyNativeMsgUpdate.Flags.Omnipotence,
+        (int)LegacyNativeMsgUpdate.Flags.ManiacDance, (int)LegacyNativeMsgUpdate.Flags.ThunderRampage
+    ];
 
 public void UpdateXpSkill()
 	{

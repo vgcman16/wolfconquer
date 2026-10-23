@@ -89,7 +89,8 @@ public sealed partial class LegacyNativeStatusFlagsTests
         Assert.True(flags.UpdateFlag(6, mode == "extend" ? 11 : 100, mode == "reset", mode == "reset" ? 3 : 60));
         var after = DateTime.Now;
         Assert.Same(value, flags.ArrayFlags[6]);
-        Assert.Same(cache, flags.GetFlags());
+        Assert.NotSame(cache, flags.GetFlags());
+        Assert.Same(value, Assert.Single(flags.GetFlags()));
         Assert.Equal(expectedSeconds, value.Secounds);
         if (mode == "extend") Assert.Equal(old, value.Timer);
         else Assert.InRange(value.Timer, before, after);
@@ -98,15 +99,15 @@ public sealed partial class LegacyNativeStatusFlagsTests
     }
 
     [Fact]
-    public void ExtendUsesUncheckedSecondsAdditionAfterItsDeadlineComparison()
+    public void OverflowingExtensionRefusesWithoutWrappingExistingSeconds()
     {
         var flags = new Flags(32);
         flags.TryAdd(6, int.MaxValue, false, 0);
         var value = flags.ArrayFlags[6];
         value.Timer = new DateTime(1900, 1, 1); // +Int32.Max seconds remains before current Now.
         var timer = value.Timer;
-        Assert.True(flags.UpdateFlag(6, 1, false, 0));
-        Assert.Equal(int.MinValue, value.Secounds);
+        Assert.False(flags.UpdateFlag(6, 1, false, 0));
+        Assert.Equal(int.MaxValue, value.Secounds);
         Assert.Equal(timer, value.Timer);
     }
 
@@ -114,18 +115,17 @@ public sealed partial class LegacyNativeStatusFlagsTests
     [InlineData("expire")]
     [InlineData("invoke")]
     [InlineData("update")]
-    public void DateBoundsFaultsPropagateWithoutRenewalOrRegistrationRepair(string method)
+    public void InvalidDateBoundsRefuseWithoutRenewalOrRegistrationRepair(string method)
     {
         var flags = new Flags(32);
         flags.TryAdd(6, 1, false, 1);
         var value = flags.ArrayFlags[6];
         value.Timer = value.TimerInvoker = DateTime.MaxValue;
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-        {
-            if (method == "expire") flags.InLife(6, DateTime.MaxValue);
-            else if (method == "invoke") flags.CheckInvoke(6, DateTime.MaxValue);
-            else flags.UpdateFlag(6, 9, false, 60);
-        });
+        var before = CaptureVector(flags);
+        bool result = method == "expire" ? flags.InLife(6, DateTime.MaxValue)
+            : method == "invoke" ? flags.CheckInvoke(6, DateTime.MaxValue)
+            : flags.UpdateFlag(6, 9, false, 60);
+        Assert.False(result); AssertVectorUnchanged(flags, before);
         Assert.Equal(DateTime.MaxValue, value.Timer);
         Assert.Equal(DateTime.MaxValue, value.TimerInvoker);
         Assert.Equal(1, value.Secounds);

@@ -9,9 +9,8 @@ internal partial class LegacyNativeSobNpcRuntime
 {
 	public bool AddFlag(LegacyNativeMsgUpdate.Flags Flag, int Secounds, bool RemoveOnDead, int StampSecounds = 0, uint showamount = 0u, uint amount = 0u)
 	{
-		if (!BitVector.ContainFlag((int)Flag))
+		if (BitVector is not null && BitVector.TryAdd((int)Flag, Secounds, RemoveOnDead, StampSecounds))
 		{
-			BitVector.TryAdd((int)Flag, Secounds, RemoveOnDead, StampSecounds);
 			UpdateFlagScreen();
 			return true;
 		}
@@ -20,9 +19,8 @@ internal partial class LegacyNativeSobNpcRuntime
 
 public bool RemoveFlag(LegacyNativeMsgUpdate.Flags Flag)
 	{
-		if (BitVector.ContainFlag((int)Flag))
+		if (BitVector is not null && BitVector.TryRemove((int)Flag))
 		{
-			BitVector.TryRemove((int)Flag);
 			UpdateFlagScreen();
 			return true;
 		}

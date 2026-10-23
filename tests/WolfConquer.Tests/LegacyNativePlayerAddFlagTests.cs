@@ -20,35 +20,27 @@ public sealed partial class LegacyNativePlayerAddFlagTests
     [InlineData((int)Flag.DragonCyclone)]
     [InlineData((int)Flag.Omnipotence)]
     [InlineData((int)Flag.ThunderRampage)]
-    public Task AllThirteenXpFlagsQueryAndResetBeforeDuplicateContainmentWithoutRenewal(int index) => NativePacketTestThread.Run(() =>
+    public Task AllThirteenXpFlagsCommitBonusThenRejectDuplicateWithoutChangingAnyExistingState(int index)
+        => NativePacketTestThread.Run(() =>
     {
         var flag = (Flag)index;
         using var f = new NativeAddFlagTestFixture();
         NativeAddFlagTestFixture.Ready(f.Owner);
-        var item = f.Rune();
-        var vector = f.Player.BitVector;
-        Assert.True(vector.TryAdd((int)flag, 123, true, 7));
+        f.Rune();
+        f.Player.XPBooster = 99; f.Player.XPKiller = 88;
+        var before = DateTime.Now;
+        Assert.True(f.Player.AddFlag(flag, 123, true, 7));
+        var after = DateTime.Now;
         var row = f.Row(flag);
-        var timer = row.Timer;
-        var invoke = row.TimerInvoker;
-        vector.Remove((int)flag); // Actual bitmap/dictionary divergence, not a synthetic registration.
-        f.Player.XPBooster = 99;
-        f.Player.XPKiller = 88;
-
+        Assert.InRange(row.Timer, before, after); Assert.InRange(row.TimerInvoker, before, after);
+        Assert.Equal((byte)7, f.Player.XPBooster); Assert.Equal((byte)0, f.Player.XPKiller);
+        Assert.Equal(NativeAddFlagTestFixture.Status(flag), Assert.Single(f.Queue));
+        f.Player.XPBooster = 91; f.Player.XPKiller = 81;
+        var snapshot = CaptureAdmission(f);
         Assert.False(f.Player.AddFlag(flag, 999, false, 44, 55, 66));
-
-        Assert.Equal((byte)7, f.Player.XPBooster);
-        Assert.Equal((byte)0, f.Player.XPKiller);
-        Assert.Same(vector, f.Player.BitVector);
-        Assert.Same(row, f.Row(flag));
-        Assert.Equal(timer, row.Timer);
-        Assert.Equal(invoke, row.TimerInvoker);
-        Assert.Equal(123, row.Secounds);
-        Assert.Equal(7, row.InvokerSecouds);
-        Assert.True(row.RemoveOnDead);
-        Assert.False(vector.Contain((int)flag)); // Duplicate does not repair the visible bit.
-        Assert.Same(item, f.Runes.Objects[0]);
-        Assert.Empty(f.Queue);
+        AssertAdmissionUnchanged(f, snapshot);
+        Assert.Same(row, f.Row(flag)); Assert.Equal(123, row.Secounds);
+        Assert.Equal(7, row.InvokerSecouds); Assert.True(row.RemoveOnDead);
     });
 
     [Theory]
@@ -105,7 +97,7 @@ public sealed partial class LegacyNativePlayerAddFlagTests
     });
 
     [Fact]
-    public Task DuplicateXpQueryUsesCurrentBoundPlayerAndMutableItemWithoutRenewingRegistration() => NativePacketTestThread.Run(() =>
+    public Task DuplicateXpAdmissionDoesNotRequeryMutableRuneOrResetCurrentCounters() => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeAddFlagTestFixture();
         var item = f.Rune();
@@ -118,13 +110,13 @@ public sealed partial class LegacyNativePlayerAddFlagTests
         item.ITEM_ID = 4_031_109; // Actual setter requires the new metadata row to exist first.
         f.Player.XPKiller = 33;
         Assert.False(f.Player.AddFlag(Flag.Superman, 999, true));
-        Assert.Equal((byte)9, f.Player.XPBooster);
-        Assert.Equal((byte)0, f.Player.XPKiller);
-        f.Player.Reborn = 0; // The same bound player's current gate is read on every query.
+        Assert.Equal((byte)7, f.Player.XPBooster);
+        Assert.Equal((byte)33, f.Player.XPKiller);
+        f.Player.Reborn = 0; // Duplicate refusal does not re-evaluate the changed eligibility.
         f.Player.XPKiller = 44;
         Assert.False(f.Player.AddFlag(Flag.Superman, 999, true));
-        Assert.Equal((byte)0, f.Player.XPBooster);
-        Assert.Equal((byte)0, f.Player.XPKiller);
+        Assert.Equal((byte)7, f.Player.XPBooster);
+        Assert.Equal((byte)44, f.Player.XPKiller);
         Assert.Same(row, f.Row(Flag.Superman));
         Assert.Equal(timer, row.Timer);
         Assert.Equal(20, row.Secounds);

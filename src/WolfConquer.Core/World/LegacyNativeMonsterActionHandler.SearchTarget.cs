@@ -14,7 +14,7 @@ internal partial class LegacyNativeMonsterActionHandler
 		}
 		try
 		{
-			if (monster.Target != null && (!monster.Target!.Alive || monster.Target!.ContainFlag(LegacyNativeMsgUpdate.Flags.Fly) || !monster.Target!.Owner.Socket!.Alive))
+			if (monster.Target != null && (!monster.Target!.Alive || TargetIsFlying(monster.Target) || !monster.Target!.Owner.Socket!.Alive))
 			{
 				monster.State = LegacyNativeMobStatus.Idle;
 			}
@@ -109,6 +109,10 @@ internal partial class LegacyNativeMonsterActionHandler
 				}
 				monster.State = LegacyNativeMobStatus.Idle;
 			}
+		}
+		catch (InvalidDataException)
+		{
+			InvalidateUnavailableTarget(monster);
 		}
 		catch (Exception ex)
 		{

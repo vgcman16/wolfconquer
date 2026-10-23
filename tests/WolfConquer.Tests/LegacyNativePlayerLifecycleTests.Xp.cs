@@ -27,8 +27,8 @@ public sealed partial class LegacyNativePlayerLifecycleTests
     });
 
     [Theory]
-    [InlineData(17, 5, 22)] [InlineData(17, -20, -3)] [InlineData(int.MaxValue, 1, int.MinValue)]
-    public Task DurationUsesRealSelectedFlagAndKeepsSignedExtensionAndOverflow(int before, short delta, int expected)
+    [InlineData(17, 5, 22)] [InlineData(17, -20, -3)]
+    public Task DurationUsesRealSelectedFlagAndKeepsRepresentableSignedAdjustment(int before, short delta, int expected)
         => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); s.Flag(Flag.Cyclone, before); s.Flag(Flag.Superman, 99);

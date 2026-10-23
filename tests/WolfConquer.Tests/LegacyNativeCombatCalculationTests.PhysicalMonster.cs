@@ -68,11 +68,14 @@ public sealed partial class LegacyNativeCombatCalculationTests
     [Theory]
     [InlineData(0.0f, 120u)] [InlineData(9.9f, 120u)] [InlineData(float.NaN, 13u)]
     [InlineData(float.PositiveInfinity, 13u)] [InlineData(float.MaxValue, 13u)]
-    public Task SpellDamageFloorMutationAndExceptionalFactorStayInWholeCaller(float factor, uint expected) => NativePacketTestThread.Run(() =>
+    [InlineData(-0.0f, 120u)] [InlineData(-1.25f, 120u)] [InlineData(float.NegativeInfinity, 120u)]
+    [InlineData(-float.MaxValue, 120u)] [InlineData(10f, 120u)] [InlineData(99.9f, 1188u)]
+    [InlineData(100f, 1200u)] [InlineData(float.Epsilon, 120u)] [InlineData(-float.Epsilon, 120u)]
+    public Task LocalSpellDamageFloorAndExceptionalFactorsDoNotMutateSharedRows(float factor, uint expected) => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); var monster = CombatMonster(s); var spell = new LegacyNativeMagicType.Magic { ID = 500, Damage = factor };
         LegacyNativeCalculatePhysical.OnMonster(s.Player, monster, spell, out var obj); Assert.Equal(expected, obj.Damage);
-        if (!float.IsNaN(factor) && factor < 10) Assert.Equal(10f, spell.Damage); else Assert.Equal(factor, spell.Damage);
+        Assert.Equal(BitConverter.SingleToInt32Bits(factor), BitConverter.SingleToInt32Bits(spell.Damage));
     });
 
     [Fact]
@@ -82,7 +85,7 @@ public sealed partial class LegacyNativeCombatCalculationTests
         var spell = new LegacyNativeMagicType.Magic { ID = 17460, Damage = 0, GDamage = 30010,
             DamageOnHuman = 30020, Damage2 = 30050, Damage3 = 30030, DamageOnMonster = 30040 };
         LegacyNativeCalculatePhysical.OnMonster(s.Player, monster, spell, out var obj);
-        Assert.Equal(1800u, obj.Damage); Assert.Equal(10f, spell.Damage);
+        Assert.Equal(1800u, obj.Damage); Assert.Equal(0f, spell.Damage);
     });
 
     [Fact]

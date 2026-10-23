@@ -26,7 +26,7 @@ public sealed class LegacyNativePlayerStatusOwnershipTests
     }
 
     [Fact]
-    public void CompatibilityProjectionReadsOnlyTheActualBitAndLeavesAllOtherBitsAndWordsExact()
+    public void CompatibilityProjectionRemainsRawWhileMembershipRejectsIncoherentStatus()
     {
         var player = new LegacyNativeGameClientRuntime().Player;
         ulong[] input = Enumerable.Range(0, 18).Select(index => ulong.MaxValue - (ulong)index).ToArray();
@@ -34,13 +34,16 @@ public sealed class LegacyNativePlayerStatusOwnershipTests
         var absent = LegacyNativePlayerFlag6Lifecycle.CaptureVector(player, input);
         Assert.Equal(input[0] & ~64ul, absent[0]);
         Assert.Equal(input[1..], absent[1..]);
-        player.BitVector.Add(6); // Bitmap only: registration containment remains false.
-        Assert.False(player.ContainFlag(Flag.TeamLeader));
+        player.BitVector.Add(6); // Projection is a documented raw escape, not membership authority.
+        Assert.Throws<InvalidDataException>(() => player.ContainFlag(Flag.TeamLeader));
         var visible = LegacyNativePlayerFlag6Lifecycle.CaptureVector(player, input);
         Assert.Equal(input[0] | 64ul, visible[0]);
-        player.BitVector.TryAdd(6, 1, false, 0);
-        player.BitVector.Remove(6); // Registration only: bitmap publication remains false.
-        Assert.True(player.ContainFlag(Flag.TeamLeader));
+        player.BitVector.Remove(6); // Explicit fixture restoration to a coherent empty vector.
+        Assert.True(player.BitVector.TryAdd(6, 1, false, 0));
+        var row = player.BitVector.ArrayFlags[6];
+        player.BitVector.Remove(6); // Corrupt registration-only state must not report presence.
+        Assert.Throws<InvalidDataException>(() => player.ContainFlag(Flag.TeamLeader));
+        Assert.Same(row, player.BitVector.ArrayFlags[6]);
         Assert.Equal(absent, LegacyNativePlayerFlag6Lifecycle.CaptureVector(player, input));
         Assert.Equal(original, input);
         Assert.Equal(input, LegacyNativePlayerFlag6Lifecycle.CaptureVector(null, input));
@@ -99,7 +102,7 @@ public sealed class LegacyNativePlayerStatusOwnershipTests
         Assert.Single(f.Queue);
         Assert.Same(vector, f.Owner.Player.BitVector);
         Assert.True(vector.Contain(6));
-        Assert.False(vector.ContainFlag(6));
+        Assert.Throws<InvalidDataException>(() => vector.ContainFlag(6));
     });
 
     [Fact]

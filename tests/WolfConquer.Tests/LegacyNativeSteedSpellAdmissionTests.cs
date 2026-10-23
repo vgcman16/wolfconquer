@@ -6,15 +6,14 @@ namespace WolfConquer.Tests;
 public sealed class LegacyNativeSteedSpellAdmissionTests
 {
     [Fact]
-    public void UnregisteredRideDoesNotReadEquipmentEvenIfTheBitmapIsSet()
+    public void CoherentlyAbsentRideDoesNotReadEquipment()
     {
         var client = new LegacyNativeGameClientRuntime();
-        client.Player.BitVector.Add((int)Flag.Ride);
         Assert.False(client.Player.ContainFlag(Flag.Ride));
         Assert.Null(client.Equipment);
         Assert.True(client.AllowUseSpellOnSteed(0));
         Assert.True(client.AllowUseSpellOnSteed(ushort.MaxValue));
-        Assert.True(client.Player.BitVector.Contain((int)Flag.Ride));
+        Assert.False(client.Player.BitVector.Contain((int)Flag.Ride));
         Assert.Equal(0, client.Player.CompletedRateDraws);
     }
 
@@ -31,12 +30,30 @@ public sealed class LegacyNativeSteedSpellAdmissionTests
         var client = new LegacyNativeGameClientRuntime();
         client.Player.BitVector.TryAdd((int)Flag.Ride, 7, false, 0);
         var row = client.Player.BitVector.ArrayFlags[(int)Flag.Ride];
-        client.Player.BitVector.Remove((int)Flag.Ride); // Predicate uses dictionary containment, not visibility.
-        client.Equipment = new LegacyNativeEquipItemStorage(null);
+        client.Equipment = new LegacyNativeEquipItemStorage(client);
         Assert.Equal(expected, client.AllowUseSpellOnSteed(spell));
         Assert.Same(row, client.Player.BitVector.ArrayFlags[(int)Flag.Ride]);
-        Assert.False(client.Player.BitVector.Contain((int)Flag.Ride));
+        Assert.True(client.Player.BitVector.Contain((int)Flag.Ride));
         Assert.Equal(0, client.Player.CompletedRateDraws);
+    }
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public void MalformedRideCannotAuthorizeTheUnmountedPermissionBranch(bool rowOnly)
+    {
+        var client = new LegacyNativeGameClientRuntime(); var vector = client.Player.BitVector;
+        if (rowOnly)
+        {
+            Assert.True(vector.TryAdd((int)Flag.Ride, 7, false, 0));
+            vector.Remove((int)Flag.Ride);
+        }
+        else vector.Add((int)Flag.Ride);
+        var dictionary = vector.ArrayFlags; var entries = dictionary.ToArray();
+        var words = vector.bits; var before = words.ToArray();
+        Assert.Throws<InvalidDataException>(() => client.AllowUseSpellOnSteed(7001));
+        Assert.Same(dictionary, vector.ArrayFlags); Assert.Equal(entries, vector.ArrayFlags.ToArray());
+        Assert.Same(words, vector.bits); Assert.Equal(before, vector.bits);
+        Assert.Null(client.Equipment); Assert.Equal(0, client.Player.CompletedRateDraws);
     }
 
     [Fact]

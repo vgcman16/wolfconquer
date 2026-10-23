@@ -47,12 +47,27 @@ public sealed partial class LegacyNativeCanUseSpellTests
         using var f = new Fixture();
         f.Player.Stamina = 20;
         f.Row.UseStamina = 10;
-        if (registered) f.Player.BitVector.TryAdd((int)Flag.ScurvyBomb, 5, false, 0);
-        else f.Player.BitVector.Add((int)Flag.ScurvyBomb);
+        if (registered) Assert.True(f.Player.BitVector.TryAdd((int)Flag.ScurvyBomb, 5, false, 0));
+        // The other positive control is genuinely absent, not a corrupt bit-only graph.
         Assert.True(f.Run(out var spell, out var row));
         Assert.Same(f.Spell, spell); Assert.Same(f.Row, row);
         Assert.Equal((ushort)expected, f.Player.Stamina);
         Assert.Equal(Update(17, LegacyMsgUpdateDataType.Stamina, expected), Assert.Single(f.Queue));
+    });
+
+    [Fact]
+    public Task MalformedScurvyBombMembershipRejectsWithoutDebitsOutputsOrFlagRepair()
+        => NativePacketTestThread.Run(() =>
+    {
+        using var f = new Fixture(); f.Player.Stamina = 20; f.Row.UseStamina = 10;
+        var vector = f.Player.BitVector; vector.Add((int)Flag.ScurvyBomb);
+        var dictionary = vector.ArrayFlags; var words = vector.bits; var bytes = words.ToArray();
+        var before = Capture(f);
+        Assert.False(f.Run(out var spell, out var row));
+        Assert.Null(spell); Assert.Null(row); Unchanged(f, before);
+        Assert.Same(dictionary, vector.ArrayFlags); Assert.Empty(dictionary);
+        Assert.Same(words, vector.bits); Assert.Equal(bytes, vector.bits);
+        Assert.Contains("Spell admission preparation", f.Log.ToString());
     });
 
     [Fact]

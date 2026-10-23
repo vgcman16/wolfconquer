@@ -1,55 +1,73 @@
-using WolfConquer.Core.Networking;
-
 namespace WolfConquer.Core.World;
 
 public sealed partial class LegacyNativePlayerRuntime
 {
-    // Complete native Player3635..3678 admission methods; no RemoveFlag/ClearFlags substitute.
     internal void AddSpellFlag(LegacyNativeMsgUpdate.Flags Flag, int Secounds, bool RemoveOnDead, int StampSecounds = 0)
-    {
-        if (BitVector.ContainFlag((int)Flag))
-        {
-            BitVector.TryRemove((int)Flag);
-        }
-        AddFlag(Flag, Secounds, RemoveOnDead, StampSecounds);
-    }
+        => TryAdmitFlag(Flag, Secounds, RemoveOnDead, StampSecounds, 0, 0, replace: true);
 
     internal bool AddFlag(LegacyNativeMsgUpdate.Flags Flag, int Secounds, bool RemoveOnDead,
-        int StampSecounds = 0, uint showamount = 0u, uint amount = 0u)
+        int StampSecounds = 0, uint showamount = 0, uint amount = 0)
+        => TryAdmitFlag(Flag, Secounds, RemoveOnDead, StampSecounds, showamount, amount, replace: false);
+
+    private bool TryAdmitFlag(LegacyNativeMsgUpdate.Flags flag, int seconds, bool removeOnDeath,
+        int invoker, uint shown, uint amount, bool replace)
     {
-        switch (Flag)
+        var client = Owner;
+        lock (client.SpellAdmissionSyncRoot)
+        lock (SpellAdmissionSyncRoot)
         {
-            case LegacyNativeMsgUpdate.Flags.Superman:
-            case LegacyNativeMsgUpdate.Flags.Cyclone:
-            case LegacyNativeMsgUpdate.Flags.ShurikenVortex:
-            case LegacyNativeMsgUpdate.Flags.FatalStrike:
-            case LegacyNativeMsgUpdate.Flags.ChaintBolt:
-            case LegacyNativeMsgUpdate.Flags.Oblivion:
-            case LegacyNativeMsgUpdate.Flags.CannonBarrage:
-            case LegacyNativeMsgUpdate.Flags.BlackbeardsRage:
-            case LegacyNativeMsgUpdate.Flags.BladeFlurry:
-            case LegacyNativeMsgUpdate.Flags.SuperCyclone:
-            case LegacyNativeMsgUpdate.Flags.DragonCyclone:
-            case LegacyNativeMsgUpdate.Flags.Omnipotence:
-            case LegacyNativeMsgUpdate.Flags.ThunderRampage:
-                XPBooster = 0;
-                Owner.Rune?.IsEquipped("XPBooster", ref XPBooster);
-                XPKiller = 0;
-                break;
-        }
-        if (!BitVector.ContainFlag((int)Flag))
-        {
-            BitVector.TryAdd((int)Flag, Secounds, RemoveOnDead, StampSecounds);
-            UpdateFlagOffset();
-            if (Flag >= LegacyNativeMsgUpdate.Flags.Accelerated && Flag <= LegacyNativeMsgUpdate.Flags.Confused)
+            var vector = BitVector;
+            var view = View;
+            uint uid = UID;
+            if (vector is null || view is null || !ReferenceEquals(client.Player, this) ||
+                !ReferenceEquals(view.Owner, client)) return false;
+            lock (vector.SyncRoot)
             {
-                using LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket();
-                LegacyNativePacket stream = recycledPacket.GetStream();
-                View.SendView(stream.GameUpdateCreate(UID, (LegacyNativeMsgGameUpdate.DataType)Flag,
-                    active: true, showamount, (uint)Secounds, amount), me: true);
+                LegacyNativePreparedFlagPublication? publication = null;
+                bool committed = false;
+                try
+                {
+                    // Duplicate admission occurs before optional Rune lookup, timestamps,
+                    // pool access, XP resets or any published registration mutation.
+                    if (!vector.TryPrepareAdd((int)flag, seconds, removeOnDeath, invoker, replace, out var change)) return false;
+                    bool xp = IsXpAdmissionFlag(flag);
+                    byte booster = 0;
+                    if (xp) client.Rune?.IsEquipped("XPBooster", ref booster);
+                    if (!vector.TryGetPreparedWords(change, out var preparedWords)) return false;
+                    publication = LegacyNativePreparedFlagPublication.Create(uid, preparedWords,
+                        flag, seconds, shown, amount);
+                    if (!ReferenceEquals(client.Player, this) || !ReferenceEquals(BitVector, vector) ||
+                        !ReferenceEquals(View, view) || !ReferenceEquals(view.Owner, client) || UID != uid ||
+                        !change!.TryCommit(vector, this, client, view, uid)) return false;
+
+                    // Non-throwing physical commit continuation under all three gates.
+                    committed = true;
+                    if (xp) { XPBooster = booster; XPKiller = 0; }
+                    publication.Publish(this, client, view, uid);
+                    return true;
+                }
+                catch (Exception error)
+                {
+                    ReportFlagAdmission(committed ? "publication after commit" : "preparation", error);
+                    return committed;
+                }
+                finally { publication?.Dispose(); }
             }
-            return true;
         }
-        return false;
+    }
+
+    private static bool IsXpAdmissionFlag(LegacyNativeMsgUpdate.Flags flag) => flag is
+        LegacyNativeMsgUpdate.Flags.Superman or LegacyNativeMsgUpdate.Flags.Cyclone or
+        LegacyNativeMsgUpdate.Flags.ShurikenVortex or LegacyNativeMsgUpdate.Flags.FatalStrike or
+        LegacyNativeMsgUpdate.Flags.ChaintBolt or LegacyNativeMsgUpdate.Flags.Oblivion or
+        LegacyNativeMsgUpdate.Flags.CannonBarrage or LegacyNativeMsgUpdate.Flags.BlackbeardsRage or
+        LegacyNativeMsgUpdate.Flags.BladeFlurry or LegacyNativeMsgUpdate.Flags.SuperCyclone or
+        LegacyNativeMsgUpdate.Flags.DragonCyclone or LegacyNativeMsgUpdate.Flags.Omnipotence or
+        LegacyNativeMsgUpdate.Flags.ThunderRampage;
+
+    internal static void ReportFlagAdmission(string phase, Exception error)
+    {
+        try { Console.WriteLine($"Flag admission {phase}: {error.GetType().Name}"); }
+        catch { /* Diagnostics cannot change committed state or refusal classification. */ }
     }
 }

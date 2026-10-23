@@ -53,8 +53,8 @@ public sealed partial class LegacyNativeNinjaLoadingTests
             }
             finally
             {
-                // Test-only close of the exact owned packet. Native SageMode intentionally
-                // leaves its second wrapper undisposed; no finalizer timing is asserted.
+                // Idempotent fixture reset of the exact packet; SageMode now disposes
+                // its real archive rental synchronously.
                 LegacyNativePacketRecycle.Reuse(scope.Used(1));
             }
         });
@@ -71,13 +71,14 @@ public sealed partial class LegacyNativeNinjaLoadingTests
                 var row = vector.ArrayFlags[(int)SageFlag.SageSpeedMode];
                 DateTime originalTimer = row.Timer;
                 var cached = vector.GetFlags();
-                vector.Remove((int)SageFlag.SageSpeedMode); // Genuine visible/registration divergence.
+                // Coherent duplicate prestate; malformed visibility is a separate refusal control.
                 scope.Ninja.SageMode(20);
                 scope.Ninja.SageMode(20); // No equality guard: an identical timer still sends.
                 Assert.Same(row, vector.ArrayFlags[(int)SageFlag.SageSpeedMode]);
                 Assert.Equal(originalTimer, row.Timer); Assert.Equal(10, row.Secounds);
-                Assert.True(row.RemoveOnDead); Assert.False(vector.Contain((int)SageFlag.SageSpeedMode));
-                Assert.Same(cached, vector.GetFlags());
+                Assert.True(row.RemoveOnDead); Assert.True(vector.Contain((int)SageFlag.SageSpeedMode));
+                var current = vector.GetFlags(); Assert.NotSame(cached, current);
+                Assert.Same(row, Assert.Single(cached)); Assert.Same(row, Assert.Single(current));
                 scope.Sent(SageBitmap(17), SageArchive(17, 10), SageArchive(17, 20), SageArchive(17, 20));
                 scope.Serialized(0, SageBitmap(17));
                 AssertSageArchiveBuffer(scope, 1, 17, 10);
@@ -159,6 +160,6 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         byte[] expected = SageArchive(uid, timer);
         Assert.Equal(expected, NativeSpellTestFixture.Bytes(scope.Used(index)));
         Assert.Equal(expected.Length, scope.Used(index).Size);
-        // No native Dispose/finalizer timing or cursor assertion for the orphaned wrapper.
+        Assert.Equal(0, scope.Used(index).Position); // Real using rental was synchronously returned.
     }
 }

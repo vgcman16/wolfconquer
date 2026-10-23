@@ -1,5 +1,20 @@
 # Publication validation
 
+## Current flag/consumer safety checkpoint
+
+Private/public Release each passed1931/1931,0failed/0skipped. The coherent batch
+prepares physical flag state and genuine bounded packets before commitment,
+distinguishes invalid status from absence, checks final captured ownership,
+prevents dirty potion rejection, checks XP duration, and protects the reviewed
+AI/rank/effect callers. Physical damage retains its valid formulas/RNG/wire while
+keeping shared spell catalog rows unchanged. Old unsafe assertions are corrected.
+
+Full Windows CI and remote CodeFactor for this new code are pending. The previous
+full receipt below remains the latest verified committed-tree result until then.
+No live process/client, original saves, SQL or routing was changed. Full casts,
+HP/death/XP workers, raw-writer concurrency, rank publication, Sage archive
+precommit preparation and durable recovery remain open, not completed by tests.
+
 ## Latest verified public code checkpoint
 
 [Windows39945614990](https://github.com/vgcman16/wolfconquer/actions/runs/39945614990)

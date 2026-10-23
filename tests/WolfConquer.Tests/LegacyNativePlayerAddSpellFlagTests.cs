@@ -50,18 +50,15 @@ public sealed class LegacyNativePlayerAddSpellFlagTests
     });
 
     [Fact]
-    public Task RawBitWithoutRegistrationDoesNotInventARemovalSendBeforeAdding() => NativePacketTestThread.Run(() =>
+    public Task RawBitWithoutRegistrationRefusesWithoutInventingOrRemovingARow() => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeAddFlagTestFixture();
-        var vector = f.Player.BitVector;
-        vector.Add(6);
-
+        var vector = f.Player.BitVector; var dictionary = vector.ArrayFlags; var words = vector.bits;
+        vector.Add(6); var snapshot = words.ToArray();
         f.Player.AddSpellFlag(Flag.TeamLeader, 20, false);
-
-        Assert.Same(vector, f.Player.BitVector);
-        Assert.Equal(20, f.Row(Flag.TeamLeader).Secounds);
-        Assert.True(vector.Contain(6));
-        Assert.Equal(NativeAddFlagTestFixture.Status(Flag.TeamLeader), Assert.Single(f.Queue));
+        Assert.Same(vector, f.Player.BitVector); Assert.Same(dictionary, vector.ArrayFlags);
+        Assert.Same(words, vector.bits); Assert.Equal(snapshot, vector.bits);
+        Assert.Empty(vector.ArrayFlags); Assert.Empty(f.Queue);
     });
 
     [Theory]
@@ -83,6 +80,10 @@ public sealed class LegacyNativePlayerAddSpellFlagTests
         // Both branches have a coherent prestate. Raw bitmap/dictionary
         // corruption admission is separate FSB023 work, not a Rune requirement.
         if (!hadRegistration) Assert.True(vector.TryRemove((int)Flag.Superman));
+        var priorDictionary = vector.ArrayFlags;
+        var priorEntries = priorDictionary.ToArray();
+        var priorWords = vector.bits;
+        var priorWordBytes = priorWords.ToArray();
         var formerTimer = former.Timer;
         f.Player.XPBooster = 77;
         f.Player.XPKiller = 66;
@@ -94,6 +95,10 @@ public sealed class LegacyNativePlayerAddSpellFlagTests
         var after = DateTime.Now;
 
         Assert.Same(vector, f.Player.BitVector);
+        Assert.NotSame(priorDictionary, vector.ArrayFlags);
+        Assert.Equal(priorEntries, priorDictionary.ToArray());
+        Assert.NotSame(priorWords, vector.bits);
+        Assert.Equal(priorWordBytes, priorWords);
         Assert.True(vector.ContainFlag((int)Flag.Superman));
         Assert.True(vector.Contain((int)Flag.Superman));
         var row = f.Row(Flag.Superman);
@@ -116,48 +121,58 @@ public sealed class LegacyNativePlayerAddSpellFlagTests
         else Assert.Null(f.Owner.Rune);
     });
 
-    [Fact]
-    public Task NullVectorFaultsBeforeXpQueryUnlikeDirectAddFlag() => NativePacketTestThread.Run(() =>
+    [Theory]
+    [InlineData(false, false)] [InlineData(false, true)] [InlineData(true, false)] [InlineData(true, true)]
+    public Task OptionalRuneFailureCannotEraseExistingRowAndMalformedGraphCannotBeReplaced(
+        bool missingMetadata, bool coherent) => NativePacketTestThread.Run(() =>
     {
-        using var f = new NativeAddFlagTestFixture();
-        NativeAddFlagTestFixture.Ready(f.Owner);
-        f.Rune();
-        var former = f.Player.BitVector;
-        f.Player.BitVector = null!;
-        f.Player.XPBooster = 77;
-        f.Player.XPKiller = 66;
-
-        Assert.Throws<NullReferenceException>(() => f.Player.AddSpellFlag(Flag.Superman, 20, false));
-
-        Assert.Null(f.Player.BitVector);
-        Assert.Empty(former.ArrayFlags);
-        Assert.Equal((byte)77, f.Player.XPBooster);
-        Assert.Equal((byte)66, f.Player.XPKiller);
-        Assert.Empty(f.Queue);
+        using var f = new NativeAddFlagTestFixture(); NativeAddFlagTestFixture.Ready(f.Owner); f.Rune();
+        var vector = f.Player.BitVector;
+        Assert.True(vector.TryAdd((int)Flag.Superman, 19, false, 0));
+        var former = f.Row(Flag.Superman); var timer = former.Timer; var oldSnapshot = vector.GetFlags();
+        if (!coherent) vector.Remove((int)Flag.Superman);
+        var dictionary = vector.ArrayFlags; var words = vector.bits; var bytes = words.ToArray();
+        f.Player.XPBooster = 77; f.Player.XPKiller = 66;
+        if (missingMetadata) LegacyNativePoolItems.ItemsBase!.Clear(); else f.Owner.Rune = null;
+        f.Player.AddSpellFlag(Flag.Superman, 999, true);
+        Assert.Same(vector, f.Player.BitVector); Assert.Same(former, Assert.Single(oldSnapshot));
+        Assert.Equal(timer, former.Timer); Assert.Equal(19, former.Secounds); Assert.False(former.RemoveOnDead);
+        if (coherent)
+        {
+            Assert.NotSame(former, f.Row(Flag.Superman)); Assert.Equal(999, f.Row(Flag.Superman).Secounds);
+            Assert.True(f.Row(Flag.Superman).RemoveOnDead); Assert.True(vector.ContainFlag((int)Flag.Superman));
+            Assert.Equal((byte)0, f.Player.XPBooster); Assert.Equal((byte)0, f.Player.XPKiller);
+            Assert.Equal(NativeAddFlagTestFixture.Status(Flag.Superman), Assert.Single(f.Queue));
+        }
+        else
+        {
+            Assert.Same(dictionary, vector.ArrayFlags); Assert.Same(words, vector.bits); Assert.Equal(bytes, vector.bits);
+            Assert.Same(former, f.Row(Flag.Superman)); Assert.Empty(f.Queue);
+            Assert.Equal((byte)77, f.Player.XPBooster); Assert.Equal((byte)66, f.Player.XPKiller);
+        }
     });
 
     [Fact]
-    public Task NullViewFaultOccursAfterOldRowRemovalNewRowPublicationAndOneStatusSend() => NativePacketTestThread.Run(() =>
+    public Task NullVectorRefusesBeforeXpQueryOrAnyStateEffect() => NativePacketTestThread.Run(() =>
     {
-        using var f = new NativeAddFlagTestFixture();
-        var vector = f.Player.BitVector;
-        Assert.True(vector.TryAdd(6, 19, false, 0));
-        var former = f.Row(Flag.TeamLeader);
-        f.Player.View = null!;
-        var before = DateTime.Now;
+        using var f = new NativeAddFlagTestFixture(); NativeAddFlagTestFixture.Ready(f.Owner); f.Rune();
+        var former = f.Player.BitVector; f.Player.BitVector = null!;
+        f.Player.XPBooster = 77; f.Player.XPKiller = 66;
+        f.Player.AddSpellFlag(Flag.Superman, 20, false);
+        Assert.Null(f.Player.BitVector); Assert.Empty(former.ArrayFlags);
+        Assert.Equal((byte)77, f.Player.XPBooster); Assert.Equal((byte)66, f.Player.XPKiller); Assert.Empty(f.Queue);
+    });
 
-        Assert.Throws<NullReferenceException>(() => f.Player.AddSpellFlag(Flag.TeamLeader, 22, true));
-
-        var after = DateTime.Now;
-        Assert.Same(vector, f.Player.BitVector);
-        var row = f.Row(Flag.TeamLeader);
-        Assert.NotSame(former, row);
-        Assert.Equal(22, row.Secounds);
-        Assert.True(row.RemoveOnDead);
-        Assert.InRange(row.Timer, before, after);
-        Assert.True(vector.Contain(6));
-        Assert.Equal(NativeAddFlagTestFixture.Status(Flag.TeamLeader), Assert.Single(f.Queue));
-        Assert.Null(f.Player.View);
+    [Fact]
+    public Task NullViewRefusesBeforeReplacingExistingRegistrationOrPublishing() => NativePacketTestThread.Run(() =>
+    {
+        using var f = new NativeAddFlagTestFixture(); var vector = f.Player.BitVector;
+        Assert.True(vector.TryAdd(6, 19, false, 0)); var former = f.Row(Flag.TeamLeader); var time = former.Timer;
+        var dictionary = vector.ArrayFlags; var words = vector.bits; f.Player.View = null!;
+        f.Player.AddSpellFlag(Flag.TeamLeader, 22, true);
+        Assert.Same(vector, f.Player.BitVector); Assert.Same(dictionary, vector.ArrayFlags); Assert.Same(words, vector.bits);
+        Assert.Same(former, f.Row(Flag.TeamLeader)); Assert.Equal(time, former.Timer); Assert.Equal(19, former.Secounds);
+        Assert.False(former.RemoveOnDead); Assert.True(vector.Contain(6)); Assert.Empty(f.Queue);
     });
 
     [Theory]

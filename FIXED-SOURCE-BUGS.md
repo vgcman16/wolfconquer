@@ -228,6 +228,76 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   interval and modulo remains biased. Uniform/full-domain sampling, fairness,
   concurrency and cryptographic security are not fixed or certified.
 
+### FSB-023: Prepare real flag state and packets before commitment
+
+- Owners: Player AddFlag/AddSpellFlag and the physical status-vector family.
+  Validate the complete real dictionary/bitmap/row graph, current client/View,
+  bounds and timer arithmetic before changes. Prepare COW state and genuine
+  bounded2176/2215 frames; duplicates cannot reset XP or consult optional Rune.
+- Opaque one-use plans keep staged mutable arrays private. Final typed commitment
+  checks player/client/vector/View/UID AFTER comparer-dependent validation.
+  Defensive cache arrays are not authority for death-clear. Invalid membership
+  is explicit unavailability, never ordinary absence granting permission.
+- Verification: Private/public Release1931/1931 each,0failed/0skipped.
+  Independent native status/timed goldens, all XP flag branches, real pool/seal/
+  alias faults, cache/timer/index/plan replay and late-owner controls retained.
+- Limits: cooperating gates, not tuple hardware atomicity or arbitrary raw-writer
+  exclusion. Remove/Clear/HP/death/XP workers, full cast/economy transactions,
+  nonplayer postcommit sends, durable recovery and host adoption remain open.
+
+### FSB-026: Potion rejection must not grant bonuses or leave dirty timers
+
+- Original Player3145..3158 enabled a potion before date/flag/message preparation
+  could fail and always claimed30 minutes. Both real methods now prepare their
+  positive duration, flag state and bounded genuine SYSTEM talk before commitment.
+  Message text reports the supplied duration; existing valid flag rows stay intact.
+- Verification: Private/public Release1931/1931 each,0failed/0skipped.
+  Includes missing/null/small/disposed/aliased real rentals, malformed state,
+  no-output/no-bonus rejection, largest positive int duration, genuine full codec
+  comparison and final-commit ownership changes. Old dirty-prefix tests corrected.
+- Limits: no item-consumption caller is installed; expiry workers, raw races,
+  durable potion state and delivery acknowledgement remain unproven. A delivery
+  failure after commitment does not undo accepted potion state.
+
+### FSB-027: Checked current-owner XP-duration adjustment
+
+- Original IncreaseXPDuration reselected mutable state and added unchecked into
+  an escaped row. Capture one full genuine graph, select the existing14-priority/
+  Normal policy once, check signed sum/deadline, recapture after comparer work
+  and verify exact owner/UID/vector before the single duration assignment.
+- Verification: Private/public Release1931/1931 each,0failed/0skipped.
+  Retains valid signed reductions/row/timer identity and adds44 boundary/ownership/
+  malformed/replay controls. The old successful overflow expectation is replaced.
+- Limits: full receive/XP opening/counter-goal/death/worker transactions remain
+  separate; raw escaped rows and concurrent writers are not made globally atomic.
+
+### FSB-028: Physical damage cannot dirty outputs or shared spell data on admission
+
+- Whole OnMonster now validates real current status and all transitive query
+  bounds before out assignment, RNG, procs or calculation. The floor branch
+  retains its genuine player/status-free Damage2 behavior.
+- The effective spell minimum10 is local; never write a caller's shared Magic
+  catalog row. Valid float/NaN/infinity, gear branches, damage/RNG and2319 wire
+  controls are retained; two players can reuse the same unchanged catalog row.
+- Verification: Private/public Release1931/1931 each,0failed/0skipped.
+  Includes44 new physical/call-site controls plus corrected old mutation assertions.
+- Limits: admission-time protection and catalog integrity, not a whole cast/HP/
+  death/resource transaction. Later owner faults and raw/lifecycle races stay open.
+
+### FSB-029: Refused status is not a target, partial ranking or success animation
+
+- AI stages target selection and clears stale Target/sets Idle when required flight
+  membership is unavailable, before movement/stamps/RNG. Rank appearance resolves
+  full flag priority before copying any Entry field. Existing successful order stays.
+- Known-absent Shield/Stigma must pass real AddFlag before success animation.
+  Sage distinguishes valid duplicates from refused grants, checks current bindings
+  after membership and disposes the genuine archive rental synchronously.
+- Verification: Private/public Release1931/1931 each,0failed/0skipped.
+  Real malformed-tail callers, prior frames/buffers and existing valid packet/
+  appearance/selection goldens remain; corrupt fixtures are not silently repaired.
+- Limits: full rank publication, map enumeration/AI movement, postcommit animation/
+  Sage archive preparation and complete proc/cast/host recovery remain open.
+
 ## Active audit
 
 | ID | Defect / affected owner | Required invariant | Status |
@@ -254,9 +324,13 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 | FSB-020 | Shop refresh can loop forever or lose stock; counters wrap and Load publishes prefixes | Bounded staged book operations and truthful prepared publication | Native component fixed; economy receivers/durability held |
 | FSB-021 | Shop countdown targets midnight plus a minute using three clocks | One bounded local-calendar countdown sample | Display calculation fixed; scheduler/reset transaction open |
 | FSB-022 | Name policy regex checks only the final character; rename and uniqueness policies differ | Complete validated name policy and consistent authoritative uniqueness | Whole-string repertoire check fixed; rename/uniqueness and stored-name migration remain open |
-| FSB-023 | Flag registration/reset/publication can mutate before a null bitmap/view or later failure | Validate/prepare before coherent current-owner registration; duplicates reject without side effects | Isolated implementation in progress; not integrated |
+| FSB-023 | Flag registration/reset/publication can mutate before a null bitmap/view or later failure | Validate/prepare before coherent current-owner registration; duplicates reject without side effects | Scoped component locally verified1931; full lifecycle/host transactions remain open |
 | FSB-024 | Broader prestige rebuild still has legacy partial-publication, foreign-owner, duplicate-slot and arithmetic-wrap assumptions | Validate the whole genuine graph and prepare complete rank/guild state before coherent publication | Audit required; missing named-rune metadata is handled, not the whole rebuild |
 | FSB-025 | RandomLite inclusive-range arithmetic can overflow or fault after consuming a draw; full-width sampling has limited domain and modulo bias | Bounded representable results, validation before draws and an explicit distribution/domain policy | Arithmetic bounds fixed; full-domain/distribution/fairness and concurrency remain open |
+| FSB-026 | Potion bonus/timer precede fallible flag/message work; duration text always30 | Prepare all scoped effects before commitment; truthful duration | Scoped component locally verified1931; expiry/item/durable lifecycle remains open |
+| FSB-027 | XP duration mutates escaped row unchecked and from stale owner | Checked selected duration, complete graph and final current ownership | Scoped component locally verified1931; whole XP/receive lifecycle remains open |
+| FSB-028 | Physical calculation dirties outputs/RNG before bad status; mutates shared spell factor | Admission before effects; immutable catalog input | Scoped calculation locally verified1931; full cast/HP transaction remains open |
+| FSB-029 | Invalid status can leave stale AI/partial ranks or false-success effects | Explicit unavailability before dependent writes/publication | Scoped callers locally verified1931; broader caller/host recovery remains open |
 
 ## CodeFactor cleanup
 

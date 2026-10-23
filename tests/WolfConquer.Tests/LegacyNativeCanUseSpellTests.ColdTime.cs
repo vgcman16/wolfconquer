@@ -54,7 +54,9 @@ public sealed partial class LegacyNativeCanUseSpellTests
         var before = Capture(f);
         Assert.False(f.Run(out var spell, out var row));
         Assert.Null(spell); Assert.Null(row); Unchanged(f, before);
-        f.Player.BitVector.TryAdd((int)flag, 7, false, 0);
+        Assert.Contains("Spell admission preparation", f.Log.ToString());
+        f.Player.BitVector.Remove((int)flag); // Restore coherent empty fixture state before the positive grant.
+        Assert.True(f.Player.BitVector.TryAdd((int)flag, 7, false, 0));
         Assert.True(f.Run(out spell, out row));
         Assert.Same(f.Spell, spell); Assert.Same(f.Row, row);
         Assert.Equal(DateTime.MaxValue, f.Spell.ColdTime);

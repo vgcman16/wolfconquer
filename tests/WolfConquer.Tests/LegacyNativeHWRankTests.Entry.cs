@@ -32,20 +32,25 @@ public sealed partial class LegacyNativeHWRankTests
     }
 
     [Fact]
-    public void FiveNinjaOnlyPriorityFlagsAreIgnoredAndBitArrayDoesNotReplaceRegistrationAuthority()
+    public void FiveNinjaOnlyPrioritiesAreIgnoredButBitmapDisagreementCannotAuthorizeAppearance()
     {
         using var state = new State(); var client = new LegacyNativeGameClientRuntime();
         foreach (var flag in new[] { LegacyNativeMsgUpdate.Flags.TopSuperGuildWarFiveStars,
             LegacyNativeMsgUpdate.Flags.TopSuperGuildWarThreeStars, LegacyNativeMsgUpdate.Flags.TopSuperGuildWarOneStar,
             LegacyNativeMsgUpdate.Flags.TopMrsConquer, LegacyNativeMsgUpdate.Flags.TopMrConquer })
             Assert.True(client.Player.BitVector.TryAdd((int)flag, 0, false, 0));
-        client.Player.BitVector.Add((int)LegacyNativeMsgUpdate.Flags.WeeklyPKChampion);
         var entry = Entry(); entry.AddInfo(client); Assert.Equal(2020u, entry.Flag);
+        var before = Values(entry);
+        client.Player.BitVector.Add((int)LegacyNativeMsgUpdate.Flags.WeeklyPKChampion);
+        Assert.Throws<InvalidDataException>(() => entry.AddInfo(client));
+        Assert.Equal(before, Values(entry));
+        client.Player.BitVector.Remove((int)LegacyNativeMsgUpdate.Flags.WeeklyPKChampion);
         Assert.True(client.Player.BitVector.TryAdd((int)LegacyNativeMsgUpdate.Flags.TopDeputyLeader, 0, false, 0));
-        client.Player.BitVector.Remove((int)LegacyNativeMsgUpdate.Flags.TopDeputyLeader);
         entry.AddInfo(client); Assert.Equal(35u, entry.Flag);
-        Assert.False(client.Player.BitVector.Contain((int)LegacyNativeMsgUpdate.Flags.TopDeputyLeader));
-        Assert.True(client.Player.ContainFlag(LegacyNativeMsgUpdate.Flags.TopDeputyLeader));
+        before = Values(entry);
+        client.Player.BitVector.Remove((int)LegacyNativeMsgUpdate.Flags.TopDeputyLeader);
+        Assert.Throws<InvalidDataException>(() => entry.AddInfo(client));
+        Assert.Equal(before, Values(entry));
     }
 
     [Fact]
@@ -81,7 +86,7 @@ public sealed partial class LegacyNativeHWRankTests
     }
 
     [Fact]
-    public void AppearanceFaultsKeepLiteralEarlyAndLatePublicationPrefixes()
+    public void MissingRequiredFlagOwnerRefusesBeforeAnyAppearanceOrGuildCopy()
     {
         using var state = new State(); var entry = Entry(); var before = Values(entry);
         Assert.Throws<NullReferenceException>(() => entry.AddInfo(null!)); Assert.Equal(before, Values(entry));
@@ -89,10 +94,10 @@ public sealed partial class LegacyNativeHWRankTests
         Assert.Throws<NullReferenceException>(() => entry.AddInfo(client)); Assert.Equal(before, Values(entry));
         client = new LegacyNativeGameClientRuntime(); Populate(client.Player);
         client.Equipment = new LegacyNativeEquipItemStorage(client) { HeadID = 3101, LeftWeapon = 3102, RightWeapon = 3103 };
-        client.Player.MyGuild = LegacyNativeGuildRuntime.CreateLoadedGuild("before flag fault"); client.Player.BitVector = null!;
-        Assert.Throws<NullReferenceException>(() => entry.AddInfo(client));
-        Assert.Equal(new object[] { 41u, "Hero", 2u, 404u, 505u, (byte)206, 707u,
-            3001u, 3101u, 3002u, 3102u, 3004u, 3103u, 3005u, 3006u, 3003u, 3007u, 17u, 3008u, 2020u, "before flag fault" }, Values(entry));
+        client.Player.MyGuild = LegacyNativeGuildRuntime.CreateLoadedGuild("Not published");
+        client.Player.BitVector = null!;
+        Assert.Throws<InvalidDataException>(() => entry.AddInfo(client));
+        Assert.Equal(before, Values(entry)); Assert.Empty(Ranking.Ranks);
     }
 
     [Fact]

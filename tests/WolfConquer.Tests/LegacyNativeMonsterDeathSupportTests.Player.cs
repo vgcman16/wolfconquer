@@ -19,11 +19,16 @@ public sealed partial class LegacyNativeMonsterDeathSupportTests
         Assert.Empty(p.Queue);
     });
     [Fact]
-    public Task FerentPillReadsActualPoisonedMembershipAndDoesNotExpireItOrUseBitmapAlone() => NativePacketTestThread.Run(() =>
+    public Task FerentPillRejectsIncoherentBitmapThenReadsCoherentExpiredRegistrationWithoutImplicitExpiry() => NativePacketTestThread.Run(() =>
     {
         using var p = new Packets(); var player = p.Client.Player; int poisoned = (int)LegacyNativeMsgUpdate.Flags.Poisoned;
         Assert.False(player.OnFerentPill);
-        player.BitVector.Add(poisoned); Assert.False(player.OnFerentPill); // Actual predicate uses ArrayFlags.
+        player.BitVector.Add(poisoned);
+        var dictionary = player.BitVector.ArrayFlags; var words = player.BitVector.bits;
+        var before = words.ToArray();
+        Assert.Throws<InvalidDataException>(() => _ = player.OnFerentPill);
+        Assert.Same(dictionary, player.BitVector.ArrayFlags); Assert.Empty(dictionary);
+        Assert.Same(words, player.BitVector.bits); Assert.Equal(before, words); Assert.Empty(p.Queue);
         player.BitVector.Remove(poisoned);
         Assert.True(player.BitVector.TryAdd(poisoned, 0, false, 0));
         player.BitVector.ArrayFlags[poisoned].Timer = DateTime.Now.AddDays(-1);
