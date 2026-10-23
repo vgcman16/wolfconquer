@@ -144,6 +144,7 @@ public static partial class WorldPacketHandlers
         if (!TryConsumeLegacyInventoryItemCount(
                 workingItems,
                 itemId,
+                workingFragment.Bound,
                 LegacySocialCraftingServicesRuneFragmentCombineCount,
                 out var updatedItems,
                 out var consumeFrames))

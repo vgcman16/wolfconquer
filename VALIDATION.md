@@ -1,5 +1,18 @@
 # Publication validation
 
+## Rune fragment bound-debit checkpoint
+
+Private Release236passed/0failed/0skipped; independent sanitized public229passed/
+0failed/5existing external-fixture skips of234. All12 new cases pass in both trees.
+Direct registered UseItem and NPC public-owner controls cover exact admitted
+binding, opposite stock before/after matching rows,19-unit refusal, staged
+auto-binding, per-unit vs per-stack packet order and complete saved/reloaded
+item images. One inherited wrong-debit test was corrected and proved red first.
+The20-fragment cost, reward pool and valid packet bytes are unchanged (FSB041).
+
+Full Windows and CodeFactor for this checkpoint await publication. This is
+offline proof, not live/client deployment, global UID or whole reward/save atomicity.
+
 ## Native quest persistence checkpoint
 
 Private/public Release **3465/3465** each,0failed/0skipped. Complete real native

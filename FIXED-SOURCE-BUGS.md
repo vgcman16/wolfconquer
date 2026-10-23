@@ -500,6 +500,25 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   observation of two public maps. Raw writers/path ABA remain open. Unknown
   post-replace classification is source-reviewed, not invented runtime proof.
 
+### FSB-041: Debit only the admitted bound type of rune fragments
+
+- Owners: direct six-fragment UseItem and NPC RuneFragments combine. Native
+  Inventory.Contain checks ItemId+Bound, but Remove loses the binding predicate;
+  the replacement inherited that mismatch and one test required the wrong debit.
+- Both debit paths now select exactly the binding admitted by their count. The
+  direct path retains per-unit updates; the NPC retains per-stack batch order
+  and uses the selected row's staged auto-binding. Opposite-bound stock stays
+  untouched; nineteen matching fragments cannot borrow a twentieth from it.
+- Verification: private Release **236 passed/0 failed/0 skipped**; independent
+  sanitized public **229 passed/0 failed/5 existing external-fixture skips** of234.
+  All12 new controls pass in both trees. Registered direct ingress and real NPC
+  public-owner fixtures check complete item images, disk reload, refusal identity,
+  unchanged original rows, exact20-fragment cost and retained reward/wire order.
+  The corrected old assertion genuinely failed before the production change.
+- Limits: matching debit selection only, not whole reward/persistence atomicity,
+  globally durable UID allocation, registered NPC ingress or live-client proof.
+  The12 controls are additional to retained old cases; no balance values changed.
+
 ## Active audit
 
 Current source review does not close whole managed reward transactions: Lottery
@@ -549,6 +568,7 @@ work, not safety proved by the isolated UID-adoption proposals.
 | FSB-038 | Fixed32 text reads/writes escape buffers or retain stale tails | Bounded field access, validate before write and explicit null admission | Scoped record verified34cases within3116 both trees; full load/postlude audit open |
 | FSB-039 | Selected DivineGuard resets cooldown and publishes refinement before fallible status work | Complete real preparation and final ownership before stamp/status/draw effects | Scoped proc verified3214 both trees; outer authorization/combat/HP/host remains open |
 | FSB-040 | Quest saves truncate; loads accept partial/default rows and split canonical aliases | Complete real image and coherent validated merge before file/map publication | Scoped persistence verified3465 both trees; host/SQL/raw lifecycle recovery open |
+| FSB-041 | Rune admission filters Bound but debit consumes either binding | Debit exactly admitted ItemId+Bound and preserve opposite stock | Scoped direct/NPC debit verified236 private;229 public plus5existing external skips; whole reward/UID transactions open |
 
 ## CodeFactor cleanup
 

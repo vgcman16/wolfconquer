@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacySocialCraftingServicesNpcTests
+public sealed partial class LegacySocialCraftingServicesNpcTests
 {
     private const uint JiangHuNpcId = 15_745;
     private const uint ClanNpcId = 5_533;

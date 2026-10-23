@@ -201,7 +201,7 @@ public static partial class WorldPacketHandlers
             for (var index = 0; index < inventoryItems.Count && remaining > 0; index++)
             {
                 var candidate = inventoryItems[index];
-                if (candidate.ItemId != itemId)
+                if (candidate.ItemId != itemId || candidate.Bound != bound)
                 {
                     continue;
                 }

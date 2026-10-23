@@ -10,7 +10,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
     private const uint RuneMixedBoundRewardId = 4_012_001;
 
     [Fact]
-    public async Task HandlerRuneFragmentMixedBoundDebitsBothUidsAndPreservesBoundsOnReload()
+    public async Task HandlerRuneFragmentMixedBoundDebitsOnlyAdmittedBoundTypeAndPreservesOtherStackOnReload()
     {
         const uint unboundUid = 5_337_700;
         const uint boundUid = 5_337_701;
@@ -38,24 +38,22 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         await handler.HandleFrameAsync(connection, ReadFrame(CreateEquipUse(unboundUid).ToFrameBytes()));
 
         Assert.Equal(countBeforeRequest + 22, sent.Count);
-        var materialFrames = sent.Skip(countBeforeRequest).Take(20).ToArray();
+        var materialFrames = sent.Skip(countBeforeRequest).Take(19).ToArray();
         var updates = materialFrames.Select(ParseRuneMixedBoundItem).ToArray();
-        var expectedBounds = new Dictionary<uint, byte> { [unboundUid] = 0, [boundUid] = 1 };
         Assert.All(materialFrames, bytes =>
             Assert.False(MsgItemUsagePacket.TryParse(ReadFrame(bytes), out _)));
         Assert.All(updates, packet =>
         {
-            Assert.Contains(packet.Uid, expectedBounds.Keys);
+            Assert.Equal(unboundUid, packet.Uid);
             Assert.Equal(RuneMixedBoundFragmentId, packet.ItemId);
             Assert.Equal(LegacyGameItemPacket.UpdateItemMode, packet.Mode);
-            Assert.Equal(expectedBounds[packet.Uid], packet.Bound);
+            Assert.Equal((byte)0, packet.Bound);
         });
-        foreach (var uid in expectedBounds.Keys)
-        {
-            Assert.Equal(
-                Enumerable.Range(10, 10).Reverse().Select(stack => checked((ushort)stack)),
-                updates.Where(packet => packet.Uid == uid).Select(packet => packet.StackSize));
-        }
+        Assert.Equal(Enumerable.Range(1, 19).Reverse().Select(stack => checked((ushort)stack)),
+            updates.Select(packet => packet.StackSize));
+        Assert.True(MsgItemUsagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 19]), out var removal));
+        Assert.Equal(MsgItemUsageAction.RemoveInventory, removal.Action);
+        Assert.Equal(unboundUid, removal.Id);
 
         var rewardPacket = ParseRuneMixedBoundItem(sent[countBeforeRequest + 20]);
         Assert.Equal(RuneMixedBoundRewardId, rewardPacket.ItemId);
@@ -69,16 +67,16 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
 
         var updated = GetSession(handler, connection).PlayerItems;
         Assert.NotSame(original, updated);
-        Assert.Equal(3, updated.InventoryItems.Count);
-        AssertRuneMixedBoundStack(updated, unboundUid, stackSize: 10, bound: 0);
-        AssertRuneMixedBoundStack(updated, boundUid, stackSize: 10, bound: 1);
+        Assert.Equal(2, updated.InventoryItems.Count);
+        Assert.DoesNotContain(updated.InventoryItems, item => item.Uid == unboundUid);
+        AssertRuneMixedBoundStack(updated, boundUid, stackSize: 20, bound: 1);
         var reward = Assert.Single(updated.InventoryItems, item => item.ItemId == RuneMixedBoundRewardId);
         Assert.Equal(rewardPacket.Uid, reward.Uid);
         Assert.Equal((byte)0, reward.Bound);
         Assert.Equal((ushort)1, reward.StackSize);
         var expected = original with
         {
-            InventoryItems = original.InventoryItems.Select(item => item.WithStackSize(10))
+            InventoryItems = original.InventoryItems.Where(item => item.Uid != unboundUid)
                 .Concat([reward]).ToArray(),
         };
         Assert.Equal(
@@ -87,8 +85,8 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(originalBytes, PlayerItemSnapshotLoader.ToLegacyBytes(original));
 
         var reloaded = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        AssertRuneMixedBoundStack(reloaded, unboundUid, stackSize: 10, bound: 0);
-        AssertRuneMixedBoundStack(reloaded, boundUid, stackSize: 10, bound: 1);
+        Assert.DoesNotContain(reloaded.InventoryItems, item => item.Uid == unboundUid);
+        AssertRuneMixedBoundStack(reloaded, boundUid, stackSize: 20, bound: 1);
         Assert.Equal(
             PlayerItemSnapshotLoader.ToLegacyBytes(updated),
             PlayerItemSnapshotLoader.ToLegacyBytes(reloaded));

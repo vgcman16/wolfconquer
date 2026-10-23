@@ -7,6 +7,14 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Rune fragment direct/NPC debit repair (FSB041): private236passed/0failed/
+  0skipped; public229passed/0failed/5existing external-fixture skips of234.
+  All12 new controls pass. Opposite-bound stock cannot pay an admitted cost;
+  native direct per-unit/NPC per-stack order, staged binding,20cost and reward
+  values remain. Saved/reloaded physical images and unchanged refusals checked.
+  Full Windows and CodeFactor for this checkpoint are pending publication.
+  Whole reward/UID/persistence transactions and actual-client proof remain open.
+
 - [x] Private/public Release **3465/3465** each,0failed/0skipped: complete native
   quest Save/Load (FSB040), real flushed replacement, full bounded parsing and
   canonical conflict-safe merge. Corrected destructive/partial/split-alias tests;
