@@ -36,16 +36,20 @@
   compatibility remain unfinished; no running scheduler readiness is claimed.
 - [x] Nobility pole scoring/reset/furniture and full Prince/Duke/Earl owners are
   implemented. King Start/CheckUP remain held on genuine invitations/teleport.
-- [x] Private Release passed 4679/4679, then all 92 new pole-event cases. The
-  independent sanitized-public combined run passed 4771/4771, zero failures/skips:
-  4552 retained + 52 existing Time32 + 36 pet/fairy + 39 timer/login + 92 events.
+- [x] Whole poker/roulette table loaders, display/admission/rule methods and raw
+  codecs are implemented. Currency payouts, round worker and handlers remain held.
+  Complete RuneRank/RechargeShop file/cache owners and the exact NameUsed slot
+  now support the login graph; they do not prove eager account login or SQL.
+- [x] Private Release passed 4858/4858, then final catalog-fixture 28/28. Independent
+  sanitized-public Release passed 4858/4858, zero failures/skips: 4771 retained
+  + 59 table and 28 catalog controls. The unused test console capture was removed.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run 39911102757 on `4c456773` passed all 8 stages: core 21,091
-  passed / 0 failed / 165 unexecuted of 21,256; updater 262/262; launcher 49/49;
+  Full Windows run 39914155501 on `4cb41b15` passed all 8 stages: core 21,258
+  passed / 0 failed / 165 unexecuted of 21,423; updater 262/262; launcher 49/49;
   synthetic parser 20 + 13 cases. HTTP/service probes were skipped.
 - [x] Logging/ranking/login-wire source has full Windows proof in3m52s on exact
   b75f29ab. Hair setter/getter and earlier component controls remain intact.

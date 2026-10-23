@@ -1,5 +1,24 @@
 # Publication validation
 
+## Native table and login-catalog dependencies
+
+Private Release passed 4858/4858 selected cases, then all 28 final catalog controls
+after removing an unused test-only global Console capture. Independent sanitized
+public Release passed 4858/4858, zero failures/skips: 4771 retained + 59 table + 28
+catalog cases. Source behavior and assertions were unchanged by that fixture fix.
+The existing fresh-thread helper preserves the genuine Packet constructor guard;
+no native stack-depth check was removed. File controls use owned temporary data.
+
+New complete methods cover poker and roulette table loading, raw display codecs,
+real membership/watch/send behavior and roulette rules. Complete RuneRank and
+RechargeShop preserve threshold/tie/cache aliases, parse/commit faults, native
+file formats and the original named-enum reload loss. NameUsed remains an exact
+implicit-null List<int> slot; no startup producer was invented. Roulette's default
+Random uses the previously scoped Framework TickCount-seeding translation only;
+its separate Pool RNG remains separate. No payout, wallet, round worker, handler,
+SQL, eager queue, original save or live host was executed/adopted. Full Windows
+proof for this new batch is pending; the receipt below belongs to its exact commit.
+
 ## Native timer/login and world-view/event prerequisites
 
 Private Release passed 4679/4679 selected cases, then all 92 new pole-event cases.
@@ -12,8 +31,8 @@ production behavior or dropping assertions.
 
 Complete component methods now include real pet creation/collision publication,
 fairy 2336 metadata/codec/handler, view republishing/color latches, native timer
-rules/pools/subscriptions and registration/scheduling, socket identity, all50
-HeroInfo protobuf contract fields and the full22210 loader writer. Entire numbered
+rules/pools/subscriptions and registration/scheduling, socket identity, all 50
+HeroInfo protobuf contract fields and the full 22210 loader writer. Entire numbered
 Prince/Duke/Earl pole owners plus King furniture/scoring/reset/End are included.
 Original map-membership versus all-map nearby broadcast behavior, score aliases,
 singleton key faults, double rankings and mutation-before-fault order are tested.
@@ -25,8 +44,8 @@ SQL, original save or live client was executed. Started-thread shutdown still ne
 modern-runtime compatibility; full callbacks/startup, eager login/save, teleport
 and King invitation methods remain held. No fake clock, queue, HP or UI owner was
 added. These checks are not integrated login, event deployment or total parity.
-Full Windows confirmation of this new batch is pending; the earlier result below
-remains exact to its named commit.
+Full Windows 39914155501 confirms this batch on exact `4cb41b15`; the result below
+is build/component evidence, not host or gameplay adoption.
 
 ## Native monster-death support and event prerequisites
 
@@ -46,15 +65,15 @@ whole scheduler Create, but never assigns PowerArena. Full invitations, teleport
 XP/inventory rewards and event/monster-death adoption remain unfinished. The full
 Windows result below now verifies this batch; it is not live event proof.
 
-## Last completed full Windows result
+## Current full Windows result
 
-[Windows39911102757](https://github.com/vgcman16/wolfconquer/actions/runs/39911102757)
-passed in 3m 53s on exact commit `4c4567736780041be67eb8b983961a7d260e2309`.
-All eight sequential stages exited 0. Actual terminal TRX: core 21,091 passed /
-0 failed / 165 unexecuted of 21,256; updater 262/262; Windows launcher 49/49.
+[Windows39914155501](https://github.com/vgcman16/wolfconquer/actions/runs/39914155501)
+passed in 4m 12s on exact commit `4cb41b155d300255321223cea2de4a13cbc1a15a`.
+All eight sequential stages exited 0. Actual terminal TRX: core 21,258 passed /
+0 failed / 165 unexecuted of 21,423; updater 262/262; Windows launcher 49/49.
 Synthetic status and TRX-parser controls passed 20 + 13; HTTP/service probes were
-skipped. Runner receipt `20261023T062323708Z-cca420b0` finished at
-`2026-10-23T06:26:55.6498832Z`.
+skipped. Runner receipt `20261023T065304426Z-c3543ad7` finished at
+`2026-10-23T06:56:53.8732556Z`.
 This closes the three test regressions described below. Earlier red receipts
 remain historical evidence, not current failures. This is build/component proof,
 not a new live-client, SQL, deployment or full-gameplay-parity claim.
