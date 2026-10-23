@@ -34,3 +34,23 @@ jobs:
               Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ("### $name`n" + '```json' + "`n" + $text + "`n" + '```')
             }
           }
+          $checkPath = Join-Path $env:GITHUB_WORKSPACE '.artifacts/local-dev/last-check.json'
+          if (Test-Path -LiteralPath $checkPath) {
+            $check = Get-Content -LiteralPath $checkPath -Raw | ConvertFrom-Json
+            foreach ($kind in @('solution', 'launcher')) {
+              $results = Join-Path $env:GITHUB_WORKSPACE ('.artifacts/local-dev/' + $check.runId + '-' + $kind + '-results')
+              if (-not (Test-Path -LiteralPath $results)) { continue }
+              foreach ($result in Get-ChildItem -LiteralPath $results -Recurse -Filter '*.trx') {
+                [xml]$trx = Get-Content -LiteralPath $result.FullName -Raw
+                $definitions = @($trx.TestRun.TestDefinitions.UnitTest)
+                $outcomes = @($trx.TestRun.Results.UnitTestResult | Group-Object outcome | Select-Object Name, Count)
+                $summary = [ordered]@{
+                  runId = $check.runId
+                  assembly = [IO.Path]::GetFileName([string]$definitions[0].TestMethod.codeBase)
+                  outcomes = $outcomes
+                } | ConvertTo-Json -Depth 4 -Compress
+                Write-Host ('Terminal TRX: ' + $summary)
+                Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ('Terminal TRX: ' + $summary)
+              }
+            }
+          }

@@ -76,13 +76,14 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
             Connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958), (frame, _) =>
             {
                 Sent.Add(frame.ToArray());
+                ChestSendObserver?.Invoke();
                 return ValueTask.CompletedTask;
             });
         }
 
         internal void Seed(int slots, ushort firstStack, ushort secondStack, byte firstBound, bool includeKeys = true,
             uint firstKeyItemId = KeyItemId, uint secondKeyItemId = KeyItemId, uint npcId = 22_598,
-            long accountId = CharacterUid)
+            long accountId = CharacterUid, bool firstKeyHasDepositedChild = false)
         {
             this.accountId = accountId;
             ValidateRoot();
@@ -104,9 +105,12 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
             var text = string.Join(Environment.NewLine, fields) + Environment.NewLine;
             File.WriteAllText(CharacterPath, text, new UTF8Encoding(false, true));
             // Enumeration order deliberately disagrees with UID order.
+            var firstKey = Item(900, includeKeys ? firstKeyItemId : 1_000_900, firstStack).WithBound(firstBound);
+            if (firstKeyHasDepositedChild)
+                firstKey = firstKey.WithDepositedItems([Item(1900, 1_001_900, 2)]);
             var inventory = new List<PlayerItemSnapshotItem>
             {
-                Item(900, includeKeys ? firstKeyItemId : 1_000_900, firstStack).WithBound(firstBound),
+                firstKey,
                 Item(800, includeKeys ? secondKeyItemId : 1_000_800, secondStack).WithBound((byte)(1 - firstBound)),
             };
             inventory.AddRange(Enumerable.Range(0, slots - 2).Select(index => Item((uint)(100 + index), 1_000_000, 1)));
@@ -129,11 +133,17 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
             var character = CharacterSnapshotParser.ParseText(text, CharacterPath);
             Session = new WorldSession(accountId, "fixture", character, loaded, PlayerSpellSnapshot.Empty,
                 PlayerProficiencySnapshot.Empty, UsersRoot: Users, ActiveNpcId: npcId);
+            InitializeRequiredChestSaveOwners();
             sessions.Set(Connection, Session);
         }
 
         private WorldPacketHandlerContext Context => new(Connection, Log, Session: Current,
-            Sessions: sessions, PlayerItemsRoot: Items, ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
+            Sessions: sessions, PlayerItemsRoot: Items, ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13)
+        {
+            Trades = requiredChestTrades,
+            TradeOperations = requiredChestOperations,
+            TradeRecovery = requiredChestRecovery,
+        };
 
         internal async Task UnlockRareAsync() => await registry.HandleAsync(Context,
             ReadFrame(LegacyNpcServerRequestPacket.Script(22_598, optionId: 1, interactType: 1).ToFrameBytes()));

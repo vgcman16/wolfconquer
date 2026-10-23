@@ -7,6 +7,19 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Scoped chest transaction (FSB066): validate complete actual owners and
+  required files before debit, journal Character/Items together, then publish
+  current session and prepared packets. Real recovery fences uncertain outcomes;
+  ended/replaced owners stop remaining sends. Tests-first wider202=184pass/
+  18fail; private Release530/530 passed,zero failed/skipped,5s, including123 chest,
+  95 NPC,14 codec and298 adjacent cases. Forty-eight new chest controls; two
+  retained registered Script/Reply facts migrated to genuine owned files.
+  Public full CI pending; actual Frame/shared-barrier proof is next.
+  This supersedes separate best-effort-save debt below for Rare/Epic only,
+  not Victory/all rewards, power-loss/raw-writer/outbox/ABA or global UID safety.
+  Current max+1 creator remains; isolated canonical UID/Host activation HOLD.
+  No live,SQL,original-save,routing or deployment action.
+
 - [x] Positive chest payment and CP identity (FSB064/065): empty rows no
   longer authorize/payment/free slots; first real key pays one unit. CP saves use
   account301 path with actual character1293600 validation. Tests-first75=

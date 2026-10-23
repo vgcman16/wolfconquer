@@ -1137,6 +1137,39 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   SQL, live/deployment/full parity and global UID/Host activation remain open.
 
 
+### FSB-066: Commit chest key/reward saves before publishing success
+
+- Owners: Deityland chest transaction/preparation/publication partials and
+  LegacyDeityChestPersistence. The old route published a charged key/reward
+  before separate best-effort account/item saves; invalid or locked required
+  files still produced success. Consuming a parent key could discard deposits.
+- Corrected invariant: validate actual account-keyed Character and character-
+  keyed complete Items preimages, native/current identity, positive key,
+  deposits, capacity, metadata and wallet bounds before changes. Prepare packets,
+  serialize under real Trades/current-session/file gates, commit both files
+  through the existing v2 journal, prove afterimages, then publish. Unproven or
+  pending outcomes fence real recovery. Keep valid any-binding keys, one-unit
+  costs, random rates, rewards and packet order.
+- Recheck captured current/native owner and connection-ended state before each
+  send. Post-commit send/cancellation/log failures cannot refund or make payment
+  retryable. No nested Shared-to-Exclusive world-barrier upgrade.
+- Verification: tests-first91=75passed/16failed, then wider202=184passed/
+  18failed (two deposited-parent controls added), zero skipped. Private Release
+  **530/530 passed**, zero failed/skipped,5s, deity-transaction-green.trx:
+  123 chest +95 NPC +14 codec +298 Trade/session/barrier/DragonSkin neighbors.
+  All202 baseline names are retained and pass. Forty-eight new chest cases:
+  16 required-file +2 deposited-cost +10 direct persistence +20 post-roll owner
+  controls, including interruption/recovery, stale owners, overflow, malformed
+  metadata, output faults and ended connections. Two retained Rare/Epic
+  registered Script/Reply facts now use complete real files and ready recovery.
+- Limits: offline owned-file/registered component proof only; public full CI
+  pending. Actual Frame/shared-barrier integration is next, not yet proven.
+  Recovery covers real process-restart prefixes, not power loss, multi-process
+  or uncooperative writers, durable outbox, ABA or every crash point. Current
+  max+1 reward UID remains unsafe globally; canonical UID/Host activation HOLD.
+  Victory/broader NPC claims, SQL, live/deployment/full parity remain open.
+  No original saves, live client/server or routing were changed.
+
 ## Active audit
 
 Current work does not close whole managed reward transactions. SuperGuildWar's
