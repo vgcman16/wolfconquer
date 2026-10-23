@@ -10,7 +10,9 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 - [x] NPC admitted-cost and existing-lock safety (FSB058/059): real tests-first
   108=82passed/26failed; six unsafe old facts corrected and39 new cases added.
   Private and independent public Release338/338 each passed,zero failed/skipped
-  across wider NPC/reward families. Full CI is pending.
+  across wider NPC/reward families. Full Windows40017540883 passes5m26s on
+  exactpublic06210e3a:24032corepassed/0failed,165existing fixture exclusions;
+  updater301/301,launcher57/57,all8stageexit0,204buildwarnings/0errors.
   Arthur/Event/Simon spend only admitted positive unbound rows in lowest eligible
   UID order; Simon empty rows cannot supply diamond units. RedBodhi preserves
   existing locks/timers/metadata, with complete saved bytes and ten independent

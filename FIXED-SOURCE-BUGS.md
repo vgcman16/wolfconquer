@@ -999,9 +999,17 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   UnlockTimer/perfection/owner metadata, unchanged source/character files and
   all ten independent206-byte opcode2116 goldens. The Locked1/2 controls and both
   unsafe old facts failed before repair; Locked0 already passed.
-- Included in private/public338/338 above. Full CI is pending at this local
-  record. This is metadata preservation, not a whole grant journal,
+- Included in private/public338/338 above. This is metadata preservation,
+  not a whole grant journal,
   recovery/delivery guarantee, global allocator activation or live proof.
+- Full Windows [40017540883](https://github.com/vgcman16/wolfconquer/actions/runs/40017540883)
+  passed on exact public06210e3ad195366b3e052fabb6d67e82cf24f762 in5m26s:
+  core24032 passed/0failed of24197,165 existing external-fixture exclusions;
+  updater301/301,launcher57/57,all8 stages exit0,build204 warnings/0errors.
+  Receipt20261023T201551325Z-371218ea finished20:20:17.8510965Z;
+  GitHub job completed2026-10-23T20:20:24Z. Root read exact runnerHEAD,
+  receipt/stdout and all three terminal TRXs. Parser20+13 controls remain
+  synthetic only; no HTTP/service,SQL,live-client or deployment proof.
 
 ## Active audit
 
