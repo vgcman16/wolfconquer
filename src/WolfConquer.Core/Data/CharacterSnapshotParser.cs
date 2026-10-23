@@ -113,7 +113,7 @@ public static class CharacterSnapshotParser
     }
 }
 
-public sealed class CharacterSnapshotLoader
+public sealed partial class CharacterSnapshotLoader
 {
     private const long LegacyFirstCharacterFace = 154;
     private const long LegacyFirstCharacterHair = 27;
@@ -321,14 +321,7 @@ public sealed class CharacterSnapshotLoader
                 $"Character snapshot file '{Path.GetFileName(path)}' has UID {snapshot.Uid}, expected {accountId}.");
         }
 
-        snapshot = RestoreExpiredPaidNobility(path, snapshot);
-        return new CharacterSnapshotLoadResult(
-            snapshot with { PlayerQuests = LoadPlayerQuestsByCharacterUid(snapshot.Uid) },
-            CharacterSnapshotLoadStatus.Success,
-            accountId,
-            path,
-            "success",
-            string.Empty);
+        return LoadCharacterWithQuests(accountId, path, snapshot);
     }
 
     public CharacterSnapshot CreateLegacyFirstCharacterSnapshot(

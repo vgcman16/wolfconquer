@@ -82,7 +82,7 @@ public enum PlayerQuestStatus : uint
     Available = 2,
 }
 
-public sealed class PlayerQuestSnapshotLoader
+public sealed partial class PlayerQuestSnapshotLoader
 {
     public const int LegacyQuestHeaderSize = 16;
 
@@ -168,16 +168,7 @@ public sealed class PlayerQuestSnapshotLoader
 
     public static PlayerQuestSnapshot Parse(ReadOnlySpan<byte> bytes, string sourceFile = "")
     {
-        if (bytes.Length < sizeof(int))
-        {
-            throw new FormatException($"Player quest snapshot '{sourceFile}' is missing the quest count.");
-        }
-
-        var questCount = BinaryPrimitives.ReadInt32LittleEndian(bytes);
-        if (questCount < 0)
-        {
-            throw new FormatException($"Player quest snapshot '{sourceFile}' has negative quest count {questCount}.");
-        }
+        var questCount = ValidateStructure(bytes, sourceFile);
 
         var offset = sizeof(int);
         var quests = new PlayerQuestSnapshotEntry[questCount];
@@ -190,14 +181,8 @@ public sealed class PlayerQuestSnapshotLoader
             var time = BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(offset + TimeOffset, sizeof(uint)));
             var intentionCount = BinaryPrimitives.ReadInt32LittleEndian(
                 bytes.Slice(offset + IntentionCountOffset, sizeof(int)));
-            if (intentionCount < 0)
-            {
-                throw new FormatException(
-                    $"Player quest snapshot '{sourceFile}' has negative intention count {intentionCount}.");
-            }
-
             offset += LegacyQuestHeaderSize;
-            var intentionsLength = checked(intentionCount * sizeof(uint));
+            var intentionsLength = GetIntentionByteCount(bytes, offset, intentionCount, sourceFile);
             EnsureAvailable(bytes, offset, intentionsLength, sourceFile);
 
             var intentions = new uint[intentionCount];

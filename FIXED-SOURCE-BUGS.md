@@ -1242,8 +1242,6 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   Full Windows successor40036685838 on c90122ab is accepted; see exact proof above.
   No live server/client, SQL, original saves, routing or deployment changed.
 
-## Active audit
-
 ### FSB-067: Commit Victory chest quest claim and reward together (scoped verified)
 
 Full Windows [40040302782](https://github.com/vgcman16/wolfconquer/actions/runs/40040302782)
@@ -1312,6 +1310,54 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   Hostile namespace retargeting, handle-relative replacement and whole-domain
   lifetime hardening are separate explicit debt, not silently claimed solved.
   No live/SQL/original-save/routing/deployment action.
+
+## Active audit
+
+### FSB-069: Bound quest structures before allocation and load before expiry writes
+
+- Former PlayerQuestSnapshotLoader.Parse allocated the declared row array before
+  proving headers fit; late invalid tails materialized earlier rows, and impossible
+  intention sizes escaped as OverflowException. A complete allocation-free
+  structural pass now bounds every count by actual remaining bytes before records
+  are created. Materialization keeps defensive bounds; valid bytes/order/cache and
+  the existing format range are retained, including a valid image above16MiB.
+- CharacterSnapshotLoader previously restored/persisted expired nobility before
+  quest loading, then let quest faults escape its structured result. Quest load
+  now precedes that save and uses existing read/parse error statuses; failed
+  snapshots are null. UID mismatch precedence and healthy/missing quest behavior
+  are unchanged. All real production callers were inspected for these statuses.
+- Tests-first current:26passed/13failed/0skipped,361ms. Four bounded allocation
+  controls failed, three parser/loader overflow controls failed, five real
+  character-byte preimage controls caught writes before quest failure, and one
+  reload fault escaped. Later assertions on those RED rows were not reached.
+- Private Release776/776 passed,0failed/0skipped,5s: retained717, new39, existing19
+  Character loader and1 legacy-login error-admission control. This is a scoped
+  loader repair, not a file-size cap, immutable borrowed-span guarantee, all-sidecar
+  transaction, handoff rollback or new-character creation rollback. Public full CI pending.
+- Successor778/778 passed,0failed/0skipped,5s, adds two actual D13 Frame admission
+  cases over the existing real fixture: malformed quest count/final intention plus
+  expired paid nobility yield exactly one SnapshotError, no session admission and
+  unchanged complete User/item/injected-quest files. Real recovery is ready, not
+  a missing-owner refusal. No new fixture/provider or ticket rollback claim.
+
+### FSB-070: Make updater parent-directory rename pins genuine
+
+- ClientDirectoryJunction.DirectoryPins retained metadata-only0x80 handles.
+  No-delete sharing alone did not stop tested ordinary link-parent/target renames.
+  Parent pins now request list+attribute read0x81 with read/write sharing and no
+  delete sharing. Missing list permission refuses; no fallback or elevation.
+  Leaf create/delete access, exact-path/reparse checks and manifest logic stay unchanged.
+- Genuine private ValidatePair lease tests-first:2passed/2failed/0skipped,95ms.
+  Link-parent and target rename unexpectedly succeeded (restored before failure);
+  target-ancestor and real child replacement/junction compatibility passed.
+  After the two small source hunks, complete updater Release305/305 passed,
+  0failed/0skipped,1m10s; all301 prior cases retained plus4 real controls.
+- Scope: ordinary directory rename exclusion for that synchronous lease only.
+  This is not a child namespace/reparse-metadata lock, native alias closure,
+  hostile-writer defense, live updater deployment or whole-update safety proof.
+  [Windows sharing rules](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/8c0e3f4f-0729-49f4-a14d-7f7add593819)
+  distinguish metadata access from participating read/write/delete access.
+  Public full successor CI remains pending.
 
 Current work does not close whole managed reward transactions. SuperGuildWar's
 checked preparation now precedes its claim decision as verified above, but the

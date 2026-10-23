@@ -98,7 +98,12 @@ internal static partial class ClientDirectoryJunction
         private void Pin(string path)
         {
             if (_handles.ContainsKey(path)) return;
-            var handle = OpenDirectory(path, ReadAttributes, ShareRead);
+            // Attribute-only opens do not establish the read/share constraint
+            // needed to prevent an ordinary rename of this parent directory.
+            // Actual list access participates in sharing. Permit writes because
+            // CreateNew creates a child and ordinary child replacement must work;
+            // deny delete sharing, not arbitrary child-namespace mutation.
+            var handle = OpenDirectory(path, ReadAttributes | ListDirectory, ShareRead | ShareWrite);
             try
             {
                 RequireHandle(handle, path, reparse: false);

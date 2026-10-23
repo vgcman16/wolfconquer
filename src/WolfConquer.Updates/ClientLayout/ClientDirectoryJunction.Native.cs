@@ -11,7 +11,8 @@ internal static partial class ClientDirectoryJunction
     private const uint MountPointTag = 0xA0000003, GetReparsePoint = 0x000900A8,
         SetReparsePoint = 0x000900A4, DeleteReparsePoint = 0x000900AC;
     private const int MaximumReparseBytes = 16 * 1024;
-    private const uint ReadAttributes = 0x80, GenericWrite = 0x40000000, DeleteAccess = 0x10000, ShareRead = 1;
+    private const uint ReadAttributes = 0x80, ListDirectory = 0x1, GenericWrite = 0x40000000,
+        DeleteAccess = 0x10000, ShareRead = 1, ShareWrite = 2;
 
     private static string NativePath(string path) => @"\\?\" + path;
 
