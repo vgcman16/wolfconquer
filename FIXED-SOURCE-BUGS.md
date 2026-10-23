@@ -20,6 +20,10 @@ inspection confirms a real competing-loop stale-stamina risk (FSB068), not proof
 that only the assertion is wrong. Corrected seed failure remains fixed; full-CI
 acceptance is still RED. No live,SQL,original-save,routing or deployment action.
 
+Successor runtime fix is now privately focused-GREEN at556/556 (FSB068 below).
+Both controlled old-production race cases first failed alive/stamina5; the
+per-connection fix retains100. Full Windows successor acceptance is pending.
+
 ## Verified fixes
 
 ### FSB-001: Reject spell admissions before spending resources
@@ -1201,20 +1205,39 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   Victory/broader NPC claims, SQL, live/deployment/full parity remain open.
   No original saves, live client/server or routing were changed.
 
+### FSB-068: Serialize player-tick and Reviver publication
+
+- Owners: `WorldServerFrameHandler.RuntimeTicks`, `GuardReviverRuntime` and
+  the new physical-connection publication lease. Both loops previously held
+  Shared world leases: the player tick could prepare stamina5, pause its send,
+  then merge5 after the global Reviver had published100.
+- Tests-first: actual Frame login/SetLocation, real runtime delay callbacks and
+  one held physical send reproduced final alive/stamina5 in BOTH D11 and D13:
+  0passed/2failed/0skipped (834ms behavior). This is a new controlled trace;
+  the prior full-CI failure's exact stamina value/interleaving was not recorded.
+- Corrected invariant: one per-physical-connection async gate covers fresh tick
+  capture through sends/merges and fresh Reviver eligibility through its whole
+  revive/animation/publication phase. A skip-only healthy prefilter precedes
+  waiting; authoritative checks remain after entry. No Exclusive upgrade,
+  world-wide exclusive loop, peer-gate nesting or packet-layout change.
+- Real startup workers are registered by their actual returned Tasks. Bounded
+  active-task/last-fault diagnostics let fixtures retain both initial pending
+  workers and join those same Tasks before disposing their logger/files.
+  This diagnostic registry is not a general stop/start fence or Host drain.
+- Private Release focused proof: **556/556 passed, 0 failed/skipped, 5s**:
+  retained534 chest/NPC/Trade/session/barrier cases,2 controlled race cases,
+  4 actual lease cancellation/double-dispose/connection-isolation controls,
+  12 ticker,2 merge and2 old Reviver facts. The old failing fact now advances
+  actual registered timers after SetLocation; every original packet-order,
+  animation, state and no-generic-attack assertion is retained.
+- Limits: offline owned fixtures only; saved positive HP is checked, NOT saved
+  stamina (not a current scalar-save key). Other runtime/Frame/raw writers,
+  recipient delivery recovery, fairness and stalled dead/invisible candidates
+  remain open. No general shutdown, live-client or full-parity proof.
+  Full Windows successor CI is still pending; old CI remains RED until terminal.
+  No live server/client, SQL, original saves, routing or deployment changed.
+
 ## Active audit
-
-### FSB-068: Prevent player ticks overwriting revived stamina (OPEN)
-
-- Source-confirmed risk: the player runtime loop prepares a stamina value,
-  awaits its send, then rereads/merges onto the latest session. The global
-  Reviver publishes stamina100 and sends its multi-frame sequence across awaits.
-  Both own Shared leases; an older prepared5 can overwrite100 and interleave output.
-- Required invariant: real per-connection async ownership around fresh capture,
-  commit and publication of these two phases. No monitor across awaits or nested
-  Shared-to-Exclusive upgrade; no unaudited global-exclusive switch.
-- Status: source diagnosis, not fixed. Controlled actual timers/paused sends,
-  real worker-lifetime evidence and the bounded gate are next. Preserve existing
-  wire/state assertions; do not filter stale packets away. Broader writers open.
 
 ### FSB-067: Commit Victory chest quest claim and reward together (OPEN)
 

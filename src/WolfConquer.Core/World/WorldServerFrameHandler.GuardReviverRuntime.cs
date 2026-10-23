@@ -301,6 +301,17 @@ public sealed partial class WorldServerFrameHandler
         var spellViewerCount = 0;
         foreach (var active in activeSessions)
         {
+            // Skip-only prefilter; authoritative eligibility is read again after entry.
+            if (!_sessions.TryGet(active.Connection, out var candidate) ||
+                candidate is null ||
+                !IsLegacyCharacterDead(candidate.Character))
+            {
+                continue;
+            }
+
+            using var publication = await EnterLegacyRuntimePublicationAsync(active.Connection, cancellationToken)
+                .ConfigureAwait(false);
+
             if (!_sessions.TryGet(active.Connection, out var currentSession) ||
                 currentSession is null ||
                 !IsLegacyCharacterDead(currentSession.Character) ||

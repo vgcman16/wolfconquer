@@ -26967,6 +26967,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
         using var log = new RuntimeThreadSafeStringWriter();
         using var cancel = new CancellationTokenSource();
+        var timeProvider = new BossRuntimeManualTimeProvider(deathAt.AddSeconds(2));
         var handler = new WorldServerFrameHandler(
             new CharacterSnapshotLoader(_usersRoot),
             handoff,
@@ -33221,10 +33222,12 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             new LegacyRuntimeUpdateLoopOptions(
                 Enabled: true,
                 TimeSpan.FromMilliseconds(20),
-                new AnchoredRuntimeTimeProvider(deathAt.AddSeconds(2))),
+                timeProvider),
             log);
         var sent = new RuntimeThreadSafeFrameCapture();
         var connection = CreateSendingConnection(sent);
+        var runtimeWorkers = new HashSet<Task>(ReferenceEqualityComparer.Instance);
+        var errors = new List<Exception>();
 
         try
         {
@@ -33242,6 +33245,14 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                     Type = MsgActionType.SetLocation,
                 }.ToFrameBytes()),
                 cancel.Token);
+
+            await WaitForMonsterRuntimeTimerRegistrationAsync(timeProvider);
+            var startedWorkers = handler.CaptureLegacyRuntimeWorkerTasks();
+            runtimeWorkers.UnionWith(startedWorkers);
+            Assert.Equal(2, startedWorkers.Length);
+            Assert.All(startedWorkers, worker => Assert.False(worker.IsCompleted));
+            Assert.Equal(0L, handler.LegacyRuntimeFaultedWorkerCount);
+            timeProvider.Advance(TimeSpan.FromMilliseconds(20));
 
             Assert.Contains(
                 sent.ToArray(),
@@ -33320,10 +33331,31 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 $"Reviver family attacked after its source ReviversCallback revive. Log={log}");
             Assert.Contains("WorldServer sent legacy Reviver revive", log.ToString());
         }
+        catch (Exception error)
+        {
+            errors.Add(error);
+        }
         finally
         {
-            await cancel.CancelAsync();
+            // Keep the real worker references before cancellation can retire them.
+            runtimeWorkers.UnionWith(handler.CaptureLegacyRuntimeWorkerTasks());
+            try { await cancel.CancelAsync(); }
+            catch (Exception error) { errors.Add(error); }
+            runtimeWorkers.UnionWith(handler.CaptureLegacyRuntimeWorkerTasks());
+            try { await Task.WhenAll(runtimeWorkers); }
+            catch (Exception error) { errors.Add(error); }
+            try
+            {
+                Assert.All(runtimeWorkers, worker => Assert.True(worker.IsCompletedSuccessfully));
+                Assert.Equal(0L, handler.LegacyRuntimeFaultedWorkerCount);
+            }
+            catch (Exception error) { errors.Add(error); }
+            try { await connection.CompleteTransportCloseAsync(); }
+            catch (Exception error) { errors.Add(error); }
         }
+        if (errors.Count == 1)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+        if (errors.Count > 1) throw new AggregateException(errors);
     }
 
     [Fact]

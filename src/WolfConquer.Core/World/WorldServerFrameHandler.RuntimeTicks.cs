@@ -21,12 +21,12 @@ public sealed partial class WorldServerFrameHandler
             return;
         }
 
-        _ = SendLegacyPlayerRuntimeUpdatesAsync(
+        TrackLegacyRuntimeWorker(SendLegacyPlayerRuntimeUpdatesAsync(
             connection,
             snapshot,
             playerItems,
             playerSpells,
-            cancellationToken);
+            cancellationToken));
         TryStartLegacyGlobalRuntimeUpdateLoop(cancellationToken);
     }
 
@@ -37,7 +37,7 @@ public sealed partial class WorldServerFrameHandler
             return;
         }
 
-        _ = SendLegacyGlobalRuntimeUpdatesAsync(cancellationToken);
+        TrackLegacyRuntimeWorker(SendLegacyGlobalRuntimeUpdatesAsync(cancellationToken));
     }
 
     private async Task SendLegacyPlayerRuntimeUpdatesAsync(
@@ -66,6 +66,9 @@ public sealed partial class WorldServerFrameHandler
                 using var operation = await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
                 if (_tradeRecovery.IsBlocked) continue;
                 TryStartLegacyGlobalRuntimeUpdateLoop(cancellationToken);
+                using var publication = await EnterLegacyRuntimePublicationAsync(connection, cancellationToken)
+                    .ConfigureAwait(false);
+
                 var now = timeProvider.GetUtcNow();
                 _sessions.TryGet(connection, out var currentSession);
                 await ProcessDueLegacyVoteClaimRuntimeTickAsync(
