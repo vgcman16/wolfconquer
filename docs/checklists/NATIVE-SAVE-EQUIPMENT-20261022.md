@@ -7,12 +7,21 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Native whole objective Set/Increase (FSB042): private/public Release292/292
+  each,0failed/0skipped,70new plus19 retained/repaired objective cases. Complete
+  genuine graph, private checked arrays and bounded real2136 caller frame precede
+  writes; exact special tails/seal/order and valid no-ops remain. Full Windows
+  and CodeFactor await publication. No native caller/host/client activation,
+  automatic disk save, whole quest award or raw/disposal-race proof is claimed.
+
 - [x] Rune fragment direct/NPC debit repair (FSB041): private236passed/0failed/
   0skipped; public229passed/0failed/5existing external-fixture skips of234.
   All12 new controls pass. Opposite-bound stock cannot pay an admitted cost;
   native direct per-unit/NPC per-stack order, staged binding,20cost and reward
   values remain. Saved/reloaded physical images and unchanged refusals checked.
-  Full Windows and CodeFactor for this checkpoint are pending publication.
+  FullWindows39970166492 passes4m44s on exact27e2ae9b: core23372/0failed
+  (165excluded), updater301/301, launcher49/49,8stageexit0,204build warnings.
+  CodeFactor1NEW duplication/0FIXED,total2294; no cosmetic-only CI loop.
   Whole reward/UID/persistence transactions and actual-client proof remain open.
 
 - [x] Private/public Release **3465/3465** each,0failed/0skipped: complete native

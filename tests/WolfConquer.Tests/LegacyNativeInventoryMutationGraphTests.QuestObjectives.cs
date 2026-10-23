@@ -62,7 +62,7 @@ public sealed partial class LegacyNativeInventoryMutationGraphTests
         });
 
     [Fact]
-    public Task OrdinarySetterReadsSourceAliasButActiveAdmissionReadsSeparateAcceptedAlias() =>
+    public Task OrdinarySetterRejectsSplitSourceAndAcceptedAliasesWithoutMutation() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
@@ -71,32 +71,38 @@ public sealed partial class LegacyNativeInventoryMutationGraphTests
                 { UID = 999, Status = Status.Available, Intentions = [80] };
             scope.Quests.AcceptedQuests[600] = accepted;
 
-            scope.Quests.SetQuestObjectives(scope.Packet, 600, 7);
+            var before = ObjectiveCallerSnapshot.Capture(scope.Packet);
+            Assert.Throws<InvalidDataException>(() => scope.Quests.SetQuestObjectives(scope.Packet, 600, 7));
 
-            Assert.Equal(7u, source.Intentions[0]);
+            Assert.Equal(3u, source.Intentions[0]);
             Assert.Equal(80u, accepted.Intentions[0]);
             Assert.Equal(Status.Finished, source.Status);
             Assert.Same(accepted, scope.Quests.AcceptedQuests[600]);
-            Assert.Equal(DataFrame(600, 7), Assert.Single(scope.Queue));
+            before.AssertUnchanged(scope.Packet);
+            Assert.Empty(scope.Queue);
         });
 
     [Theory]
     [InlineData(600u)]
     [InlineData(35024u)]
     [InlineData(35007u)]
-    public Task IncreaseObjectivesRetainsUnsignedWrapArrayGrowthAndWholeSourcePacket(uint uid) =>
+    public Task IncreaseObjectivesRejectsUnsignedOverflowWithoutChangingArrayOrCaller(uint uid) =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             var row = scope.Row(uid, uid, Status.Accepted, uint.MaxValue, 10);
             scope.Quests.AcceptedQuests[uid] = row;
-            scope.Quests.IncreaseQuestObjectives(scope.Packet, uid, 1, 2, 3);
-            Assert.Equal(new uint[] { 0, 12, 3 }, row.Intentions);
-            Assert.Equal(DataFrame(uid, 0, 12, 3), Assert.Single(scope.Queue));
+            var old = row.Intentions;
+            var before = ObjectiveCallerSnapshot.Capture(scope.Packet);
+            Assert.Throws<InvalidDataException>(() => scope.Quests.IncreaseQuestObjectives(scope.Packet, uid, 1, 2, 3));
+            Assert.Same(old, row.Intentions);
+            Assert.Equal(new uint[] { uint.MaxValue, 10 }, row.Intentions);
+            before.AssertUnchanged(scope.Packet);
+            Assert.Empty(scope.Queue);
         });
 
     [Fact]
-    public Task OrdinaryIncreaseUsesAcceptedAliasWithoutReplacingDistinctSourceAlias() =>
+    public Task OrdinaryIncreaseRejectsDetachedAcceptedAliasWithoutChangingEitherRow() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
@@ -104,11 +110,13 @@ public sealed partial class LegacyNativeInventoryMutationGraphTests
             var accepted = new LegacyNativeMsgQuestList.QuestListItem
                 { UID = 999, Status = Status.Available, Intentions = [80] };
             scope.Quests.AcceptedQuests[600] = accepted;
-            scope.Quests.IncreaseQuestObjectives(scope.Packet, 600, 7);
+            var before = ObjectiveCallerSnapshot.Capture(scope.Packet);
+            Assert.Throws<InvalidDataException>(() => scope.Quests.IncreaseQuestObjectives(scope.Packet, 600, 7));
             Assert.Equal(3u, source.Intentions[0]);
-            Assert.Equal(87u, accepted.Intentions[0]);
+            Assert.Equal(80u, accepted.Intentions[0]);
             Assert.Equal(Status.Available, accepted.Status);
-            Assert.Equal(DataFrame(600, 87), Assert.Single(scope.Queue));
+            before.AssertUnchanged(scope.Packet);
+            Assert.Empty(scope.Queue);
         });
 
     [Fact]
@@ -126,18 +134,18 @@ public sealed partial class LegacyNativeInventoryMutationGraphTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public Task NullPacketFaultOccursAfterRealObjectiveMutationRatherThanRollingItBack(bool increase) =>
+    public Task NullPacketRejectsBeforeRealObjectiveMutation(bool increase) =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             var row = scope.Row(600, 600, Status.Accepted, 3);
             scope.Quests.AcceptedQuests[600] = row;
-            Assert.Throws<NullReferenceException>(() =>
+            Assert.Throws<InvalidDataException>(() =>
             {
                 if (increase) scope.Quests.IncreaseQuestObjectives(null!, 600, 7);
                 else scope.Quests.SetQuestObjectives(null!, 600, 7);
             });
-            Assert.Equal(increase ? 10u : 7u, row.Intentions[0]);
+            Assert.Equal(3u, row.Intentions[0]);
             Assert.Empty(scope.Queue);
         });
 

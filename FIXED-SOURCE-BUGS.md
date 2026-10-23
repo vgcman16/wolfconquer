@@ -515,9 +515,35 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   public-owner fixtures check complete item images, disk reload, refusal identity,
   unchanged original rows, exact20-fragment cost and retained reward/wire order.
   The corrected old assertion genuinely failed before the production change.
+- Full [Windows39970166492](https://github.com/vgcman16/wolfconquer/actions/runs/39970166492)
+  passes4m44s on exact27e2ae9b: core23372/0failed (165externalfixtureexcluded),
+  updater301/301, launcher49/49,8stageexit0,204build warnings. CodeFactor1NEW
+  duplication/0FIXED,total2294; defer that cleanup to a coherent behavior batch.
 - Limits: matching debit selection only, not whole reward/persistence atomicity,
   globally durable UID allocation, registered NPC ingress or live-client proof.
   The12 controls are additional to retained old cases; no balance values changed.
+
+### FSB-042: Prepare complete quest counters and caller frames before mutation
+
+- Owners: all three native Set/Increase objective operations. The source changed
+  live arrays before unsafe serialization, wrapped unsigned counters and trusted
+  split source/Accepted aliases; older tests explicitly accepted these defects.
+- Require the genuine current constructor client/player/book and cooperating
+  gates. Capture the complete canonical physical graph independently of custom
+  comparer callbacks; reject shared nonempty mutable arrays, permit harmless
+  shared empty arrays. Copy input and retained values, check every addition and
+  prepare complete2136 bytes plus actual caller allocation/preimage before writes.
+  Commit one canonical row array and the bounded caller image, then publish.
+- Verification: private/public Release **292/292** each,0failed/0skipped.
+  Includes70 new cases and19 retained/repaired objective cases, plus neighboring
+  native item/quest/persistence controls. Exact native UID35024/35007 tails,
+  stable ASCII/multibyte seals,1032-byte send/actual allocation boundaries, late
+  overflow, null/disposed callers, input alias isolation and full-book faults pass.
+  Legitimate missing/finished/inactive no-ops and nonshrinking tails remain.
+- Limits: actual native objective callers are not installed; this is component
+  proof, not login/host/client activation or full quest award/save transactions.
+  Raw public graph/packet writers, disposal races and delivery recovery remain
+  open. A failed send after commitment is not an uncommitted refusal or refund.
 
 ## Active audit
 
@@ -569,10 +595,20 @@ work, not safety proved by the isolated UID-adoption proposals.
 | FSB-039 | Selected DivineGuard resets cooldown and publishes refinement before fallible status work | Complete real preparation and final ownership before stamp/status/draw effects | Scoped proc verified3214 both trees; outer authorization/combat/HP/host remains open |
 | FSB-040 | Quest saves truncate; loads accept partial/default rows and split canonical aliases | Complete real image and coherent validated merge before file/map publication | Scoped persistence verified3465 both trees; host/SQL/raw lifecycle recovery open |
 | FSB-041 | Rune admission filters Bound but debit consumes either binding | Debit exactly admitted ItemId+Bound and preserve opposite stock | Scoped direct/NPC debit verified236 private;229 public plus5existing external skips; whole reward/UID transactions open |
+| FSB-042 | Quest objective mutation precedes unsafe packet work; counter wrap and split aliases | Complete current canonical graph, checked counters and real bounded frame before writes | Scoped whole operations verified292 both trees; native callers/full awards/delivery recovery open |
 
 ## CodeFactor cleanup
 
-Latest quest checkpoint public0b0da909 passes full
+Latest rune-bound checkpoint public27e2ae9b passes full
+[Windows39970166492](https://github.com/vgcman16/wolfconquer/actions/runs/39970166492)
+in4m44s, completed2026-10-23T14:35:25Z. Core23372passed/0failed of23537
+(165externalfixturecasesexcluded), updater301/301, launcher49/49;8stageexit0,
+204build warnings. Receipt20261023T143059748Z-cab8dee5 finished14:35:18.3387670Z.
+CodeFactor1NEW DuplicateCode in the existing batch inventory helper,0FIXED,
+total2294. The separate bound-aware NPC batch retained packet order; shared-loop
+cleanup is deferred to a coherent behavioral batch, not a score-only CI loop.
+
+Previous quest checkpoint public0b0da909 passes full
 [Windows39965399561](https://github.com/vgcman16/wolfconquer/actions/runs/39965399561)
 in4m06s, completed2026-10-23T14:01:13Z. Core23360passed/0failed of23525
 (165externalfixturecasesexcluded), updater301/301, launcher49/49;8stageexit0,

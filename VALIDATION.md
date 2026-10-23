@@ -1,5 +1,18 @@
 # Publication validation
 
+## Native whole quest-objective checkpoint
+
+Private/public Release292/292 each,0failed/0skipped. All three Set/Increase
+operations prepare checked private values, the complete canonical current book
+and real bounded2136 caller output before changing a row or packet (FSB042).
+The70 new cases plus19 retained/repaired objective cases cover late overflow,
+split aliases, caller lifetime/actual allocation, source UID-specific repeated
+tails, seals and native send bounds. Valid no-ops and full old array tails remain.
+
+Full Windows and CodeFactor for this checkpoint await publication. Native
+objective callers are not installed; no host/client/full award/save or raw
+concurrent-writer/disposal/delivery-recovery claim follows from these tests.
+
 ## Rune fragment bound-debit checkpoint
 
 Private Release236passed/0failed/0skipped; independent sanitized public229passed/
@@ -10,8 +23,13 @@ auto-binding, per-unit vs per-stack packet order and complete saved/reloaded
 item images. One inherited wrong-debit test was corrected and proved red first.
 The20-fragment cost, reward pool and valid packet bytes are unchanged (FSB041).
 
-Full Windows and CodeFactor for this checkpoint await publication. This is
-offline proof, not live/client deployment, global UID or whole reward/save atomicity.
+[Windows39970166492](https://github.com/vgcman16/wolfconquer/actions/runs/39970166492)
+passed4m44s on exact27e2ae9b3cedfea547669e819f6b51b211b2eeb0, completed
+2026-10-23T14:35:25Z. Core23372passed/0failed of23537 (165externalfixturecases
+excluded), updater301/301, launcher49/49;8stageexit0,204build warnings.
+Receipt20261023T143059748Z-cab8dee5 finished14:35:18.3387670Z. CodeFactor1NEW
+duplication/0FIXED,total2294; the cleanup is deferred, not another score-only run.
+This is offline proof, not live/client deployment, global UID or whole reward/save atomicity.
 
 ## Native quest persistence checkpoint
 
