@@ -1,5 +1,29 @@
 # Publication validation
 
+## Native vendor/trade and lifecycle prerequisites
+
+Private and independent sanitized-public Release each passed4057/4057 selected
+cases, zero failures/skips:3940 retained +117 new native component controls.
+Whole Vendor construction/listing/removal, Trade construction/query/money escrow
+and complete protobuf contracts, SoloElite construction/records/pairing, real
+visibility queries, protection, weather/map status and message response handling
+are now concrete modular owners. Full trade exchange, teleport, revival and
+tournament lifecycles remain held on their genuine dependency graph.
+
+Root corrected candidate declaration mismatches before verification: Explicit
+bracket layout and internal protection methods with the native parameter names.
+Existing GetGender and Core gender owners were preserved, not overwritten or
+duplicated. Packet-owning cases use the established owned test thread without
+weakening the native stack-depth guard. The first private compile caught a public
+test signature exposing an internal enum; primitive test input plus the same four
+enum casts fixed CS0051 without widening production access or deleting controls.
+
+Tests exercise actual nonzero wallet escrow and partial faults, real map-member
+removal/broadcast, required protobuf bytes, native match admission/pairing and
+callback cleanup/fault order. No socket pump, worker, original saves, SQL, live
+client, host or routing changed. Fresh full Windows proof for this newer batch is
+pending; the following245a06b7 green run predates these117 cases.
+
 ## Native geometry and complete ban-file owners
 
 Private and independent sanitized-public Release each passed3940/3940 selected
@@ -17,8 +41,14 @@ Both complete IP/account ban owners retain native duplicate and expiry behavior,
 the literal IP-removal no-op, message arithmetic, count/trailing-slash persistence,
 and original exception order. Tests use guarded GUID-owned temporary files and
 synthetic component state only. No original ban lists, saves, SQL, login queue,
-host, live client or routing changed. Fresh full Windows proof for this batch and
-the timer correction remains pending; the1588612e green run below predates both.
+host, live client or routing changed.
+
+[Full Windows39902156552](https://github.com/vgcman16/wolfconquer/actions/runs/39902156552)
+passed all eight stages in4m05s on245a06b721f8e9430bb65e05fcf9e3b8e9e900d7:
+core20611 passed/0 failed/165 unexecuted of20776, updater262/262, launcher49/49,
+synthetic status-parser20 and smoke-parser13. HTTP/service probes were skipped.
+This covers the timer correction and geometry/ban batch, not the newer lifecycle
+prerequisites, live host adoption, SQL integration or deployment.
 
 ## Timed purification and refinery expiry
 
@@ -39,8 +69,8 @@ cases, zero failures/skips:3652 retained,20 new real timer/detained-send control
 and171 existing item-extra/hydration/send/record/save/metadata cases. Active,
 expired, permanent, overflow, empty-extra frames, zero-UID short-circuit and
 ordered date faults were exercised. No original saves, SQL, host, live game or
-routing changed. Fresh full Windows proof for this newer source remains pending;
-the1588612e green run below predates the timer correction.
+routing changed. Full Windows proof on245a06b7 is recorded above; the older
+1588612e green run below predates the timer correction.
 
 ## Native item loading, detained records and hair/face ownership
 

@@ -15,22 +15,23 @@
   and football round/NPC/map methods are implemented without full event adoption.
 - [x] Whole LoadClientItems routing/perfection, Confiscator records/containers/files
   and hair/face admission/equipment/2282 receiver are implemented as components.
-- [x] Private and independent sanitized-public Release each passed3940/3940,
-  zero failures/skips:3843 retained +44 geometry +53 complete ban-owner controls.
+- [x] Genuine Vendor listings/removal, Trade wallet escrow/query/contracts,
+  SoloElite construction/pairing, visibility, protection and message responses
+  are implemented. Full trading, teleport and tournament lifecycle remain held.
+- [x] Private and independent sanitized-public Release each passed4057/4057,
+  zero failures/skips:3940 retained +117 native lifecycle-prerequisite controls.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run39900336782 on1588612e passed all8stages: core20494 passed/
-  0 failed/165 unexecuted of20659; updater262/262; launcher49/49; synthetic
+  Full Windows run39902156552 on245a06b7 passed all8stages: core20611 passed/
+  0 failed/165 unexecuted of20776; updater262/262; launcher49/49; synthetic
   parser20+13 cases. HTTP/service probes were skipped.
-- [x] The prior3652-case snapshot has full Windows proof on exact1588612e;
-  run39900336782 completed successfully in4m01s. The earlier39899616012 failure
-  was an obsolete getter-only Hair assertion; all getter controls remain, and
-  its replacement requires the genuine complete setter rather than an auto-slot.
-- [ ] Newer timer, geometry and ban-owner source has focused proof above; a fresh
-  full Windows run is pending. The prior green run does not validate this batch.
+- [x] Timer, geometry and ban-owner source has full Windows proof in4m05s on
+  exact245a06b7. The corrected complete Hair setter/getter controls remain intact.
+- [ ] Newer lifecycle prerequisites have focused proof above; fresh full Windows
+  proof is pending. The preceding green run does not validate this newer batch.
 
 ## Correctness findings retained
 

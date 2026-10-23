@@ -2,10 +2,10 @@ using System.Runtime.InteropServices;
 
 namespace WolfConquer.Core.World;
 
-// Complete native physical declarations only. The whole Handler remains absent until
-// genuine Player message-box state/admission and blocked-teleport authority are available.
+// Complete native physical declarations; whole source response consumer is in its partial.
+// This owner is not registered as a host packet receiver by component adoption.
 [StructLayout(LayoutKind.Sequential, Size = 1)]
-internal struct LegacyNativeMsgStaticMessage
+internal partial struct LegacyNativeMsgStaticMessage
 {
     public enum Messages : uint
     {
