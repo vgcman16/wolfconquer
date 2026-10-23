@@ -1,5 +1,20 @@
 # Publication validation
 
+## Native quest acceptance checkpoint
+
+Private and independent public Release each418/418 passed, zero failures/skips:
+75 new acceptance controls,2 genuine Windows-child send/diagnostic faults and341
+retained quest/packet/console/shop cases. Tests-first unguarded delivery fails2/2
+specifically on escaped TypeInitializationException after committed-state checks.
+The guard contains only postcommit Send failures; precommit validation still
+rejects. Shared catalog metadata is unchanged, canonical indexes and real2120
+frames prepare before publication, and owned child handles are restored.
+
+One Shop xUnit2017 assertion-style correction joins this behavior batch. Full
+Windows publication CI is pending; this focused proof does not activate native
+callers, host, FinishQuest/full GUI/awards, automatic saves, SQL, delivery recovery
+or a live client. Original saves and existing game sessions remain untouched.
+
 ## Shop inventory-capacity checkpoint
 
 Private Release334passed/0failed/0skipped; independent public325passed/0failed/
@@ -17,7 +32,7 @@ passed4m17s on exacta92b1fb0aad7d749803a416890d0eed2d46933d7, completed
 excluded), updater301/301, launcher49/49;8stageexit0,205build warnings.
 Receipt20261023T144607865Z-5325d992 finished14:50:02.2305785Z. CodeFactor2NEW
 complexity/1FIXED precedence,total2298. One xUnit2017 assertion-style warning is
-queued with the next behavior batch; no separate full-CI cycle. Native normal-shop stacking/
+corrected with the acceptance behavior batch; no separate full-CI cycle. Native normal-shop stacking/
 partial affordability, whole wallet/save/session transactions and UID/host/client
 activation remain open; these guards are not full economy parity.
 

@@ -571,10 +571,38 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   passes4m17s on exacta92b1fb0: core23475/0failed (165externalfixtureexcluded),
   updater301/301, launcher49/49,8stageexit0,205build warnings. CodeFactor2NEW
   complexity/1FIXED (the observed precedence),total2298. The new xUnit2017
-  assertion-style warning is queued with the next behavior batch, not its own CI.
+  assertion-style warning is corrected with the FSB044 behavior batch, not its own CI.
 - Limits: current normal owner remains all-or-none/one-row-per-unit; original
   stacking/partial affordability, plus/activation/quest hooks and full wallet/
   file/session transactions remain open. No global UID/host/client proof.
+
+### FSB-044: Prepare canonical quest acceptance before publication
+
+- Owners: native `Accept` and `AcceptKingDomMission`. The reference modifies
+  shared quest metadata for1469/409, publishes ordinary indexes separately, and
+  constructs/sends the packet after those writes. A diagnostic failure can also
+  escape a successful acceptance and invite an incorrect retry.
+- Validate the genuine current client/player/book and complete canonical graph;
+  use local effective intention counts without changing the catalog. Bound the
+  projected persisted image before allocation. Prepare the real2120 packet and
+  comparer-preserving private maps, then recheck physical state after the final
+  comparer before publishing. Ordinary maps share one canonical row; Kingdom
+  retains its source-only policy and existing finished/out semantics.
+- Only exceptions escaping the real postcommit Send are contained. Accepted
+  maps/out remain committed and return true; precommit errors remain errors.
+  No rollback, retry, fabricated successful delivery or recursive logging occurs.
+- Verification: private and independent public Release each **418/418 passed**,
+  zero failures/skips. This includes75 new acceptance cases, two genuine Windows
+  child-process delivery faults, and341 retained quest/packet/console/shop cases.
+  Tests-first unguarded delivery baseline failed **2/2** specifically on the
+  escaped TypeInitializationException after all committed-state assertions passed.
+  Child OS handles are restored; cached real console initialization failure is
+  proved afterward. No main process handle/logger or game session is changed.
+- One xUnit2017 Shop fixture assertion is corrected mechanically in this batch.
+  Full Windows publication CI is pending; focused success is not a CI claim.
+- Limits: native acceptance callers/host are not activated. FinishQuest, full GUI,
+  awards, automatic disk/SQL saves, raw competing writers, delivery recovery and
+  whole quest lifecycle remain open. No live client or original save was used.
 
 ## Active audit
 
@@ -628,6 +656,7 @@ work, not safety proved by the isolated UID-adoption proposals.
 | FSB-041 | Rune admission filters Bound but debit consumes either binding | Debit exactly admitted ItemId+Bound and preserve opposite stock | Scoped direct/NPC debit verified236 private;229 public plus5existing external skips; whole reward/UID transactions open |
 | FSB-042 | Quest objective mutation precedes unsafe packet work; counter wrap and split aliases | Complete current canonical graph, checked counters and real bounded frame before writes | Scoped whole operations verified292 both trees; native callers/full awards/delivery recovery open |
 | FSB-043 | Normal and point shops append/debit without full modeled capacity | Complete required inventory rows fit before costs/publication | Scoped guards verified334 private;325public plus9existing external skips; native stack/partial/whole transaction work open |
+| FSB-044 | Quest acceptance mutates shared metadata, can split indexes or throw after committed send failure | Prepare complete canonical maps/frame first; truthful accepted result after commit | Scoped acceptance verified418 both trees; native callers/awards/durable lifecycle remain open |
 
 ## CodeFactor cleanup
 

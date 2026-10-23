@@ -7,6 +7,16 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Native quest acceptance (FSB044): private/public Release418/418 each,
+  zero failures/skips, including75 new acceptance and2 real isolated delivery
+  failures plus341 retained controls. Catalog1469/409 metadata stays unchanged;
+  complete genuine graph, bounded persisted projection, real2120 frame and
+  comparer-preserving maps precede publication. Unguarded send baseline fails2/2
+  after commitment; guarded acceptance returns true without rollback/retry even
+  if native diagnostics fail. One Shop assertion-style warning joins this batch.
+  Full Windows publication CI is pending. Native callers/host, FinishQuest,
+  full GUI/awards, automatic save/SQL and delivery recovery remain open.
+
 - [x] Shop-only capacity admission (FSB043): private334passed/0failed/0skipped;
   public325passed/0failed/9existing external-fixture skips of334. All33 new
   registered cases pass after genuine18-failure baseline. Full40/overcap41 and
@@ -16,7 +26,7 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   controls. FullWindows39972176836 passes4m17s on exacta92b1fb0: core23475/
   0failed (165excluded), updater301/301, launcher49/49,8stageexit0,205warnings.
   CodeFactor2NEW complexity/1FIXED precedence,total2298. One xUnit2017 assertion
-  style correction is queued with the next behavior batch. Native normal stacking/
+  style correction is included with FSB044. Native normal stacking/
   partial affordability and whole wallet/save/session transactions remain open.
 
 - [x] Native whole objective Set/Increase (FSB042): private/public Release292/292

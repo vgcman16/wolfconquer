@@ -73,7 +73,7 @@ public sealed partial class LegacyShopCapacityTests
             var context = new WorldPacketHandlerContext(Connection, Log, Original,
                 ArenaStatistics: ArenaStatisticsProvider.Empty, ArenaStates: new ArenaSessionStateStore(),
                 WorldData: catalog, Sessions: Sessions, PlayerItemsRoot: Items);
-            Assert.True(Registry.Opcodes.Contains(WorldPacketOpcodes.MsgItemUsage));
+            Assert.Contains(WorldPacketOpcodes.MsgItemUsage, Registry.Opcodes);
             await Registry.HandleAsync(context, Frame(request.ToFrameBytes()));
         }
 

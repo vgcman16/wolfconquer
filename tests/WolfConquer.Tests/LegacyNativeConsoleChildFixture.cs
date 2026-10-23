@@ -49,6 +49,9 @@ internal static class LegacyNativeConsoleChildFixture
         start.Environment["WOLFCONQUER_CONSOLE_CHILD_ASSEMBLY_SHA256"] = assemblyHash;
         start.Environment["WOLFCONQUER_CONSOLE_CHILD_SCENARIO"] = scenario;
         start.Environment["WOLFCONQUER_CONSOLE_CHILD_GUARD"] = guard;
+        if (scenario is "QuestAcceptanceOrdinaryDeliveryDiagnosticFault" or "QuestAcceptanceKingdomDeliveryDiagnosticFault")
+            start.Environment["WOLFCONQUER_CONSOLE_CHILD_TEST_ASSEMBLY"] =
+                typeof(LegacyNativeQuestAcceptanceDeliveryChildScenarios).Assembly.Location;
 
         using var process = new Process { StartInfo = start };
         using var standardOutput = new MemoryStream();
@@ -131,6 +134,28 @@ internal static class LegacyNativeConsoleChildFixture
         $assemblyBytes = [IO.File]::ReadAllBytes($path)
         $actual = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($assemblyBytes))
         if ($actual -cne $expected) { throw 'Child assembly identity mismatch' }
+        if ($scenario -cin @('QuestAcceptanceOrdinaryDeliveryDiagnosticFault', 'QuestAcceptanceKingdomDeliveryDiagnosticFault')) {
+            # This branch must precede ALL NativeConsole initialization. The real
+            # compiled entry changes/restores only this owned child's OS handles.
+            $null = [Reflection.Assembly]::LoadFrom($path)
+            $testPath = [Environment]::GetEnvironmentVariable('WOLFCONQUER_CONSOLE_CHILD_TEST_ASSEMBLY')
+            if ([string]::IsNullOrWhiteSpace($testPath) -or -not [IO.Path]::IsPathFullyQualified($testPath)) {
+                throw 'Current compiled child scenario assembly path required'
+            }
+            $testAssembly = [Reflection.Assembly]::LoadFrom($testPath)
+            if ([IO.Path]::GetFullPath($testAssembly.Location) -cne [IO.Path]::GetFullPath($testPath)) {
+                throw 'Loaded child scenario assembly path mismatch'
+            }
+            $type = $testAssembly.GetType('WolfConquer.Tests.LegacyNativeQuestAcceptanceDeliveryChildScenarios', $true)
+            $entry = $type.GetMethod('Execute', [Reflection.BindingFlags]'Public,Static')
+            $json = [string]$entry.Invoke($null, [object[]]@($scenario, $path, $testPath))
+            $data = [ordered]@{
+                Guard = $guard; Scenario = $scenario; AssemblySha256 = $actual
+                Completed = $true; Data = ($json | ConvertFrom-Json)
+            }
+            [Console]::Out.WriteLine('__LEGACY_NATIVE_CONSOLE_CHILD_RESULT__' + ($data | ConvertTo-Json -Depth 5 -Compress))
+            return
+        }
         $assembly = [Reflection.Assembly]::Load($assemblyBytes)
         $console = $assembly.GetType('WolfConquer.Core.Runtime.LegacyNativeConsole', $true)
         $kernel = $assembly.GetType('WolfConquer.Core.Runtime.LegacyNativeConsoleKernel32', $true)
