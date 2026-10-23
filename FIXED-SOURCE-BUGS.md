@@ -151,7 +151,19 @@ absent; that group contains only the deliberately held Guild persistence record.
 Commit reports identify seven NEW warnings (six title-related style/complexity/
 test-cleanup findings and one process-reader argument-check recommendation), plus
 one additional fixed updater finding. These new warnings remain queued for
-reviewed cleanup; no suppression or empty NO-ISSUES interpretation is used.
+reviewed cleanup in that historical report; no empty NO-ISSUES interpretation is used.
+
+The seven-warning successor is now locally verified: private and independent
+public Release each passed **1119/1119** selected core tests and **301/301**
+complete updater tests, zero failures/skips. Named validation/commit/parsing
+phases preserve short-circuit order, reasons, canonical metadata and real
+save-before-publication safeguards; explicit arithmetic parentheses retain bytes.
+The standard PID guard still rejects nonpositive IDs before native calls.
+Link-control cleanup now attempts every exact-owned cleanup, preserves the
+primary assertion/skip and every cleanup error in order, and retains the original
+stack for a sole failure. Seven new failure/skip/stack/order controls pass.
+No blanket suppression, protocol change or weakened test was used. Fresh full CI
+and remote CodeFactor reanalysis of this successor remain required.
 
 Authorized alongside behavioral repairs. The public report was retrieved on
 2026-10-23: grade A, 2,327 findings across 4,864 files. Category counts: complexity
@@ -177,7 +189,7 @@ Another15 CA1865 character-overload fixes are verified in private/public Release
 **1112/1112** selected core tests and **301/301** complete updater tests, all green.
 The78 new controls retain path/comment/status/UTC/URL decisions and actual parser
 outputs; no measured speedup is claimed. One held Guild-persistence finding is
-excluded from this batch. Remote closure of these15 remains pending.
+excluded from this batch. The newer remote snapshot confirms these15 absent.
 Report: https://www.codefactor.io/repository/github/vgcman16/wolfconquer/issues
 
 No blanket warning suppression or exclusion is authorized. An A grade is not

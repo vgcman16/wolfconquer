@@ -51,22 +51,9 @@ public static partial class WorldPacketHandlers
         CancellationToken cancellationToken,
         out string reason)
     {
-        reason = "sessionStoreUnavailable";
-        if (context.Sessions is not { } sessions) return false;
-        if (context.TradeRecovery is not { } recovery || recovery.IsBlocked)
-        { reason = "recoveryOwnerUnavailableOrBlocked"; return false; }
-        if (publication.ClientIdentity is null) { reason = "sessionIdentityUnavailable"; return false; }
-        if (string.IsNullOrWhiteSpace(updated.UsersRoot) || updated.AccountId <= 0 ||
-            updated.Character.Uid != updated.AccountId)
-        { reason = "characterStorageUnavailable"; return false; }
-        var attributes = updated.Character.Attributes;
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["SpecialTitleID"] = ReadAttributeUInt64(attributes, "SpecialTitleID").ToString(CultureInfo.InvariantCulture),
-            ["SpecialWingID"] = ReadAttributeUInt64(attributes, "SpecialWingID").ToString(CultureInfo.InvariantCulture),
-            ["SpecialTitleScore"] = ReadAttributeUInt64(attributes, "SpecialTitleScore").ToString(CultureInfo.InvariantCulture),
-        };
-        if (attributes.TryGetValue("SpecialTitles", out var titles)) values["SpecialTitles"] = titles;
+        if (!TryResolveLegacyTitleCommitOwners(context, updated, publication, out var sessions,
+            out var recovery, out reason)) return false;
+        var values = PrepareLegacyTitleCommitValues(updated.Character.Attributes);
         var failure = "sessionChanged";
         bool Persist()
         {
@@ -84,6 +71,38 @@ public static partial class WorldPacketHandlers
         bool committed = sessions.TryCommitSession(context.Connection, previous, updated, Persist);
         reason = committed ? "committed" : failure;
         return committed;
+    }
+
+    private static bool TryResolveLegacyTitleCommitOwners(WorldPacketHandlerContext context,
+        WorldSession updated, LegacyTitleStoragePublication publication, out WorldSessionStore sessions,
+        out LegacyTradeRecoveryState recovery, out string reason)
+    {
+        sessions = null!;
+        recovery = null!;
+        reason = "sessionStoreUnavailable";
+        if (context.Sessions is not { } currentSessions) return false;
+        sessions = currentSessions;
+        if (context.TradeRecovery is not { } currentRecovery || currentRecovery.IsBlocked)
+        { reason = "recoveryOwnerUnavailableOrBlocked"; return false; }
+        recovery = currentRecovery;
+        if (publication.ClientIdentity is null) { reason = "sessionIdentityUnavailable"; return false; }
+        if (string.IsNullOrWhiteSpace(updated.UsersRoot) || updated.AccountId <= 0 ||
+            updated.Character.Uid != updated.AccountId)
+        { reason = "characterStorageUnavailable"; return false; }
+        return true;
+    }
+
+    private static Dictionary<string, string> PrepareLegacyTitleCommitValues(
+        IReadOnlyDictionary<string, string> attributes)
+    {
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["SpecialTitleID"] = ReadAttributeUInt64(attributes, "SpecialTitleID").ToString(CultureInfo.InvariantCulture),
+            ["SpecialWingID"] = ReadAttributeUInt64(attributes, "SpecialWingID").ToString(CultureInfo.InvariantCulture),
+            ["SpecialTitleScore"] = ReadAttributeUInt64(attributes, "SpecialTitleScore").ToString(CultureInfo.InvariantCulture),
+        };
+        if (attributes.TryGetValue("SpecialTitles", out var titles)) values["SpecialTitles"] = titles;
+        return values;
     }
 
     private static Task LogLegacyTitleStorageCommitFailureAsync(

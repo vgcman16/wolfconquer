@@ -49,7 +49,7 @@ internal static class ConfiguredProcessImageReader
 
         internal static WindowsProcessImageLease Open(int processId)
         {
-            if (processId <= 0) throw new ArgumentOutOfRangeException(nameof(processId));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(processId);
             var opened = OpenProcess(QueryLimitedInformation | Synchronize, false, processId);
             if (!opened.IsInvalid) return new(opened);
             int error = Marshal.GetLastWin32Error();

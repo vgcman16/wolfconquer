@@ -79,26 +79,8 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        if (context.TradeRecovery is null || context.TradeRecovery.IsBlocked)
-        {
-            await LogLegacyTitleStorageCommitFailureAsync(context, "recoveryOwnerUnavailableOrBlocked").ConfigureAwait(false);
+        if (!await ValidateLegacyTitleStorageMutationContextAsync(context, session, packet, title).ConfigureAwait(false))
             return;
-        }
-
-        if (context.Sessions is null || session.AccountId <= 0 || session.Character.Uid != session.AccountId ||
-            title.Id != packet.DwParam2 || !IsRepresentableLegacyRuntimeTitle(title))
-        {
-            await context.Log.WriteLineAsync("WorldServer skipped LegacyMsgTitleStorage; session store or valid title metadata unavailable.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (packet.Title is { } nested && (nested.Id != title.Id || nested.SubId != title.SubId))
-        {
-            await context.Log.WriteLineAsync("WorldServer skipped LegacyMsgTitleStorage; nested title identity mismatch.")
-                .ConfigureAwait(false);
-            return;
-        }
 
         // Do not trust a client-supplied subtype in a server-issued title response.
         packet = packet with { DwParam2 = title.Id, DwParam3 = title.SubId };
@@ -113,6 +95,33 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
     }
 
+    private static async ValueTask<bool> ValidateLegacyTitleStorageMutationContextAsync(
+        WorldPacketHandlerContext context, WorldSession session, LegacyTitleStoragePacket packet,
+        LegacyRuntimeTitleType title)
+    {
+        if (context.TradeRecovery is null || context.TradeRecovery.IsBlocked)
+        {
+            await LogLegacyTitleStorageCommitFailureAsync(context, "recoveryOwnerUnavailableOrBlocked").ConfigureAwait(false);
+            return false;
+        }
+
+        if (context.Sessions is null || session.AccountId <= 0 || session.Character.Uid != session.AccountId ||
+            title.Id != packet.DwParam2 || !IsRepresentableLegacyRuntimeTitle(title))
+        {
+            await context.Log.WriteLineAsync("WorldServer skipped LegacyMsgTitleStorage; session store or valid title metadata unavailable.")
+                .ConfigureAwait(false);
+            return false;
+        }
+
+        if (packet.Title is { } nested && (nested.Id != title.Id || nested.SubId != title.SubId))
+        {
+            await context.Log.WriteLineAsync("WorldServer skipped LegacyMsgTitleStorage; nested title identity mismatch.")
+                .ConfigureAwait(false);
+            return false;
+        }
+        return true;
+    }
+
     private static async ValueTask HandleLegacyMsgTitleStorageEquipAsync(
             WorldPacketHandlerContext context,
             WorldSession session,
@@ -120,7 +129,7 @@ public static partial class WorldPacketHandlers
             LegacyRuntimeTitleType title,
             CancellationToken cancellationToken)
     {
-        var activeTitleValue = checked((ulong)title.Id * 10_000UL + title.SubId);
+        var activeTitleValue = checked(((ulong)title.Id * 10_000UL) + title.SubId);
         var updatedCharacter = title.Id < 4_001
             ? WithCharacterAttribute(
                 WithCharacterAttribute(session.Character, "SpecialTitleScore", title.Score),
@@ -161,7 +170,7 @@ public static partial class WorldPacketHandlers
             CancellationToken cancellationToken)
     {
         var slot = IsLegacyTitleSlot(title.Id) ? "SpecialTitleID" : "SpecialWingID";
-        var expectedActive = checked((ulong)title.Id * 10_000UL + title.SubId);
+        var expectedActive = checked(((ulong)title.Id * 10_000UL) + title.SubId);
         if (ReadAttributeUInt64(session.Character.Attributes, slot) != expectedActive)
         {
             await LogLegacyTitleStorageCommitFailureAsync(context, "requestedTitleIsNotEquipped").ConfigureAwait(false);

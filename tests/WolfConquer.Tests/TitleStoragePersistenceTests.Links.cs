@@ -9,13 +9,13 @@ public sealed partial class TitleStoragePersistenceTests
     [WindowsSecondaryPasswordPersistenceFact]
     public async Task ActualJunctionAncestorRejectsWithoutChangingTheOwnedTarget()
     {
-        using var fixture = new TitlePersistenceFileFixture();
-        var original = fixture.Seed();
+        var fixture = new TitlePersistenceFileFixture();
         var link = Path.Combine(fixture.Root, "owned-users-junction");
-        var before = File.ReadAllBytes(fixture.PathName);
-        var written = File.GetLastWriteTimeUtc(fixture.PathName);
-        try
+        await TitleStorageLinkTestFailures.RunAsync(async () =>
         {
+            var original = fixture.Seed();
+            var before = File.ReadAllBytes(fixture.PathName);
+            var written = File.GetLastWriteTimeUtc(fixture.PathName);
             using var process = new Process
             {
                 StartInfo = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "cmd.exe"))
@@ -43,22 +43,21 @@ public sealed partial class TitleStoragePersistenceTests
             Assert.Equal("titleStorageReparsePathRejected", reason);
             Assert.Equal(before, File.ReadAllBytes(fixture.PathName));
             Assert.Equal(written, File.GetLastWriteTimeUtc(fixture.PathName));
-        }
-        finally { RemoveOwnedLink(link, fixture.Root, directory: true); }
+        }, () => RemoveOwnedLink(link, fixture.Root, directory: true), fixture.Dispose);
     }
 
     [WindowsSecondaryPasswordPersistenceFact]
-    public void ActualSymbolicFileRejectsWithExistingPrivilegeOnly()
+    public async Task ActualSymbolicFileRejectsWithExistingPrivilegeOnly()
     {
-        using var fixture = new TitlePersistenceFileFixture();
-        var original = fixture.Seed();
+        var fixture = new TitlePersistenceFileFixture();
         var aliasRoot = Path.Combine(fixture.Root, "owned-file-alias");
-        Directory.CreateDirectory(aliasRoot);
         var link = Path.Combine(aliasRoot, Path.GetFileName(fixture.PathName));
-        var before = File.ReadAllBytes(fixture.PathName);
-        var written = File.GetLastWriteTimeUtc(fixture.PathName);
-        try
+        await TitleStorageLinkTestFailures.RunAsync(() =>
         {
+            var original = fixture.Seed();
+            Directory.CreateDirectory(aliasRoot);
+            var before = File.ReadAllBytes(fixture.PathName);
+            var written = File.GetLastWriteTimeUtc(fixture.PathName);
             try { File.CreateSymbolicLink(link, fixture.PathName); }
             catch (UnauthorizedAccessException)
             { throw SkipException.ForSkip("Existing symbolic-link privilege unavailable; no settings changed."); }
@@ -71,15 +70,21 @@ public sealed partial class TitleStoragePersistenceTests
             Assert.Equal("titleStorageReparsePathRejected", reason);
             Assert.Equal(before, File.ReadAllBytes(fixture.PathName));
             Assert.Equal(written, File.GetLastWriteTimeUtc(fixture.PathName));
-        }
-        finally
-        {
-            RemoveOwnedLink(link, fixture.PathName, directory: false);
-            if ((File.GetAttributes(aliasRoot) & FileAttributes.ReparsePoint) != 0 ||
-                Directory.GetFileSystemEntries(aliasRoot).Length != 0)
-                throw new IOException("Changed alias directory preserved.");
-            Directory.Delete(aliasRoot, recursive: false);
-        }
+            return Task.CompletedTask;
+        }, () => RemoveOwnedLink(link, fixture.PathName, directory: false),
+            () => RemoveOwnedAliasDirectory(aliasRoot), fixture.Dispose);
+    }
+
+    private static void RemoveOwnedAliasDirectory(string aliasRoot)
+    {
+        FileAttributes attributes;
+        try { attributes = File.GetAttributes(aliasRoot); }
+        catch (FileNotFoundException) { return; }
+        catch (DirectoryNotFoundException) { return; }
+        if ((attributes & FileAttributes.ReparsePoint) != 0 ||
+            Directory.GetFileSystemEntries(aliasRoot).Length != 0)
+            throw new IOException("Changed alias directory preserved.");
+        Directory.Delete(aliasRoot, recursive: false);
     }
 
     private static void RemoveOwnedLink(string link, string target, bool directory)

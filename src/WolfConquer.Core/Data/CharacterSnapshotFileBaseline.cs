@@ -53,7 +53,16 @@ internal static class CharacterSnapshotFileBaseline
         var lines = new List<string>();
         using (var reader = new StringReader(text))
             while (reader.ReadLine() is { } line) lines.Add(line);
-        var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (!TryReadCharacterFields(lines, prefix, out var fields, out reason)) return false;
+        snapshot = new(bytes, lines.ToArray(), encoding, fields);
+        return true;
+    }
+
+    private static bool TryReadCharacterFields(IReadOnlyList<string> lines, string prefix,
+        out Dictionary<string, string> fields, out string reason)
+    {
+        fields = new(StringComparer.OrdinalIgnoreCase);
+        reason = string.Empty;
         var inCharacter = false;
         var sections = 0;
         foreach (var raw in lines)
@@ -67,16 +76,23 @@ internal static class CharacterSnapshotFileBaseline
                 continue;
             }
             if (!inCharacter || textLine.Length == 0 || textLine.StartsWith(';') || textLine.StartsWith('#')) continue;
-            var equals = raw.IndexOf('=');
-            if (equals <= 0 || raw[..equals].Trim().Length == 0)
-            { reason = prefix + "CharacterLineInvalid"; return false; }
-            // PIN stale detection depends on exact values, not merely equivalent parsing.
-            if (!fields.TryAdd(raw[..equals].Trim(), raw[(equals + 1)..]))
-            { reason = prefix + "CharacterFieldsAmbiguous"; return false; }
+            if (!TryAddCharacterField(raw, prefix, fields, out reason)) return false;
         }
         if (sections != 1)
         { reason = prefix + "CharacterSectionMissing"; return false; }
-        snapshot = new(bytes, lines.ToArray(), encoding, fields);
+        return true;
+    }
+
+    private static bool TryAddCharacterField(string raw, string prefix,
+        Dictionary<string, string> fields, out string reason)
+    {
+        reason = string.Empty;
+        var equals = raw.IndexOf('=');
+        if (equals <= 0 || raw[..equals].Trim().Length == 0)
+        { reason = prefix + "CharacterLineInvalid"; return false; }
+        // PIN stale detection depends on exact values, not merely equivalent parsing.
+        if (!fields.TryAdd(raw[..equals].Trim(), raw[(equals + 1)..]))
+        { reason = prefix + "CharacterFieldsAmbiguous"; return false; }
         return true;
     }
 }

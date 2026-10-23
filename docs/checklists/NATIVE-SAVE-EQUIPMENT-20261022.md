@@ -12,16 +12,17 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   identities before delivery. Private and public Release each passed1008/1008,
   including80 active-route and55 real-file/shared-reader controls. PIN invariants
   remain covered. Durable title recovery, native titles and classic2152 remain open.
-- [x] Current combined local checks: private/public each1112/1112 selected core
+- [x] Current combined local checks: private/public each1119/1119 selected core
   and301/301 complete updater tests, zero failures/skips. Includes15 additional
-  CodeFactor API fixes and the retained-handle process attribution repair.
+  CodeFactor API fixes, retained-handle process attribution and the seven-warning
+  successor cleanup. Seven new cleanup error/skip/stack controls pass.
 - [x] Full Windows39930101290 on exact7a41ea63 passed in4m03s: core21675 passed/
   0failed (165 excluded), updater301/301, launcher49/49, all8 check steps exit0.
   This closes failed39926199302, which had core21476 green and updater261/262.
   CI is not deployment, live-client proof or full parity.
 - [x] CodeFactor confirms the15 new character-overload fixes absent, with current
-  total2305. Seven newly introduced style/complexity warnings are now identified
-  for a separate reviewed cleanup, not ignored or hidden.
+  total2305. Seven newly introduced warnings have a reviewed, locally verified
+  cleanup; fresh full CI and remote reanalysis are still required for it.
 
 - [x] Sanitized spell admission and allocation: private and independent public
   Release each passed 510/510 selected cases, zero failures/skips. Rejected
@@ -35,8 +36,8 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   and independent public Release each passed 754/754, zero failures/skips.
   Invalid query rows no longer crash those lookups, and a wrapped byte Count
   cannot reopen an occupied rune bag. All eight are now absent from the refreshed
-  report; current total2314. Another15 character-overload fixes are locally
-  verified; remote reanalysis is pending. No suppressions or weakened tests.
+  report; historical total2314. Another15 character-overload fixes were verified
+  locally and subsequently confirmed absent. No suppressions or weakened tests.
 
 - [x] Source authority remains the local simplified-复 decompile; staged DX8
   VisibleDx8D13 is explicit. No switch to the old Wolves/DX9/default-D11 baseline.

@@ -1,5 +1,19 @@
 # Publication validation
 
+## Additional quality cleanup - local successor
+
+Private and independent public Release each passed **1119/1119** selected core
+and **301/301** complete updater tests, zero failures/skips. This addresses the
+seven warnings introduced in the title/process-reader work through named semantic
+phases, explicit arithmetic and the standard PID argument guard. Packet bytes,
+validation order/reasons, real persistence and identity gates remain covered.
+
+Test-only link cleanup now attempts every exact-owned cleanup and retains the
+original failure/skip plus all cleanup errors, with sole-failure stacks preserved.
+All seven new failure-order controls pass. No suppressions or weakened assertions.
+The latest full green receipt below predates this successor; fresh full CI and
+remote CodeFactor reanalysis are still required before claiming remote closure.
+
 ## Latest full Windows receipt
 
 [Windows39930101290](https://github.com/vgcman16/wolfconquer/actions/runs/39930101290)
