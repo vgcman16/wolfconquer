@@ -5,7 +5,8 @@ namespace WolfConquer.Core.Networking;
 
 // Native ServerSockets.Packet unmanaged storage/lifecycle subset, not a DTO or wire adapter.
 // Print/Dump and pipe encryption are absent; genuine protobuf methods are in their partial.
-// Native allocation/cursor quirks remain: callers must own and bound their unsafe buffers.
+// Allocation bounds/guard order are sanitized. General cursor reads/writes remain
+// caller-owned unsafe operations; Capacity enables truthful local bounds checks.
 internal partial class LegacyNativePacket : IDisposable
 {
     public const int MAX_SIZE = 16384;
@@ -38,6 +39,9 @@ internal partial class LegacyNativePacket : IDisposable
 
     public int Size { get; set; }
 
+    // Engineering allocation metadata: bounds checks must not infer capacity from mutable Size.
+    internal int Capacity { get; }
+
     public unsafe byte* Memory { get; private set; }
 
     public unsafe int Position => (int)(stream - Memory);
@@ -47,24 +51,29 @@ internal partial class LegacyNativePacket : IDisposable
 
     public unsafe LegacyNativePacket(byte[] buffer)
     {
-        Memory = (byte*)(void*)Marshal.AllocHGlobal(1024);
-        stream = Memory;
-        Marshal.Copy(buffer, 0, (IntPtr)stream, buffer.Length);
-        Size = buffer.Length;
+        ArgumentNullException.ThrowIfNull(buffer);
         if (new StackTrace().FrameCount > 70)
         {
             throw new Exception("[WARNING]: Stack trace call stack's frame count excceeded 70");
         }
+        int capacity = Math.Max(1024, buffer.Length);
+        Memory = (byte*)(void*)Marshal.AllocHGlobal(capacity);
+        Capacity = capacity;
+        stream = Memory;
+        Marshal.Copy(buffer, 0, (IntPtr)stream, buffer.Length);
+        Size = buffer.Length;
     }
 
     public unsafe LegacyNativePacket(int size)
     {
-        Memory = (byte*)(void*)Marshal.AllocHGlobal(size);
-        stream = Memory;
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(size);
         if (new StackTrace().FrameCount > 70)
         {
             throw new Exception("[WARNING]: Stack trace call stack's frame count excceeded 70");
         }
+        Memory = (byte*)(void*)Marshal.AllocHGlobal(size);
+        Capacity = size;
+        stream = Memory;
     }
 
     ~LegacyNativePacket()

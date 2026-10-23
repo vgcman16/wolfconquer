@@ -1,4 +1,5 @@
 using WolfConquer.Core.World;
+using WolfConquer.Core.Networking;
 using Flag = WolfConquer.Core.World.LegacyNativeMsgUpdate.Flags;
 
 namespace WolfConquer.Tests;
@@ -6,25 +7,42 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeCanUseSpellTests
 {
     [Fact]
-    public Task InsufficientStaminaRetainsOutRowsAndTheEarlierSoulSelectionWithoutDebitingAnything() => NativePacketTestThread.Run(() =>
+    public Task AcceptedResourceUpdatesMatchLiteral2176GoldensWithTheNativeSeal()
+        => NativePacketTestThread.Run(() =>
+    {
+        using var f = new Fixture();
+        f.Owner.FullLoading = true;
+        f.Row.UseStamina = 3;
+        f.Row.UseMana = 5;
+        LegacyNativePacket.SealString = "TQServer";
+        Assert.True(f.Run(out _, out _));
+        Assert.Equal(new[]
+        {
+            Convert.FromHexString("0C00800808111204080810615451536572766572"),
+            Convert.FromHexString("0C008008081112040802105F5451536572766572")
+        }, f.Queue.ToArray());
+    });
+
+    [Fact]
+    public Task InsufficientStaminaReturnsNullRowsAndPreservesAllAdmissionState()
+        => NativePacketTestThread.Run(() =>
     {
         using var f = new Fixture();
         f.Row.UseStamina = 10;
         f.Player.Stamina = 9;
         f.Spell.UseSpellSoul = 1;
+        f.Owner.OnSoulSpell = 999;
+        var before = Capture(f);
         Assert.False(f.Run(out var spell, out var row));
-        Assert.Same(f.Spell, spell); Assert.Same(f.Row, row);
-        Assert.Equal((ushort)100, f.Owner.OnSoulSpell);
-        Assert.Equal((ushort)9, f.Player.Stamina);
-        Assert.Equal((ushort)100, f.Player.Mana);
-        Assert.Empty(f.Queue);
+        Assert.Null(spell); Assert.Null(row); Unchanged(f, before);
         Assert.Equal("", f.Log.ToString());
     });
 
     [Theory]
     [InlineData(false, 10u)]
     [InlineData(true, 4u)]
-    public Task ScurvyBombUsesDictionaryContainmentForItsSixStaminaSurcharge(bool registered, uint expected) => NativePacketTestThread.Run(() =>
+    public Task ScurvyBombRetainsTheSuccessfulSixStaminaSurcharge(bool registered, uint expected)
+        => NativePacketTestThread.Run(() =>
     {
         using var f = new Fixture();
         f.Player.Stamina = 20;
@@ -38,26 +56,27 @@ public sealed partial class LegacyNativeCanUseSpellTests
     });
 
     [Fact]
-    public Task MissingRuneIsStillReadForZeroManaAfterStaminaDebitAndSend() => NativePacketTestThread.Run(() =>
+    public Task ZeroManaNeverLooksUpMissingRuneAndStillCommitsStaminaUpdate()
+        => NativePacketTestThread.Run(() =>
     {
         using var f = new Fixture();
         f.Row.UseStamina = 10;
         f.Owner.Rune = null;
         Assert.Equal((ushort)0, f.Row.UseMana);
-        Assert.False(f.Run(out var spell, out var row));
-        Assert.Null(spell); Assert.Null(row);
+        Assert.True(f.Run(out var spell, out var row));
+        Assert.Same(f.Spell, spell); Assert.Same(f.Row, row);
         Assert.Equal((ushort)90, f.Player.Stamina);
         Assert.Equal(Update(17, LegacyMsgUpdateDataType.Stamina, 90), Assert.Single(f.Queue));
-        Assert.Contains("NullReferenceException", f.Log.ToString());
+        Assert.Equal("", f.Log.ToString());
     });
 
     [Fact]
-    public Task TrainingMapSkipsBothCostsAndRuneQueryButNotSoulOrCooldownGates() => NativePacketTestThread.Run(() =>
+    public Task TrainingMapSkipsBothCostsAndRuneButRejectedCooldownRemainsReadOnly()
+        => NativePacketTestThread.Run(() =>
     {
         using var f = new Fixture();
         f.Player.Map = 1039;
-        f.Player.Stamina = 0;
-        f.Player.Mana = 0;
+        f.Player.Stamina = f.Player.Mana = 0;
         f.Row.UseStamina = byte.MaxValue;
         f.Row.UseMana = ushort.MaxValue;
         f.Owner.Rune = null;
@@ -65,13 +84,13 @@ public sealed partial class LegacyNativeCanUseSpellTests
         Assert.True(f.Run(out var spell, out var row));
         Assert.Same(f.Spell, spell); Assert.Same(f.Row, row);
         Assert.Equal((ushort)100, f.Owner.OnSoulSpell);
-        Assert.Equal((ushort)0, f.Player.Stamina);
-        Assert.Equal((ushort)0, f.Player.Mana);
+        Assert.Equal((ushort)0, f.Player.Stamina); Assert.Equal((ushort)0, f.Player.Mana);
         Assert.Empty(f.Queue);
         f.Row.ColdTime = 1000;
         f.Spell.ColdTime = DateTime.Now.AddMinutes(10);
+        var before = Capture(f);
         Assert.False(f.Run(out spell, out row));
-        Assert.Same(f.Spell, spell); Assert.Same(f.Row, row);
+        Assert.Null(spell); Assert.Null(row); Unchanged(f, before);
     });
 
     [Theory]
@@ -83,8 +102,10 @@ public sealed partial class LegacyNativeCanUseSpellTests
     [InlineData((byte)8, 16)]
     [InlineData((byte)9, 11)]
     [InlineData((byte)10, 0)]
-    [InlineData((byte)11, -10)]
-    public Task MpMasterKeepsSpecialPercentagesTruncationAndAboveHundredBehavior(byte level, int adjustedCost) => NativePacketTestThread.Run(() =>
+    [InlineData((byte)11, 0)]
+    [InlineData((byte)99, 0)]
+    public Task MpMasterRetainsOrdinaryPercentagesAndClampsMalformedDiscounts(byte level, int cost)
+        => NativePacketTestThread.Run(() =>
     {
         using var f = new Fixture();
         f.MpRune(level);
@@ -92,25 +113,26 @@ public sealed partial class LegacyNativeCanUseSpellTests
         f.Player.Mana = 101;
         Assert.True(f.Run(out var spell, out var row));
         Assert.Same(f.Spell, spell); Assert.Same(f.Row, row);
-        Assert.Equal((ushort)(adjustedCost > 0 ? 101 - adjustedCost : 101), f.Player.Mana);
-        Assert.Empty(f.Queue); // Native Mana's full setter sends only when FullLoading.
+        Assert.Equal((ushort)(101 - cost), f.Player.Mana);
+        Assert.Empty(f.Queue); // FullLoading=false: no mana publication.
     });
 
     [Fact]
-    public Task InsufficientManaDoesNotUndoEarlierStaminaAndRetainsBothOutRows() => NativePacketTestThread.Run(() =>
+    public Task InsufficientManaDoesNotDebitStaminaOrPublishPreparedState()
+        => NativePacketTestThread.Run(() =>
     {
         using var f = new Fixture();
         f.Row.UseStamina = 3;
         f.Row.UseMana = 101;
+        f.Owner.FullLoading = true;
+        var before = Capture(f);
         Assert.False(f.Run(out var spell, out var row));
-        Assert.Same(f.Spell, spell); Assert.Same(f.Row, row);
-        Assert.Equal((ushort)97, f.Player.Stamina);
-        Assert.Equal((ushort)100, f.Player.Mana);
-        Assert.Equal(Update(17, LegacyMsgUpdateDataType.Stamina, 97), Assert.Single(f.Queue));
+        Assert.Null(spell); Assert.Null(row); Unchanged(f, before);
     });
 
     [Fact]
-    public Task FullLoadingManaSetterAndVerifiedPreserveEverySameValueSendAndResourceOrder() => NativePacketTestThread.Run(() =>
+    public Task OrdinaryManaSetterStaysIntactAndAcceptedAdmissionPreservesResourceWireOrder()
+        => NativePacketTestThread.Run(() =>
     {
         using var f = new Fixture();
         f.Player.Mana = 55;

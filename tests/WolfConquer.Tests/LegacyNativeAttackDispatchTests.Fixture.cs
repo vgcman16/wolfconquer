@@ -51,6 +51,7 @@ public sealed partial class LegacyNativeAttackDispatchTests
         internal void Skill(ushort id, ushort level = 0)
         {
             Native.Storage.ClientSpells.Clear(); Rows.Clear(); ClientSpell.ID = id; ClientSpell.Level = level; Row.ID = id;
+            Row.Level = checked((byte)level);
             Attack.SpellID = id; Native.Storage.ClientSpells[id] = ClientSpell; Rows[level] = Row;
         }
         internal void NextLevel(uint threshold = 1000)

@@ -247,9 +247,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         {
             ["StatusFlags"] = BuildStatusFlags(targetFlags.ToArray()),
             [CounterKill16350BackDamageRollAttribute] = "0",
-            [ManiacDanceHeavensWonderRollAttribute] = "0",
             [PhysicalMudWallOldRollAttribute] = "0",
         };
+        AssertCodeFactorIndexedSharedRoll(targetAttributes);
         if (options.IncludeMudSigil)
         {
             targetAttributes["MsgNinja"] = BuildPhysicalMudWallMsgNinja(

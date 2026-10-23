@@ -1,5 +1,36 @@
 # Publication validation
 
+## Sanitized spell admission, packet allocation and CodeFactor cleanup
+
+Private and independent public Release each passed **510/510** selected tests,
+zero failures/skips. This includes 87 admission controls, 20 allocation controls,
+123 retained dispatch controls and all 72 affected indexed-initializer controls.
+Client/player-serialized admission validates and prepares both genuine 2176 frames
+before committing actual resources, authorization, soul and cooldown. Null outputs
+and unchanged state/queues are required on rejection. Alias, bounds, pool faults,
+literal sealed resource bytes and competing admissions are covered.
+
+Packet constructors now validate before unmanaged allocation, copy the entire
+input into sufficient storage and expose truthful immutable Capacity. This does
+not make every existing unsafe packet reader/writer safe. Six initial dispatch
+failures exposed stale level-two fixture metadata; the fixture now supplies its
+real row level without removing damage/packet assertions.
+
+Two Hairface CodeFactor warnings are absent from the refreshed public report;
+three redundant fixture writes are repaired with stronger shared-key coverage.
+No warning suppression, original save, SQL, live client/server, host route or
+deployment was involved. Full-cast executor transactions and the remaining source
+bug audit stay open. The following full Windows receipt predates this new batch.
+
+## Latest completed full Windows check
+
+[Windows 39922519332](https://github.com/vgcman16/wolfconquer/actions/runs/39922519332)
+passed all eight stages in 3m 56s on exact `ed5e765ec59a7e98bc31a5f73e6551588ce12f63`.
+Terminal TRX: core 21,389 passed / 0 failed of 21,554 (165 excluded cases); updater
+262/262; launcher 49/49. Synthetic receipt parsers passed 20 + 13 cases; HTTP and
+service probes were skipped. Receipt `20261023T080856191Z-4096bc06` finished at
+`2026-10-23T08:12:30.0196856Z`. Green CI is not deployment or full gameplay parity.
+
 ## Native death and tournament prerequisites
 
 Private and independent sanitized-public Release each passed4902/4902 selected
@@ -84,7 +115,7 @@ whole scheduler Create, but never assigns PowerArena. Full invitations, teleport
 XP/inventory rewards and event/monster-death adoption remain unfinished. The full
 Windows result below now verifies this batch; it is not live event proof.
 
-## Current full Windows result
+## Earlier full Windows result before Sanitized Parity
 
 [Windows 39917804088](https://github.com/vgcman16/wolfconquer/actions/runs/39917804088)
 passed in 4m 7s on exact commit `ee9d052d246471b53c7ed1165d38021af56c143f`.

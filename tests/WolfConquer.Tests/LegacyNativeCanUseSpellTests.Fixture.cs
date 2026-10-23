@@ -15,19 +15,24 @@ public sealed partial class LegacyNativeCanUseSpellTests
         private readonly LegacyNativeItemTypeRuneMetadata? priorItems = LegacyNativePoolItems.ItemsBase;
         private readonly Dictionary<uint, LegacyNativeNinjaFile.NinjaSprintItem>? priorNinja = LegacyNativeNinjaFile.gouyu_type;
         private readonly TextWriter priorOutput = Console.Out;
-        internal NativeSpellTestFixture Native { get; } = new();
+        private readonly LegacyNativeSafeRandom priorRandom = LegacyNativePoolRandom.GetRandom;
+        private readonly DateTime priorReset = LegacyNativePoolRandom.ResetRandom;
+        internal NativeSpellTestFixture Native { get; }
         internal LegacyNativeGameClientRuntime Owner => Native.Owner;
         internal LegacyNativePlayerRuntime Player => Owner.Player;
         internal Queue<byte[]> Queue => Native.Queue;
         internal LegacyNativeInteractQuery Attack { get; } = new() { SpellID = 100, OpponentUID = 123 };
         internal LegacyNativeMsgSpell Spell { get; } = new() { ID = 100, Level = 2 };
-        internal LegacyNativeMagicType.Magic Row { get; } = new() { ID = 100, Type = LegacyNativeMagicType.MagicSort.Bomb };
+        internal LegacyNativeMagicType.Magic Row { get; } = new() { ID = 100, Level = 2, Type = LegacyNativeMagicType.MagicSort.Bomb };
         internal Dictionary<ushort, LegacyNativeMagicType.Magic> Rows { get; }
         internal StringWriter Log { get; } = new(CultureInfo.InvariantCulture);
 
         internal Fixture()
         {
-            Console.SetOut(Log);
+            // Own constructor RNG rather than advancing another test's shared sequence.
+            LegacyNativePoolRandom.GetRandom = new LegacyNativeSafeRandom(7531);
+            Native = new();
+            Console.SetOut(TextWriter.Synchronized(Log));
             LegacyNativePoolMagic.WeaponSpells = new();
             LegacyNativePoolItems.ItemsBase = new();
             LegacyNativeNinjaFile.gouyu_type = new();
@@ -43,6 +48,13 @@ public sealed partial class LegacyNativeCanUseSpellTests
 
         internal bool Run(out LegacyNativeMsgSpell spell, out LegacyNativeMagicType.Magic row) =>
             LegacyNativeCanUseSpell.Verified(Attack, Owner, Rows, out spell, out row);
+
+        internal void SelectIdentity(ushort id)
+        {
+            Native.Storage.ClientSpells.Remove(Spell.ID);
+            Attack.SpellID = Spell.ID = Row.ID = id;
+            Native.Storage.ClientSpells[id] = Spell;
+        }
 
         internal LegacyNativeGameItemRuntime MpRune(byte level)
         {
@@ -63,6 +75,8 @@ public sealed partial class LegacyNativeCanUseSpellTests
             LegacyNativePoolItems.ItemsBase = priorItems;
             LegacyNativeNinjaFile.gouyu_type = priorNinja!;
             Native.Dispose();
+            LegacyNativePoolRandom.GetRandom = priorRandom;
+            LegacyNativePoolRandom.ResetRandom = priorReset;
         }
     }
 
@@ -75,20 +89,24 @@ public sealed partial class LegacyNativeCanUseSpellTests
     private static byte[] Update(uint uid, LegacyMsgUpdateDataType type, uint value) =>
         new LegacyMsgUpdatePacket(uid, [new LegacyMsgUpdateEntry(type, value)]).ToFrameBytes();
 
-    // Test-only map object: raw spell range must not use visibility/spawn/send behavior.
-    private sealed class RangeTarget : ILegacyNativeMapObj
+    private sealed record Snapshot(ushort Stamina, ushort Mana, ushort RandomSpell,
+        ushort Soul, DateTime ColdTime, bool HasColdTime, byte[][] Frames);
+
+    private static Snapshot Capture(Fixture f) => new(f.Player.Stamina, f.Player.Mana,
+        f.Player.RandomSpell, f.Owner.OnSoulSpell, f.Spell.ColdTime,
+        f.Spell.IsSpellWithColdTime, f.Queue.ToArray());
+
+    private static void Unchanged(Fixture f, Snapshot before)
     {
-        public uint UID => 123;
-        public ushort X => 36;
-        public ushort Y => 35;
-        public LegacyNativeMapObjectType ObjType => LegacyNativeMapObjectType.Monster;
-        public uint IndexInScreen { get; set; }
-        public bool AllowDynamic { get => throw new InvalidOperationException(); set => throw new InvalidOperationException(); }
-        public uint Map => throw new InvalidOperationException();
-        public uint DynamicID => throw new InvalidOperationException();
-        public bool Alive => throw new InvalidOperationException();
-        public bool IsTrap() => throw new InvalidOperationException();
-        public LegacyNativePacket GetArray(LegacyNativePacket stream, bool View, bool st) => throw new InvalidOperationException();
-        public void Send(LegacyNativePacket msg) => throw new InvalidOperationException();
+        Assert.Equal(before.Stamina, f.Player.Stamina);
+        Assert.Equal(before.Mana, f.Player.Mana);
+        Assert.Equal(before.RandomSpell, f.Player.RandomSpell);
+        Assert.Equal(before.Soul, f.Owner.OnSoulSpell);
+        Assert.Equal(before.ColdTime, f.Spell.ColdTime);
+        Assert.Equal(before.HasColdTime, f.Spell.IsSpellWithColdTime);
+        var after = f.Queue.ToArray();
+        Assert.Equal(before.Frames.Length, after.Length);
+        for (int index = 0; index < after.Length; index++)
+            Assert.Same(before.Frames[index], after[index]);
     }
 }

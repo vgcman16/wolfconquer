@@ -7,6 +7,15 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Sanitized spell admission and allocation: private and independent public
+  Release each passed 510/510 selected cases, zero failures/skips. Rejected
+  admissions preserve resources/authorization/soul/cooldown and return null outputs;
+  real resource packets are prepared before commitment. Full cast executors and
+  general packet bounds remain open in the source-bug tracker.
+- [x] Two Hairface CodeFactor warnings are confirmed absent from the refreshed
+  report. Three duplicate test-initializer warnings are locally repaired, with all
+  71 old affected cases plus one alias Fact retained; remote reanalysis is pending.
+
 - [x] Source authority remains the local simplified-复 decompile; staged DX8
   VisibleDx8D13 is explicit. No switch to the old Wolves/DX9/default-D11 baseline.
 - [x] Clone/pet producers, complete physical monster calculation and gear effects,
@@ -59,9 +68,10 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run 39917804088 on `ee9d052d` passed all 8 stages in 4m 7s.
-  Core console summary: 21,389 passed / 0 failed / 165 skipped of 21,554; updater 262/262.
-  Launcher and both synthetic parser stages exited 0. HTTP/service probes skipped.
+  Full Windows run 39922519332 on `ed5e765e` passed all 8 stages in 3m 56s.
+  Terminal TRX: core 21,389 passed / 0 failed of 21,554, with 165 excluded cases;
+  updater 262/262; launcher 49/49; synthetic receipt parsers 20 + 13 passed.
+  This receipt predates the newer spell batch. HTTP/service probes were skipped.
 - [x] Logging/ranking/login-wire source has full Windows proof in3m52s on exact
   b75f29ab. Hair setter/getter and earlier component controls remain intact.
 - [x] Earlier Windows 39905802844 failed two cases and 39908229600 failed one.

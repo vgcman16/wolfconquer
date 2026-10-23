@@ -303,8 +303,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             [PhysicalDragonSwingRollAttribute] = options.ForcedRoll.ToString(CultureInfo.InvariantCulture),
             ["Dodge"] = options.InitialDodge.ToString(CultureInfo.InvariantCulture),
             [CounterKill16350BackDamageRollAttribute] = "0",
-            [ManiacDanceHeavensWonderRollAttribute] = "0",
         };
+        AssertCodeFactorIndexedSharedRoll(targetAttributes);
         if (options.WildPhoenixDefended)
         {
             targetAttributes[RuntimeLegacyCombatGearWildPhoenixPackedDamageAttribute] = "18007";

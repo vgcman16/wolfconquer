@@ -334,8 +334,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["StatusFlags"] = BuildStatusFlags(targetFlags.ToArray()),
                 [CounterKill16350BackDamageRollAttribute] = "0",
-                [ManiacDanceHeavensWonderRollAttribute] = "0",
             };
+            AssertCodeFactorIndexedSharedRoll(targetAttributes);
             if (options.WildPhoenixDefended)
             {
                 targetAttributes[RuntimeLegacyCombatGearWildPhoenixPackedDamageAttribute] = "18007";
