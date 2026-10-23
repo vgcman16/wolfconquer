@@ -1,5 +1,23 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on complete equipment scoring, rank records and status methods
+
+- [x] Whole GetItemPoints/GetPerfectionPosition, RankItems queries/update/binary
+  persistence, CombatGear.A/Status, both complete status/server-info codecs and
+  physical transform/weapon caller state. All class and status branches remain.
+- [x] Private and independent sanitized-public Release each passed1625/1625,
+  zero failures/skips (201 new +1424 retained). Actual modern methods match21
+  source-shaped Framework4/x86 default/optimized numeric rows and all256 byte-level
+  costs, including non-rounded native anomalies; conversions are owner-scoped.
+- [x] Initial private compile used the wrong classifier owner name; callers now
+  reuse the existing whole LegacyNativeItemPosition. A1598-pass/21-fail run caught
+  a parent test fixture disabling the real value table; setup alone was corrected.
+  Public compile exposed an older omitted GetValueRank prerequisite; the complete
+  method was reviewed/imported and six class/gate controls now pass in both copies.
+- [ ] Whole QueryEquipment/OnDequeue/UpdateStats, four transform lifecycle methods,
+  Team/HP/level/Inventory/save/attack cycles and native host adoption remain held.
+  Rank binary tests use owned files; this is not SQL, startup or live-client proof.
+
 ## Follow-on mentor sharing and complete Associate records
 
 - [x] Whole TutorInfo loader/share arithmetic, all apprentice-information fields/

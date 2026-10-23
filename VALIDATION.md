@@ -1,5 +1,30 @@
 # Publication validation
 
+## Native equipment scoring, rank files and complete status components
+
+Private Release and independent sanitized-public Release each passed1625/1625,
+zero failures/skips:201 new cases and1424 retained. This covers whole item
+scoring/classification, native rank mutation and owned binary persistence,
+CombatGear attribute/status methods, both complete status/server-info codecs and
+genuine physical transform/weapon state. No class/status branch was removed.
+
+Modern production methods match21 source-shaped arithmetic rows observed in
+both default and optimized owned Framework4/x86 probes. All256 byte-level costs
+also match, retaining their native rounding anomalies. This is scoped evidence,
+not a general floating-cast guarantee or execution of original game binaries.
+
+Private compilation first exposed the wrong existing classifier owner name.
+The next1598-pass/21-fail run exposed a parent fixture disabling the actual value
+table; fixing setup retained all production formulas. Public compilation then
+exposed an older missing GetValueRank method; its whole source body was reviewed/
+imported, with six class/gate controls passing in private and public copies.
+Existing public synthetic fixtures and dependency differences are preserved.
+
+Full equipment rebuilding, transform lifecycle, Team/HP/level/inventory/save/
+attack cycles and native host adoption remain held. These focused component
+results do not establish SQL, startup, live-client, deployment or full Windows
+acceptance, and do not change the standing rough project-parity estimate.
+
 ## Native mentor sharing and complete social records
 
 Private Release and independent sanitized-public Release each passed1424/1424,
