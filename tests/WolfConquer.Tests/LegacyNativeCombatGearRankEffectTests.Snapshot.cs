@@ -92,6 +92,7 @@ public sealed partial class LegacyNativeCombatGearRankEffectTests
         Ranks.Ranks[Ranks.Type.WEEK_Pirate] = null!;
         Ranks.Ranks[Ranks.Type.Overall_Archer].RankingList = null!;
         var value = Gear.GetValueRank(UserId, 2001);
+        Assert.NotNull(value);
         Assert.Equal((2d, 5d, 0d), (value.LukyStrike, value.Parry, value.CoreStrike));
         Assert.Null(Ranks.Ranks[Ranks.Type.WEEK_Pirate]);
         Assert.Null(Ranks.Ranks[Ranks.Type.Overall_Archer].RankingList);
@@ -123,6 +124,7 @@ public sealed partial class LegacyNativeCombatGearRankEffectTests
         Ranks.Ranks = root;
         comparer.Armed = true;
         var value = Gear.GetValueRank(UserId, 2001);
+        Assert.NotNull(value);
         Assert.Equal((2d, 5d), (value.LukyStrike, value.Parry));
         Assert.Equal(0, comparer.ArmedCalls);
         Assert.Same(root, Ranks.Ranks);

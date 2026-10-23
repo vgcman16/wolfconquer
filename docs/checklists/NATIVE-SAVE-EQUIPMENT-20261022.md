@@ -13,8 +13,12 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   retains EMPTY all frames. Rank Status baseline8:2valid pass/6unsafe fail.
   Complete Earth preparation precedes one CAS/output; required complete rank
   data is validated before bonuses or spell removal. Valid quantities/formulas/
-  packet goldens remain. Public CI pending; UID activation, durable reward
-  recovery, raw writers and whole-Status transactions remain open.
+  packet goldens remain. FullWindows40002265954 passes4m44s on exact549e9829:
+  23753core/0failed (165externalfixtureexcluded), updater301/301, launcher49/49;
+  8stageexit0,212warnings. Eight new test-only warnings corrected in one batch:
+  public focused578/578,0fail/skip; build204warnings/0errors, no repeated fullCI.
+  UID activation, durable reward recovery, raw
+  writers and whole-Status transactions remain open.
 
 - [x] Monster reward safety (FSB049/050): private complete boss/reward class
   439/439,0failed/0skipped. Tests-only baselines13:7pass/6fail (Plume) and

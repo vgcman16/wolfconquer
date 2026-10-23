@@ -43,7 +43,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         else if (ownership == "unregistered") Assert.Null(scene.Current);
         else Assert.Same(scene.Original, scene.Current);
         AssertEarthForceTransactionOriginalAndFiles(scene);
-        Assert.Empty(scene.Sent.Where(IsEarthForceTransactionRewardFrame));
+        Assert.DoesNotContain(scene.Sent, IsEarthForceTransactionRewardFrame);
         if (ownership == "unregistered")
         {
             // The real ArrowBlades ingress refuses the absent connection before
@@ -66,7 +66,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         Assert.Equal(scene.ReplacementBefore, PlayerItemSnapshotLoader.ToLegacyBytes(scene.Current!.PlayerItems));
         Assert.Equal(77, scene.Current.Character.Money);
         AssertEarthForceTransactionOriginalAndFiles(scene);
-        Assert.Empty(scene.Sent.Where(IsEarthForceTransactionRewardFrame));
+        Assert.DoesNotContain(scene.Sent, IsEarthForceTransactionRewardFrame);
         Assert.Contains("session-changed-before-commit", scene.Log);
     }
 
@@ -77,7 +77,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         Assert.Null(scene.Committed);
         AssertEarthForceTransactionOriginalAndFiles(scene);
         Assert.Empty(scene.PublicationOwners);
-        Assert.Empty(scene.Sent.Where(IsEarthForceTransactionRewardFrame));
+        Assert.DoesNotContain(scene.Sent, IsEarthForceTransactionRewardFrame);
         Assert.DoesNotContain(ParseNpcReplies(scene.Sent), reply =>
             reply.Text.Contains("received the Earth Force", StringComparison.Ordinal));
         Assert.DoesNotContain("converted=True", scene.Log);

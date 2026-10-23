@@ -11,8 +11,16 @@ controls remain;7 old private exception-oriented tests now enforce safe refusal.
 
 Public retains its separate RankBonuses owner and all6 existing bonus controls;
 34new rank/Status plus32new Earth controls are included. No duplicate private
-GetValueRank or unrelated mapping/check methods are imported. One full public
-Windows CI run is pending; this is not an independent public passing result yet.
+GetValueRank or unrelated mapping/check methods are imported. Clean full public
+Windows40002265954 passes4m44s on exact549e9829c1a9095fd986fe5cce38c5be6106d5ee,
+completed2026-10-23T18:24:11Z:23753corepassed/0failed of23918,165existing
+externalfixtureexcluded; updater301/301, launcher49/49; all8stages exit0,
+212warnings/0buildErrors. Receipt20261023T181942650Z-23252aa2 finished18:24:04.5079894Z.
+After this tested snapshot,8 new test-only warnings are corrected together in4
+files (6 predicate assertion forms +2 explicit positive null checks). Independent
+public Release focused578/578 passes,zero failed/skipped,2s; build204warnings/
+0errors. TRX `.artifacts/sanitized-earth-force/results/earth-rank-assertions-public.trx`.
+No production source changes follow CI; no redundant fullCI for these assertions.
 Durable rewards/outbox, whole-Status, raw writers, global UID adoption, deployment
 and actual-client proof remain outside this checkpoint.
 

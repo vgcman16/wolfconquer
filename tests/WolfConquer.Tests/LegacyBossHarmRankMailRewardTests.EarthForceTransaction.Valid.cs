@@ -119,7 +119,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         var scene = await RunEarthForceTransactionAsync(3, "missing-earth");
         Assert.Null(scene.Failure);
         Assert.NotNull(scene.Committed);
-        var frame = Assert.Single(scene.Sent.Where(IsEarthForceTransactionRewardFrame));
+        var frame = Assert.Single(scene.Sent, IsEarthForceTransactionRewardFrame);
         Assert.Equal(EarthForceTransactionItemGolden(1, 3_008_754, 0, 3, 4), frame);
         Assert.Equal((ushort)4, Assert.Single(scene.Current!.PlayerItems.InventoryItems, item => item.ItemId == 3_008_754).StackSize);
     }

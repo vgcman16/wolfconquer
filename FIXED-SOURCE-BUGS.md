@@ -824,7 +824,9 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   transactions, entitlement/outbox, delivery or global UID closure. Current
   max+1 remains until the separate canonical registry cutover; its equivalent
   overlay/real-ledger fixtures are isolated and not yet executed or activated.
-  Full public CI is pending for this checkpoint.
+  Clean full Windows40002265954 passes4m44s on exact549e9829c1a9095fd986fe5cce38c5be6106d5ee:
+  23753core/0failed of23918 (165existing externalfixtureexcluded), updater301/301,
+  launcher49/49;8stageexit0,212warnings/0buildErrors. Completed18:24:11Z.
 
 ### FSB-052: Unavailable rankings cannot authorize bonuses or spell removal
 
@@ -845,7 +847,8 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   controls, and does not import duplicate private mapping/query methods.
 - Limits: prepared rank reads, not whole-Status/global rank transactions. Raw
   mutable owners/ABA, later non-rank failures, spell persistence, concurrent
-  lifecycle and Host activation remain open. Full public CI is pending.
+  lifecycle and Host activation remain open. The clean full public CI above
+  includes all34 new public rank/Status controls and6 retained bonus controls.
 
 ## Active audit
 
@@ -904,6 +907,14 @@ proved by the isolated UID-adoption proposals.
 | FSB-045 | Duplicate exchange requirements reuse stock; partial consumption still awards; products can overflow | Complete summed material admission and private ordered full debit before reward | Scoped material repair verified446 private;442public plus4existing external skips; whole economy/UID lifecycle open |
 
 ## CodeFactor cleanup
+
+Earth/rank fullCI40002265954 passed with212 warnings. Root batches its8 new
+test-only warnings across4 files:6 equivalent xUnit predicate assertions and2
+explicit positive-result null checks. No production or protocol change, no new
+suppression/exclusion, no separate fullCI per warning. Public Release focused578/578
+passes,zero failed/skipped,2s; build204warnings/0errors after the batch. This is a
+test-only follow-up to the exact fullCI code snapshot above, not another fullCI.
+Latest remote CodeFactor count was not read; compiler warnings are not that count.
 
 Exchange public8abeec78 is full-Windows verified above. Its two mechanical new
 findings are corrected in the SuperGuild behavior batch; the new semantic

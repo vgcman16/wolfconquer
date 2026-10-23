@@ -15,7 +15,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         Assert.Single(scene.Committed.PlayerItems.InventoryItems, item => item.ItemId == 3_008_745);
         Assert.DoesNotContain(scene.Committed.PlayerItems.InventoryItems, item => item.ItemId == 3_008_754);
         AssertEarthForceTransactionOriginalAndFiles(scene);
-        Assert.Empty(scene.Sent.Where(IsEarthForceTransactionRewardFrame));
+        Assert.DoesNotContain(scene.Sent, IsEarthForceTransactionRewardFrame);
         Assert.Empty(scene.PublicationOwners);
         Assert.DoesNotContain("session-changed-before-commit", scene.Log);
     }
@@ -32,7 +32,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         Assert.DoesNotContain(scene.Current.PlayerItems.InventoryItems, item => item.ItemId == 3_008_754);
         AssertEarthForceTransactionOriginalAndFiles(scene);
         Assert.Same(scene.Committed, Assert.Single(scene.PublicationOwners));
-        Assert.Single(scene.Sent.Where(IsEarthForceTransactionRewardFrame));
+        Assert.Single(scene.Sent, IsEarthForceTransactionRewardFrame);
         Assert.DoesNotContain("no fragment debit, grant or reward output was committed", scene.Log);
     }
 }
