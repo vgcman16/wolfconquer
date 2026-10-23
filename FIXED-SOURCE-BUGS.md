@@ -919,13 +919,43 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   controls cover all three mappings and valid stacks of one/three after earlier
   bound/zero rows, preserving later eligible rows, metadata and exact success
   frames; saved item/skin results are checked.
-- Persistence boundary: the real `WorldServerFrameHandler` session callback does
+- Historical FSB056 admission-only boundary (before FSB057): the real
+  `WorldServerFrameHandler` session callback does
   autosave changed inventory. The explicit character skin save is separate;
   successful individual saves are not a coherent item-plus-skin transaction.
   Crash/replay recovery, concurrent ownership, persistence/send-failure atomicity
   and delivery remain open for the separate transaction work. This is admission
   proof, not full durability, a new full-CI checkpoint or live-client/deployment
   proof.
+
+### FSB-057: Commit DragonSkin items and skin through the shared journal
+
+- The managed Unlock/Retrieve path previously saved items and character skin
+  separately. `WorldPacketHandlers.AnimaSkin.*` and `LegacyDragonSkinPersistence.*`
+  now use the shared `LegacyTradeJournal` v2 single-owner transaction: Character
+  is keyed by account (fixture 100), Items by character (1293600). Strict complete
+  item-graph/skin-book and persisted baselines, current-owner persisted CAS,
+  exclusive admission and recovery readiness for the exact roots precede commit.
+  FSB056 positive unbound costs and existing successful frames remain. Retrieve
+  retains zero durability for absent optional metadata; present malformed
+  metadata refuses. Presentation changes also use current-owner CAS.
+- Registered tests-only baseline: 89 total, 8 passed/81 failed. First admitted
+  run: 186 total, 161 passed/25 failed; all 89 registered and 70 retained cases
+  passed. The 25 of 27 component failures were raw `IReadOnlyList` collection-
+  expression fixture wrappers correctly rejected by strict validation. Only
+  `Fixture.Seed` changed to reload its just-written file with the real
+  `PlayerItemSnapshotLoader`, plus a raw-byte preservation assertion; production
+  validation was not weakened. Then 186/186 passed; broader actual Trade/barrier/
+  session selection 368/368 passed, zero failed/skipped. The same 26 paths (15
+  production, 11 new test) transferred to public, which passed 368/368 with zero
+  failed/skipped in two seconds: 116 new + 70 retained + 182 adjacent cases.
+- Controls cover interrupted 0/1/2-replacement prefixes rolling forward, sharing
+  failure rollback/retry, stale owners, postcommit retirement/replay/transport
+  close and presentation-CAS observers. Recovery is process-restart reconciliation,
+  not power-loss, multiprocess, raw external-writer or ABA proof. Durable outbox/
+  delivery and global UID safety remain open: the current creator is still max+1;
+  the canonical alternative is not installed. No SQL/live/original-save action,
+  routing change, Host activation or new full-CI claim.
 
 ## Active audit
 

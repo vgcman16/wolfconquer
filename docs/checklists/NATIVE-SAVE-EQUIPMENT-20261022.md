@@ -7,17 +7,31 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Scoped DragonSkin item/skin transaction (FSB057): registered baseline
+  89=8 passed/81 failed; first admitted 186=161 passed/25 component-fixture
+  failures. Real-loader fixture correction preserves raw bytes and strict
+  production validation; private 186/186 then broader Trade/barrier/session
+  368/368 passed, zero failed/skipped. Public same-26-path selection also passed
+  368/368, zero failed/skipped (116 new + 70 retained + 182 adjacent).
+  Shared v2 journal uses account-keyed Character and character-keyed Items,
+  complete strict baselines, current-owner persisted CAS, exclusive admission
+  and exact-root recovery readiness. Interrupted 0/1/2 prefixes, rollback/retry,
+  stale/replayed/retired owners and transport/presentation observers are covered.
+  This is process-restart reconciliation, not power-loss/multiprocess/raw-writer/
+  ABA/outbox or global UID proof. Creator remains max+1; no canonical alternative,
+  Host activation, SQL/live/original-save/routing change or new full-CI claim.
+
 - [x] DragonSkin cost admission (FSB056): real tests-first baseline failed all
   16 new cases; repaired focused private 70/70 and public 70/70 passed. Unlock
   consumes only the first mapped positive unbound row, retaining inventory order,
   one-unit costs, other item fields and existing frames. Bound/zero-only refusals
   leave session, skin, inventory and saved files unchanged and reply truthfully;
   mixed-order controls cover all three mappings and valid stacks of one/three.
-  The real frame session callback autosaves inventory, followed separately by
-  explicit character skin persistence: this is not a coherent two-file
-  transaction. Crash/replay, concurrency, persistence/send-failure atomicity and
-  delivery remain open. No new full-CI, live-client, deployment or full-durability
-  claim.
+  At that admission-only checkpoint the frame callback autosaved inventory,
+  followed by separate character skin persistence, without a coherent two-file
+  transaction. The later scoped transaction and its remaining limits are recorded
+  in FSB057 above. Admission alone made no full-CI, live-client, deployment or
+  full-durability claim.
 
 - [x] Selected-status and adjacent reward safety (FSB053/054): private Release
   721/721, zero failed/skipped (545 boss/reward,79 Status,97 rank/query).

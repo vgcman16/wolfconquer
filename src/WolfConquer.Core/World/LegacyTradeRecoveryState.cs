@@ -10,6 +10,31 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
 
     internal bool IsBlocked => Volatile.Read(ref _failureReason) is not null;
 
+    // Evidence of this configured owner's completed startup recovery, not an
+    // initializer or a live-world replay operation.
+    internal bool IsReadyFor(string? expectedUsersRoot, string? expectedItemsRoot)
+    {
+        lock (_gate)
+        {
+            if (!_initialized || _failureReason is not null ||
+                string.IsNullOrWhiteSpace(usersRoot) || string.IsNullOrWhiteSpace(itemsRoot) ||
+                string.IsNullOrWhiteSpace(expectedUsersRoot) || string.IsNullOrWhiteSpace(expectedItemsRoot) ||
+                !Path.IsPathFullyQualified(usersRoot) || !Path.IsPathFullyQualified(itemsRoot) ||
+                !Path.IsPathFullyQualified(expectedUsersRoot) || !Path.IsPathFullyQualified(expectedItemsRoot)) return false;
+            try
+            {
+                return SameReadyRoot(usersRoot, expectedUsersRoot) && SameReadyRoot(itemsRoot, expectedItemsRoot);
+            }
+            catch (Exception error) when (error is ArgumentException or NotSupportedException or System.Security.SecurityException)
+            { return false; }
+        }
+    }
+
+    private static bool SameReadyRoot(string first, string second) => string.Equals(
+        Path.TrimEndingDirectorySeparator(Path.GetFullPath(first)),
+        Path.TrimEndingDirectorySeparator(Path.GetFullPath(second)),
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+
     internal void Block(string reason) => Interlocked.CompareExchange(ref _failureReason, reason, null);
 
     internal bool TryEnsureInitialized(out string reason)
