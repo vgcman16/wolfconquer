@@ -28,20 +28,29 @@
   poison/map-effect/Blackspot methods are implemented. Power Arena guardian and
   countdown/finish methods, Dis City map/query/Pluto announcement methods and
   Saturn state use genuine owners. Full event entry/rewards/startup remain held.
-- [x] Private and independent sanitized-public Release each passed 4552/4552,
-  zero failures/skips: 4410 retained + 53 monster support + 89 event controls.
+- [x] Full pet creation, fairy 2336 codec/handler metadata, view republishing and
+  screen-color latch are implemented; full teleport/visibility adoption is held.
+- [x] Native timer rule/pool/subscription owners, all registration/scheduling
+  methods, socket identity methods and hero 22210 writer are implemented.
+  Tests never start a worker. Full Create/callbacks and modern Thread.Abort
+  compatibility remain unfinished; no running scheduler readiness is claimed.
+- [x] Nobility pole scoring/reset/furniture and full Prince/Duke/Earl owners are
+  implemented. King Start/CheckUP remain held on genuine invitations/teleport.
+- [x] Private Release passed 4679/4679, then all 92 new pole-event cases. The
+  independent sanitized-public combined run passed 4771/4771, zero failures/skips:
+  4552 retained + 52 existing Time32 + 36 pet/fairy + 39 timer/login + 92 events.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run 39909496494 on `bf6b9eef` passed all 8 stages: core 20,949
-  passed / 0 failed / 165 unexecuted of 21,114; updater 262/262; launcher 49/49;
+  Full Windows run 39911102757 on `4c456773` passed all 8 stages: core 21,091
+  passed / 0 failed / 165 unexecuted of 21,256; updater 262/262; launcher 49/49;
   synthetic parser 20 + 13 cases. HTTP/service probes were skipped.
 - [x] Logging/ranking/login-wire source has full Windows proof in3m52s on exact
   b75f29ab. Hair setter/getter and earlier component controls remain intact.
 - [x] Earlier Windows 39905802844 failed two cases and 39908229600 failed one.
-  Current run 39909496494 closes those regressions: the exact Rifinery cache shape,
+  Recovery run 39909496494 closed those regressions: the exact Rifinery cache shape,
   opt-in bounded native-probe readiness and deterministic deferred-money tests.
   Every original module/thread/TCP/log assertion and no-ready default remains.
   Map 10250's special item still precedes the generic blocked-map gate; all five

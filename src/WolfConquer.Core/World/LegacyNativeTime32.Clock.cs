@@ -20,7 +20,7 @@ internal partial struct LegacyNativeTime32
     // invented stub. Original smethod_0 IL is exactly nop;ret (RVA0x3ce0).
     // Its beforefieldinit .cctor only writes bool_0=false (RVA0x41e0).
     // Uncalled socket/remote-compilation methods are intentionally not imported.
-    private sealed class NativeNowPrelude
+    internal sealed class NativeNowPrelude
     {
         internal static bool bool_0 = false;
 

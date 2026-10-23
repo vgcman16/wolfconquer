@@ -1,5 +1,33 @@
 # Publication validation
 
+## Native timer/login and world-view/event prerequisites
+
+Private Release passed 4679/4679 selected cases, then all 92 new pole-event cases.
+Independent sanitized-public Release passed the combined 4771/4771, zero failures
+or skips: 4552 retained + 52 existing Time32 + 36 pet/fairy + 39 timer/login + 92
+nobility-pole event controls. The first private attempt had eight missing root
+PS7-launch bindings and two incorrectly constructed test inputs; measured binding
+and explicit base TimerRule fixture constructors corrected these without changing
+production behavior or dropping assertions.
+
+Complete component methods now include real pet creation/collision publication,
+fairy 2336 metadata/codec/handler, view republishing/color latches, native timer
+rules/pools/subscriptions and registration/scheduling, socket identity, all50
+HeroInfo protobuf contract fields and the full22210 loader writer. Entire numbered
+Prince/Duke/Earl pole owners plus King furniture/scoring/reset/End are included.
+Original map-membership versus all-map nearby broadcast behavior, score aliases,
+singleton key faults, double rankings and mutation-before-fault order are tested.
+
+Timer authority is the actual GameServer SystemExtensions DLL, not the different
+AccServer DLL. The reached initializer is genuinely empty; unrelated dormant
+remote-loader code was excluded. No Run/Create/worker/Thread.Abort, NIC enumeration,
+SQL, original save or live client was executed. Started-thread shutdown still needs
+modern-runtime compatibility; full callbacks/startup, eager login/save, teleport
+and King invitation methods remain held. No fake clock, queue, HP or UI owner was
+added. These checks are not integrated login, event deployment or total parity.
+Full Windows confirmation of this new batch is pending; the earlier result below
+remains exact to its named commit.
+
 ## Native monster-death support and event prerequisites
 
 Private and independent sanitized-public Release each passed 4552/4552 selected
@@ -15,19 +43,18 @@ Controls use guarded temporary files, real map/view/packet/flag owners and owned
 queues. No original saves, SQL, client or runtime routing changed. Production
 startup was not synthesized: the source constructs Saturn and Dis City in its
 whole scheduler Create, but never assigns PowerArena. Full invitations, teleport,
-XP/inventory rewards and event/monster-death adoption remain unfinished. Fresh
-full Windows validation is pending; the prior full result below is historical
-proof for its exact source, not this new batch.
+XP/inventory rewards and event/monster-death adoption remain unfinished. The full
+Windows result below now verifies this batch; it is not live event proof.
 
-## Current full Windows result
+## Last completed full Windows result
 
-[Windows39909496494](https://github.com/vgcman16/wolfconquer/actions/runs/39909496494)
-passed in 3m 52s on exact commit `bf6b9eef7cde69eaadad1f21ea0a566acf5883a9`.
-All eight sequential stages exited 0. Actual terminal TRX: core 20,949 passed /
-0 failed / 165 unexecuted of 21,114; updater 262/262; Windows launcher 49/49.
+[Windows39911102757](https://github.com/vgcman16/wolfconquer/actions/runs/39911102757)
+passed in 3m 53s on exact commit `4c4567736780041be67eb8b983961a7d260e2309`.
+All eight sequential stages exited 0. Actual terminal TRX: core 21,091 passed /
+0 failed / 165 unexecuted of 21,256; updater 262/262; Windows launcher 49/49.
 Synthetic status and TRX-parser controls passed 20 + 13; HTTP/service probes were
-skipped. Runner receipt `20261023T060659989Z-a336c97e` finished at
-`2026-10-23T06:10:30.3932319Z`.
+skipped. Runner receipt `20261023T062323708Z-cca420b0` finished at
+`2026-10-23T06:26:55.6498832Z`.
 This closes the three test regressions described below. Earlier red receipts
 remain historical evidence, not current failures. This is build/component proof,
 not a new live-client, SQL, deployment or full-gameplay-parity claim.
