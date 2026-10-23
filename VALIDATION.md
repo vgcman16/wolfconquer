@@ -1,5 +1,27 @@
 # Publication validation
 
+## Timed purification and refinery expiry
+
+Both complete SecoundsLeft getters now retain the original absolute tick-to-
+seconds arithmetic and scoped Framework/x86 Int32 conversion. Large durations
+expire rather than saturating into a long-lived active effect. Real DateTime.Now,
+date faults, permanent/low-ID latch reuse and availability mutation order remain.
+The helper is private in a dedicated ItemExtra partial; no clock/provider seam
+or unrelated state/layout change was introduced.
+
+Owned CPU comparison checked every11340 state/result/fault observation and945
+date control: Framework/x86 default versus optimized had zero differences;
+modern original had1152 differences; the candidate had zero. No digest shortcut
+or original game assembly was used.
+
+Private and independent sanitized-public Release each passed3843/3843 selected
+cases, zero failures/skips:3652 retained,20 new real timer/detained-send controls,
+and171 existing item-extra/hydration/send/record/save/metadata cases. Active,
+expired, permanent, overflow, empty-extra frames, zero-UID short-circuit and
+ordered date faults were exercised. No original saves, SQL, host, live game or
+routing changed. Fresh full Windows proof for this newer source remains pending;
+the1588612e green run below predates the timer correction.
+
 ## Native item loading, detained records and hair/face ownership
 
 Private and independent sanitized-public Release each passed3651/3651 selected
@@ -37,12 +59,8 @@ core20494 passed/0 failed/165 unexecuted of20659, updater262/262, launcher49/49,
 synthetic status-parser20 and smoke-parser13. HTTP/service probes were skipped.
 This proves the committed source/tests, not host adoption or a live deployment.
 
-The inherited timed purification/refinery expiry expressions have a separately
-confirmed runtime gap: modern original differs on1152 owned observations, while
-the isolated proposal matches every11340 state/result and945 date control against
-both Framework/x86 default and optimized builds. Every row was compared, without
-a digest shortcut. That proposal and20 real-owner tests remain unintegrated and
-unexecuted in production trees; this green run does not validate the timer fix.
+The inherited timed-expiry gap found during this review is now corrected and
+focused-tested as recorded above. This older green run does not validate that fix.
 
 ## Native-launch TCP reader resilience
 

@@ -15,8 +15,8 @@
   and football round/NPC/map methods are implemented without full event adoption.
 - [x] Whole LoadClientItems routing/perfection, Confiscator records/containers/files
   and hair/face admission/equipment/2282 receiver are implemented as components.
-- [x] Private and independent sanitized-public Release each passed3652/3652,
-  zero failures/skips:3556 retained +95 new cases +1 existing Hair API control.
+- [x] Private and independent sanitized-public Release each passed3843/3843,
+  zero failures/skips:3652 retained +20 timed-extra +171 existing item controls.
   BaseFunc keeps the exact public NameStrCheck optional-bool
   signature; earlier RandGet/selection guards and the closed API check remain.
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
@@ -25,13 +25,17 @@
   Full Windows run39900336782 on1588612e passed all8stages: core20494 passed/
   0 failed/165 unexecuted of20659; updater262/262; launcher49/49; synthetic
   parser20+13 cases. HTTP/service probes were skipped.
-- [x] The3652-case native snapshot has fresh full Windows proof on exact1588612e;
+- [x] The prior3652-case snapshot has full Windows proof on exact1588612e;
   run39900336782 completed successfully in4m01s. The earlier39899616012 failure
   was an obsolete getter-only Hair assertion; all getter controls remain, and
   its replacement requires the genuine complete setter rather than an auto-slot.
+- [ ] The newer timed-extra source has focused proof above, not a fresh full run.
 
 ## Correctness findings retained
 
+- [x] Timed purification/refinery expiry now retains Framework tick arithmetic,
+  Int32 overflow expiry and mutable availability. Both source builds/candidate
+  match11340 state/result +945 date rows;20 real-owner/timed-send cases passed.
 - [x] Framework arena rank ordering reads every key once, including singleton
   faults. Scoped translation preserves that behavior; both owned x86 probes18/18.
 - [x] Physical-monster floating scale keeps native operation order. Exact-integer
@@ -53,9 +57,6 @@
 
 ## Remaining end-to-end work
 
-- [ ] Integrate/test the isolated timed-extra expiry correction. Owned Framework
-  default/optimized +modern candidate match11340 state/result and945 date rows;
-  current modern expressions differ1152 times. The20 real-owner tests are not run.
 - [ ] Close real Team/HP/aura and XP/RemoveFlag/Level/Class/equipment mutual cycle.
   Keep whole methods; do not substitute absent-flag or low-XP success branches.
 - [ ] Close the full spell dispatcher and all required spell-sort/receive/death

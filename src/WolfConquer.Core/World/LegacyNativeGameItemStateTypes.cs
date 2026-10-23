@@ -122,7 +122,7 @@ internal partial class LegacyNativeItemExtra
 				{
 					TimeSpan timeSpan = new TimeSpan(AddedOn.AddSeconds(PurificationDuration).Ticks);
 					TimeSpan timeSpan2 = new TimeSpan(DateTime.Now.Ticks);
-					int num = (int)(timeSpan.TotalSeconds - timeSpan2.TotalSeconds);
+					int num = NativeExpirySecondsToInt32(timeSpan.Ticks * 1E-07 - timeSpan2.Ticks * 1E-07);
 					if (num > 0)
 					{
 						Available = true;
@@ -181,7 +181,7 @@ internal partial class LegacyNativeItemExtra
 				{
 					TimeSpan timeSpan = new TimeSpan(AddedOn.AddSeconds(EffectDuration).Ticks);
 					TimeSpan timeSpan2 = new TimeSpan(DateTime.Now.Ticks);
-					int num = (int)(timeSpan.TotalSeconds - timeSpan2.TotalSeconds);
+					int num = NativeExpirySecondsToInt32(timeSpan.Ticks * 1E-07 - timeSpan2.Ticks * 1E-07);
 					if (num > 0)
 					{
 						Available = true;
