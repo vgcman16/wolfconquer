@@ -123,6 +123,11 @@ public static partial class WorldPacketHandlers
         }
 
         var count = packet.DwParam2 == 0 ? 1 : checked((int)packet.DwParam2);
+        if (!HasLegacyShopPurchaseCapacity(session.PlayerItems, count))
+        {
+            await LogLegacyShopCapacityRefusedAsync(context, "buy", count, session.PlayerItems).ConfigureAwait(false);
+            return;
+        }
         var shop = shops[0];
         var sendMoneyUpdate = false;
         CharacterSnapshot updatedCharacter;
@@ -392,6 +397,11 @@ public static partial class WorldPacketHandlers
         }
 
         var shopItem = shopItems[0];
+        if (!HasLegacyShopPurchaseCapacity(session.PlayerItems, 1))
+        {
+            await LogLegacyShopCapacityRefusedAsync(context, "race-point buy", 1, session.PlayerItems).ConfigureAwait(false);
+            return;
+        }
         var racePoints = ReadRacePoints(session.Character);
         if (shopItem.Cost < 1)
         {
@@ -503,6 +513,11 @@ public static partial class WorldPacketHandlers
         }
 
         var shopItem = shopItems[0];
+        if (!HasLegacyShopPurchaseCapacity(session.PlayerItems, 1))
+        {
+            await LogLegacyShopCapacityRefusedAsync(context, "honor buy", 1, session.PlayerItems).ConfigureAwait(false);
+            return;
+        }
         var arenaStatistics = GetArenaStatisticsForSession(context, session);
         if (shopItem.Cost < 1)
         {
@@ -616,6 +631,12 @@ public static partial class WorldPacketHandlers
                     "WorldServer skipped MsgItemUsage champion buy " +
                     $"{FormatSession(context)} itemId={itemTypeId}; itemtype was not loaded.")
                 .ConfigureAwait(false);
+            return;
+        }
+
+        if (!HasLegacyShopPurchaseCapacity(session.PlayerItems, 1))
+        {
+            await LogLegacyShopCapacityRefusedAsync(context, "champion buy", 1, session.PlayerItems).ConfigureAwait(false);
             return;
         }
 

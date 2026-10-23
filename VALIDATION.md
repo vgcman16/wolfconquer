@@ -1,5 +1,20 @@
 # Publication validation
 
+## Shop inventory-capacity checkpoint
+
+Private Release334passed/0failed/0skipped; independent public325passed/0failed/
+9existing external-fixture skips of334. All33 new registered-handler cases pass;
+the genuine old-code baseline failed18 capacity refusals while15 valid purchases
+passed. Shop-only admission now checks the complete modeled row count before
+cost/session/file/packet effects across gold/CP/boundCP/Honor/Race/Champion.
+Last-slot and multirow successes retain exact wallets, bytes, order and reloads.
+Shared creators are unchanged. One observed arithmetic-precedence correction in
+objective preparation is batched here with292 retained component controls.
+
+Full Windows and CodeFactor await publication. Native normal-shop stacking/
+partial affordability, whole wallet/save/session transactions and UID/host/client
+activation remain open; these guards are not full economy parity.
+
 ## Native whole quest-objective checkpoint
 
 Private/public Release292/292 each,0failed/0skipped. All three Set/Increase
@@ -9,8 +24,14 @@ The70 new cases plus19 retained/repaired objective cases cover late overflow,
 split aliases, caller lifetime/actual allocation, source UID-specific repeated
 tails, seals and native send bounds. Valid no-ops and full old array tails remain.
 
-Full Windows and CodeFactor for this checkpoint await publication. Native
-objective callers are not installed; no host/client/full award/save or raw
+[Windows39971090546](https://github.com/vgcman16/wolfconquer/actions/runs/39971090546)
+passed4m50s on exact8e5ff25579f2a4be668a893f670e61387318fb26, completed
+2026-10-23T14:41:57Z. Core23442passed/0failed of23607 (165externalfixturecases
+excluded), updater301/301, launcher49/49;8stageexit0,204build warnings.
+Receipt20261023T143736718Z-b71804ed finished14:41:48.4630069Z. CodeFactor4NEW
+(3complexity+1precedence)/1FIXED,total2297. The mechanical precedence correction
+joins the shop batch; complex validation is unchanged. Native objective callers
+are not installed; no host/client/full award/save or raw
 concurrent-writer/disposal/delivery-recovery claim follows from these tests.
 
 ## Rune fragment bound-debit checkpoint

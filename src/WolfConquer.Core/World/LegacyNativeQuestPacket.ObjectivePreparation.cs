@@ -13,7 +13,7 @@ internal static partial class LegacyNativeQuestPacket
         if (seal is not null && seal.Length != 8) throw new InvalidDataException("Quest packet seal is invalid.");
         int sealSize = seal is null ? 0 : 8;
         int repetitions = uid is 35024 or 35007 ? 2 : 1;
-        long length = 16L + count * 4L * repetitions + (uid == 35007 ? 12 : 0) + sealSize;
+        long length = 16L + (count * 4L * repetitions) + (uid == 35007 ? 12 : 0) + sealSize;
         // Real GameClient.Send limit, in addition to the genuine caller allocation
         // checks at preparation/commit. No gameplay objective-count limit is guessed.
         if (count < 0 || length > 1032 || count > ushort.MaxValue)

@@ -540,10 +540,36 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
   stable ASCII/multibyte seals,1032-byte send/actual allocation boundaries, late
   overflow, null/disposed callers, input alias isolation and full-book faults pass.
   Legitimate missing/finished/inactive no-ops and nonshrinking tails remain.
+- Full [Windows39971090546](https://github.com/vgcman16/wolfconquer/actions/runs/39971090546)
+  passes4m50s on exact8e5ff255: core23442/0failed (165externalfixtureexcluded),
+  updater301/301, launcher49/49,8stageexit0,204build warnings. CodeFactor4NEW
+  (3complexity+1precedence)/1FIXED,total2297. The precedence-only parentheses fix
+  is batched with the shop-capacity change; complex validation stays unchanged.
 - Limits: actual native objective callers are not installed; this is component
   proof, not login/host/client activation or full quest award/save transactions.
   Raw public graph/packet writers, disposal races and delivery recovery remain
   open. A failed send after commitment is not an uncommitted refusal or refund.
+
+### FSB-043: Refuse modeled shop purchases that cannot fit in inventory
+
+- Owners: normal BuyItem and Race/Honor/Champion point shops. Current routes
+  appended new rows and debited wallets without required capacity admission.
+- A shop-only bounded check admits the complete modeled row count before costs,
+  session, packets or persistence: normal uses its normalized full count;
+  point shops require one row. Reject full40/already-overcap41 bags and do not
+  truncate a requested normal purchase. Shared creators/returned awards are not capped.
+- Verification: genuine registered-handler baseline **18 failed/15 passed** of33
+  reproduced spending/changed sessions on overcapacity. After the four guards,
+  private Release **334 passed/0 failed/0 skipped**; independent public
+  **325 passed/0 failed/9 existing external-fixture skips** of334. All33 new
+  controls pass; old shop checks and292 quest/component controls are retained.
+  Verify exact wallets, untouched refusal files/rows, complete saved/reloaded
+  positive images and packet order across gold/CP/boundCP/Honor/Race/Champion.
+- One observed CodeFactor precedence finding is fixed mechanically in the
+  objective length formula and checked by the retained292 cases in this batch.
+- Limits: current normal owner remains all-or-none/one-row-per-unit; original
+  stacking/partial affordability, plus/activation/quest hooks and full wallet/
+  file/session transactions remain open. No global UID/host/client proof.
 
 ## Active audit
 
@@ -596,10 +622,20 @@ work, not safety proved by the isolated UID-adoption proposals.
 | FSB-040 | Quest saves truncate; loads accept partial/default rows and split canonical aliases | Complete real image and coherent validated merge before file/map publication | Scoped persistence verified3465 both trees; host/SQL/raw lifecycle recovery open |
 | FSB-041 | Rune admission filters Bound but debit consumes either binding | Debit exactly admitted ItemId+Bound and preserve opposite stock | Scoped direct/NPC debit verified236 private;229 public plus5existing external skips; whole reward/UID transactions open |
 | FSB-042 | Quest objective mutation precedes unsafe packet work; counter wrap and split aliases | Complete current canonical graph, checked counters and real bounded frame before writes | Scoped whole operations verified292 both trees; native callers/full awards/delivery recovery open |
+| FSB-043 | Normal and point shops append/debit without full modeled capacity | Complete required inventory rows fit before costs/publication | Scoped guards verified334 private;325public plus9existing external skips; native stack/partial/whole transaction work open |
 
 ## CodeFactor cleanup
 
-Latest rune-bound checkpoint public27e2ae9b passes full
+Latest objective checkpoint public8e5ff255 passes full
+[Windows39971090546](https://github.com/vgcman16/wolfconquer/actions/runs/39971090546)
+in4m50s, completed2026-10-23T14:41:57Z. Core23442passed/0failed of23607
+(165externalfixturecasesexcluded), updater301/301, launcher49/49;8stageexit0,
+204build warnings. Receipt20261023T143736718Z-b71804ed finished14:41:48.4630069Z.
+CodeFactor4NEW (3complexity+1arithmeticprecedence),1FIXED,total2297. The one
+mechanical parentheses correction joins the shop behavior checkpoint; validation
+methods are not split for a score and no separate full-CI warning loop is run.
+
+Previous rune-bound checkpoint public27e2ae9b passes full
 [Windows39970166492](https://github.com/vgcman16/wolfconquer/actions/runs/39970166492)
 in4m44s, completed2026-10-23T14:35:25Z. Core23372passed/0failed of23537
 (165externalfixturecasesexcluded), updater301/301, launcher49/49;8stageexit0,

@@ -7,11 +7,23 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Current verified state
 
+- [x] Shop-only capacity admission (FSB043): private334passed/0failed/0skipped;
+  public325passed/0failed/9existing external-fixture skips of334. All33 new
+  registered cases pass after genuine18-failure baseline. Full40/overcap41 and
+  multirow overcapacity refuse without costs/files/frames; last-slot purchases
+  retain exact gold/CP/boundCP/Honor/Race/Champion values and packet order.
+  One observed objective-length precedence fix joins the batch with292 retained
+  controls. Full Windows/CodeFactor await publication. Native normal stacking/
+  partial affordability and whole wallet/save/session transactions remain open.
+
 - [x] Native whole objective Set/Increase (FSB042): private/public Release292/292
   each,0failed/0skipped,70new plus19 retained/repaired objective cases. Complete
   genuine graph, private checked arrays and bounded real2136 caller frame precede
-  writes; exact special tails/seal/order and valid no-ops remain. Full Windows
-  and CodeFactor await publication. No native caller/host/client activation,
+  writes; exact special tails/seal/order and valid no-ops remain. FullWindows
+  39971090546 passes4m50s on exact8e5ff255: core23442/0failed (165excluded),
+  updater301/301, launcher49/49,8stageexit0,204build warnings. CodeFactor4NEW
+  (3complexity+1precedence)/1FIXED,total2297; precedence joins shop batch.
+  No native caller/host/client activation,
   automatic disk save, whole quest award or raw/disposal-race proof is claimed.
 
 - [x] Rune fragment direct/NPC debit repair (FSB041): private236passed/0failed/
