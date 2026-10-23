@@ -90,7 +90,8 @@ public sealed partial class LegacyNativeHWRankTests
         Assert.Equal(1u, Ranking.GetMyRank(Ranking.Type.Judge, 23)); Assert.Null(Ranking.BestOf(Ranking.Type.Main));
         Assert.Throws<NullReferenceException>(() => Ranking.BestOf(Ranking.Type.Count));
         rank.RankingList[702] = null!;
-        Assert.Throws<NullReferenceException>(() => Ranking.GetInfo(Ranking.Type.Judge, 23)); // Count scans past the match.
+        Assert.Same(first, Ranking.GetInfo(Ranking.Type.Judge, 23)); // Sanitized lookup does not crash on a later invalid row.
+        Assert.Equal(1u, Ranking.GetMyRank(Ranking.Type.Judge, 23));
     }
 
     [Fact]

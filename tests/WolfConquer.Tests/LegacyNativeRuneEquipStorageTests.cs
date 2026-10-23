@@ -226,14 +226,14 @@ public sealed class LegacyNativeRuneEquipStorageTests
     }
 
     [Fact]
-    public void RuneFree212ShortCircuitsWhileOtherPositionQueryKeepsNullCacheFault()
+    public void RuneFree212RetainsItsSpecialRuleWhileUnknownCacheSlotsFailClosed()
     {
         var rune = new LegacyNativeRuneItemStorage(null);
         Assert.True(rune.Add(Item(7, 101)));
         rune.Objects[0] = null!;
         Assert.True(rune.Free(212));
-        Assert.True(rune.Free(211)); // Count0 succeeds before dereferencing entries.
-        Assert.Throws<NullReferenceException>(() => rune.Free(103));
+        Assert.False(rune.Free(211)); // Null cache data cannot grant a free slot.
+        Assert.False(rune.Free(103));
     }
 
     private static LegacyNativeGameItemRuntime Item(uint uid, ushort position) =>

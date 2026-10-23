@@ -75,7 +75,17 @@ internal sealed partial class LegacyNativeRuneItemStorage
 
     public bool Free(ushort Position)
     {
-        return (Position == 211 && Count < 100) || Position == 212 || Objects.Where(i => i.Position == Position).Count() < 1;
+        if (Position == 212) return true;
+        var snapshot = objects;
+        if (snapshot is null) return false;
+        bool occupied = false;
+        foreach (var item in snapshot)
+        {
+            // An unknown cache entry cannot authorize another item for this slot.
+            if (item is null) return false;
+            occupied |= item.Position == Position;
+        }
+        return (Position == 211 && snapshot.Length < 100) || !occupied;
     }
 
     public bool ContainsUID(uint UID)

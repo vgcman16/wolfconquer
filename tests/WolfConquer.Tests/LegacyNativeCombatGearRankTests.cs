@@ -107,8 +107,8 @@ public sealed class LegacyNativeCombatGearRankTests
         Assert.Equal(2u, Ranks.GetMyRank(rank._Type, 18));
         Assert.Equal(0u, Ranks.GetMyRank(rank._Type, 999));
         Assert.Same(first, Ranks.BestOf(rank._Type));
-        Assert.Throws<KeyNotFoundException>(() => Ranks.GetInfo(Ranks.Type.ColdMoon, 17));
-        Assert.Throws<KeyNotFoundException>(() => Ranks.GetMyRank(Ranks.Type.ColdMoon, 17));
+        Assert.Null(Ranks.GetInfo(Ranks.Type.ColdMoon, 17));
+        Assert.Equal(0u, Ranks.GetMyRank(Ranks.Type.ColdMoon, 17));
         Assert.Throws<KeyNotFoundException>(() => Ranks.BestOf(Ranks.Type.ColdMoon));
     }
 

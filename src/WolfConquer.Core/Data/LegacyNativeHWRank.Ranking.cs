@@ -84,21 +84,30 @@ internal partial class LegacyNativeHWRank
 
     public static Entry GetInfo(Type typ, uint UID)
     {
-        if (Ranks[typ].RankingList.Values.Count((Entry i) => i.UID == UID) > 0)
+        if (!Ranks.TryGetValue(typ, out var rank) || rank is null) return null;
+        lock (rank.SynRoot)
         {
-            return Ranks[typ].RankingList.Values.FirstOrDefault((Entry i) => i.UID == UID);
+            var entries = rank.RankingList;
+            return entries?.Values.FirstOrDefault(item => item is not null && item.UID == UID);
         }
-        return null;
     }
 
     public static uint GetMyRank(Type typ, uint UID)
     {
-        if (Ranks[typ].RankingList.Values.Count((Entry i) => i.UID == UID) > 0)
+        if (!Ranks.TryGetValue(typ, out var rank) || rank is null) return 0u;
+        lock (rank.SynRoot)
         {
-            Entry item = Ranks[typ].RankingList.Values.FirstOrDefault((Entry i) => i.UID == UID);
-            return (uint)(Ranks[typ].RankingList.Values.ToList().IndexOf(item) + 1);
+            var entries = rank.RankingList;
+            if (entries is null) return 0u;
+            uint ordinal = 0;
+            foreach (var item in entries.Values)
+            {
+                if (item is null) continue;
+                ordinal++;
+                if (item.UID == UID) return ordinal;
+            }
+            return 0u;
         }
-        return 0u;
     }
 
     public static void Remove(uint UID)

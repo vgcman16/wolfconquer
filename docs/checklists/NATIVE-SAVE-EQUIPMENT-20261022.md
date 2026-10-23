@@ -14,7 +14,11 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   general packet bounds remain open in the source-bug tracker.
 - [x] Two Hairface CodeFactor warnings are confirmed absent from the refreshed
   report. Three duplicate test-initializer warnings are locally repaired, with all
-  71 old affected cases plus one alias Fact retained; remote reanalysis is pending.
+  71 old affected cases plus one alias Fact retained. Refreshed CA2244 is empty.
+- [x] Eight ranking/rune CodeFactor query findings are locally repaired; private
+  and independent public Release each passed 754/754, zero failures/skips.
+  Invalid query rows no longer crash those lookups, and a wrapped byte Count
+  cannot reopen an occupied rune bag. Remote reanalysis of these eight is pending.
 
 - [x] Source authority remains the local simplified-复 decompile; staged DX8
   VisibleDx8D13 is explicit. No switch to the old Wolves/DX9/default-D11 baseline.
@@ -68,10 +72,10 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run 39922519332 on `ed5e765e` passed all 8 stages in 3m 56s.
-  Terminal TRX: core 21,389 passed / 0 failed of 21,554, with 165 excluded cases;
-  updater 262/262; launcher 49/49; synthetic receipt parsers 20 + 13 passed.
-  This receipt predates the newer spell batch. HTTP/service probes were skipped.
+  Full Windows run 39924242810 on exact `7781b620` passed in 3m 56s, including
+  the sanitized spell/allocation batch. Terminal per-suite counts were not reread
+  before the following checkout cleaned ignored receipts. This job predates the
+  newer ranking/rune batch; it is not live-client or deployment proof.
 - [x] Logging/ranking/login-wire source has full Windows proof in3m52s on exact
   b75f29ab. Hair setter/getter and earlier component controls remain intact.
 - [x] Earlier Windows 39905802844 failed two cases and 39908229600 failed one.

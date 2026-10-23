@@ -1,5 +1,27 @@
 # Publication validation
 
+## Bounded CodeFactor ranking/rune cleanup
+
+Private and independent public Release each passed **754/754** selected tests,
+zero failures/skips. Eight observed CA1827 findings across five production files
+now use single current-owner scans instead of repeated count/find/index passes.
+Physical UID/order/Entry aliases are retained for valid records; missing/invalid
+query state fails safely. Rune.Free validates one captured cache and no longer
+uses byte Count wrap to reopen an occupied position211 bag.
+
+The selection includes 24 new controls, three corrected old crash assertions and
+the retained 510-case selection. No gameplay packet fields, client, original saves,
+SQL, worker or deployed process changed. Broader ranking writers, BestOf, Rune.Add
+and public mutable owner graphs still require audit. Remote CodeFactor reanalysis
+of these eight findings remains pending. Earlier five fixes are confirmed absent
+from their reports; current overall snapshot is 2,322 findings across 4,875 files.
+
+[Windows 39924242810](https://github.com/vgcman16/wolfconquer/actions/runs/39924242810)
+passed on exact `7781b6208956887992b1716d2848e78d09f7a9fc` in 3m 56s; the job completed
+at `2026-10-23T08:27:01Z`. It verifies the prior sanitized spell/allocation batch,
+not this newer query batch. Ignored per-suite receipts had already been cleaned by
+the next checkout before rereading, so no new terminal suite counts are claimed.
+
 ## Sanitized spell admission, packet allocation and CodeFactor cleanup
 
 Private and independent public Release each passed **510/510** selected tests,

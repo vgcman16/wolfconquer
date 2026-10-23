@@ -120,12 +120,18 @@ internal partial class LegacyNativePrestigeRanking
 
 	public static uint GetMyRank(Type typ, uint UID)
 	{
-		if (Ranks.ContainsKey(typ) && Ranks[typ].Items.Values.Count((Entry i) => i.UID == UID) > 0)
+		lock (SynRoot)
 		{
-			Entry? item = Ranks[typ].Items.Values.FirstOrDefault((Entry i) => i.UID == UID);
-			return (uint)(Ranks[typ].Items.Values.ToList().IndexOf(item!) + 1);
+			if (!Ranks.TryGetValue(typ, out var rank) || rank is null || rank.Items is null) return 0u;
+			uint ordinal = 0;
+			foreach (var item in rank.Items.Values)
+			{
+				if (item is null) continue;
+				ordinal++;
+				if (item.UID == UID) return ordinal;
+			}
+			return 0u;
 		}
-		return 0u;
 	}
 
 	public static Entry? GetInfo(uint UID)
