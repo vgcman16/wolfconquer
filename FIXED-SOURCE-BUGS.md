@@ -334,7 +334,18 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## CodeFactor cleanup
 
-Latest verified public code7a79ebc5: **0NEW/4FIXED**, **2268 total findings**,
+Latest verified public code4727d8b3:
+
+[Windows39949964185](https://github.com/vgcman16/wolfconquer/actions/runs/39949964185)
+passed4m02s on exact4727d8b38e48535505a602ad32d288bdcde83e2a, completed
+2026-10-23T12:03:34Z. Actual TRX: core22524 passed/0failed of22689 (165 external-
+fixture cases excluded), updater301/301, launcher49/49; all8 stages exit0.
+Receipt20261023T115947032Z-230b177a finished12:03:27.4697567Z. Build204 warnings
+remain. CodeFactor:6NEW (all method complexity),7FIXED,total2267. The six complex
+safety methods are recorded as maintainability debt, not reshaped for the score.
+This proves the committed offline batch, not live-client/deployment/full parity.
+
+Previous verified public code7a79ebc5: **0NEW/4FIXED**, **2268 total findings**,
 net59 below2327. The three targeted follow-ups and one older RNG arithmetic
 record are inactive. Full Windows39945614990 passed4m06s on exact
 7a79ebc5c0098e6a78f88d0b6ebde752fca50313, completed2026-10-23T11:27:05Z:

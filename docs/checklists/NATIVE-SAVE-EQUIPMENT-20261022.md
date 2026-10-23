@@ -11,7 +11,10 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
   prepared real status frames/state, explicit unavailable membership, no dirty
   potion rejection, checked XP duration, stale-target/rank/effect protections,
   final captured-owner commitment and immutable shared physical-spell factors.
-  Existing successful damage/RNG/packet goldens remain. Full Windows CI pending.
+  Existing successful damage/RNG/packet goldens remain. Full Windows39949964185
+  passed4m02s on exact4727d8b3: core22524/0failed (165 excluded), updater301/301,
+  launcher49/49, all8 stages0. CodeFactor6NEW complexity/7FIXED,total2267;
+  204 build warnings remain. No risky cosmetic follow-up loop is started.
 - [ ] Full lifecycle/cast/HP/death, rank publication, item/potion expiry, Sage
   archive precommit preparation, host recovery and raw concurrent writers remain
   open. This offline component checkpoint does not deploy or change a client.

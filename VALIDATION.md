@@ -9,13 +9,20 @@ prevents dirty potion rejection, checks XP duration, and protects the reviewed
 AI/rank/effect callers. Physical damage retains its valid formulas/RNG/wire while
 keeping shared spell catalog rows unchanged. Old unsafe assertions are corrected.
 
-Full Windows CI and remote CodeFactor for this new code are pending. The previous
-full receipt below remains the latest verified committed-tree result until then.
+[Windows39949964185](https://github.com/vgcman16/wolfconquer/actions/runs/39949964185)
+passed4m02s on exact4727d8b38e48535505a602ad32d288bdcde83e2a, completed
+2026-10-23T12:03:34Z. Actual TRX: core22524 passed/0failed of22689 (165 external-
+fixture cases excluded), updater301/301, launcher49/49; all8 stages exit0.
+Receipt20261023T115947032Z-230b177a finished12:03:27.4697567Z. Build204 warnings
+remain. CodeFactor:6NEW (all method complexity),7FIXED,total2267. The six complex
+safety methods are recorded as maintainability debt, not reshaped for the score.
+This proves the committed offline batch, not live-client/deployment/full parity.
+
 No live process/client, original saves, SQL or routing was changed. Full casts,
 HP/death/XP workers, raw-writer concurrency, rank publication, Sage archive
 precommit preparation and durable recovery remain open, not completed by tests.
 
-## Latest verified public code checkpoint
+## Previous verified public code checkpoint
 
 [Windows39945614990](https://github.com/vgcman16/wolfconquer/actions/runs/39945614990)
 passed4m06s on exact7a79ebc5c0098e6a78f88d0b6ebde752fca50313, completed
