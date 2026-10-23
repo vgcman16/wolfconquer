@@ -1,5 +1,9 @@
 # WolfConquer
 
+Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md) keeps
+client-confirmed protocol compatibility while fixing unsafe source logic.
+[Source-bug fixes and audit](FIXED-SOURCE-BUGS.md).
+
 [![Windows local checks](https://github.com/vgcman16/wolfconquer/actions/workflows/windows-local.yml/badge.svg?branch=main)](https://github.com/vgcman16/wolfconquer/actions/workflows/windows-local.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/vgcman16/wolfconquer/badge)](https://www.codefactor.io/repository/github/vgcman16/wolfconquer)
 

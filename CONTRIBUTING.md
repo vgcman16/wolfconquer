@@ -2,6 +2,9 @@
 
 This is source-available work in progress, not a complete or production-ready emulator.
 Read [publication scope](PUBLICATION-SCOPE.md) before contributing content.
+Follow [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md): preserve confirmed
+client protocol compatibility and fix unsafe emulator behavior, including tests
+that previously enforced source bugs. Record repairs in [the bug tracker](FIXED-SOURCE-BUGS.md).
 
 - Keep changes modular; do not add another monolithic handler.
 - Explain behavior/source evidence and add constructed tests for changes.

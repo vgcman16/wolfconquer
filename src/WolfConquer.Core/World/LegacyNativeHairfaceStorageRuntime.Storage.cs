@@ -7,7 +7,7 @@ internal partial class LegacyNativeHairfaceStorageRuntime
 {
     public bool Exists(uint ID, LegacyHairFaceStorageType type)
     {
-        return Objects.Where(i => i.ID == ID && i.Type == type).Count() > 0;
+        return Objects.Any(i => i.ID == ID && i.Type == type);
     }
 
     public override string ToString()
@@ -43,10 +43,9 @@ internal partial class LegacyNativeHairfaceStorageRuntime
             {
                 item.Colors[j] = readLine.Read((byte)0);
             }
-            if (LegacyNativeHairfaceStorageTable.Hairfaces.Where(z => z.ID == item.ID).Count() > 0)
+            var hairface = LegacyNativeHairfaceStorageTable.Hairfaces.FirstOrDefault(z => z.ID == item.ID);
+            if (hairface is not null)
             {
-                LegacyNativeHairfaceStorageTable.Hairface hairface =
-                    LegacyNativeHairfaceStorageTable.Hairfaces.Where(z => z.ID == item.ID).FirstOrDefault()!;
                 item.Classes = hairface.Classes;
                 item.Cost = hairface.Cost;
                 item.Name = hairface.Name;

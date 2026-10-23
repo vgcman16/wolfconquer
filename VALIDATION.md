@@ -17,7 +17,7 @@ also exposed a duplicate already-owned client slot and a false Player field test
 parent reconciled both against original GameClient135/Player3917 without inventing
 storage. Full Dead/CheckUp/reward/ITournament/eager startup owners remain held.
 No live game, original save, SQL, worker, routing or deployment was exercised.
-The latest full Windows receipt below predates this new component batch.
+Full Windows 39917804088 now confirms this exact batch, as recorded below.
 
 ## Native table and login-catalog dependencies
 
@@ -85,6 +85,15 @@ XP/inventory rewards and event/monster-death adoption remain unfinished. The ful
 Windows result below now verifies this batch; it is not live event proof.
 
 ## Current full Windows result
+
+[Windows 39917804088](https://github.com/vgcman16/wolfconquer/actions/runs/39917804088)
+passed in 4m 7s on exact commit `ee9d052d246471b53c7ed1165d38021af56c143f`.
+All 8 sequential check stages exited 0. Observed core console summary: 21,389 passed /
+0 failed / 165 skipped of 21,554; updater 262/262. Launcher and both synthetic parser
+stages exited 0. The job completed at 2026-10-23T07:31:06Z. This remains component/
+build proof, not live client, SQL, routing, event deployment or full parity.
+
+## Previous full Windows result
 
 [Windows39915624769](https://github.com/vgcman16/wolfconquer/actions/runs/39915624769)
 passed in 4m 3s on exact commit `0c3a4533f5a3af914772c2125b453694d3cd9036`.

@@ -9,12 +9,13 @@ internal partial class LegacyNativeHairfaceStorageRuntime
 
     private LegacyNativeHairfaceStorageTable.Hairface[] objects;
 
-    private LegacyNativeGameClientRuntime? Owner;
+    private readonly LegacyNativeGameClientRuntime Owner;
 
     public LegacyNativeHairfaceStorageTable.Hairface[] Objects => objects;
 
-    public LegacyNativeHairfaceStorageRuntime(LegacyNativeGameClientRuntime? client)
+    public LegacyNativeHairfaceStorageRuntime(LegacyNativeGameClientRuntime client)
     {
+        ArgumentNullException.ThrowIfNull(client);
         Owner = client;
         items = new List<LegacyNativeHairfaceStorageTable.Hairface>();
         objects = new LegacyNativeHairfaceStorageTable.Hairface[0];

@@ -15,7 +15,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         {
             var catalog = Row(100, LegacyHairFaceStorageType.Avatar);
             table.Add(catalog);
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
 
             storage.Load("1/100/6/3/9/8/7/");
 
@@ -49,7 +49,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         WithTable(table =>
         {
             table.Add(Row(100));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
 
             storage.Load("2/999/5/4/10/20/30/40/100/6/2/7/8/");
 
@@ -72,7 +72,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
             second.Classes = [99];
             table.Add(first);
             table.Add(second);
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
 
             storage.Load("1/100/3/0/");
 
@@ -91,7 +91,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         WithTable(table =>
         {
             table.Add(Row(100));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
 
             storage.Load("2/100/2/2/1/2/100/5/1/9/");
 
@@ -108,7 +108,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         {
             var catalog = Row(100);
             table.Add(catalog);
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
             storage.Load("1/100/1/1/7/");
             var first = Assert.Single(storage.Objects);
             catalog.Type = LegacyHairFaceStorageType.Avatar;
@@ -132,7 +132,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
             var catalog = Row(100);
             table.Add(catalog);
             table.Add(Row(200));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
             storage.Load("1/100/1/1/7/");
             var oldObjects = storage.Objects;
             var first = Assert.Single(oldObjects);
@@ -159,7 +159,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         {
             table.Add(Row(0));
             table.Add(Row(100));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
 
             storage.Load("1/not-a-uint/256/not-an-int/");
             storage.Load("1/100/not-a-byte/4/255/256/bad/-1/");
@@ -180,7 +180,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         {
             table.Add(Row(100));
             table.Add(Row(0));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
 
             storage.Load("2/100/");
 
@@ -199,7 +199,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         WithTable(table =>
         {
             table.Add(Row(100));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
             storage.Load("1/100/1/1/7/");
             var before = storage.Objects;
 
@@ -218,7 +218,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
             table.Add(Row(100));
             table.Add(Row(200));
             table.Add(Row(300));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
 
             Assert.Throws<OverflowException>(() => storage.Load("3/100/1/1/7/200/2/-1/300/3/0/"));
 
@@ -238,7 +238,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         {
             table.Add(Row(100));
             table.Add(Row(200));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
             storage.Load("2/100/1/1/7/200/2/1/8/");
             var original = storage.Objects[0];
             var exposed = storage.Objects;
@@ -267,7 +267,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         {
             table.Add(Row(100, LegacyHairFaceStorageType.Avatar));
             table.Add(Row(200));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
 
             storage.Load("2/100/255/3/9/8/7/200/4/0/");
 
@@ -281,7 +281,7 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
         WithTable(table =>
         {
             table.Add(Row(100));
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
             storage.Load("1/100/1/1/7/");
             var row = Assert.Single(storage.Objects);
 
@@ -296,11 +296,11 @@ public sealed class LegacyNativeHairfaceStorageLoadTests
     }
 
     [Fact]
-    public void NullOwnerIsUnusedAndNullInvalidOrZeroCountInputLeavesEmptyState()
+    public void NullInvalidOrZeroCountInputLeavesAValidOwnersEmptyState()
     {
         WithTable(_ =>
         {
-            var storage = new LegacyNativeHairfaceStorageRuntime(null);
+            var storage = new LegacyNativeHairfaceStorageRuntime(new LegacyNativeGameClientRuntime());
             var original = storage.Objects;
 
             storage.Load(null);

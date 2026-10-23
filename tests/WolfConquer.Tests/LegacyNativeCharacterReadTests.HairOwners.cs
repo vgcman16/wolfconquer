@@ -31,15 +31,16 @@ public sealed partial class LegacyNativeCharacterReadTests
     });
 
     [Fact]
-    public Task WholeStorageAddHasRealSendBranchSnapshotAndNullOwnerFaultAfterPublication() => NativePacketTestThread.Run(() =>
+    public Task WholeStorageAddKeepsValidPacketSnapshotAndRejectsMissingOwner() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var storage = scope.Client.HairfaceStorage!; var row = Hair();
         Assert.False(storage.Add(null)); Assert.True(storage.Add(row));
         Assert.Equal(Convert.FromHexString("1500EA0808012A0D080010C1021800200028002801"), Assert.Single(scope.Queue));
         var snapshot = storage.Objects; Assert.False(storage.Add(Hair())); Assert.Same(snapshot, storage.Objects);
         Assert.True(storage.Add(Hair(type:LegacyHairFaceStorageType.Avatar), false)); Assert.Equal(2, storage.Objects.Length); Assert.Single(snapshot);
-        var broken = new LegacyNativeHairfaceStorageRuntime(null); var owned = Hair(123);
-        Assert.Throws<NullReferenceException>(() => broken.Add(owned)); Assert.Same(owned, Assert.Single(broken.Objects));
+        var error = Assert.Throws<ArgumentNullException>(() => new LegacyNativeHairfaceStorageRuntime(null!));
+        Assert.Equal("client", error.ParamName);
+        Assert.Equal(2, storage.Objects.Length); Assert.Single(scope.Queue);
     });
 
     [Theory]

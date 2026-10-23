@@ -86,18 +86,12 @@ public sealed class LegacyNativeHairfaceStorageConstructorTests
     }
 
     [Fact]
-    public void NullOwnerConstructionRetainsNullAndIndependentEmptyStorage()
+    public void NullOwnerIsRejectedBeforeAnUnusableStorageCanBePublished()
     {
-        var first = new LegacyNativeHairfaceStorageRuntime(null);
-        var second = new LegacyNativeHairfaceStorageRuntime(null);
+        var error = Assert.Throws<ArgumentNullException>(
+            () => new LegacyNativeHairfaceStorageRuntime(null!));
 
-        Assert.Null(ReadPrivateField(first, "Owner"));
-        Assert.Null(ReadPrivateField(second, "Owner"));
-        var firstState = AssertEmptyStorage(first);
-        var secondState = AssertEmptyStorage(second);
-        Assert.NotSame(first, second);
-        Assert.NotSame(firstState.Items, secondState.Items);
-        Assert.NotSame(firstState.Objects, secondState.Objects);
+        Assert.Equal("client", error.ParamName);
     }
 
     private static (List<LegacyNativeHairfaceStorageTable.Hairface> Items,

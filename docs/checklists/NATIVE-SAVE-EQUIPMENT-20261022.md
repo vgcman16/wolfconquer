@@ -1,5 +1,10 @@
 # Native saves and equipment — current checklist
 
+Current policy: [Sanitized Parity](../engineering/SANITIZED-PARITY.md), effective
+2026-10-23. Older source-quirk/fault-order proofs below are historical component
+evidence, not acceptance of unsafe logic. The new guild/league batch is uncommitted
+and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUGS.md).
+
 ## Current verified state
 
 - [x] Source authority remains the local simplified-复 decompile; staged DX8
@@ -54,9 +59,9 @@
 - [x] File tests used only guarded GUID-owned temporary INI/count/item files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run 39915624769 on `0c3a4533` passed all 8 stages: core 21,345
-  passed / 0 failed / 165 unexecuted of 21,510; updater 262/262; launcher 49/49;
-  synthetic parser 20 + 13 cases. HTTP/service probes were skipped.
+  Full Windows run 39917804088 on `ee9d052d` passed all 8 stages in 4m 7s.
+  Core console summary: 21,389 passed / 0 failed / 165 skipped of 21,554; updater 262/262.
+  Launcher and both synthetic parser stages exited 0. HTTP/service probes skipped.
 - [x] Logging/ranking/login-wire source has full Windows proof in3m52s on exact
   b75f29ab. Hair setter/getter and earlier component controls remain intact.
 - [x] Earlier Windows 39905802844 failed two cases and 39908229600 failed one.
