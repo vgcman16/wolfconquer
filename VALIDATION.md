@@ -14,7 +14,13 @@ Private and independent sanitized-public Release each passed60/60 focused cases,
 zero failures/skips:35 new deterministic native-layout/error controls and25
 existing launch/preflight/status cases. The TCP/module/thread/log/kill assertions
 remain required; missing TCP now preserves full synthetic output. No timeout was
-increased. Fresh full Windows CI is still required for this correction.
+increased.
+
+[Corrected full Windows39897664958](https://github.com/vgcman16/wolfconquer/actions/runs/39897664958)
+passed all eight stages in3m54s on3646f1ef5638c1fea56882f54cd1c621439f7594:
+core20399 passed/0 failed/165 unexecuted of20564, updater262/262, launcher49/49,
+synthetic status-parser20 and smoke-parser13 cases. HTTP/service probes were
+skipped. This validates the committed source/tests, not a live deployment.
 
 ## Saved state, race setup and football round components
 
@@ -29,11 +35,16 @@ with100 generated potion roles, gate publication/native record packets, genuine
 football constructor/NPC/round/map behavior and scheduler all-online sends.
 No event worker, socket pump, host, original save, SQL or live client was used.
 Football is not ITournament-adopted; complete event lifecycles, teleport and
-full login/save remain held. Fresh full Windows CI is required for this snapshot.
+full login/save remain held. The superseding3646f1ef full Windows proof is recorded
+above; the earlier5df9e6a1 run itself failed its one native-launch TCP assertion.
 
 The XP arithmetic successor remains excluded: both owned Framework/x86 builds
 agreed on14080 call-shaped rows, while the modern proposal differed on18.
 Matching aggregate digests were a collision; row-by-row outputs rejected it.
+The later scoped expression-copy proposal matched every14080 actual-callshape
+row against both source builds, but separate3072-row diagnostics retain18 source
+default/optimized output differences. No general JIT or whole gameplay acceptance
+follows; the proposal remains outside production pending its lifecycle graph.
 
 ## Character owners, warehouse, blessing and Clan persistence
 

@@ -20,14 +20,11 @@
 - [x] File tests used only guarded GUID-owned temporary INI/count files. They
   prove those component paths, not original saves, SQL or full account creation.
 - [x] The registered Windows runner was recovered with approval and remains online.
-  Full Windows run39894908849 onf6ac68fa passed all8stages: core20304 passed/
-  0 failed/165 unexecuted of20469; updater262/262; launcher49/49; synthetic
+  Full Windows run39897664958 on3646f1ef passed all8stages: core20399 passed/
+  0 failed/165 unexecuted of20564; updater262/262; launcher49/49; synthetic
   parser20+13 cases. HTTP/service probes were skipped.
-- [x] The newer3496-case source snapshot now has fresh full Windows proof;
-  run39894908849 completed successfully in3m58s on the exactf6ac68fa source.
-- [ ] Fresh full Windows proof is required for the newer3556-case snapshot.
-  Run39896336932 on5df9e6a1 built, then core20363 passed/1 failed/165 unexecuted;
-  updater262 passed. The one native-launch TCP snapshot failure was intermittent.
+- [x] The3556-case native snapshot and35 new tool controls now have fresh full
+  Windows proof on exact3646f1ef; run39897664958 completed successfully in3m54s.
 
 ## Correctness findings retained
 
@@ -45,9 +42,10 @@
   validate bounds and retain native errors/cleanup. Private/public60/60 focused
   cases passed; all TCP/module/thread/log assertions remain. Historical cause
   is unconfirmed, and future failures preserve full synthetic snapshot output.
-- [ ] Whole IncreaseExperience arithmetic is still gated: primitive-only differed
-  on15/1280 rows; normalized proposal matched1284 controls, but its call-shaped
-  successor differed on18/14080. All rows were compared despite a digest collision.
+- [ ] Whole IncreaseExperience gameplay remains held. Prior proposals differed
+  on15/1280 and18/14080 rows; scoped expression-copy successor now matches all
+  14080 actual-callshape rows/default+optimized source builds. Separate3072-row
+  diagnostics have18 source-build differences, so this is not a general JIT rule.
 
 ## Remaining end-to-end work
 
