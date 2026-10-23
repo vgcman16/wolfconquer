@@ -1,5 +1,22 @@
 # Native saves and equipment — offline checklist
 
+## Follow-on quest objectives, quest files and relic selection
+
+- [x] Whole quest constructor/query/objective methods and direct auto-patcher,
+  complete RoleQuests Save/Load, real shared-RNG relic selection, and exact login/
+  server-flag/delete physical records:168 new cases. Quest owners are not born
+  implicitly and no receive/login worker is registered.
+- [x] Private and independent sanitized-public Release each passed1916/1916,
+  zero failures/skips (168 new +1748 retained), first run in each copy.
+  Actual dictionaries/aliases, objective growth/wrap, full packet bytes and mutation
+  before faults are retained. All five relic rejection families use real redraws.
+- [x] Quest binary files use owned GUID fixtures, exact bytes and real BinaryFile.
+  Original Load has no Close; tests close only their own opened file. Production
+  fault prefixes, ignored read results and the missing close are not normalized.
+- [ ] Whole Inventory.Add/Update/publication, eager ExecuteLogin/static queue,
+  successful login/full SaveClient, quest awards/dialogs and Level/Class cycles
+  remain held on actual dependencies. No SQL, host, client or deployment proof.
+
 ## Follow-on spell training, restoration executors and attack math
 
 - [x] Whole native UpdateSpell, AddMana, EffectMP, ShieldBlock and BreathFocus;

@@ -1,5 +1,23 @@
 # Publication validation
 
+## Native quest objectives, binary records and relic selection
+
+Private Release and independent sanitized-public Release each passed1916/1916,
+zero failures/skips:168 new cases and1748 retained, first run in each copy.
+Whole quest queries/objective mutations and direct auto-patching use actual
+native owners and full packet sends. Complete RoleQuests Save/Load use real
+BinaryFile over owned GUID fixtures; no original player saves are opened.
+
+Source alias distinctions, objective-array growth/wrap, duplicate-key publication
+prefixes and ignored read results remain. Original Load has no Close; test-only
+cleanup closes only its own opened file, not a fabricated production fix.
+Shared-RNG relic selection retains every redraw and all five rejection families.
+Login/server-flag metadata does not install a login route or eager worker.
+
+Successful inventory grants/update/publication, ExecuteLogin/static queue, full
+SaveClient/login, quest awards/dialogs and Level/Class cycles remain unfinished.
+No SQL, host, live-client, full Windows, deployment or parity acceptance follows.
+
 ## Native spell training, restoration and attack prerequisites
 
 Private Release and independent sanitized-public Release each passed1748/1748,
