@@ -4,7 +4,21 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted integration gate — quest/updater full Windows CI GREEN
+## Latest accepted integration gate — magic admission full Windows CI GREEN
+
+[Windows40046944516](https://github.com/vgcman16/wolfconquer/actions/runs/40046944516)
+passed exact public `781cdf227e249744b068f06bab1adec1e6dad7ed`; job120730744913
+completed2026-10-24T00:55:10Z. Receipt20261024T005058389Z-3e862afb finished
+00:55:01.5416317Z; all8 sequential stages exited0.
+Root read actual runner HEAD, receipt, TRX counters/outcome groups, terminal
+build/test/parser logs and completed GitHub success before cleanup:
+core **24470passed/0failed**,165 existing NotExecuted rows (24635 total);
+updater305/305; launcher57/57; synthetic parser20+13 (no HTTP/service probes).
+Build191warnings/0errors. This accepts shared/root/basic eligibility and the
+generic/Recruit/Pounce behavioral batch offline, not live-client, deployment,
+complete English, full gameplay parity or a cleared CodeFactor backlog.
+
+## Previous accepted gate — quest/updater full Windows CI GREEN
 
 [Windows40041857100](https://github.com/vgcman16/wolfconquer/actions/runs/40041857100)
 passed exact public `999ce3262dcf5d6ac9c365af3670b542a7339952`; job120714544998
@@ -1349,7 +1363,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 - Limits: raw aliased equipment changes are not versioned/locked by this check;
   postcommit equipment/target/HP/experience/delivery and full-cast transactions
   remain open. No new movement/target/RNG phase or wire format was added. No
-  live client, SQL, original saves or deployment. Public full CI is pending.
+  live client, SQL, original saves or deployment. Full Windows verification above
+  now accepts this published successor batch.
 
 ### FSB-073: Prepare generic magic and Recruit admission before resource publication
 
@@ -1387,7 +1402,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   affordability dependency is unproven: the proposed physical-tail change stays
   HOLD. Later executor/target/equipment/HP/receive/delivery, raw mutable graph,
   SQL, persistence, live-client and whole-cast transaction boundaries remain open.
-  Public full CI for this successor is pending; test totals are not parity.
+  Full Windows verification above now accepts this published successor; test
+  totals are not parity.
 
 ### FSB-072: Check basic player eligibility before root1000/1001 admission
 
@@ -1417,7 +1433,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   logs and terminal GitHub status. Five retained methods/eight original rows
   now require exact caster/target state, untouched native catalog and no frames;
   their setups, rows, HP/animation and diagnostic assertions are retained.
-  Their successor verification is pending; this public run is NOT GREEN.
+  Their corrected successor is now verified by full Windows CI above; this
+  historical public230 run remains NOT GREEN.
 - Limits: only these basic player gates for root1000/1001. Relation/event/final-map
   policies, effectful counter decisions, changing targets/raw metadata and later
   execution/delivery remain open. This is not a target lock, whole-cast/SQL
