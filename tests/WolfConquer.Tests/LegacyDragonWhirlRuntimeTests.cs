@@ -457,6 +457,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.True(monsterStates.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out var afterFirstCast));
         Assert.Equal(monster.MaxLife - ExpectedLegacyPhysicalLineSectorDamage, afterFirstCast.Hitpoints);
 
+        var firstCastValues = System.Text.Json.JsonSerializer.Serialize(firstCastSession);
         sent.Clear();
         await PacketHandlers.HandleAsync(context with { Session = firstCastSession }, frame);
 
@@ -467,7 +468,14 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             attack => attack.Query.AttackType == MsgAttackType.InMoveSpell);
         Assert.True(sessions.TryGet(connection, out var blockedSession));
         Assert.NotNull(blockedSession);
-        Assert.Equal(480, blockedSession.Character.MinMana);
+        Assert.Equal(490, blockedSession.Character.MinMana);
+        Assert.Same(firstCastSession, blockedSession);
+        Assert.Equal(firstCastValues, System.Text.Json.JsonSerializer.Serialize(blockedSession));
+        Assert.Same(firstCastSession.Character.Attributes, blockedSession.Character.Attributes);
+        Assert.Same(firstCastSession.PlayerItems, blockedSession.PlayerItems);
+        Assert.Same(firstCastSession.PlayerSpells, blockedSession.PlayerSpells);
+        Assert.Same(firstCastSession.MagicCooldowns, blockedSession.MagicCooldowns);
+        Assert.Empty(sent);
         Assert.True(monsterStates.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out var afterBlockedCast));
         Assert.Equal(afterFirstCast.Hitpoints, afterBlockedCast.Hitpoints);
         var output = log.ToString();

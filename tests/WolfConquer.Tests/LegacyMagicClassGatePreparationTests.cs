@@ -10,7 +10,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyMagicClassGatePreparationTests
+public sealed partial class LegacyMagicClassGatePreparationTests
 {
     private const ushort ThunderSpellId = 1_000;
     private const ushort SummonBatSpellId = 4_010;
@@ -262,7 +262,7 @@ public sealed class LegacyMagicClassGatePreparationTests
     }
 
     [Fact]
-    public async Task PreparationSpendsStaminaBeforeFailingInsufficientManaWithoutRefund()
+    public async Task PreparationRejectsInsufficientManaWithoutSpendingStamina()
     {
         var session = CreateSession(classCode: 1_005, minMana: 4, stamina: 30);
 
@@ -270,9 +270,9 @@ public sealed class LegacyMagicClassGatePreparationTests
 
         Assert.Null(result.PreparedSession);
         Assert.Equal(4, result.StoredSession.Character.MinMana);
-        Assert.Equal("18", result.StoredSession.Character.Attributes["Stamina"]);
-        var update = AssertSingleUpdate(result.Sent, LegacyMsgUpdateDataType.Stamina, 18);
-        Assert.Equal(1_293_600UL, update.Uid);
+        Assert.Equal("30", result.StoredSession.Character.Attributes["Stamina"]);
+        Assert.Same(session, result.StoredSession);
+        Assert.Empty(result.Sent);
         Assert.Contains("requiredMana=7", result.Log, StringComparison.Ordinal);
     }
 
@@ -330,7 +330,7 @@ public sealed class LegacyMagicClassGatePreparationTests
     }
 
     [Fact]
-    public async Task PreparationWithGraceOfHeavenStillRequiresSufficientManaAfterStaminaSpend()
+    public async Task PreparationWithGraceOfHeavenRequiresSufficientManaBeforeSpendingStamina()
     {
         var session = CreateSession(
             classCode: 6_005,
@@ -348,9 +348,9 @@ public sealed class LegacyMagicClassGatePreparationTests
 
         Assert.Null(result.PreparedSession);
         Assert.Equal(4, result.StoredSession.Character.MinMana);
-        Assert.Equal("18", result.StoredSession.Character.Attributes["Stamina"]);
-        var update = AssertSingleUpdate(result.Sent, LegacyMsgUpdateDataType.Stamina, 18);
-        Assert.Equal(1_293_600UL, update.Uid);
+        Assert.Equal("30", result.StoredSession.Character.Attributes["Stamina"]);
+        Assert.Same(session, result.StoredSession);
+        Assert.Empty(result.Sent);
         Assert.DoesNotContain(result.Sent, frame => LegacyMagicColdTimePacket.TryParse(ReadFrame(frame), out _));
         Assert.Contains("requiredMana=7", result.Log, StringComparison.Ordinal);
     }
@@ -412,27 +412,29 @@ public sealed class LegacyMagicClassGatePreparationTests
         long mana,
         bool enoughMana)
     {
-        // CanUseSpell.cs:51-98: spend stamina before the mana check, with no ID branch.
+        // Every ID keeps its row costs and successful wire order; insufficient
+        // mana is a pre-admission refusal, not the native partial-debit defect.
         var session = CreateSession(classCode: 1_005, minMana: mana, stamina: 30);
 
         var result = await PrepareAsync(session, CreateCatalog(), CreateSpell(spellId, useMana: 7, useStamina: 12));
 
         Assert.Equal(enoughMana, result.PreparedSession is not null);
         Assert.Equal(enoughMana ? 13 : 4, result.StoredSession.Character.MinMana);
-        Assert.Equal("18", result.StoredSession.Character.Attributes["Stamina"]);
-        Assert.Equal(enoughMana ? 2 : 1, result.Sent.Count);
+        Assert.Equal(enoughMana ? "18" : "30", result.StoredSession.Character.Attributes["Stamina"]);
+        Assert.Equal(enoughMana ? 2 : 0, result.Sent.Count);
         Assert.All(result.Sent, bytes => Assert.Equal((ushort)2176, ReadFrame(bytes).Header.Opcode));
         var updates = ParseMsgUpdates(result.Sent);
         Assert.Equal(result.Sent.Count, updates.Count);
         Assert.All(updates, update => Assert.Equal(1_293_600U, update.Uid));
-        Assert.Equal(new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Stamina, 18), Assert.Single(updates[0].Updates));
         if (enoughMana)
         {
+            Assert.Equal(new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Stamina, 18), Assert.Single(updates[0].Updates));
             Assert.Equal(new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Mana, 13), Assert.Single(updates[1].Updates));
             Assert.DoesNotContain("requiredMana", result.Log, StringComparison.Ordinal);
         }
         else
         {
+            Assert.Same(session, result.StoredSession);
             Assert.Contains("requiredMana=7", result.Log, StringComparison.Ordinal);
         }
     }

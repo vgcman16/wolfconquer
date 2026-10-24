@@ -4,7 +4,7 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest integration gate — quest/updater full Windows CI GREEN
+## Latest accepted integration gate — quest/updater full Windows CI GREEN
 
 [Windows40041857100](https://github.com/vgcman16/wolfconquer/actions/runs/40041857100)
 passed exact public `999ce3262dcf5d6ac9c365af3670b542a7339952`; job120714544998
@@ -1325,6 +1325,70 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-074: Require Pounce's selected shield before admission
+
+- Matching Pounce.Execute returns before Shift/damage/animation when either
+  CanUseSpell or the selected-left shield requirement fails. The old managed
+  executor checked the shield only after spending50 stamina/arming800ms cadence.
+  The actual source row12770/sort84 and unchanged shield900000..900309 predicate
+  establish this required-cast boundary, unlike the independent Tharn proc.
+- Generic plan construction now checks the existing equipment selector against
+  its captured CURRENT owner before preparing cadence/costs. Main/alternate
+  override and absent-alternate fallback rules are unchanged. Ordinary Store
+  replacement is fenced by the existing exact-record/native-generation CAS.
+  The late executor check remains after awaited publication; shield loss then
+  is logged as an admitted stop/no refund, not an unchanged precommit rejection.
+- Tests-only94577 measured5passed/6failed/0skipped of11,587ms before production.
+  Five rows fail first unchanged-owner assertions; the receive-envelope row
+  directly observes the unsafe50 vs100 stamina. All7 retained intentions remain,
+  with4 new registered D13 current-vs-stale and alternate-fallback controls.
+  After two production paths, Release63487 passed **2833/2833**,0failed/0skipped,
+  17s; actual TRX counters/outcomes read, including complete Pounce family and
+  the prior2829 selection. Successful empty casts, exact source animation fields,
+  damage/progression and receive-envelope ordering controls are retained.
+- Limits: raw aliased equipment changes are not versioned/locked by this check;
+  postcommit equipment/target/HP/experience/delivery and full-cast transactions
+  remain open. No new movement/target/RNG phase or wire format was added. No
+  live client, SQL, original saves or deployment. Public full CI is pending.
+
+### FSB-073: Prepare generic magic and Recruit admission before resource publication
+
+- Generic preparation formerly committed AttackStamp before affordability, spent/
+  sent stamina before mana rejection, then spent both before active-cold refusal.
+  Recruit independently composed the same split resource/cold mutation helpers.
+  Five production paths now prepare the complete generic cadence, priced costs,
+  cold dictionary and Stamina -> Mana -> ColdTime frames before one genuine
+  native-holder-generation/exact-record CAS. No-Store compatibility stays an
+  explicit local record, not a fabricated transaction. Shared Root costs are not
+  reused, and an already prepared Root invocation is not charged twice.
+- Keep generic Scurvy/DragonPierce saturation, alternate MPMaster, map1039,
+  Grace's sufficient-priced-mana/dual-epic rule, status cold bypasses, excluded IDs,
+  cadence durations and successful wire order. Recruit still ignores cadence.
+  The generic clock remains real UTC, sampled once for the coherent plan.
+  Negative cold/cadence and preparation arithmetic/date/frame faults refuse
+  before commitment. Zero raw mana skips only the irrelevant rune dependency;
+  real stamina surcharges still apply. No accepting catalog/provider is invented.
+- Postattempt observer/send/cancellation faults propagate with committed/unproven
+  diagnostics, never fake rollback/refund. Prepared frames do not reprice or
+  overwrite same-client callback edits; actual generation retirement stops later
+  publication. This reuses the tested real admission owner/CAS, not a saver stub.
+- Tests-only81329:60passed/27failed/0skipped of87,659ms, before production edits:
+  20new failures plus7 corrected old defect assertions. Earlier48477 stopped at
+  a test lambda `_`/discard name collision; no tests ran; root renamed only that
+  parameter. After production, broad23155:2825passed/4failed/0skip of2829,19s;
+  all87 generic/class tests and8 retained player-denial corrections passed.
+  Four other old debit/stamp assertions were then corrected, retaining all7
+  original intentions and physical positive/retirement wire controls. Corrected
+  Release78100 passed **2829/2829**,0failed/0skipped,18s; actual TRX read.
+- All135 external generic callers were source-audited. Most null paths stop the
+  chosen cast, but physical FlashingName/cadence and some token prefixes occur
+  earlier; the physical regression deliberately retains its real FlashingName
+  output. Native Tharn follows the void spell attempt independently, so its
+  affordability dependency is unproven: the proposed physical-tail change stays
+  HOLD. Later executor/target/equipment/HP/receive/delivery, raw mutable graph,
+  SQL, persistence, live-client and whole-cast transaction boundaries remain open.
+  Public full CI for this successor is pending; test totals are not parity.
+
 ### FSB-072: Check basic player eligibility before root1000/1001 admission
 
 - Existing Root1000/1001 player casts paid costs and ran manual effects before
@@ -1343,7 +1407,17 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 - The retained low-mana Fact keeps the same registered monster cast and costs,
   but now requires unchanged complete session/native/catalog/monster state and
   no output, rather than the rejected stamina debit. The exact one-test public
-  CI failure is recorded in FSB071; successor public verification is pending.
+  CI failure is recorded in FSB071. Successor public230ddf34755598c72cdd9aa33405175f3de1d2f6
+  full Windows40045106740 failed eight retained basic-player rejection rows
+  that still expected mana493 rather than the unchanged500. Core24432passed/
+  8failed plus165existing NotExecuted (24605total); updater305/305. Build191
+  warnings/0errors; launcher and later stages did not run. Actual receipt
+  20261024T002943194Z-f83e485b finished2026-10-24T00:33:29.8260301Z;
+  job120724937902 completed00:33:39Z. Root read exact HEAD, receipt, TRX failures,
+  logs and terminal GitHub status. Five retained methods/eight original rows
+  now require exact caster/target state, untouched native catalog and no frames;
+  their setups, rows, HP/animation and diagnostic assertions are retained.
+  Their successor verification is pending; this public run is NOT GREEN.
 - Limits: only these basic player gates for root1000/1001. Relation/event/final-map
   policies, effectful counter decisions, changing targets/raw metadata and later
   execution/delivery remain open. This is not a target lock, whole-cast/SQL

@@ -23,7 +23,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var result = await DirectGearResourceRunAsync(scenario);
 
         var expectedResourceTypes = scenario == "insufficient-mana"
-            ? new[] { LegacyMsgUpdateDataType.Stamina }
+            ? Array.Empty<LegacyMsgUpdateDataType>()
             : new[] { LegacyMsgUpdateDataType.Stamina, LegacyMsgUpdateDataType.Mana };
         Assert.Equal(expectedResourceTypes, result.ResourceObservations.Select(observation => observation.ResourceType));
         Assert.All(result.ResourceObservations, observation =>
@@ -41,7 +41,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             .Where(update => update.Uid == PlayerUid)
             .SelectMany(update => update.Updates)
             .Where(entry => entry.Type == LegacyMsgUpdateDataType.Stamina).ToArray();
-        Assert.Equal(95UL, Assert.Single(staminaUpdates).Value);
+        if (scenario == "insufficient-mana") Assert.Empty(staminaUpdates);
+        else Assert.Equal(95UL, Assert.Single(staminaUpdates).Value);
         var manaUpdates = ParseMsgUpdates(result.CasterFrames)
             .Where(update => update.Uid == PlayerUid)
             .SelectMany(update => update.Updates)
@@ -54,9 +55,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal(0, result.ResourceCallbackTriggers);
             Assert.NotNull(result.Caster);
             Assert.Equal(6, result.Caster.Character.MinMana);
-            // CanUseSpell spends stamina before checking mana; failure must not
-            // refund it, fall through to an ordinary hit, or emit a spell animation.
-            Assert.Equal("95", result.Caster.Character.Attributes["Stamina"]);
+            // The real accepted physical permission prefix already published
+            // FlashingName. Only generic admission is unchanged: no resource
+            // debit/callback, ordinary-hit fallback or spell animation.
+            Assert.Equal("100", result.Caster.Character.Attributes["Stamina"]);
+            Assert.True(HasLegacyStatusFlag(result.Caster.Character.Attributes, LegacyFlashingNameFlag));
+            Assert.Empty(ParseMagicColdTimePackets(result.DeliveryOrder));
         }
         else
         {

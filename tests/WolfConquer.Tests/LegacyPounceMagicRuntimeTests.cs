@@ -56,7 +56,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerPounceMissingShieldSpendsStaminaArmsCadenceAndBlocksImmediateRepeatBeforeResources()
+    public async Task HandlerPounceMissingShieldRejectsBothImmediateRequestsWithoutAdmissionMutation()
     {
         var worldData = CreateMagicCatalog(
             CreateMonsterFamily(),
@@ -72,6 +72,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             spellIds: [PounceRuntimeSpellId],
             playerItems: CreatePounceEquipment(mainShield: false, alternateShield: false));
         sessions.Set(connection, session);
+        Assert.True(LegacyNativeClientPublication.TryCaptureIdentity(
+            sessions, connection, session.Character.Uid, out var identity));
+        var before = System.Text.Json.JsonSerializer.Serialize(session);
         var context = new WorldPacketHandlerContext(
             connection,
             log,
@@ -86,30 +89,31 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(connection, out var firstCastSession));
         Assert.NotNull(firstCastSession);
-        Assert.Equal("50", firstCastSession.Character.Attributes["Stamina"]);
-        Assert.True(firstCastSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
+        Assert.Same(session, firstCastSession);
+        Assert.Equal(before, System.Text.Json.JsonSerializer.Serialize(firstCastSession));
+        Assert.Equal("100", firstCastSession.Character.Attributes["Stamina"]);
+        Assert.False(firstCastSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
         Assert.Null(firstCastSession.MagicCooldowns);
         Assert.Equal(session.Character.X, firstCastSession.Character.X);
         Assert.Equal(session.Character.Y, firstCastSession.Character.Y);
         Assert.Empty(ParseSpellAnimations(sent));
-        Assert.Single(
-            sent,
-            bytes => LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out var update) &&
-                update.Updates.SequenceEqual(
-                    [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Stamina, 50)]));
+        Assert.Empty(sent);
 
-        sent.Clear();
         await PacketHandlers.HandleAsync(context with { Session = firstCastSession }, frame);
 
         Assert.True(sessions.TryGet(connection, out var blockedSession));
         Assert.NotNull(blockedSession);
-        Assert.Equal("50", blockedSession.Character.Attributes["Stamina"]);
-        Assert.Equal(
-            firstCastSession.Character.Attributes[RuntimeLegacyAttackStampUtcAttribute],
-            blockedSession.Character.Attributes[RuntimeLegacyAttackStampUtcAttribute]);
+        Assert.Same(session, blockedSession);
+        Assert.Equal(before, System.Text.Json.JsonSerializer.Serialize(blockedSession));
+        Assert.Equal("100", blockedSession.Character.Attributes["Stamina"]);
+        Assert.False(blockedSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
         Assert.Null(blockedSession.MagicCooldowns);
         Assert.Empty(sent);
-        Assert.Contains("attackStampRemainingMs=", log.ToString());
+        Assert.True(LegacyNativeClientPublication.TryCurrent(
+            sessions, connection, session.Character.Uid, identity, out var current));
+        Assert.Same(session, current);
+        Assert.Equal(2, log.ToString().Split("activeLeftShield=false", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("attackStampRemainingMs=", log.ToString());
         Assert.DoesNotContain("cooldownRemainingMs=", log.ToString());
     }
 
@@ -148,6 +152,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             AlternateEquipmentActive = alternateEquipmentActive,
         };
         sessions.Set(connection, session);
+        Assert.True(LegacyNativeClientPublication.TryCaptureIdentity(
+            sessions, connection, session.Character.Uid, out var identity));
+        var before = System.Text.Json.JsonSerializer.Serialize(session);
         var context = new WorldPacketHandlerContext(
             connection,
             log,
@@ -164,18 +171,27 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Equal("50", updatedSession.Character.Attributes["Stamina"]);
-        Assert.True(updatedSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
         Assert.Null(updatedSession.MagicCooldowns);
+        Assert.True(LegacyNativeClientPublication.TryCurrent(
+            sessions, connection, session.Character.Uid, identity, out var current));
+        Assert.Same(updatedSession, current);
 
         if (!expectedSuccess)
         {
+            Assert.Same(session, updatedSession);
+            Assert.Equal(before, System.Text.Json.JsonSerializer.Serialize(updatedSession));
+            Assert.Equal("100", updatedSession.Character.Attributes["Stamina"]);
+            Assert.False(updatedSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
             Assert.Equal(session.Character.X, updatedSession.Character.X);
             Assert.Equal(session.Character.Y, updatedSession.Character.Y);
             Assert.Empty(ParseSpellAnimations(sent));
+            Assert.Empty(sent);
+            Assert.Contains("activeLeftShield=false", log.ToString());
             return;
         }
 
+        Assert.Equal("50", updatedSession.Character.Attributes["Stamina"]);
+        Assert.True(updatedSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
         Assert.Equal(destinationX, updatedSession.Character.X);
         Assert.Equal(destinationY, updatedSession.Character.Y);
         var animation = Assert.Single(ParseSpellAnimations(sent));

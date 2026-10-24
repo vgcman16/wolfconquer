@@ -120,7 +120,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Theory]
-    [InlineData(false, 100, "50")]
+    [InlineData(false, 100, "100")]
     [InlineData(true, 49, "49")]
     public async Task HandlerPounceShieldOrResourceRejectDoesNotShiftOrRunReceiveEnvelope(
         bool hasShield,
@@ -140,6 +140,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.True(HasLegacyStatusFlag(target.Session.Character.Attributes, PounceReceiveEnvelopeHawksFlag));
         });
         Assert.Empty(ParseSpellAnimations(result.DeliveryOrder));
+        Assert.Empty(result.DeliveryOrder);
         Assert.DoesNotContain(
             result.DeliveryOrder,
             frame => LegacyMsgUpdatePacket.TryParse(ReadFrame(frame), out var update) &&

@@ -89,13 +89,19 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.Equal(500, caster.Character.MinMana);
         Assert.Equal("49", caster.Character.Attributes["Stamina"]);
-        Assert.True(caster.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
+        Assert.Same(result.OriginalCaster, caster);
+        Assert.Equal(result.OriginalCasterValues, System.Text.Json.JsonSerializer.Serialize(caster));
+        Assert.Same(result.OriginalCaster.Character.Attributes, caster.Character.Attributes);
+        Assert.Same(result.OriginalCaster.PlayerItems, caster.PlayerItems);
+        Assert.Same(result.OriginalCaster.PlayerSpells, caster.PlayerSpells);
+        Assert.False(caster.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
         Assert.Null(caster.MagicCooldowns);
+        Assert.Empty(result.CasterSent);
         Assert.Empty(ParseSpellAnimations(result.CasterSent));
         Assert.Empty(ParseLegacySpellPackets(result.CasterSent));
         Assert.Empty(ParseMagicColdTimePackets(result.CasterSent));
-        Assert.Equal(1, CountText(result.Log, "requiredStamina=50"));
-        Assert.Equal(1, CountText(result.Log, "attackStampRemainingMs="));
+        Assert.Equal(2, CountText(result.Log, "requiredStamina=50"));
+        Assert.Equal(0, CountText(result.Log, "attackStampRemainingMs="));
     }
 
     [Theory]
@@ -356,6 +362,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Effect: MsgAttackEffect.None,
             Unknown: 0,
             SpellId: spellId)).ToFrameBytes());
+        var originalCasterValues = System.Text.Json.JsonSerializer.Serialize(casterSession);
         await PacketHandlers.HandleAsync(context, frame);
         if (repeatImmediately)
         {
@@ -363,7 +370,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             await PacketHandlers.HandleAsync(context with { Session = current }, frame);
         }
 
-        return new RemoveBuffersCastResult(sessions, casterConnection, casterSent, peerRuntime, log.ToString());
+        return new RemoveBuffersCastResult(sessions, casterConnection, casterSent, peerRuntime, log.ToString(),
+            casterSession, originalCasterValues);
     }
 
     private static MagicType[] CreateRemoveBuffersRows()
@@ -570,5 +578,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         ConquerTcpConnection CasterConnection,
         List<byte[]> CasterSent,
         IReadOnlyDictionary<uint, RemoveBuffersPeerRuntime> Peers,
-        string Log);
+        string Log,
+        WorldSession OriginalCaster,
+        string OriginalCasterValues);
 }

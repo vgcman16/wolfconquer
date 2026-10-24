@@ -226,30 +226,16 @@ public static partial class WorldPacketHandlers
         return true;
     }
 
-    private static async ValueTask<WorldSession?> TryPrepareLegacyRecruitHealingMagicCastAsync(
+    private static ValueTask<WorldSession?> TryPrepareLegacyRecruitHealingMagicCastAsync(
         WorldPacketHandlerContext context,
         WorldSession session,
         LegacyMagicRuntimeSpell spell,
         CancellationToken cancellationToken)
     {
-        var resourceResult = await TrySpendLegacyPlayerMagicResourcesAsync(
-                context,
-                session,
-                spell,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (resourceResult.Session is null)
-        {
-            return null;
-        }
-
-        return await TryStartLegacyPlayerMagicCooldownAsync(
-                context,
-                resourceResult.Session,
-                spell,
-                resourceResult.GraceOfHeaven,
-                cancellationToken)
-            .ConfigureAwait(false);
+        // Recruit healing deliberately has no AttackStamp cadence. It shares
+        // the same resource/Grace/cold rules and now the coherent admission.
+        return TryPrepareLegacyPlayerMagicCastAsync(
+            context, session, spell, ignoreAttackStamp: true, cancellationToken: cancellationToken);
     }
 
     private static IReadOnlyList<LegacyMagicSupportActor> CreateLegacyMagicSupportTeamMembers(

@@ -231,6 +231,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates);
 
+        var sessionValues = System.Text.Json.JsonSerializer.Serialize(session);
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(CreateMagicQuery(
@@ -242,17 +243,21 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.Empty(ParseSpellAnimations(sent));
         Assert.Empty(ParseMagicColdTimePackets(sent));
-        Assert.Contains(sent, frame =>
-            LegacyMsgUpdatePacket.TryParse(ReadFrame(frame), out var update) &&
-            update.Uid == PlayerUid &&
-            update.Updates.SequenceEqual([new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Stamina, 85)]));
+        Assert.Empty(sent);
         Assert.True(monsterStates.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out var visibleMonster));
         Assert.Equal(monster.MaxLife, visibleMonster.Hitpoints);
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Equal("85", updatedSession.Character.Attributes["Stamina"]);
+        Assert.Equal("100", updatedSession.Character.Attributes["Stamina"]);
         Assert.Equal(10, updatedSession.Character.MinMana);
+        Assert.Same(session, updatedSession);
+        Assert.Equal(sessionValues, System.Text.Json.JsonSerializer.Serialize(updatedSession));
+        Assert.Same(session.Character.Attributes, updatedSession.Character.Attributes);
+        Assert.Same(session.PlayerItems, updatedSession.PlayerItems);
+        Assert.Same(session.PlayerSpells, updatedSession.PlayerSpells);
+        Assert.Same(session.MagicCooldowns, updatedSession.MagicCooldowns);
+        Assert.False(updatedSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
         Assert.True(updatedSession.MagicCooldowns is null || !updatedSession.MagicCooldowns.ContainsKey(DragonSlashSpellId));
 
         var output = log.ToString();

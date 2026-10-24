@@ -4546,6 +4546,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions);
 
+        var casterBefore = System.Text.Json.JsonSerializer.Serialize(casterSession);
+        var targetBefore = System.Text.Json.JsonSerializer.Serialize(targetSession);
+        var nativeBefore = Assert.IsType<LegacyNativeMagicRow>(worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        var nativeCadenceBefore = nativeBefore.CoolDown;
+        var nativeDamageBefore = nativeBefore.Damage;
+        var nativeFieldsBefore = nativeBefore.Source.Fields.ToArray();
+
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -4563,10 +4570,25 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(casterConnection, out var updatedCasterSession));
         Assert.NotNull(updatedCasterSession);
-        Assert.Equal(493, updatedCasterSession.Character.MinMana);
+        Assert.Equal(500, updatedCasterSession.Character.MinMana);
+        Assert.Same(casterSession, updatedCasterSession);
+        Assert.Equal(casterBefore, System.Text.Json.JsonSerializer.Serialize(updatedCasterSession));
+        Assert.Same(casterSession.Character.Attributes, updatedCasterSession.Character.Attributes);
+        Assert.Same(casterSession.PlayerItems, updatedCasterSession.PlayerItems);
+        Assert.Same(casterSession.PlayerSpells, updatedCasterSession.PlayerSpells);
+        Assert.Same(casterSession.MagicCooldowns, updatedCasterSession.MagicCooldowns);
+        Assert.False(updatedCasterSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
 
         Assert.True(sessions.TryGet(targetConnection, out var updatedTargetSession));
         Assert.NotNull(updatedTargetSession);
+        Assert.Same(targetSession, updatedTargetSession);
+        Assert.Equal(targetBefore, System.Text.Json.JsonSerializer.Serialize(updatedTargetSession));
+        Assert.Same(nativeBefore, worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        Assert.Equal(nativeCadenceBefore, nativeBefore.CoolDown);
+        Assert.Equal(nativeDamageBefore, nativeBefore.Damage);
+        Assert.Equal(nativeFieldsBefore, nativeBefore.Source.Fields);
+        Assert.Empty(casterSent);
+        Assert.Empty(targetSent);
         Assert.Equal(5_000, updatedTargetSession.Character.MinHitPoints);
         Assert.Empty(ParseSpellAnimations(casterSent));
         Assert.Empty(ParseSpellAnimations(targetSent));
@@ -5008,6 +5030,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions);
 
+        var casterBefore = System.Text.Json.JsonSerializer.Serialize(casterSession);
+        var targetBefore = System.Text.Json.JsonSerializer.Serialize(targetSession);
+        var nativeBefore = Assert.IsType<LegacyNativeMagicRow>(worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        var nativeCadenceBefore = nativeBefore.CoolDown;
+        var nativeDamageBefore = nativeBefore.Damage;
+        var nativeFieldsBefore = nativeBefore.Source.Fields.ToArray();
+
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -5025,10 +5054,25 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(casterConnection, out var updatedCasterSession));
         Assert.NotNull(updatedCasterSession);
-        Assert.Equal(493, updatedCasterSession.Character.MinMana);
+        Assert.Equal(500, updatedCasterSession.Character.MinMana);
+        Assert.Same(casterSession, updatedCasterSession);
+        Assert.Equal(casterBefore, System.Text.Json.JsonSerializer.Serialize(updatedCasterSession));
+        Assert.Same(casterSession.Character.Attributes, updatedCasterSession.Character.Attributes);
+        Assert.Same(casterSession.PlayerItems, updatedCasterSession.PlayerItems);
+        Assert.Same(casterSession.PlayerSpells, updatedCasterSession.PlayerSpells);
+        Assert.Same(casterSession.MagicCooldowns, updatedCasterSession.MagicCooldowns);
+        Assert.False(updatedCasterSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
 
         Assert.True(sessions.TryGet(targetConnection, out var updatedTargetSession));
         Assert.NotNull(updatedTargetSession);
+        Assert.Same(targetSession, updatedTargetSession);
+        Assert.Equal(targetBefore, System.Text.Json.JsonSerializer.Serialize(updatedTargetSession));
+        Assert.Same(nativeBefore, worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        Assert.Equal(nativeCadenceBefore, nativeBefore.CoolDown);
+        Assert.Equal(nativeDamageBefore, nativeBefore.Damage);
+        Assert.Equal(nativeFieldsBefore, nativeBefore.Source.Fields);
+        Assert.Empty(casterSent);
+        Assert.Empty(targetSent);
         Assert.Equal(5_000, updatedTargetSession.Character.MinHitPoints);
         Assert.Empty(ParseSpellAnimations(casterSent));
         Assert.Empty(ParseSpellAnimations(targetSent));
@@ -5070,6 +5114,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions);
 
+        var casterBefore = System.Text.Json.JsonSerializer.Serialize(casterSession);
+        var targetBefore = System.Text.Json.JsonSerializer.Serialize(targetSession);
+        var nativeBefore = Assert.IsType<LegacyNativeMagicRow>(worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        var nativeCadenceBefore = nativeBefore.CoolDown;
+        var nativeDamageBefore = nativeBefore.Damage;
+        var nativeFieldsBefore = nativeBefore.Source.Fields.ToArray();
+
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -5087,10 +5138,25 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(casterConnection, out var updatedCasterSession));
         Assert.NotNull(updatedCasterSession);
-        Assert.Equal(493, updatedCasterSession.Character.MinMana);
+        Assert.Equal(500, updatedCasterSession.Character.MinMana);
+        Assert.Same(casterSession, updatedCasterSession);
+        Assert.Equal(casterBefore, System.Text.Json.JsonSerializer.Serialize(updatedCasterSession));
+        Assert.Same(casterSession.Character.Attributes, updatedCasterSession.Character.Attributes);
+        Assert.Same(casterSession.PlayerItems, updatedCasterSession.PlayerItems);
+        Assert.Same(casterSession.PlayerSpells, updatedCasterSession.PlayerSpells);
+        Assert.Same(casterSession.MagicCooldowns, updatedCasterSession.MagicCooldowns);
+        Assert.False(updatedCasterSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
 
         Assert.True(sessions.TryGet(targetConnection, out var updatedTargetSession));
         Assert.NotNull(updatedTargetSession);
+        Assert.Same(targetSession, updatedTargetSession);
+        Assert.Equal(targetBefore, System.Text.Json.JsonSerializer.Serialize(updatedTargetSession));
+        Assert.Same(nativeBefore, worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        Assert.Equal(nativeCadenceBefore, nativeBefore.CoolDown);
+        Assert.Equal(nativeDamageBefore, nativeBefore.Damage);
+        Assert.Equal(nativeFieldsBefore, nativeBefore.Source.Fields);
+        Assert.Empty(casterSent);
+        Assert.Empty(targetSent);
         Assert.Equal(5_000, updatedTargetSession.Character.MinHitPoints);
         Assert.Empty(ParseSpellAnimations(casterSent));
         Assert.Empty(ParseSpellAnimations(targetSent));
@@ -5130,6 +5196,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions);
 
+        var casterBefore = System.Text.Json.JsonSerializer.Serialize(casterSession);
+        var targetBefore = System.Text.Json.JsonSerializer.Serialize(targetSession);
+        var nativeBefore = Assert.IsType<LegacyNativeMagicRow>(worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        var nativeCadenceBefore = nativeBefore.CoolDown;
+        var nativeDamageBefore = nativeBefore.Damage;
+        var nativeFieldsBefore = nativeBefore.Source.Fields.ToArray();
+
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -5147,10 +5220,25 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(casterConnection, out var updatedCasterSession));
         Assert.NotNull(updatedCasterSession);
-        Assert.Equal(493, updatedCasterSession.Character.MinMana);
+        Assert.Equal(500, updatedCasterSession.Character.MinMana);
+        Assert.Same(casterSession, updatedCasterSession);
+        Assert.Equal(casterBefore, System.Text.Json.JsonSerializer.Serialize(updatedCasterSession));
+        Assert.Same(casterSession.Character.Attributes, updatedCasterSession.Character.Attributes);
+        Assert.Same(casterSession.PlayerItems, updatedCasterSession.PlayerItems);
+        Assert.Same(casterSession.PlayerSpells, updatedCasterSession.PlayerSpells);
+        Assert.Same(casterSession.MagicCooldowns, updatedCasterSession.MagicCooldowns);
+        Assert.False(updatedCasterSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
 
         Assert.True(sessions.TryGet(targetConnection, out var updatedTargetSession));
         Assert.NotNull(updatedTargetSession);
+        Assert.Same(targetSession, updatedTargetSession);
+        Assert.Equal(targetBefore, System.Text.Json.JsonSerializer.Serialize(updatedTargetSession));
+        Assert.Same(nativeBefore, worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        Assert.Equal(nativeCadenceBefore, nativeBefore.CoolDown);
+        Assert.Equal(nativeDamageBefore, nativeBefore.Damage);
+        Assert.Equal(nativeFieldsBefore, nativeBefore.Source.Fields);
+        Assert.Empty(casterSent);
+        Assert.Empty(targetSent);
         Assert.Equal(5_000, updatedTargetSession.Character.MinHitPoints);
         Assert.Empty(ParseSpellAnimations(casterSent));
         Assert.Empty(ParseSpellAnimations(targetSent));
@@ -5195,6 +5283,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions);
 
+        var casterBefore = System.Text.Json.JsonSerializer.Serialize(casterSession);
+        var targetBefore = System.Text.Json.JsonSerializer.Serialize(targetSession);
+        var nativeBefore = Assert.IsType<LegacyNativeMagicRow>(worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        var nativeCadenceBefore = nativeBefore.CoolDown;
+        var nativeDamageBefore = nativeBefore.Damage;
+        var nativeFieldsBefore = nativeBefore.Source.Fields.ToArray();
+
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -5212,10 +5307,25 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(casterConnection, out var updatedCasterSession));
         Assert.NotNull(updatedCasterSession);
-        Assert.Equal(493, updatedCasterSession.Character.MinMana);
+        Assert.Equal(500, updatedCasterSession.Character.MinMana);
+        Assert.Same(casterSession, updatedCasterSession);
+        Assert.Equal(casterBefore, System.Text.Json.JsonSerializer.Serialize(updatedCasterSession));
+        Assert.Same(casterSession.Character.Attributes, updatedCasterSession.Character.Attributes);
+        Assert.Same(casterSession.PlayerItems, updatedCasterSession.PlayerItems);
+        Assert.Same(casterSession.PlayerSpells, updatedCasterSession.PlayerSpells);
+        Assert.Same(casterSession.MagicCooldowns, updatedCasterSession.MagicCooldowns);
+        Assert.False(updatedCasterSession.Character.Attributes.ContainsKey(RuntimeLegacyAttackStampUtcAttribute));
 
         Assert.True(sessions.TryGet(targetConnection, out var updatedTargetSession));
         Assert.NotNull(updatedTargetSession);
+        Assert.Same(targetSession, updatedTargetSession);
+        Assert.Equal(targetBefore, System.Text.Json.JsonSerializer.Serialize(updatedTargetSession));
+        Assert.Same(nativeBefore, worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        Assert.Equal(nativeCadenceBefore, nativeBefore.CoolDown);
+        Assert.Equal(nativeDamageBefore, nativeBefore.Damage);
+        Assert.Equal(nativeFieldsBefore, nativeBefore.Source.Fields);
+        Assert.Empty(casterSent);
+        Assert.Empty(targetSent);
         Assert.Equal(5_000, updatedTargetSession.Character.MinHitPoints);
         Assert.Empty(ParseSpellAnimations(casterSent));
         Assert.Empty(ParseSpellAnimations(targetSent));

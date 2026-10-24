@@ -23,7 +23,9 @@ public static partial class WorldPacketHandlers
 
         var attackerUid = session.Character.Uid;
 
-        // Pounce.Execute evaluates CanUseSpell.Verified before checking the active shield.
+        // Generic admission validates the selected shield on its captured
+        // current owner before cadence/costs. Recheck after awaited publication
+        // below: an accepted cast is not a promise that equipment stays fixed.
         var resourceSession = await TryPrepareLegacyPlayerMagicCastAsync(
                 context,
                 session,
@@ -39,9 +41,10 @@ public static partial class WorldPacketHandlers
         if (!TryGetLegacyPounceActiveShield(resourceSession, out var shieldItemId))
         {
             await context.Log.WriteLineAsync(
-                    "WorldServer skipped legacy Pounce after resource preparation " +
+                    "WorldServer stopped admitted legacy Pounce after shield revalidation " +
                     $"{FormatSession(context)} spellId={spell.Id} sort={(int)spell.Sort}; " +
-                    "activeLeftShield=false source=matching DecompiledSource Pounce.cs.")
+                    "activeLeftShield=false; resources already admitted, no refund attempted; " +
+                    "source=matching DecompiledSource Pounce.cs.")
                 .ConfigureAwait(false);
             return true;
         }
