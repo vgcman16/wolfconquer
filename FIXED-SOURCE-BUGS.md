@@ -4,7 +4,21 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted integration gate — Trade closure full Windows CI GREEN
+## Latest accepted integration gate — player-booth full Windows CI GREEN
+
+[Windows40051408447](https://github.com/vgcman16/wolfconquer/actions/runs/40051408447)
+passed exact public `b8cc5cfa12e1fa60c8a61b4478d12e5631309341`; job120744692469
+completed2026-10-24T01:52:36Z. Receipt20261024T014836141Z-8091590e finished
+01:52:26.9077483Z; all8 sequential stages exited0. Root read actual runnerHEAD,
+receipt, terminal TRX counters/outcome groups and build/test/parser logs, then
+verified completed GitHub success: core **24569passed/0failed**,165 existing
+NotExecuted rows (24734 total), updater305/305, launcher57/57, synthetic parsers20+13
+(no HTTP/service probes). Build191warnings/0errors,56.23s. All41new booth controls
+pass alongside the retained24528core baseline. This is offline source integration,
+not all-transfer/global UID safety, live-client acceptance, complete English,
+deployment, full gameplay parity or a cleared CodeFactor backlog.
+
+## Previous accepted gate — Trade closure full Windows CI GREEN
 
 [Windows40048716539](https://github.com/vgcman16/wolfconquer/actions/runs/40048716539)
 passed exact public `3f7a5a9f2d915e282b11cac0ff5e50f0fdef1634`; job120736279115
@@ -1386,7 +1400,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   PIN controls cover protected descendants, actual creation/activation and PIN
   creation after listing requiring current authorization at purchase. Registered
   Frame and sharing-failure/retry controls pass with retained Trade journal/recovery,
-  vendor, item-loader, Warehouse and PIN regression families. Public CI is pending.
+  vendor, item-loader, Warehouse and PIN regression families. Public full Windows
+  40051408447 passed exactb8cc5cfa with24569core passes, as recorded above.
 - Limits: offline cooperating-writer managed paths only. Live client, SQL, complete
   native host, global UID ownership, raw-alias/ABA, hostile filesystem, multiprocess/
   power-loss and durable notification delivery are not established by this batch.
@@ -1635,7 +1650,7 @@ proved by the isolated UID-adoption proposals.
 | FSB-002 | Hairface storage retains null owner and fails later | Reject invalid owner at construction; valid ownership remains stable | Constructor fixed; adjacent storage audit remains |
 | FSB-003 | Guild donation narrows uint to signed int, allowing a wallet credit | Positive bounded amount; wallet/fund/donation commit together | Open, not integrated |
 | FSB-004 | League receiver uses a recycled packet after its wrapper was disposed | Keep exclusive packet ownership through final use | Open, joint graph held |
-| FSB-005 | Trade/booth/inventory disconnect, duplicate UID and retry windows | Validated atomic/idempotent transfer with durable reconciliation | Scoped managed Trade closure safety verified FSB075; booth/global lifecycle audit remains open |
+| FSB-005 | Trade/booth/inventory disconnect, duplicate UID and retry windows | Validated atomic/idempotent transfer with durable reconciliation | Scoped managed Trade closure FSB075 and cooperating-writer booth settlement FSB076 verified offline; broader inventory/global/delivery lifecycle audit remains open |
 | FSB-006 | SQL multi-row save/load and native eager lifecycle are incomplete | Real transaction boundaries, constraints and recovery proof | Open |
 | FSB-007 | Guild/league/title/catalog loaders publish partial state; file saves rewrite in place | Stage valid state; coherent publication and recoverable file replacement | Implementation/audit in progress |
 | FSB-008 | Name-based GM/PM privileges and inconsistent title4001 equip/remove classification | Server-owned authority and validated consistent title metadata | Implementation/audit in progress |
@@ -1681,8 +1696,8 @@ proved by the isolated UID-adoption proposals.
 
 Current guardrail: defect-first batches, automated bounded cosmetics, no risky
 packet-switch rewrites for complexity scores and no per-warning full-CI cycle.
-Trade3f7a5a9f repairs gameplay safety, not a verified static-findings reduction.
-The latest dashboard count was not accessible/read; older totals below are
+Trade3f7a5a9f and boothb8cc5cfa repair gameplay safety, not a verified static-findings reduction.
+The current dashboard count was not read for this batch; older totals below are
 checkpoint observations, not the current queue. Passing CI is not backlog closure.
 
 Earth/rank fullCI40002265954 passed with212 warnings. Root batches its8 new
