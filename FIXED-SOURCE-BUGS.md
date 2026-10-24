@@ -1325,6 +1325,30 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-072: Check basic player eligibility before root1000/1001 admission
+
+- Existing Root1000/1001 player casts paid costs and ran manual effects before
+  the real executor's deterministic eligibility denial. The source reference is
+  CanAttackPlayer.Verified; successful wire formats/rates are unchanged.
+- One shared pure block retains existing safe-zone, HP/Dead/Ghost, Invisible,
+  NeptuneCurse, AttackInFly, watching, Protect, map700/dynamic0 and Peace checks.
+  The full effectful gate calls it at its exact old position; root calls it before
+  preparation and during final pure revalidation. CombatGear/rune/counter/RNG
+  phases are never preinvoked or duplicated. StarFlow's denial-effect outputs remain.
+- Tests-first63354:5passed/26failed/0skipped of31,1s: four healthy/permitted-flying
+  controls and the corrected retained low-mana test pass;26 basic/manual-prefix
+  denials expose the late admission. Only tests/declared1001 inputs were intaken.
+  After four production paths, Release38082 passed496/496,0fail/skip,12s:
+  prior401 +30new eligibility +1 corrected low-mana +64 StarFlow controls.
+- The retained low-mana Fact keeps the same registered monster cast and costs,
+  but now requires unchanged complete session/native/catalog/monster state and
+  no output, rather than the rejected stamina debit. The exact one-test public
+  CI failure is recorded in FSB071; successor public verification is pending.
+- Limits: only these basic player gates for root1000/1001. Relation/event/final-map
+  policies, effectful counter decisions, changing targets/raw metadata and later
+  execution/delivery remain open. This is not a target lock, whole-cast/SQL
+  transaction, live-client proof or full CanAttackPlayer completion.
+
 ### FSB-071: Prepare shared root/CounterKill/Rise admission before commitment
 
 - Reference: matching community MsgAttackPacket.ProcescMagic and
@@ -1350,7 +1374,14 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   Store component controls pass in combined74649:401/401,0fail/skip,12s. The first
   addendum attempt5522 stopped at one missing test namespace import (no tests
   ran); root added that import, not a production or assertion workaround.
-  No public verification claim for this batch yet.
+  Public98d0962e full Windows40043985349 failed one old defect-enforcing test:
+  HandlerMagicAttackSpendsStaminaBeforeLowManaReject required a stamina frame
+  that correctly is now absent (Assert.Single at8505). Actual results:24409core
+  passed/1failed,165 existing NotExecuted; updater305/305. Launcher/later stages
+  did not run. Build191warnings/0errors. Receipt20261024T001614227Z-3011f1f7
+  finished2026-10-24T00:19:53.142736Z; job120721335395 completed00:20:02Z.
+  Exact HEAD, receipt, terminal TRXs/logs and GitHub failure were read. This is
+  NOT full CI GREEN; the old assertion must be migrated without restoring the bug.
 - The34 additional boundary controls include9 registered6003 cases and25 exact
   private-component sigil cases retaining real sorts90/21 and parsed metadata,
   not invented dispatcher routes. Real Store controls prove same-record reinsertion

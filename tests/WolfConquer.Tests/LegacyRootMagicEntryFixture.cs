@@ -35,7 +35,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             bool nativeCadenceControls = false, bool omitSelectedLearnedInput = false,
             bool ridingCropQueryControls = false,
             RootManualItemEffectInputs? itemEffects = null, bool itemEffectLifetimeControls = false,
-            bool itemEffectXpControls = false, bool nativeDeathCasterQueryControls = false)
+            bool itemEffectXpControls = false, bool nativeDeathCasterQueryControls = false,
+            bool playerEligibilityControls = false)
         {
             hasRawRidingCrop = ridingCrop;
             this.nativeDeathCasterQueryControls = nativeDeathCasterQueryControls;
@@ -57,6 +58,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 CreateMagicRow(7_001, sort: 32, useMana: 0, useStamina: 0,
                     damage: 100, coolDown: 0, coldTime: 0),
             };
+            if (playerEligibilityControls && !itemEffectLifetimeControls)
+                rows.Add(CreateMagicRow(1_001, sort: 1, useMana: 40, useStamina: 10,
+                    damage: 100, range: 4, coolDown: rawCadence, coldTime: coldTime));
             if (itemEffectLifetimeControls)
                 rows.Add(CreateMagicRow(1_001, sort: 1, useMana: 0, useStamina: 0,
                     damage: nativeDeathCasterQueryControls ? 9_999U : 9_000U,
@@ -158,6 +162,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             if (itemEffectXpControls)
                 owner = owner with { PlayerSpells = new PlayerSpellSnapshot(
                     [.. owner.PlayerSpells.Spells, CreatePlayerSpell(1_020)]) };
+            if (playerEligibilityControls)
+                owner = owner with { PlayerSpells = new PlayerSpellSnapshot(
+                    [.. owner.PlayerSpells.Spells, CreatePlayerSpell(1_001)]) };
             if (omitSelectedLearnedInput)
                 owner = owner with { PlayerSpells = new PlayerSpellSnapshot(
                     owner.PlayerSpells.Spells.Where(entry => entry.Id != selectedId).ToArray()) };

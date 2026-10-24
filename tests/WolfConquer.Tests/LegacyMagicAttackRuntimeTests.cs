@@ -8472,7 +8472,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerMagicAttackSpendsStaminaBeforeLowManaReject()
+    public async Task HandlerMagicAttackLowManaRejectsWithoutResourceCatalogOrOutputMutation()
     {
         var monsterFamily = CreateMonsterFamily();
         var spawn = CreateMonsterSpawn();
@@ -8488,6 +8488,14 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var connection = CreateSendingConnection(sent);
         var session = CreateSession(minMana: 3, stamina: 10);
         sessions.Set(connection, session);
+        Assert.True(LegacyNativeClientPublication.TryCaptureIdentity(
+            sessions, connection, session.Character.Uid, out var identity));
+        Assert.True(monsterStates.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out var beforeMonster));
+        var beforeSession = System.Text.Json.JsonSerializer.Serialize(session);
+        var row = Assert.IsType<LegacyNativeMagicRow>(worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        var beforeCooldown = row.CoolDown;
+        var beforeDamage = row.Damage;
+        var beforeFields = row.Source.Fields.ToArray();
         var context = new WorldPacketHandlerContext(
             connection,
             log,
@@ -8500,20 +8508,26 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             context,
             ReadFrame(new MsgAttackPacket(CreateMagicQuery(monster, legacyEncodedQuery: false)).ToFrameBytes()));
 
+        Assert.Empty(sent);
         Assert.Empty(ParseSpellAnimations(sent));
-        var updates = ParseMsgUpdates(sent);
-        Assert.Single(updates);
-        Assert.Equal(
-            [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Stamina, 5)],
-            Assert.Single(updates).Updates);
         Assert.True(monsterStates.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out var visibleMonster));
+        Assert.Equal(beforeMonster, visibleMonster);
         Assert.Equal(monster.MaxLife, visibleMonster.Hitpoints);
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
+        Assert.Same(session, updatedSession);
+        Assert.Equal(beforeSession, System.Text.Json.JsonSerializer.Serialize(updatedSession));
+        Assert.True(LegacyNativeClientPublication.TryCurrent(
+            sessions, connection, session.Character.Uid, identity, out var current));
+        Assert.Same(session, current);
         Assert.Equal(3, updatedSession.Character.MinMana);
-        Assert.Equal("5", updatedSession.Character.Attributes["Stamina"]);
+        Assert.Equal("10", updatedSession.Character.Attributes["Stamina"]);
         Assert.True(updatedSession.MagicCooldowns is null ||
             !updatedSession.MagicCooldowns.ContainsKey(ThunderSpellId));
+        Assert.Same(row, worldData.FindNativeMagicRow(ThunderSpellId, 0));
+        Assert.Equal(beforeCooldown, row.CoolDown);
+        Assert.Equal(beforeDamage, row.Damage);
+        Assert.Equal(beforeFields, row.Source.Fields);
         Assert.Contains("requiredMana=7", log.ToString());
     }
 
