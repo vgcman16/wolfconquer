@@ -31,16 +31,16 @@ public static partial class WorldPacketHandlers
 
     private static bool TryPersistLegacyTradePair(WorldPacketHandlerContext context,
         WorldSession first, WorldSession updatedFirst, WorldSession second, WorldSession updatedSecond,
-        out string reason, LegacyTradeItemGraph? expectedFirstItems = null,
-        LegacyTradeItemGraph? expectedSecondItems = null, LegacyTradeParty? exchangeParty = null)
+        out string reason, LegacyItemSaveGraph? expectedFirstItems = null,
+        LegacyItemSaveGraph? expectedSecondItems = null, LegacyTradeParty? exchangeParty = null)
     {
         reason = string.Empty;
         // Shared by exchange, cancellation and disconnect: SAVE losslessness only.
         // A save-valid Effect=256 must not prevent a refund merely because its preview is byte-sized.
         if (!TryUseLegacyTradeItemGraph(first.PlayerItems, expectedFirstItems, out var firstItems) ||
             !TryUseLegacyTradeItemGraph(second.PlayerItems, expectedSecondItems, out var secondItems) ||
-            !LegacyTradeItemGraph.TryCapture(updatedFirst.PlayerItems, out var updatedFirstItems) ||
-            !LegacyTradeItemGraph.TryCapture(updatedSecond.PlayerItems, out var updatedSecondItems))
+            !LegacyItemSaveGraph.TryCapture(updatedFirst.PlayerItems, out var updatedFirstItems) ||
+            !LegacyItemSaveGraph.TryCapture(updatedSecond.PlayerItems, out var updatedSecondItems))
         {
             reason = "tradeItemGraphInvalid";
             return false;
@@ -71,7 +71,7 @@ public static partial class WorldPacketHandlers
         return persisted;
     }
 
-    private static bool ValidateLegacyTradeDiskBaseline(WorldSession expected, LegacyTradeItemGraph items,
+    private static bool ValidateLegacyTradeDiskBaseline(WorldSession expected, LegacyItemSaveGraph items,
         string? playerItemsRoot, out string reason)
     {
         reason = string.Empty;

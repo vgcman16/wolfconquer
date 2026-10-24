@@ -1,5 +1,3 @@
-using WolfConquer.Core.Data;
-
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
@@ -10,220 +8,56 @@ public static partial class WorldPacketHandlers
         ILegacyVendorResponseAdapter responses,
         CancellationToken cancellationToken)
     {
-        if (context.Sessions is not { } sessions)
+        if (context.TradeOperations is not { } operations || context.TradeRecovery is not { } recovery)
         {
-            await LogLegacyVendorFenceAsync(context, request, responses.TransportName, "session-store-missing")
+            await LogLegacyVendorFenceAsync(context, request, responses.TransportName, "vendor-operation-owner-missing")
                 .ConfigureAwait(false);
             return;
         }
 
-        if (request.BoothUid is not { } boothUid)
+        LegacyVendorPreparedPurchase? committed = null;
+        var reason = "vendor-recovery-unavailable";
+        // Frame skips its shared lease ONLY for valid profile-specific buy requests.
+        // This actual lease drains earlier shared writers before any source selection.
+        using (await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false))
         {
-            await LogLegacyVendorFenceAsync(context, request, responses.TransportName, "booth-uid-missing")
-                .ConfigureAwait(false);
-            return;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!recovery.IsBlocked)
+            {
+                lock (LegacyVendorMutationGate)
+                {
+                    if (TryPrepareLegacyVendorPurchase(context, request, responses, out var prepared, out reason))
+                    {
+                        if (!LegacyVendorPurchaseOwnersCurrent(context, prepared, committed: false))
+                            reason = "vendor-owner-changed-before-commit";
+                        else if (TryCommitLegacyVendorPurchase(context, prepared.Buyer, prepared.UpdatedBuyer,
+                                     prepared.Seller, prepared.UpdatedSeller, prepared.BuyerItems, prepared.SellerItems, out reason))
+                            committed = prepared;
+                    }
+                }
+            }
         }
 
-        byte[] buyerOperationFrame;
-        byte[] sellerOperationFrame;
-        try
+        if (committed is null)
         {
-            buyerOperationFrame = responses.CreateAcceptedResponse();
-            sellerOperationFrame = responses.CreateSellerRemovalResponse();
-        }
-        catch (Exception ex) when (ex is OverflowException or ArgumentOutOfRangeException)
-        {
-            await LogLegacyVendorFenceAsync(
-                    context,
-                    request,
-                    responses.TransportName,
-                    "response-serialization-failed:" + ex.GetType().Name)
-                .ConfigureAwait(false);
-            return;
-        }
-
-        WorldSession? updatedBuyer = null;
-        WorldSession? updatedSeller = null;
-        WorldActiveSession? sellerActive = null;
-        PlayerItemSnapshotItem? purchasedItem = null;
-        byte[]? buyerItemFrame = null;
-        byte[]? sellerItemRemoveFrame = null;
-        byte[]? buyerWalletFrame = null;
-        byte[]? sellerWalletFrame = null;
-        var reason = string.Empty;
-
-        lock (LegacyVendorMutationGate)
-        {
-            if (!sessions.TryGet(context.Connection, out var buyer) || buyer is null)
-            {
-                reason = "buyer-session-missing";
-            }
-            else if (buyer.LegacyTradeActive)
-            {
-                reason = "buyer-in-trade";
-            }
-            else if (!LegacyVendorSessionResolver.TryResolveSeller(
-                    sessions,
-                    boothUid,
-                    buyer.Character.MapId,
-                    out var sellerResolution))
-            {
-                reason = "seller-vendor-session-not-found";
-            }
-            else if (LegacyGetDistance(
-                    buyer.Character.X,
-                    buyer.Character.Y,
-                    sellerResolution.BoothLocation.X,
-                    sellerResolution.BoothLocation.Y) > LegacyViewThreshold)
-            {
-                reason = "seller-booth-not-visible";
-            }
-            else if (sellerResolution.ActiveSession.Session.LegacyTradeActive)
-            {
-                reason = "seller-in-trade";
-            }
-            else if (sellerResolution.ActiveSession.Session.LegacyVendorListings is not { } sellerListings ||
-                !sellerListings.TryGetListing(request.ItemUid, out var listing))
-            {
-                reason = "seller-listing-missing";
-            }
+            if (IsLegacyTradeRecoveryRequired(reason))
+                await context.Log.WriteLineAsync(
+                    $"WorldServer vendor purchase requires recovery transport={responses.TransportName} " +
+                    $"itemUid={request.ItemUid} reason={reason}; durable outcome is unresolved; " +
+                    "any retained journal must be reconciled, not discarded or reported unchanged; " +
+                    "Store publication and success sends withheld, world fenced pending recovery.").ConfigureAwait(false);
+            else if (recovery.IsBlocked)
+                await context.Log.WriteLineAsync(
+                    $"WorldServer vendor purchase withheld itemUid={request.ItemUid} reason={reason}; " +
+                    "world recovery was already blocked; no new purchase publication or success sends.").ConfigureAwait(false);
             else
-            {
-                var seller = sellerResolution.ActiveSession.Session;
-                var matchingItems = seller.PlayerItems.InventoryItems
-                    .Where(item => item.Uid == request.ItemUid)
-                    .Take(2)
-                    .ToArray();
-                if (matchingItems.Length != 1)
-                {
-                    reason = matchingItems.Length == 0
-                        ? "seller-inventory-item-missing"
-                        : "seller-inventory-item-uid-not-unique";
-                }
-                else
-                {
-                    var currencyMode = listing.CostMode switch
-                    {
-                        LegacyVendorListingCostMode.Gold => LegacyVendorPurchaseCurrencyMode.Gold,
-                        LegacyVendorListingCostMode.CPs => LegacyVendorPurchaseCurrencyMode.ConquerPoints,
-                        _ => (LegacyVendorPurchaseCurrencyMode)(-1),
-                    };
-                    var plan = LegacyVendorPurchasePlanner.Plan(
-                        buyer,
-                        seller,
-                        matchingItems[0],
-                        currencyMode,
-                        listing.Amount);
-                    if (!plan.Succeeded)
-                    {
-                        reason = "purchase-plan-rejected:" + plan.FailureReason;
-                    }
-                    else
-                    {
-                        var removeResult = sellerListings.TryRemove(request.ItemUid);
-                        if (!removeResult.Removed)
-                        {
-                            reason = "seller-listing-remove-failed";
-                        }
-                        else
-                        {
-                            var plannedSeller = plan.UpdatedSellerSession with
-                            {
-                                LegacyVendorListings = removeResult.Book,
-                            };
-                            try
-                            {
-                                var buyerUid = checked((uint)plan.UpdatedBuyerSession.Character.Uid);
-                                var sellerUid = checked((uint)plannedSeller.Character.Uid);
-                                purchasedItem = matchingItems[0];
-                                buyerItemFrame = LegacyGameItemPacket
-                                    .FromSnapshotItem(purchasedItem, mode: LegacyGameItemPacket.AddItemMode)
-                                    .ToFrameBytes();
-                                sellerItemRemoveFrame = new MsgItemUsagePacket(
-                                        request.ItemUid,
-                                        DwParam: 0,
-                                        MsgItemUsageAction.RemoveInventory,
-                                        Timestamp: 0,
-                                        DwParam2: 0,
-                                        DwParam3: 0,
-                                        DwParam4: 0)
-                                    .ToFrameBytes();
-                                var updateType = listing.CostMode == LegacyVendorListingCostMode.Gold
-                                    ? LegacyMsgUpdateDataType.Money
-                                    : LegacyMsgUpdateDataType.ConquerPoints;
-                                var buyerBalance = listing.CostMode == LegacyVendorListingCostMode.Gold
-                                    ? plan.UpdatedBuyerSession.Character.Money
-                                    : plan.UpdatedBuyerSession.Character.ConquerPoints;
-                                var sellerBalance = listing.CostMode == LegacyVendorListingCostMode.Gold
-                                    ? plannedSeller.Character.Money
-                                    : plannedSeller.Character.ConquerPoints;
-                                buyerWalletFrame = new LegacyMsgUpdatePacket(
-                                        buyerUid,
-                                        [new LegacyMsgUpdateEntry(updateType, checked((ulong)buyerBalance))])
-                                    .ToFrameBytes();
-                                sellerWalletFrame = new LegacyMsgUpdatePacket(
-                                        sellerUid,
-                                        [new LegacyMsgUpdateEntry(updateType, checked((ulong)sellerBalance))])
-                                    .ToFrameBytes();
-                            }
-                            catch (Exception ex) when (ex is OverflowException or ArgumentOutOfRangeException)
-                            {
-                                reason = "response-serialization-failed:" + ex.GetType().Name;
-                            }
-
-                            if (reason.Length == 0 &&
-                                !LegacyVendorPurchasePersistence.TryPersist(
-                                    buyer,
-                                    plan.UpdatedBuyerSession,
-                                    seller,
-                                    plannedSeller,
-                                    context.PlayerItemsRoot,
-                                    out reason))
-                            {
-                                reason = "persistence-failed:" + reason;
-                            }
-
-                            if (reason.Length == 0)
-                            {
-                                updatedBuyer = plan.UpdatedBuyerSession;
-                                updatedSeller = plannedSeller;
-                                sellerActive = sellerResolution.ActiveSession;
-                                sessions.Set(sellerResolution.ActiveSession.Connection, plannedSeller);
-                                sessions.Set(context.Connection, plan.UpdatedBuyerSession);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (updatedBuyer is null ||
-            updatedSeller is null ||
-            sellerActive is null ||
-            purchasedItem is null ||
-            buyerItemFrame is null ||
-            sellerItemRemoveFrame is null ||
-            buyerWalletFrame is null ||
-            sellerWalletFrame is null)
-        {
-            await LogLegacyVendorFenceAsync(context, request, responses.TransportName, reason)
-                .ConfigureAwait(false);
+                await LogLegacyVendorFenceAsync(context, request, responses.TransportName, reason).ConfigureAwait(false);
             return;
         }
 
-        await context.Connection.SendAsync(buyerItemFrame, cancellationToken).ConfigureAwait(false);
-        await context.Connection.SendAsync(buyerOperationFrame, cancellationToken).ConfigureAwait(false);
-        await sellerActive.Connection.SendAsync(sellerOperationFrame, cancellationToken).ConfigureAwait(false);
-        await sellerActive.Connection.SendAsync(sellerItemRemoveFrame, cancellationToken).ConfigureAwait(false);
-        await context.Connection.SendAsync(buyerWalletFrame, cancellationToken).ConfigureAwait(false);
-        await sellerActive.Connection.SendAsync(sellerWalletFrame, cancellationToken).ConfigureAwait(false);
-
-        await context.Log.WriteLineAsync(
-                "WorldServer completed vendor purchase " +
-                $"buyerUid={updatedBuyer.Character.Uid} sellerUid={updatedSeller.Character.Uid} " +
-                $"transport={responses.TransportName} vendorUid={boothUid} itemUid={purchasedItem.Uid} " +
-                $"timestampToken={request.TimestampToken}; persistence committed before session and packet exposure.")
+        // No rejection catch surrounds publication. Send/log faults cannot undo the
+        // committed listing removal or payment, and replay cannot sell the item again.
+        await PublishLegacyVendorPurchaseAsync(context, request, responses, committed, cancellationToken)
             .ConfigureAwait(false);
     }
-
 }

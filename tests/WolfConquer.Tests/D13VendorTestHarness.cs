@@ -44,6 +44,10 @@ internal sealed class D13VendorTestHarness : IDisposable
 
     internal List<D13VendorSentFrame> Sent { get; } = [];
 
+    private readonly LegacyTradeStateStore _trades = new();
+    private readonly WorldOperationBarrier _operations = new();
+    private LegacyTradeRecoveryState? _recovery;
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
@@ -122,13 +126,24 @@ internal sealed class D13VendorTestHarness : IDisposable
         ConquerProtocolProfile protocolProfile = ConquerProtocolProfile.VisibleDx8D13)
     {
         using var log = new StringWriter();
+        _recovery ??= new(UsersRoot, PlayerItemsRoot);
+        Assert.True(_recovery.TryEnsureInitialized(out var recoveryReason), recoveryReason);
         var context = new WorldPacketHandlerContext(
             connection,
             log,
             session,
             Sessions: Sessions,
             PlayerItemsRoot: PlayerItemsRoot,
-            ProtocolProfile: protocolProfile);
+            ProtocolProfile: protocolProfile)
+        {
+            Trades = _trades,
+            TradeOperations = _operations,
+            TradeRecovery = _recovery,
+        };
+        // The registered buy owner takes its own exclusive lease; ordinary
+        // registry fixtures retain the same shared lifetime as Frame dispatch.
+        using var operation = packet.Action == MsgItemUsageAction.BuyVendingItem
+            ? null : await _operations.EnterSharedAsync();
         await Registry.HandleAsync(context, ReadFrame(packet.ToFrameBytes()));
         return log.ToString();
     }

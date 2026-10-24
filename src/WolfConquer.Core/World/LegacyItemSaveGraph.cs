@@ -3,8 +3,8 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Trade-local validation of the complete save graph, not a replacement item parser.
-internal sealed partial class LegacyTradeItemGraph
+// Complete save-codec capture only; callers separately own transfer permissions and transactions.
+internal sealed partial class LegacyItemSaveGraph
 {
     private const int MaximumBytes = CharacterSnapshotFileBaseline.MaximumBytes;
     private sealed record Collection(IReadOnlyList<PlayerItemSnapshotItem> Source, Closure[] Rows);
@@ -14,7 +14,7 @@ internal sealed partial class LegacyTradeItemGraph
     private readonly PlayerItemSnapshot ownedImage;
     private readonly byte[] bytes;
 
-    private LegacyTradeItemGraph(PlayerItemSnapshot source, Collection[] stores, HashSet<uint> uids,
+    private LegacyItemSaveGraph(PlayerItemSnapshot source, Collection[] stores, HashSet<uint> uids,
         PlayerItemSnapshot ownedImage, byte[] bytes)
     {
         this.source = source;
@@ -24,7 +24,7 @@ internal sealed partial class LegacyTradeItemGraph
         this.bytes = bytes;
     }
 
-    internal static bool TryCapture(PlayerItemSnapshot items, out LegacyTradeItemGraph capture)
+    internal static bool TryCapture(PlayerItemSnapshot items, out LegacyItemSaveGraph capture)
     {
         capture = null!;
         if (items is null) return false;
@@ -45,7 +45,7 @@ internal sealed partial class LegacyTradeItemGraph
             { WarehouseItems = Image(6) };
             var imageBytes = PlayerItemSnapshotLoader.ToLegacyBytes(owned);
             if (imageBytes.Length != size) return false;
-            var result = new LegacyTradeItemGraph(items, captured, seen, owned, imageBytes);
+            var result = new LegacyItemSaveGraph(items, captured, seen, owned, imageBytes);
             if (!result.IsCurrent(items)) return false;
             capture = result;
             return true;

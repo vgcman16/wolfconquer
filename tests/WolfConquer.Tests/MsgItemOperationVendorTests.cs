@@ -28,6 +28,9 @@ public sealed class MsgItemOperationVendorTests : IDisposable
         "WolfConquer-MsgItemOperationVendorTests-" + Guid.NewGuid().ToString("N"));
     private readonly string _usersRoot;
     private readonly string _playerItemsRoot;
+    private readonly LegacyTradeStateStore _trades = new();
+    private readonly WorldOperationBarrier _operations = new();
+    private LegacyTradeRecoveryState? _recovery;
 
     public MsgItemOperationVendorTests()
     {
@@ -313,9 +316,10 @@ public sealed class MsgItemOperationVendorTests : IDisposable
         Assert.Equal(550, updatedSeller.Character.Money);
         Assert.Equal(50, updatedSeller.Character.ConquerPoints);
         Assert.DoesNotContain(updatedSeller.PlayerItems.InventoryItems, item => item.Uid == listedItem.Uid);
-        Assert.Same(
-            listedItem,
-            Assert.Single(updatedBuyer.PlayerItems.InventoryItems, item => item.Uid == listedItem.Uid));
+        var receivedItem = Assert.Single(updatedBuyer.PlayerItems.InventoryItems, item => item.Uid == listedItem.Uid);
+        Assert.NotSame(listedItem, receivedItem);
+        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(Items(listedItem)),
+            PlayerItemSnapshotLoader.ToLegacyBytes(Items(receivedItem)));
         Assert.Same(
             sellerRemainder,
             Assert.Single(updatedSeller.PlayerItems.InventoryItems));
@@ -436,14 +440,25 @@ public sealed class MsgItemOperationVendorTests : IDisposable
         byte[] frameBytes,
         TextWriter log)
     {
+        _recovery ??= new(_usersRoot, _playerItemsRoot);
+        Assert.True(_recovery.TryEnsureInitialized(out var recoveryReason), recoveryReason);
         var context = new WorldPacketHandlerContext(
             connection,
             log,
             session,
             Sessions: sessions,
-            PlayerItemsRoot: _playerItemsRoot);
+            PlayerItemsRoot: _playerItemsRoot)
+        {
+            Trades = _trades,
+            TradeOperations = _operations,
+            TradeRecovery = _recovery,
+        };
 
-        await Registry.HandleAsync(context, ReadFrame(frameBytes));
+        var frame = ReadFrame(frameBytes);
+        var buy = MsgItemOperationPacket.TryParse(frame, out var packet) &&
+            packet.Action == MsgItemOperationAction.BuyVendingItem;
+        using var operation = buy ? null : await _operations.EnterSharedAsync();
+        await Registry.HandleAsync(context, frame);
     }
 
     private static ConquerTcpConnection CreateConnection(

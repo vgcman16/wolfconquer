@@ -2,7 +2,7 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-internal sealed partial class LegacyTradeItemGraph
+internal sealed partial class LegacyItemSaveGraph
 {
     internal bool IsCurrent(PlayerItemSnapshot items)
     {
@@ -74,8 +74,13 @@ internal sealed partial class LegacyTradeItemGraph
             }
         }
 
-        internal bool IsTradable(bool lockedPartner) => RowIsTradable(image, lockedPartner) &&
-            children.All(child => child.IsTradable(lockedPartner));
+        // Walk the captured topology, exposing only the already-public source rows.
+        // The private copied image/bytes are never handed to caller predicates.
+        internal bool AllSourceRows(Func<PlayerItemSnapshotItem, bool> predicate) =>
+            predicate(Source) && children.All(child => child.AllSourceRows(predicate));
+
+        internal bool AnySourceRow(Func<PlayerItemSnapshotItem, bool> predicate) =>
+            predicate(Source) || children.Any(child => child.AnySourceRow(predicate));
 
         internal bool ContainsAny(HashSet<uint> uids) => uids.Contains(image.Uid) || children.Any(child => child.ContainsAny(uids));
 
@@ -84,8 +89,5 @@ internal sealed partial class LegacyTradeItemGraph
         internal PlayerItemSnapshotItem CopyForPersistence() =>
             image.WithDepositedItems(children.Select(child => child.CopyForPersistence()).ToArray());
 
-        private static bool RowIsTradable(PlayerItemSnapshotItem row, bool lockedPartner) =>
-            row.Bound == 0 && row.Inscribed != 1 && !LegacyNativeItemRestrictions.IsUnableTradeItem(row.ItemId) &&
-            (row.Locked == 0 || lockedPartner);
     }
 }

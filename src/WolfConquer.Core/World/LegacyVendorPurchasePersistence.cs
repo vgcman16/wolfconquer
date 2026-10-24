@@ -4,7 +4,7 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-public static class LegacyVendorPurchasePersistence
+public static partial class LegacyVendorPurchasePersistence
 {
     private const string CharacterSection = "Character";
     private const string TransactionMarker = ".vendor-purchase-";
@@ -26,7 +26,7 @@ public static class LegacyVendorPurchasePersistence
         lock (PersistenceGate)
         {
             return TryPersistCore(originalFirst, updatedFirst, originalSecond, updatedSecond,
-                playerItemsRoot, out reason, validateLocked, durableTrade: true);
+                playerItemsRoot, out reason, validateLocked, mode: PersistenceMode.Trade);
         }
     }
 
@@ -63,7 +63,7 @@ public static class LegacyVendorPurchasePersistence
         string? playerItemsRoot,
         out string reason,
         Func<bool>? validateLocked = null,
-        bool durableTrade = false)
+        PersistenceMode mode = PersistenceMode.Compatibility)
     {
         reason = string.Empty;
         if (!TryValidateSessionPair(
@@ -139,7 +139,7 @@ public static class LegacyVendorPurchasePersistence
                 updatedSeller,
                 normalizedPlayerItemsRoot,
                 out lockedReason,
-                durableTrade);
+                mode);
             });
         reason = lockedReason;
         return persisted;
@@ -154,7 +154,7 @@ public static class LegacyVendorPurchasePersistence
         WorldSession updatedSeller,
         string normalizedPlayerItemsRoot,
         out string reason,
-        bool durableTrade)
+        PersistenceMode mode)
     {
         reason = string.Empty;
         if (!TryPrepareCharacterUpdate(
@@ -164,7 +164,7 @@ public static class LegacyVendorPurchasePersistence
                 out var buyerCharacterLines,
                 out var buyerCharacterEncoding,
                 out reason,
-                durableTrade) ||
+                clearTradeClaim: mode == PersistenceMode.Trade) ||
             !TryPrepareCharacterUpdate(
                 "seller",
                 sellerCharacterPath,
@@ -172,7 +172,7 @@ public static class LegacyVendorPurchasePersistence
                 out var sellerCharacterLines,
                 out var sellerCharacterEncoding,
                 out reason,
-                durableTrade))
+                clearTradeClaim: mode == PersistenceMode.Trade))
         {
             return false;
         }
@@ -190,35 +190,14 @@ public static class LegacyVendorPurchasePersistence
             return false;
         }
 
-        if (durableTrade)
+        if (mode != PersistenceMode.Compatibility)
         {
-            // Trade additionally consumes durable escrow claims. A write-ahead
-            // record makes a crash between these four replacements replayable.
-            var usersRoot = System.IO.Path.GetDirectoryName(buyerCharacterPath)!;
-            if (!PathsEqual(usersRoot, System.IO.Path.GetDirectoryName(sellerCharacterPath)!))
-            {
-                reason = "tradeUsersRootMismatch";
-                return false;
-            }
-            try
-            {
-                return LegacyTradeJournal.TryCommit(usersRoot, normalizedPlayerItemsRoot,
-                [
-                    new(LegacyTradeJournalFileKind.Character, updatedBuyer.AccountId,
-                        File.ReadAllBytes(buyerCharacterPath), EncodeTradeCharacterLines(buyerCharacterLines, buyerCharacterEncoding)),
-                    new(LegacyTradeJournalFileKind.Character, updatedSeller.AccountId,
-                        File.ReadAllBytes(sellerCharacterPath), EncodeTradeCharacterLines(sellerCharacterLines, sellerCharacterEncoding)),
-                    new(LegacyTradeJournalFileKind.Items, updatedBuyer.Character.Uid,
-                        PlayerItemSnapshotFilePersistence.ReadAllBytesIfExists(buyerItemPath), buyerItemBytes),
-                    new(LegacyTradeJournalFileKind.Items, updatedSeller.Character.Uid,
-                        PlayerItemSnapshotFilePersistence.ReadAllBytesIfExists(sellerItemPath), sellerItemBytes),
-                ], out reason);
-            }
-            catch (Exception ex) when (IsPersistenceException(ex))
-            {
-                reason = "tradeJournalPreparation:" + ex.GetType().Name;
-                return false;
-            }
+            return TryPersistJournal(
+                new(buyerCharacterPath, buyerItemPath, updatedBuyer, buyerCharacterLines,
+                    buyerCharacterEncoding, buyerItemBytes),
+                new(sellerCharacterPath, sellerItemPath, updatedSeller, sellerCharacterLines,
+                    sellerCharacterEncoding, sellerItemBytes),
+                normalizedPlayerItemsRoot, mode, out reason);
         }
 
         var transactionId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);

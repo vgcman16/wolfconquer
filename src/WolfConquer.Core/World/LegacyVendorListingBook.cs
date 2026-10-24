@@ -92,7 +92,7 @@ public sealed class LegacyVendorListingBook
             return Rejected(LegacyVendorListingFailure.NonTradableItem);
         }
 
-        if (item.Bound == 1)
+        if (item.Bound != 0)
         {
             return Rejected(LegacyVendorListingFailure.BoundItem);
         }

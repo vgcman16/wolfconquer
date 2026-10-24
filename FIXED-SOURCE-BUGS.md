@@ -1353,6 +1353,44 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-076: Validate and durably settle complete player-booth purchases
+
+- Root-only booth admission allowed restricted deposited children, descendant UID
+  collisions and malformed save tails. Independent session publication could
+  overwrite an awaited ordinary writer or a stale item/wallet file; transferred
+  children retained mutable seller aliases. Pending escrow could be overwritten.
+- Reuse the existing complete save-graph capture; keep Trade's locked-partner
+  permission separate from booth policy. Validate transferred roots/children at
+  listing and purchase, including current Anima authorization. Nonzero Bound is
+  forbidden; Inscribed2 compatibility and unrelated bound stock remain legal.
+- Buy takes the real exclusive world-operation lease before lookup. Valid D11/D13
+  Frame buys narrowly skip their outer shared lease. Prepare detached item rows
+  and original six response frames, then use real participant identities, ordered
+  pair CAS, baseline checks and the existing four-file v1 journal. Vendor mode
+  requires absent escrow instead of using Trade's claim-clearing policy.
+- Preserve 64-bit positive account-file IDs and 32-bit character wire UIDs. Recheck
+  complete graph/attributes/permissions under the real commit locks. Send faults
+  after commitment propagate without refund/resale; uncertain durable outcomes
+  retain the journal and fence recovery rather than claiming unchanged files.
+- Tests-first: initial7564 measured8passed/15failed of23. Settlement21158 measured
+  12passed/25failed of37; exact TRX counters/outcomes were read. These are failing
+  cases, not25 distinct bugs. First integration31702/78453 failed compilation on a
+  missing Data import in the new journal partial; no test execution from those runs.
+  The import is corrected. First executed integration47729 measured83passed/3failed
+  of86: all37 new cases passed. Only two obsolete Bound2 acceptance assertions and
+  the old D11 received-row alias assertion failed. Those now require rejection or
+  detached full-byte equality; unrelated-row references, six packets, four files
+  and exact economics remain. The pure planner's alias contract stays unchanged.
+  Broad41883 passed **706/706**,0failed/skipped,9s; actual terminal TRX counters and
+  outcome groups were read, including all41new booth cases. Four genuine registered
+  PIN controls cover protected descendants, actual creation/activation and PIN
+  creation after listing requiring current authorization at purchase. Registered
+  Frame and sharing-failure/retry controls pass with retained Trade journal/recovery,
+  vendor, item-loader, Warehouse and PIN regression families. Public CI is pending.
+- Limits: offline cooperating-writer managed paths only. Live client, SQL, complete
+  native host, global UID ownership, raw-alias/ABA, hostile filesystem, multiprocess/
+  power-loss and durable notification delivery are not established by this batch.
+
 ### FSB-075: Validate complete Trade item closures before transfer or escrow
 
 - Source: registered Trade Exchange/Persistence and Warehouse.Sash, corresponding

@@ -5,7 +5,7 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private static bool ValidLegacyTradeOffers(WorldPacketHandlerContext context, LegacyTradeParty party,
-        LegacyTradeItemGraph graph)
+        LegacyItemSaveGraph graph)
     {
         foreach (var pair in party.Items)
         {
@@ -17,14 +17,18 @@ public static partial class WorldPacketHandlers
     }
 
     private static bool IsLegacyTradeClosureTradable(WorldPacketHandlerContext context, LegacyTradeParty party,
-        LegacyTradeItemGraph.Closure closure) => closure.IsTradable(lockedPartner: false) ||
-        closure.IsTradable(lockedPartner: true) && HasLegacyTradeRelation(context, party.Uid, party.Other.Uid, 3);
+        LegacyItemSaveGraph.Closure closure) => LegacyTradeClosureAllows(closure, lockedPartner: false) ||
+        LegacyTradeClosureAllows(closure, lockedPartner: true) && HasLegacyTradeRelation(context, party.Uid, party.Other.Uid, 3);
 
-    private static bool LegacyTradeHasUidCollision(LegacyTradeItemGraph recipient, LegacyTradeParty sender) =>
+    private static bool LegacyTradeClosureAllows(LegacyItemSaveGraph.Closure closure, bool lockedPartner) =>
+        closure.AllSourceRows(row => row.Bound == 0 && row.Inscribed != 1 &&
+            !LegacyNativeItemRestrictions.IsUnableTradeItem(row.ItemId) && (row.Locked == 0 || lockedPartner));
+
+    private static bool LegacyTradeHasUidCollision(LegacyItemSaveGraph recipient, LegacyTradeParty sender) =>
         sender.Items.Values.Any(offer => recipient.ContainsAny(offer.Closure));
 
     private static bool ValidateLegacyTradeExchangeOffers(WorldPacketHandlerContext context, LegacyTradeParty? party,
-        LegacyTradeItemGraph firstItems, LegacyTradeItemGraph secondItems, out string reason)
+        LegacyItemSaveGraph firstItems, LegacyItemSaveGraph secondItems, out string reason)
     {
         reason = string.Empty;
         // Refunds do not transfer items and must not require permission to trade them.
@@ -34,18 +38,18 @@ public static partial class WorldPacketHandlers
         return false;
     }
 
-    private static bool TryUseLegacyTradeItemGraph(PlayerItemSnapshot items, LegacyTradeItemGraph? expected,
-        out LegacyTradeItemGraph graph)
+    private static bool TryUseLegacyTradeItemGraph(PlayerItemSnapshot items, LegacyItemSaveGraph? expected,
+        out LegacyItemSaveGraph graph)
     {
-        if (expected is null) return LegacyTradeItemGraph.TryCapture(items, out graph);
+        if (expected is null) return LegacyItemSaveGraph.TryCapture(items, out graph);
         graph = expected;
         return graph.IsCurrent(items);
     }
 
-    private static bool ValidateLegacyTradeItemGraphs(WorldSession first, LegacyTradeItemGraph firstItems,
-        WorldSession updatedFirst, LegacyTradeItemGraph updatedFirstItems,
-        WorldSession second, LegacyTradeItemGraph secondItems,
-        WorldSession updatedSecond, LegacyTradeItemGraph updatedSecondItems, out string reason)
+    private static bool ValidateLegacyTradeItemGraphs(WorldSession first, LegacyItemSaveGraph firstItems,
+        WorldSession updatedFirst, LegacyItemSaveGraph updatedFirstItems,
+        WorldSession second, LegacyItemSaveGraph secondItems,
+        WorldSession updatedSecond, LegacyItemSaveGraph updatedSecondItems, out string reason)
     {
         reason = string.Empty;
         if (firstItems.IsCurrent(first.PlayerItems) && updatedFirstItems.IsCurrent(updatedFirst.PlayerItems) &&

@@ -24,8 +24,8 @@ public static partial class WorldPacketHandlers
         WorldSession own, WorldSession other, LegacyTradePacket packet, List<LegacyTradeSend> sends)
     {
         if (packet.ItemUID is 0 or > uint.MaxValue) return "invalidItemUid";
-        if (!LegacyTradeItemGraph.TryCapture(own.PlayerItems, out var ownItems) ||
-            !LegacyTradeItemGraph.TryCapture(other.PlayerItems, out var otherItems)) return "tradeItemGraphInvalid";
+        if (!LegacyItemSaveGraph.TryCapture(own.PlayerItems, out var ownItems) ||
+            !LegacyItemSaveGraph.TryCapture(other.PlayerItems, out var otherItems)) return "tradeItemGraphInvalid";
         if (!ownItems.TryGetInventory((uint)packet.ItemUID, out var closure)) return "missingOrAmbiguousInventoryItem";
         var item = closure.Source;
         if (!IsLegacyTradeClosureTradable(context, party, closure))
@@ -66,8 +66,8 @@ public static partial class WorldPacketHandlers
     {
         // Currency escrow must remain refundable through the complete real item owner.
         // This is save validity only: unrelated bound/locked items are permitted.
-        if (!LegacyTradeItemGraph.TryCapture(own.PlayerItems, out var ownItems) ||
-            !LegacyTradeItemGraph.TryCapture(other.PlayerItems, out var otherItems)) return "tradeItemGraphInvalid";
+        if (!LegacyItemSaveGraph.TryCapture(own.PlayerItems, out var ownItems) ||
+            !LegacyItemSaveGraph.TryCapture(other.PlayerItems, out var otherItems)) return "tradeItemGraphInvalid";
         if (packet.Money < 0 || own.Character.Money < 0 || own.Character.ConquerPoints is < 0 or > uint.MaxValue)
             return "invalidCurrency";
         var money = packet.Type == 7;
@@ -138,8 +138,8 @@ public static partial class WorldPacketHandlers
 
         // Never serialize a malformed graph to manufacture a refund. Cancel/disconnect
         // use the same structural guard at the persistence boundary and retain escrow too.
-        if (!LegacyTradeItemGraph.TryCapture(own.PlayerItems, out var ownItems) ||
-            !LegacyTradeItemGraph.TryCapture(other.PlayerItems, out var otherItems))
+        if (!LegacyItemSaveGraph.TryCapture(own.PlayerItems, out var ownItems) ||
+            !LegacyItemSaveGraph.TryCapture(other.PlayerItems, out var otherItems))
         {
             party.ResetConfirmations();
             TradeMessage(sends, party.Connection, party.Uid, "Trade item state is invalid; escrow is retained.");

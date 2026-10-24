@@ -61,7 +61,7 @@ public sealed class LegacyVendorListingBookTests
     [InlineData(2, 0)]
     [InlineData(0, 2)]
     [InlineData(2, 2)]
-    public void TryAddDoesNotBroadenBoundOrInscribedSentinelChecks(int bound, int inscribed)
+    public void TryAddRejectsNonzeroBoundButPreservesInscribedTwoCompatibility(int bound, int inscribed)
     {
         var book = new LegacyVendorListingBook();
 
@@ -73,8 +73,17 @@ public sealed class LegacyVendorListingBookTests
             LegacyVendorListingCostMode.Gold,
             1);
 
-        Assert.True(result.Added);
-        Assert.Single(result.Book.Listings);
+        if (bound != 0)
+        {
+            AssertRejectedWithoutMutation(result, book, [], LegacyVendorListingFailure.BoundItem);
+        }
+        else
+        {
+            Assert.True(result.Added);
+            Assert.Equal(LegacyVendorListingFailure.None, result.Failure);
+            Assert.Single(result.Book.Listings);
+            Assert.Empty(book.Listings);
+        }
     }
 
     [Theory]
