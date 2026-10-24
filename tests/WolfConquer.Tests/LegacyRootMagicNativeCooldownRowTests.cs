@@ -5,42 +5,39 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyMagicAttackRuntimeTests
 {
     [Fact]
-    public async Task RootMagicEntryNativeZeroCooldownMutationBelongsToHeldCatalogRowAcrossPublicCasts()
+    public async Task RootMagicEntryNativeZeroCooldownStaysImmutableAcrossPublicCasts()
     {
         await using var fixture = new RootMagicEntryFixture();
-        var held = fixture.NativeRow(1_000); // Observer only: no setter or result seed.
+        var held = fixture.NativeRow(1_000);
+        var fields = held.Source.Fields.ToArray();
         Assert.Equal((ushort)0, held.CoolDown);
         Assert.True(LegacyMagicRuntime.TryResolveSpell(fixture.WorldData, 1_000, 0, out var priorDto));
         Assert.Equal((ushort)0, priorDto.CoolDown);
         await fixture.CastAsync(1_000);
-        Assert.Equal((ushort)500, held.CoolDown);
+        Assert.Equal((ushort)0, held.CoolDown);
         Assert.Same(held, fixture.NativeRow(1_000));
-        Assert.Equal("0", held.Source.Fields[33]); // Loaded input bytes are not rewritten.
-        Assert.Equal((ushort)0, priorDto.CoolDown); // Immutable transport snapshot is not live authority.
+        Assert.Equal(fields, held.Source.Fields);
+        Assert.Equal("0", held.Source.Fields[33]);
+        Assert.Equal((ushort)0, priorDto.CoolDown);
         fixture.AssertProducedStamp(RootMagicEntryOrigin);
         fixture.Advance(TimeSpan.FromMilliseconds(500));
         await fixture.CastAsync(1_000);
         fixture.AssertProducedStamp(RootMagicEntryOrigin.AddMilliseconds(500));
-        Assert.Equal((ushort)500, held.CoolDown);
+        Assert.Equal((ushort)0, held.CoolDown);
         Assert.Equal("80", fixture.Owner.Character.Attributes["Stamina"]);
         Assert.Equal(920L, fixture.Owner.Character.MinMana);
     }
 
     [Theory]
-    [InlineData((ushort)0, (ushort)500)]
-    [InlineData((ushort)1_500, (ushort)2_500)]
-    public async Task RootMagicEntryNativeCooldownWritesPrecedeFailedResourceCheck(
-        ushort input, ushort expected)
+    [InlineData((ushort)0)]
+    [InlineData((ushort)1_500)]
+    public async Task RootMagicEntryNativeCooldownAndOwnerAreUntouchedByFailedResourceCheck(ushort input)
     {
         await using var fixture = new RootMagicEntryFixture(rawCadence: input, stamina: 9);
-        var held = fixture.NativeRow(1_000);
-        Assert.Equal(input, held.CoolDown);
-        var start = fixture.Order.Count;
+        var before = fixture.CaptureAdmission();
         await fixture.CastAsync(1_000);
-        Assert.Equal(expected, held.CoolDown);
-        fixture.AssertProducedStamp(RootMagicEntryOrigin);
-        Assert.Empty(RootMagicEntryCosts(fixture.FramesSince(PlayerUid, start)));
-        Assert.Empty(ParseSpellAnimations(fixture.FramesSince(PlayerUid, start)));
+        fixture.AssertAdmissionRejected(before);
+        Assert.Equal(input, fixture.NativeRow(1_000).CoolDown);
         Assert.Equal("9", fixture.Owner.Character.Attributes["Stamina"]);
         Assert.Equal(1_000L, fixture.Owner.Character.MinMana);
         Assert.Equal(100_000L, fixture.Peer.Character.MinHitPoints);
@@ -70,44 +67,43 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Theory]
-    [InlineData((ushort)0, (ushort)500)]
-    [InlineData((ushort)1_500, (ushort)1_500)]
-    public async Task RootMagicEntrySpecial1115EarlyDenialOnlyOwnsPriorZeroNormalization(
-        ushort input, ushort expected)
+    [InlineData((ushort)0)]
+    [InlineData((ushort)1_500)]
+    public async Task RootMagicEntrySpecial1115EarlyDenialNeverNormalizesCatalog(ushort input)
     {
         await using var fixture = new RootMagicEntryFixture(rawCadence: input, nativeCadenceControls: true);
-        await fixture.CastAsync(1_000); // Real earlier public cast creates the only cadence stamp.
+        await fixture.CastAsync(1_000);
         fixture.AssertProducedStamp(RootMagicEntryOrigin);
         var held = fixture.NativeRow(1_115);
         Assert.Equal(input, held.CoolDown);
         fixture.Advance(TimeSpan.FromMilliseconds(500)); // Strictly before source1115's800ms early check.
-        var start = fixture.Order.Count;
+        var before = fixture.CaptureAdmission(1_115);
         await fixture.CastAsync(1_115);
-        Assert.Equal(expected, held.CoolDown);
+        fixture.AssertAdmissionRejected(before);
+        Assert.Equal(input, held.CoolDown);
         fixture.AssertProducedStamp(RootMagicEntryOrigin);
-        Assert.Empty(RootMagicEntryCosts(fixture.FramesSince(PlayerUid, start)));
-        Assert.DoesNotContain(ParseSpellAnimations(fixture.FramesSince(PlayerUid, start)),
-            packet => packet.SpellId == 1_115);
         Assert.Equal("90", fixture.Owner.Character.Attributes["Stamina"]);
         Assert.Equal(960L, fixture.Owner.Character.MinMana);
     }
 
     [Fact]
-    public async Task RootMagicEntryNativeCooldownMutationDoesNotLeakIntoAnotherCatalog()
+    public async Task RootMagicEntryNativeCooldownStaysImmutableAcrossSeparateCatalogs()
     {
         await using var left = new RootMagicEntryFixture(rawCadence: 1_500, stamina: 9);
         await using var right = new RootMagicEntryFixture(rawCadence: 1_500, stamina: 9);
         var heldLeft = left.NativeRow(1_000);
         var heldRight = right.NativeRow(1_000);
         Assert.NotSame(heldLeft, heldRight);
+        var beforeLeft = left.CaptureAdmission();
+        var beforeRight = right.CaptureAdmission();
+        await left.CastAsync(1_000);
+        left.AssertAdmissionRejected(beforeLeft);
+        right.AssertAdmissionRejected(beforeRight);
         Assert.Equal((ushort)1_500, heldLeft.CoolDown);
         Assert.Equal((ushort)1_500, heldRight.CoolDown);
-        await left.CastAsync(1_000);
-        Assert.Equal((ushort)2_500, heldLeft.CoolDown);
-        Assert.Equal((ushort)1_500, heldRight.CoolDown);
-        Assert.False(right.Owner.Character.Attributes.ContainsKey("LegacyAttackStampUtc"));
         await right.CastAsync(1_000);
-        Assert.Equal((ushort)2_500, heldRight.CoolDown);
+        left.AssertAdmissionRejected(beforeLeft);
+        right.AssertAdmissionRejected(beforeRight);
         Assert.Same(heldLeft, left.NativeRow(1_000));
         Assert.Same(heldRight, right.NativeRow(1_000));
     }

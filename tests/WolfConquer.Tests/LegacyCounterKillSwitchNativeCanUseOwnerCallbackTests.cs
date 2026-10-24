@@ -23,7 +23,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         {
             if (!CounterKillOwnerScalar(bytes, LegacyMsgUpdateDataType.Stamina, 90)) return;
             Assert.Equal(1, ++reached);
-            current.AssertBeforeColdAndToggle(current.Owner, 90, 1_000);
+            current.AssertCommittedBeforeToggle(current.Owner, 90, 960);
             retired = current.Retire(rebindSameUid);
         };
 
@@ -31,14 +31,14 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.Equal(1, reached); // A missing resource callback is NOT an ownership pass.
         Assert.NotNull(retired);
-        fixture.AssertBeforeColdAndToggle(retired, 90, 1_000); // Earlier cost is not refunded.
+        fixture.AssertCommittedBeforeToggle(retired, 90, 960); // Accepted admission is not refunded after delivery retirement.
         fixture.AssertFrames([(LegacyMsgUpdateDataType.Stamina, 90UL)], toggle: null);
         if (rebindSameUid) fixture.AssertReplacementUntouched();
         else Assert.False(fixture.TryOwner(out _));
     }
 
     [Fact]
-    public async Task NativeCounterKillStaminaSendSameClientCopyUsesFreshRuneAndPreservesChanges()
+    public async Task NativeCounterKillStaminaSendSameClientCopyCannotRepriceCommittedAdmission()
     {
         using var fixture = new CounterKillOwnerCallbackFixture();
         fixture.AssertSelection();
@@ -47,7 +47,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         {
             if (!CounterKillOwnerScalar(bytes, LegacyMsgUpdateDataType.Stamina, 90)) return;
             Assert.Equal(1, ++reached);
-            current.AssertBeforeColdAndToggle(current.Owner, 90, 1_000);
+            current.AssertCommittedBeforeToggle(current.Owner, 90, 960);
             current.CopySameClientWithEligibleMpMaster();
         };
 
@@ -56,7 +56,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal(1, reached);
         var owner = fixture.Owner;
         Assert.Equal("90", owner.Character.Attributes["Stamina"]);
-        Assert.Equal(3, owner.Character.MinMana); // Fresh7 - (40 - 90%)4, not original1000 -40.
+        Assert.Equal(7, owner.Character.MinMana); // The later input is preserved, not charged again using a new rune.
         Assert.Equal(4_444, owner.Character.MinHitPoints);
         Assert.Equal("keep-copy", owner.Character.Attributes["CounterKillOwnerControl"]);
         Assert.Equal("2", owner.Character.Attributes["Reborn"]);
@@ -65,7 +65,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal("1", owner.Character.Attributes["LegacyCounterKillActive"]);
         Assert.Equal(fixture.Now.AddMilliseconds(2_000), owner.MagicCooldowns![6_003]);
         fixture.AssertFrames([(LegacyMsgUpdateDataType.Stamina, 90UL),
-            (LegacyMsgUpdateDataType.Mana, 3UL)], toggle: true);
+            (LegacyMsgUpdateDataType.Mana, 960UL)], toggle: true); // Immutable prepared cost, not a fresh debit.
     }
 
     [Fact]
@@ -283,6 +283,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal(stamina.ToString(CultureInfo.InvariantCulture), owner.Character.Attributes["Stamina"]);
             Assert.Equal(mana, owner.Character.MinMana);
             Assert.True(owner.MagicCooldowns is null || !owner.MagicCooldowns.ContainsKey(Id));
+            Assert.False(owner.Character.Attributes.ContainsKey("LegacyCounterKillActive"));
+            Assert.False(owner.Character.Attributes.ContainsKey("LegacyAttackStampUtc"));
+        }
+
+        public void AssertCommittedBeforeToggle(WorldSession owner, ulong stamina, long mana)
+        {
+            Assert.Equal(stamina.ToString(CultureInfo.InvariantCulture), owner.Character.Attributes["Stamina"]);
+            Assert.Equal(mana, owner.Character.MinMana);
+            Assert.Equal(Now.AddMilliseconds(2_000), owner.MagicCooldowns![Id]);
             Assert.False(owner.Character.Attributes.ContainsKey("LegacyCounterKillActive"));
             Assert.False(owner.Character.Attributes.ContainsKey("LegacyAttackStampUtc"));
         }

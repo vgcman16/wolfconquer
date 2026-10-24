@@ -75,23 +75,27 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             mana: 4, runeLevel: 9, runePosition: 123);
         fixture.AssertInputs();
         Assert.False(fixture.Owner.AlternateEquipmentActive);
+        var original = fixture.Owner;
+        var originalValues = System.Text.Json.JsonSerializer.Serialize(original);
         var before = fixture.ActiveState;
         var start = fixture.FrameCount;
 
         await fixture.SwitchAsync();
 
         // The same named/level9 item exists, but only inactive-alternate slot123 owns it.
-        // Base mana37 is insufficient: native keeps the earlier stamina debit, with no toggle.
+        // Base mana37 is insufficient: reject before either resource debit or publication.
         Assert.Equal(before, fixture.ActiveState);
-        fixture.AssertResources(90, 4);
-        fixture.AssertFrames(start, [(LegacyMsgUpdateDataType.Stamina, 90UL)], toggle: null);
+        Assert.Same(original, fixture.Owner);
+        Assert.Equal(originalValues, System.Text.Json.JsonSerializer.Serialize(fixture.Owner));
+        fixture.AssertResources(100, 4);
+        fixture.AssertFrames(start, [], toggle: null);
         fixture.AssertNoColdDeadline();
     }
 
     [Theory]
     [InlineData(1_000L)]
     [InlineData(1_039L)]
-    public async Task NativeCounterKillModifiersSpendBeforeEarnedColdExceptMap1039(long map)
+    public async Task NativeCounterKillModifiersPreserveCostsOnColdRejectionIncludingMap1039(long map)
     {
         var free = map == 1_039;
         using var fixture = new CounterKillCostModifiersFixture(
@@ -112,13 +116,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         // No later assertion is claimed reached if the first public admission failed.
         fixture.Advance(TimeSpan.FromMilliseconds(1_999));
+        var original = fixture.Owner;
+        var originalValues = System.Text.Json.JsonSerializer.Serialize(original);
         var before = fixture.ActiveState;
         start = fixture.FrameCount;
         await fixture.SwitchAsync();
         Assert.Equal(before, fixture.ActiveState);
-        fixture.AssertResources(free ? 0UL : 68UL, free ? 0 : 44);
-        fixture.AssertFrames(start, free ? [] :
-            [(LegacyMsgUpdateDataType.Stamina, 68UL), (LegacyMsgUpdateDataType.Mana, 44UL)], toggle: null);
+        Assert.Same(original, fixture.Owner);
+        Assert.Equal(originalValues, System.Text.Json.JsonSerializer.Serialize(fixture.Owner));
+        fixture.AssertResources(free ? 0UL : 84UL, free ? 0 : 72);
+        fixture.AssertFrames(start, [], toggle: null);
         fixture.AssertColdDeadline(origin.AddMilliseconds(2_000)); // Denial cannot renew it.
 
         fixture.Advance(TimeSpan.FromMilliseconds(1));
@@ -126,9 +133,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         start = fixture.FrameCount;
         await fixture.SwitchAsync();
         fixture.AssertActive(false);
-        fixture.AssertResources(free ? 0UL : 52UL, free ? 0 : 16);
+        fixture.AssertResources(free ? 0UL : 68UL, free ? 0 : 44);
         fixture.AssertFrames(start, free ? [] :
-            [(LegacyMsgUpdateDataType.Stamina, 52UL), (LegacyMsgUpdateDataType.Mana, 16UL)], false);
+            [(LegacyMsgUpdateDataType.Stamina, 68UL), (LegacyMsgUpdateDataType.Mana, 44UL)], false);
         fixture.AssertColdDeadline(origin.AddMilliseconds(4_000));
         fixture.AssertScurvyUnchanged();
         Assert.False(fixture.Owner.Character.Attributes.ContainsKey("LegacyAttackStampUtc"));

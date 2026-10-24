@@ -117,14 +117,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                         return ValueTask.CompletedTask;
                     var current = Owner;
                     Assert.Equal(89UL, ulong.Parse(current.Character.Attributes["Stamina"], CultureInfo.InvariantCulture));
-                    if (boundary == "stamina") Assert.Equal(500L, current.Character.MinMana);
-                    else Assert.Equal(463L, current.Character.MinMana);
+                    // Every resource-send callback observes the complete admitted
+                    // resource/deadline image, even though wire order remains stamina then mana.
+                    Assert.Equal(463L, current.Character.MinMana);
+                    var enteredCooldowns = Assert.IsAssignableFrom<IReadOnlyDictionary<ushort, DateTimeOffset>>(current.MagicCooldowns);
+                    Assert.Equal(context.TimeProvider!.GetUtcNow().AddMilliseconds(4_000), enteredCooldowns[spellId]);
+                    Assert.Equal(SentinelDeadline, enteredCooldowns[UnrelatedCooldown]);
+                    Assert.Equal(2, enteredCooldowns.Count);
                     if (boundary == "interaction")
                     {
-                        var enteredCooldowns = Assert.IsAssignableFrom<IReadOnlyDictionary<ushort, DateTimeOffset>>(current.MagicCooldowns);
-                        Assert.True(enteredCooldowns.ContainsKey(spellId));
-                        Assert.Equal(SentinelDeadline, enteredCooldowns[UnrelatedCooldown]);
-                        Assert.Equal(2, enteredCooldowns.Count);
                         Assert.False(HasLegacyStatusFlag(current.Character.Attributes, 227));
                         Assert.DoesNotContain(OwnerFrames, frame => LegacyPlayerStatusPacket.TryParse(ReadFrame(frame), out _));
                     }

@@ -7215,16 +7215,19 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.NotNull(immediateSession);
         Assert.Equal(493, immediateSession.Character.MinMana);
         Assert.Equal(firstCastSession.MagicCooldowns[ThunderSpellId], immediateSession.MagicCooldowns![ThunderSpellId]);
-        // At the fixture's native1000ms equality root cadence passes, then CanUse pays before rejecting ColdTime.
+        // Cadence equality cannot authorize a cost while the independently earned cold deadline is active.
+        var beforeBlocked = System.Text.Json.JsonSerializer.Serialize(immediateSession);
         clock.Advance(TimeSpan.FromMilliseconds(1_000));
         await PacketHandlers.HandleAsync(context with { Session = immediateSession }, frame);
 
-        Assert.Equal(frameCountAfterFirstCast + 1, sent.Count);
+        Assert.Equal(frameCountAfterFirstCast, sent.Count);
         Assert.Equal(spellAnimationCountAfterFirstCast, ParseSpellAnimations(sent).Count);
         Assert.Empty(ParseMagicColdTimePackets(sent));
         Assert.True(sessions.TryGet(connection, out var blockedSession));
         Assert.NotNull(blockedSession);
-        Assert.Equal(486, blockedSession.Character.MinMana);
+        Assert.Same(immediateSession, blockedSession);
+        Assert.Equal(beforeBlocked, System.Text.Json.JsonSerializer.Serialize(blockedSession));
+        Assert.Equal(493, blockedSession.Character.MinMana);
         Assert.Equal(firstCastSession.MagicCooldowns[ThunderSpellId], blockedSession.MagicCooldowns![ThunderSpellId]);
         Assert.Contains("cooldownRemainingMs=", log.ToString());
     }
@@ -19954,7 +19957,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         IReadOnlyList<MagicEffect>? magicEffects = null,
         IReadOnlyList<CombatGear>? combatGear = null,
         IReadOnlyList<JiangHuAttribute>? jiangHuAttributes = null,
-        IReadOnlyList<CollectionRewardTier>? collectionRewardTiers = null)
+        IReadOnlyList<CollectionRewardTier>? collectionRewardTiers = null,
+        IReadOnlyList<GouyuType>? gouyuTypes = null)
     {
         if (magicRows.Count == 0)
         {
@@ -19992,7 +19996,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             fateExperience: [],
             spiritRates: [],
             hundredWeapons: [],
-            gouyuTypes: [],
+            gouyuTypes: gouyuTypes ?? [],
             gouyuImmortals: gouyuImmortals ?? [],
             specialEffectAttributes: [],
             daoqiDictTypes: daoqiDictTypes ?? [],

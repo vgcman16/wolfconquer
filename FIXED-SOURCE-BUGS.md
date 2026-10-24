@@ -1325,6 +1325,44 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-071: Prepare shared root/CounterKill/Rise admission before commitment
+
+- Reference: matching community MsgAttackPacket.ProcescMagic and
+  AttackHandler.CheckAttack.CanUseSpell.Verified. The old local Entry normalized
+  shared native cooldown rows, stamped and ran item effects before later refusal.
+  Its shared CanUse spent stamina before mana refusal and both costs before cold
+  refusal. Source also permitted negative/wrapped cold arithmetic.
+- Tests-only RED58227:32 new registered root cases =8passed/24failed,0skipped,1s.
+  RED11445 adds2 genuine direct Rise-consumer cases:34=8passed/26failed,0skip,1s.
+  Most failures occur at the first unchanged-owner reference assertion; later
+  full-value/wire assertions on those rows were not reached. Two caster cases
+  directly fail shared catalog-value assertions. Production was unchanged.
+- After complete caller/source review, root integrated nine focused production
+  paths: pure local cadence/metadata/range/cost/MP preparation, actual holder
+  generation plus exact-session CAS, then source-order prepared publication.
+  Complete costs/deadline/stamp/token are staged before gameplay mutation.
+  Optional MPMaster is skipped for zero mana; valid MP rescue remains intended.
+- Old partial-debit/catalog-mutation tests are migrated without removing rows or
+  successful wire goldens. Cost callbacks now see the complete admitted image;
+  prepared notifications do not reprice or overwrite later same-client changes.
+  Focused Release78562 passed365/365,0failed/0skipped,10s. The34 new rejection
+  cases and331 retained cases pass. Additional34 metadata/zero-cost and2 actual
+  Store component controls pass in combined74649:401/401,0fail/skip,12s. The first
+  addendum attempt5522 stopped at one missing test namespace import (no tests
+  ran); root added that import, not a production or assertion workaround.
+  No public verification claim for this batch yet.
+- The34 additional boundary controls include9 registered6003 cases and25 exact
+  private-component sigil cases retaining real sorts90/21 and parsed metadata,
+  not invented dispatcher routes. Real Store controls prove same-record reinsertion
+  retires captured generation, and an observer FormatException after publication
+  propagates with complete costs/deadline committed, not null rejection/refund.
+  UTC maximum has exact accepted/refused representability controls; no all-zone claim.
+- Limits: no-Store local compatibility is explicitly nontransactional. Raw
+  in-place writers, outer Focused/Intensify/Ride policies, later target/effect/
+  clock/executor faults, delivery, SQL and durable whole-cast safety remain open.
+  Real draws are not rolled back; a postcommit fault is not an unspent rejection.
+  CodeFactor originally reported complexity here, not this gameplay diagnosis.
+
 ### FSB-069: Bound quest structures before allocation and load before expiry writes
 
 - Former PlayerQuestSnapshotLoader.Parse allocated the declared row array before

@@ -178,24 +178,20 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Theory]
     [InlineData("range")]
     [InlineData("stamina")]
-    public async Task RootManualItemPrefixRetainsEarlierEffectsWhenLaterNativeAdmissionFails(string denial)
+    public async Task RootManualItemPrefixCannotRunBeforeKnownRangeOrStaminaRefusal(string denial)
     {
         await using var fixture = new RootMagicEntryFixture(mana: 100, stamina: denial == "stamina" ? 9UL : 100UL,
             itemEffects: new(RingEffect: 1, NeckEffect: 200));
         await fixture.QueryRootItemEffectsAsync();
-        var start = fixture.Order.Count;
+        var before = fixture.CaptureAdmission();
         await fixture.CastAsync(1_000, target: denial == "range" ? 9_999_998U : TargetPlayerUid);
-        fixture.AssertProducedStamp(fixture.Now);
-        Assert.Equal(400L, fixture.Owner.Character.MinMana);
+        fixture.AssertAdmissionRejected(before);
+        Assert.Equal(100L, fixture.Owner.Character.MinMana);
         Assert.Equal(denial == "stamina" ? "9" : "100", fixture.Owner.Character.Attributes["Stamina"]);
-        Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 9));
-        Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 8));
-        Assert.Equal(new[] { (LegacyMsgUpdateDataType.Mana, 400UL) },
-            RootMagicEntryCosts(fixture.FramesSince(PlayerUid, start)));
+        Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 9));
+        Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 8));
+        Assert.Equal((ushort)0, fixture.Owner.LegacyRandomSpell);
         Assert.Equal(100_000L, fixture.Peer.Character.MinHitPoints);
-        var animations = ParseSpellAnimations(fixture.FramesSince(PlayerUid, start));
-        Assert.Equal(new ushort[] { 1_175, 1_095, 1_020 }, animations.Select(packet => packet.SpellId).ToArray());
-        Assert.DoesNotContain(animations, packet => packet.SpellId == 1_000);
     }
 
     [Theory]
@@ -268,7 +264,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task RootManualUnrelatedTargetLossStillOwesOwnItemPrefixBeforeOriginalRangeRejection(bool rebind)
+    public async Task RootManualTargetRetirementAfterAdmissionKeepsCommittedCostsAndOwnedPrefix(bool rebind)
     {
         var armed = false;
         var entered = false;
@@ -288,8 +284,14 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         await fixture.CastAsync(1_000);
         armed = false;
         Assert.True(entered);
-        Assert.Equal(400L, fixture.Owner.Character.MinMana);
-        Assert.Equal("100", fixture.Owner.Character.Attributes["Stamina"]);
+        Assert.Equal(360L, fixture.Owner.Character.MinMana);
+        Assert.Equal("90", fixture.Owner.Character.Attributes["Stamina"]);
+        Assert.Equal(new[]
+        {
+            (LegacyMsgUpdateDataType.Mana, 400UL),
+            (LegacyMsgUpdateDataType.Stamina, 90UL),
+            (LegacyMsgUpdateDataType.Mana, 360UL),
+        }, RootMagicEntryCosts(fixture.FramesSince(PlayerUid, start)));
         Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 9));
         Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 8));
         Assert.Equal(new ushort[] { 1_175, 1_095, 1_020 },
@@ -300,7 +302,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal(100_000L, Assert.IsType<WorldSession>(replacement).Character.MinHitPoints);
         }
         else Assert.Null(fixture.RootItemEffectSlot(TargetPlayerUid));
-        // Fresh visible replacement may legitimately receive captured prefix traffic; no primary-target cancellation is invented.
+        // The target was valid at admission. Later retirement is not rollback authority for already committed costs.
+        // Fresh visible replacements may receive captured prefix traffic; no full-cast transaction is asserted.
     }
 
     private static bool RootManualItemScalar(byte[] bytes, LegacyMsgUpdateDataType type, ulong value) =>

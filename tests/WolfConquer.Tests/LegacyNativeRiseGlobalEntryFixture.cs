@@ -11,7 +11,7 @@ namespace WolfConquer.Tests;
 
 public sealed partial class LegacyMagicAttackRuntimeTests
 {
-    private sealed class NativeRiseGlobalEntryFixture : IDisposable
+    private sealed partial class NativeRiseGlobalEntryFixture : IDisposable
     {
         private const ushort Rise = 15_440;
         private const ushort SentinelSpell = 60_000;
@@ -75,14 +75,17 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     if (!armed || mutation is null || !Scalar(bytes, LegacyMsgUpdateDataType.Mana, 800) ||
                         Interlocked.CompareExchange(ref callbackCount, 1, 0) != 0) return ValueTask.CompletedTask;
                     var current = Owner;
-                    Assert.Equal("100", current.Character.Attributes["Stamina"]);
-                    Assert.Equal(800L, current.Character.MinMana);
+                    // MP800 remains the first wire update, but the accepted
+                    // entry already committed its complete 500+300-37/100-11 image.
+                    Assert.Equal("89", current.Character.Attributes["Stamina"]);
+                    Assert.Equal(763L, current.Character.MinMana);
                     Assert.Equal(Now.ToString("O", CultureInfo.InvariantCulture),
                         current.Character.Attributes["LegacyAttackStampUtc"]);
                     Assert.False(HasLegacyStatusFlag(current.Character.Attributes, 227));
                     var cooldowns = Assert.IsAssignableFrom<IReadOnlyDictionary<ushort, DateTimeOffset>>(current.MagicCooldowns);
                     Assert.Equal(SentinelDeadline, cooldowns[SentinelSpell]);
-                    Assert.Single(cooldowns); // Prefix publication precedes the selected spell's CanUse.
+                    Assert.Equal(Now.AddMilliseconds(coldTime), cooldowns[Rise]);
+                    Assert.Equal(2, cooldowns.Count);
                     var attributes = new Dictionary<string, string>(current.Character.Attributes)
                         { ["RiseGlobalPrefixMarker"] = mutation };
                     if (mutation == "rebind")

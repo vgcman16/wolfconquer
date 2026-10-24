@@ -106,13 +106,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 0x79));
         Assert.Equal(origin.AddMilliseconds(500), fixture.Now);
         start = fixture.FrameCount;
-        await fixture.SwitchAsync(); // Same earned deadline is still future: charge then deny silently.
-        fixture.AssertResources(70, 880);
+        var original = fixture.Owner;
+        var originalValues = System.Text.Json.JsonSerializer.Serialize(original);
+        await fixture.SwitchAsync(); // The same earned deadline still refuses without spending either resource.
+        Assert.Same(original, fixture.Owner);
+        Assert.Equal(originalValues, System.Text.Json.JsonSerializer.Serialize(fixture.Owner));
+        fixture.AssertResources(80, 920);
         fixture.AssertActive(false);
         fixture.AssertCold(origin.AddMilliseconds(2_000));
-        fixture.AssertFrames(start, [(LegacyMsgUpdateDataType.Stamina, 70UL),
-            (LegacyMsgUpdateDataType.Mana, 880UL)], toggle: null);
-        Assert.Equal(8, fixture.FrameCount);
+        fixture.AssertFrames(start, [], toggle: null);
+        Assert.Equal(6, fixture.FrameCount);
     }
 
     private sealed class CounterKillBoundaryFixture : IDisposable

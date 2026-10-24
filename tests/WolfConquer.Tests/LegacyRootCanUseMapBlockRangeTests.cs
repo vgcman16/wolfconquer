@@ -61,8 +61,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(connection, out var current));
         Assert.NotNull(current);
-        Assert.Equal(RootMagicEntryOrigin.ToString("O", CultureInfo.InvariantCulture),
-            current.Character.Attributes["LegacyAttackStampUtc"]); // Native root stamp precedes CanUse range.
+        if (expectedAdmission)
+            Assert.Equal(RootMagicEntryOrigin.ToString("O", CultureInfo.InvariantCulture),
+                current.Character.Attributes["LegacyAttackStampUtc"]);
+        else
+        {
+            Assert.Same(owner, current);
+            Assert.False(current.Character.Attributes.ContainsKey("LegacyAttackStampUtc"));
+            Assert.Empty(sent);
+            Assert.Empty(peerSent);
+        }
         Assert.Equal(expectedAdmission ? 993L : 1_000L, current.Character.MinMana);
         Assert.Equal(expectedAdmission ? "95" : "100", current.Character.Attributes["Stamina"]);
         var costs = ParseMsgUpdates(sent).Where(packet => packet.Uid == PlayerUid)

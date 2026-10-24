@@ -58,27 +58,31 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task NativeCounterKillSwitchFailedManaRetainsEarlierStaminaSpendWithoutToggle()
+    public async Task NativeCounterKillSwitchFailedManaPreservesAllResourcesWithoutToggle()
     {
         using var fixture = new CounterKillCanUseFixture(mana: 20);
         fixture.AssertValidSelection();
         fixture.AssertResources(100, 20);
         fixture.AssertNoColdDeadline();
+        var original = fixture.Owner;
+        var originalValues = System.Text.Json.JsonSerializer.Serialize(original);
         var state = fixture.ActiveState;
         var start = fixture.FrameCount;
 
         await fixture.SwitchAsync();
 
         Assert.Equal(state, fixture.ActiveState);
-        fixture.AssertResources(90, 20);
-        fixture.AssertFrames(start, [(LegacyMsgUpdateDataType.Stamina, 90UL)], toggle: null);
+        Assert.Same(original, fixture.Owner);
+        Assert.Equal(originalValues, System.Text.Json.JsonSerializer.Serialize(fixture.Owner));
+        fixture.AssertResources(100, 20);
+        fixture.AssertFrames(start, [], toggle: null);
         fixture.AssertNoColdDeadline();
     }
 
     [Theory]
     [InlineData(1_000L)]
     [InlineData(1_039L)]
-    public async Task NativeCounterKillSwitchEarnedColdRejectsAfterCostsAndAdmitsExactDeadline(long map)
+    public async Task NativeCounterKillSwitchEarnedColdRejectsWithoutCostsAndAdmitsExactDeadline(long map)
     {
         var free = map == 1_039;
         using var fixture = new CounterKillCanUseFixture(map: map, coldTime: 2_000);
@@ -95,13 +99,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         fixture.AssertColdDeadline(origin.AddMilliseconds(2_000));
         // If the first real admission is RED, later cold assertions are not claimed reached.
         fixture.Advance(TimeSpan.FromMilliseconds(1_999));
+        var original = fixture.Owner;
+        var originalValues = System.Text.Json.JsonSerializer.Serialize(original);
         var before = fixture.ActiveState;
         start = fixture.FrameCount;
         await fixture.SwitchAsync();
         Assert.Equal(before, fixture.ActiveState);
-        fixture.AssertResources(free ? 100UL : 80UL, free ? 1_000 : 920);
-        fixture.AssertFrames(start, free ? [] :
-            [(LegacyMsgUpdateDataType.Stamina, 80UL), (LegacyMsgUpdateDataType.Mana, 920UL)], toggle: null);
+        Assert.Same(original, fixture.Owner);
+        Assert.Equal(originalValues, System.Text.Json.JsonSerializer.Serialize(fixture.Owner));
+        fixture.AssertResources(free ? 100UL : 90UL, free ? 1_000 : 960);
+        fixture.AssertFrames(start, [], toggle: null);
         fixture.AssertColdDeadline(origin.AddMilliseconds(2_000)); // Rejection does not renew.
 
         fixture.Advance(TimeSpan.FromMilliseconds(1));
@@ -109,9 +116,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         start = fixture.FrameCount;
         await fixture.SwitchAsync();
         fixture.AssertActive(false);
-        fixture.AssertResources(free ? 100UL : 70UL, free ? 1_000 : 880);
+        fixture.AssertResources(free ? 100UL : 80UL, free ? 1_000 : 920);
         fixture.AssertFrames(start, free ? [] :
-            [(LegacyMsgUpdateDataType.Stamina, 70UL), (LegacyMsgUpdateDataType.Mana, 880UL)], false);
+            [(LegacyMsgUpdateDataType.Stamina, 80UL), (LegacyMsgUpdateDataType.Mana, 920UL)], false);
         fixture.AssertColdDeadline(origin.AddMilliseconds(4_000));
         Assert.False(fixture.Owner.Character.Attributes.ContainsKey("LegacyAttackStampUtc"));
     }

@@ -142,9 +142,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task RootMagicEntryAttackAndDirectUnknownTargetRejectBeforeCanUseCosts(ushort id)
     {
         await using var fixture = new RootMagicEntryFixture(selectedId: id, coldTime: 1_500);
+        var before = fixture.CaptureAdmission(id);
         var start = fixture.Order.Count;
         await fixture.CastAsync(id, target: 9_999_999, x: 880);
-        fixture.AssertProducedStamp(RootMagicEntryOrigin); // Native root stamp precedes CanUse target/range.
+        fixture.AssertAdmissionRejected(before);
         Assert.Equal("100", fixture.Owner.Character.Attributes["Stamina"]);
         Assert.Equal(1_000, fixture.Owner.Character.MinMana);
         Assert.Equal(100_000, fixture.Peer.Character.MinHitPoints);
@@ -175,18 +176,18 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task RootMagicEntryNativeCostFailureRetainsRootStampAndOnlyPriorCost(
+    public async Task RootMagicEntryCostFailurePreservesStampAndAllResources(
         bool insufficientStamina)
     {
         await using var fixture = new RootMagicEntryFixture(coldTime: 1_500,
             stamina: insufficientStamina ? 5UL : 100UL, mana: insufficientStamina ? 1_000 : 20);
+        var before = fixture.CaptureAdmission();
         var start = fixture.Order.Count;
         await fixture.CastAsync(1_000);
-        fixture.AssertProducedStamp(RootMagicEntryOrigin);
-        Assert.Equal(insufficientStamina ? "5" : "90", fixture.Owner.Character.Attributes["Stamina"]);
+        fixture.AssertAdmissionRejected(before);
+        Assert.Equal(insufficientStamina ? "5" : "100", fixture.Owner.Character.Attributes["Stamina"]);
         Assert.Equal(insufficientStamina ? 1_000 : 20, fixture.Owner.Character.MinMana);
-        (LegacyMsgUpdateDataType Type, ulong Value)[] expectedCosts = insufficientStamina
-            ? [] : [(LegacyMsgUpdateDataType.Stamina, 90UL)];
+        (LegacyMsgUpdateDataType Type, ulong Value)[] expectedCosts = [];
         Assert.Equal(expectedCosts, RootMagicEntryCosts(fixture.FramesSince(PlayerUid, start)));
         Assert.Empty(ParseMagicColdTimePackets(fixture.FramesSince(PlayerUid, start)));
         Assert.True(fixture.Owner.MagicCooldowns is null || !fixture.Owner.MagicCooldowns.ContainsKey(1_000));
@@ -195,18 +196,22 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task RootMagicEntryColdRejectionOccursAfterFreshCostsWithoutRenewingColdDeadline()
+    public async Task RootMagicEntryColdRejectionPreservesPriorStampCostsAndColdDeadline()
     {
         await using var fixture = new RootMagicEntryFixture(coldTime: 2_000);
         await fixture.CastAsync(1_000);
         var ready = RootMagicEntryOrigin.AddMilliseconds(2_000);
         Assert.Equal(ready, fixture.Owner.MagicCooldowns![1_000]);
         fixture.Advance(TimeSpan.FromMilliseconds(500)); // Real next root input; NOT a seeded cooldown/stamp.
+        var before = fixture.CaptureAdmission();
         var start = fixture.Order.Count;
         var hp = fixture.Peer.Character.MinHitPoints;
         await fixture.CastAsync(1_000);
-        fixture.AssertProducedStamp(RootMagicEntryOrigin.AddMilliseconds(500));
-        fixture.AssertCostPairSince(start, 80, 920);
+        fixture.AssertAdmissionRejected(before);
+        fixture.AssertProducedStamp(RootMagicEntryOrigin);
+        Assert.Equal("90", fixture.Owner.Character.Attributes["Stamina"]);
+        Assert.Equal(960L, fixture.Owner.Character.MinMana);
+        Assert.Empty(RootMagicEntryCosts(fixture.FramesSince(PlayerUid, start)));
         Assert.Equal(ready, fixture.Owner.MagicCooldowns![1_000]);
         Assert.Equal(hp, fixture.Peer.Character.MinHitPoints);
         Assert.Empty(ParseMagicColdTimePackets(fixture.FramesSince(PlayerUid, start)));

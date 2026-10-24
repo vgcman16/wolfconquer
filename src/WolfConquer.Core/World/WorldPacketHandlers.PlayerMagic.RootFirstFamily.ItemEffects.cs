@@ -4,38 +4,22 @@ public static partial class WorldPacketHandlers
 {
     // Only the public HandlerProcess148 manual root path enters here; proc/runtime adapters stay separate.
     private static async ValueTask<WorldSession?> ApplyLegacyRootManualItemEffectsAsync(
-        WorldPacketHandlerContext context, WorldSession session, ushort originalSpellId,
+        WorldPacketHandlerContext context, WorldSession session, LegacyRootManualMpPreparation? mp,
         CancellationToken cancellationToken,
         object? expectedNativeClientIdentity = null)
     {
         var uid = session.Character.Uid;
         bool Refresh() => TryRefreshLegacyPlayerMagicResourceSession(context, uid, ref session, expectedNativeClientIdentity);
         if (!Refresh()) return null;
-        if ((LegacyPhysicalStatusOverlay.ForOwner(session).RightWeaponItemEffect ?? 0) == LegacyWeaponEffectMp &&
-            (originalSpellId == LegacyWeaponEffectMpSpellId ||
-                CheckLegacyWeaponEffectRateRoll(session.Character, LegacyWeaponEffectMpSpellId, 50)))
+        if (mp is not null)
         {
-            if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
-                    owner => owner with { LegacyRandomSpell = LegacyWeaponEffectMpSpellId },
-                    expectedNativeClientIdentity)) return null;
-            var currentMana = unchecked((ushort)session.Character.MinMana);
-            var maximumMana = LegacyPhysicalStatusOverlay.ForOwner(session).MaxMana ?? 0;
-            var restored = maximumMana > currentMana ? Math.Min(300U, maximumMana - currentMana) : 0U;
-            // EffectMP builds XY before the setter; all later recipients receive this captured packet.
-            var frame = LegacySpellAnimationPacket.ForPlayerMagic(CheckedUInt32(uid, nameof(uid)),
-                checked((ushort)session.Character.X), checked((ushort)session.Character.Y), LegacyWeaponEffectMpSpellId, 0, 0,
-                [new LegacySpellAnimationTarget(CheckedUInt32(uid, nameof(uid)), restored, true,
-                    MsgAttackEffect.None)]).ToFrameBytes();
-            var mana = unchecked((ushort)(currentMana + (ushort)restored));
-            if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
-                    owner => owner with { Character = owner.Character with { MinMana = mana } },
-                    expectedNativeClientIdentity)) return null;
-            // Runtime WorldSession is the existing post-FullLoading boundary, even when restored==0.
-            await SendScalarUpdateAsync(context with { Session = session }, session.Character,
-                LegacyMsgUpdateDataType.Mana, mana, cancellationToken).ConfigureAwait(false);
+            // Both the restored projection and final cost were committed by the
+            // exact admission CAS. This source-order prefix is presentation only;
+            // never overwrite a reentrant same-client edit with restored mana.
+            await context.Connection.SendAsync(mp.ManaFrame, cancellationToken).ConfigureAwait(false);
             if (!Refresh()) return null;
             var sent = await SendLegacyPreparationOwnedFrameAsync(
-                context with { Session = session }, session, uid, frame, cancellationToken,
+                context with { Session = session }, session, uid, mp.AnimationFrame, cancellationToken,
                 expectedNativeClientIdentity).ConfigureAwait(false);
             if (sent is null) return null;
             session = sent;

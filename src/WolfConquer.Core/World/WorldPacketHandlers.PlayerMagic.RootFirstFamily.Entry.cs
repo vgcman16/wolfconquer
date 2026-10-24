@@ -9,105 +9,64 @@ public static partial class WorldPacketHandlers
         WorldPacketHandlerContext context, WorldSession session, MsgAttackQuery query,
         LegacyMagicRuntimeSpell selected, bool ignoreAttackStamp, CancellationToken cancellationToken)
     {
-        var uid = session.Character.Uid;
-        object? nativeIdentity = null;
-        if ((selected.Sort == LegacyMagicSort.Attack && IsLegacyNativeAttackPlayerCompletion(selected.Id)) ||
-            IsLegacyNativeRiseOfTaoismRootSpell(selected))
+        if ((((selected.Sort == LegacyMagicSort.Attack && IsLegacyNativeAttackPlayerCompletion(selected.Id)) ||
+              IsLegacyNativeRiseOfTaoismRootSpell(selected)) && context.Sessions is null) ||
+            !TryCaptureLegacyRootAdmissionOwner(context, session, null, out var owner)) return null;
+        session = owner.Expected;
+        LegacyRootEntryPreparation plan = null!;
+        string reason;
+        bool prepared;
+        try
         {
-            if (context.Sessions is not { } world ||
-                !LegacyNativeClientPublication.TryCaptureIdentity(world, context.Connection, uid, out var identity))
-                return null;
-            nativeIdentity = identity;
-        }
-        bool Refresh() => TryRefreshLegacyPlayerMagicResourceSession(context, uid, ref session, nativeIdentity);
-        if (!Refresh() || context.WorldData is not { } worldData) return null;
-        // Native ProcescMagic requires the real learned book/level BEFORE passive and AttackStamp.
-        if (!LegacyMagicRuntime.TryResolveNativeLearnedSpell(
-                session.PlayerSpells, worldData, selected.Id, out _, out var rootSpell, out _))
-            return null;
-        selected = rootSpell;
-        var passive = selected.Id is >= 15_860 and <= 15_940 ||
-            (worldData.MagicEffectsById.TryGetValue((long)selected.Id * 100, out var effects) &&
-             effects.FirstOrDefault()?.DescriptionEx?.Contains("Passive", StringComparison.Ordinal) == true);
-        if (passive && session.LegacyRandomSpell != selected.Id &&
-            !HasLegacyStatusFlag(session.Character, LegacyArrowBladesFlagRegistration.WaterFlag)) return null;
-
-        var provider = context.TimeProvider ?? TimeProvider.System;
-        var now = provider.GetUtcNow();
-        var localNow = LegacyArrowBladesFlagRegistration.LocalTime(provider, now);
-        var hasStamp = TryReadLegacyPlayerAttackStamp(session.Character, out var stamp);
-        var localStamp = hasStamp ? LegacyArrowBladesFlagRegistration.LocalTime(provider, stamp) : DateTime.MinValue;
-        var milliseconds = (int)LegacyMagicRuntime.ReadNativeCoolDown(worldData, selected);
-        if (milliseconds == 0)
-        {
-            milliseconds = 500;
-            LegacyMagicRuntime.NormalizeNativeRootCoolDown(worldData, selected, 500);
-        }
-        if ((selected.Id == 1_045 && localNow < localStamp.AddMilliseconds(500)) ||
-            (selected.Id == 1_115 && localNow < localStamp.AddMilliseconds(800)) ||
-            (selected.Id == 11_110 && localNow < localStamp.AddMilliseconds(650)))
-        {
-            var specialCadence = selected.Id == 1_045 ? 500 : selected.Id == 1_115 ? 800 : 650;
-            var remaining = LegacyMagicRuntime.GetLegacyCooldownRemainingMilliseconds(
-                stamp.ToUniversalTime().AddMilliseconds(specialCadence), now);
-            await RejectLegacyRootFirstFamilyWithDiagnosticAsync(
-                    context, session, selected, $"attackStampRemainingMs={remaining}").ConfigureAwait(false);
-            return null;
-        }
-        if (!ignoreAttackStamp)
-        {
-            if (milliseconds is > 1_000 and < 3_000)
+            prepared = TryPrepareLegacyRootEntry(context, session, query, selected.Id,
+                ignoreAttackStamp, out plan, out reason);
+            // Re-read the genuine learned/native descriptor and raw-map range
+            // after fallible preparation, before exact baseline admission.
+            if (prepared && !IsLegacyRootEntryPreparationCurrent(context, session, query, plan))
             {
-                milliseconds = 2_500;
-                LegacyMagicRuntime.NormalizeNativeRootCoolDown(worldData, selected, 2_500);
+                prepared = false;
+                reason = "preparationStale";
             }
-            var cadence = selected.Id == 11_660 ? 800 : selected.Id == 11_610 ? 1_000 : milliseconds;
-            if (selected.Id is not 1_045 and not 1_046 and not 11_005 && localNow < localStamp.AddMilliseconds(cadence))
-            {
-                var remaining = LegacyMagicRuntime.GetLegacyCooldownRemainingMilliseconds(
-                    stamp.ToUniversalTime().AddMilliseconds(cadence), now);
+        }
+        catch (Exception error) when (IsLegacyRootPreparationFailure(error))
+        {
+            prepared = false;
+            reason = $"preparationInvalid={error.GetType().Name}";
+        }
+        if (!prepared)
+        {
+            if (reason.Length != 0)
                 await RejectLegacyRootFirstFamilyWithDiagnosticAsync(
-                        context, session, selected, $"attackStampRemainingMs={remaining}").ConfigureAwait(false);
-                return null;
-            }
-            if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
-                    owner => owner with { Character = WithLegacyPlayerAttackStamp(owner.Character, now) },
-                    nativeIdentity)) return null;
-            if (!Refresh()) return null;
-        }
-
-        // Native public HandlerProcess148 sets OnAutoAttack=false before ProcescMagic952-960.
-        var prefix = await ApplyLegacyRootManualItemEffectsAsync(
-            context with { Session = session }, session, selected.Id, cancellationToken, nativeIdentity).ConfigureAwait(false);
-        if (prefix is null) return null;
-        session = prefix;
-        if (nativeIdentity is not null && !Refresh()) return null;
-
-        // Pool.WeaponSpells membership is built across every level row before any invocation.
-        if (IsLegacyNativeRootWeaponSpell(worldData, selected.Id))
-        {
-            if (session.LegacyRandomSpell != selected.Id) return null;
-            if (!TryCommitLegacyPlayerMagicPreparation(context, ref session,
-                    owner => owner with { LegacyRandomSpell = 0 }, nativeIdentity)) return null;
-            if (!Refresh()) return null;
-        }
-        if (!LegacyMagicRuntime.TryResolveNativeLearnedSpell(
-                session.PlayerSpells, worldData, selected.Id, out var book, out var spell, out _))
+                    context, session, selected, reason).ConfigureAwait(false);
             return null;
-        if ((spell.Sort is LegacyMagicSort.Attack or LegacyMagicSort.DirectAttack) &&
-            !IsInLegacyRootFirstFamilyRange(context, session, query.OpponentUid, spell.Range)) return null;
-        if (spell.Level == selected.Level) spell = spell with { CoolDown = checked((ushort)milliseconds) };
-        var capture = new LegacyRootFirstFamilyInvocation(context.Connection, uid, spell.Id, book.Level,
-            book.UseSpellSoul > 0 ? book.Id : (ushort)0, NativeCanUseEntered: true, Prepared: false)
-            { NativeClientIdentity = nativeIdentity };
-        // Later producer package publishes capture.SoulSpellId HERE, before even a failed resource check.
-        // This prerequisite deliberately creates no OnSoul session field and no Jiang consumer.
-        var prepared = await TryPrepareLegacyRootFirstFamilyCanUseAsync(
-                context with { Session = session }, session, spell, cancellationToken, nativeIdentity).ConfigureAwait(false);
-        if (prepared is null) return null;
-        session = prepared;
-        if (nativeIdentity is not null && !Refresh()) return null;
-        return (session, book, spell, capture with { Prepared = true });
+        }
+
+        try
+        {
+            if (!TryCommitLegacyRootAdmission(owner, plan.Costs.Candidate, out session)) return null;
+            if (!IsLegacyRootCommittedRecordCurrent(owner, session)) return null;
+
+            // Admission is already committed. Preserve successful MP -> Ring ->
+            // Neck -> stamina -> mana wire order, without repricing costs after
+            // observer edits/retirements in those later publication phases.
+            var prefix = await ApplyLegacyRootManualItemEffectsAsync(
+                context with { Session = session }, session, plan.Mp,
+                cancellationToken, owner.Identity).ConfigureAwait(false);
+            if (prefix is null) return null; // Accepted admission; no speculative refund.
+            var published = await PublishLegacyRootAcceptedCostsAsync(
+                context, owner, prefix, plan.Costs.Frames, cancellationToken).ConfigureAwait(false);
+            if (published is null) return null; // Accepted, publication stopped on retirement.
+            var capture = new LegacyRootFirstFamilyInvocation(context.Connection, session.Character.Uid,
+                plan.EffectiveSpell.Id, plan.Book.Level,
+                plan.Book.UseSpellSoul > 0 ? plan.Book.Id : (ushort)0,
+                NativeCanUseEntered: true, Prepared: true) { NativeClientIdentity = owner.Identity };
+            return (published, plan.Book, plan.EffectiveSpell, capture);
+        }
+        catch (Exception error) when (owner.CommitAttempted || owner.Committed)
+        {
+            await ReportLegacyRootAdmissionFaultAsync(context, owner, error).ConfigureAwait(false);
+            throw;
+        }
     }
 
     private static bool IsLegacyNativeRootWeaponSpell(WorldDataCatalog worldData, ushort spellId) =>

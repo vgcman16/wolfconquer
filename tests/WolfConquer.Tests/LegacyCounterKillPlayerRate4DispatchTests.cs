@@ -16,7 +16,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [InlineData(1_000L, 0x3B, true, 100, 1_000, 1, 0)]
     [InlineData(1_000L, 0, false, 100, 1_000, 1, 0)]
     [InlineData(1_000L, 0, true, 9, 1_000, 1, 0)]
-    [InlineData(1_000L, 0, true, 100, 39, 1, 1)]
+    [InlineData(1_000L, 0, true, 100, 39, 1, 0)]
     public async Task CounterKillRate4DeclaredGatesHaveNativeDrawAndWireOrder(
         long map, int flag, bool hasBook, int stamina, int mana, int draws, int frames)
     {
@@ -32,7 +32,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.False(fixture.Owner.Character.Attributes.ContainsKey("LegacyCounterKillActive"));
         Assert.Null(fixture.Owner.MagicCooldowns);
         Assert.Equal(mana, fixture.Owner.Character.MinMana);
-        Assert.Equal((mana == 39 ? 90 : stamina).ToString(CultureInfo.InvariantCulture),
+        Assert.Equal(stamina.ToString(CultureInfo.InvariantCulture),
             fixture.Owner.Character.Attributes["Stamina"]);
         if (map == 2_068)
         {
@@ -40,10 +40,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal("Spells are not allowed on this area.", denial.Content[3]);
             Assert.Same(original, fixture.Owner);
         }
-        else if (mana == 39)
-            fixture.AssertCost(0, LegacyMsgUpdateDataType.Stamina, 90);
         else
+        {
+            Assert.Same(original, fixture.Owner);
             Assert.Empty(fixture.Sent);
+        }
     }
 
     [Fact]
@@ -158,7 +159,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task CounterKillRate4PubliclyEarnedColdDenialStillDrawsBeforeCostAndCold()
+    public async Task CounterKillRate4PubliclyEarnedColdDenialKeepsRealDrawWithoutSpendingCosts()
     {
         using var fixture = new Rate4DispatchFixture(cold: 2_000);
         await fixture.SwitchAsync(); // Must first earn the real cold deadline.
@@ -169,20 +170,24 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal(1L, fixture.Player.CompletedRateDraws);
 
         fixture.Advance(1_999);
+        var original = fixture.Owner;
+        var originalValues = System.Text.Json.JsonSerializer.Serialize(original);
         await fixture.SwitchAsync();
         Assert.Equal(2L, fixture.Player.CompletedRateDraws);
-        fixture.AssertCost(3, LegacyMsgUpdateDataType.Stamina, 80);
-        fixture.AssertCost(4, LegacyMsgUpdateDataType.Mana, 920);
-        Assert.Equal(5, fixture.Sent.Count);
+        Assert.Same(original, fixture.Owner);
+        Assert.Equal(originalValues, System.Text.Json.JsonSerializer.Serialize(fixture.Owner));
+        Assert.Equal("90", fixture.Owner.Character.Attributes["Stamina"]);
+        Assert.Equal(960, fixture.Owner.Character.MinMana);
+        Assert.Equal(3, fixture.Sent.Count);
         Assert.Equal("1", fixture.Owner.Character.Attributes["LegacyCounterKillActive"]);
         Assert.Equal(deadline, fixture.Owner.MagicCooldowns![6_003]);
 
         fixture.Advance(1);
         await fixture.SwitchAsync();
-        fixture.AssertSuccess(5, 70, 880, false);
+        fixture.AssertSuccess(3, 80, 920, false);
         Assert.Equal(3L, fixture.Player.CompletedRateDraws);
         Assert.Equal(fixture.Now.AddMilliseconds(2_000), fixture.Owner.MagicCooldowns![6_003]);
-        Assert.Equal(8, fixture.Sent.Count);
+        Assert.Equal(6, fixture.Sent.Count);
     }
 
     [Theory]
