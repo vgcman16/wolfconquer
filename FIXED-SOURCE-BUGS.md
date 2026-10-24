@@ -4,7 +4,21 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted integration gate — magic admission full Windows CI GREEN
+## Latest accepted integration gate — Trade closure full Windows CI GREEN
+
+[Windows40048716539](https://github.com/vgcman16/wolfconquer/actions/runs/40048716539)
+passed exact public `3f7a5a9f2d915e282b11cac0ff5e50f0fdef1634`; job120736279115
+completed2026-10-24T01:18:09Z. Receipt20261024T011404291Z-3bd038af finished
+01:17:59.7428817Z; all8 sequential stages exited0. Root read actual runnerHEAD,
+receipt, terminal TRX counters/outcome groups, build/test/parser logs and completed
+GitHub success before accepting: core **24528passed/0failed**,165 existing
+NotExecuted rows (24693 total), updater305/305, launcher57/57, synthetic parsers20+13
+(no HTTP/service probes). Build191warnings/0errors,54.51s. All58new Trade controls
+are retained alongside the earlier24470core passes. This is offline source
+integration proof, not all-transfer safety, live-client, complete English,
+deployment, full gameplay parity or a cleared CodeFactor backlog.
+
+## Previous accepted gate — magic admission full Windows CI GREEN
 
 [Windows40046944516](https://github.com/vgcman16/wolfconquer/actions/runs/40046944516)
 passed exact public `781cdf227e249744b068f06bab1adec1e6dad7ed`; job120730744913
@@ -1370,7 +1384,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   read, including58new registered D13 cases and the old Effect256 refund control.
   Coverage retains journal/failure/restart/disconnect/escrow/transport, vendor
   persistence, Trade/TradeInfo/Warehouse codecs and all item-loader controls.
-- Limits: focused offline managed proof; full public CI pending at this checkpoint.
+- Public full Windows40048716539 passed exact3f7a5a9f as recorded above.
+- Limits: focused/offline managed and public integration proof, not all-trade safety.
   No live client/SQL/original-save/routing/deployment action. Warehouse transactions,
   arbitrary raw-alias mutation after checks, ABA, global cross-player UID ownership,
   hostile collections, multiprocess/power-loss and durable delivery remain open.
@@ -1582,7 +1597,7 @@ proved by the isolated UID-adoption proposals.
 | FSB-002 | Hairface storage retains null owner and fails later | Reject invalid owner at construction; valid ownership remains stable | Constructor fixed; adjacent storage audit remains |
 | FSB-003 | Guild donation narrows uint to signed int, allowing a wallet credit | Positive bounded amount; wallet/fund/donation commit together | Open, not integrated |
 | FSB-004 | League receiver uses a recycled packet after its wrapper was disposed | Keep exclusive packet ownership through final use | Open, joint graph held |
-| FSB-005 | Trade/booth/inventory disconnect, duplicate UID and retry windows | Validated atomic/idempotent transfer with durable reconciliation | Full audit required |
+| FSB-005 | Trade/booth/inventory disconnect, duplicate UID and retry windows | Validated atomic/idempotent transfer with durable reconciliation | Scoped managed Trade closure safety verified FSB075; booth/global lifecycle audit remains open |
 | FSB-006 | SQL multi-row save/load and native eager lifecycle are incomplete | Real transaction boundaries, constraints and recovery proof | Open |
 | FSB-007 | Guild/league/title/catalog loaders publish partial state; file saves rewrite in place | Stage valid state; coherent publication and recoverable file replacement | Implementation/audit in progress |
 | FSB-008 | Name-based GM/PM privileges and inconsistent title4001 equip/remove classification | Server-owned authority and validated consistent title metadata | Implementation/audit in progress |
@@ -1626,6 +1641,12 @@ proved by the isolated UID-adoption proposals.
 
 ## CodeFactor cleanup
 
+Current guardrail: defect-first batches, automated bounded cosmetics, no risky
+packet-switch rewrites for complexity scores and no per-warning full-CI cycle.
+Trade3f7a5a9f repairs gameplay safety, not a verified static-findings reduction.
+The latest dashboard count was not accessible/read; older totals below are
+checkpoint observations, not the current queue. Passing CI is not backlog closure.
+
 Earth/rank fullCI40002265954 passed with212 warnings. Root batches its8 new
 test-only warnings across4 files:6 equivalent xUnit predicate assertions and2
 explicit positive-result null checks. No production or protocol change, no new
@@ -1636,7 +1657,7 @@ Latest remote CodeFactor count was not read; compiler warnings are not that coun
 
 Exchange public8abeec78 is full-Windows verified above. Its two mechanical new
 findings are corrected in the SuperGuild behavior batch; the new semantic
-handler's complexity is deferred. Current published report3NEW/1FIXED,total2303
+handler's complexity is deferred. That checkpoint report was3NEW/1FIXED,total2303
 does not certify those uncommitted style corrections or full gameplay completion.
 
 Acceptance public39eaaf45 is full-Windows verified above. Its3 new findings are

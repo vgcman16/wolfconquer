@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "scope": "Strict legacy-server parity (project planning)",
-  "reviewedAt": "2026-10-22",
+  "scope": "Sanitized legacy-server parity: client compatibility, corrected emulator defects (project planning)",
+  "reviewedAt": "2026-10-23",
   "estimate": { "percent": 55, "low": 40, "high": 70, "confidence": "low", "asOf": "2026-10-19" },
   "sourceAudit": { "date": "2026-10-19", "files": 784, "lines": 260144, "targetComparison": "representative" },
   "domains": [
@@ -27,8 +27,8 @@
     },
     {
       "id": "social", "title": "Trade, social systems and events", "status": "partial",
-      "implemented": "Trade admission, guild/clan projections and selected actions, timers, score panels and several event state machines exist.",
-      "remaining": "Implement full item/money trade transactions, remaining guild/union actions, event brackets, rewards, claims, disconnects, reset and durable recovery."
+      "implemented": "Registered managed item/gold/CP Trade exchange uses ordered persisted pair commits and a file journal, with refund, disconnect and restart tests. Complete-item closure restrictions, descendant UID collisions and save-validity admission have focused offline proof. Guild/clan projections, selected actions, timers, score panels and several event state machines also exist.",
+      "remaining": "Complete native/social/event ownership and real-client multiplayer acceptance. Player-booth closure and settlement safety, remaining guild/union actions, brackets, rewards, claims, reset, database parity and broader durable recovery remain open; scoped managed Trade tests do not certify all transfers."
     },
     {
       "id": "edge-systems", "title": "Cross-server and casino workflows", "status": "partial",
