@@ -66,5 +66,5 @@ internal sealed class LegacyTradeParty(ConquerTcpConnection connection, uint uid
     }
 }
 
-internal sealed record LegacyTradeOffer(PlayerItemSnapshotItem Item, byte[] CapturedBytes);
+internal sealed record LegacyTradeOffer(PlayerItemSnapshotItem Item, LegacyTradeItemGraph.Closure Closure);
 internal sealed record LegacyTradeSend(ConquerTcpConnection Connection, uint ExpectedUid, byte[] Frame);

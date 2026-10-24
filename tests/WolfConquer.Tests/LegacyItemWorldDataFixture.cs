@@ -13,7 +13,8 @@ internal static class LegacyItemWorldDataFixture
         IReadOnlyList<ItemType> items,
         IReadOnlyList<XuanbaoRandomAttribute> xuanbaoRandomAttributes,
         IReadOnlyList<Npc>? npcs = null,
-        IReadOnlyList<SobNpc>? sobNpcs = null)
+        IReadOnlyList<SobNpc>? sobNpcs = null,
+        IReadOnlyList<SocialAssociationRecord>? socialAssociations = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -84,7 +85,7 @@ internal static class LegacyItemWorldDataFixture
             newPlayerRewards: [],
             votes: [],
             couplesPkRecords: [],
-            socialAssociations: [],
+            socialAssociations: socialAssociations ?? [],
             guildWarInfo: EmptyGuildWarData("guildwar"),
             superGuildWarInfo: EmptyGuildWarData("superguildwar"),
             classLevelStats: [],

@@ -13,7 +13,7 @@ public static partial class WorldPacketHandlers
         {
             case 6: return OfferLegacyTradeItem(context, party, own, other, packet, sends);
             case 7:
-            case 12: return OfferLegacyTradeCurrency(context, party, own, packet, sends);
+            case 12: return OfferLegacyTradeCurrency(context, party, own, other, packet, sends);
             case 9: return ConfirmLegacyTrade(context, trades, party, own, other, packet, sends);
             // Native 3/4/5/8/10/11 are server notifications, not client mutations.
             default: return "ignoredServerOrUnknownAction";
@@ -24,17 +24,18 @@ public static partial class WorldPacketHandlers
         WorldSession own, WorldSession other, LegacyTradePacket packet, List<LegacyTradeSend> sends)
     {
         if (packet.ItemUID is 0 or > uint.MaxValue) return "invalidItemUid";
-        var matches = own.PlayerItems.InventoryItems.Where(x => x.Uid == (uint)packet.ItemUID).ToArray();
-        if (matches.Length != 1) return "missingOrAmbiguousInventoryItem";
-        var item = matches[0];
-        if (item.Bound >= 1 || item.Inscribed == 1 || LegacyNativeItemRestrictions.IsUnableTradeItem(item.ItemId) ||
-            (item.Locked != 0 && !HasLegacyTradeRelation(context, party.Uid, party.Other.Uid, 3)))
+        if (!LegacyTradeItemGraph.TryCapture(own.PlayerItems, out var ownItems) ||
+            !LegacyTradeItemGraph.TryCapture(other.PlayerItems, out var otherItems)) return "tradeItemGraphInvalid";
+        if (!ownItems.TryGetInventory((uint)packet.ItemUID, out var closure)) return "missingOrAmbiguousInventoryItem";
+        var item = closure.Source;
+        if (!IsLegacyTradeClosureTradable(context, party, closure))
         {
             TradePacket(sends, party, TradeReply(packet, 10));
             TradeMessage(sends, party.Connection, party.Uid, "unable to trade this item.");
             return "itemNotTradable";
         }
         if (party.Items.ContainsKey(item.Uid)) return "duplicateOffer";
+        if (otherItems.ContainsAny(closure)) return "receivingUidCollision";
         if (LegacyInventorySlots - other.PlayerItems.InventoryItems.Count < party.Items.Count + 1)
         {
             TradePacket(sends, party, TradeReply(packet, 10));
@@ -43,12 +44,13 @@ public static partial class WorldPacketHandlers
         }
         try
         {
-            var bytes = LegacyTradeItemBytes(item);
             // Mode Trade=2; the underlying inventory item is never temporarily mutated.
             var preview = LegacyGameItemPacket.FromSnapshotItem(item, mode: 2).ToFrameBytes();
             if (!context.Sessions!.TryCommitPair(party.Connection, own, own, party.Other.Connection, other, other,
-                    static () => true)) return "staleItemOffer";
-            party.Items.Add(item.Uid, new(item, bytes));
+                    () => ownItems.IsCurrent(own.PlayerItems) && otherItems.IsCurrent(other.PlayerItems) &&
+                          IsLegacyTradeClosureTradable(context, party, closure)))
+                return "staleItemOffer";
+            party.Items.Add(item.Uid, new(item, closure));
             party.ResetConfirmations(); // Harden changes after confirmation instead of exchanging unseen edits.
             sends.Add(new(party.Other.Connection, party.Other.Uid, preview));
             return "itemOffered";
@@ -60,8 +62,12 @@ public static partial class WorldPacketHandlers
     }
 
     private static string OfferLegacyTradeCurrency(WorldPacketHandlerContext context, LegacyTradeParty party,
-        WorldSession own, LegacyTradePacket packet, List<LegacyTradeSend> sends)
+        WorldSession own, WorldSession other, LegacyTradePacket packet, List<LegacyTradeSend> sends)
     {
+        // Currency escrow must remain refundable through the complete real item owner.
+        // This is save validity only: unrelated bound/locked items are permitted.
+        if (!LegacyTradeItemGraph.TryCapture(own.PlayerItems, out var ownItems) ||
+            !LegacyTradeItemGraph.TryCapture(other.PlayerItems, out var otherItems)) return "tradeItemGraphInvalid";
         if (packet.Money < 0 || own.Character.Money < 0 || own.Character.ConquerPoints is < 0 or > uint.MaxValue)
             return "invalidCurrency";
         var money = packet.Type == 7;
@@ -69,6 +75,9 @@ public static partial class WorldPacketHandlers
             return "insufficientCurrency";
         if ((money && packet.Money == 0) || (!money && packet.CPS == 0))
         {
+            if (!context.Sessions!.TryCommitPair(party.Connection, own, own, party.Other.Connection, other, other,
+                    () => ownItems.IsCurrent(own.PlayerItems) && otherItems.IsCurrent(other.PlayerItems)))
+                return "staleCurrencyOffer";
             party.ResetConfirmations();
             TradeWallet(sends, party, own);
             TradePacket(sends, party.Other, TradeReply(packet, money ? 8u : 11u));
@@ -88,8 +97,16 @@ public static partial class WorldPacketHandlers
         }
         catch (OverflowException) { return "escrowOverflow"; }
         var reason = string.Empty;
-        if (!context.Sessions!.TryCommitSession(party.Connection, own, updated,
-                () => TryPersistLegacyTradeWallet(context, own, updated, out reason)))
+        if (!context.Sessions!.TryCommitPair(party.Connection, own, updated, party.Other.Connection, other, other,
+                () =>
+                {
+                    if (!ownItems.IsCurrent(own.PlayerItems) || !otherItems.IsCurrent(other.PlayerItems))
+                    {
+                        reason = "tradeItemGraphChanged";
+                        return false;
+                    }
+                    return TryPersistLegacyTradeWallet(context, own, updated, out reason);
+                }))
         {
             if (IsLegacyTradeRecoveryRequired(reason))
             {
@@ -119,14 +136,23 @@ public static partial class WorldPacketHandlers
             return "awaitingOtherConfirmation";
         }
 
+        // Never serialize a malformed graph to manufacture a refund. Cancel/disconnect
+        // use the same structural guard at the persistence boundary and retain escrow too.
+        if (!LegacyTradeItemGraph.TryCapture(own.PlayerItems, out var ownItems) ||
+            !LegacyTradeItemGraph.TryCapture(other.PlayerItems, out var otherItems))
+        {
+            party.ResetConfirmations();
+            TradeMessage(sends, party.Connection, party.Uid, "Trade item state is invalid; escrow is retained.");
+            TradeMessage(sends, party.Other.Connection, party.Other.Uid, "Trade item state is invalid; escrow is retained.");
+            return "offeredItemGraphInvalid:escrowRetained";
+        }
         var problem = string.Empty;
         if (LegacyInventorySlots - own.PlayerItems.InventoryItems.Count < party.Other.Items.Count ||
             LegacyInventorySlots - other.PlayerItems.InventoryItems.Count < party.Items.Count)
             problem = "capacityBeforeOutgoingRemovals";
-        else if (!ValidLegacyTradeOffers(party, own) || !ValidLegacyTradeOffers(party.Other, other))
+        else if (!ValidLegacyTradeOffers(context, party, ownItems) || !ValidLegacyTradeOffers(context, party.Other, otherItems))
             problem = "offeredItemChangedOrMissing";
-        else if (LegacyTradeHasUidCollision(own.PlayerItems, party.Other.Items.Keys) ||
-                 LegacyTradeHasUidCollision(other.PlayerItems, party.Items.Keys))
+        else if (LegacyTradeHasUidCollision(ownItems, party.Other) || LegacyTradeHasUidCollision(otherItems, party))
             problem = "receivingUidCollision";
         if (problem.Length != 0)
         {
@@ -146,8 +172,8 @@ public static partial class WorldPacketHandlers
             if (updatedOwn.Character.Money < 0 || updatedOther.Character.Money < 0 ||
                 updatedOwn.Character.ConquerPoints is < 0 or > uint.MaxValue ||
                 updatedOther.Character.ConquerPoints is < 0 or > uint.MaxValue) throw new OverflowException();
-            var ownIncoming = party.Other.Items.Values.Select(x => x.Item.WithWarehouseId(0, 0)).ToArray();
-            var otherIncoming = party.Items.Values.Select(x => x.Item.WithWarehouseId(0, 0)).ToArray();
+            var ownIncoming = party.Other.Items.Values.Select(x => x.Closure.CreateInventoryItem()).ToArray();
+            var otherIncoming = party.Items.Values.Select(x => x.Closure.CreateInventoryItem()).ToArray();
             updatedOwn = updatedOwn with
             {
                 LegacyTradeActive = false,
@@ -185,7 +211,8 @@ public static partial class WorldPacketHandlers
         }
         var reason = string.Empty;
         if (!context.Sessions!.TryCommitPair(party.Connection, own, updatedOwn, party.Other.Connection, other, updatedOther,
-                () => TryPersistLegacyTradePair(context, own, updatedOwn, other, updatedOther, out reason)))
+                () => TryPersistLegacyTradePair(context, own, updatedOwn, other, updatedOther, out reason,
+                    ownItems, otherItems, party)))
         {
             party.ResetConfirmations();
             TradeMessage(sends, party.Connection, party.Uid, IsLegacyTradeRecoveryRequired(reason)
@@ -199,28 +226,6 @@ public static partial class WorldPacketHandlers
         trades.Remove(party);
         sends.AddRange(committedFrames);
         return "exchanged";
-    }
-
-    private static bool ValidLegacyTradeOffers(LegacyTradeParty party, WorldSession session)
-    {
-        try
-        {
-            return party.Items.All(pair =>
-            {
-                var current = session.PlayerItems.InventoryItems.Where(x => x.Uid == pair.Key).ToArray();
-                return current.Length == 1 && LegacyTradeItemBytes(current[0]).AsSpan().SequenceEqual(pair.Value.CapturedBytes);
-            });
-        }
-        catch (Exception ex) when (ex is ArgumentException or OverflowException) { return false; }
-    }
-
-    private static bool LegacyTradeHasUidCollision(PlayerItemSnapshot items, IEnumerable<uint> incoming)
-    {
-        var uids = incoming.ToHashSet();
-        bool Contains(PlayerItemSnapshotItem item) => uids.Contains(item.Uid) || item.DepositedItems.Any(Contains);
-        return items.InventoryItems.Concat(items.RelicFuseItems).Concat(items.MythsoulBagItems)
-            .Concat(items.EquipmentItems).Concat(items.RuneItems).Concat(items.WardrobeItems)
-            .Concat(items.WarehouseItems).Any(Contains);
     }
 
     private static void RemoveLegacyTradeItem(List<LegacyTradeSend> sends, LegacyTradeParty owner, uint itemUid) =>

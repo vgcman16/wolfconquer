@@ -9,7 +9,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 // Managed handler + connection send delegates + disposable files, not D13 visual-client proof.
-public sealed class LegacyTradeRuntimeTests : IDisposable
+public sealed partial class LegacyTradeRuntimeTests : IDisposable
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "wolf-trade-" + Guid.NewGuid().ToString("N"));
     private readonly WorldSessionStore sessions = new();
@@ -471,6 +471,7 @@ public sealed class LegacyTradeRuntimeTests : IDisposable
 
     public void Dispose()
     {
+        if (itemClosureCleanupHandled) return; // New closure cases preserve primary + cleanup errors themselves.
         log.Dispose();
         if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
     }
@@ -480,13 +481,20 @@ public sealed class LegacyTradeRuntimeTests : IDisposable
     private string UserPath(Player player) => Path.Combine(UsersRoot, player.Uid.ToString(CultureInfo.InvariantCulture) + ".ini");
     private string ItemPath(Player player) => Path.Combine(ItemsRoot, player.Uid.ToString(CultureInfo.InvariantCulture) + ".bin");
 
-    private Player AddPlayer(uint uid, long money, long cps, IReadOnlyList<PlayerItemSnapshotItem> inventory)
+    private Player AddPlayer(uint uid, long money, long cps, IReadOnlyList<PlayerItemSnapshotItem> inventory,
+        Action<byte[]>? beforeSend = null)
     {
         Directory.CreateDirectory(UsersRoot);
         Directory.CreateDirectory(ItemsRoot);
         var sent = new List<byte[]>();
         var connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
-            (bytes, _) => { sent.Add(bytes.ToArray()); return ValueTask.CompletedTask; });
+            (bytes, _) =>
+            {
+                var frame = bytes.ToArray();
+                beforeSend?.Invoke(frame); // Observation/failure only; never a transaction authority.
+                sent.Add(frame);
+                return ValueTask.CompletedTask;
+            });
         var player = new Player(uid, connection, sent);
         var text = $$"""
             [Character]

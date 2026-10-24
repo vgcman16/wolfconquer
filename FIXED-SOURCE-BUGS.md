@@ -1339,6 +1339,42 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-075: Validate complete Trade item closures before transfer or escrow
+
+- Source: registered Trade Exchange/Persistence and Warehouse.Sash, corresponding
+  native Trade/MsgWarehouse branches, and the complete PlayerItemSnapshot codec.
+  Sash deposit accepts restricted children; the old Trade root-only check then
+  transferred those children. Incoming descendant UIDs were also absent from
+  collision checks, and malformed unrelated stores could enter new currency escrow.
+- Fix: validate both complete seven-store save graphs directly, including unique
+  positive identities, parser membership, one encoded child level, non-truncating
+  32-byte UTF-8 perfection text and the existing 16MiB image bound. Do not bless
+  malformed state by parsing a normalized/lossy serialization.
+- Apply permissions only to transferred roots/children; retain the directional
+  locked-item partner exception. Recheck captured physical/scalar owners and
+  permissions inside genuine ordered pair/vendor/file commit boundaries. Check
+  incoming descendant UIDs against all recipient stores. Detach incoming children
+  and private persistence images; preserve unrelated published container references.
+- Gold/CP admission now validates both current graphs before the real wallet/claim
+  debit. Final malformed state retains escrow and resets confirmations; healthy
+  stale/forbidden/colliding offers use the existing refund path. Shared cancel/
+  disconnect persistence requires save validity, not preview width: Effect256
+  refunds remain valid. Existing escrow writer, WAL, capacity rules and wire order
+  are retained; no accepting provider, new UID authority or replacement journal.
+- Verification: tests-only37423 measured13passed/33failed/0skipped of46 in2s.
+  Many failures stopped at the first unwanted preview, not33distinct bugs.
+  First production18841 measured45/1; the remaining test appended a warehouse
+  row out of the loader's canonical order. Only that setup order was corrected;
+  exact refund, reference, byte and wire assertions remain. Broad91557 passed233/233.
+  Final30087 passed **245/245**,0failed/skipped,4s; actual TRX counters/outcomes
+  read, including58new registered D13 cases and the old Effect256 refund control.
+  Coverage retains journal/failure/restart/disconnect/escrow/transport, vendor
+  persistence, Trade/TradeInfo/Warehouse codecs and all item-loader controls.
+- Limits: focused offline managed proof; full public CI pending at this checkpoint.
+  No live client/SQL/original-save/routing/deployment action. Warehouse transactions,
+  arbitrary raw-alias mutation after checks, ABA, global cross-player UID ownership,
+  hostile collections, multiprocess/power-loss and durable delivery remain open.
+
 ### FSB-074: Require Pounce's selected shield before admission
 
 - Matching Pounce.Execute returns before Shift/damage/animation when either
