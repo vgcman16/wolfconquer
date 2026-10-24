@@ -27,7 +27,7 @@
     },
     {
       "id": "social", "title": "Trade, social systems and events", "status": "partial",
-      "implemented": "Registered managed item/gold/CP Trade and player-booth exchanges use ordered persisted pair commits and a shared file journal. Scoped offline tests cover Trade refund/disconnect/restart, complete item closures and descendant UID collisions; booth tests cover stale-file/escrow refusal, actual awaited-writer isolation, failure/retry, detached children, current Anima authorization and registered D13 Frame settlement. Guild/clan projections, selected actions, timers, score panels and several event state machines also exist.",
+      "implemented": "Managed item/gold/CP Trade and player-booth exchanges use ordered pair commits and a shared journal. Offline tests cover Trade refund/disconnect/restart and complete closures/UID collisions; booth tests cover stale-file/escrow refusal, awaited-writer isolation, failure/retry, detached children, current Anima authorization and registered D13 Frame settlement. Guild/clan projections, selected actions, timers, score panels and some event state machines also exist.",
       "remaining": "Complete native/social/event ownership and real-client multiplayer acceptance. Broader inventory/storage and booth raw-writer/delivery lifecycles, remaining guild/union actions, brackets, rewards, claims, reset, database parity and durable recovery remain open; scoped managed tests do not certify all transfers."
     },
     {
