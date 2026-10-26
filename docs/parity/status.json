@@ -20,28 +20,28 @@
       "id": "transport",
       "title": "Transport, authentication and startup",
       "status": "partial",
-      "implemented": "Packet, cipher, startup and replacement-service paths exist. Account and mailbox mode parsers validate coherent physical envelopes; hostile mailbox counts reject before item allocation. Malformed saved-credential admission is removed; secure native handoff is still unproved. An earlier build demonstrated limited local gameplay. Explicit configured WorldServer startup now opens the genuine existing UID domain; owned API/raw/encrypted process/restart/lease/drain controls pass. This is saved-world entry, not authenticated native handoff.",
+      "implemented": "Packet/cipher/startup paths validate physical envelopes. Explicit WorldServer startup opens only its configured existing UID domain. Owned API/raw/encrypted process/restart/lease/drain controls pass. A fresh local D13 fixture now completes manual account login, world entry and movement; secure native handoff remains unproved.",
       "remaining": "Prove the authenticated native account-to-world handoff and protected D13 login payload; complete ownership and loader joins, then verify the published build and staged endpoint migration with the actual client."
     },
     {
       "id": "persistence",
       "title": "Shared player, items and persistence",
       "status": "partial",
-      "implemented": "Bag/warehouse moves validate PIN, capacity and escrow before persisted success. Ordinary mailbox claims use recoverable files; D13 text fields follow the client. Explicit allocating package owners now join durable UID intent, four-file work/recovery, guarded read-only startup, PIN and delivery checks with focused proof. Production Host activation, native Inventory/wallet/save adoption and full package fidelity remain unfinished. Ordinary saved admission commits complete captured snapshots before publication without starter regrant; an offline CLI creates only fresh disposable synthetic domains.",
+      "implemented": "Managed storage and mailbox transactions validate ownership, capacity and escrow before persisted success. Package prerequisites join UID history, recovery journals, PIN and delivery checks. Ordinary admission preserves complete saved progression without starter regrant. The offline creator makes only new synthetic domains with canonical collection defaults; full native/SQL ownership remains open.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
       "id": "combat",
       "title": "Combat, monsters and death",
       "status": "partial",
-      "implemented": "Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof. Physical monster admission validates actual minimum-damage, Rune, Gear and conditional Ninja owners before output/RNG; the full-adjustment sentinel returns its intended maximum. Equipped sigils use owned snapshots and reject missing selected metadata before damage or cooldown spending. Required spell metadata and bounded experience are prepared before local proficiency credit; committed new1110 and Action78 responses retain owner and wire ordering.",
+      "implemented": "Substantial spell, damage, receive, equipment, AI and death logic has focused proof. Required spell metadata and bounded XP precede local credit. Physical/sigil admission checks real owners and metadata before effects. Committed new1110 and Action78 responses retain source order and publication ownership; complete callers and multiplayer acceptance remain open.",
       "remaining": "Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios."
     },
     {
       "id": "progression",
       "title": "NPCs, shops, progression and housing",
       "status": "partial",
-      "implemented": "Main dispatch, shops, forging, skill learning and durable progression/reward paths exist. Native quest definitions, eligibility, dialog and experience tables have component proof. House load/save validate complete files/graphs before publication; authenticated housing adoption, entry and furniture economy remain unfinished. Managed promotion, donation-to-CP/bank and permanent Chi purchases commit their coherent Character images before publication and refuse invalid/stale/repeated entitlement requests.",
+      "implemented": "Dispatch, shops, forging, skills, quest metadata and durable rewards exist. Managed VIP, promotion, donation-to-CP/bank and permanent Chi purchases validate/commit before publication. Housing parsing preserves coherent graphs; authenticated adoption, entry and furniture economy remain unfinished.",
       "remaining": "Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle."
     },
     {
@@ -64,13 +64,13 @@
       "id": "live-client",
       "title": "Limited local live-client milestone",
       "status": "verified",
-      "detail": "Login, walking, one-item drop/pickup and saving were demonstrated on an earlier isolated local build. This does not validate the latest public source."
+      "detail": "An October26 local disposable D13 fixture completed manual authentication, world initialization and observed movement after canonical collection defaults. Its own model is missing (name/shadow visible), so visual acceptance is incomplete. Earlier local drop/pickup/save proof applies to an older build; no complete current public acceptance follows."
     },
     {
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Last accepted full public sourcef21e2a11 passed Windows40383185044: core26,306passes/165existing exclusions, updater434,launcher57,parsers20+13,all8stages0. This successor has focused591/64/102 proofs and corrected47API/Host controls plus separate25CLI cases; its own full gate is pending. Current-source actual-client acceptance, native authentication, full English and distribution remain unproved."
+      "detail": "Last accepted full sourcef21e2a11 passed Windows40383185044. The ef868fa8/c15dd464 attempts failed compilation only; missing networking dependencies are restored. Clean source passes250 focused cases, and exact6df87b72 Windows40420961276 is pending. Local login/movement do not prove full native ownership, English, SQL or distribution."
     },
     {
       "id": "english",
@@ -82,7 +82,7 @@
       "id": "newer-client",
       "title": "Newer-client-only parity",
       "status": "in-progress",
-      "detail": "Official Chinese patches through7935 are downloaded/extracted privately. Separate2132codec, Echo request/catalog transform, duplicate-threshold selector and item2350reader/writer have focused proof. The35writer/30reader cases share a102-case run with37existing schema controls; those37are not extra patch coverage. Private decoded catalogs are not runtime binding. No default activation, real state/cost/save transaction, complete compatibility or live7935 acceptance. Not estimated."
+      "detail": "Official patches through7935 are downloaded/extracted privately. Separate2132codec, Echo request/catalog transform/threshold selection and item2350reader/writer have focused proof. The102-case writer run includes37 existing-schema controls, not extra patch coverage. No default7935 activation, real state/cost/save join or actual7935 client acceptance. Not estimated."
     },
     {
       "id": "distribution",
