@@ -229,7 +229,7 @@ public sealed partial class WorldServerFrameHandler
         _guildWarRuntime = new LegacyGuildWarRuntimeScheduler(_guildWarStates);
         _log = TextWriter.Synchronized(log ?? TextWriter.Null);
         _tradeRecovery = new(_snapshotLoader?.UsersRoot, _snapshotLoader?.PlayerItemsRoot,
-            _snapshotLoader?.PlayerQuestsRoot);
+            _snapshotLoader?.PlayerQuestsRoot, _mailboxes?.ClaimRoot);
         _voteStates = voteStates ?? TryCreateLegacyVoteRuntimeStateStore(_snapshotLoader?.UsersRoot);
         if (_voteStates is { LoadResult.Success: false })
         {

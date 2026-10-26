@@ -2301,17 +2301,39 @@ public sealed class WorldPacketDispatchTests
                     Flag = 0,
                     Timer = DateTime.Now.AddHours(1).Ticks
                 });
-            var session = CreateTitleStorageSession(Path.Combine(root, "Users"), "");
+            var usersRoot = Path.Combine(root, "Users");
+            var itemsRoot = Path.Combine(root, "PlayersItems");
+            Directory.CreateDirectory(usersRoot);
+            Directory.CreateDirectory(itemsRoot);
+            var snapshotPath = WriteTitleStorageSnapshot(usersRoot, "");
+            var itemLoader = new PlayerItemSnapshotLoader(itemsRoot);
+            itemLoader.SaveByCharacterUid(1_400_123, PlayerItemSnapshot.Empty);
+            store.Save(1_400_123);
+            var session = CreateTitleStorageSession(usersRoot, "") with
+            {
+                Character = CharacterSnapshotParser.ParseText(File.ReadAllText(snapshotPath), snapshotPath),
+                PlayerItems = itemLoader.LoadByCharacterUid(1_400_123),
+            };
             var connection = CreateConnection(sent);
             var sessions = new WorldSessionStore();
             sessions.Set(connection, session);
+            var recovery = new LegacyTradeRecoveryState(usersRoot, itemsRoot, null,
+                Path.Combine(root, "PlayersMailList"));
+            Assert.True(recovery.TryEnsureInitialized(out var recoveryReason), recoveryReason);
+            Assert.True(recovery.IsReadyForMailbox(usersRoot, itemsRoot, Path.Combine(root, "PlayersMailList")));
             var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
             var context = new WorldPacketHandlerContext(
                 connection,
                 log,
                 session,
                 Sessions: sessions,
-                Mailboxes: store);
+                Mailboxes: store,
+                PlayerItemsRoot: itemsRoot)
+            {
+                Trades = new LegacyTradeStateStore(),
+                TradeOperations = new WorldOperationBarrier(),
+                TradeRecovery = recovery,
+            };
 
             await registry.HandleAsync(
                 context,
@@ -2361,6 +2383,9 @@ public sealed class WorldPacketDispatchTests
         {
             Directory.CreateDirectory(usersRoot);
             var snapshotPath = WriteTitleStorageSnapshot(usersRoot, "");
+            var itemsRoot = Path.Combine(dbRoot, "PlayersItems");
+            Directory.CreateDirectory(itemsRoot);
+            new PlayerItemSnapshotLoader(itemsRoot).SaveByCharacterUid(1_400_123, PlayerItemSnapshot.Empty);
             var store = new LegacyMailboxStore(dbRoot);
             store.Add(
                 1_400_123,
@@ -2382,7 +2407,7 @@ public sealed class WorldPacketDispatchTests
             using var log = new StringWriter();
             var sent = new List<byte[]>();
             var connection = CreateConnection(sent);
-            var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(usersRoot), log);
+            var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(usersRoot, itemsRoot), log);
 
             await handler.HandleFrameAsync(
                 connection,
@@ -2773,7 +2798,7 @@ public sealed class WorldPacketDispatchTests
     }
 
     [Fact]
-    public async Task HandlerLegacyMailboxModeClaimAllClaimsMoneyPackageAndRefreshesEachMail()
+    public async Task HandlerLegacyMailboxModeClaimAllRefusesUnownedPackageBeforeEitherMailChanges()
     {
         using var log = new StringWriter();
         var sent = new List<byte[]>();
@@ -2811,7 +2836,24 @@ public sealed class WorldPacketDispatchTests
                     Flag = 6,
                     Timer = DateTime.Now.AddHours(1).Ticks
                 });
-            var session = CreateTitleStorageSession(Path.Combine(root, "Users"), "");
+            var users = Path.Combine(root, "Users");
+            var items = Path.Combine(root, "PlayersItems");
+            Directory.CreateDirectory(users);
+            Directory.CreateDirectory(items);
+            var characterPath = WriteTitleStorageSnapshot(users, "");
+            var itemLoader = new PlayerItemSnapshotLoader(items);
+            itemLoader.SaveByCharacterUid(1_400_123, PlayerItemSnapshot.Empty);
+            store.Save(1_400_123);
+            var session = CreateTitleStorageSession(users, "") with
+            {
+                Character = CharacterSnapshotParser.ParseText(File.ReadAllText(characterPath), "1400123.ini"),
+                PlayerItems = itemLoader.LoadByCharacterUid(1_400_123),
+            };
+            var recovery = new LegacyTradeRecoveryState(users, items, null, Path.Combine(root, "PlayersMailList"));
+            Assert.True(recovery.TryEnsureInitialized(out var readyReason), readyReason);
+            Assert.True(recovery.IsReadyForMailbox(users, items, Path.Combine(root, "PlayersMailList")));
+            var beforeFiles = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                .ToDictionary(path => path, File.ReadAllBytes);
             var connection = CreateConnection(sent);
             var sessions = new WorldSessionStore();
             sessions.Set(connection, session);
@@ -2821,7 +2863,12 @@ public sealed class WorldPacketDispatchTests
                 log,
                 session,
                 Sessions: sessions,
-                Mailboxes: store);
+                Mailboxes: store, PlayerItemsRoot: items)
+            {
+                Trades = new LegacyTradeStateStore(),
+                TradeOperations = new WorldOperationBarrier(),
+                TradeRecovery = recovery,
+            };
 
             await registry.HandleAsync(
                 context,
@@ -2830,51 +2877,25 @@ public sealed class WorldPacketDispatchTests
                     Id: 0,
                     Items: [12, 13]).ToFrameBytes()));
 
-            Assert.Equal(13, sent.Count);
-            AssertSystemTalk(sent[0], "STR_PICK_MONEY@@50@@");
-            AssertSingleUpdate(sent[1], LegacyMsgUpdateDataType.Money, 98_602_440_006);
-            AssertSystemTalk(sent[2], "You received 5 ConquerPoints.");
-            AssertSingleUpdate(sent[3], LegacyMsgUpdateDataType.ConquerPoints, 639_813_205);
-            AssertMailListRefresh(sent[4], mailId: 12, money: 0, eMoney: 0, flag: 0);
-
-            var itemPackets = sent.Skip(5).Take(4)
-                .Select(bytes =>
-                {
-                    Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(bytes), out var item));
-                    return item;
-                })
-                .ToArray();
-            Assert.Equal(
-                new uint[] { 3_324_226, 4_050_001, 4_040_001, 3_009_003 },
-                itemPackets.Select(item => item.ItemId).ToArray());
-            AssertSingleUpdate(sent[9], LegacyMsgUpdateDataType.ClassExperience, 100);
-            Assert.True(LegacyDaoQiPacket.TryParse(ReadFrame(sent[10]), out var piratePoints));
-            Assert.Equal(LegacyDaoQiType.PiratePoints, piratePoints.Type);
-            Assert.Equal(20U, piratePoints.PirateExp);
-            AssertMailListRefresh(sent[11], mailId: 13, money: 0, eMoney: 0, flag: 0);
-            AssertMailboxAck(sent[12], LegacyMailboxModeType.ClaimAll, 0, [12, 13]);
-
-            Assert.True(sessions.TryGet(connection, out var updatedSession));
-            Assert.NotNull(updatedSession);
-            Assert.Equal(98_602_440_006, updatedSession.Character.Money);
-            Assert.Equal(639_813_205, updatedSession.Character.ConquerPoints);
-            Assert.Equal("100", updatedSession.Character.Attributes["ClassExperience"]);
-            Assert.Equal(4, updatedSession.PlayerItems.InventoryItems.Count);
-
+            Assert.Empty(sent);
+            Assert.True(sessions.TryGet(connection, out var current));
+            Assert.Same(session, current);
+            Assert.Equal(98_602_439_956, current!.Character.Money);
+            Assert.Equal(639_813_200, current.Character.ConquerPoints);
+            Assert.Empty(current.PlayerItems.InventoryItems);
+            Assert.Equal(beforeFiles.Keys.Order(StringComparer.Ordinal),
+                Directory.GetFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal));
+            foreach (var (path, bytes) in beforeFiles) Assert.Equal(bytes, File.ReadAllBytes(path));
             var persisted = new LegacyMailboxStore(root).Load(1_400_123).OrderBy(mail => mail.Id).ToArray();
             Assert.Equal([12U, 13U], persisted.Select(mail => mail.Id).ToArray());
-            Assert.All(persisted, mail =>
-            {
-                Assert.Equal(0UL, mail.Money);
-                Assert.Equal(0U, mail.EMoney);
-                Assert.Equal(0U, mail.Flag);
-            });
-
-            var output = log.ToString();
-            Assert.Contains("type=ClaimAll", output);
-            Assert.Contains("refreshed=2", output);
-            Assert.Contains("claimedPackages=1", output);
-            Assert.Contains("ack=True", output);
+            Assert.Equal(50UL, persisted[0].Money);
+            Assert.Equal(5U, persisted[0].EMoney);
+            Assert.Equal(0U, persisted[0].Flag);
+            Assert.Equal(0UL, persisted[1].Money);
+            Assert.Equal(0U, persisted[1].EMoney);
+            Assert.Equal(6U, persisted[1].Flag);
+            Assert.False(LegacyTradeJournal.HasPending(users));
+            Assert.Contains("mailboxClaimPackageOwnersUnresolved", log.ToString());
         }
         finally
         {

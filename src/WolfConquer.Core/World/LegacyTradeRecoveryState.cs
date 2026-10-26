@@ -5,6 +5,13 @@ namespace WolfConquer.Core.World;
 internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot)
 {
     private readonly string? _questsRoot;
+    private readonly string? _mailboxRoot;
+
+    internal LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot, string? questsRoot, string? mailboxRoot)
+        : this(usersRoot, itemsRoot, questsRoot)
+    {
+        _mailboxRoot = mailboxRoot;
+    }
 
     internal LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot, string? questsRoot)
         : this(usersRoot, itemsRoot)
@@ -72,6 +79,23 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
         }
     }
 
+    internal bool IsReadyForMailbox(string? expectedUsersRoot, string? expectedItemsRoot, string? expectedMailboxRoot)
+    {
+        lock (_gate)
+        {
+            if (!IsReadyFor(expectedUsersRoot, expectedItemsRoot) || string.IsNullOrWhiteSpace(_mailboxRoot) ||
+                string.IsNullOrWhiteSpace(expectedMailboxRoot) || !Path.IsPathFullyQualified(_mailboxRoot) ||
+                !Path.IsPathFullyQualified(expectedMailboxRoot)) return false;
+            try
+            {
+                return SameReadyRoot(_mailboxRoot, expectedMailboxRoot) &&
+                    LegacyTradeJournal.IsMailboxDomainConfigured(usersRoot!, itemsRoot!, _mailboxRoot);
+            }
+            catch (Exception error) when (error is ArgumentException or NotSupportedException or System.Security.SecurityException)
+            { return false; }
+        }
+    }
+
     private static bool SameReadyRoot(string first, string second) => string.Equals(
         Path.TrimEndingDirectorySeparator(Path.GetFullPath(first)),
         Path.TrimEndingDirectorySeparator(Path.GetFullPath(second)),
@@ -104,7 +128,7 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
                         return false;
                     }
                 }
-                else if (!LegacyTradeJournal.TryRecover(usersRoot, itemsRoot, _questsRoot, out _, out reason))
+                else if (!LegacyTradeJournal.TryRecover(usersRoot, itemsRoot, _questsRoot, _mailboxRoot, out _, out reason))
                 {
                     Block(reason);
                     return false;

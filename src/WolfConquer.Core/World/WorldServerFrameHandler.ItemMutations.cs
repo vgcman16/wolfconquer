@@ -8,6 +8,7 @@ public sealed partial class WorldServerFrameHandler
     private bool IsLegacyExclusiveItemMutationFrame(PacketFrame frame) =>
         IsLegacyDragonSkinMutationFrame(frame) ||
         IsLegacyVendorPurchaseFrame(frame) ||
+        IsLegacyMailboxClaimFrame(frame) ||
         IsLegacyInventorySashUpgradeFrame(frame) ||
         IsLegacyWarehouseItemTransferFrame(frame) ||
         IsLegacyWarehouseLockRefreshFrame(frame) ||
@@ -15,6 +16,12 @@ public sealed partial class WorldServerFrameHandler
         frame.Header.Opcode == WorldPacketOpcodes.MsgItemUsage &&
         MsgItemUsagePacket.TryParse(frame, out var packet) &&
         packet.Action is MsgItemUsageAction.SellItem or MsgItemUsageAction.DropItem;
+
+    // Parsed claims own their actual Exclusive before resolving the current participant.
+    private static bool IsLegacyMailboxClaimFrame(PacketFrame frame) =>
+        frame.Header.Opcode == WorldPacketOpcodes.LegacyMailboxMode &&
+        LegacyMailboxModePacket.TryParse(frame, out var packet) &&
+        packet.Type is LegacyMailboxModeType.ClaimItem or LegacyMailboxModeType.ClaimMoney or LegacyMailboxModeType.ClaimAll;
 
     // Registered LegacyWarehouse uses the same action IDs in D11 and D13.
     // Parsed item transfers own the inner Exclusive; physical-bag Show stays Shared.

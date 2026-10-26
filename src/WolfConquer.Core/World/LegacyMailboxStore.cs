@@ -2,7 +2,7 @@ using System.Text;
 
 namespace WolfConquer.Core.World;
 
-public sealed class LegacyMailboxStore
+public sealed partial class LegacyMailboxStore
 {
     private readonly Dictionary<uint, List<LegacyMailboxEntry>> mailboxByPlayerUid = [];
     private readonly string rootDirectory;
@@ -21,34 +21,7 @@ public sealed class LegacyMailboxStore
         this.nowProvider = nowProvider ?? (() => DateTime.Now);
     }
 
-    public IReadOnlyList<LegacyMailboxEntry> Load(uint playerUid)
-    {
-        var path = GetMailboxPath(playerUid);
-        if (!File.Exists(path))
-        {
-            mailboxByPlayerUid[playerUid] = [];
-            return [];
-        }
-
-        using var stream = File.OpenRead(path);
-        using var reader = new BinaryReader(stream, encoding, leaveOpen: false);
-
-        var count = reader.ReadInt32();
-        var entries = new List<LegacyMailboxEntry>(Math.Max(count, 0));
-        for (var i = 0; i < count && stream.Position < stream.Length; i++)
-        {
-            var entry = ReadEntry(reader);
-            if (entry.IsLive(nowProvider()))
-            {
-                entries.Add(entry);
-            }
-        }
-
-        mailboxByPlayerUid[playerUid] = entries;
-        return entries.ToArray();
-    }
-
-    public IReadOnlyList<LegacyMailboxEntry> List(uint playerUid)
+    private IReadOnlyList<LegacyMailboxEntry> ListCore(uint playerUid)
     {
         if (!mailboxByPlayerUid.TryGetValue(playerUid, out var entries))
         {
@@ -60,7 +33,7 @@ public sealed class LegacyMailboxStore
         return liveEntries.ToArray();
     }
 
-    public void Save(uint playerUid)
+    private void SaveCore(uint playerUid)
     {
         var entries = List(playerUid);
         var path = GetMailboxPath(playerUid);
@@ -80,7 +53,7 @@ public sealed class LegacyMailboxStore
         }
     }
 
-    public uint GetNextId(uint playerUid)
+    private uint GetNextIdCore(uint playerUid)
     {
         var usedIds = List(playerUid).Select(entry => entry.Id).ToHashSet();
         for (var id = 1U; id < uint.MaxValue; id++)
@@ -94,7 +67,7 @@ public sealed class LegacyMailboxStore
         throw new InvalidOperationException("No free legacy mailbox ids remain.");
     }
 
-    public LegacyMailboxEntry Add(uint playerUid, LegacyMailboxEntry entry)
+    private LegacyMailboxEntry AddCore(uint playerUid, LegacyMailboxEntry entry)
     {
         var entries = List(playerUid).ToList();
         var entryWithId = entry.Id == 0
@@ -107,13 +80,13 @@ public sealed class LegacyMailboxStore
         return entryWithId;
     }
 
-    public bool TryGet(uint playerUid, uint mailId, out LegacyMailboxEntry entry)
+    private bool TryGetCore(uint playerUid, uint mailId, out LegacyMailboxEntry entry)
     {
         entry = List(playerUid).FirstOrDefault(mail => mail.Id == mailId) ?? new LegacyMailboxEntry();
         return entry.Id != 0;
     }
 
-    public bool TryReplace(uint playerUid, LegacyMailboxEntry entry)
+    private bool TryReplaceCore(uint playerUid, LegacyMailboxEntry entry)
     {
         var entries = List(playerUid).ToList();
         var index = entries.FindIndex(existing => existing.Id == entry.Id);
@@ -127,7 +100,7 @@ public sealed class LegacyMailboxStore
         return true;
     }
 
-    public bool TryRemoveIfEmpty(uint playerUid, uint mailId, out LegacyMailboxEntry entry)
+    private bool TryRemoveIfEmptyCore(uint playerUid, uint mailId, out LegacyMailboxEntry entry)
     {
         var entries = List(playerUid).ToList();
         var index = entries.FindIndex(existing => existing.Id == mailId);
@@ -148,7 +121,7 @@ public sealed class LegacyMailboxStore
         return true;
     }
 
-    public bool TryClaimMoney(
+    private bool TryClaimMoneyCore(
         uint playerUid,
         uint mailId,
         out ulong money,
@@ -169,7 +142,7 @@ public sealed class LegacyMailboxStore
         return TryReplace(playerUid, entry);
     }
 
-    public bool TryClearFlag(
+    private bool TryClearFlagCore(
         uint playerUid,
         uint mailId,
         bool packageClaimSucceeded,
@@ -185,7 +158,7 @@ public sealed class LegacyMailboxStore
         return TryReplace(playerUid, entry);
     }
 
-    public bool TryClearItemId(
+    private bool TryClearItemIdCore(
         uint playerUid,
         uint mailId,
         bool itemClaimSucceeded,

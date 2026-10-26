@@ -1476,6 +1476,70 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-092: Commit mailbox item and currency claims as one recoverable outcome
+
+- Source: CMsgMailboxMode/MailList and managed WorldPacketHandlers.Mail mutated
+  wallet/items/cache and sent notifications before separate file saves. Sharing
+  faults, send faults, overflow and retries could lose or duplicate rewards; main
+  PIN was bypassed. Old package ClaimAll tests certified incomplete reward state.
+- ClaimItem, ClaimMoney and Flag-zero ClaimAll now resolve the actual current
+  Store owner under the real exclusive operation, Trade and mailbox gates.
+  Validate current identity/native Player when present, main PIN, ended marker,
+  complete seven-store item graph, exact character/item/mail baselines, explicit
+  recovery roots, ownership, escrow refund headroom, bounds and capacity first.
+  Unbound managed sessions retain only the existing zero-PIN path; this is not
+  universal physical-Player authority or a completed native login handoff.
+- Extend the existing shared journal with typed v4 Character+Items+Mailbox,
+  explicit disjoint roots and account-file/character-file identities. Prepare
+  detached items, currency fields, cache and all packets before the persisted
+  Store CAS. Flush journal/replacements, prove all postimages, then publish
+  cache/Store and transport. Retained/unknown durable outcomes fence recovery;
+  send/close faults after commitment cannot refund or duplicate a retry.
+- ClaimMoney keeps attachment/Flag and works with a full bag. Mixed Flag-zero
+  claims commit wallet, attachment and mail together. Selected nonzero package
+  flags refuse the whole ClaimAll: real package state and new-UID authority are
+  unresolved. Keep successful bytes/order and source-shaped bag-full mode4echo;
+  its actual-client UI effect remains UNVERIFIED, not claimed harmless.
+- Tests-first29727:748pass/15fail of763,0skip. Money78628:0pass/10fail,0skip.
+  Failures reproduced dirty files/cache, PIN bypass, overflow/stale admission or
+  notification-before-durability. Corrected77436: **780/780**,0fail/skip,13s,
+  including all33new rows:26current-API claim/load cases and7new-v4 recovery rows.
+  Prefixes0/1/2/3, unknown images, wrong/missing mailbox roots, sharing failures,
+  real PIN issuer, transport close, send faults and replay are covered offline.
+- Integration50074 stopped at3fixture constructor-argument errors before tests;
+  use existing Context init properties, no new accepting API. Candidate26528
+  passed773/780; all7 failures were journal Seed's noncanonical warehouse order
+  before any journal call. Seed now follows the existing loader bank/UID order,
+  retaining every roundtrip/byte/recovery assertion. Failed logs remain intact.
+  Five retained positive fixtures gain genuine files/recovery/owners without
+  weakening assertions; the unsafe package oracle becomes exact healthy-owner
+  whole-request refusal. Public synthetic fixture identities remain sanitized.
+- Limits: cooperating in-process owners/process-restart prefixes, not killed
+  processes, power loss, hostile namespace, multiprocess/raw writers, outbox,
+  actual-client acceptance or full mailbox parity. Direct stale-context/native
+  generation windows, native/managed graph adoption, mailbox1000 presence/UID
+  aliases, package claims, deletion and ordinary producers/Save remain open.
+  Full clean-public successor/GitHub CI remain pending. No live/SQL/original-save,
+  protected client, canonical UID/Host, endpoint or held Guild/Union changes.
+
+### FSB-093: Validate complete mailbox images before allocation and cache replacement
+
+- Source: LegacyMailboxStore.Load allocated from an untrusted signed count and
+  accepted partial/trailing/ambiguous rows before replacing a prior valid cache.
+- Validate bounded complete4+count*740 managed images before row allocation.
+  Reject negative/inconsistent counts, duplicate mail IDs/attachment UIDs, null
+  or invalid required state and invalid timers, including expired tails. Prepare
+  the full live list/returned array before cache publication. A rejected file
+  leaves prior cache and every injected byte intact. Native unsafe struct padding
+  is not inferred or silently converted to this accepted managed file format.
+- Four new cache-preservation cases failed in29727 and pass in77436's780/780,
+  0fail/skip, together with retained loader/codec cases and complete Frame claims.
+  No fixture or parser assertion was skipped, suppressed or relaxed.
+- Limits: complete managed-file admission, not native binary-save migration,
+  rollback of earlier login effects, atomic ordinary Save/producers or full mail
+  lifecycle. Current client target stays Chinese7899/cachedDX8D13. Full public/
+  GitHub CI and actual-client acceptance remain separate and pending.
+
 ### FSB-091: Capture real equipped sigil metadata before combat and cooldown commitment
 
 - Source: Ninja.TryGetValueEquip and Item.DBItem were queried late by Physical.

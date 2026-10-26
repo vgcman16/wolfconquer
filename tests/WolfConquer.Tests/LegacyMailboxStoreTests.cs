@@ -2,7 +2,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyMailboxStoreTests : IDisposable
+public sealed partial class LegacyMailboxStoreTests : IDisposable
 {
     private readonly string rootDirectory;
     private readonly DateTime now = new(2026, 6, 13, 12, 0, 0, DateTimeKind.Unspecified);

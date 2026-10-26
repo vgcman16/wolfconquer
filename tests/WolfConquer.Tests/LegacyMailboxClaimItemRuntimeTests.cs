@@ -35,12 +35,7 @@ public sealed class LegacyMailboxClaimItemRuntimeTests : IDisposable
         var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
 
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(
-                connection,
-                log,
-                session,
-                Sessions: sessions,
-                Mailboxes: store),
+            CreateOwnedClaimContext(connection, log, session, sessions, store),
             ReadFrame(new LegacyMailboxModePacket(
                 LegacyMailboxModeType.ClaimItem,
                 MailId,
@@ -84,12 +79,7 @@ public sealed class LegacyMailboxClaimItemRuntimeTests : IDisposable
         var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
 
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(
-                connection,
-                log,
-                session,
-                Sessions: sessions,
-                Mailboxes: store),
+            CreateOwnedClaimContext(connection, log, session, sessions, store),
             ReadFrame(new LegacyMailboxModePacket(
                 LegacyMailboxModeType.ClaimItem,
                 MailId,
@@ -126,12 +116,7 @@ public sealed class LegacyMailboxClaimItemRuntimeTests : IDisposable
         var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
 
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(
-                connection,
-                log,
-                session,
-                Sessions: sessions,
-                Mailboxes: store),
+            CreateOwnedClaimContext(connection, log, session, sessions, store),
             ReadFrame(new LegacyMailboxModePacket(
                 LegacyMailboxModeType.ClaimAll,
                 Id: 0,
@@ -240,48 +225,36 @@ public sealed class LegacyMailboxClaimItemRuntimeTests : IDisposable
         return store;
     }
 
-    private static WorldSession CreateSession(PlayerItemSnapshot playerItems)
+    private WorldSession CreateSession(PlayerItemSnapshot playerItems)
     {
-        return new WorldSession(
-            AccountId: PlayerUid,
-            Username: "guest",
-            Character: new CharacterSnapshot(
-                Uid: PlayerUid,
-                Name: "HeroOne",
-                Body: 1008,
-                Face: 154,
-                Hair: 27,
-                Class: 7051,
-                FirstClass: 0,
-                SecondClass: 7050,
-                Reborn: 2,
-                Level: 140,
-                Experience: 0,
-                MapId: 1015,
-                X: 835,
-                Y: 596,
-                PreviousMapId: 1000,
-                PreviousMapX: 500,
-                PreviousMapY: 650,
-                Strength: 0,
-                Agility: 36,
-                Vitality: 447,
-                Spirit: 0,
-                AttributePoints: 12,
-                MinHitPoints: 55_989,
-                MinMana: 5_000,
-                Money: 98_602_439_956,
-                ConquerPoints: 639_813_200,
-                BoundConquerPoints: 0,
-                BankConquerPoints: 0,
-                PkPoints: 0,
-                Online: 1,
-                SourceFile: "",
-                Attributes: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                PaidNobility: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)),
-            playerItems,
-            PlayerSpellSnapshot.Empty,
-            PlayerProficiencySnapshot.Empty);
+        var users = Path.Combine(rootDirectory, "Users");
+        var items = Path.Combine(rootDirectory, "PlayersItems");
+        Directory.CreateDirectory(users);
+        Directory.CreateDirectory(items);
+        WriteSnapshot(users);
+        var itemLoader = new PlayerItemSnapshotLoader(items);
+        itemLoader.SaveByCharacterUid(PlayerUid, playerItems);
+        var parsed = CharacterSnapshotParser.ParseText(File.ReadAllText(Path.Combine(users, PlayerUid + ".ini")),
+            PlayerUid + ".ini");
+        return new WorldSession(PlayerUid, "guest", parsed, itemLoader.LoadByCharacterUid(PlayerUid),
+            PlayerSpellSnapshot.Empty, PlayerProficiencySnapshot.Empty) { UsersRoot = users };
+    }
+
+    private WorldPacketHandlerContext CreateOwnedClaimContext(ConquerTcpConnection connection, TextWriter log,
+        WorldSession session, WorldSessionStore sessions, LegacyMailboxStore mailboxes)
+    {
+        var items = Path.Combine(rootDirectory, "PlayersItems");
+        var recovery = new LegacyTradeRecoveryState(session.UsersRoot, items, null,
+            Path.Combine(rootDirectory, "PlayersMailList"));
+        Assert.True(recovery.TryEnsureInitialized(out var reason), reason);
+        Assert.True(recovery.IsReadyForMailbox(session.UsersRoot, items, Path.Combine(rootDirectory, "PlayersMailList")));
+        return new WorldPacketHandlerContext(connection, log, session, Sessions: sessions, Mailboxes: mailboxes,
+            PlayerItemsRoot: items)
+        {
+            Trades = new LegacyTradeStateStore(),
+            TradeOperations = new WorldOperationBarrier(),
+            TradeRecovery = recovery,
+        };
     }
 
     private static PlayerItemSnapshot CreatePlayerItems(
