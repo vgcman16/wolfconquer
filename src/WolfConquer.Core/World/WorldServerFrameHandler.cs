@@ -106,7 +106,8 @@ public sealed partial class WorldServerFrameHandler
         LegacyClientCompatibilityOptions? clientCompatibility = null,
         LegacyWorldEntryStartupProbeOptions? worldEntryStartupProbe = null,
         IAccountEmailVerifier? accountEmailVerifier = null,
-        ConquerProtocolProfile protocolProfile = ConquerProtocolProfile.RootD11_7899)
+        ConquerProtocolProfile protocolProfile = ConquerProtocolProfile.RootD11_7899,
+        LegacyOwnedAdmissionRuntime? ownedAdmission = null)
         : this(
             snapshotLoader,
             handoffService,
@@ -122,6 +123,16 @@ public sealed partial class WorldServerFrameHandler
             accountEmailVerifier,
             protocolProfile)
     {
+        if (ownedAdmission is not null)
+        {
+            // These are genuine factory-owned participants. Assign before the
+            // claim so concurrent shutdown sees a completely configured Frame.
+            _ordinaryAdmissionUids = ownedAdmission.Ordinary;
+            _tradeRecovery = ownedAdmission.Recovery;
+            _ownedAdmissionRuntime = ownedAdmission;
+            if (!ownedAdmission.TryClaimFrame(this, snapshotLoader, _mailboxes?.ClaimRoot, out var reason))
+                throw new ArgumentException(reason, nameof(ownedAdmission));
+        }
     }
 
     public WorldServerFrameHandler(
@@ -229,7 +240,8 @@ public sealed partial class WorldServerFrameHandler
         _guildWarRuntime = new LegacyGuildWarRuntimeScheduler(_guildWarStates);
         _log = TextWriter.Synchronized(log ?? TextWriter.Null);
         _tradeRecovery = new(_snapshotLoader?.UsersRoot, _snapshotLoader?.PlayerItemsRoot,
-            _snapshotLoader?.PlayerQuestsRoot, _mailboxes?.ClaimRoot);
+            _snapshotLoader?.PlayerQuestsRoot, _mailboxes?.ClaimRoot, _snapshotLoader?.PlayersCombatGearRoot,
+            _snapshotLoader?.PlayerSpellsRoot, _snapshotLoader?.PlayerProficienciesRoot);
         _voteStates = voteStates ?? TryCreateLegacyVoteRuntimeStateStore(_snapshotLoader?.UsersRoot);
         if (_voteStates is { LoadResult.Success: false })
         {
@@ -627,6 +639,12 @@ public sealed partial class WorldServerFrameHandler
         }
 
         var parsed = LegacyNewRolePacket.TryParse(frame, out var request);
+        if (HasOrdinaryUidNamespace())
+        {
+            await _log.WriteLineAsync($"WorldServer refused legacy NewRole uid={pending.CharacterUid}; ordinaryAdmissionUidCreatorRequired.")
+                .ConfigureAwait(false);
+            return; // Preserve the pending request; never use the old derived-UID writer in this domain.
+        }
         if (!parsed ||
             !TryNormalizeLegacyNewRoleName(request.Name, out var name) ||
             !IsLegacyNewRoleBody(request.Body) ||
@@ -683,102 +701,6 @@ public sealed partial class WorldServerFrameHandler
         await _log.WriteLineAsync(
                 $"WorldServer legacy NewRole Success uid={snapshot.Uid} name={snapshot.Name} class={snapshot.Class} body={snapshot.Body}.")
             .ConfigureAwait(false);
-    }
-
-    private async ValueTask StartWorldSessionAsync(
-        ConquerTcpConnection connection,
-        long accountId,
-        string username,
-        CharacterSnapshot snapshot,
-        CancellationToken cancellationToken,
-        Func<WorldSession, CancellationToken, ValueTask>? afterStartupBeforeRuntime = null,
-        LegacyNativeGameClientRuntime? nativeLoadedClient = null)
-    {
-        if (await TryStartMailboxDebtRecoverySessionAsync(connection, accountId, username, snapshot,
-                nativeLoadedClient, cancellationToken).ConfigureAwait(false)) return;
-        var nativeEquipment = BeginLegacyNativeEquipmentRawLoad(connection);
-        var playerItems = _snapshotLoader?.LoadPlayerItemsByCharacterUid(snapshot.Uid,
-            bytes => nativeEquipment?.CaptureRawLoad(bytes)) ?? PlayerItemSnapshot.Empty;
-        var starterState = await EnsureLegacyFirstCharacterStarterStateAsync(
-                snapshot,
-                playerItems,
-                cancellationToken)
-            .ConfigureAwait(false);
-        snapshot = starterState.Snapshot;
-        playerItems = starterState.PlayerItems;
-        if (starterState.Applied) nativeEquipment?.InvalidateRawLoadObservation("targetStarterReplacement");
-        var playerSpells = _snapshotLoader?.LoadPlayerSpellsByCharacterUid(snapshot.Uid) ?? PlayerSpellSnapshot.Empty;
-        var starterSpellState = await EnsureLegacyFirstCharacterStarterSpellsAsync(
-                snapshot,
-                playerItems,
-                playerSpells,
-                cancellationToken)
-            .ConfigureAwait(false);
-        playerSpells = starterSpellState.PlayerSpells;
-        playerSpells = await EnsureLegacyPlayerSpellClassGatesAsync(
-                snapshot,
-                playerItems,
-                playerSpells,
-                cancellationToken)
-            .ConfigureAwait(false);
-        playerSpells = await EnsureLegacyClassOwnedSpellsAsync(
-                snapshot,
-                playerSpells,
-                cancellationToken)
-            .ConfigureAwait(false);
-        await PersistLegacyFirstCharacterEmptyProficienciesAsync(snapshot, cancellationToken)
-            .ConfigureAwait(false);
-        var playerProficiencies = _snapshotLoader?.LoadPlayerProficienciesByCharacterUid(snapshot.Uid) ??
-            PlayerProficiencySnapshot.Empty;
-        var combatGear = _snapshotLoader?.LoadCombatGearByCharacterUid(snapshot.Uid) ?? CombatGearSnapshot.Empty;
-        snapshot = await EnsureLegacyClassLevelStatStateAsync(
-                snapshot,
-                playerItems,
-                combatGear,
-                cancellationToken)
-            .ConfigureAwait(false);
-        snapshot = WithLegacyClassPkWarStartupTitle(snapshot);
-        var session = new WorldSession(
-            accountId,
-            username,
-            snapshot,
-            playerItems,
-            playerSpells,
-            playerProficiencies,
-            CombatGear: combatGear,
-            UsersRoot: _snapshotLoader?.UsersRoot)
-        {
-            NativeGameClient = connection.NativeGameClient,
-        };
-        session = PrepareLegacySecondaryPasswordSession(connection, session);
-        if (_tradeRecovery.IsBlocked) return;
-        _sessions.Set(connection, session);
-        await LogLegacySessionSidecarStatusAsync(session).ConfigureAwait(false);
-        if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out session)) return;
-        await SendLegacyWorldEntryStartupAsync(
-                connection,
-                session.Character,
-                session.PlayerItems,
-                session.PlayerSpells,
-                session.CombatGear ?? CombatGearSnapshot.Empty,
-                cancellationToken,
-                nativeLoadedClient: nativeLoadedClient)
-            .ConfigureAwait(false);
-        var ownerUid = snapshot.Uid;
-        if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, ownerUid, out session)) return;
-        if (afterStartupBeforeRuntime is not null)
-        {
-            await afterStartupBeforeRuntime(session, cancellationToken)
-                .ConfigureAwait(false);
-            if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, ownerUid, out session)) return;
-        }
-
-        StartLegacyRuntimeUpdateLoop(
-            connection,
-            session.Character,
-            session.PlayerItems,
-            session.PlayerSpells,
-            cancellationToken);
     }
 
     private async ValueTask<bool> TrySendLegacyGuardMonsterProtectionAttackAsync(
@@ -1380,7 +1302,7 @@ public sealed partial class WorldServerFrameHandler
                 LegacyWorldLoginSnapshotLoadStatus.Unavailable);
         }
 
-        var loadResult = _snapshotLoader.TryLoadByAccountId(characterUid);
+        var loadResult = _snapshotLoader.TryLoadByAccountIdForAdmission(characterUid);
         if (loadResult.Status is CharacterSnapshotLoadStatus.SnapshotReadFailed or
             CharacterSnapshotLoadStatus.SnapshotReadDenied or
             CharacterSnapshotLoadStatus.SnapshotParseFailed or

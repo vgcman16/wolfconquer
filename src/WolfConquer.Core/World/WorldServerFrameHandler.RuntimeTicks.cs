@@ -21,23 +21,30 @@ public sealed partial class WorldServerFrameHandler
             return;
         }
 
-        TrackLegacyRuntimeWorker(SendLegacyPlayerRuntimeUpdatesAsync(
-            connection,
-            snapshot,
-            playerItems,
-            playerSpells,
-            cancellationToken));
-        TryStartLegacyGlobalRuntimeUpdateLoop(cancellationToken);
+        if (_ownedAdmissionRuntime is not { } owner)
+        { StartOwnedAdmissionRuntimeWorkers(connection, snapshot, playerItems, playerSpells, cancellationToken); return; }
+        lock (owner.LifetimeGate)
+            if (!owner.IsStopping)
+                StartOwnedAdmissionRuntimeWorkers(connection, snapshot, playerItems, playerSpells, cancellationToken);
     }
 
     private void TryStartLegacyGlobalRuntimeUpdateLoop(CancellationToken cancellationToken)
+    {
+        if (_ownedAdmissionRuntime is not { } owner)
+        { StartOwnedAdmissionGlobalWorker(cancellationToken); return; }
+        lock (owner.LifetimeGate)
+            if (!owner.IsStopping) StartOwnedAdmissionGlobalWorker(cancellationToken);
+    }
+
+    private void StartOwnedAdmissionGlobalWorker(CancellationToken cancellationToken)
     {
         if (Interlocked.CompareExchange(ref _legacyRuntimeGlobalLoopStarted, 1, 0) != 0)
         {
             return;
         }
 
-        TrackLegacyRuntimeWorker(SendLegacyGlobalRuntimeUpdatesAsync(cancellationToken));
+        var ownedLifetime = LinkOwnedAdmissionWorker(cancellationToken);
+        TrackOwnedAdmissionWorker(SendLegacyGlobalRuntimeUpdatesAsync(ownedLifetime?.Token ?? cancellationToken), ownedLifetime);
     }
 
     private async Task SendLegacyPlayerRuntimeUpdatesAsync(
@@ -47,6 +54,7 @@ public sealed partial class WorldServerFrameHandler
         PlayerSpellSnapshot playerSpells,
         CancellationToken cancellationToken)
     {
+        using var ownedActor = _ownedAdmissionRuntime?.EnterWorker();
         try
         {
             var timeProvider = _runtimeUpdateLoop.TimeProvider ?? TimeProvider.System;
@@ -128,6 +136,7 @@ public sealed partial class WorldServerFrameHandler
 
     private async Task SendLegacyGlobalRuntimeUpdatesAsync(CancellationToken cancellationToken)
     {
+        using var ownedActor = _ownedAdmissionRuntime?.EnterWorker();
         var timeProvider = _runtimeUpdateLoop.TimeProvider ?? TimeProvider.System;
 
         try

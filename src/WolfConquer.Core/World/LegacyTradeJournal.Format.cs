@@ -29,17 +29,20 @@ internal static partial class LegacyTradeJournal
             3 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "Domain"),
             4 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "MailboxDomain"),
             5 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "MailboxGearDomain"),
+            6 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "AdmissionDomain", "AdmissionInputs"),
+            7 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "AdmissionDomain", "AdmissionInputs", "AdmissionPreparedAt"),
             _ => GetProperties(rootElement, "Version", "TransactionId", "Changes"),
         };
         if (root["Version"].ValueKind != JsonValueKind.Number ||
-            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5) ||
+            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7) ||
             root["TransactionId"].ValueKind != JsonValueKind.String)
             throw new JsonException("Unsupported journal version or identity.");
         var transactionId = root["TransactionId"].GetString();
         if (!Guid.TryParseExact(transactionId, "N", out var id) || id == Guid.Empty)
             throw new JsonException("Invalid transaction identity.");
         var array = root["Changes"];
-        if (array.ValueKind != JsonValueKind.Array || array.GetArrayLength() != TargetCount(version))
+        if (array.ValueKind != JsonValueKind.Array ||
+            (IsOrdinaryAdmissionVersion(version) ? array.GetArrayLength() is < 1 or > 4 : array.GetArrayLength() != TargetCount(version)))
             throw new JsonException("Invalid target count.");
         var changes = new List<LegacyTradeJournalChange>(TargetCount(version));
         foreach (var element in array.EnumerateArray())
@@ -59,6 +62,9 @@ internal static partial class LegacyTradeJournal
             Domain = version == 3 ? ReadQuestDomain(root["Domain"]) : null,
             MailboxDomain = version == 4 ? ReadMailboxDomain(root["MailboxDomain"]) : null,
             MailboxGearDomain = version == 5 ? ReadMailboxGearDomain(root["MailboxGearDomain"]) : null,
+            AdmissionDomain = IsOrdinaryAdmissionVersion(version) ? ReadAdmissionDomain(root["AdmissionDomain"]) : null,
+            AdmissionInputs = IsOrdinaryAdmissionVersion(version) ? ReadAdmissionInputs(root["AdmissionInputs"]) : null,
+            AdmissionPreparedAt = version == 7 ? ReadAdmissionTime(root["AdmissionPreparedAt"]) : null,
         };
     }
 

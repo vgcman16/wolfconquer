@@ -320,21 +320,47 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
     [InlineData("malformed")]
     [InlineData("111,not-reset,0")]
     [InlineData("111,1,9223372036854775807")]
-    public async Task MalformedSavedCredentialAllowsGameLoginButNeverPinVerificationOrTrade(string raw)
+    public async Task MalformedSavedCredentialRejectsLoginBeforeNativePinOrTradeAuthority(string raw)
     {
         const uint leftUid = 1_297_091;
         const uint rightUid = 1_297_092;
         Seed(leftUid, raw);
         Seed(rightUid, "0,0,0", 20, 2_000, 60);
         var owner = NewOwner();
-        var left = await Login(owner, leftUid);
-        var right = await Login(owner, rightUid);
-        var before = File.ReadAllBytes(UserPath(leftUid));
+        var left = CreateConnection(leftUid);
+        var before = CapturePinAdmissionFiles();
+        var nativeBefore = ObservePinAdmission(left);
+
+        await owner.Handler.HandleFrameAsync(left.Connection,
+            ReadFrame(new LegacyMsgLoginGamePacket(leftUid).ToFrameBytes()), left.Lifetime.Token);
+
+        Assert.Empty(left.Sent);
+        Assert.False(owner.Sessions.TryGet(left.Connection, out _));
+        Assert.Equal(nativeBefore, ObservePinAdmission(left));
         Assert.False(left.NativeClient.Player.IsCheckedPass);
+        Assert.Null(left.NativeClient.Beasts);
+        Assert.Null(left.NativeClient.HairfaceStorage);
+        Assert.Null(left.NativeClient.RawEquipmentObservation);
+        AssertPinAdmissionFiles(before);
+        Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
+        Assert.Contains("ordinaryAdmissionPreparation:InvalidDataException", owner.Log.ToString());
+
+        var right = await Login(owner, rightUid); // Genuine valid zero-PIN control.
+        var acceptedRight = Current(owner, right);
+        Assert.True(right.NativeClient.Player.IsCheckedPass);
+        var beforeActions = CapturePinAdmissionFiles();
         AssertNoSuccess(await Password(owner, left, 1, newPin: 111));
+        await Trade(owner, left, new LegacyTradePacket(0) { UID = rightUid });
+        await Trade(owner, right, new LegacyTradePacket(1) { UID = leftUid });
+        await Trade(owner, left, new LegacyTradePacket(7) { Money = 300 });
+
+        Assert.False(owner.Sessions.TryGet(left.Connection, out _));
+        Assert.Same(acceptedRight, Current(owner, right));
+        Assert.False(acceptedRight.LegacyTradeActive);
+        Assert.Equal(nativeBefore, ObservePinAdmission(left));
         Assert.False(left.NativeClient.Player.IsCheckedPass);
-        await AssertTradeDenied(owner, left, right);
-        Assert.Equal(before, File.ReadAllBytes(UserPath(leftUid)));
+        AssertPinAdmissionFiles(beforeActions);
+        Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
     }
 
     [Theory]
@@ -444,15 +470,14 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
     }
 
     [Fact]
-    public async Task NonexpiredStartupDiskMismatchCannotInitializeOrInheritVerification()
+    public async Task PostCommitSavedCredentialChangeCannotVerifyOrInheritAuthorization()
     {
         const uint leftUid = 1_297_131;
         const uint rightUid = 1_297_132;
         Seed(leftUid, "111,0,0");
         Seed(rightUid, "0,0,0", 20, 2_000, 60);
-        // Prime legitimate equipment/startup scalar normalization before injecting
-        // the race. The exact-byte invariant below must not mistake the normal
-        // HP clamp for a credential action's mutation, nor exclude any bytes.
+        // Retain the existing successful-login control before the independent
+        // owner. Ordinary admission preserves these saved business values.
         await Login(NewOwner(), leftUid);
         var owner = NewOwner();
         var native = new LegacyNativeGameClientRuntime();
@@ -463,9 +488,15 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         {
             if (!IsAnswerOk(bytes) || injected) return;
             injected = true;
-            // Source order: snapshot load and the local Online write precede
-            // ANSWER_OK; security initialization follows it in StartWorldSession.
-            // This is an injected external-writer race on disposable saves.
+            // Actual v7 admission commits files/Store/native/PIN before AnswerOk.
+            // Establish the genuine unchecked issuer before injecting a later
+            // external disk change, rather than treating delivery as precommit.
+            var admitted = Assert.Single(owner.Sessions.Snapshot().Where(row => row.Session.AccountId == leftUid));
+            Assert.True(LegacySecondaryPasswordRuntime.TryGet(admitted.Connection, admitted.Session,
+                out var state, out var isChecked));
+            Assert.Equal(111U, state.Password);
+            Assert.False(isChecked);
+            Assert.False(native.Player.IsCheckedPass);
             var prior = File.ReadAllText(UserPath(leftUid));
             var changed = prior.Replace("SecurityPass=111,0,0", "SecurityPass=222,0,0", StringComparison.Ordinal);
             Assert.NotEqual(prior, changed);
@@ -478,15 +509,18 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         Assert.Equal("111,0,0", Current(owner, left).Character.Attributes["SecurityPass"]);
         Assert.Equal((222U, 0U, 0L), ReadCredential(leftUid));
         Assert.False(left.NativeClient.Player.IsCheckedPass);
-        // A protected=false binding would hide this startup bug until the next
-        // baseline read. No private verification issuer may be minted at all.
-        Assert.False(LegacySecondaryPasswordRuntime.TryGet(left.Connection, Current(owner, left), out _, out _));
+        Assert.True(LegacySecondaryPasswordRuntime.TryGet(left.Connection, Current(owner, left), out var committed, out var wasChecked));
+        Assert.Equal(111U, committed.Password);
+        Assert.False(wasChecked);
 
         AssertNoSuccess(await Password(owner, left, 1, newPin: 111));
         AssertNoSuccess(await Password(owner, left, 1, newPin: 222));
         await AssertTradeDenied(owner, left, right);
 
         Assert.False(left.NativeClient.Player.IsCheckedPass);
+        Assert.True(LegacySecondaryPasswordRuntime.TryGet(left.Connection, Current(owner, left), out var unchanged, out var isChecked));
+        Assert.Equal(111U, unchanged.Password);
+        Assert.False(isChecked);
         Assert.Equal(racedBytes, File.ReadAllBytes(UserPath(leftUid)));
         Assert.Equal((222U, 0U, 0L), ReadCredential(leftUid));
     }

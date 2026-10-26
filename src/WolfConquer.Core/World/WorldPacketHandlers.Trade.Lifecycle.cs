@@ -210,7 +210,8 @@ public static partial class WorldPacketHandlers
             ? await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false)
             : null)
         lock (trades.SyncRoot)
-            closed = context.TradeRecovery?.IsBlocked != true && (!trades.TryGet(context.Connection, out var party) ||
+            closed = (context.TradeRecovery is null || context.TradeRecovery.TryRequireLiveJournalClear(out _)) &&
+                (!trades.TryGet(context.Connection, out var party) ||
                 CloseLegacyTrade(context, trades, party, new LegacyTradePacket(2) { Action = 2 }, sends));
         // Do not attempt writes to the disconnected socket; partner notifications remain private.
         sends.RemoveAll(x => ReferenceEquals(x.Connection, context.Connection));

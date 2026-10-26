@@ -408,33 +408,4 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
     }
 
-    private static async ValueTask HandleConfirmSpellsAsync(
-        WorldPacketHandlerContext context,
-        MsgActionPacket packet,
-        CancellationToken cancellationToken)
-    {
-        if (context.Session is not { } session)
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped MsgAction confirm-spells {FormatSession(context)}; no character session is available.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var count = 0;
-        foreach (var spell in session.PlayerSpells.Spells)
-        {
-            await context.Connection.SendAsync(
-                    LegacySpellPacket.FromSnapshot(spell).ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
-            count++;
-        }
-
-        await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-        await context.Log.WriteLineAsync(
-                "WorldServer sent LegacySpell confirm " +
-                $"{FormatSession(context)} count={count}.")
-            .ConfigureAwait(false);
-    }
 }

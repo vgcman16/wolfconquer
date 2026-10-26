@@ -21,7 +21,8 @@ public sealed partial class WorldServerFrameHandler
         CombatGearSnapshot combatGear,
         CancellationToken cancellationToken,
         LegacyNativeGameClientRuntime? nativeLoadedClient = null,
-        bool preserveMailboxRecoveryState = false)
+        bool preserveMailboxRecoveryState = false,
+        LegacySpellPublicationOwner? loginSpells = null)
     {
         PrepareLegacyLocalServerIdentity(connection, snapshot.Uid);
         await SendLegacyWorldEntryStartupPrefixAsync(connection, cancellationToken).ConfigureAwait(false);
@@ -209,6 +210,10 @@ public sealed partial class WorldServerFrameHandler
             await connection.SendAsync(update.ToFrameBytes(), cancellationToken)
                 .ConfigureAwait(false);
         }
+
+        // MsgLoginHandler392-394: Add(1110) sends one new-grant2101 here.
+        // Existing saved spells belong to client Action78, not this startup slot.
+        if (loginSpells is not null && !await loginSpells.PublishAsync(null, cancellationToken).ConfigureAwait(false)) return;
 
         if (LegacySameGroupServerListPacket.TryCreateFromClientConfigs(_worldData?.ClientConfigs, out var groupServers))
         {

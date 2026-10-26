@@ -14,14 +14,17 @@ internal static class LegacyItemWorldDataFixture
         IReadOnlyList<XuanbaoRandomAttribute> xuanbaoRandomAttributes,
         IReadOnlyList<Npc>? npcs = null,
         IReadOnlyList<SobNpc>? sobNpcs = null,
-        IReadOnlyList<SocialAssociationRecord>? socialAssociations = null)
+        IReadOnlyList<SocialAssociationRecord>? socialAssociations = null,
+        IReadOnlyList<ClassLevelStat>? classLevelStats = null,
+        IReadOnlyList<MagicTypeOperationEntry>? magicTypeOperations = null,
+        IReadOnlyList<ClientConfigRecord>? clientConfigs = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
                 DateTimeOffset.UnixEpoch,
                 "fixture://item-catalog",
                 new Dictionary<string, int>()),
-            clientConfigs: [],
+            clientConfigs: clientConfigs ?? [],
             items: items,
             itemAddBonuses: [],
             levelExperience: [],
@@ -88,7 +91,7 @@ internal static class LegacyItemWorldDataFixture
             socialAssociations: socialAssociations ?? [],
             guildWarInfo: EmptyGuildWarData("guildwar"),
             superGuildWarInfo: EmptyGuildWarData("superguildwar"),
-            classLevelStats: [],
+            classLevelStats: classLevelStats ?? [],
             professionLevelUps: [],
             professionLevelBenefits: [],
             professionTitleBenefits: [],
@@ -98,7 +101,7 @@ internal static class LegacyItemWorldDataFixture
             quizQuestions: [],
             magic: [],
             magicEffects: [],
-            magicTypeOperations: [],
+            magicTypeOperations: magicTypeOperations ?? [],
             titleTypes: [],
             combatGear: [],
             traps: [],

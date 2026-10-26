@@ -2686,7 +2686,7 @@ public sealed class WorldPacketDispatchTests
             new PlayerItemSnapshotLoader(itemsRoot).SaveByCharacterUid(
                 1_400_123,
                 PlayerItemSnapshot.Empty);
-            WriteCombatGearSnapshot(combatGearRoot, pirateExp: 0, airPowerPoints: 0);
+            new CombatGearSnapshotLoader(combatGearRoot).SaveByCharacterUid(1_400_123, CombatGearSnapshot.Empty);
             var store = new LegacyMailboxStore(dbRoot);
             store.Add(
                 1_400_123,
@@ -2713,6 +2713,16 @@ public sealed class WorldPacketDispatchTests
             await handler.HandleFrameAsync(
                 connection,
                 ReadFrame(new LegacyMsgLoginGamePacket(1_400_123).ToFrameBytes()));
+            Assert.Contains(sent, bytes => LegacyMsgMessagePacket.TryParse(ReadFrame(bytes), out var packet) &&
+                packet.Content.Count > 3 && packet.Content[3] == "ANSWER_OK");
+            var sessionsField = typeof(WorldServerFrameHandler).GetField("_sessions",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(sessionsField);
+            var sessions = Assert.IsType<WorldSessionStore>(sessionsField.GetValue(handler));
+            Assert.True(sessions.TryGet(connection, out var admitted));
+            Assert.NotNull(admitted);
+            Assert.Equal(1_400_123L, admitted.Character.Uid);
+            Assert.NotNull(admitted.CombatGear);
             var countBeforeClaim = sent.Count;
             var beforeFiles = Directory.GetFiles(dbRoot, "*", SearchOption.AllDirectories)
                 .ToDictionary(path => path, File.ReadAllBytes);
@@ -2725,6 +2735,8 @@ public sealed class WorldPacketDispatchTests
                     Items: []).ToFrameBytes()));
 
             Assert.Empty(sent.Skip(countBeforeClaim));
+            Assert.True(sessions.TryGet(connection, out var retained));
+            Assert.Same(admitted, retained);
             Assert.Equal(beforeFiles.Keys.Order(StringComparer.Ordinal),
                 Directory.GetFiles(dbRoot, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal));
             foreach (var (path, bytes) in beforeFiles) Assert.Equal(bytes, File.ReadAllBytes(path));

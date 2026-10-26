@@ -2,7 +2,7 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-internal enum LegacyTradeJournalFileKind { Character, Items, Quests, Mailbox, CombatGear }
+internal enum LegacyTradeJournalFileKind { Character, Items, Quests, Mailbox, CombatGear, Spells, Proficiencies }
 
 internal sealed record LegacyTradeJournalChange(
     LegacyTradeJournalFileKind Kind, long FileId, byte[]? Before, byte[] After);
@@ -81,8 +81,9 @@ internal static partial class LegacyTradeJournal
                 return false;
             }
             EnsureTargetsMatch(targets, allowAfter: false);
+            EnsureAdmissionInputs(roots, record);
             LegacyMailboxPackageMutationFence.RequireJournalMutation(targets.Select(target => target.Path).ToArray(), record.Changes);
-            Directory.CreateDirectory(roots.Items);
+            if (!IsOrdinaryAdmissionVersion(record.Version)) Directory.CreateDirectory(roots.Items);
             Directory.CreateDirectory(roots.Journal);
             EnsureSafePath(roots.Journal);
             WriteFlushed(preparing, Serialize(record));
@@ -93,10 +94,14 @@ internal static partial class LegacyTradeJournal
                 reason = RecoveryRequired + ":interrupted";
                 return false;
             }
-            foreach (var target in targets) Stage(target, target.Change.After, record.TransactionId);
+            PrepareAdmissionDirectories(roots, record, targets);
+            foreach (var target in targets)
+                if (!IsOrdinaryAdmissionVersion(record.Version) || !Matches(ReadTarget(target.Path), target.Change.After))
+                    Stage(target, target.Change.After, record.TransactionId);
             for (var index = 0; index < targets.Length; index++)
             {
-                ReplaceStaged(targets[index], record.TransactionId);
+                if (!IsOrdinaryAdmissionVersion(record.Version) || !Matches(ReadTarget(targets[index].Path), targets[index].Change.After))
+                    ReplaceStaged(targets[index], record.TransactionId);
                 if (interrupt?.Invoke(index + 1) == true)
                 {
                     reason = RecoveryRequired + ":interrupted";
@@ -104,6 +109,8 @@ internal static partial class LegacyTradeJournal
                 }
             }
             EnsureAllAfter(targets);
+            EnsureAdmissionInputs(roots, record);
+            EnsureAdmissionStagesCleared(record, targets);
             try { DeleteRecord(pending); }
             catch (Exception ex) when (IsJournalException(ex))
             {
@@ -123,10 +130,11 @@ internal static partial class LegacyTradeJournal
             }
             // An exception after publication can have occurred after an OS replacement.
             // Validate every target before restoring any, then restore exact preimages.
-            if (TryRollback(targets, record.TransactionId))
+            if (TryRollbackWithAdmissionInputs(roots, record, targets))
             {
                 try
                 {
+                    EnsureAdmissionStagesCleared(record, targets);
                     DeleteRecord(pending);
                     reason = "tradeJournalWriteFailed:" + ex.GetType().Name;
                     return false;

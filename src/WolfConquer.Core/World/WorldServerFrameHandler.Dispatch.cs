@@ -32,7 +32,8 @@ public sealed partial class WorldServerFrameHandler
                     : await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
             // A preceding exclusive trade may have fenced recovery while this
             // operation was queued; do not proceed on the earlier readiness read.
-            if (_tradeRecovery.IsBlocked)
+            if (_tradeRecovery.IsBlocked || operation is not null &&
+                !_tradeRecovery.TryRequireLiveJournalClear(out _))
             {
                 await _log.WriteLineAsync("WorldServer trade recovery blocked a queued world action.").ConfigureAwait(false);
                 return;

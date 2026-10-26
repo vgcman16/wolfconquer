@@ -18,6 +18,7 @@ internal static partial class LegacyMailboxPackageMutationFence
 
     internal static void RequireFileMutation(string path)
     {
+        LegacyOrdinaryAdmissionMutationFence.RequireFileMutation(path);
         var absolute = Path.GetFullPath(path);
         foreach (var owner in Snapshot())
         {
@@ -37,7 +38,12 @@ internal static partial class LegacyMailboxPackageMutationFence
     }
 
     internal static bool CanMutateSession(LegacyMailboxPackageProducer? bound, WorldSession? previous, WorldSession next)
+        => CanMutateSession(bound, previous, next, null);
+
+    internal static bool CanMutateSession(LegacyMailboxPackageProducer? bound, WorldSession? previous, WorldSession next,
+        LegacyOrdinaryAdmissionPlan? admission)
     {
+        if (!LegacyOrdinaryAdmissionMutationFence.CanMutateSession(previous, next, admission)) return false;
         if (bound is not null && (!bound.TryRequireAccountWritable(next.AccountId, out _) ||
             previous is not null && !bound.TryRequireAccountWritable(previous.AccountId, out _))) return false;
         foreach (var owner in Snapshot())

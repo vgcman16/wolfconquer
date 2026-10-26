@@ -17,6 +17,7 @@ internal sealed partial class WorldOperationBarrier
         var lease = await EnterAsync(exclusive, cancellationToken).ConfigureAwait(false);
         try
         {
+            LegacyTradePacketInvocation.RequireAfterLease(this);
             LegacyMailboxPacketInvocation.RequireAfterLease(this);
             return lease;
         }

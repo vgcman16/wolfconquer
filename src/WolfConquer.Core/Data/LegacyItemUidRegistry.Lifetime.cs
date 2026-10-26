@@ -25,8 +25,17 @@ internal sealed partial class LegacyItemUidRegistry
         out LegacyItemUidRegistry? registry, out string reason) =>
         TryAcquire(options, bootstrap: false, LegacyItemUidInterruption.None, out registry, out reason);
 
+    internal static bool TryOpen(LegacyItemUidRegistryOptions options, Guid expectedDomain,
+        out LegacyItemUidRegistry? registry, out string reason)
+    {
+        if (expectedDomain != Guid.Empty)
+            return TryAcquire(options, false, LegacyItemUidInterruption.None, out registry, out reason, expectedDomain);
+        registry = null; reason = "itemUidExpectedDomainInvalid"; return false;
+    }
+
     private static bool TryAcquire(LegacyItemUidRegistryOptions options, bool bootstrap,
-        LegacyItemUidInterruption interruption, out LegacyItemUidRegistry? registry, out string reason)
+        LegacyItemUidInterruption interruption, out LegacyItemUidRegistry? registry, out string reason,
+        Guid? expectedDomain = null)
     {
         registry = null;
         reason = "itemUidConfigurationInvalid";
@@ -51,6 +60,7 @@ internal sealed partial class LegacyItemUidRegistry
             }
             if (!TryValidateDirectory(paths, out reason) || LegacyTradeJournal.HasPending(paths.Users))
             { if (reason.Length == 0) reason = RecoveryRequired + ":snapshotJournalPending"; return false; }
+            if (expectedDomain is { } expected && !RequireExpectedDomain(paths, options, expected, out reason)) return false;
             if (!LegacyItemUidRawCatalog.TryScan(paths.Items, paths.Mailbox, paths.Redeem, paths.Claim,
                 out var observed, out reason)) return false;
             RegistryState current;

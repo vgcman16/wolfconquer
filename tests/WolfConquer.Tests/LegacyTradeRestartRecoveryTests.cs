@@ -14,7 +14,7 @@ namespace WolfConquer.Tests;
 
 // Independent managed handler owners share disposable saves. This models a restart
 // boundary, not an actual killed process, hardware power loss, SQL, or D13 UI proof.
-public sealed class LegacyTradeRestartRecoveryTests : IDisposable
+public sealed partial class LegacyTradeRestartRecoveryTests : IDisposable
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "wolf-trade-restart-" + Guid.NewGuid().ToString("N"));
     private readonly List<Player> players = [];

@@ -9,6 +9,7 @@ internal static partial class LegacyTradeJournal
         internal string? Quests { get; init; }
         internal string? Mailbox { get; init; }
         internal string? CombatGear { get; init; }
+        internal LegacyOrdinaryAdmissionRoots? Admission { get; init; }
     }
 
     private sealed record JournalRecord(int Version, string TransactionId, LegacyTradeJournalChange[] Changes)
@@ -20,6 +21,12 @@ internal static partial class LegacyTradeJournal
         public MailboxJournalDomain? MailboxDomain { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public MailboxGearJournalDomain? MailboxGearDomain { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public LegacyOrdinaryAdmissionRoots? AdmissionDomain { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public LegacyOrdinaryAdmissionInput[]? AdmissionInputs { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public long? AdmissionPreparedAt { get; init; }
     }
 
     private sealed record JournalTarget(string Path, LegacyTradeJournalChange Change);
@@ -45,7 +52,8 @@ internal static partial class LegacyTradeJournal
     private static JournalRecord CreateRecord(IReadOnlyList<LegacyTradeJournalChange> changes, int version)
     {
         ArgumentNullException.ThrowIfNull(changes);
-        if (changes.Count != TargetCount(version)) throw new ArgumentException("Invalid target count.");
+        if (IsOrdinaryAdmissionVersion(version) ? changes.Count is < 1 or > 4 : changes.Count != TargetCount(version))
+            throw new ArgumentException("Invalid target count.");
         foreach (var change in changes)
             if (change is null || change.After is null || change.After.Length > MaxTargetBytes ||
                 change.Before?.Length > MaxTargetBytes)
@@ -57,7 +65,7 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(copied, version);
         // The single-owner API's failpoint contract is character first, then items.
         // Do not reorder v1: its established four-target contract remains unchanged.
-        if (version is 2 or 3 or 4 or 5) copied = copied.OrderBy(change => change.Kind).ToArray();
+        if (version is 2 or 3 or 4 or 5 or 6 or 7) copied = copied.OrderBy(change => change.Kind).ToArray();
         return new(version, Guid.NewGuid().ToString("N"), copied);
     }
 
@@ -68,11 +76,13 @@ internal static partial class LegacyTradeJournal
         3 => 3,
         4 => 3,
         5 => 4,
+        6 or 7 => 4, // Variable1..4; admission validates its exact configured membership.
         _ => throw new ArgumentException("Unsupported journal version."),
     };
 
     private static void ValidateChanges(LegacyTradeJournalChange[] changes, int version)
     {
+        if (IsOrdinaryAdmissionVersion(version)) { ValidateAdmissionChanges(changes); return; }
         if (version == 5)
         {
             ValidateMailboxGearChanges(changes);
@@ -108,6 +118,7 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 3) return GetQuestTargets(roots, record);
         if (record.Version == 4) return GetMailboxTargets(roots, record);
         if (record.Version == 5) return GetMailboxGearTargets(roots, record);
+        if (IsOrdinaryAdmissionVersion(record.Version)) return GetAdmissionTargets(roots, record);
         var targets = record.Changes.Select(change => new JournalTarget(Path.Combine(
             change.Kind == LegacyTradeJournalFileKind.Character ? roots.Users : roots.Items,
             change.FileId.ToString(CultureInfo.InvariantCulture) +
@@ -210,7 +221,7 @@ internal static partial class LegacyTradeJournal
         catch (Exception ex) when (IsJournalException(ex)) { return false; }
     }
 
-    private static bool IsJournalException(Exception ex) => ex is IOException or UnauthorizedAccessException or
+    private static bool IsJournalException(Exception ex) => ex is IOException or InvalidDataException or UnauthorizedAccessException or
         ArgumentException or NotSupportedException or OverflowException or System.Text.Json.JsonException or FormatException or
         System.Security.SecurityException;
 }

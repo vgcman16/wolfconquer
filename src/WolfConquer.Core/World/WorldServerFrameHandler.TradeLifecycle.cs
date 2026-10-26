@@ -22,7 +22,7 @@ public sealed partial class WorldServerFrameHandler
             {
                 // Transport cancellation can occur inside a write gate. Queue cleanup rather
                 // than waiting/reentering that gate from a synchronous cancellation callback.
-                _ = Task.Run(() => CancelTradeAfterDisconnectAsync(context));
+                QueueOwnedAdmissionDisconnectCleanup(context);
             }));
         });
     }

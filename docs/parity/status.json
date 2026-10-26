@@ -2,59 +2,92 @@
   "schemaVersion": 1,
   "scope": "Sanitized legacy-server parity: client compatibility, corrected emulator defects (project planning)",
   "reviewedAt": "2026-10-26",
-  "estimate": { "percent": 55, "low": 40, "high": 70, "confidence": "low", "asOf": "2026-10-19" },
-  "sourceAudit": { "date": "2026-10-19", "files": 784, "lines": 260144, "targetComparison": "representative" },
+  "estimate": {
+    "percent": 55,
+    "low": 40,
+    "high": 70,
+    "confidence": "low",
+    "asOf": "2026-10-19"
+  },
+  "sourceAudit": {
+    "date": "2026-10-19",
+    "files": 784,
+    "lines": 260144,
+    "targetComparison": "representative"
+  },
   "domains": [
     {
-      "id": "transport", "title": "Transport, authentication and startup", "status": "partial",
-      "implemented": "Packet, cipher, startup and replacement-service paths exist. Account and mailbox mode parsers validate coherent physical envelopes; hostile mailbox counts reject before item allocation. Malformed saved-credential admission is removed; secure native handoff is still unproved. An earlier build demonstrated limited local gameplay.",
+      "id": "transport",
+      "title": "Transport, authentication and startup",
+      "status": "partial",
+      "implemented": "Packet, cipher, startup and replacement-service paths exist. Account and mailbox mode parsers validate coherent physical envelopes; hostile mailbox counts reject before item allocation. Malformed saved-credential admission is removed; secure native handoff is still unproved. An earlier build demonstrated limited local gameplay. Explicit configured WorldServer startup now opens the genuine existing UID domain; owned API/raw/encrypted process/restart/lease/drain controls pass. This is saved-world entry, not authenticated native handoff.",
       "remaining": "Prove the authenticated native account-to-world handoff and protected D13 login payload; complete ownership and loader joins, then verify the published build and staged endpoint migration with the actual client."
     },
     {
-      "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Bag/warehouse moves validate PIN, capacity and escrow before persisted success. Ordinary mailbox claims use recoverable files; D13 text fields follow the client. Explicit allocating package owners now join durable UID intent, four-file work/recovery, guarded read-only startup, PIN and delivery checks with focused proof. Production Host activation, native Inventory/wallet/save adoption and full package fidelity remain unfinished.",
+      "id": "persistence",
+      "title": "Shared player, items and persistence",
+      "status": "partial",
+      "implemented": "Bag/warehouse moves validate PIN, capacity and escrow before persisted success. Ordinary mailbox claims use recoverable files; D13 text fields follow the client. Explicit allocating package owners now join durable UID intent, four-file work/recovery, guarded read-only startup, PIN and delivery checks with focused proof. Production Host activation, native Inventory/wallet/save adoption and full package fidelity remain unfinished. Ordinary saved admission commits complete captured snapshots before publication without starter regrant; an offline CLI creates only fresh disposable synthetic domains.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
-      "id": "combat", "title": "Combat, monsters and death", "status": "partial",
-      "implemented": "Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof. Physical monster admission validates actual minimum-damage, Rune, Gear and conditional Ninja owners before output/RNG; the full-adjustment sentinel returns its intended maximum. Equipped sigils use owned snapshots and reject missing selected metadata before damage or cooldown spending.",
+      "id": "combat",
+      "title": "Combat, monsters and death",
+      "status": "partial",
+      "implemented": "Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof. Physical monster admission validates actual minimum-damage, Rune, Gear and conditional Ninja owners before output/RNG; the full-adjustment sentinel returns its intended maximum. Equipped sigils use owned snapshots and reject missing selected metadata before damage or cooldown spending. Required spell metadata and bounded experience are prepared before local proficiency credit; committed new1110 and Action78 responses retain owner and wire ordering.",
       "remaining": "Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios."
     },
     {
-      "id": "progression", "title": "NPCs, shops, progression and housing", "status": "partial",
-      "implemented": "Main dispatch, shops, forging, skill learning and durable progression/reward paths exist. Native quest definitions, eligibility, dialog and experience tables have component proof. House load/save validate complete files/graphs before publication; authenticated housing adoption, entry and furniture economy remain unfinished.",
+      "id": "progression",
+      "title": "NPCs, shops, progression and housing",
+      "status": "partial",
+      "implemented": "Main dispatch, shops, forging, skill learning and durable progression/reward paths exist. Native quest definitions, eligibility, dialog and experience tables have component proof. House load/save validate complete files/graphs before publication; authenticated housing adoption, entry and furniture economy remain unfinished. Managed promotion, donation-to-CP/bank and permanent Chi purchases commit their coherent Character images before publication and refuse invalid/stale/repeated entitlement requests.",
       "remaining": "Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle."
     },
     {
-      "id": "social", "title": "Trade, social systems and events", "status": "partial",
+      "id": "social",
+      "title": "Trade, social systems and events",
+      "status": "partial",
       "implemented": "Managed Trade and player-booth exchanges use ordered pair commits and a shared journal. Tests cover complete closures, stale-file/escrow refusal, failure/retry, refunds/disconnect/restart and D13 Frame settlement. Warehouse composition preserves real 300-silver escrow: changed offered roots refund; unrelated withdrawals allow exchange. Guild/clan projections, selected actions, timers, score panels and some event state machines exist.",
       "remaining": "Complete native/social/event ownership and real-client multiplayer acceptance. Broader inventory/storage and booth raw-writer/delivery lifecycles, remaining guild/union actions, brackets, rewards, claims, reset, database parity and durable recovery remain open; scoped managed tests do not certify all transfers."
     },
     {
-      "id": "edge-systems", "title": "Cross-server and casino workflows", "status": "partial",
+      "id": "edge-systems",
+      "title": "Cross-server and casino workflows",
+      "status": "partial",
       "implemented": "Group/travel metadata, startup packets, poker data and visibility surfaces exist.",
       "remaining": "Complete genuine transfer/return/session/economy ownership and failure handling; verify table rounds, betting, pot and settlement."
     }
   ],
   "milestones": [
     {
-      "id": "live-client", "title": "Limited local live-client milestone", "status": "verified",
+      "id": "live-client",
+      "title": "Limited local live-client milestone",
+      "status": "verified",
       "detail": "Login, walking, one-item drop/pickup and saving were demonstrated on an earlier isolated local build. This does not validate the latest public source."
     },
     {
-      "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
-      "detail": "Exact publiccb49 Windows40373707806 failed six unsafe legacy test expectations (26,153core passes,165existing exclusions; updater434/434). This corrected successor passes330focused checks including VIP48, guild policy55, retained FrameVIP2 and prefix/PIN/Chinese decoder/request225. Its own full gate is pending; earliera3cb CI does not validate it. Host, actual-client acceptance, full English and distribution remain unproved."
+      "id": "public-build",
+      "title": "Current public build live-client acceptance",
+      "status": "planned",
+      "detail": "Last accepted full public sourcef21e2a11 passed Windows40383185044: core26,306passes/165existing exclusions, updater434,launcher57,parsers20+13,all8stages0. This successor has focused591/64/102 proofs and corrected47API/Host controls plus separate25CLI cases; its own full gate is pending. Current-source actual-client acceptance, native authentication, full English and distribution remain unproved."
     },
     {
-      "id": "english", "title": "Complete English client", "status": "in-progress",
+      "id": "english",
+      "title": "Complete English client",
+      "status": "in-progress",
       "detail": "Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete."
     },
     {
-      "id": "newer-client", "title": "Newer-client-only parity", "status": "in-progress",
-      "detail": "Official Chinese patches through7935 are downloaded and extracted privately. Actual engine evidence supports separate2132codec31, Echo request1 and explicit-key catalog transform43 passing cases. Two pinned private catalogs decode to UTF8text (501/9114bytes), without Lua execution. No default activation/full compatibility; schema, gameplay, transport and live acceptance remain open. Not estimated."
+      "id": "newer-client",
+      "title": "Newer-client-only parity",
+      "status": "in-progress",
+      "detail": "Official Chinese patches through7935 are downloaded/extracted privately. Separate2132codec, Echo request/catalog transform, duplicate-threshold selector and item2350reader/writer have focused proof. The35writer/30reader cases share a102-case run with37existing schema controls; those37are not extra patch coverage. Private decoded catalogs are not runtime binding. No default activation, real state/cost/save transaction, complete compatibility or live7935 acceptance. Not estimated."
     },
     {
-      "id": "distribution", "title": "Public full-client download and updates", "status": "in-progress",
+      "id": "distribution",
+      "title": "Public full-client download and updates",
+      "status": "in-progress",
       "detail": "Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet."
     }
   ]

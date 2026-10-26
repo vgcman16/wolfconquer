@@ -30,6 +30,10 @@ The current target is Chinese client7899 / cached DX8 D13. English resource
 tools and [configuration-decoding prerequisites](docs/CLIENT-RESOURCE-TOOLS.md)
 remain separate from complete English or portable-client acceptance.
 
+[Explicit saved-state startup and disposable fixture CLI](docs/OWNED-ADMISSION.md)
+opens only a configured existing UID domain; it does not register an account or
+complete native login.
+
 ## Build and test
 
 Install a .NET SDK compatible with `global.json` (9.0.314, with roll-forward enabled). From the repository root:

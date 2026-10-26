@@ -66,23 +66,62 @@ public sealed partial class LegacyNativeAttackDispatchTests
     });
 
     [Fact]
-    public Task TrainingKeepsUInt32RateProductThenSignedAccumulationOverflow() => NativePacketTestThread.Run(() =>
+    public Task TrainingRejectsWrappedRateProductBeforeEitherProficiencyPass() => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); s.NextLevel(uint.MaxValue); s.ClientSpell.Experience = int.MaxValue;
         LegacyNativeServerConfig.ExpRateSpell = uint.MaxValue;
+        var (right, left) = PrepareOverflowTrainingProficiencies(s);
+        var before = CaptureOverflowTrainingPacket(s);
         LegacyNativeUpdateSpell.CheckUpdate(s.Packet, s.Client, s.Attack, 2, s.Rows);
-        Assert.Equal(int.MaxValue - 2, s.ClientSpell.Experience); Assert.Equal((ushort)0, s.ClientSpell.Level);
-        Assert.Single(s.Queue);
+        AssertOverflowTrainingRefused(s, right, left, int.MaxValue, before);
+    });
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public Task MissingOrNullRequiredRowRefusesBeforeProficiencyOrSpellMutation(bool nullRow) => NativePacketTestThread.Run(() =>
+    {
+        using var s = new Scope(); s.Skill(1195, 1); s.Rows.Clear(); s.Rows[0] = s.Row; s.Rows[2] = s.Row; s.Rows[3] = s.Row;
+        if (nullRow) s.Rows[1] = null!;
+        s.Client.Equipment!.RightWeapon = 410009; var prof = new LegacyNativeMsgProficiency { ID = 410, Level = 5, Experience = 7 };
+        s.Client.MyProfs!.ClientProf[410] = prof;
+        LegacyNativeUpdateSpell.CheckUpdate(s.Packet, s.Client, s.Attack, 600, s.Rows);
+        Assert.Equal(7u, prof.Experience); Assert.Equal((ushort)1, s.ClientSpell.Level); Assert.Equal(0, s.ClientSpell.Experience); Assert.Empty(s.Queue);
     });
 
     [Fact]
-    public Task SparseTableFaultOccursAfterFirstRealProficiencyPassWithoutRollingBackItsSend() => NativePacketTestThread.Run(() =>
+    public Task MissingProficiencyOwnerRefusesBeforeSpellCredit() => NativePacketTestThread.Run(() =>
     {
-        using var s = new Scope(); s.Skill(1195, 1); s.Rows.Clear(); s.Rows[0] = s.Row; s.Rows[2] = s.Row; s.Rows[3] = s.Row;
-        s.Client.Equipment!.RightWeapon = 410009; var prof = new LegacyNativeMsgProficiency { ID = 410, Level = 5 };
-        s.Client.MyProfs!.ClientProf[410] = prof;
-        Assert.Throws<KeyNotFoundException>(() => LegacyNativeUpdateSpell.CheckUpdate(s.Packet, s.Client, s.Attack, 600, s.Rows));
-        Assert.Equal(100u, prof.Experience); Assert.Equal((ushort)2199, Opcode(Assert.Single(s.Queue)));
-        Assert.Equal((ushort)1, s.ClientSpell.Level); Assert.Equal(0, s.ClientSpell.Experience);
+        using var s = new Scope(); s.NextLevel(); s.Client.Equipment!.RightWeapon = 410009; s.Client.MyProfs = null;
+        LegacyNativeUpdateSpell.CheckUpdate(s.Packet, s.Client, s.Attack, 600, s.Rows);
+        Assert.Equal(0, s.ClientSpell.Experience); Assert.Equal((ushort)0, s.ClientSpell.Level); Assert.Empty(s.Queue);
     });
+
+    [Fact]
+    public Task MissingSpellOwnerRefusesBeforePhysicalProficiencyCredit() => NativePacketTestThread.Run(() =>
+    {
+        using var s = new Scope(); s.Client.Equipment!.RightWeapon = 410009;
+        var prof = new LegacyNativeMsgProficiency { ID = 410, Level = 5, Experience = 7 }; s.Client.MyProfs!.ClientProf[410] = prof;
+        s.Client.MySpells = null;
+        LegacyNativeUpdateSpell.CheckUpdate(s.Packet, s.Client, s.Attack, 600, s.Rows);
+        Assert.Equal(7u, prof.Experience); Assert.Empty(s.Queue);
+    });
+    [Fact]
+    public Task PhysicalTrainingWithNullDatabaseDoesNotRequireSpellOwner() => NativePacketTestThread.Run(() =>
+    {
+        using var s = new Scope(); s.Attack.AtkType = 2; s.Client.Equipment!.RightWeapon = 410009;
+        var prof = new LegacyNativeMsgProficiency { ID = 410, Level = 5, Experience = 7 };
+        s.Client.MyProfs!.ClientProf[410] = prof; s.Client.MySpells = null;
+        LegacyNativeUpdateSpell.CheckUpdate(s.Packet, s.Client, s.Attack, 600, null!);
+        Assert.Equal(107u, prof.Experience); Assert.Equal((ushort)2199, Opcode(Assert.Single(s.Queue)));
+    });
+
+    [Fact]
+    public Task NoActiveTrainingPathDoesNotRequireUnrelatedOwnersOrPacket() => NativePacketTestThread.Run(() =>
+    {
+        using var s = new Scope(); s.Attack.AtkType = 0; s.Client.MySpells = null;
+        s.Client.MyProfs = null; s.Client.Equipment = null;
+        LegacyNativeUpdateSpell.CheckUpdate(null!, s.Client, s.Attack, 600, null!);
+        Assert.Empty(s.Queue);
+    });
+
 }

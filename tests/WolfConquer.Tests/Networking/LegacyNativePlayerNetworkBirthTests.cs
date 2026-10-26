@@ -81,6 +81,7 @@ internal sealed class NativePlayerLoopback : IAsyncDisposable
     private readonly Channel<NativePlayerDispatch> _seen = Channel.CreateUnbounded<NativePlayerDispatch>();
     private readonly List<TcpClient> _clients = [];
     private readonly List<Task> _drains = [];
+    private readonly List<NativePlayerLoopbackOutputCapture> _outputCaptures = [];
     private readonly ConquerTcpWireMode _mode;
     private readonly ConquerTcpServer _server;
     private readonly NativePlayerDiagnosticLog _transportLog = new();
@@ -165,7 +166,7 @@ internal sealed class NativePlayerLoopback : IAsyncDisposable
         return client;
     }
 
-    internal async Task<NativePlayerWireClient> ConnectGameAsync(bool coalesced)
+    internal async Task<NativePlayerWireClient> ConnectGameAsync(bool coalesced, bool captureOutput = false)
     {
         if (_mode != ConquerTcpWireMode.LegacyGameServer)
             throw new InvalidOperationException("Game handshake requested on nongame fixture.");
@@ -183,7 +184,9 @@ internal sealed class NativePlayerLoopback : IAsyncDisposable
         var material = new byte[LegacyGameServerCipher.KeyMaterialSize];
         dh.DeriveKeyMaterial(material);
         var outbound = new LegacyGameServerCipher(material);
-        var client = new NativePlayerWireClient(stream, outbound, null);
+        var capture = captureOutput ? new NativePlayerLoopbackOutputCapture() : null;
+        if (capture is not null) _outputCaptures.Add(capture);
+        var client = new NativePlayerWireClient(stream, outbound, null, capture);
         var reply = ClientHandshakeReply(clientPublic);
         new LegacyGameServerCipher(Encoding.ASCII.GetBytes(LegacyGameServerCipher.LoginKey))
             .EncryptInPlace(reply);
@@ -201,7 +204,7 @@ internal sealed class NativePlayerLoopback : IAsyncDisposable
             await stream.WriteAsync(reply, Token);
             await client.SendAsync(ProbeFrame(), Token);
         }
-        _drains.Add(DrainOutputAsync(stream, Token));
+        _drains.Add(DrainOutputAsync(stream, Token, capture));
         return client;
     }
 
@@ -242,9 +245,20 @@ internal sealed class NativePlayerLoopback : IAsyncDisposable
         AssertNoTransportDiagnostics();
     }
 
-    private static async Task DrainOutputAsync(NetworkStream stream, CancellationToken token)
+    private static async Task DrainOutputAsync(NetworkStream stream, CancellationToken token,
+        NativePlayerLoopbackOutputCapture? capture = null)
     {
-        try { await stream.CopyToAsync(Stream.Null, token); }
+        try
+        {
+            if (capture is null) { await stream.CopyToAsync(Stream.Null, token); return; }
+            var buffer = new byte[4096];
+            while (true)
+            {
+                var count = await stream.ReadAsync(buffer, token);
+                if (count == 0) { capture.CompleteEof(); return; }
+                capture.Append(buffer.AsSpan(0, count));
+            }
+        }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         // IO/decoder/other failures are NOT swallowed as a successful ownership assertion.
     }
@@ -256,6 +270,8 @@ internal sealed class NativePlayerLoopback : IAsyncDisposable
         // All original background reads remain owned and are observed; no abandoned WaitAsync task.
         foreach (var drain in _drains)
             try { await drain; } catch (Exception error) { failures.Add(error); }
+        foreach (var capture in _outputCaptures)
+            try { capture.Dispose(); } catch (Exception error) { failures.Add(error); }
         foreach (var client in _clients)
             try { client.Dispose(); } catch (Exception error) { failures.Add(error); }
         try { await _server.DisposeAsync(); } catch (Exception error) { failures.Add(error); }
@@ -324,7 +340,12 @@ internal sealed class NativePlayerDiagnosticLog : TextWriter
     private readonly StringBuilder text = new();
     public override Encoding Encoding => System.Text.Encoding.UTF8;
     internal string Text { get { lock (gate) return text.ToString(); } }
-    public override void WriteLine(string? value) { lock (gate) text.AppendLine(value); }
+    internal Action<string>? ObserveLine { get; set; }
+    public override void WriteLine(string? value)
+    {
+        lock (gate) text.AppendLine(value);
+        ObserveLine?.Invoke(value ?? ""); // Observation only, after the actual diagnostic append.
+    }
     public override Task WriteLineAsync(string? value)
     {
         WriteLine(value);
@@ -344,8 +365,33 @@ internal sealed record NativePlayerDispatch(
     ConquerTcpConnection Connection, ushort Opcode, WorldSession? Before, WorldSession? After);
 
 internal sealed class NativePlayerWireClient(
-    NetworkStream stream, LegacyGameServerCipher? game, LegacyAccServerCipher? account)
+    NetworkStream stream, LegacyGameServerCipher? game, LegacyAccServerCipher? account,
+    NativePlayerLoopbackOutputCapture? serverOutput = null)
 {
+    private byte[][]? decodedOutput;
+
+    internal byte[][] CopyCapturedServerFramesAtEof()
+    {
+        if (serverOutput is null || game is null)
+            throw new InvalidOperationException("Captured native game output is required.");
+        if (decodedOutput is null)
+        {
+            var plain = serverOutput.CopyAtEof();
+            game.DecryptInPlace(plain); // The actual negotiated cipher has separate receive state.
+            var frames = new List<byte[]>();
+            var offset = 0;
+            while (offset < plain.Length)
+            {
+                if (!LegacyGameServerFrameCodec.TryStripSeal(plain.AsSpan(offset), out var frame, out var consumed))
+                    throw new InvalidDataException("Captured server output ends inside a frame.");
+                frames.Add(frame);
+                offset = checked(offset + consumed);
+            }
+            decodedOutput = frames.ToArray();
+        }
+        return decodedOutput.Select(frame => frame.ToArray()).ToArray();
+    }
+
     internal async Task SendAsync(byte[] frame, CancellationToken token)
     {
         var wire = game is not null

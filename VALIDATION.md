@@ -1,6 +1,37 @@
 # Publication validation
 
-## Current successor — six CI oracles corrected; focused checks passed
+## Current source update - exact public full gate pending
+
+The last accepted public source is f21e2a11618aae5a1d77df422e488db6ab10025d.
+[Windows40383185044](https://github.com/vgcman16/wolfconquer/actions/runs/40383185044)
+completed successfully: all8 stages exit0, core26,306passed/165existing exclusions,
+updater434, launcher57 and receipt parsers20+13. Build148warnings/0errors. The
+reviewed generated-only c2f3ebba tracker child does not add gameplay evidence.
+
+This successor adds coherent ordinary saved admission, source-correct spell
+publication, safe promotion/CP/Chi purchases, explicit production startup,
+disposable fixture creation and separate known-schema7935 research components.
+Its meaningful owned-candidate results are separate runs:
+
+- Admission/promotion/spell591/591; final spell-owner correction64/64.
+- Item2350reader30 + writer35 within102/102, including37 existing-schema controls.
+- Focused startup/economy228-case run225passed/3failed/0skipped. All26 previously
+  setup-blocked native/restart cases passed with the measured PowerShell7 binding;
+  CP50, promotion39, Chi33+retained caller and fixture CLI25 all passed.
+- Corrected public startup API/actual WorldServer process selection47/47,
+  zero failures/skips: API40 and Host7. The earlier three failures were a
+  BOM-unaware test assertion and incoherent saved HP/mana fixtures. Complete
+  file/UID/restart checks remain; production health calculations were unchanged.
+
+These selections do not sum to a full suite. The exact published successor
+still requires its own full Windows check. Real raw/encrypted world processes
+and restart/lease/drain controls are synthetic owned-data evidence, not account
+password authentication, full native Loading, current-source client rendering,
+SQL, complete English, a public full-client feed or whole-server parity.
+See [owned startup](docs/OWNED-ADMISSION.md) and the
+[component checklist](docs/RECONSTRUCTION-STATUS.md).
+
+## Previous failed source attempt and focused corrections
 
 Exact publiccb49be1da4ead0e6a9aea78ab7fb00bcf839b431 failed
 [Windows40373707806](https://github.com/vgcman16/wolfconquer/actions/runs/40373707806),

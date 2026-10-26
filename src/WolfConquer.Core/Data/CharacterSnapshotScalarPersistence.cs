@@ -108,7 +108,7 @@ public static class CharacterSnapshotScalarPersistence
             out reason);
     }
 
-    private static IReadOnlyDictionary<string, string> BuildPersistedValues(CharacterSnapshot snapshot)
+    internal static IReadOnlyDictionary<string, string> BuildPersistedValues(CharacterSnapshot snapshot)
     {
         var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {

@@ -4,7 +4,17 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Current successor — six CI oracles corrected; focused checks passed
+## Current update - focused verification, public full gate pending
+
+The source successor contains FSB114-123 and the explicit saved-state startup /
+synthetic-fixture tools. Relevant owned selections pass591/591,64/64,102/102 and
+corrected47/47. The earlier focused228 run remains225passed/3failed; its CP50,
+promotion39, Chi33+caller, CLI25 and26 measured-PS7 child cases pass. No failed
+run is reclassified as green. Exact-source public full checks remain pending;
+see [validation](VALIDATION.md). Native authentication, SQL, actual client,
+English/distribution and whole-server parity remain open.
+
+## Previous failed source attempt and focused corrections
 
 Exact publiccb49be1da4ead0e6a9aea78ab7fb00bcf839b431 failed
 [Windows40373707806](https://github.com/vgcman16/wolfconquer/actions/runs/40373707806),
@@ -280,6 +290,184 @@ superseded by this exact accepted run, not silently reclassified as passes.
 No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
+
+### FSB-123: Bind explicit saved-state ownership in real WorldServer startup
+
+Production Program used the unbound Frame constructor and could not open the safe
+ordinary saved-admission transaction. The new explicit bounded configuration
+binds its expected UID domain and all snapshot/journal routes to a genuine leased
+runtime. Domain checking precedes retained registry recovery writes. Startup never
+bootstraps; missing/conflicting state, a second owner and pending joint journals
+refuse before listening. One runtime binds one actual handler, retains full
+runtime/auth/profile settings and releases its registry only after actual worker
+and world-operation drain.
+
+Actual corrected owned run87908 passes47/47, zero failures/skips:40 public API,
+configuration/ownership/actor controls and7 actual WorldServer process controls,
+including raw/encrypted saved entry, abrupt restart, second-process contention and
+normal non-listening disposal. The earlier228-case run remains225/3; its three
+new test errors were a BOM-unaware assertion and incoherent HP/mana fixture,
+corrected with real decoding/source literals while retaining complete byte checks.
+All26 previously setup-blocked children pass after the measured PS7 binding.
+
+Separate offline fixture CLI25/25 passes in21122. It creates new GUID-owned
+synthetic snapshots and explicit UID history, publishes configuration last, never
+imports existing saves/accounts and retains interrupted roots. These checks do
+not prove account-password authentication, full native Loading/Host lifecycle,
+mailbox payout activation, SQL, client rendering, deployment or full parity.
+
+### FSB-122: Save ChargeChi and its donation debit before publication
+
+AccountManager option2 updated Store before its two-field save and could repeatedly
+charge100 points for an already-active permanent flag. Native Player defines a
+byte; load defaults to0 and the Chi study consumer repeatedly reads1 without
+consuming it (NpcHandler8164-8186, Player1097, ServerDatabase474/783,
+MsgChiInfo193-195; managed LegacyChiStudyState116-119).
+
+The dedicated transaction validates genuine current ownership, strict donation/
+byte fields, persisted baseline and real recovery participants. It commits the
+complete DonatePoints/ChargeChi file image and Store before diagnostics. Already1
+refuses without another debit; malformed values cannot default or wrap. Valid
+success retains its zero-packet behavior and insufficient funds retain the four
+existing dialog frames. A failed postcommit diagnostic cannot refund or replay.
+
+Actual owned run21122: all33 new ChargeChi cases and the retained source-backed
+caller pass. The complete228-case run is FAILED225/3: three startup test assertion/fixture issues were subsequently corrected in
+the47/47 API/Host rerun. Chi evidence does not
+prove native mirrors, complete Chi lifecycle/ranking, SQL, client rendering or
+cross-process/power-loss atomicity. No false success saver or native owner added.
+
+### FSB-121: Commit donation conversion with the source wallet cap and bank spill
+
+AccountManager option3 previously published/debited Store before its financial
+file save. It also omitted the native ConquerPoints setter's2B cap and BankCps
+spillover (NpcHandler8201-8206 -> Player2520-2557; saved bank is
+GameClient.ConquerPointsSave/ServerDatabase489-490). The new actual-owner
+transaction prepares one Character image before Store publication: donation and
+wallet only without spill, all three fields with spill. Native UInt32 sum wrap
+and an unrepresentable managed Int64 bank reject before payment. Existing cost100,
+grant1B and spill MessageBox -> wallet update order remain. Delivery failure or
+retirement after commitment cannot refund or replay a captured purchase.
+
+Verification: all50 independent CP/bank cases pass in the broader5766 result:
+2530Passed/26Failed/3NotExecuted. All26 failures stopped before child checks
+because Root omitted the measured PowerShell7 path; that broader gate remains failed. All26 then pass in21122 with the measured
+PowerShell7 binding, together with all50 CP cases. Tests cover exact file/Store/wire, width, bank defaults/overflow, real
+locks, ownership, concurrency and delivery faults. This is managed one-file
+transaction proof, not native financial mirrors, SQL, live client or full parity.
+
+### FSB-120: Retire a live trade owner when a real pending journal appears
+
+An earlier ordinary mutation fence could reject before the trade recovery owner
+observed its pending journal, allowing that old owner to become usable again
+after another owner reconciled files. Registered, direct, queued and disconnect
+paths now observe the real pending journal under their actual lease and retain
+the sticky recovery refusal. No accepting recovery callback or automatic replay
+is introduced. A legitimate fresh owner is separate from the retired owner.
+
+Verification: all30 TradeRestart controls, including four new sticky-owner cases,
+passed in48996 and again within591/591. This does not establish every economic
+handler, cross-process authority, SQL or crash-safe global transactions.
+
+### FSB-119: Commit promotion payment, class and counter before publication
+
+AccountManager option36 previously published Store/Class before the complete
+DonatePoints/Class/ChargePromotion save and could log success after save failure.
+It now validates the real owner and exact economic baseline, prepares one complete
+Character image, replaces it before Store publication, and holds unknown outcomes
+for the real recovery owner. The native byte counter cannot wrap. Postcommit log
+failure cannot refund or turn commitment into rejection. Existing cost30, eleven
+class ranges, insufficient-dialog order and zero success purchase frames remain.
+
+Verification:39 new real Frame/owner/fault cases and11 retained mappings pass in
+591/591. Scope is one cooperating Character-file transaction and managed Store;
+SQL, native class synchronization, abrupt power loss and live gameplay remain open.
+
+### FSB-118: Prepare spell responses and retain their actual publication owner
+
+Ordinary admission saved a missing Cyclone but omitted its source2101 notice;
+Action78 serialized rows during sends without complete validation or retirement
+checks. The new path prebuilds valid frames before effects, publishes only the
+committed new1110 at its source startup slot, and serves saved spells in stored
+order followed by the existing Action78 echo. Real holder/native/lifetime and
+learned-set checks surround sends, including a final identity check after
+callback-bearing collection reads; same-record holder recreation cannot pass.
+
+Verification:591/591 includes12 new spell cases; final owner correction passes
+64/64 including all15 spell cases and retained login/Action78 controls. Independent
+wire goldens remain. No whole-startup fencing, native loader or rendering claim.
+
+### FSB-117: Preserve existing characters through coherent ordinary admission
+
+The replacement's existing-character startup could apply creation tuning or
+starter repair to saved progression and publish partial admission state. The
+ordinary path now validates captured Character/sidecar images, preserves saved
+progression and raw records, grants only a genuinely missing confirmed1110, and
+commits through the real configured UID owner and recoverable admission journal
+before Store/native/PIN publication and ANSWER_OK. Pending or ambiguous retained
+work refuses mutation rather than inventing ownership or replaying unsafev6 work.
+
+Verification: owned591/591 admission/promotion/spell selection passed, retaining
+pre-ACK preservation, rejection, PIN, expiry and recovery controls. Earlier
+fresh-process ordinary restart/retained-journal controls also passed in48699;
+that broader run failed elsewhere and is not accepted as a whole. This does not
+prove full native Loading, SQL, power-loss durability or live-client acceptance.
+
+### FSB-116: Reject negative or overflowing eligible spell XP before local credit
+
+- The same source multiplied UInt32 damage/rate, cast the wrapped product to
+  signed Int32 and added it with signed overflow. An older test required XP to
+  fall from Int32.MaxValue to MaxValue-2 on a positive award. This is not a wire
+  requirement: the actual stored/2101experience field is signed Int32.
+- Prepare the full UInt64 product and remaining nonnegative signed capacity
+  before proficiency effects; reject invalid currentXP/gain/sum unchanged.
+  Commit a valid prepared value in the original spell phase, retaining strict
+  threshold, single-level/reset, prior-level and packet order. Ineligible Rune/
+  NeedLevel/max-level branches do not invoke an unrelated XP preflight.
+- Replace the unsafe wrap oracle and add11numeric/eligibility cases, within
+  actual48996's31training/163dispatch passes. Refusals preserve real prof/spell
+  identity/levels/XP, packet bytes/size/cursor and output; exact signed maximum,
+  zero-rate and independent physical controls pass. No saturation or wire change.
+- Limits: proficiency-internal arithmetic/double-pass behavior, concurrent
+  mutation, caller-before-update effects, persistence and whole-cast transactions
+  remain open. The broader48996run still has1unresolved combined-ledger oracle.
+
+### FSB-115: Resolve required spell-training metadata before proficiency credit
+
+- LegacyNativeUpdateSpell.CheckUpdate credited equipped proficiencies before
+  indexing the learned spell's required current-level metadata. A sparse/null
+  row could then fault after real XP/2199output. Capture the learned record once,
+  resolve the required row and real required owners before either local credit.
+  Missing required state refuses unchanged. NullDB physical training retains
+  its independent path without requiring unrelated MySpells; zero damage is
+  still an immediate no-op. No owner replacement or blanket catch is added.
+- Actual48996 passes163/163native attack-dispatch outcomes, including31training
+  outcomes covering missing/null rows, required/optional owners, real proficiency
+  controls and retained2101/2199/system-message ordering. Source-only earlier
+  drafts are not executed RED claims. Root intook the exact tested component.
+- Limits: real callers may already have spent resources or changed pets before
+  this update. Publicly mutable owners/catalogs, concurrency, downstream prof
+  storage/serialization and transport failure remain separate. This is local
+  preflight, not complete cast atomicity, native Host or live-client proof.
+
+### FSB-114: Retain duplicate native Echo threshold rows in the new projection
+
+- New Chinese7935EchoType6Thresholds is an explicit caller-data component for
+  the inspected7931DX8 engine carried by the7935chain. An unpublished draft
+  incorrectly refused equal attribute/threshold rows. Physical cache insertion
+  compares signed primary keys only, inserts equal keys to the right and retains
+  every row. Every qualifying type6row must participate in each key's maximum.
+- Root reviewed the corrected3paths and native cache/body evidence. Actual
+  candidate48699 passes29/29selector cases, including qualified/unqualified
+  equal-threshold rows with same/different bonuses and reversed input order,
+  threshold boundaries, signed keys, missing contributions and ownership/bounds.
+  Root intook the exact tested3paths privately; broader candidate199failures
+  remain unresolved. No passing baseline of the rejected draft is claimed.
+- Checked contribution/result overflow and4096element guards are explicit
+  sanitized offline limits; native dword wrapping is not copied. Numeric meaning
+  of type6/result owner+5930 is not guessed. No game catalogs/keys, accepting
+  handler, inventory/state/persistence owner, Host or live-client proof. This is
+  a prepublication projection correction, not a claimed old-emulator feature fix.
 
 ### FSB-112: Respect actual guild recruitment class permissions
 

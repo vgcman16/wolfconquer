@@ -51,7 +51,8 @@ public sealed partial class WorldServerFrameHandlerTests
         var playerSpellsPath = Path.Combine(playerSpellsRoot, "1293600.bin");
         File.WriteAllBytes(playerSpellsPath, originalBytes);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
+        using var admission = new OrdinaryLoginFixture(loader);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -66,6 +67,10 @@ public sealed partial class WorldServerFrameHandlerTests
             new[] { learnedSpell },
             GetSession(handler, connection).PlayerSpells.Spells);
         Assert.DoesNotContain("legacy Trojan-lineage login spell grant", log.ToString());
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        // 36*3 +447*24 base HP +4*3500 rolled Chi +5000 Dragon score.
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent,
+            expectedRuntimeHitpoints: 29_836);
     }
 
     [Theory]
@@ -101,7 +106,8 @@ public sealed partial class WorldServerFrameHandlerTests
             Path.Combine(playerSpellsRoot, "1293600.bin"),
             PlayerSpellSnapshotLoaderTests.BuildPlayerSpellRecords([learnedSpell]));
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
+        using var admission = new OrdinaryLoginFixture(loader);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -120,9 +126,9 @@ public sealed partial class WorldServerFrameHandlerTests
         var persistedSpells = loader.LoadPlayerSpellsByCharacterUid(1293600);
         Assert.Equal(expectedSpells, persistedSpells.Spells);
         Assert.Equal(expectedSpells, GetSession(handler, connection).PlayerSpells.Spells);
-        Assert.Contains(
-            "WorldServer applied legacy Trojan-lineage login spell grant uid=1293600",
-            log.ToString());
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent,
+            expectedRuntimeHitpoints: classCode == 1_051 ? 31_461 : 29_836);
     }
 
     [Fact]
@@ -160,7 +166,8 @@ public sealed partial class WorldServerFrameHandlerTests
         var playerSpellsPath = Path.Combine(playerSpellsRoot, "1293600.bin");
         File.WriteAllBytes(playerSpellsPath, originalBytes);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
+        using var admission = new OrdinaryLoginFixture(loader);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -173,5 +180,8 @@ public sealed partial class WorldServerFrameHandlerTests
         Assert.Equal(originalBytes, File.ReadAllBytes(playerSpellsPath));
         Assert.Equal(expectedSpells, GetSession(handler, connection).PlayerSpells.Spells);
         Assert.DoesNotContain("legacy Trojan-lineage login spell grant", log.ToString());
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent,
+            expectedRuntimeHitpoints: 29_836);
     }
 }

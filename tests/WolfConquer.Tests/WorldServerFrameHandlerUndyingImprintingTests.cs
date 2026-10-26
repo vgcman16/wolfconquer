@@ -120,10 +120,12 @@ public sealed partial class WorldServerFrameHandlerTests
             string? extraCharacterLines = null,
             long unionId = 0)
     {
-        Directory.CreateDirectory(_usersRoot);
+        var usersRoot = Path.Combine(_usersRoot, "Users");
+        Directory.CreateDirectory(usersRoot);
         var spellsRoot = Path.Combine(_usersRoot, "PlayersSpells");
         Directory.CreateDirectory(spellsRoot);
         WriteSnapshot(
+            usersRoot,
             1_293_600,
             uid: 1_293_600,
             classCode: 9_005,
@@ -136,7 +138,7 @@ public sealed partial class WorldServerFrameHandlerTests
 
         using var log = new StringWriter(CultureInfo.InvariantCulture);
         var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(_usersRoot, playerItemsRoot: null, playerSpellsRoot: spellsRoot),
+            new CharacterSnapshotLoader(usersRoot, playerItemsRoot: null, playerSpellsRoot: spellsRoot),
             log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
@@ -145,6 +147,8 @@ public sealed partial class WorldServerFrameHandlerTests
                 connection,
                 ReadFrame(new LegacyMsgLoginGamePacket(1_293_600).ToFrameBytes()));
 
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        Assert.Equal(LegacyMsgMessagePacket.AnswerOk().ToFrameBytes(), sent[0]);
         return (handler, connection, sent);
     }
 

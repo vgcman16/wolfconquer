@@ -1,109 +1,67 @@
-using System.Globalization;
-
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
     private static async ValueTask<bool> TryPurchaseLegacyAccountManagerFullPromotionAsync(
-        WorldPacketHandlerContext context,
-        WorldSession session,
-        byte optionId,
-        CancellationToken cancellationToken)
+        WorldPacketHandlerContext context, WorldSession session, byte optionId, CancellationToken cancellationToken)
     {
-        var donatePoints = ReadAttributeUInt64(session.Character.Attributes, "DonatePoints");
-        if (donatePoints < LegacyAccountManagerFullPromotionCost)
+        cancellationToken.ThrowIfCancellationRequested();
+        AccountPromotionOwner? owner = null;
+        AccountPromotionPlan? plan = null;
+        var insufficient = false;
+        var committed = false;
+        var outcome = LegacyAccountManagerFullPromotionPersistence.Outcome.Rejected;
+        var reason = "accountManagerFullPromotionOwnerUnavailable";
+        if (context.Trades is { } trades && context.Sessions is { } sessions)
         {
-            await SendLegacyNpcDialogAsync(
-                    context,
-                    "NpcHandler.AccountManager",
-                    [
-                        string.Concat(
-                            LegacyAccountManagerInsufficientDonatePointsText,
-                            " You need ",
-                            LegacyAccountManagerFullPromotionCost.ToString(CultureInfo.InvariantCulture),
-                            " donation points."),
-                    ],
-                    [new LegacyNpcDialogOption("I~see.", LegacyNpcClosedOption)],
-                    LegacyAccountManagerShopAvatarId,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped LegacyNpc AccountManager full promotion " +
-                    $"{FormatSession(context)} source=NpcHandler.AccountManager option={optionId} " +
-                    $"cost={LegacyAccountManagerFullPromotionCost} donatePoints={donatePoints}.")
-                .ConfigureAwait(false);
+            // Same real order as VIP: party -> Store connection -> Character image.
+            // Frame dispatch already owns the actual world-operation lease.
+            lock (trades.SyncRoot)
+            {
+                try
+                {
+                    if (TryCaptureAccountPromotionOwner(context, session, out owner, out reason) && owner is not null &&
+                        TryPrepareAccountPromotion(context, owner, optionId, out plan, out insufficient, out reason) && plan is not null)
+                    {
+                        var prepared = plan;
+                        reason = "accountManagerFullPromotionCurrentSessionChanged";
+                        committed = sessions.TryCommitSession(context.Connection, session, prepared.Updated, () =>
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            if (!IsCurrentAccountPromotionOwner(context, prepared.Owner, session, prepared.Owner.Fields)) return false;
+                            outcome = LegacyAccountManagerFullPromotionPersistence.Commit(prepared.File,
+                                () =>
+                                {
+                                    cancellationToken.ThrowIfCancellationRequested();
+                                    return IsCurrentAccountPromotionOwner(context, prepared.Owner, session, prepared.Owner.Fields);
+                                }, out reason);
+                            return outcome == LegacyAccountManagerFullPromotionPersistence.Outcome.Committed;
+                        });
+                    }
+                }
+                catch (Exception error) when (LegacyAccountManagerFullPromotionPersistence.IsFailure(error))
+                {
+                    reason = (outcome == LegacyAccountManagerFullPromotionPersistence.Outcome.Committed
+                        ? LegacyAccountManagerFullPromotionPersistence.RecoveryRequired + ":sessionPublicationUnproven:"
+                        : "accountManagerFullPromotionPreparation:") + error.GetType().Name;
+                }
+                if (!committed && (outcome != LegacyAccountManagerFullPromotionPersistence.Outcome.Rejected ||
+                    reason.StartsWith(LegacyAccountManagerFullPromotionPersistence.RecoveryRequired, StringComparison.Ordinal)))
+                    context.TradeRecovery?.Block(LegacyAccountManagerFullPromotionPersistence.RecoveryRequired + ":" + reason);
+            }
+        }
+        if (committed && plan is not null)
+        {
+            await PublishAccountPromotionAsync(context, plan).ConfigureAwait(false);
             return true;
         }
-
-        var updatedDonatePoints = donatePoints - LegacyAccountManagerFullPromotionCost;
-        var updatedChargePromotion = checked(ReadAttributeUInt64(
-            session.Character.Attributes,
-            "ChargePromotion") + 1UL);
-        var promotedClass = ResolveLegacyAccountManagerFullPromotionClass(session.Character.Class);
-        var updatedCharacter = WithCharacterAttribute(
-            WithCharacterAttribute(
-                WithCharacterAttribute(session.Character with { Class = promotedClass }, "DonatePoints", updatedDonatePoints),
-                "Class",
-                checked((ulong)promotedClass)),
-            "ChargePromotion",
-            updatedChargePromotion);
-        var updatedSession = session with { Character = updatedCharacter };
-        context.Sessions?.Set(context.Connection, updatedSession);
-
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["DonatePoints"] = updatedDonatePoints.ToString(CultureInfo.InvariantCulture),
-            ["Class"] = promotedClass.ToString(CultureInfo.InvariantCulture),
-            ["ChargePromotion"] = updatedChargePromotion.ToString(CultureInfo.InvariantCulture),
-        };
-        if (TryPersistLegacyCharacterAttributes(
-                session.UsersRoot,
-                session.AccountId,
-                values,
-                out var path,
-                out var reason))
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer persisted LegacyNpc AccountManager full promotion " +
-                    $"{FormatSession(context with { Session = updatedSession })} source=NpcHandler.AccountManager " +
-                    $"path={Path.GetFileName(path)} keys=DonatePoints,Class,ChargePromotion.")
-                .ConfigureAwait(false);
-        }
-        else
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped LegacyNpc AccountManager full promotion persistence " +
-                    $"{FormatSession(context with { Session = updatedSession })} source=NpcHandler.AccountManager " +
-                    $"reason={reason}.")
-                .ConfigureAwait(false);
-        }
-
-        await context.Log.WriteLineAsync(
-                "WorldServer applied LegacyNpc AccountManager full promotion " +
-                $"{FormatSession(context with { Session = updatedSession })} source=NpcHandler.AccountManager " +
-                $"option={optionId} cost={LegacyAccountManagerFullPromotionCost} class={session.Character.Class} " +
-                $"promotedClass={promotedClass} donatePoints={updatedDonatePoints} " +
-                $"chargePromotion={updatedChargePromotion}.")
-            .ConfigureAwait(false);
+        if (insufficient && owner is not null)
+            await PublishAccountPromotionInsufficientAsync(context, owner, cancellationToken).ConfigureAwait(false);
+        var status = outcome != LegacyAccountManagerFullPromotionPersistence.Outcome.Rejected ||
+            reason.StartsWith(LegacyAccountManagerFullPromotionPersistence.RecoveryRequired, StringComparison.Ordinal)
+            ? "held for recovery" : "skipped";
+        await context.Log.WriteLineAsync($"WorldServer {status} LegacyNpc AccountManager full promotion " +
+            $"{FormatSession(context)} source=NpcHandler.AccountManager option={optionId} reason={reason}.").ConfigureAwait(false);
         return true;
-    }
-
-    private static long ResolveLegacyAccountManagerFullPromotionClass(long classCode)
-    {
-        return classCode switch
-        {
-            >= 1_000 and <= 1_051 => 1_051,
-            >= 2_000 and <= 2_051 => 2_051,
-            >= 4_000 and <= 4_051 => 4_051,
-            >= 5_000 and <= 5_051 => 5_051,
-            >= 6_000 and <= 6_051 => 6_051,
-            >= 7_000 and <= 7_051 => 7_051,
-            >= 8_000 and <= 8_051 => 8_051,
-            >= 9_000 and <= 9_051 => 9_051,
-            >= 13_000 and <= 13_051 => 13_051,
-            >= 14_000 and <= 14_051 => 14_051,
-            >= 16_000 and <= 16_051 => 16_051,
-            _ => classCode,
-        };
     }
 }

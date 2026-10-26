@@ -18,6 +18,7 @@ internal static partial class LegacyMailboxPackageMutationFence
 
     internal static void RequireJournalMutation(IReadOnlyList<string> paths, IReadOnlyList<LegacyTradeJournalChange> changes)
     {
+        LegacyOrdinaryAdmissionMutationFence.RequireJournalMutation(paths, changes);
         if (activeWork is not null)
         {
             if (!activeWork.Permits(paths, changes) || !activeWork.IsCurrentPrepared())

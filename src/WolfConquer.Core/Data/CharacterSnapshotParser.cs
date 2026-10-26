@@ -259,6 +259,12 @@ public sealed partial class CharacterSnapshotLoader
     }
 
     public CharacterSnapshotLoadResult TryLoadByAccountId(long accountId)
+        => TryLoadByAccountId(accountId, persistExpiry: true);
+
+    internal CharacterSnapshotLoadResult TryLoadByAccountIdForAdmission(long accountId)
+        => TryLoadByAccountId(accountId, persistExpiry: false);
+
+    private CharacterSnapshotLoadResult TryLoadByAccountId(long accountId, bool persistExpiry)
     {
         var path = Path.Combine(_usersRoot, accountId.ToString(CultureInfo.InvariantCulture) + ".ini");
         if (!File.Exists(path))
@@ -321,7 +327,7 @@ public sealed partial class CharacterSnapshotLoader
                 $"Character snapshot file '{Path.GetFileName(path)}' has UID {snapshot.Uid}, expected {accountId}.");
         }
 
-        return LoadCharacterWithQuests(accountId, path, snapshot);
+        return LoadCharacterWithQuests(accountId, path, snapshot, persistExpiry);
     }
 
     public CharacterSnapshot CreateLegacyFirstCharacterSnapshot(
@@ -501,9 +507,21 @@ public sealed partial class CharacterSnapshotLoader
 
     private static CharacterSnapshot RestoreExpiredPaidNobility(string path, CharacterSnapshot snapshot)
     {
+        var updated = PrepareExpiredPaidNobility(snapshot);
+        if (ReferenceEquals(updated, snapshot)) return snapshot;
+        var restoredDonation = ReadUInt64(snapshot.PaidNobility, "LastNobilityDonation");
+        TryPersistExpiredPaidNobility(path, snapshot.Uid, restoredDonation, ComputeLegacyRegularNobilityRank(restoredDonation));
+        return updated;
+    }
+
+    internal static CharacterSnapshot PrepareExpiredPaidNobility(CharacterSnapshot snapshot)
+        => PrepareExpiredPaidNobility(snapshot, DateTime.Now);
+
+    internal static CharacterSnapshot PrepareExpiredPaidNobility(CharacterSnapshot snapshot, DateTime localNow)
+    {
         if (!TryReadActivePaidNobility(snapshot.PaidNobility, out var active) ||
             !active ||
-            !IsPaidNobilityExpired(snapshot.PaidNobility))
+            !IsPaidNobilityExpired(snapshot.PaidNobility, localNow))
         {
             return snapshot;
         }
@@ -538,7 +556,6 @@ public sealed partial class CharacterSnapshotLoader
             PaidNobility = paidNobility,
         };
 
-        TryPersistExpiredPaidNobility(path, snapshot.Uid, restoredDonation, restoredRank);
         return updated;
     }
 
@@ -566,7 +583,7 @@ public sealed partial class CharacterSnapshotLoader
         return false;
     }
 
-    private static bool IsPaidNobilityExpired(IReadOnlyDictionary<string, string> paidNobility)
+    private static bool IsPaidNobilityExpired(IReadOnlyDictionary<string, string> paidNobility, DateTime localNow)
     {
         var periodTimeBinary = ReadInt64(paidNobility, "PeriodTime");
         DateTime periodTime;
@@ -579,7 +596,7 @@ public sealed partial class CharacterSnapshotLoader
             periodTime = DateTime.MinValue;
         }
 
-        return DateTime.Now >= periodTime;
+        return localNow >= periodTime;
     }
 
     private static bool TryPersistExpiredPaidNobility(

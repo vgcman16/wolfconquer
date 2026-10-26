@@ -51,29 +51,7 @@ public sealed partial class WorldServerFrameHandler
             var snapshot = snapshotLoad.Snapshot;
             if (await TryStartLegacyMailboxRecoveryBeforePrefixAsync(connection, characterUid, snapshot, cancellationToken)
                     .ConfigureAwait(false)) return;
-            if (!TryApplyLegacyExistingCharacterLocalPrefix(
-                    connection, snapshot, out snapshot, out var prefixReason))
-            {
-                await _log.WriteLineAsync(
-                        $"WorldServer skipped legacy accepted-login local prefix key={characterUid} reason={prefixReason}.")
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            await connection.SendAsync(LegacyMsgMessagePacket.AnswerOk().ToFrameBytes(), cancellationToken)
-                .ConfigureAwait(false);
-            await StartWorldSessionAsync(
-                    connection,
-                    characterUid,
-                    snapshot.Name,
-                    snapshot,
-                    cancellationToken,
-                    afterStartupBeforeRuntime: (session, token) =>
-                        SendLegacyWorldLoginDelayedStartupReviewsAsync(connection, session.Character, token),
-                    nativeLoadedClient: connection.NativeGameClient)
-                .ConfigureAwait(false);
-            await _log.WriteLineAsync(
-                    $"WorldServer legacy MsgLoginGame Success key={characterUid} uid={snapshot.Uid} map={snapshot.MapId}.")
+            await StartLegacyOrdinaryExistingCharacterAsync(connection, characterUid, snapshot, cancellationToken)
                 .ConfigureAwait(false);
         }
         finally

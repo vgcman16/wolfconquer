@@ -11,16 +11,13 @@ namespace WolfConquer.Tests;
 public sealed partial class WorldServerFrameHandlerTests
 {
     [Fact]
-    public async Task HandlerLegacyWorldLoginRepairsLowLevelNonRebornSourceStats()
+    public async Task HandlerLegacyWorldLoginPreservesSavedLowLevelStatsUntilTrueProgression()
     {
-        var worldData = await LoadSeedWorldDataOrSkipAsync();
-        if (worldData is null)
-        {
-            return;
-        }
-
-        Directory.CreateDirectory(_usersRoot);
+        var worldData = OrdinaryLoginFixture.Catalog();
+        var usersRoot = Path.Combine(_usersRoot, "Users");
+        Directory.CreateDirectory(usersRoot);
         WriteSnapshot(
+            usersRoot,
             1293600,
             uid: 1293600,
             classCode: 1000,
@@ -29,15 +26,11 @@ public sealed partial class WorldServerFrameHandlerTests
             secondClass: 0,
             strength: 5,
             agility: 2,
-            minHitPoints: 1,
-            extraCharacterLines:
-                "Vitaliti=3\r\n" +
-                "Spirit=0\r\n" +
-                "Atributes=0\r\n" +
-                "MinMana=0\r\n" +
-                "MaxMana=0");
+            minHitPoints: 1);
+        OrdinaryLoginFixture.PrepareLowLevelBaseline(usersRoot);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), null, worldData, log);
+        using var admission = new OrdinaryLoginFixture(new CharacterSnapshotLoader(usersRoot), worldData);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -47,33 +40,31 @@ public sealed partial class WorldServerFrameHandlerTests
 
         var session = GetSession(handler, connection);
         Assert.Equal(31, session.Character.Level);
-        Assert.Equal(50, session.Character.Strength);
-        Assert.Equal(20, session.Character.Agility);
-        Assert.Equal(30, session.Character.Vitality);
+        Assert.Equal(5, session.Character.Strength);
+        Assert.Equal(2, session.Character.Agility);
+        Assert.Equal(3, session.Character.Vitality);
         Assert.Equal(0, session.Character.Spirit);
         Assert.Equal(0, session.Character.AttributePoints);
-        Assert.True(session.Character.MinHitPoints > 1);
+        Assert.Equal(1, session.Character.MinHitPoints);
 
-        var persisted = new CharacterSnapshotLoader(_usersRoot).LoadByAccountId(1293600);
+        var persisted = new CharacterSnapshotLoader(usersRoot).LoadByAccountId(1293600);
         Assert.NotNull(persisted);
-        Assert.Equal(50, persisted.Strength);
-        Assert.Equal(20, persisted.Agility);
-        Assert.Equal(30, persisted.Vitality);
+        Assert.Equal(5, persisted.Strength);
+        Assert.Equal(2, persisted.Agility);
+        Assert.Equal(3, persisted.Vitality);
         Assert.Equal(0, persisted.Spirit);
-        Assert.Contains("WorldServer repaired legacy class level stats", log.ToString());
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent);
     }
 
     [Fact]
-    public async Task HandlerLegacyWorldLoginRepairsSourceUpperBoundTrojanClassStats()
+    public async Task HandlerLegacyWorldLoginPreservesSavedUpperClassStatsOnOrdinaryLogin()
     {
-        var worldData = await LoadSeedWorldDataOrSkipAsync();
-        if (worldData is null)
-        {
-            return;
-        }
-
-        Directory.CreateDirectory(_usersRoot);
+        var worldData = OrdinaryLoginFixture.Catalog();
+        var usersRoot = Path.Combine(_usersRoot, "Users");
+        Directory.CreateDirectory(usersRoot);
         WriteSnapshot(
+            usersRoot,
             1293600,
             uid: 1293600,
             classCode: 1057,
@@ -82,15 +73,11 @@ public sealed partial class WorldServerFrameHandlerTests
             secondClass: 0,
             strength: 5,
             agility: 2,
-            minHitPoints: 1,
-            extraCharacterLines:
-                "Vitaliti=3\r\n" +
-                "Spirit=0\r\n" +
-                "Atributes=0\r\n" +
-                "MinMana=0\r\n" +
-                "MaxMana=0");
+            minHitPoints: 1);
+        OrdinaryLoginFixture.PrepareLowLevelBaseline(usersRoot);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), null, worldData, log);
+        using var admission = new OrdinaryLoginFixture(new CharacterSnapshotLoader(usersRoot), worldData);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -100,12 +87,14 @@ public sealed partial class WorldServerFrameHandlerTests
 
         var session = GetSession(handler, connection);
         Assert.Equal(31, session.Character.Level);
-        Assert.Equal(50, session.Character.Strength);
-        Assert.Equal(20, session.Character.Agility);
-        Assert.Equal(30, session.Character.Vitality);
+        Assert.Equal(5, session.Character.Strength);
+        Assert.Equal(2, session.Character.Agility);
+        Assert.Equal(3, session.Character.Vitality);
         Assert.Equal(0, session.Character.Spirit);
         Assert.Equal(0, session.Character.AttributePoints);
-        Assert.True(session.Character.MinHitPoints > 1);
+        Assert.Equal(1, session.Character.MinHitPoints);
+        Assert.Empty(session.PlayerSpells.Spells); //1057 is outside source Trojan1000..1051 login grant.
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent);
     }
 
     [Fact]

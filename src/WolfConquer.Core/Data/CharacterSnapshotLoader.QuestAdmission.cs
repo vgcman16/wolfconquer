@@ -3,7 +3,7 @@ namespace WolfConquer.Core.Data;
 public sealed partial class CharacterSnapshotLoader
 {
     private CharacterSnapshotLoadResult LoadCharacterWithQuests(
-        long accountId, string characterPath, CharacterSnapshot snapshot)
+        long accountId, string characterPath, CharacterSnapshot snapshot, bool persistExpiry = true)
     {
         PlayerQuestSnapshot quests;
         try
@@ -32,7 +32,7 @@ public sealed partial class CharacterSnapshotLoader
         // No expiry persistence occurs until the required quest image is known
         // to load. UID mismatch has already been rejected by the caller.
         var complete = snapshot with { PlayerQuests = quests };
-        complete = RestoreExpiredPaidNobility(characterPath, complete);
+        if (persistExpiry) complete = RestoreExpiredPaidNobility(characterPath, complete);
         return new CharacterSnapshotLoadResult(
             complete, CharacterSnapshotLoadStatus.Success, accountId,
             characterPath, "success", string.Empty);

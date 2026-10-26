@@ -17,6 +17,10 @@ internal static partial class LegacyTradeJournal
 
     internal static bool TryRecover(string usersRoot, string itemsRoot, string? questsRoot, string? mailboxRoot,
         string? combatGearRoot, out int recovered, out string reason)
+        => TryRecover(usersRoot, itemsRoot, questsRoot, mailboxRoot, combatGearRoot, null, out recovered, out reason);
+
+    internal static bool TryRecover(string usersRoot, string itemsRoot, string? questsRoot, string? mailboxRoot,
+        string? combatGearRoot, LegacyOrdinaryAdmissionRoots? admissionRoots, out int recovered, out string reason)
     {
         recovered = 0;
         reason = string.Empty;
@@ -24,15 +28,19 @@ internal static partial class LegacyTradeJournal
         {
             // A fresh configuration without a journal needs no snapshot directories yet.
             if (!HasPending(usersRoot)) return true;
-            var roots = GetRoots(usersRoot, itemsRoot);
-            var pending = Path.Combine(roots.Journal, PendingName);
-            var children = Directory.GetFileSystemEntries(roots.Journal);
+            var journal = Path.Combine(Path.GetFullPath(usersRoot), JournalDirectoryName);
+            EnsureSafePath(journal);
+            var pending = Path.Combine(journal, PendingName);
+            var children = Directory.GetFileSystemEntries(journal);
             if (children.Length != 1 || !StringComparer.Ordinal.Equals(children[0], pending))
             {
                 reason = RecoveryRequired + ":unexpectedJournalEntry";
                 return false;
             }
             var record = ReadRecord(pending);
+            var roots = IsOrdinaryAdmissionVersion(record.Version)
+                ? GetAdmissionRoots(admissionRoots ?? throw new ArgumentException("Explicit ordinary-admission roots are required."))
+                : GetRoots(usersRoot, itemsRoot);
             if (record.Version == 3)
             {
                 if (string.IsNullOrWhiteSpace(questsRoot))
@@ -62,7 +70,7 @@ internal static partial class LegacyTradeJournal
             }
             var targets = GetTargets(roots, record);
             var lockedReason = string.Empty;
-            var result = SnapshotFileLockCoordinator.ExecuteLocked(targets.Select(target => target.Path).ToArray(),
+            var result = SnapshotFileLockCoordinator.ExecuteLocked(AdmissionLockPaths(roots, record, targets),
                 () => RecoverLocked(roots, record, targets, pending, out lockedReason));
             reason = lockedReason;
             recovered = result ? 1 : 0;
@@ -84,8 +92,20 @@ internal static partial class LegacyTradeJournal
         {
             // No target changes until every current image has passed validation.
             EnsureTargetsMatch(targets, allowAfter: true);
+            EnsureAdmissionInputs(roots, record);
+            if (record.Version == 6)
+            {
+                // The unpublished prototype could tune away saved progress.
+                // It has no ordinary-login migration authority: do not stage,
+                // replace, roll forward or discard any before/mixed evidence.
+                EnsureAllAfter(targets);
+                EnsureAdmissionStagesCleared(record, targets);
+                DeleteRecord(pending);
+                return true;
+            }
             validated = true;
-            Directory.CreateDirectory(roots.Items);
+            if (!IsOrdinaryAdmissionVersion(record.Version)) Directory.CreateDirectory(roots.Items);
+            PrepareAdmissionDirectories(roots, record, targets);
             foreach (var target in targets)
             {
                 if (Matches(ReadTarget(target.Path), target.Change.After)) continue;
@@ -99,6 +119,8 @@ internal static partial class LegacyTradeJournal
                 ReplaceStaged(target, record.TransactionId);
             }
             EnsureAllAfter(targets);
+            EnsureAdmissionInputs(roots, record);
+            EnsureAdmissionStagesCleared(record, targets);
             DeleteRecord(pending);
             return true;
         }

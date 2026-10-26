@@ -2,11 +2,28 @@ namespace WolfConquer.Core.World;
 
 // One live world's startup/recovery fence. This is deliberately not an automatic
 // replay service for an already-running world: a pending write needs a fresh owner.
-internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot)
+internal sealed partial class LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot)
 {
     private readonly string? _questsRoot;
     private readonly string? _mailboxRoot;
     private readonly string? _combatGearRoot;
+    private readonly LegacyOrdinaryAdmissionRoots? _admissionRoots;
+
+    internal LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot, string? questsRoot, string? mailboxRoot,
+        string? combatGearRoot, string? spellsRoot, string? proficienciesRoot)
+        : this(usersRoot, itemsRoot, questsRoot, mailboxRoot, combatGearRoot)
+    {
+        static string? Absolute(string? path) => string.IsNullOrWhiteSpace(path) ? null :
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        if (!string.IsNullOrWhiteSpace(usersRoot))
+        {
+            _admissionRoots = new(Absolute(usersRoot)!, Absolute(itemsRoot), Absolute(spellsRoot),
+                Absolute(proficienciesRoot), Absolute(questsRoot), Absolute(combatGearRoot));
+            // All six ordinary routes are real configuration, including for a
+            // world with no UID producer. Bind denial knowledge before recovery.
+            LegacyOrdinaryAdmissionMutationFence.BindConfiguredDomain(_admissionRoots);
+        }
+    }
 
     internal LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot, string? questsRoot, string? mailboxRoot,
         string? combatGearRoot) : this(usersRoot, itemsRoot, questsRoot, mailboxRoot)
@@ -31,6 +48,14 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
     private string? _failureReason;
 
     internal bool IsBlocked => Volatile.Read(ref _failureReason) is not null;
+
+    // Additive peer readiness predicate; binding above grants no readiness.
+    internal bool IsReadyForOrdinaryAdmission(LegacyOrdinaryAdmissionRoots expected)
+    {
+        lock (_gate)
+            return _admissionRoots is not null && _admissionRoots == expected &&
+                IsReadyForUsers(expected.Users) && !LegacyTradeJournal.HasPending(expected.Users);
+    }
 
     // One-file actions still require this world's ACTUAL completed startup recovery.
     // They do not gain an unrelated item-file prerequisite or initialize recovery themselves.
@@ -126,6 +151,24 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
         Path.TrimEndingDirectorySeparator(Path.GetFullPath(second)),
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
+    // Denial only, under the caller's real world-operation lease. Do not replay
+    // a live world's journal or let a later fresh owner revive its stale sessions.
+    internal bool TryRequireLiveJournalClear(out string reason)
+    {
+        lock (_gate)
+        {
+            reason = _failureReason ?? string.Empty;
+            if (_failureReason is not null) return false;
+            if (!string.IsNullOrWhiteSpace(usersRoot) && LegacyTradeJournal.HasPending(usersRoot))
+            {
+                reason = LegacyTradeJournal.RecoveryRequired + ":pendingLiveOwner";
+                Block(reason);
+                return false;
+            }
+            return true;
+        }
+    }
+
     internal void Block(string reason) => Interlocked.CompareExchange(ref _failureReason, reason, null);
 
     internal bool TryEnsureInitialized(out string reason)
@@ -144,7 +187,7 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
             {
                 // Finish an interrupted exchange/refund before considering orphan
                 // debits. Otherwise a completed counterparty credit could be refunded.
-                if (string.IsNullOrWhiteSpace(itemsRoot))
+                if (string.IsNullOrWhiteSpace(itemsRoot) && _admissionRoots is null)
                 {
                     if (LegacyTradeJournal.HasPending(usersRoot))
                     {
@@ -153,7 +196,8 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
                         return false;
                     }
                 }
-                else if (!LegacyTradeJournal.TryRecover(usersRoot, itemsRoot, _questsRoot, _mailboxRoot, _combatGearRoot, out _, out reason))
+                else if (!LegacyTradeJournal.TryRecover(usersRoot, itemsRoot ?? "", _questsRoot, _mailboxRoot,
+                    _combatGearRoot, _admissionRoots, out _, out reason))
                 {
                     Block(reason);
                     return false;

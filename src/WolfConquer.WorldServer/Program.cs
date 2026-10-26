@@ -30,7 +30,40 @@ if (listenRequested && worldData is null)
     return 1;
 }
 
-var snapshotLoader = await CharacterSnapshotStartup.TryCreateLoaderAsync(Console.Out);
+if (!LegacyOwnedAdmissionOptions.TryLoadFromEnvironment(out var ownedAdmissionOptions, out var ownedConfigurationReason))
+{
+    Console.Error.WriteLine($"WorldServer owned admission startup refused: {ownedConfigurationReason}.");
+    return 1;
+}
+var explicitUsers = Environment.GetEnvironmentVariable(CharacterSnapshotOptions.UsersRootEnvironmentVariable);
+if (ownedAdmissionOptions is not null && !string.IsNullOrWhiteSpace(explicitUsers))
+{
+    try
+    {
+        if (!string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(explicitUsers)), ownedAdmissionOptions.UsersRoot,
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        {
+            Console.Error.WriteLine("WorldServer owned admission startup refused: ownedAdmissionUsersEnvironmentConflict.");
+            return 1;
+        }
+    }
+    catch (Exception error) when (error is ArgumentException or NotSupportedException or System.Security.SecurityException)
+    {
+        Console.Error.WriteLine("WorldServer owned admission startup refused: ownedAdmissionUsersEnvironmentInvalid.");
+        return 1;
+    }
+}
+var snapshotLoader = ownedAdmissionOptions is null
+    ? await CharacterSnapshotStartup.TryCreateLoaderAsync(Console.Out)
+    : ownedAdmissionOptions.CreateSnapshotLoader();
+if (!LegacyOwnedAdmissionRuntime.TryOpen(snapshotLoader, ownedAdmissionOptions, out var ownedAdmission, out var ownedAdmissionReason))
+{
+    Console.Error.WriteLine($"WorldServer owned admission startup refused: {ownedAdmissionReason}.");
+    return 1;
+}
+// Runner awaits TCP producer/connection retirement before this asynchronous
+// owner lifetime cancels/drains the separate actual Frame runtime workers.
+await using var ownedAdmissionLifetime = ownedAdmission;
 var handoffService = await AccountHandoffStartup.TryCreateServiceAsync(Console.Out);
 var accountEmailMySql = Environment.GetEnvironmentVariable("WOLFCONQUER_ACCOUNT_EMAIL_MYSQL");
 if (string.IsNullOrWhiteSpace(accountEmailMySql))
@@ -114,15 +147,28 @@ if (!string.IsNullOrWhiteSpace(runtimeClockStart))
     }
 }
 
-var handler = new WorldServerFrameHandler(
-    snapshotLoader,
-    handoffService,
-    worldData,
-    runtimeUpdateLoop,
-    Console.Out,
-    clientCompatibility,
-    worldEntryStartupProbe,
-    accountEmailVerifier,
-    protocolProfile: protocolProfile);
+WorldServerFrameHandler handler;
+try
+{
+    handler = new WorldServerFrameHandler(
+        snapshotLoader,
+        handoffService,
+        worldData,
+        runtimeUpdateLoop,
+        Console.Out,
+        clientCompatibility,
+        worldEntryStartupProbe,
+        accountEmailVerifier,
+        protocolProfile: protocolProfile,
+        ownedAdmission: ownedAdmission);
+}
+catch (ArgumentException) when (ownedAdmission is not null)
+{
+    Console.Error.WriteLine("WorldServer owned admission startup refused: ownedAdmissionFrameBindingUnavailable.");
+    return 1;
+}
+Console.Out.WriteLine(ownedAdmission is null
+    ? "Owned admission: unconfigured; no managed UID namespace is active."
+    : "Owned admission: existing leased domain bound; ordinary saved-state admission enabled.");
 
 return await ConquerServerRunner.RunAsync(endpoint, args, handler.HandleFrameAsync);

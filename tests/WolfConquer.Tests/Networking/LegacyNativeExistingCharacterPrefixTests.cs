@@ -91,6 +91,10 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
             player.Online = 9; // Controlled CURRENT field, not a new seeding API or ordinary-birth claim.
             using (var held = new FileStream(input.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
+                Assert.Throws<IOException>(() =>
+                {
+                    using var denied = new FileStream(input.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                });
                 var login = await SendLoginAsync(fixture, wire);
                 Assert.Null(login.Before);
                 Assert.Null(login.After);
@@ -99,12 +103,14 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
                 Assert.False(player.RelicSpirit);
                 Assert.Same(player, client.Player);
                 Assert.Null(client.Beasts);
-                Assert.Contains("skipped legacy accepted-login local prefix key=1293600 reason=snapshotWrite", log.Text);
+                Assert.Contains("skipped legacy accepted-login local prefix/admission key=1293600", log.Text);
+                Assert.Contains("reason=tradeJournalWriteFailed:IOException", log.Text);
                 Assert.DoesNotContain("legacy MsgLoginGame Success", log.Text);
             }
             Assert.Equal(input.InitialBytes, File.ReadAllBytes(input.FilePath));
             Assert.Same(player, birth.Connection.NativeGameClient!.Player);
             Assert.Null(handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
+            Assert.False(LegacyTradeJournal.HasPending(input.Users));
             // The unchanged loopback drains output to Stream.Null. No ANSWER_OK is SOURCE-proven
             // by the return-before-send branch, not claimed as observed wire absence here.
         });
@@ -195,7 +201,7 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
     }
 
     [Fact]
-    public async Task ModernLoginDoesNotInventAnOwnerOrChangeTheSavedOnlineMarker()
+    public async Task ModernSavedAdmissionUpdatesPresenceWithoutInventingANativeOwner()
     {
         using var input = new PrefixInput("True");
         await WithHandlerAsync(input, async (fixture, handler, log) =>
@@ -205,9 +211,10 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
             var accepted = Assert.IsType<WorldSession>(login.After);
             Assert.Null(login.Connection.NativeGameClient);
             Assert.Null(accepted.NativePlayer);
-            Assert.Equal(7L, accepted.Character.Online);
-            Assert.Equal("7", accepted.Character.Attributes["Online"]);
-            Assert.Equal(input.InitialBytes, File.ReadAllBytes(input.FilePath));
+            Assert.Equal(1L, accepted.Character.Online);
+            Assert.Equal("1", accepted.Character.Attributes["Online"]);
+            Assert.Equal(input.ExpectedMarkerBytes, File.ReadAllBytes(input.FilePath));
+            Assert.Contains("ordinary admission committed key=1293600.", log.Text);
             Assert.Contains("legacy MsgLoginGame Success", log.Text);
         }, mode: ConquerTcpWireMode.Modern);
     }
@@ -348,6 +355,10 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
 
             using (var held = new FileStream(input.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
+                Assert.Throws<IOException>(() =>
+                {
+                    using var denied = new FileStream(input.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                });
                 var rejected = await SendLoginAsync(fixture, wire);
                 Assert.Null(rejected.Before);
                 Assert.Null(rejected.After);
@@ -358,11 +369,12 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
                 Assert.Same(flags, player.BitVector);
                 Assert.Same(random, player.MyRandom);
                 AssertPreservedBeast(client, existing, client, points: 97, flag: 0x40000008U, fixedLevel: 9);
-                Assert.Contains("reason=snapshotWrite", log.Text);
+                Assert.Contains("reason=tradeJournalWriteFailed:IOException", log.Text);
                 Assert.DoesNotContain("legacy MsgLoginGame Success", log.Text);
             }
             Assert.Equal(input.InitialBytes, File.ReadAllBytes(input.FilePath));
             Assert.Null(handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
+            Assert.False(LegacyTradeJournal.HasPending(input.Users));
         });
     }
 

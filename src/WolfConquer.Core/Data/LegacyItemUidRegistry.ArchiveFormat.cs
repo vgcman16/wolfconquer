@@ -41,7 +41,8 @@ internal sealed partial class LegacyItemUidRegistry
         var row = JsonSerializer.Deserialize<ProducerArchive>(bytes) ?? throw new JsonException("Missing UID archive.");
         if (row.Version != 1 || row.Domain != current.Domain || !IsCanonicalOperation(row.OperationId) ||
             row.Intent is null || row.Allocation is null || row.Intent.OperationId != row.OperationId ||
-            row.Allocation.OperationId != row.OperationId || row.Intent.Writer != LegacyMailboxPackageProducer.Writer ||
+            row.Allocation.OperationId != row.OperationId ||
+            (row.Intent.Writer != LegacyMailboxPackageProducer.Writer && row.Intent.Writer != LegacyOrdinaryAdmissionUidOwner.Writer) ||
             row.BeforeGeneration == ulong.MaxValue || row.AfterGeneration != row.BeforeGeneration + 1 ||
             !IsDigest(row.BeforeStateSha256) ||
             (row.PreviousOperation is null ? row.PreviousSha256 is not null :

@@ -250,8 +250,10 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     [Fact]
     public async Task HandlerLegacyWorldLoginRestoresSavedClassPkWarWinnerTitleFlag()
     {
-        Directory.CreateDirectory(_usersRoot);
+        var usersRoot = Path.Combine(_usersRoot, "Users");
+        Directory.CreateDirectory(usersRoot);
         WriteSnapshot(
+            usersRoot,
             1293600,
             uid: 1293600,
             classCode: 1000,
@@ -259,7 +261,9 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             extraCharacterLines:
                 "LegacyClassPkWarWinnerUID=1293600\r\n" +
                 "LegacyClassPkWarLastFlag=TopTrojan");
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot));
+        using var log = new StringWriter();
+        using var admission = new OrdinaryLoginFixture(new CharacterSnapshotLoader(usersRoot));
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -267,6 +271,9 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             connection,
             ReadFrame(new LegacyMsgLoginGamePacket(1293600).ToFrameBytes()));
 
+        admission.AssertCommitObserved();
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        Assert.Equal(LegacyMsgMessagePacket.AnswerOk().ToFrameBytes(), sent[0]);
         var session = GetSession(handler, connection);
         Assert.True(HasLegacyStatusFlag(session.Character.Attributes["StatusFlags"], LegacyClassPkWarTopTrojanFlag));
         Assert.True(HasLegacyStatusFlag(
@@ -698,13 +705,14 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerLegacyWorldLoginBackfillsTunedStarterStateForCreatedCharacters()
+    public async Task HandlerLegacyWorldLoginPreservesCreatedSavedStateWithoutBirthEntitlement()
     {
         var usersRoot = Path.Combine(_usersRoot, "Users");
         var loader = new CharacterSnapshotLoader(usersRoot);
         loader.CreateLegacyFirstCharacterSnapshot(1293600, "Demon", 1008, 1000);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
+        using var admission = new OrdinaryLoginFixture(loader);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -722,18 +730,17 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         Assert.Equal(0, persisted.ConquerPoints);
         Assert.Equal(93, persisted.MinHitPoints);
         var playerItems = loader.LoadPlayerItemsByCharacterUid(1293600);
-        Assert.Equal(4, playerItems.EquipmentItems.Count);
+        Assert.Empty(playerItems.EquipmentItems);
 
         var session = GetSession(handler, connection);
         Assert.Equal(persisted.MinHitPoints, session.Character.MinHitPoints);
-        Assert.Equal(4, session.PlayerItems.EquipmentItems.Count);
-        Assert.Contains(
-            "WorldServer applied tuned legacy first-character starter state uid=1293600",
-            log.ToString());
+        Assert.Empty(session.PlayerItems.EquipmentItems);
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent, newItems: 0);
     }
 
     [Fact]
-    public async Task HandlerLegacyWorldLoginRepairsBoostedFirstCharacterStarterShell()
+    public async Task HandlerLegacyWorldLoginPreservesBoostedLookingProgressFundsAndRewardPacks()
     {
         var usersRoot = Path.Combine(_usersRoot, "Users");
         var loader = new CharacterSnapshotLoader(usersRoot);
@@ -813,7 +820,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             Path.Combine(playerSpellsRoot, "1293600.bin"),
             PlayerSpellSnapshotLoaderTests.BuildPlayerSpells([1045, 1046, 1110]));
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
+        using var admission = new OrdinaryLoginFixture(loader);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -823,20 +831,21 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
 
         var repaired = loader.LoadByAccountId(1293600);
         Assert.NotNull(repaired);
-        Assert.Equal(1, repaired.Level);
-        Assert.Equal(5, repaired.Strength);
-        Assert.Equal(2, repaired.Agility);
-        Assert.Equal(3, repaired.Vitality);
-        Assert.Equal(93, repaired.MinHitPoints);
-        Assert.Equal(100_000, repaired.Money);
-        Assert.Equal(0, repaired.ConquerPoints);
-        Assert.Empty(loader.LoadPlayerItemsByCharacterUid(1293600).InventoryItems);
+        Assert.Equal(100, repaired.Level);
+        Assert.Equal(155, repaired.Strength);
+        Assert.Equal(60, repaired.Agility);
+        Assert.Equal(92, repaired.Vitality);
+        Assert.Equal(2853, repaired.MinHitPoints);
+        Assert.Equal(10_000_000, repaired.Money);
+        Assert.Equal(50_000, repaired.ConquerPoints);
+        Assert.Equal(new uint[] { 3_000_550, 3_001_027 }, loader.LoadPlayerItemsByCharacterUid(1293600).InventoryItems.Select(row => row.ItemId));
         Assert.Equal(repaired.MinHitPoints, GetSession(handler, connection).Character.MinHitPoints);
-        Assert.Contains("WorldServer applied tuned legacy first-character starter state uid=1293600", log.ToString());
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent, newItems: 0);
     }
 
     [Fact]
-    public async Task HandlerLegacyWorldLoginBackfillsStarterSpellsForFreshCharacterWithStarterGear()
+    public async Task HandlerLegacyWorldLoginAddsOnlyConfirmedCycloneWithExistingGear()
     {
         var usersRoot = Path.Combine(_usersRoot, "Users");
         var loader = new CharacterSnapshotLoader(usersRoot);
@@ -884,7 +893,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 ],
                 RuneItems: []));
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
+        using var admission = new OrdinaryLoginFixture(loader);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -899,18 +909,15 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         Assert.Equal(3, repaired.Vitality);
         Assert.Equal(93, repaired.MinHitPoints);
         var persistedSpells = loader.LoadPlayerSpellsByCharacterUid(1293600);
-        Assert.Equal([1046U, 1110U], persistedSpells.SpellIds.ToArray());
-        Assert.Equal([1046U, 1110U], GetSession(handler, connection).PlayerSpells.SpellIds.ToArray());
+        Assert.Equal([1110U], persistedSpells.SpellIds.ToArray());
+        Assert.Equal([1110U], GetSession(handler, connection).PlayerSpells.SpellIds.ToArray());
         var playerProficienciesPath = Path.Combine(_usersRoot, "PlayersProfs", "1293600.bin");
         Assert.True(File.Exists(playerProficienciesPath));
         Assert.Equal(sizeof(int), new FileInfo(playerProficienciesPath).Length);
         Assert.Empty(GetSession(handler, connection).PlayerProficiencies.Proficiencies);
 
-        var output = log.ToString();
-        Assert.Contains("WorldServer applied source-backed legacy first-character starter spells uid=1293600", output);
-        Assert.Contains("spellIds=1046", output);
-        Assert.Contains("WorldServer applied legacy Trojan-lineage login spell grant uid=1293600", output);
-        Assert.Contains("sourceProficienciesSkipped=notGranted", output);
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent, newItems: 0);
     }
 
     [Fact]
@@ -935,7 +942,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerLegacyWorldLoginSanitizesFirstGenerationStarterSourceSpellPollution()
+    public async Task HandlerLegacyWorldLoginPreservesSavedSourceSpellsAndRewardItems()
     {
         var usersRoot = Path.Combine(_usersRoot, "Users");
         var loader = new CharacterSnapshotLoader(usersRoot);
@@ -984,7 +991,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             Path.Combine(playerSpellsRoot, "1293600.bin"),
             PlayerSpellSnapshotLoaderTests.BuildPlayerSpells([1045, 1046, 1110, 10309, 1010, 1000, 1005]));
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
+        using var admission = new OrdinaryLoginFixture(loader);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -994,26 +1002,22 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
 
         var repaired = loader.LoadByAccountId(1293600);
         Assert.NotNull(repaired);
-        Assert.Equal(1, repaired.Level);
-        Assert.Equal(100_000, repaired.Money);
-        Assert.Equal(0, repaired.ConquerPoints);
-        Assert.Equal([1046U, 1110U], loader.LoadPlayerSpellsByCharacterUid(1293600).SpellIds.ToArray());
-        Assert.Equal([1046U, 1110U], GetSession(handler, connection).PlayerSpells.SpellIds.ToArray());
-        Assert.Empty(loader.LoadPlayerItemsByCharacterUid(1293600).InventoryItems);
+        Assert.Equal(100, repaired.Level);
+        Assert.Equal(10_000_000, repaired.Money);
+        Assert.Equal(50_000, repaired.ConquerPoints);
+        Assert.Equal([1045U, 1046U, 1110U, 10309U, 1010U, 1000U, 1005U], loader.LoadPlayerSpellsByCharacterUid(1293600).SpellIds.ToArray());
+        Assert.Equal([1045U, 1046U, 1110U, 10309U, 1010U, 1000U, 1005U], GetSession(handler, connection).PlayerSpells.SpellIds.ToArray());
+        Assert.Equal(new uint[] { 3_000_550, 3_001_027 }, loader.LoadPlayerItemsByCharacterUid(1293600).InventoryItems.Select(row => row.ItemId));
         var playerProficienciesPath = Path.Combine(_usersRoot, "PlayersProfs", "1293600.bin");
         Assert.True(File.Exists(playerProficienciesPath));
         Assert.Equal(sizeof(int), new FileInfo(playerProficienciesPath).Length);
 
-        var output = log.ToString();
-        Assert.Contains("WorldServer applied tuned legacy first-character starter state uid=1293600", output);
-        Assert.Contains("WorldServer applied source-backed legacy first-character starter spells uid=1293600", output);
-        Assert.Contains("WorldServer applied legacy Trojan-lineage login spell grant uid=1293600", output);
-        Assert.Contains("sourceInventoryPacksSkipped=2", output);
-        Assert.Contains("sourceProficienciesSkipped=notGranted", output);
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent, newItems: 0);
     }
 
     [Fact]
-    public async Task HandlerLegacyWorldLoginSanitizesPollutedZeroProgressStarterSpellsWithStaleFirstLifeClassHistory()
+    public async Task HandlerLegacyWorldLoginPreservesSavedZeroProgressSpellsWithClassHistory()
     {
         var usersRoot = Path.Combine(_usersRoot, "Users");
         var loader = new CharacterSnapshotLoader(usersRoot);
@@ -1097,7 +1101,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             PlayerSpellSnapshotLoaderTests.BuildPlayerSpells(
                 [1045, 1046, 1110, 11000, 11005, 5030, 7020, 5040, 7000, 7010, 7030, 7040, 1290, 5010, 1260, 1250, 5020, 1300, 5050, 1000]));
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
+        using var admission = new OrdinaryLoginFixture(loader);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -1106,8 +1111,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             ReadFrame(new LegacyMsgLoginGamePacket(1293600).ToFrameBytes()));
 
         var persistedSpells = loader.LoadPlayerSpellsByCharacterUid(1293600);
-        Assert.Equal([1046U, 1110U], persistedSpells.SpellIds.ToArray());
-        Assert.Equal([1046U, 1110U], GetSession(handler, connection).PlayerSpells.SpellIds.ToArray());
+        Assert.Equal([1045U, 1046U, 1110U, 11000U, 11005U, 5030U, 7020U, 5040U, 7000U, 7010U, 7030U, 7040U, 1290U, 5010U, 1260U, 1250U, 5020U, 1300U, 5050U, 1000U], persistedSpells.SpellIds.ToArray());
+        Assert.Equal(persistedSpells.SpellIds, GetSession(handler, connection).PlayerSpells.SpellIds);
         Assert.Equal(4, GetSession(handler, connection).Character.Level);
         Assert.Equal(90, GetSession(handler, connection).Character.Experience);
         Assert.Equal(2_383, GetSession(handler, connection).Character.ConquerPoints);
@@ -1118,19 +1123,14 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             .Select(item => item.ItemId)
             .Order()
             .ToArray());
-        Assert.Contains("WorldServer applied source-backed legacy first-character starter spells uid=1293600", log.ToString());
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent, newItems: 0);
     }
 
-    [Fact(Skip = "Requires external game fixtures omitted from the public source snapshot.")]
-    public async Task HandlerLegacyWorldLoginSanitizesZeroProgressWrongClassSpellsOutsideStarterRepair()
+    [Fact]
+    public async Task HandlerLegacyWorldLoginPreservesClassGatedLearnedSpellsWithoutMigration()
     {
-        var seedPath = Path.Combine(FindRepositoryRoot(), ".setup_work", "seed-json");
-        if (!File.Exists(Path.Combine(seedPath, "manifest.json")))
-        {
-            return;
-        }
-
-        var worldData = await new JsonWorldDataLoader(new WorldDataOptions(seedPath)).LoadAsync();
+        var worldData = OrdinaryLoginFixture.Catalog();
         var usersRoot = Path.Combine(_usersRoot, "Users");
         Directory.CreateDirectory(usersRoot);
         WriteSnapshot(
@@ -1148,7 +1148,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             Path.Combine(playerSpellsRoot, "1293600.bin"),
             PlayerSpellSnapshotLoaderTests.BuildPlayerSpells([1046, 1000]));
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, handoffService: null, worldData, log);
+        using var admission = new OrdinaryLoginFixture(loader, worldData);
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -1156,15 +1157,13 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             connection,
             ReadFrame(new LegacyMsgLoginGamePacket(1293600).ToFrameBytes()));
 
-        var expectedSpellIds = new uint[] { 1046, 1110 };
+        var expectedSpellIds = new uint[] { 1046, 1000, 1110 };
         Assert.Equal(130, GetSession(handler, connection).Character.Level);
         Assert.Equal(expectedSpellIds, loader.LoadPlayerSpellsByCharacterUid(1293600).SpellIds.ToArray());
         Assert.Equal(expectedSpellIds, GetSession(handler, connection).PlayerSpells.SpellIds.ToArray());
-        var output = log.ToString();
-        Assert.Contains("WorldServer removed legacy player spells rejected by source class gates uid=1293600", output);
-        Assert.Contains("removedSpellIds=1000", output);
-        Assert.Contains("WorldServer applied legacy Trojan-lineage login spell grant uid=1293600", output);
-        Assert.Contains("spellIds=1110", output);
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent, newItems: 0,
+            expectedRuntimeHitpoints: 29_836);
     }
 
     [Fact]
@@ -1231,7 +1230,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
 
         Assert.Equal([1110U], loader.LoadPlayerSpellsByCharacterUid(1293600).SpellIds.ToArray());
         Assert.Equal([1110U], GetSession(handler, connection).PlayerSpells.SpellIds.ToArray());
-        Assert.Contains("WorldServer applied legacy Trojan-lineage login spell grant", log.ToString());
+        Assert.Contains(sent, bytes => LegacySpellPacket.TryParse(ReadFrame(bytes), out var packet) && packet.Id == 1_110);
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
     }
 
     [Fact]
@@ -1263,7 +1263,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
 
         Assert.Equal([1110U], loader.LoadPlayerSpellsByCharacterUid(1293600).SpellIds.ToArray());
         Assert.DoesNotContain(10315U, GetSession(handler, connection).PlayerSpells.SpellIds);
-        Assert.Contains("spellIds=1110", log.ToString());
+        Assert.Contains(sent, bytes => LegacySpellPacket.TryParse(ReadFrame(bytes), out var packet) && packet.Id == 1_110);
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
     }
 
     [Fact]
@@ -16214,15 +16215,19 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     {
         const uint accountManagerNpcId = 45_632;
 
-        Directory.CreateDirectory(_usersRoot);
+        var usersRoot = Path.Combine(_usersRoot, "Users");
+        Directory.CreateDirectory(usersRoot);
         WriteSnapshot(
+            usersRoot,
             1293600,
             uid: 1293600,
             classCode: classCode,
             donatePoints: 35,
             extraCharacterLines: "ChargePromotion=2");
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), log);
+        using var admission = new OrdinaryLoginFixture(new CharacterSnapshotLoader(usersRoot),
+            OrdinaryLoginFixture.Catalog(npcs: [new Npc((int)accountManagerNpcId, 0, 0, 1015, 830, 582, null)]));
+        var handler = admission.CreateHandler(log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -16230,6 +16235,9 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             connection,
             ReadFrame(new LegacyMsgLoginGamePacket(1293600).ToFrameBytes()));
 
+        admission.AssertCommitObserved();
+        Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
+        Assert.Equal(LegacyMsgMessagePacket.AnswerOk().ToFrameBytes(), sent[0]);
         var countBeforeMenu = sent.Count;
         await handler.HandleFrameAsync(
             connection,
@@ -16257,7 +16265,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         Assert.Equal("5", updated.Character.Attributes["DonatePoints"]);
         Assert.Equal("3", updated.Character.Attributes["ChargePromotion"]);
 
-        var persisted = CharacterSnapshotParser.ParseText(File.ReadAllText(Path.Combine(_usersRoot, "1293600.ini")));
+        var persisted = CharacterSnapshotParser.ParseText(File.ReadAllText(Path.Combine(usersRoot, "1293600.ini")));
         Assert.Equal(expectedClass, persisted.Class);
         Assert.Equal(expectedClass.ToString(CultureInfo.InvariantCulture), persisted.Attributes["Class"]);
         Assert.Equal("5", persisted.Attributes["DonatePoints"]);
@@ -36295,15 +36303,21 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 "LastNobilityDonation=0\r\nNobilityRank={0}\r\nNobilityPosition={1}",
                 paidRank,
                 paidPosition));
+        var snapshotPath = Path.Combine(_usersRoot, "1293600.ini");
+        // WriteSnapshot owns exactly one placeholder PaidNobility Rank=King.
+        // Replace it instead of appending an ambiguous second Rank key.
+        var seed = File.ReadAllText(snapshotPath);
+        Assert.Equal(1, seed.Split("Rank=King", StringSplitOptions.None).Length - 1);
+        File.WriteAllText(snapshotPath,
+            seed.Replace("Rank=King", "Rank=" + paidRankName, StringComparison.Ordinal));
         File.AppendAllText(
-            Path.Combine(_usersRoot, "1293600.ini"),
+            snapshotPath,
             string.Format(
                 CultureInfo.InvariantCulture,
-                "\r\nPaidRank={0}\r\nLastNobilityDonation={1}\r\nPeriodTime={2}\r\nIsActive=True\r\nRank={3}\r\nPosition={4}\r\n",
+                "\r\nPaidRank={0}\r\nLastNobilityDonation={1}\r\nPeriodTime={2}\r\nIsActive=True\r\nPosition={3}\r\n",
                 paidRank,
                 previousDonation,
                 periodTime.ToBinary(),
-                paidRankName,
                 paidPosition));
     }
 

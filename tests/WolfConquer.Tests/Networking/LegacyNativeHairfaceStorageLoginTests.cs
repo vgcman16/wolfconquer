@@ -77,7 +77,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
                 Assert.Same(random, player.MyRandom);
                 Assert.Null(client.Beasts);
                 AssertPreservedHairface(client, existing, client, state);
-                Assert.Contains("reason=snapshotWrite", log.Text);
+                Assert.Contains("reason=tradeJournalWriteFailed", log.Text);
                 Assert.DoesNotContain("legacy MsgLoginGame Success", log.Text);
             }
             Assert.Equal(input.InitialBytes, File.ReadAllBytes(input.FilePath));
@@ -380,13 +380,16 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     private static async Task WithHandlerAsync(
         LoginInput input,
         Func<NativePlayerLoopback, WorldServerFrameHandler, NativePlayerDiagnosticLog, Task> body,
-        AccountHandoffService? handoff = null)
+        AccountHandoffService? handoff = null, WorldDataCatalog? worldData = null,
+        LegacyOrdinaryAdmissionUidOwner? admissionUids = null)
     {
         using var beastMetadata = new NativeLoginBeastMetadataScope(1000);
         using var log = new NativePlayerDiagnosticLog();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(input.Users), handoff,
-            worldData: null, runtimeUpdateLoop: LegacyRuntimeUpdateLoopOptions.Disabled, log: log,
-            protocolProfile: ConquerProtocolProfile.VisibleDx8D13);
+        var loader = new CharacterSnapshotLoader(input.Users);
+        var handler = admissionUids is null
+            ? new WorldServerFrameHandler(loader, handoff, worldData,
+                runtimeUpdateLoop: LegacyRuntimeUpdateLoopOptions.Disabled, log: log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13)
+            : new WorldServerFrameHandler(loader, handoff, worldData, admissionUids, log, ConquerProtocolProfile.VisibleDx8D13);
         await NativePlayerLoopback.RunAsync(ConquerTcpWireMode.LegacyGameServer,
             fixture => body(fixture, handler, log),
             handler.HandleFrameAsync, handler.ReadCurrentSessionForNativeOwnerObservation);

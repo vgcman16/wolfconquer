@@ -433,6 +433,11 @@ internal static partial class Program
             return LegacyWorldSmoke(args);
         }
 
+        if (command == "seed-owned-admission-fixture")
+        {
+            return SeedOwnedAdmissionFixture(args);
+        }
+
         if (command == "seed-loot-roundtrip-fixture")
         {
             return SeedLootRoundtripFixture(args);
@@ -575,6 +580,7 @@ internal static partial class Program
             string.Equals(value, "legacy-account-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "legacy-guard-shield-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "legacy-world-smoke", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "seed-owned-admission-fixture", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "seed-loot-roundtrip-fixture", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "legacy-loot-roundtrip-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "local-live-stack-smoke", StringComparison.OrdinalIgnoreCase) ||
@@ -784,6 +790,7 @@ internal static partial class Program
         Console.WriteLine("  WolfConquer.DataTool legacy-account-smoke <address> <port> <username> <password> <serverName> [--expect-ip ip] [--expect-port port] [--timeout-ms ms]");
         Console.WriteLine("  WolfConquer.DataTool legacy-guard-shield-smoke <address> <port> [--command text] [--expect-response text] [--timeout-ms ms]");
         Console.WriteLine("  WolfConquer.DataTool legacy-world-smoke <address> <port> <accountKey> [--timeout-ms ms]");
+        Console.WriteLine("  WolfConquer.DataTool seed-owned-admission-fixture <NEW-absolute-wolf-owned-admission-GUID-dir> <account-key> <character-uid> <item-uid>");
         Console.WriteLine("  WolfConquer.DataTool seed-loot-roundtrip-fixture <NEW-absolute-DBServer-dir> <account-key> <character-uid> <item-uid>");
         Console.WriteLine("  WolfConquer.DataTool legacy-loot-roundtrip-smoke <loopback-ip> <port> <account-key> <character-uid> <item-uid> [--timeout-ms ms] [--verify-only]");
         Console.WriteLine("  WolfConquer.DataTool local-live-stack-smoke <address> <gatewayPort> <accountPort> <username> <password> <serverName> [--login-web-base-url url] [--expect-world-ip ip] [--expect-world-port port] [--timeout-ms ms]");
