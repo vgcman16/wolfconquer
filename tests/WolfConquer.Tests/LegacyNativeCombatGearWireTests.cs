@@ -1,6 +1,4 @@
-using System.Buffers.Binary;
 using System.Reflection;
-using System.Text;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.World;
 
@@ -20,7 +18,7 @@ public sealed partial class LegacyNativeCombatGearWireTests
     }
 
     [Fact]
-    public void StreamWrapperCopiesExistingHeaderBytesKeepsPositionAndPreservesNativeEmptyQuirk()
+    public void StreamWrapperPreservesValidHeaderGoldenAndRefusesMissingHeaderOrStream()
     {
         using var scope = new NativeCombatGearQueryScope();
         using var stream = new MemoryStream(new byte[] { 0, 0, 0x74, 9, 1, 2, 3, 4 });
@@ -30,20 +28,21 @@ public sealed partial class LegacyNativeCombatGearWireTests
         Assert.Equal(5, stream.Position);
         Assert.Equal(new byte[] { 0, 0, 0x74, 9, 1, 2, 3, 4 }, stream.ToArray());
         using var empty = new MemoryStream();
-        Assert.Equal(Encoding.ASCII.GetBytes("TQServer"), LegacyNativeCombatGearWire.WrapStream(empty));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeCombatGearWire.WrapStream(null!));
+        Assert.Throws<ArgumentOutOfRangeException>(() => LegacyNativeCombatGearWire.WrapStream(empty));
+        Assert.Empty(empty.ToArray()); Assert.Equal(0, empty.Length); Assert.Equal(0, empty.Position);
+        Assert.Equal("stream", Assert.Throws<ArgumentNullException>(() => LegacyNativeCombatGearWire.WrapStream(null!)).ParamName);
     }
 
     [Fact]
-    public void NativeStreamLengthCastWrapsWithoutIntroducingHostFrameSizeRejection()
+    public void OversizedStreamRefusesBeforeAnyWrappedHeaderWithoutChangingInput()
     {
         using var scope = new NativeCombatGearQueryScope();
         using var stream = new MemoryStream(new byte[70000]);
-        var frame = LegacyNativeCombatGearWire.WrapStream(stream);
-        Assert.Equal(70008, frame.Length);
-        Assert.Equal(unchecked((ushort)70000), BinaryPrimitives.ReadUInt16LittleEndian(frame));
-        Assert.Equal(Encoding.ASCII.GetBytes("TQServer"), frame[^8..]);
-        // Managed wrapper only. Never pass this oversized buffer to native Packet/Send.
+        stream.Position = 37;
+        var before = stream.ToArray();
+        Assert.Throws<ArgumentOutOfRangeException>(() => LegacyNativeCombatGearWire.WrapStream(stream));
+        Assert.Equal(70000, stream.Length); Assert.Equal(37, stream.Position);
+        Assert.Equal(before, stream.ToArray());
     }
 
     [Fact]

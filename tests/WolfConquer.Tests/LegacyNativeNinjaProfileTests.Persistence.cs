@@ -43,6 +43,10 @@ public sealed partial class LegacyNativeNinjaProfileTests
         var ninja = new Ninja();
         LegacyNativeNinjaFile.gouyu_type = null!;
         Assert.Null(ninja.user);
+        var original = ninja.Items;
+        ninja.Load(null); ninja.Load("");
+        Assert.Same(original, ninja.Items);
+        ninja.Load("0"); // Actual ServerDatabase missing-field default on a fresh owner.
         Assert.Equal(string.Concat(Enumerable.Repeat("0/", 20)), ninja.ToString());
         Assert.Empty(ninja.Items);
     }
@@ -83,7 +87,7 @@ public sealed partial class LegacyNativeNinjaProfileTests
     }
 
     [Fact]
-    public void ProfileLoadUsesCurrentCultureAndFullUlongFlagAndUintRanges()
+    public void CanonicalProfileRetainsFullUlongAndUintRangesUnderAnotherCurrentCulture()
     {
         using var scope = new Scope();
         var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
@@ -91,9 +95,8 @@ public sealed partial class LegacyNativeNinjaProfileTests
         CultureInfo.CurrentCulture = culture;
         string[] prefix = [ulong.MaxValue.ToString(CultureInfo.InvariantCulture),
             .. Enumerable.Repeat(uint.MaxValue.ToString(CultureInfo.InvariantCulture), 18)];
-        prefix = prefix.Select(token => " p" + token + " ").ToArray();
-        string rows = string.Concat(Enumerable.Repeat(" p4294967295 /", 5));
-        scope.Ninja.Load(ProfileLine(" p1 ", rows + "ignored/", prefix));
+        string rows = string.Concat(Enumerable.Repeat("4294967295/", 5));
+        scope.Ninja.Load(ProfileLine("1", rows, prefix));
         ulong[] expectedScalars = [ulong.MaxValue, .. Enumerable.Repeat((ulong)uint.MaxValue, 17)];
         Assert.Equal(expectedScalars, ProfileScalars(scope.Ninja));
         AssertProfileItem(Assert.Single(scope.Ninja.Items).Value,
@@ -106,16 +109,16 @@ public sealed partial class LegacyNativeNinjaProfileTests
     }
 
     [Fact]
-    public void NullEmptyAndUnseparatedLoadResetEveryScalarButNeverClearRetainedItems()
+    public void NullAndEmptyOptionalLoadsPreserveEveryPriorScalarAndItemOwner()
     {
         using var scope = new Scope();
         var item = scope.Item(700, 777, 99, 21, 22, 23);
         var dictionary = scope.Ninja.Items;
-        foreach (string? line in new string?[] { null, "", "1" })
+        foreach (string? line in new string?[] { null, "" })
         {
             SeedProfileScalars(scope.Ninja);
             scope.Ninja.Load(line);
-            Assert.Equal(new ulong[18], ProfileScalars(scope.Ninja));
+            Assert.Equal(ProfileValues, ProfileScalars(scope.Ninja));
             Assert.Same(dictionary, scope.Ninja.Items);
             Assert.Same(item, Assert.Single(dictionary).Value);
             AssertProfileItem(item, 777, 99, 21, 22, 23);
@@ -123,16 +126,16 @@ public sealed partial class LegacyNativeNinjaProfileTests
     }
 
     [Fact]
-    public void DuplicateItemRowsKeepFirstRawLevelAndDoNotUseOverwritingAddPath()
+    public void DuplicateLateItemIdentityRejectsWholeRecordWithoutChangingPriorOwners()
     {
         using var scope = new Scope();
-        scope.Ninja.Load(ProfileLine("2", "100/0/1/2/3/100/4294967295/4/5/6/"));
-        AssertProfileItem(Assert.Single(scope.Ninja.Items).Value, 100, 0, 1, 2, 3);
-        Assert.Equal("100/0/1/2/3/", string.Join("/", scope.Ninja.ToString().Split('/').Skip(20)));
+        SeedProfileScalars(scope.Ninja);
+        scope.Item(700, 777, 9, 21, 22, 23);
+        AssertRejectedProfile(scope, ProfileLine("2", "100/0/1/2/3/100/4294967295/4/5/6/"));
     }
 
     [Fact]
-    public void RepeatedLoadReplacesScalarsButRetainsMatchingKeyObjectsAndUnmentionedRows()
+    public void CompleteReloadReplacesMatchingAndUnmentionedRowsWhilePreservingEscapedPriorGraph()
     {
         using var scope = new Scope();
         var old = scope.Item(100, 777, 9, 21, 22, 23);
@@ -140,48 +143,51 @@ public sealed partial class LegacyNativeNinjaProfileTests
         var dictionary = scope.Ninja.Items;
         scope.Ninja.Load("1/2/3/4/5/6/7/8/9/10/11/12/999/14/15/16/17/18/19/2/100/0/1/2/3/300/4294967295/4/5/6/");
         Assert.Equal(ProfileValues, ProfileScalars(scope.Ninja));
-        Assert.Same(dictionary, scope.Ninja.Items);
+        Assert.NotSame(dictionary, scope.Ninja.Items);
         Assert.Same(old, dictionary[100]);
         Assert.Same(unmentioned, dictionary[200]);
         AssertProfileItem(old, 777, 9, 21, 22, 23);
-        AssertProfileItem(dictionary[300], 300, uint.MaxValue, 4, 5, 6);
-        Assert.Equal(3, dictionary.Count);
+        AssertProfileItem(unmentioned, 200, 1, 2, 3, 4);
+        Assert.Equal(2, dictionary.Count);
+        AssertProfileItem(scope.Ninja.Items[100], 100, 0, 1, 2, 3);
+        AssertProfileItem(scope.Ninja.Items[300], 300, uint.MaxValue, 4, 5, 6);
+        Assert.False(scope.Ninja.Items.ContainsKey(200));
+        Assert.NotSame(old, scope.Ninja.Items[100]);
+        Assert.Equal(2, scope.Ninja.Items.Count);
     }
 
     [Fact]
-    public void TruncatedItemFieldsDefaultAndZeroItemIdIsPublishedWithoutNormalization()
+    public void TruncatedLateItemNeverPublishesEarlierValidRowsOrDefaultZeroIdentity()
     {
         using var scope = new Scope();
-        scope.Ninja.Load(ProfileLine("3", "100/0/1/2/3/200/4294967295/"));
-        Assert.Equal(3, scope.Ninja.Items.Count);
-        AssertProfileItem(scope.Ninja.Items[100], 100, 0, 1, 2, 3);
-        AssertProfileItem(scope.Ninja.Items[200], 200, uint.MaxValue, 0, 0, 0);
-        AssertProfileItem(scope.Ninja.Items[0], 0, 0, 0, 0, 0);
+        SeedProfileScalars(scope.Ninja);
+        scope.Item(700, 777, 9, 21, 22, 23);
+        AssertRejectedProfile(scope, ProfileLine("3", "100/0/1/2/3/200/4294967295/"));
     }
 
     [Fact]
-    public void MalformedScalarDefaultsAndIgnoredScoreStillAdvanceEveryPrefixToken()
+    public void MalformedPrefixAndIgnoredButInvalidDerivedScoreRejectBeforeAnyScalarPublication()
     {
         using var scope = new Scope();
         string[] prefix = ["18446744073709551616", "-1", "4294967296", "bad", "",
             "6", "7", "8", "9", "10", "11", "12", "not-a-score", "14", "15", "16", "17", "18", "19"];
-        scope.Ninja.Load(ProfileLine("0", prefix: prefix));
-        Assert.Equal(new ulong[] { 0, 0, 0, 0, 0, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19 },
-            ProfileScalars(scope.Ninja));
-        Assert.Empty(scope.Ninja.Items);
+        SeedProfileScalars(scope.Ninja);
+        scope.Item(700, 777, 9, 21, 22, 23);
+        AssertRejectedProfile(scope, ProfileLine("0", prefix: prefix));
     }
 
     [Fact]
-    public void NullItemsFaultOccursAfterEveryHeaderScalarHasAlreadyBeenPublished()
+    public void MissingRequiredItemStorageRefusesBeforeHeaderPublicationAndIsNeverRepaired()
     {
         using var scope = new Scope();
+        SeedProfileScalars(scope.Ninja);
         scope.Ninja.Items = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Ninja.Load(
-            "1/2/3/4/5/6/7/8/9/10/11/12/999/14/15/16/17/18/19/1/100/0/1/2/3/"));
+        Assert.Throws<InvalidDataException>(() => scope.Ninja.Load(ProfileLine("1", "100/0/1/2/3/")));
         Assert.Equal(ProfileValues, ProfileScalars(scope.Ninja));
         Assert.Null(scope.Ninja.Items);
-        scope.Ninja.Load(ProfileLine("-1")); // No row loop means the null dictionary is not touched.
-        Assert.Equal(new ulong[18], ProfileScalars(scope.Ninja));
+        Assert.Throws<InvalidDataException>(() => scope.Ninja.Load(ProfileLine("-1")));
+        Assert.Throws<InvalidDataException>(() => scope.Ninja.Load("0"));
+        Assert.Equal(ProfileValues, ProfileScalars(scope.Ninja));
         Assert.Null(scope.Ninja.Items);
     }
 
@@ -231,7 +237,7 @@ public sealed partial class LegacyNativeNinjaProfileTests
     }
 
     [Fact]
-    public void PhysicalItemIdAliasesSerializeTwiceThenFreshLoadKeepsFirstEnumeratedRow()
+    public void PhysicalItemAliasesInLegacyOutputCannotBeAdmittedAsACompleteReload()
     {
         using var scope = new Scope();
         scope.Item(700, 777, 0, 1, 2, 3);
@@ -241,11 +247,12 @@ public sealed partial class LegacyNativeNinjaProfileTests
         string expected = ProfileLine("2", string.Concat(values.Select(row =>
             $"777/{row.Level}/{row.Position}/{row.Exp}/{row.UK}/")));
         Assert.Equal(expected, record);
-        var fresh = new Ninja();
-        fresh.Load(record);
-        Ninja.Item first = Assert.Single(fresh.Items).Value;
-        AssertProfileItem(first, 777, values[0].Level, values[0].Position, values[0].Exp, values[0].UK);
-        Assert.NotSame(values[0], first);
+        var fresh = new Ninja { Exp = 99 };
+        var dictionary = fresh.Items;
+        Assert.Throws<InvalidDataException>(() => fresh.Load(record));
+        Assert.Same(dictionary, fresh.Items);
+        Assert.Empty(fresh.Items);
+        Assert.Equal(99U, fresh.Exp);
         Assert.False(fresh.Items.ContainsKey(700)); Assert.False(fresh.Items.ContainsKey(800));
         Assert.Equal(2, scope.Ninja.Items.Count);
     }

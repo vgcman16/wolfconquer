@@ -95,6 +95,10 @@ public sealed partial class LegacyInventorySashUpgradeTests
         });
 
     private static LegacyMailboxPackageRecipe CreatePackageJoinRecipe(Fixture fixture, PackageJoin join, PackageJoinBefore before)
+        => CreatePackageJoinStackRecipe(fixture, join, before, claimAll: true, job: 10);
+
+    // Negative upgrade fixture only. Normal debt/recovery must use real WMP2.
+    private static LegacyMailboxPackageRecipe CreateLegacyPackageJoinRecipe(Fixture fixture, PackageJoin join, PackageJoinBefore before)
     {
         var after = ExpectedPackageJoinUnallocatedFiles(fixture, before, claimAll: true, job: 10);
         var grants = RankOnePackageRows.Select((row, index) =>

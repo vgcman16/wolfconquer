@@ -48,6 +48,25 @@ public sealed partial class WorldServerFrameHandler
             await _log.WriteLineAsync($"WorldServer mailbox recovery saved PIN admission refused: {reason}.").ConfigureAwait(false);
             return true;
         }
+        LegacyNativeNinja.MailboxRecoveryOwner? ninjaRecovery = null;
+        if (connection.NativeGameClient is { } ninjaClient &&
+            LegacyNativeAtributesStatus.IsNinja(checked((uint)snapshot.Class)) &&
+            !LegacyNativeNinja.TryPrepareMailboxRecoveryOwner(ninjaClient, snapshot, out ninjaRecovery))
+        {
+            await _log.WriteLineAsync("WorldServer mailbox recovery Ninja saved owner refused before native publication.")
+                .ConfigureAwait(false);
+            return true;
+        }
+        LegacyNativeMyCombatGear.MailboxRecoveryOwner? pirateRecovery = null;
+        if (connection.NativeGameClient is { } pirateClient &&
+            LegacyNativeAtributesStatus.IsPirate(checked((uint)snapshot.Class)) &&
+            !LegacyNativeMyCombatGear.TryPrepareMailboxRecoveryOwner(producer, pirateClient, accountId, snapshot,
+                out pirateRecovery, out reason))
+        {
+            await _log.WriteLineAsync($"WorldServer mailbox recovery Pirate saved owner refused before native publication: {reason}.")
+                .ConfigureAwait(false);
+            return true;
+        }
         if (!_sessions.TrySetMailboxRecoveryOwner(connection, candidate, producer, out var admitted, out reason) || admitted is null)
         {
             await _log.WriteLineAsync($"WorldServer mailbox recovery startup owner refused: {reason}.").ConfigureAwait(false);
@@ -69,6 +88,20 @@ public sealed partial class WorldServerFrameHandler
         {
             _sessions.TryRemove(connection, out _);
             await _log.WriteLineAsync("WorldServer mailbox recovery requires its coherent genuine loaded native Player before startup metadata.")
+                .ConfigureAwait(false);
+            return true;
+        }
+        if (ninjaRecovery is not null && !ninjaRecovery.TryPublish(_sessions, connection, admitted))
+        {
+            _sessions.TryRemove(connection, out _);
+            await _log.WriteLineAsync("WorldServer mailbox recovery Ninja publication refused before startup.")
+                .ConfigureAwait(false);
+            return true;
+        }
+        if (pirateRecovery is not null && !pirateRecovery.TryPublish(_sessions, connection, admitted))
+        {
+            _sessions.TryRemove(connection, out _);
+            await _log.WriteLineAsync("WorldServer mailbox recovery Pirate publication refused before startup.")
                 .ConfigureAwait(false);
             return true;
         }

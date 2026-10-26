@@ -674,6 +674,19 @@ internal static partial class Program
 
     static int PatchClientStrResSourceBacked(string[] args)
     {
+        try
+        {
+            return PatchClientStrResSourceBackedCore(args);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            Console.Error.WriteLine("StrRes translation failed; verify the selected source encoding and owned target.");
+            return 1;
+        }
+    }
+
+    private static int PatchClientStrResSourceBackedCore(string[] args)
+    {
         var clientPath = ResolveClientPath(args);
         if (!Directory.Exists(clientPath))
         {
@@ -1278,6 +1291,8 @@ internal static partial class Program
 
         paths.Add(Path.Combine(path, "StrRes.ini"));
         paths.Add(Path.Combine(path, "ini", "StrRes.ini"));
+        paths.Add(Path.Combine(path, "UStrRes.ini"));
+        paths.Add(Path.Combine(path, "ini", "UStrRes.ini"));
     }
 
     private static IReadOnlyList<string> ExistingDistinctPaths(IEnumerable<string> paths)

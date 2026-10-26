@@ -24,8 +24,14 @@ internal sealed partial class LegacyMailboxPackageProducer
         {
             var row = workStore.Read(operation);
             if (row is not { Completed: true } || row.AccountId != session.AccountId || row.CharacterUid != session.Character.Uid ||
-                !Same(session.UsersRoot, UsersRoot) || !Registry.TryReadProducerIntent(Domain, operation, out var intent, out _) ||
-                intent is null || !workStore.MatchesIntent(row, intent)) return false;
+                !Same(session.UsersRoot, UsersRoot)) return false;
+            if (row.Version == 1)
+            {
+                if (!Registry.TryReadProducerIntent(Domain, operation, out var intent, out _) ||
+                    intent is null || !workStore.MatchesIntent(row, intent)) return false;
+            }
+            else if (!TryValidateNoAllocationRecord(row, out _) ||
+                !Registry.TryFindProducerIntent(Domain, operation, out _, out var found, out _) || found) return false;
             var paths = workStore.TargetPaths(row);
             return SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>
             {

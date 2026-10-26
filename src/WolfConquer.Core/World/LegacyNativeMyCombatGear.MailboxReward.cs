@@ -15,6 +15,7 @@ internal partial class LegacyNativeMyCombatGear
         private readonly LegacyNativePlayerRuntime player;
         private readonly uint uid, job, points, afterPoints, afterExp;
         private readonly bool fullLoading, fake, wireGate;
+        private readonly LegacyNativeCombatGearTable.MailboxLoadProof tables;
         private readonly MailboxGearState before;
         private readonly CombatGearSnapshot after;
         private readonly byte[] beforeImage, afterImage, finalFrame;
@@ -22,11 +23,12 @@ internal partial class LegacyNativeMyCombatGear
 
         private MailboxPirateRewardProjection(LegacyNativeMyCombatGear gear, LegacyNativeGameClientRuntime client,
             LegacyNativePlayerRuntime player, uint uid, uint job, bool fullLoading, bool fake, bool wireGate,
-            MailboxGearState before, CombatGearSnapshot after, byte[] beforeImage, byte[] afterImage,
+            LegacyNativeCombatGearTable.MailboxLoadProof tables, MailboxGearState before, CombatGearSnapshot after, byte[] beforeImage, byte[] afterImage,
             uint points, byte[] finalFrame)
         {
             this.gear = gear; this.client = client; this.player = player; this.uid = uid; this.job = job;
             this.fullLoading = fullLoading; this.fake = fake; this.wireGate = wireGate; this.before = before;
+            this.tables = tables;
             this.after = after; this.beforeImage = beforeImage; this.afterImage = afterImage;
             this.points = points; this.finalFrame = finalFrame;
             afterPoints = after.AirPowers.Points; afterExp = after.PirateExp;
@@ -44,6 +46,7 @@ internal partial class LegacyNativeMyCombatGear
                 {
                     uint uid = player.UID, job = player.Class;
                     if (uid == 0 || !ReferenceEquals(player.Owner, client) || !gear.IsCombatOwnedBy(client) ||
+                        !gear.MailboxRecoveryTablesCurrent() || !LegacyNativeCombatGearTable.TryCaptureMailboxLoadProof(out var tables) ||
                         !LegacyNativeAtributesStatus.IsPirate(job) || gear.GetClass() != job)
                         throw MailboxRewardUnavailable();
                     bool phase = client.FullLoading, fake = client.Fake, gate = LegacyNativeCombatGearTable.m_Load;
@@ -64,7 +67,7 @@ internal partial class LegacyNativeMyCombatGear
                         AirPowers = original.AirPowers with { Points = checked(original.AirPowers.Points + points) }
                     };
                     var projection = new MailboxPirateRewardProjection(gear, client, player, uid, job, phase, fake,
-                        gate, state, next, image, MailboxGearImage(next), points,
+                        gate, tables!, state, next, image, MailboxGearImage(next), points,
                         PrepareMailboxPointsFrame(original.AirPowers.Points, points, uid));
                     if (!projection.IsCurrent()) throw MailboxRewardUnavailable();
                     return projection;
@@ -121,6 +124,7 @@ internal partial class LegacyNativeMyCombatGear
         }
 
         private bool OwnerCurrent() => gear.IsCombatOwnedBy(client) && ReferenceEquals(client.Player, player) &&
+            tables.IsCurrent() && gear.MailboxRecoveryTablesCurrent() &&
             ReferenceEquals(player.Owner, client) && player.UID == uid && player.Class == job && gear.GetClass() == job &&
             client.FullLoading == fullLoading && client.Fake == fake && LegacyNativeCombatGearTable.m_Load == wireGate;
     }

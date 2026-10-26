@@ -44,6 +44,20 @@ internal sealed partial class LegacyItemUidRegistry
             { reason = "itemUidDomainMismatch"; return LegacyItemUidReservationOutcome.Rejected; }
 
             var operationId = request.OperationId.ToString("N");
+            try
+            {
+                var history = CurrentArchives;
+                if (history.Entries.ContainsKey(operationId))
+                {
+                    if (!TryReadArchivedIntent(operationId, out _, out reason)) return LegacyItemUidReservationOutcome.Rejected;
+                    reason = "itemUidProducerIntentOwnsOperation"; return LegacyItemUidReservationOutcome.Rejected;
+                }
+            }
+            catch (Exception error) when (IsFileFailure(error))
+            {
+                reason = RecoveryRequired + ":archiveRead:" + error.GetType().Name;
+                blocked = reason; return LegacyItemUidReservationOutcome.Rejected;
+            }
             // Intent-owned operations never issue a legacy materialization token.
             if (state.ProducerIntents?.Any(row => row.OperationId == operationId) == true)
             { reason = "itemUidProducerIntentOwnsOperation"; return LegacyItemUidReservationOutcome.Rejected; }

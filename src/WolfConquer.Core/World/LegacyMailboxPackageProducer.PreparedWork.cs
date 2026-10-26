@@ -17,7 +17,8 @@ internal sealed partial class LegacyMailboxPackageProducer
             if (recipe is null || receipt is null || changes is null ||
                 !Registry.TryReadProducerIntent(Domain, recipe.OperationId, out var intent, out reason) || intent is null || intent.Allocation != receipt ||
                 !intent.CopyPayload().AsSpan().SequenceEqual(recipe.CopyPayload())) return false;
-            var copies = changes.Select(change => change with { Before = change.Before?.ToArray(), After = change.After.ToArray() }).ToArray();
+            if (!TryCopyWorkImages(changes, out var copies))
+            { reason = "mailboxClaimRecoveryRequired:packageWorkImagesInvalid"; return false; }
             PreparedJointWork? prepared = null;
             var paths = WorkPaths(intent.Request.AccountId, intent.Request.CharacterUid);
             SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>

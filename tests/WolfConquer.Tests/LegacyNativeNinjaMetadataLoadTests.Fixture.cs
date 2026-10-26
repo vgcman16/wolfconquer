@@ -19,6 +19,8 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
         private readonly Dictionary<string, byte[]?> expected = new(StringComparer.OrdinalIgnoreCase);
         internal string Root { get; }
         internal StringWriter Output { get; } = new(CultureInfo.InvariantCulture);
+        internal Metadata.NinjaSprintItem OldTypeRow { get; }
+        internal Metadata.Item OldImmortalRow { get; }
         internal Dictionary<uint, Metadata.NinjaSprintItem> OldTypes { get; } = new()
         {
             [9001] = new() { ID = 9001, ItemID = 999, Score = 123 },
@@ -38,6 +40,8 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
             foreach (bool immortals in new[] { false, true })
                 foreach (bool prefix in new[] { false, true })
                     expected.Add(PathName(immortals, prefix), null);
+            OldTypeRow = OldTypes[9001];
+            OldImmortalRow = OldImmortals[9002];
             Metadata.gouyu_type = OldTypes;
             Metadata.gouyu_immortals = OldImmortals;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -53,17 +57,31 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
             LegacyNativeServerConfig.DbLocation = Root + Path.DirectorySeparatorChar + (prefix ? "prefix" : "");
 
         internal void Seed(bool immortals, string text, bool prefix = false)
+            => SeedBytes(immortals, new UTF8Encoding(false, true).GetBytes(text), prefix);
+
+        internal void SeedBytes(bool immortals, byte[] bytes, bool prefix = false)
         {
             string path = PathName(immortals, prefix);
             Guard(path);
             Assert.Null(expected[path]);
             Assert.False(File.Exists(path) || Directory.Exists(path));
-            byte[] bytes = new UTF8Encoding(false, true).GetBytes(text);
             using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
                 file.Write(bytes);
                 file.Flush(true);
             }
+            expected[path] = bytes.ToArray();
+        }
+
+        internal void Rewrite(bool immortals, string text)
+        {
+            string path = PathName(immortals);
+            Guard(path);
+            Assert.NotNull(expected[path]);
+            Assert.Equal(expected[path], File.ReadAllBytes(path));
+            var bytes = new UTF8Encoding(false, true).GetBytes(text);
+            using (var file = new FileStream(path, FileMode.Truncate, FileAccess.Write, FileShare.None))
+            { file.Write(bytes); file.Flush(true); }
             expected[path] = bytes;
         }
 

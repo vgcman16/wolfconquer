@@ -10,9 +10,9 @@ internal sealed partial class LegacyItemUidRegistry
 
     private static void ValidateProducerIntentJson(JsonElement root, int version)
     {
-        if (version != 3) return;
+        if (version < 3) return;
         if (!root.TryGetProperty("ProducerIntents", out var intents) || intents.ValueKind != JsonValueKind.Array ||
-            intents.GetArrayLength() is < 1 or > MaximumProducerIntents)
+            intents.GetArrayLength() > MaximumProducerIntents || version == 3 && intents.GetArrayLength() == 0)
             throw new JsonException("Invalid UID producer intent count.");
         foreach (var intent in intents.EnumerateArray())
         {
@@ -27,12 +27,13 @@ internal sealed partial class LegacyItemUidRegistry
 
     private static void ValidateProducerIntentState(RegistryState state)
     {
-        if (state.Version != 3)
+        if (state.Version < 3)
         {
             if (state.ProducerIntents is not null) throw new JsonException("Legacy state contains producer intents.");
             return;
         }
-        if (state.ProducerIntents is not { Length: >= 1 and <= MaximumProducerIntents })
+        if (state.ProducerIntents is null || state.ProducerIntents.Length > MaximumProducerIntents ||
+            state.Version == 3 && state.ProducerIntents.Length == 0)
             throw new JsonException("Missing UID producer intents.");
         var identities = new HashSet<string>(StringComparer.Ordinal);
         var generations = state.Operations!.Select(row => row.Generation).ToHashSet();

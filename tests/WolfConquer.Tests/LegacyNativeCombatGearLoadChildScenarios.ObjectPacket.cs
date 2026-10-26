@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using ProtoBuf.Meta;
 using Table = WolfConquer.Core.Data.LegacyNativeCombatGearTable;
@@ -22,7 +21,11 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
     public static string ExecuteObjectPacket(string scenario, string guard)
     {
         Require(!RuntimeTypeModel.Default.GetTypes().Cast<MetaType>().Any(), "Fresh child Default required.");
-        using var s = new Scope();
+        return ExecuteOwnedChild(scenario, guard, scope => RunObjectPacketScenario(scope, scenario));
+    }
+
+    private static object? RunObjectPacketScenario(Scope s, string scenario)
+    {
         object? details = null;
         switch (scenario)
         {
@@ -41,7 +44,8 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
                 Require(!RuntimeTypeModel.Default.GetTypes().Cast<MetaType>().Any(), "Cold false gate must not discover/register/freeze any model.");
                 Require(!Table.m_Load && ReferenceEquals(s.OldInfo, Table.Info) && ReferenceEquals(s.OldJade, Jade.Info) &&
                     ReferenceEquals(s.OldLottery, Lottery.Info) && ReferenceEquals(s.OldCollection, CollectionTable.Info) &&
-                    Rank.Ranks.Count == 0 && s.Log.ToString() == "", "False gate must leave all ordinary state untouched.");
+                    ReferenceEquals(s.OldRanks, Rank.Ranks) && s.Log.ToString() == "", "False gate must leave all ordinary state untouched.");
+                RequireNoProof();
                 break;
             }
             case "UnregisteredGear":
@@ -51,6 +55,7 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
             case "UnregisteredDict":
             {
                 Table.m_Load = true; // Explicit isolated gate prestate, not registration/readiness.
+                RequireNoProof();
                 object message = scenario switch
                 {
                     "UnregisteredGear" => new Gear(), "UnregisteredSkin" => new Skin(),
@@ -63,13 +68,14 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
                 Require(original == PacketState(message), "Unregistered failures mutated original public fields.");
                 Require(ReferenceEquals(s.OldInfo, Table.Info) && ReferenceEquals(s.OldJade, Jade.Info) &&
                     ReferenceEquals(s.OldLottery, Lottery.Info) && ReferenceEquals(s.OldCollection, CollectionTable.Info) &&
-                    Rank.Ranks.Count == 0 && s.Log.ToString() == "", "Serializer failure must not invoke loaders or publish metadata caches.");
+                    ReferenceEquals(s.OldRanks, Rank.Ranks) && s.Log.ToString() == "", "Serializer failure must not invoke loaders or publish metadata caches.");
                 details = new { Direct = direct, Implicit = implicitFailure };
                 break;
             }
             case "AttributedAirOnly":
             {
                 Table.m_Load = true;
+                RequireNoProof();
                 var air = new Air { Type = Air.Types.PRACTICE, UserId = 17, PowerType = 701,
                     Powers = [new() { Id = 9, SenseLevel = 7, Points = uint.MaxValue }] };
                 string original = PacketState(air);
@@ -88,7 +94,7 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
             case "RegisteredSixFrames":
             {
                 Table.Load(s.Prefix);
-                VerifyContracts();
+                RequireSuccessfulLoad(s);
                 var frames = new Dictionary<string, string>();
                 foreach (var control in PacketControls())
                 {
@@ -112,42 +118,57 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
             case "RepeatedRegistration":
             {
                 Table.Load(s.Prefix);
-                Table.Load(s.Prefix); // Native second Load appends duplicate fields; rank.Create fails only afterward.
-                VerifyContracts("RepeatedLoad");
-                Require(s.Log.ToString().Contains("LegacyNativeCombatGearRankTable.Create", StringComparison.Ordinal) && Rank.Ranks.Count == 18,
-                    "Genuine repeated loader must retain its real late rank failure.");
-                var message = new Gear { UID = 17 };
-                string original = PacketState(message);
-                var direct = ExpectDuplicatePacketFailure(() => Wire.EncodeObject(message, 2420), typeof(Gear));
-                var implicitFailure = ExpectDuplicatePacketFailure(() => ImplicitPacket(message), typeof(Gear));
-                Require(original == PacketState(message), "Deferred duplicate failure changed the original message.");
-                VerifyContracts("RepeatedLoad");
-                details = new { Direct = direct, Implicit = implicitFailure };
+                RequireSuccessfulLoad(s);
+                var firstProof = RequireProof();
+                Table.Load(s.Prefix);
+                RequireSuccessfulLoad(s);
+                Require(!firstProof.IsCurrent() && !ReferenceEquals(firstProof, RequireProof()), "Actual successful repeated Load must replace the publication proof.");
+                var control = PacketControls()[0];
+                string original = PacketState(control.Message);
+                byte[] direct = Wire.EncodeObject(control.Message, control.Opcode);
+                byte[] implicitFrame = ImplicitPacket(control.Message);
+                Require(Convert.ToHexString(direct) == control.Frame && direct.SequenceEqual(implicitFrame) && original == PacketState(control.Message),
+                    "Idempotent repeated registration must preserve the pinned actual Gear frame and original message.");
+                VerifyContracts();
+                details = new { Frame = Convert.ToHexString(direct) };
                 break;
             }
             case "NullObjects":
             {
                 Table.m_Load = true;
+                RequireNoProof();
+                var before = new GraphSnapshot();
                 ushort[] opcodes = [2420, 2422, 2464, 2451, 2465, 2421];
-                string[] frames = ["040074095451536572766572", "040076095451536572766572", "0400A0095451536572766572",
-                    "040093095451536572766572", "0400A1095451536572766572", "040075095451536572766572"];
-                var implicitFrames = NullImplicitPackets();
+                Func<byte[]>[] implicitRoutes = [() => (byte[])(Gear)null!, () => (byte[])(Skin)null!,
+                    () => (byte[])(Air)null!, () => (byte[])(Dao)null!, () => (byte[])(Dict)null!, () => (byte[])(Opt)null!];
+                void RequireNullMessageRejection(Func<byte[]> operation)
+                {
+                    ArgumentNullException? rejected = null;
+                    byte[]? emitted = null;
+                    try { emitted = operation(); } catch (ArgumentNullException error) { rejected = error; }
+                    Require(rejected?.ParamName == "message" && emitted is null,
+                        "Active native wire conversion must explicitly reject the missing message before producing any frame.");
+                    Require(!RuntimeTypeModel.Default.GetTypes().Cast<MetaType>().Any(),
+                        "Rejected null message must not discover/register/freeze any model.");
+                }
+                Require(implicitRoutes.Length == 6, "All six actual typed implicit null routes are required.");
                 for (int i = 0; i < opcodes.Length; i++)
-                    Require(Convert.ToHexString(Wire.EncodeObject(null!, opcodes[i])) == frames[i] &&
-                        implicitFrames[i] is not null && Convert.ToHexString(implicitFrames[i]!) == frames[i],
-                        "Native null object must retain an empty payload and the exact requested opcode/seal.");
-                Require(Convert.ToHexString(Wire.EncodeObject(null!, ushort.MaxValue)) == "0400FFFF5451536572766572",
-                    "Null object path must preserve arbitrary caller ushort opcode.");
-                Require(!RuntimeTypeModel.Default.GetTypes().Cast<MetaType>().Any(), "Null object serialization must not infer a declared message contract.");
+                {
+                    var opcode = opcodes[i];
+                    RequireNullMessageRejection(() => Wire.EncodeObject(null!, opcode));
+                    RequireNullMessageRejection(implicitRoutes[i]);
+                }
+                RequireNullMessageRejection(() => Wire.EncodeObject(null!, ushort.MaxValue));
+                before.RequireUnchanged();
+                RequireNoProof();
+                Require(s.Log.ToString() == "", "Rejected null messages must not invoke any native loader.");
                 break;
             }
             default: throw new InvalidOperationException("Unknown object packet child scenario.");
         }
-        return JsonSerializer.Serialize(new { Guard = guard, Scenario = scenario, Completed = true,
-            FrameworkDescription = RuntimeInformation.FrameworkDescription,
-            Data = new { Scenario = scenario, Passed = true, Loaded = Table.m_Load,
+        return new { Scenario = scenario,
                 ModelTypes = RuntimeTypeModel.Default.GetTypes().Cast<MetaType>().Select(meta => new
-                { Type = meta.Type.FullName, Fields = meta.GetFields().Length }).ToArray(), Details = details } });
+                { Type = meta.Type.FullName, Fields = meta.GetFields().Length }).ToArray(), Details = details };
     }
 
     private static object ExpectUnregisteredPacketFailure(Func<byte[]> operation, Type type)
@@ -156,15 +177,6 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
         try { _ = operation(); } catch (Exception error) { failure = error.GetBaseException(); }
         Require(failure is InvalidOperationException && failure.Message.Contains(type.FullName!, StringComparison.Ordinal),
             "Unregistered native type must propagate its genuine serializer failure: " + type.FullName);
-        return new { Type = failure!.GetType().FullName, failure.Message };
-    }
-
-    private static object ExpectDuplicatePacketFailure(Func<byte[]> operation, Type type)
-    {
-        Exception? failure = null;
-        try { _ = operation(); } catch (Exception error) { failure = error.GetBaseException(); }
-        Require(failure is InvalidOperationException && failure.Message.Contains("Duplicate field-number detected; 1 on: " + type.FullName,
-            StringComparison.Ordinal), "Real duplicate metadata must propagate through the actual packet conversion.");
         return new { Type = failure!.GetType().FullName, failure.Message };
     }
 

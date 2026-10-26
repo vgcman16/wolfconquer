@@ -37,28 +37,33 @@ public static partial class WorldPacketHandlers
                         return null;
                     }
                     if (!MailboxPackagePreparationCurrent(prepared) || !MailboxPackagePreimagesCurrent(prepared)) return null;
-                    var recipe = LegacyMailboxPackageRecipe.Create(producer.Domain, checked((uint)owner.Expected.AccountId),
+                    var recipe = LegacyMailboxPackageRecipe.CreateForStacks(producer.Domain, checked((uint)owner.Expected.AccountId),
                         checked((uint)owner.Expected.Character.Uid), packet, prepared.Selected, prepared.Grants,
+                        prepared.Stacks,
                         [baseline.Character.Bytes, baseline.ItemsBefore, baseline.Mail.CopyImage(), prepared.GearBefore],
                         prepared.CharacterAfter, prepared.GearAfter, prepared.MailAfter.Image);
-                    var reserved = producer.TryReserveRecipe(recipe, out var receipt, out var reservationAdmitted, out failure);
-                    admitted |= reservationAdmitted;
-                    if (!reserved) return null;
-                    // An immutable durable intent now owns this recipe. Nothing after
-                    // here is an ordinary retryable rejection or a refundable payout.
-                    var plan = MaterializeMailboxPackage(prepared, packet, receipt!);
+                    LegacyItemUidReservationReceipt? receipt = null;
+                    if (recipe.Count != 0)
+                    {
+                        var reserved = producer.TryReserveRecipe(recipe, out receipt, out var reservationAdmitted, out failure);
+                        admitted |= reservationAdmitted;
+                        if (!reserved) return null;
+                    }
+                    // Allocating work now owns a durable intent. No-allocation work
+                    // is admitted by its real prepared record below, without a UID.
+                    var plan = MaterializeMailboxPackage(prepared, packet, receipt);
                     if (!MailboxPackagePreparationCurrent(prepared) || !MailboxClaimPlanCurrent(plan) ||
                         !MailboxPackagePreimagesCurrent(prepared))
                     { failure = MailboxClaimRecoveryRequired + ":packagePreparedStateChanged"; return null; }
                     var itemsAfter = PlayerItemSnapshotLoader.ToLegacyBytes(
                         plan.ItemsAfter.WithOwnedItemsForPersistence(plan.Updated).PlayerItems);
-                    if (!producer.TryPrepareJointWork(recipe, receipt!,
+                    if (!TryPreparePackageStackWork(producer, recipe, receipt,
                         [
                             new(LegacyTradeJournalFileKind.Character, owner.Expected.AccountId, baseline.Character.Bytes, prepared.CharacterAfter),
                             new(LegacyTradeJournalFileKind.Items, owner.Expected.Character.Uid, baseline.ItemsBefore, itemsAfter),
                             new(LegacyTradeJournalFileKind.Mailbox, owner.Expected.Character.Uid, baseline.Mail.CopyImage(), prepared.MailAfter.Image),
                             new(LegacyTradeJournalFileKind.CombatGear, owner.Expected.Character.Uid, prepared.GearBefore, prepared.GearAfter),
-                        ], out var work, out failure)) return null;
+                        ], ref admitted, out var work, out failure)) return null;
                     if (!work!.TryCommit(out var proof, out committed, out failure)) return null;
                     if (!PublishMailboxPackageNative(prepared, proof!))
                     { failure = MailboxClaimRecoveryRequired + ":packageNativePublicationChanged"; return null; }

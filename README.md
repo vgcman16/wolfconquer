@@ -3,6 +3,7 @@
 Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md) keeps
 client-confirmed protocol compatibility while fixing unsafe source logic.
 [Source-bug fixes and audit](FIXED-SOURCE-BUGS.md).
+[Verified components and remaining work](docs/RECONSTRUCTION-STATUS.md).
 
 [![Windows local checks](https://github.com/vgcman16/wolfconquer/actions/workflows/windows-local.yml/badge.svg?branch=main)](https://github.com/vgcman16/wolfconquer/actions/workflows/windows-local.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/vgcman16/wolfconquer/badge)](https://www.codefactor.io/repository/github/vgcman16/wolfconquer)
@@ -25,6 +26,9 @@ Experimental [client and source update tools](docs/CLIENT-UPDATES.md) provide
 signed, curated client releases and clean-checkout source updates. A separate
 Windows graphical launcher uses the same update engine. No official full-client
 download feed or game-client assets are included or published by this snapshot.
+The current target is Chinese client7899 / cached DX8 D13. English resource
+tools and [configuration-decoding prerequisites](docs/CLIENT-RESOURCE-TOOLS.md)
+remain separate from complete English or portable-client acceptance.
 
 ## Build and test
 

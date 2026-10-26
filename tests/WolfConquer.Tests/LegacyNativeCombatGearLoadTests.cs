@@ -27,7 +27,9 @@ public sealed class LegacyNativeCombatGearLoadTests(ITestOutputHelper output)
     {
         var result = LegacyNativeCombatGearLoadChildFixture.Run(scenario, output);
         Assert.True(result.GetProperty("Passed").GetBoolean());
-        Assert.True(result.GetProperty("Loaded").GetBoolean());
+        bool successful = scenario is "ColumnsAndDuplicates" or "Culture" or "EmptyGear" or "RepeatedLoad" or "RankColumnsAndPrefix" or "RegisteredWire";
+        Assert.Equal(successful, result.GetProperty("Loaded").GetBoolean());
+        Assert.Equal(successful && scenario != "ColumnsAndDuplicates", result.GetProperty("Ready").GetBoolean());
         Assert.Equal(scenario, result.GetProperty("Scenario").GetString());
     }
 }

@@ -44,6 +44,9 @@ internal sealed partial class LegacyItemUidRegistry
             var existing = FindProducerIntent(operationId);
             if (existing is not null)
                 return TryReplayProducerIntent(existing, request, copied, out snapshot, out reason);
+            if (!TryReadArchivedIntent(operationId, out var archived, out reason)) return false;
+            if (archived is not null)
+                return ReplayArchivedIntent(archived, request, copied, out snapshot, out reason);
             if (state.Operations?.Any(row => row.OperationId == operationId) == true)
             { reason = "itemUidProducerIntentAfterReservation"; return false; }
             var intents = state.ProducerIntents ?? [];
@@ -53,7 +56,7 @@ internal sealed partial class LegacyItemUidRegistry
             if (state.Generation == ulong.MaxValue) { reason = "itemUidNamespaceExhausted"; return false; }
             var row = new ProducerIntent(operationId, request.Writer, request.AccountId, request.CharacterUid,
                 request.PayloadSha256, request.Count, Convert.ToBase64String(copied), state.Generation + 1);
-            var next = state with { Version = 3, Generation = row.PreparedGeneration,
+            var next = state with { Version = Math.Max(3, state.Version), Generation = row.PreparedGeneration,
                 Operations = state.Operations ?? [], ProducerIntents = [.. intents, row] };
             var prepared = ProducerSnapshot(row, null);
             return TryPublishProducerState(next, prepared, interruption, out snapshot, out reason);
@@ -72,7 +75,12 @@ internal sealed partial class LegacyItemUidRegistry
             snapshot = null;
             if (!TryAdmitProducerIntent(domain, request, payload, interruption, out var copied, out reason)) return false;
             var intent = FindProducerIntent(request.OperationId.ToString("N"));
-            if (intent is null) { reason = "itemUidProducerIntentMissing"; return false; }
+            if (intent is null)
+            {
+                if (!TryReadArchivedIntent(request.OperationId.ToString("N"), out var archived, out reason)) return false;
+                if (archived is not null) return ReplayArchivedIntent(archived, request, copied, out snapshot, out reason);
+                reason = "itemUidProducerIntentMissing"; return false;
+            }
             if (!MatchesProducerRequest(intent, request, copied)) { reason = "itemUidProducerIntentConflict"; return false; }
             var operations = state.Operations!;
             var existing = operations.FirstOrDefault(row => row.OperationId == intent.OperationId);
@@ -99,7 +107,12 @@ internal sealed partial class LegacyItemUidRegistry
             reason = "itemUidProducerIntentInvalid";
             if (operationId == Guid.Empty || !TryAdmitProducerOwner(domain, out reason)) return false;
             var intent = FindProducerIntent(operationId.ToString("N"));
-            if (intent is null) { reason = "itemUidProducerIntentMissing"; return false; }
+            if (intent is null)
+            {
+                if (!TryReadArchivedIntent(operationId.ToString("N"), out snapshot, out reason)) return false;
+                reason = snapshot is null ? "itemUidProducerIntentMissing" : string.Empty;
+                return snapshot is not null;
+            }
             snapshot = ProducerSnapshot(intent, state.Operations!.FirstOrDefault(row => row.OperationId == intent.OperationId));
             reason = string.Empty;
             return true;
@@ -116,8 +129,13 @@ internal sealed partial class LegacyItemUidRegistry
             snapshots = [];
             if (!TryAdmitProducerOwner(domain, out reason)) return false;
             var prepared = (state.ProducerIntents ?? []).Select(intent => ProducerSnapshot(intent,
-                state.Operations?.FirstOrDefault(row => row.OperationId == intent.OperationId))).ToArray();
-            snapshots = prepared;
+                state.Operations?.FirstOrDefault(row => row.OperationId == intent.OperationId))).ToList();
+            foreach (var key in CurrentArchives.Entries.Keys)
+            {
+                if (!TryReadArchivedIntent(key, out var archived, out reason)) return false;
+                prepared.Add(archived!);
+            }
+            snapshots = prepared.OrderBy(row => row.PreparedGeneration).ToArray();
             return true;
         }
     }

@@ -18,7 +18,7 @@ public sealed partial class LegacyNativeDictLotteryTests
     [InlineData("mixed-items", "080010001A04080010001A001A04081110011A0808FFFFFFFF0F1000")]
     [InlineData("max", "08FFFFFFFF0F10FFFFFFFF0F1A0808FFFFFFFF0F1001")]
     [InlineData("null-outer", "")]
-    public void WireMatchesNinePinnedRegisteredNativeOraclePayloads(string kind, string expected)
+    public void WireRetainsValidOraclePayloadsAndRefusesMissingOuterMessage(string kind, string expected)
     {
         using var s = new Scope();
         // Root observed these nine payloads with the pinned original protobuf-net2.0.0.668,
@@ -37,7 +37,13 @@ public sealed partial class LegacyNativeDictLotteryTests
             "null-outer" => null,
             _ => new Dict()
         };
-        Assert.Equal(expected, Payload(info!, 2465));
+        if (info is null)
+        {
+            Assert.Equal("message", Assert.Throws<ArgumentNullException>(() =>
+                WolfConquer.Core.World.LegacyNativeCombatGearWire.Encode(info!, 2465)).ParamName);
+            return;
+        }
+        Assert.Equal(expected, Payload(info, 2465));
         if (kind == "default")
         {
             Assert.Equal(0u, info!.Type);

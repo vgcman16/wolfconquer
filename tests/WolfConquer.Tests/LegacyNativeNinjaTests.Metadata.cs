@@ -14,11 +14,15 @@ public sealed partial class LegacyNativeNinjaTests
         RowFields<LegacyNativeNinjaFile.Item>("Level U1 MaxHP PAttack PDefense MDefense Chance Seconds Rate MovementSpeed U13 U14 P");
         Assert.Null(typeof(LegacyNativeNinja.Item).GetProperty("DBItem")!.SetMethod);
         Assert.Equal(typeof(Dictionary<uint, LegacyNativeNinjaFile.NinjaSprintItem>),
-            typeof(LegacyNativeNinjaFile).GetField("gouyu_type")!.FieldType);
+            typeof(LegacyNativeNinjaFile).GetProperty("gouyu_type")!.PropertyType);
         Assert.Equal(typeof(Dictionary<uint, LegacyNativeNinjaFile.Item>),
-            typeof(LegacyNativeNinjaFile).GetField("gouyu_immortals")!.FieldType);
-        Assert.False(typeof(LegacyNativeNinjaFile).GetField("gouyu_type")!.IsInitOnly);
-        Assert.False(typeof(LegacyNativeNinjaFile).GetField("gouyu_immortals")!.IsInitOnly);
+            typeof(LegacyNativeNinjaFile).GetProperty("gouyu_immortals")!.PropertyType);
+        foreach (var name in new[] { "gouyu_type", "gouyu_immortals" })
+        {
+            var property = typeof(LegacyNativeNinjaFile).GetProperty(name)!;
+            Assert.True(property.GetMethod!.IsPublic);
+            Assert.True(property.SetMethod!.IsPublic);
+        }
     }
 
     [Fact]

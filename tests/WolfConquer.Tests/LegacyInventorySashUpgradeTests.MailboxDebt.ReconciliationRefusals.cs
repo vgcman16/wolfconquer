@@ -33,10 +33,10 @@ public sealed partial class LegacyInventorySashUpgradeTests
                     break;
                 case "foreign-domain":
                 case "unknown-property":
-                    var json = JsonNode.Parse(File.ReadAllBytes(path))!.AsObject();
+                    var json = ReadHistoryWorkDocument(fixture, join, intent.Request.OperationId);
                     if (fault == "foreign-domain") json["Domain"] = Guid.NewGuid().ToString("N");
                     else json["Accept"] = true;
-                    File.WriteAllText(path, json.ToJsonString());
+                    WriteHistoryPendingDocument(fixture, join, intent.Request.OperationId, json);
                     break;
                 case "missing-sidecar-after":
                     Assert.False(work!.TryCommit(LegacyMailboxPackageInterruption.AfterJointCommit, out _, out var durable, out reason));

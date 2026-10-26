@@ -6,9 +6,8 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeNinjaMetadataLoadTests
 {
     [Fact]
-    public void ColdLoadReadsAllPhysicalFieldsSkipsNativeColumnsAndDuplicatesColumnEleven()
+    public void ColdLoadReadsAllPhysicalFieldsSkipsNativeColumnsAndDuplicatesColumnEleven() => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         Metadata.gouyu_type = null!;
         Metadata.gouyu_immortals = null!;
         files.Seed(false, Row(false) + "@@ignored-extra-column");
@@ -19,12 +18,11 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
         AssertType(17);
         AssertImmortal(21);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Fact]
-    public void EmptyFirstFileStillReplacesBothOwnersAndLoadsSecondFile()
+    public void EmptyFirstFileStillReplacesBothOwnersAndLoadsSecondFile() => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         files.Seed(false, "");
         files.Seed(true, Row(true, 21));
         Metadata.Load();
@@ -35,12 +33,11 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
         Assert.Equal(123u, files.OldTypes[9001].Score);
         Assert.Equal(456u, files.OldImmortals[9002].MaxHP);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Fact]
-    public void RepeatedLoadPublishesNewDictionariesAndRowsWithoutMutatingRetainedAliases()
+    public void RepeatedLoadPublishesNewDictionariesAndRowsWithoutMutatingRetainedAliases() => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         files.Seed(false, Row(false));
         files.Seed(true, Row(true, 21));
         Metadata.Load();
@@ -60,12 +57,11 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
         AssertType(17);
         AssertImmortal(21);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Fact]
-    public void LiteralDbLocationPrefixSelectsPrefixedFilesWithoutInsertingSeparator()
+    public void LiteralDbLocationPrefixSelectsPrefixedFilesWithoutInsertingSeparator() => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         files.Seed(false, Row(false));
         files.Seed(true, Row(true, 21));
         files.Seed(false, Row(false, 31), prefix: true);
@@ -77,55 +73,37 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
         AssertType(31);
         AssertImmortal(41);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Fact]
-    public void MissingFirstFileReplacesOnlyFirstOwnerAndReturnsBeforeSecondFile()
+    public void MissingFirstFileRetainsBothOwnersAndReturnsBeforePublication() => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         files.Seed(true, Row(true, 21));
         Metadata.Load();
-        Assert.NotSame(files.OldTypes, Metadata.gouyu_type);
-        Assert.Empty(Metadata.gouyu_type);
-        Assert.Same(files.OldImmortals, Metadata.gouyu_immortals);
-        Assert.Equal(9002u, Assert.Single(Metadata.gouyu_immortals).Key);
+        AssertOldMetadataPair(files);
         Assert.Equal("!File.Exists: " + files.PathName(false) + Environment.NewLine, files.Output.ToString());
-    }
+    });
 
     [Fact]
-    public void MissingSecondFileRetainsCompleteFirstTableAndPublishesEmptySecondOwner()
+    public void MissingSecondFileRetainsBothPriorOwnersAndRows() => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         files.Seed(false, Row(false));
         Metadata.Load();
-        AssertType(17);
-        Assert.NotSame(files.OldTypes, Metadata.gouyu_type);
-        Assert.NotSame(files.OldImmortals, Metadata.gouyu_immortals);
-        Assert.Empty(Metadata.gouyu_immortals);
+        AssertOldMetadataPair(files);
         Assert.Equal("!File.Exists: " + files.PathName(true) + Environment.NewLine, files.Output.ToString());
-    }
+    });
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ConcreteDuplicateAddThrowsAndKeepsOnlyTheCompletedPrefix(bool secondTable)
+    public void ConcreteDuplicateAddThrowsAndPreservesTheWholePriorPair(bool secondTable) => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         files.Seed(false, secondTable ? Row(false) : Row(false) + "\n" + Row(false) + "\n" + Row(false, 19));
         files.Seed(true, secondTable ? Row(true, 21) + "\n" + Row(true, 21) + "\n" + Row(true, 23) : Row(true, 21));
         Assert.Throws<ArgumentException>(() => Metadata.Load());
-        Assert.Single(Metadata.gouyu_type);
-        AssertType(17);
-        if (secondTable)
-        {
-            Assert.NotSame(files.OldImmortals, Metadata.gouyu_immortals);
-            Assert.Single(Metadata.gouyu_immortals);
-            AssertImmortal(21);
-        }
-        else Assert.Same(files.OldImmortals, Metadata.gouyu_immortals);
-        Assert.Equal(123u, files.OldTypes[9001].Score);
+        AssertOldMetadataPair(files);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Theory]
     [InlineData(false, "format")]
@@ -134,16 +112,15 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
     [InlineData(true, "short")]
     [InlineData(false, "overflow")]
     [InlineData(true, "overflow")]
-    public void LaterMalformedRecordThrowsBeforePublicationAndPreservesExactOwnerPrefix(bool secondTable, string fault)
+    public void LaterMalformedRecordThrowsBeforePublicationAndPreservesBothPriorOwners(bool secondTable, string fault) => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         string[] tokens = secondTable ? ImmortalTokens(23) : TypeTokens(19);
         int last = tokens.Length - 1;
         Type exception;
         if (fault == "short")
         {
             tokens = tokens[..last];
-            exception = typeof(IndexOutOfRangeException);
+            exception = typeof(InvalidDataException);
         }
         else
         {
@@ -154,23 +131,13 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
         files.Seed(false, secondTable ? Row(false) : Row(false) + "\n" + broken + "\n" + Row(false, 29));
         files.Seed(true, secondTable ? Row(true, 21) + "\n" + broken + "\n" + Row(true, 29) : Row(true, 21));
         Assert.Throws(exception, () => Metadata.Load());
-        Assert.NotSame(files.OldTypes, Metadata.gouyu_type);
-        Assert.Single(Metadata.gouyu_type);
-        AssertType(17);
-        if (secondTable)
-        {
-            Assert.NotSame(files.OldImmortals, Metadata.gouyu_immortals);
-            Assert.Single(Metadata.gouyu_immortals);
-            AssertImmortal(21);
-        }
-        else Assert.Same(files.OldImmortals, Metadata.gouyu_immortals);
+        AssertOldMetadataPair(files);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Fact]
-    public void SignedPowerAcceptsBothInt32ExtremesWithoutNarrowingOtherUInt32Fields()
+    public void SignedPowerAcceptsBothInt32ExtremesWithoutNarrowingOtherUInt32Fields() => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         string[] first = TypeTokens(uint.MaxValue), second = TypeTokens(19);
         first[8] = "-2147483648";
         first[9] = first[11] = "4294967295";
@@ -186,29 +153,25 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
         Assert.Equal(uint.MaxValue, Metadata.gouyu_type[uint.MaxValue].UK5);
         Assert.Empty(Metadata.gouyu_immortals);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Theory]
     [InlineData("2147483648")]
     [InlineData("-2147483649")]
-    public void SignedPowerOverflowStopsBeforePublishingRowOrReplacingSecondOwner(string power)
+    public void SignedPowerOverflowPreservesBothPriorTableOwners(string power) => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         string[] tokens = TypeTokens(19);
         tokens[8] = power;
         files.Seed(false, Row(false) + "\n" + string.Join("@@", tokens));
         files.Seed(true, Row(true, 21));
         Assert.Throws<OverflowException>(() => Metadata.Load());
-        Assert.Single(Metadata.gouyu_type);
-        AssertType(17);
-        Assert.Same(files.OldImmortals, Metadata.gouyu_immortals);
+        AssertOldMetadataPair(files);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Fact]
-    public void CurrentCultureSignsAndMixedLiteralSpaceAtAtDelimitersAreUsedByBothTables()
+    public void CurrentCultureSignsAndMixedLiteralSpaceAtAtDelimitersAreUsedByBothTables() => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
         culture.NumberFormat.PositiveSign = "p";
         culture.NumberFormat.NegativeSign = "m";
@@ -222,42 +185,28 @@ public sealed partial class LegacyNativeNinjaMetadataLoadTests
         AssertType(17);
         AssertImmortal(21);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Fact]
-    public void TabsAreNotTreatedAsRecordDelimiters()
+    public void TabsAreNotTreatedAsRecordDelimiters() => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         files.Seed(false, string.Join("\t", TypeTokens()));
         files.Seed(true, Row(true, 21));
-        Assert.Throws<FormatException>(() => Metadata.Load());
-        Assert.Empty(Metadata.gouyu_type);
-        Assert.Same(files.OldImmortals, Metadata.gouyu_immortals);
+        Assert.Throws<InvalidDataException>(() => Metadata.Load());
+        AssertOldMetadataPair(files);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ActualExclusiveFileLockThrowsAfterTheSelectedOwnerHasAlreadyBeenReplaced(bool secondTable)
+    public void ActualExclusiveFileLockThrowsWithoutReplacingEitherOwner(bool secondTable) => RunOwnedMetadata(files =>
     {
-        using var files = new OwnedFiles();
         files.Seed(false, Row(false));
         files.Seed(true, Row(true, 21));
         using (var held = new FileStream(files.PathName(secondTable), FileMode.Open, FileAccess.Read, FileShare.None))
             Assert.Throws<IOException>(() => Metadata.Load());
-        Assert.NotSame(files.OldTypes, Metadata.gouyu_type);
-        if (secondTable)
-        {
-            AssertType(17);
-            Assert.NotSame(files.OldImmortals, Metadata.gouyu_immortals);
-            Assert.Empty(Metadata.gouyu_immortals);
-        }
-        else
-        {
-            Assert.Empty(Metadata.gouyu_type);
-            Assert.Same(files.OldImmortals, Metadata.gouyu_immortals);
-        }
+        AssertOldMetadataPair(files);
         Assert.Empty(files.Output.ToString());
-    }
+    });
 }

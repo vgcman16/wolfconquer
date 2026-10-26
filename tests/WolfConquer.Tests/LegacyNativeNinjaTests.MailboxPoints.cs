@@ -115,9 +115,11 @@ public sealed partial class LegacyNativeNinjaTests
 
     private static string MailboxNinjaState(LegacyNativeNinja ninja)
     {
-        var scalars = typeof(LegacyNativeNinja).GetFields(BindingFlags.Instance | BindingFlags.Public)
-            .Where(field => field.Name is not ("Items" or "user")).OrderBy(field => field.MetadataToken)
-            .Select(field => field.Name + "=" + Convert.ToUInt64(field.GetValue(ninja)));
+        var scalarProperties = typeof(LegacyNativeNinja).GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(property => property.CanWrite && (property.PropertyType == typeof(uint) || property.PropertyType == typeof(ulong)))
+            .OrderBy(property => property.Name, StringComparer.Ordinal).ToArray();
+        Assert.Equal(18, scalarProperties.Length); // Keep every persisted scalar in rejection/identity assertions.
+        var scalars = scalarProperties.Select(property => property.Name + "=" + Convert.ToUInt64(property.GetValue(ninja)));
         IEnumerable<string> rows = ninja.Items is null ? ["Items=null"] : ninja.Items.OrderBy(row => row.Key).Select(row =>
             row.Value is null ? $"{row.Key}:null" :
                 $"{row.Key}:{row.Value.ItemID},{row.Value.Level},{row.Value.Position},{row.Value.Exp},{row.Value.UK}");

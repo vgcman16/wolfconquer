@@ -59,37 +59,46 @@ public sealed partial class LegacyNativeCombatGearRankPersistenceTests
     }
 
     [Fact]
-    public void RepeatedTrueGateLoadFaultsInCreateBeforeAnyFileRead()
+    public void RepeatedCompleteLoadReplacesAllRanksAndMissingReloadPreservesTheLatestGraph()
     {
         using var files = new NativeRankFileScope();
         files.Rows();
         RankTable.Load("");
         var ranks = RankTable.Ranks;
         var first = ranks[(RankTable.Type)19];
+        files.Rows(Row(7, 800));
+        RankTable.Load("unused");
+        var latest = RankTable.Ranks;
+        Assert.NotSame(ranks, latest);
+        Assert.NotSame(first, latest[(RankTable.Type)19]);
+        Assert.Equal(7u, Assert.Single(latest[(RankTable.Type)19].RankingList).Key);
+        Assert.Empty(first.RankingList);
         LegacyNativeServerConfig.DbLocation = Path.Combine(files.Root, "missing") + Path.DirectorySeparatorChar;
-        Assert.Throws<ArgumentException>(() => RankTable.Load("unused"));
-        Assert.Same(ranks, RankTable.Ranks);
-        Assert.Same(first, RankTable.Ranks[(RankTable.Type)19]);
+        Assert.ThrowsAny<IOException>(() => RankTable.Load("unused"));
+        Assert.Same(latest, RankTable.Ranks);
+        Assert.Equal(7u, Assert.Single(latest[(RankTable.Type)19].RankingList).Key);
         Assert.Equal(new uint[] { 19, 20, 21, 22, 26, 27, 28, 29, 30, 33, 34, 35, 36, 37, 38, 39, 40, 42 },
             ranks.Keys.Select(type => (uint)type));
         Assert.All(ranks.Values, rank => { Assert.Equal(10, rank.MaxItems); Assert.Empty(rank.RankingList); });
     }
 
     [Fact]
-    public void CreatePublishesEarlierRankBeforeLaterDuplicateAndNeverStartsReader()
+    public void MissingFilePreservesAnExistingLaterRankWithoutPublishingEarlierDetachedOwners()
     {
         using var files = new NativeRankFileScope();
         var retained = new RankTable.Rank((RankTable.Type)20) { MaxItems = 77 };
         RankTable.Ranks.Add((RankTable.Type)20, retained);
+        var prior = RankTable.Ranks;
         LegacyNativeServerConfig.DbLocation = Path.Combine(files.Root, "absent") + Path.DirectorySeparatorChar;
-        Assert.Throws<ArgumentException>(() => RankTable.Load("ignored"));
+        Assert.ThrowsAny<IOException>(() => RankTable.Load("ignored"));
+        Assert.Same(prior, RankTable.Ranks);
         Assert.Same(retained, RankTable.Ranks[(RankTable.Type)20]);
-        Assert.Equal(10, RankTable.Ranks[(RankTable.Type)19].MaxItems);
-        Assert.Equal(new uint[] { 20, 19 }, RankTable.Ranks.Keys.Select(type => (uint)type));
+        Assert.Equal(77, retained.MaxItems);
+        Assert.Equal(new uint[] { 20 }, RankTable.Ranks.Keys.Select(type => (uint)type));
     }
 
     [Fact]
-    public void FalseGateStillLoadsIntoRetainedRankAndReplacesOnlyItsRankingDictionary()
+    public void StandaloneRankLoadPreparesAllOwnersEvenWithFalseWireGateAndPreservesEscapedRanks()
     {
         using var files = new NativeRankFileScope();
         LegacyNativeCombatGearTable.m_Load = false;
@@ -99,46 +108,74 @@ public sealed partial class LegacyNativeCombatGearRankPersistenceTests
         var ranks = RankTable.Ranks;
         files.Rows(Row(7, 800));
         RankTable.Load("ignored");
-        Assert.Same(ranks, RankTable.Ranks);
-        Assert.Same(rank, Assert.Single(RankTable.Ranks).Value);
-        Assert.NotSame(oldRows, rank.RankingList);
-        Assert.Same(existing, rank.RankingList[5]);
-        Assert.Equal(new uint[] { 7, 5 }, rank.RankingList.Keys);
-        Assert.Equal(new uint[] { 5, 7 }, oldRows.Keys);
+        Assert.NotSame(ranks, RankTable.Ranks);
+        Assert.Equal(18, RankTable.Ranks.Count);
+        Assert.NotSame(rank, RankTable.Ranks[(RankTable.Type)19]);
+        Assert.Same(oldRows, rank.RankingList);
+        Assert.Same(existing, Assert.Single(oldRows).Value);
+        Assert.Equal(7u, Assert.Single(RankTable.Ranks[(RankTable.Type)19].RankingList).Key);
         Assert.Same(existing, oldRows[5]);
-        Assert.Same(rank.RankingList[7], oldRows[7]); // Source mutates the escaped map before replacing its sorted owner.
+        Assert.False(LegacyNativeCombatGearTable.m_Load);
+        Assert.False(LegacyNativeCombatGearTable.TryCaptureMailboxLoadProof(out var proof));
+        Assert.Null(proof);
     }
 
     [Fact]
-    public void ZeroCountCreatesRanksButIgnoresPhysicalRowsAndReturnsNormally()
+    public void ZeroCountRejectsUncountedPhysicalRowsAndCompleteZeroCountCreatesAllRanks()
     {
         using var files = new NativeRankFileScope();
         File.WriteAllText(files.RankPath, NativeRankFileScope.Text("Count=0", "not/a/valid/row"));
+        var prior = RankTable.Ranks;
+        Assert.Throws<InvalidDataException>(() => RankTable.Load(""));
+        Assert.Same(prior, RankTable.Ranks);
+        Assert.Empty(prior);
+        files.Rows();
         RankTable.Load("");
         Assert.Equal(18, RankTable.Ranks.Count);
         Assert.All(RankTable.Ranks.Values, rank => Assert.Empty(rank.RankingList));
     }
 
     [Fact]
-    public void CountUsesSecondEqualsTokenAndIgnoresRowsBeyondCount()
+    public void HeaderMustBeExactAndEveryPhysicalRowMustBelongToItsDeclaredCount()
     {
         using var files = new NativeRankFileScope();
-        File.WriteAllText(files.RankPath, NativeRankFileScope.Text("anything=1=ignored", Row(7), "bad"));
-        RankTable.Load("");
-        Assert.Equal(7u, Assert.Single(RankTable.Ranks[(RankTable.Type)19].RankingList).Key);
+        var retained = Entry();
+        var rank = Place(retained);
+        var prior = RankTable.Ranks;
+        foreach (string text in new[] { NativeRankFileScope.Text("anything=1=ignored", Row(7)),
+            NativeRankFileScope.Text("Count=1", Row(7), "bad") })
+        {
+            File.WriteAllText(files.RankPath, text);
+            Assert.Throws<InvalidDataException>(() => RankTable.Load(""));
+            Assert.Same(prior, RankTable.Ranks);
+            Assert.Same(rank, Assert.Single(prior).Value);
+            Assert.Same(retained, Assert.Single(rank.RankingList).Value);
+        }
     }
 
     [Fact]
-    public void InvalidOverflowAndMissingNumericColumnsUseNativeZeroDefaults()
+    public void InvalidOverflowAndMissingNumericColumnsRefuseWithoutInventingDefaultRows()
     {
         using var files = new NativeRankFileScope();
-        files.Rows("4294967296//19/not-a-number/4294967296/256/-1/", "2/Short/19");
-        RankTable.Load("");
-        var rank = RankTable.Ranks[(RankTable.Type)19];
-        Assert.Equal(new object[] { 0u, "", 19u, 0u, 0u, (byte)0, 0u, 0u, 0u, 0u,
-            0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, "", 0u }, Values(rank.RankingList[0]));
-        Assert.Equal("Short", rank.RankingList[2].Name);
-        Assert.Equal(0u, rank.RankingList[2].WeaponWar);
+        var retained = Entry();
+        var rank = Place(retained);
+        var prior = RankTable.Ranks;
+        foreach ((string row, Type exceptionType) in new[]
+        {
+            ("4294967296//19/not-a-number/4294967296/256/-1/", typeof(InvalidDataException)),
+            ("2/Short/19", typeof(InvalidDataException)),
+            (FullRow.Replace("41/Hero/", "4294967296/Hero/", StringComparison.Ordinal), typeof(OverflowException)),
+            (FullRow.Replace("/404/", "/bad/", StringComparison.Ordinal), typeof(FormatException)),
+            (FullRow.Replace("/206/", "/256/", StringComparison.Ordinal), typeof(OverflowException)),
+            (FullRow.Replace("/707/", "/-1/", StringComparison.Ordinal), typeof(OverflowException)),
+        })
+        {
+            files.Rows(Row(7), row);
+            Assert.Throws(exceptionType, () => RankTable.Load(""));
+            Assert.Same(prior, RankTable.Ranks);
+            Assert.Same(rank, Assert.Single(prior).Value);
+            Assert.Same(retained, Assert.Single(rank.RankingList).Value);
+        }
     }
 
     [Fact]
@@ -148,7 +185,10 @@ public sealed partial class LegacyNativeCombatGearRankPersistenceTests
         var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
         culture.NumberFormat.PositiveSign = "p";
         CultureInfo.CurrentCulture = culture;
-        File.WriteAllText(files.RankPath, NativeRankFileScope.Text("Count=p1", "p41/Hero/p19/p404/p505/p206/"));
+        var fields = FullRow.TrimEnd('/').Split('/');
+        for (int index = 0; index < fields.Length; index++)
+            if (index is not (1 or 20)) fields[index] = "p" + fields[index];
+        File.WriteAllText(files.RankPath, NativeRankFileScope.Text("Count=p1", string.Join('/', fields) + "/"));
         RankTable.Load("");
         var entry = RankTable.Ranks[(RankTable.Type)19].RankingList[41];
         Assert.Equal(404u, entry.TotalPoints);
@@ -157,25 +197,29 @@ public sealed partial class LegacyNativeCombatGearRankPersistenceTests
     }
 
     [Fact]
-    public void PrematureEndOfFileFaultsOnDefaultTypeAfterPublishingEarlierRow()
+    public void PrematureEndOfFileRejectsTheWholePreparedGraph()
     {
         using var files = new NativeRankFileScope();
         File.WriteAllText(files.RankPath, NativeRankFileScope.Text("Count=2", Row(7)));
-        Assert.Throws<KeyNotFoundException>(() => RankTable.Load(""));
-        Assert.Equal(7u, Assert.Single(RankTable.Ranks[(RankTable.Type)19].RankingList).Key);
+        var prior = RankTable.Ranks;
+        Assert.Throws<InvalidDataException>(() => RankTable.Load(""));
+        Assert.Same(prior, RankTable.Ranks);
+        Assert.Empty(prior);
         Assert.False(RankTable.Ranks.ContainsKey((RankTable.Type)0));
     }
 
     [Fact]
-    public void InvalidOrOverflowingByteTypeFaultsAfterEarlierPublicationWithoutNormalizing()
+    public void InvalidUnknownOrOverflowingByteTypeRefusesWithoutEarlierPublication()
     {
         using var files = new NativeRankFileScope();
         foreach (string type in new[] { "256", "bad", "255" })
         {
-            RankTable.Ranks = new();
+            var prior = RankTable.Ranks;
             files.Rows(Row(7), Row(8, type: type));
-            Assert.Throws<KeyNotFoundException>(() => RankTable.Load(""));
-            Assert.Equal(7u, Assert.Single(RankTable.Ranks[(RankTable.Type)19].RankingList).Key);
+            Type exceptionType = type == "256" ? typeof(OverflowException) : type == "bad" ? typeof(FormatException) : typeof(InvalidDataException);
+            Assert.Throws(exceptionType, () => RankTable.Load(""));
+            Assert.Same(prior, RankTable.Ranks);
+            Assert.Empty(prior);
         }
     }
 

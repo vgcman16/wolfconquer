@@ -10,6 +10,7 @@ public static partial class WorldPacketHandlers
     private sealed record MailboxPackagePrepared(LegacyMailboxClaimBaseline Baseline,
         LegacyMailboxPackageProducer Producer, LegacyMailboxEntry[] Selected, MailboxPackageStep[] Steps,
         LegacyMailboxPackageItemRecipe[] Grants, LegacyMailboxPackageCatalog[] Catalogs,
+        LegacyMailboxPackageStackPlan Stacks,
         WorldSession Updated, LegacyMailboxStore.ClaimProjection MailAfter,
         string GearPath, byte[] GearBefore, byte[] GearAfter, byte[] CharacterAfter,
         LegacyNativePlayerRuntime.MailboxClassExperienceProjection? ClassPublication,

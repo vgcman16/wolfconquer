@@ -14,7 +14,7 @@ internal sealed partial class LegacyMailboxPackageProducer
             if (Volatile.Read(ref storeBound) != 0)
             { reason = "mailboxClaimRecoveryRequired:packageFreshOwnerRequired"; return false; }
             if (!IsCurrent(UsersRoot, ItemsRoot, MailboxRoot, Recovery) ||
-                !Registry.TryReadProducerIntents(Domain, out var intents, out reason)) return false;
+                !Registry.TryReadActiveProducerIntents(Domain, out var intents, out reason)) return false;
             foreach (var intent in intents.Where(row => row.Request.Writer == Writer))
             {
                 if (!TryDescribe(intent, out var description))
@@ -29,6 +29,12 @@ internal sealed partial class LegacyMailboxPackageProducer
                 else if (!workStore.Reconcile(intent, row, out _))
                 { reason = "mailboxClaimRecoveryRequired:packageWorkImagesUnproven"; return false; }
             }
+            foreach (var row in workStore.ReadPendingNoAllocationRecords())
+            {
+                if (intents.Any(intent => intent.Request.OperationId.ToString("N") == row.Operation) ||
+                    !workStore.ReconcileNoAllocation(row, out _))
+                { reason = "mailboxClaimRecoveryRequired:noAllocationWorkImagesUnproven"; return false; }
+            }
             reason = string.Empty;
             return true;
         }
@@ -42,7 +48,7 @@ internal sealed partial class LegacyMailboxPackageProducer
         try
         {
             if (account is <= 0 or > uint.MaxValue || !IsCurrent(UsersRoot, ItemsRoot, MailboxRoot, Recovery) ||
-                !Registry.TryReadProducerIntents(Domain, out var intents, out reason))
+                !Registry.TryReadActiveProducerIntents(Domain, out var intents, out reason))
             { reason = "mailboxClaimRecoveryRequired:packageAccountOwner"; return false; }
             pending = awaitingSessionPublication.ContainsKey(account);
             foreach (var intent in intents.Where(row => row.Request.Writer == Writer && row.Request.AccountId == account))
@@ -52,6 +58,13 @@ internal sealed partial class LegacyMailboxPackageProducer
                 if (row is null) { pending = true; continue; }
                 if (!workStore.MatchesIntent(row, intent))
                 { pending = true; reason = "mailboxClaimRecoveryRequired:packageWorkConflict"; return false; }
+                if (!row.Completed) pending = true;
+            }
+            foreach (var row in workStore.ReadPendingNoAllocationRecords().Where(row => row.AccountId == account))
+            {
+                if (!TryValidateNoAllocationRecord(row, out _) ||
+                    intents.Any(intent => intent.Request.OperationId.ToString("N") == row.Operation))
+                { pending = true; reason = "mailboxClaimRecoveryRequired:noAllocationWorkConflict"; return false; }
                 if (!row.Completed) pending = true;
             }
             reason = pending ? "mailboxClaimRecoveryRequired:packagePending" : string.Empty;
@@ -67,7 +80,9 @@ internal sealed partial class LegacyMailboxPackageProducer
     internal bool TryDescribe(LegacyItemUidProducerIntentSnapshot intent,
         out LegacyMailboxPackageRecipe.WorkDescription? description) =>
         LegacyMailboxPackageRecipe.TryReadWorkDescription(intent.CopyPayload(), Domain, intent.Request.AccountId,
-            intent.Request.CharacterUid, out description) && description!.Count == intent.Request.Count;
+            intent.Request.CharacterUid, out description) && description!.Count == intent.Request.Count &&
+        LegacyMailboxPackageRecipe.TryReadOperationIdentity(intent.CopyPayload(), Domain, intent.Request.AccountId,
+            intent.Request.CharacterUid, out var operation) && operation == intent.Request.OperationId;
 
     private string[] WorkPaths(uint account, uint uid)
     {

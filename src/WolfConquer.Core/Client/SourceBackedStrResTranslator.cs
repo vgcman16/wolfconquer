@@ -16,7 +16,7 @@ public sealed record SourceBackedStrResTranslationResult(
     int RemainingCjkRows,
     bool Changed);
 
-public static class SourceBackedStrResTranslator
+public static partial class SourceBackedStrResTranslator
 {
     public const string DefaultTargetPath = "client/ini/StrRes.ini";
 
@@ -108,6 +108,13 @@ public static class SourceBackedStrResTranslator
             }
 
             rowsNeedingTranslation++;
+            if (IsProtectedResourceValue(value))
+            {
+                unmatchedRows++;
+                remainingCjkRows++;
+                continue;
+            }
+
             if (!catalog.Values.TryGetValue(key, out var replacement))
             {
                 unmatchedRows++;
@@ -170,6 +177,16 @@ public static class SourceBackedStrResTranslator
 
     private static string DecodeSourceText(string sourcePath, byte[] bytes)
     {
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xFF, 0xFE }))
+        {
+            return DecodeUnicodeResourceSource(bytes);
+        }
+
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xFE, 0xFF }))
+        {
+            throw new InvalidDataException("Only explicit UTF-16LE resource sources are supported.");
+        }
+
         if (Path.GetExtension(sourcePath).Equals(".cs", StringComparison.OrdinalIgnoreCase))
         {
             try
@@ -478,7 +495,9 @@ public static class SourceBackedStrResTranslator
         var trimmed = value.Trim();
         return trimmed.Length != 0 &&
             !NeedsTranslation(trimmed) &&
-            !ContainsControlCharacter(trimmed);
+            !ContainsControlCharacter(trimmed) &&
+            !IsProtectedResourceValue(trimmed) &&
+            CanEncodeStrRes(value);
     }
 
     private static bool IsReplacementCompatibleWithTarget(string targetValue, string replacement)

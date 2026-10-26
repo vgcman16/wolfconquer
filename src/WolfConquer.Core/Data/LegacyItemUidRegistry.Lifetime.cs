@@ -5,11 +5,13 @@ namespace WolfConquer.Core.Data;
 internal sealed partial class LegacyItemUidRegistry
 {
     private sealed record RegistryPaths(string Users, string Items, string Mailbox, string Redeem,
-        string Claim, string Directory, string Lease, string State, string Pending);
+        string Claim, string Directory, string Lease, string State, string Pending,
+        string History, string ArchivePending);
     private sealed record RegistryState(int Version, string Domain, string Users, string Items,
         string Mailbox, string Redeem, string Claim, uint HistoricalFloor,
         string HistoricalEvidence, ulong Generation, uint HighWater, OperationReservation[]? Operations = null,
-        ProducerIntent[]? ProducerIntents = null);
+        ProducerIntent[]? ProducerIntents = null, string? ArchiveHead = null,
+        string? ArchiveHeadSha256 = null, ulong? ArchiveCount = null);
 
     internal static bool TryBootstrap(LegacyItemUidRegistryOptions options,
         out LegacyItemUidRegistry? registry, out string reason) =>
@@ -65,7 +67,9 @@ internal sealed partial class LegacyItemUidRegistry
             // journal check does not fabricate a global "no raw writers" proof.
             if (LegacyTradeJournal.HasPending(paths.Users))
             { reason = RecoveryRequired + ":snapshotJournalAppeared"; return false; }
-            registry = new(paths, lease, current);
+            var acquired = new LegacyItemUidRegistry(paths, lease, current);
+            acquired.RememberArchiveIndex(current, ReadArchiveCatalog(paths, current, null, allowNext: false));
+            registry = acquired;
             lease = null;
             reason = string.Empty;
             return true;
@@ -102,7 +106,8 @@ internal sealed partial class LegacyItemUidRegistry
         if (normalized.Any(value => PathComparer.Equals(value, directory) ||
             value.StartsWith(directory + Path.DirectorySeparatorChar, PathComparison))) return false;
         paths = new(normalized[0], normalized[1], normalized[2], normalized[3], normalized[4], directory,
-            Path.Combine(directory, "owner.lock"), Path.Combine(directory, "state.json"), Path.Combine(directory, "pending.json"));
+            Path.Combine(directory, "owner.lock"), Path.Combine(directory, "state.json"), Path.Combine(directory, "pending.json"),
+            Path.Combine(directory, "history"), Path.Combine(directory, "archive.pending.json"));
         reason = string.Empty;
         return true;
     }
@@ -113,10 +118,16 @@ internal sealed partial class LegacyItemUidRegistry
         var count = 0;
         foreach (var entry in Directory.EnumerateFileSystemEntries(paths.Directory))
         {
-            if (++count > 3) return false;
+            if (++count > 5) return false;
             EnsureOrdinaryPath(entry);
+            if (PathComparer.Equals(entry, paths.History))
+            {
+                if (!Directory.Exists(entry)) return false;
+                continue;
+            }
             if (Directory.Exists(entry) || (!PathComparer.Equals(entry, paths.Lease) &&
-                !PathComparer.Equals(entry, paths.State) && !PathComparer.Equals(entry, paths.Pending))) return false;
+                !PathComparer.Equals(entry, paths.State) && !PathComparer.Equals(entry, paths.Pending) &&
+                !PathComparer.Equals(entry, paths.ArchivePending))) return false;
         }
         reason = string.Empty;
         return true;

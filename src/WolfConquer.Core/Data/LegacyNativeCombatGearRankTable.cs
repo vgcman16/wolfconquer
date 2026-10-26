@@ -106,7 +106,11 @@ internal partial class LegacyNativeCombatGearRankTable
         }
     }
 
-    public static Dictionary<Type, Rank> Ranks = new Dictionary<Type, Rank>();
+    public static Dictionary<Type, Rank> Ranks
+    {
+        get => LegacyNativeCombatGearTable.MailboxRanks;
+        set => LegacyNativeCombatGearTable.MailboxRanks = value;
+    }
 
     public static void Create()
     {

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
@@ -8,34 +7,33 @@ internal sealed partial class LegacyMailboxPackageWorkStore
     private void Write(Record row)
     {
         var operation = Guid.ParseExact(row.Operation, "N");
-        var path = WorkPath(operation);
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(row);
-        if (bytes.Length > MaximumBytes) throw new InvalidDataException("Package work exceeds its bound.");
-        SnapshotFileLockCoordinator.ExecuteLocked(path, () =>
+        EnsureHistoryLayout();
+        SnapshotFileLockCoordinator.ExecuteLocked(directory, () =>
         {
-            EnsureOrdinary(path);
-            var prior = Read(operation);
-            if (prior is not null && (!Same(prior, row) || prior.Completed && !row.Completed))
+            ValidateRootMembership();
+            RequireHistoryBinding(row);
+            var index = ReadIndex();
+            RequireKnownAnchor(index);
+            var pending = index.Pending.SingleOrDefault(entry => entry.Operation == row.Operation);
+            var completed = ReadCompleted(operation);
+            var prior = pending ?? completed;
+            if (prior is not null && !Same(prior, row) || completed is not null && !row.Completed)
                 throw new InvalidOperationException("Package work cannot be replaced or reopened.");
-            if (prior is not null && prior.Completed == row.Completed) return true;
-            Directory.CreateDirectory(directory);
-            EnsureOrdinary(path);
-            var temporary = path + ".stage-" + Guid.NewGuid().ToString("N");
-            try
+            if (row.Completed)
             {
-                using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                    bufferSize: 4096, options: FileOptions.WriteThrough))
-                { output.Write(bytes); output.Flush(flushToDisk: true); }
-                EnsureOrdinary(path);
-                if (prior is null) File.Move(temporary, path, overwrite: false);
-                else File.Replace(temporary, path, null, ignoreMetadataErrors: true);
+                if (prior is null) throw new InvalidOperationException("Unprepared work cannot be completed.");
+                PutCompleted(row);
             }
-            finally
+            else if (pending is null)
             {
-                try { if (File.Exists(temporary)) File.Delete(temporary); }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
-                catch (System.Security.SecurityException) { }
+                var keys = HistoryLineages(row);
+                if (keys.Any(key => completedLineageOperations.ContainsKey(LineageName(row.AccountId, row.CharacterUid, key))) ||
+                    index.Pending.Any(other => other.AccountId == row.AccountId && other.CharacterUid == row.CharacterUid &&
+                        HistoryLineages(other).Intersect(keys, StringComparer.Ordinal).Any()))
+                    throw new InvalidOperationException("Package lineage already has retained work.");
+                if (index.Pending.Length >= MaximumPendingRecords)
+                    throw new InvalidOperationException("Pending package work capacity is exhausted.");
+                WriteIndex(index with { Pending = index.Pending.Append(row).OrderBy(entry => entry.Operation, StringComparer.Ordinal).ToArray() });
             }
             var saved = Read(operation);
             if (saved is null || !Same(saved, row) || saved.Completed != row.Completed)

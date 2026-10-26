@@ -36,6 +36,10 @@ internal sealed partial class LegacyItemUidRegistry
             beforeBytes = ReadBounded(paths.State);
             if (!SameState(ParseState(beforeBytes), before))
             { reason = RecoveryRequired + ":stateChanged"; return false; }
+            // Archive membership is unchanged by an ordinary reservation. The
+            // quiescent owner already admitted its immutable hash index.
+            if (before.ArchiveCount.GetValueOrDefault() != 0 && !Directory.Exists(paths.History))
+                throw new FormatException("UID archive root is missing.");
             WritePending(paths.Pending, after);
             if (interruption == LegacyItemUidInterruption.AfterPendingFlush)
             { reason = RecoveryRequired + ":reservationAfterFlush"; return false; }
@@ -70,11 +74,16 @@ internal sealed partial class LegacyItemUidRegistry
         var hasState = File.Exists(paths.State);
         var hasPending = File.Exists(paths.Pending);
         if (!hasState && !hasPending) return false;
-        var current = hasState ? ReadState(paths.State) : null;
+        var currentBytes = hasState ? ReadBounded(paths.State) : null;
+        var current = currentBytes is not null ? ParseState(currentBytes) : null;
         var pending = hasPending ? ReadState(paths.Pending) : null;
         if ((current is not null && !MatchesConfiguration(current, paths, options)) ||
             (pending is not null && !MatchesConfiguration(pending, paths, options)))
         { reason = RecoveryRequired + ":configurationChanged"; return false; }
+        ArchiveEntry? retiring = null;
+        if (current is not null) retiring = RecoverArchiveStage(paths, current, currentBytes!, observedMaximum, ref pending);
+        else if (File.Exists(paths.ArchivePending) || Directory.Exists(paths.History))
+        { reason = RecoveryRequired + ":orphanArchive"; return false; }
         if (pending is not null)
         {
             if (current is null)
@@ -82,7 +91,8 @@ internal sealed partial class LegacyItemUidRegistry
                 if (pending.Generation != 0)
                 { reason = RecoveryRequired + ":orphanReservation"; return false; }
             }
-            else if (!SameState(pending, current) && !IsNext(current, pending))
+            else if (!SameState(pending, current) && !IsNext(current, pending) &&
+                (retiring is null || !IsExactRetirement(current, currentBytes!, pending, retiring)))
             { reason = RecoveryRequired + ":pendingChainInvalid"; return false; }
             if (pending.HighWater < observedMaximum)
             { reason = RecoveryRequired + ":unregisteredDataUid"; return false; }
@@ -98,6 +108,7 @@ internal sealed partial class LegacyItemUidRegistry
         }
         if (current is null || current.HighWater < observedMaximum)
         { reason = RecoveryRequired + ":unregisteredDataUid"; return false; }
+        _ = ReadArchiveCatalog(paths, current, null, allowNext: false);
         state = current;
         reason = string.Empty;
         return true;

@@ -11,6 +11,7 @@ internal sealed partial class LegacyItemUidRegistry
     { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
     private static readonly string[] StateKeys = ["Version", "Domain", "Users", "Items", "Mailbox", "Redeem", "Claim",
         "HistoricalFloor", "HistoricalEvidence", "Generation", "HighWater"];
+    private static readonly string[] ArchiveStateKeys = ["ArchiveHead", "ArchiveHeadSha256", "ArchiveCount"];
 
     private static byte[] SerializeState(RegistryState state)
     {
@@ -39,16 +40,17 @@ internal sealed partial class LegacyItemUidRegistry
         if (document.RootElement.ValueKind != JsonValueKind.Object) throw new JsonException("UID state must be an object.");
         if (!document.RootElement.TryGetProperty("Version", out var versionElement) ||
             versionElement.ValueKind != JsonValueKind.Number ||
-            !versionElement.TryGetInt32(out var version) || version is < 1 or > 3 ||
+            !versionElement.TryGetInt32(out var version) || version is < 1 or > 4 ||
             version == 1 && bytes.Length > LegacyMaximumStateBytes)
             throw new JsonException("Unsupported UID state version or length.");
         var names = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in document.RootElement.EnumerateObject())
             if ((!StateKeys.Contains(property.Name, StringComparer.Ordinal) &&
                 !(version >= 2 && property.Name == "Operations") &&
-                !(version == 3 && property.Name == "ProducerIntents")) || !names.Add(property.Name))
+                !(version >= 3 && property.Name == "ProducerIntents") &&
+                !(version == 4 && ArchiveStateKeys.Contains(property.Name, StringComparer.Ordinal))) || !names.Add(property.Name))
                 throw new JsonException("Unknown or duplicate UID state property.");
-        if (names.Count != StateKeys.Length + (version >= 2 ? 1 : 0) + (version == 3 ? 1 : 0))
+        if (names.Count != StateKeys.Length + (version >= 2 ? 1 : 0) + (version >= 3 ? 1 : 0) + (version == 4 ? 3 : 0))
             throw new JsonException("Missing UID state property.");
         ValidateOperationJson(document.RootElement, version);
         ValidateProducerIntentJson(document.RootElement, version);
@@ -61,6 +63,9 @@ internal sealed partial class LegacyItemUidRegistry
             throw new JsonException("Invalid UID state values.");
         ValidateOperationState(state);
         ValidateProducerIntentState(state);
+        if (version == 4 ? state.ArchiveCount is null or 0 || !IsCanonicalOperation(state.ArchiveHead) ||
+            !IsDigest(state.ArchiveHeadSha256) : state.ArchiveHead is not null || state.ArchiveHeadSha256 is not null || state.ArchiveCount is not null)
+            throw new JsonException("Invalid UID archive anchor.");
         return state;
     }
 }

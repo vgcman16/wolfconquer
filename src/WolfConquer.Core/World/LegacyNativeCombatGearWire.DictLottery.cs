@@ -9,6 +9,7 @@ internal static partial class LegacyNativeCombatGearWire
     {
         if (!LegacyNativeCombatGearTable.m_Load)
             return null;
+        ArgumentNullException.ThrowIfNull(message);
         using MemoryStream output = new MemoryStream();
         Serialize(output, message);
         return WrapObjectPayload(output, opcode);

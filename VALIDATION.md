@@ -1,5 +1,39 @@
 # Publication validation
 
+## Native loaders, recovery and client tools — exact-public full CI pending
+
+The reviewed public source update combines complete mailbox history/stack work,
+ordinary Ninja saved-state replacement, atomic native Gear/Ninja metadata,
+genuine cold Pirate recovery and framing safety with generic client tooling.
+Its exact-public full Windows CI has not yet been accepted. Earlier a3cb CI
+below applies to that earlier source only.
+
+Actual owned-candidate proofs, inspected from terminal TRX:
+
+- History888/888,0fail/skip, including300successive no-allocation claims,
+  allocating pressure, migration/replay/retirement/reopen and writer fences.
+- Native/recovery/framing1268/1268,0fail/skip, including20cold Pirate,4enum,
+  6registrar mutation/provenance,51stage/proof,48metadata,19rank and43Ninja
+  table-loader outcomes. Actual malformed/null/length/partial-state REDs precede
+  correction; valid packet/save goldens remain.
+- Client tools142/142,0fail/skip:77reviewed-text,37retained/source-reader and
+  28configuration-prerequisite controls. Twenty-one fragment failures exposed
+  incomplete route/path suffix preservation before the correction;42parent
+  controls passed in that RED selection.
+
+Actual compiled source-backed CLI changed1082rows in a copied resource and
+returned2because32CJK values remained; repetition changed0rows/mtime. A separate
+pure API proof applied30explicitly reviewed edits, matched all68824independent
+expected bytes and repeated without change. Original resources were reread
+unchanged. Private catalogs, copied resources and binary-analysis evidence are
+excluded. Two values and native rendering/capacity acceptance remain held.
+
+These separate component runs are not a full-suite sum, native Host/SQL,
+actual-client acceptance, full English, deployment or complete parity. Normal
+startup/Store/normalization and full native lifecycle remain unfinished. See the
+[short checklist](docs/RECONSTRUCTION-STATUS.md) and
+[client-tool limits](docs/CLIENT-RESOURCE-TOOLS.md).
+
 ## Recoverable mailbox reward owners — full public CI passed
 
 Exact publica3cb2624592efdc8a17ae7f01e814c442c124fd7 passed

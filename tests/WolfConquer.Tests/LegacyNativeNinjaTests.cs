@@ -49,16 +49,19 @@ public sealed partial class LegacyNativeNinjaTests
         {
             Assert.IsType<ConcurrentDictionary<uint, LegacyNativeNinja.Item>>(ninja.Items);
             Assert.Empty(ninja.Items);
-            var scalarFields = typeof(LegacyNativeNinja).GetFields(BindingFlags.Public | BindingFlags.Instance)
-                .Where(field => field.Name is not ("Items" or "user")).OrderBy(field => field.MetadataToken).ToArray();
-            Assert.Equal(new[] { "Flag", "Exp", "Fire", "Water", "Earth", "Wind", "Lightning", "tmp_Fire", "tmp_Water",
+            var scalarProperties = typeof(LegacyNativeNinja).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(property => property.CanWrite && property.PropertyType is { } type && (type == typeof(uint) || type == typeof(ulong)))
+                .ToArray();
+            var expectedScalars = new[] { "Flag", "Exp", "Fire", "Water", "Earth", "Wind", "Lightning", "tmp_Fire", "tmp_Water",
                 "tmp_Earth", "tmp_Wind", "tmp_Lightning", "FireMastery", "WaterMastery", "EarthMastery", "WindMastery",
-                "LightningMastery", "UnlockMastery" }, scalarFields.Select(field => field.Name));
-            foreach (var field in scalarFields)
+                "LightningMastery", "UnlockMastery" };
+            Assert.Equal(expectedScalars.Order(), scalarProperties.Select(property => property.Name).Order());
+            foreach (var property in scalarProperties)
             {
-                Assert.Equal(field.Name == "Flag" ? typeof(ulong) : typeof(uint), field.FieldType);
-                Assert.Equal(0UL, Convert.ToUInt64(field.GetValue(ninja)));
-                Assert.False(field.IsInitOnly);
+                Assert.Equal(property.Name == "Flag" ? typeof(ulong) : typeof(uint), property.PropertyType);
+                Assert.Equal(0UL, Convert.ToUInt64(property.GetValue(ninja)));
+                Assert.True(property.GetMethod!.IsPublic);
+                Assert.True(property.SetMethod!.IsPublic);
             }
         }
         second.Flag = ulong.MaxValue;

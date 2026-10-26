@@ -9,7 +9,8 @@ internal sealed partial class LegacyMailboxPackageWorkStore
 {
     internal sealed record Record(int Version, string Domain, string Operation, string PayloadSha256,
         uint AccountId, uint CharacterUid, uint First, int Count, string Users, string Items, string Mailbox,
-        string CombatGear, string[] Before, string[] After, bool Completed);
+        string CombatGear, string[] Before, string[] After, bool Completed,
+        string? AllocationKind = null, string? PayloadBase64 = null);
 
     private readonly string users, items, mailbox, gear, directory;
     private readonly Guid domain;
@@ -47,13 +48,14 @@ internal sealed partial class LegacyMailboxPackageWorkStore
     }
 
     internal bool MatchesIntent(Record row, LegacyItemUidProducerIntentSnapshot intent) =>
-        row.Domain == domain.ToString("N") && intent.DomainId == domain && row.Operation == intent.Request.OperationId.ToString("N") &&
+        row.Version == 1 && row.Domain == domain.ToString("N") && intent.DomainId == domain && row.Operation == intent.Request.OperationId.ToString("N") &&
         row.PayloadSha256 == intent.Request.PayloadSha256 && row.AccountId == intent.Request.AccountId &&
         row.CharacterUid == intent.Request.CharacterUid && intent.Request.Writer == LegacyMailboxPackageProducer.Writer &&
         intent.Allocation is { } allocation && row.First == allocation.First && row.Count == allocation.Count &&
         row.Users == users && row.Items == items && row.Mailbox == mailbox && row.CombatGear == gear &&
         owner.TryDescribe(intent, out var recipe) && row.Before.SequenceEqual(recipe!.Before, StringComparer.Ordinal) &&
-        row.After[0] == recipe.After[0] && row.After[3] == recipe.After[1] && row.After[2] == recipe.After[2];
+        row.After[0] == recipe.After[0] && row.After[3] == recipe.After[1] && row.After[2] == recipe.After[2] &&
+        (recipe.ItemsAfterSha256 is null || row.After[1] == recipe.ItemsAfterSha256);
 
     internal bool ImagesMatch(Record row, bool after)
     {

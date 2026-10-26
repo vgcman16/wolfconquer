@@ -8,44 +8,13 @@ internal partial class LegacyNativeCombatGearRankTable
     // The source deliberately ignores dbLocation; the real read owner captures the configured raw prefix.
     public static void Load(string dbLocation)
     {
-        Create();
-        using LegacyNativeDbRead read = new LegacyNativeDbRead("CombatGearRank.txt");
-        if (read.Reader())
+        lock (LegacyNativeCombatGearTable.MailboxLoadGate)
         {
-            int count = read.Count;
-            for (int i = 0; i < count; i++)
-            {
-                LegacyNativeDbReadLine readLine = new LegacyNativeDbReadLine(read.ReadString(""), '/');
-                Entry entry = new Entry
-                {
-                    UID = readLine.Read(0u),
-                    Name = readLine.Read(""),
-                    Type = (Type)readLine.Read((byte)0),
-                    TotalPoints = readLine.Read(0u),
-                    Class = readLine.Read(0u),
-                    Level = readLine.Read((byte)0),
-                    Mesh = readLine.Read(0u),
-                    HairStyle = readLine.Read(0u),
-                    Head = readLine.Read(0u),
-                    Garment = readLine.Read(0u),
-                    LeftWeapon = readLine.Read(0u),
-                    LefttWeaponAccessory = readLine.Read(0u),
-                    RightWeapon = readLine.Read(0u),
-                    RightWeaponAccessory = readLine.Read(0u),
-                    MountArmor = readLine.Read(0u),
-                    Armor = readLine.Read(0u),
-                    Wing = readLine.Read(0u),
-                    WingPlus = readLine.Read(0u),
-                    Title = readLine.Read(0u),
-                    Flag = readLine.Read(0u),
-                    GuildName = readLine.Read(""),
-                    WeaponWar = readLine.Read(0u)
-                };
-                Ranks[entry.Type].UpdateItem(entry);
-            }
+            var path = WolfConquer.Core.World.LegacyNativeServerConfig.DbLocation + "CombatGearRank.txt";
+            var prepared = LegacyNativeCombatGearTable.MailboxLoadStage.ReadRanksFile(path);
+            Ranks = prepared;
         }
     }
-
     public static void Save()
     {
         using LegacyNativeDbWrite write = new LegacyNativeDbWrite("CombatGearRank.txt");

@@ -80,5 +80,9 @@ internal partial class LegacyNativeDaoqiDictTypeTable
         Spell = 0x18u
     }
 
-    public static Dictionary<uint, CQ> Info;
+    public static Dictionary<uint, CQ> Info
+    {
+        get => LegacyNativeCombatGearTable.MailboxJade;
+        set => LegacyNativeCombatGearTable.MailboxJade = value;
+    }
 }

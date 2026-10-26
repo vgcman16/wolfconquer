@@ -2,7 +2,8 @@ namespace WolfConquer.Core.World;
 
 internal sealed partial class LegacyMailboxPackageRecipe
 {
-    internal sealed record WorkDescription(LegacyMailboxModePacket Request, string[] Before, string[] After, int Count);
+    internal sealed record WorkDescription(LegacyMailboxModePacket Request, string[] Before, string[] After, int Count,
+        string? ItemsAfterSha256 = null);
 
     internal static bool TryReadWorkDescription(byte[] payload, Guid domain, uint account, uint uid,
         out WorkDescription? description)
@@ -13,7 +14,8 @@ internal sealed partial class LegacyMailboxPackageRecipe
         {
             using var input = new MemoryStream(payload, writable: false);
             using var reader = new BinaryReader(input, Utf8);
-            if (reader.ReadUInt32() != Magic) return false;
+            var magic = reader.ReadUInt32();
+            if (magic != Magic && magic != StackMagic) return false;
             input.Position = 4 + 16 + 4 + 4 + 4 + keys.Length * 32;
             var type = (LegacyMailboxModeType)reader.ReadUInt16();
             var id = reader.ReadUInt32();
@@ -43,10 +45,21 @@ internal sealed partial class LegacyMailboxPackageRecipe
             string Hash() => Convert.ToHexString(reader.ReadBytes(32)).ToLowerInvariant();
             var before = Enumerable.Range(0, 4).Select(_ => Hash()).ToArray();
             var after = Enumerable.Range(0, 3).Select(_ => Hash()).ToArray();
+            var itemsAfter = magic == StackMagic ? Hash() : null;
             var grants = reader.ReadInt32();
-            if (grants is < 1 or > 40 || input.Length - input.Position != grants * 51L ||
-                before.Concat(after).Any(hash => hash.Length != 64)) return false;
-            description = new(new(type, id, ids), before, after, grants);
+            if (grants < 1 || grants > (magic == Magic ? 40 : 256) || before.Concat(after).Any(hash => hash.Length != 64)) return false;
+            if (magic == Magic)
+            {
+                if (input.Length - input.Position != grants * 51L) return false;
+                description = new(new(type, id, ids), before, after, grants);
+                return true;
+            }
+            if (itemsAfter!.Length != 64 || input.Length - input.Position < grants * 51L + 44) return false;
+            input.Position += grants * 51L;
+            if (!TryReadStackWorkTail(reader, grants, out var newCount)) return false;
+            var zeroHash = new string('0', 64);
+            if (newCount == 0 ? itemsAfter == zeroHash : itemsAfter != zeroHash) return false;
+            description = new(new(type, id, ids), before, after, newCount, newCount == 0 ? itemsAfter : null);
             return true;
         }
         catch (Exception error) when (error is IOException or ArgumentException or OverflowException) { return false; }

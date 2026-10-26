@@ -21,6 +21,9 @@ public sealed partial class LegacyInventorySashUpgradeTests
         var mail = File.ReadAllBytes(fixture.AtomicMailPath);
         Assert.Equal(0U, BinaryPrimitives.ReadUInt32LittleEndian(mail.AsSpan(4 + 728)));
         var saved = new PlayerItemSnapshotLoader(fixture.Items).LoadByCharacterUid(Fixture.Uid);
+        var expectedItems = ExpectedPackageJoinItems(before, intent, claimAll);
+        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(expectedItems), File.ReadAllBytes(fixture.ItemPath));
+        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(expectedItems), PlayerItemSnapshotLoader.ToLegacyBytes(saved));
         Assert.Equal(before.Owner.PlayerItems.InventoryItems.Count + 6 + (claimAll ? 1 : 0), saved.InventoryItems.Count);
         foreach (var (row, index) in RankOnePackageRows.Select((row, index) => (row, index)))
         {

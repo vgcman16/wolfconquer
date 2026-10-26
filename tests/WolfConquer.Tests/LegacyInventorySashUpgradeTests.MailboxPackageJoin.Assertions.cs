@@ -11,10 +11,13 @@ namespace WolfConquer.Tests;
 
 public sealed partial class LegacyInventorySashUpgradeTests
 {
-    private sealed record PackageJoinBefore(WorldSession Owner, string Json, Dictionary<string, byte[]> Files, int FirstFrame);
+    private sealed record PackageJoinBefore(WorldSession Owner, string Json, Dictionary<string, byte[]> Files, int FirstFrame,
+        string[] BusinessPaths, LegacyMailboxEntry MailSeed, PackageReferenceCatalog[] Catalog);
 
     private static PackageJoinBefore CapturePackageJoin(Fixture fixture, PackageJoin join) =>
-        new(join.Current, JsonSerializer.Serialize(join.Current), fixture.PackageFiles(), fixture.Sent.Count);
+        new(join.Current, JsonSerializer.Serialize(join.Current), fixture.PackageFiles(), fixture.Sent.Count,
+            [fixture.CharacterPath, fixture.ItemPath, fixture.AtomicMailPath, fixture.PackageGearPath], fixture.AtomicMailSeed,
+            CapturePackageReferenceCatalog(join));
 
     private static void AssertPackageJoinFiles(Fixture fixture, Dictionary<string, byte[]> expected)
     {
@@ -44,6 +47,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
         Assert.Equal(1UL, intent.PreparedGeneration);
         var payload = intent.CopyPayload();
         Assert.InRange(payload.Length, 1, LegacyItemUidRegistry.MaximumProducerPayloadBytes);
+        Assert.Equal(0x32504d57U, BinaryPrimitives.ReadUInt32LittleEndian(payload));
         Assert.Equal(intent.Request.PayloadSha256, Convert.ToHexString(SHA256.HashData(payload)), ignoreCase: true);
         var receipt = Assert.IsType<LegacyItemUidReservationReceipt>(intent.Allocation);
         Assert.Equal(PackageHistoricalFloor + 1, receipt.First);
@@ -57,13 +61,15 @@ public sealed partial class LegacyInventorySashUpgradeTests
         LegacyItemUidProducerIntentSnapshot intent, bool claimAll)
     {
         var first = intent.Allocation!.First;
+        var colors = ReferencePackageColors(before, intent.DomainId, [before.MailSeed], 6);
         var generated = RankOnePackageRows.Select((row, index) => new PlayerItemSnapshotItem
         {
             Uid = checked(first + (uint)index), ItemId = row.Id, Durability = 321,
-            MaximumDurability = 321, StackSize = row.Quantity,
+            MaximumDurability = 321, StackSize = row.Quantity, Color = colors[index],
         });
         var baseItems = claimAll ? ExpectedAtomicMailItems(before.Owner.PlayerItems) : before.Owner.PlayerItems;
-        return baseItems with { InventoryItems = baseItems.InventoryItems.Concat(generated).OrderBy(row => row.Uid).ToArray() };
+        var attachment = claimAll ? baseItems.InventoryItems.Where(row => row.Uid == AtomicMailItemUid) : [];
+        return baseItems with { InventoryItems = before.Owner.PlayerItems.InventoryItems.Concat(generated).Concat(attachment).ToArray() };
     }
 
     private static void AssertPackageJoinCommitted(Fixture fixture, PackageJoin join, PackageJoinBefore before,

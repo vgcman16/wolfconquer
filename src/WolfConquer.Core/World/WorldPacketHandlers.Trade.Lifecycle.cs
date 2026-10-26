@@ -39,6 +39,10 @@ public static partial class WorldPacketHandlers
             {
                 reason = "currentSessionMissing";
             }
+            else if (packet.Type != 2 && trades.HasConnectionEnded(context.Connection))
+            {
+                reason = "connectionEnded";
+            }
             else if (!IsLegacyTradeSecurityAdmitted(context.Connection, session))
             {
                 reason = "secondaryPasswordUnverifiedOrMalformed";
@@ -49,7 +53,11 @@ public static partial class WorldPacketHandlers
             }
             else if (trades.TryGet(context.Connection, out var party) && party.Uid == session.Character.Uid)
             {
-                if (packet.Type == 1) reason = AcceptLegacyTradeRequest(context, party, packet, sends);
+                // Disconnect marks either endpoint before its refund can acquire
+                // the world lease. Queued mutations must not outrun that cleanup;
+                // explicit cancellation remains available to recover real escrow.
+                if (packet.Type != 2 && trades.HasConnectionEnded(party.Other.Connection)) reason = "partnerConnectionEnded";
+                else if (packet.Type == 1) reason = AcceptLegacyTradeRequest(context, party, packet, sends);
                 else if (packet.Type == 2) reason = CloseLegacyTrade(context, trades, party, packet, sends) ? "cancelled" : "cancelRetained";
                 else if (party.WindowOpen && party.Other.WindowOpen)
                     reason = ApplyLegacyTradeExchangeAction(context, trades, party, packet, sends);

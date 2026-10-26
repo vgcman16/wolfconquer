@@ -10,6 +10,7 @@ public static partial class WorldPacketHandlers
         var owner = prepared.Baseline.Owner;
         return MailboxClaimAdmissionCurrent(owner) && prepared.Baseline.Mail.IsCurrent() &&
             prepared.Baseline.Items.IsCurrent(owner.Expected.PlayerItems) &&
+            prepared.Stacks.IsCurrent(owner.Expected.PlayerItems) &&
             prepared.Producer.IsCurrent(owner.Expected.UsersRoot, owner.Context.PlayerItemsRoot,
                 owner.Context.Mailboxes!.ClaimRoot, owner.Context.TradeRecovery) &&
             prepared.Selected.All(mail => mail.IsLive(prepared.Baseline.Mail.Now)) &&

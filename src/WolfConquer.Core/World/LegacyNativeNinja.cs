@@ -3,9 +3,9 @@ using System.Collections.Concurrent;
 
 namespace WolfConquer.Core.World;
 
-// Complete native Ninja state/profile and method family, including its original-empty Item.UPDATE.
-// No MsgNinja dispatcher registration, equipment recalculation or skill consumer is installed.
-// No DataCore, login/save caller or host adoption is installed.
+// Native Ninja state/profile; Item.UPDATE remains source-empty. Saved-state and
+// explicit mailbox recovery do not imply normal MsgNinja dispatch, equipment,
+// ranking/skill lifecycle or full Host startup adoption.
 internal partial class LegacyNativeNinja
 {
     public enum ItemType : ulong
@@ -100,26 +100,7 @@ internal partial class LegacyNativeNinja
         }
     }
 
-    public ConcurrentDictionary<uint, Item> Items;
     public LegacyNativeGameClientRuntime user;
-    public ulong Flag;
-    public uint Exp;
-    public uint Fire;
-    public uint Water;
-    public uint Earth;
-    public uint Wind;
-    public uint Lightning;
-    public uint tmp_Fire;
-    public uint tmp_Water;
-    public uint tmp_Earth;
-    public uint tmp_Wind;
-    public uint tmp_Lightning;
-    public uint FireMastery = 0u;
-    public uint WaterMastery = 0u;
-    public uint EarthMastery = 0u;
-    public uint WindMastery = 0u;
-    public uint LightningMastery = 0u;
-    public uint UnlockMastery = 0u;
 
     public LegacyNativeNinja()
     {

@@ -35,12 +35,12 @@ internal sealed partial class LegacyItemUidRegistry
 
     private static bool IsProducerIntentAppend(RegistryState before, RegistryState after, RegistryState expected)
     {
-        if (after.Version != 3 || after.HighWater != before.HighWater || after.ProducerIntents is null) return false;
+        if (after.Version != Math.Max(3, before.Version) || after.HighWater != before.HighWater || after.ProducerIntents is null) return false;
         var previousCount = before.ProducerIntents?.Length ?? 0;
         if (after.ProducerIntents.Length != previousCount + 1 ||
             previousCount > 0 && !before.ProducerIntents!.AsSpan().SequenceEqual(after.ProducerIntents.AsSpan(0, previousCount)) ||
             after.ProducerIntents[^1].PreparedGeneration != after.Generation) return false;
-        return SameState(expected with { Version = 3, Operations = before.Operations ?? [],
+        return SameState(expected with { Version = Math.Max(3, before.Version), Operations = before.Operations ?? [],
             ProducerIntents = after.ProducerIntents }, after);
     }
 }

@@ -10,17 +10,29 @@ internal sealed partial class LegacyMailboxPackageProducer
         out bool admitted, out string reason)
     {
         admitted = false;
-        if (!Registry.TryReadProducerIntents(Domain, out var intents, out reason))
-        { admitted = reason.StartsWith(LegacyItemUidRegistry.RecoveryRequired, StringComparison.Ordinal); return false; }
-        var keys = LegacyMailboxPackageRecipe.CaptureLineageKeys(selected);
-        foreach (var row in intents.Where(row => row.Request.Writer == Writer && row.Request.AccountId == account &&
-            row.Request.CharacterUid == uid))
+        try
         {
-            if (!LegacyMailboxPackageRecipe.TryReadHeader(row.CopyPayload(), Domain, account, uid, out var recorded))
-            { admitted = true; reason = "mailboxPackageRecipeHistoryUnproven"; return false; }
-            if (recorded.Intersect(keys, StringComparer.Ordinal).Any()) admitted = true;
+            if (!Registry.TryReadActiveProducerIntents(Domain, out var intents, out reason))
+            { admitted = true; reason = "mailboxClaimRecoveryRequired:packageHistoryUnproven:" + reason; return false; }
+            var keys = LegacyMailboxPackageRecipe.CaptureLineageKeys(selected);
+            if (workStore.HasCompletedLineage(account, uid, keys)) admitted = true;
+            foreach (var row in intents.Where(row => row.Request.Writer == Writer && row.Request.AccountId == account &&
+                row.Request.CharacterUid == uid))
+            {
+                if (!LegacyMailboxPackageRecipe.TryReadHeader(row.CopyPayload(), Domain, account, uid, out var recorded))
+                { admitted = true; reason = "mailboxPackageRecipeHistoryUnproven"; return false; }
+                if (recorded.Intersect(keys, StringComparer.Ordinal).Any()) admitted = true;
+            }
+            foreach (var row in workStore.ReadPendingNoAllocationRecords().Where(row => row.AccountId == account && row.CharacterUid == uid))
+            {
+                if (!LegacyMailboxPackageRecipe.TryReadHeader(Convert.FromBase64String(row.PayloadBase64!), Domain, account, uid, out var recorded))
+                { admitted = true; reason = "mailboxPackageRecipeHistoryUnproven"; return false; }
+                if (recorded.Intersect(keys, StringComparer.Ordinal).Any()) admitted = true;
+            }
+            reason = string.Empty;
+            return true;
         }
-        reason = string.Empty;
-        return true;
+        catch (Exception error) when (IsWorkFailure(error))
+        { admitted = true; reason = "mailboxClaimRecoveryRequired:packageHistoryRead:" + error.GetType().Name; return false; }
     }
 }

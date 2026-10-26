@@ -8,7 +8,8 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyInventorySashUpgradeTests
 {
     private static string DebtWorkPath(Fixture fixture, PackageJoin join, Guid operation) =>
-        Path.Combine(fixture.Users, ".mailbox-package-work", join.Domain.ToString("N"), operation.ToString("N") + ".json");
+        ReadHistoryIndex(fixture, join)["Pending"]!.AsArray().Any(row => row!["Operation"]!.GetValue<string>() == operation.ToString("N"))
+            ? HistoryIndexPath(fixture, join) : HistoryCompletedPath(fixture, join, operation.ToString("N"));
 
     private static Dictionary<string, byte[]> DebtAfterFiles(Fixture fixture, PackageJoinBefore initial,
         LegacyItemUidProducerIntentSnapshot intent)
@@ -56,7 +57,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
             Convert.ToHexString(SHA256.HashData(images[Path.GetRelativePath(fixture.Root, path)])).ToLowerInvariant();
         Assert.Equal(paths.Select(path => Hash(initial.Files, path)), row.Before);
         Assert.Equal(paths.Select(path => Hash(after, path)), row.After);
-        using var document = JsonDocument.Parse(File.ReadAllBytes(DebtWorkPath(fixture, join, intent.Request.OperationId)));
+        using var document = JsonDocument.Parse(ReadHistoryWorkDocument(fixture, join, intent.Request.OperationId).ToJsonString());
         Assert.Equal(new[] { "Version", "Domain", "Operation", "PayloadSha256", "AccountId", "CharacterUid", "First", "Count",
             "Users", "Items", "Mailbox", "CombatGear", "Before", "After", "Completed" }.Order(),
             document.RootElement.EnumerateObject().Select(property => property.Name).Order());
@@ -69,8 +70,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
         AssertPackageJoinAllocation(fixture, join);
         AssertPackageJoinLedger(fixture, initial, expected);
         AssertDebtWork(fixture, join, initial, intent, expected, completed: true);
-        var path = DebtWorkPath(fixture, join, intent.Request.OperationId);
-        expected[Path.GetRelativePath(fixture.Root, path)] = File.ReadAllBytes(path);
+        IncludeValidatedHistoryMetadata(fixture, join, expected, 1, 0);
         AssertPackageJoinFiles(fixture, expected);
         var items = ExpectedPackageJoinItems(initial, intent, claimAll: true);
         Assert.Equal(JsonSerializer.Serialize(items), JsonSerializer.Serialize(join.Current.PlayerItems));
@@ -84,8 +84,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
         LegacyItemUidProducerIntentSnapshot intent, Dictionary<string, byte[]> expected)
     {
         AssertDebtWork(fixture, join, initial, intent, expected, completed: true);
-        var path = DebtWorkPath(fixture, join, intent.Request.OperationId);
-        expected[Path.GetRelativePath(fixture.Root, path)] = File.ReadAllBytes(path);
+        IncludeValidatedHistoryMetadata(fixture, join, expected, 1, 0);
     }
 
     private sealed partial class PackageJoin

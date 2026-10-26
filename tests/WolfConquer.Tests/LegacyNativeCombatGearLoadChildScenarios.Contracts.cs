@@ -11,7 +11,7 @@ namespace WolfConquer.Tests;
 
 internal static partial class LegacyNativeCombatGearLoadChildScenarios
 {
-    private static void VerifyContracts(string scenario = "")
+    private static void VerifyContracts()
     {
         (Type Type, string[] Names)[] expected =
         [
@@ -32,19 +32,19 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
         var expectedTypes = expected.Select(contract => contract.Type).ToHashSet();
         Require(expectedTypes.Count == 12 && expected.Sum(type => type.Names.Length) == 67,
             "Twelve actual message types and67fields required.");
-        // Genuine serializer preparation may discover enum metadata; it must not introduce another message owner.
-        Require(actual.Where(type => !expectedTypes.Contains(type.Type)).All(type => type.Type.IsEnum),
+        Type[] unrelatedNinja = [typeof(WolfConquer.Core.World.LegacyNativeMsgNinja.MsgNinjaUser),
+            typeof(WolfConquer.Core.World.LegacyNativeMsgNinja.MsgNinjaItem),
+            typeof(WolfConquer.Core.World.LegacyNativeMsgNinja.MsgNinjaItem.Item),
+            typeof(WolfConquer.Core.World.LegacyNativeMsgRankMemberShow.MsgRankMemberShowProto),
+            typeof(WolfConquer.Core.World.LegacyNativeMsgRankMemberShow.MsgRankMemberShowProto.Entry)];
+        // Real attributed Ninja contracts may already coexist; their owners are not Pirate fields.
+        Require(actual.Where(type => !expectedTypes.Contains(type.Type)).All(type => type.Type.IsEnum || unrelatedNinja.Contains(type.Type)),
             "Unexpected non-enum model registration.");
-        bool repeated = scenario == "RepeatedLoad";
-        Type? conflictType = scenario == "ConflictFirst" ? typeof(Gear) : scenario == "ConflictLate" ? typeof(Dict) : null;
         int observedFields = 0;
         foreach (var contract in expected)
         {
             var meta = actual.Single(type => type.Type == contract.Type);
             var wanted = contract.Names.Select((name, index) => (Tag: index + 1, Name: name, Required: true)).ToList();
-            // Measured native unfrozen AddField appends duplicates, rather than failing or replacing a field.
-            if (repeated) wanted.AddRange(wanted.ToArray());
-            if (contract.Type == conflictType) wanted.Add((1, conflictType == typeof(Gear) ? "UID" : "Done", true));
             var expectedFields = wanted.OrderBy(field => field.Tag).ThenBy(field => field.Name, StringComparer.Ordinal).ToArray();
             var fields = meta.GetFields().OrderBy(field => field.FieldNumber)
                 .ThenBy(field => field.Member.Name, StringComparer.Ordinal).ToArray();
@@ -55,20 +55,7 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
                     fields[i].IsRequired == expectedFields[i].Required,
                     "Actual required tag/member/multiplicity mismatch: " + contract.Type.FullName + ":" + expectedFields[i].Tag);
         }
-        Require(observedFields == (repeated ? 134 : conflictType is not null ? 68 : 67), "Exact full native registry field total.");
-    }
-
-    private static object ExpectDeferredDuplicateField(object value)
-    {
-        using var stream = new MemoryStream();
-        Exception? failure = null;
-        try { Serializer.Serialize(stream, value); }
-        catch (Exception error) { failure = error.GetBaseException(); }
-        Require(failure is InvalidOperationException, "Unfrozen duplicate registration must fail only on genuine serializer preparation.");
-        Require(failure!.Message.Contains("Duplicate field-number detected; 1 on: " + value.GetType().FullName,
-            StringComparison.Ordinal), "Deferred failure must identify duplicate tag1 on the affected native message.");
-        return new { Type = value.GetType().FullName, ExceptionType = failure.GetType().FullName,
-            failure.Message, BytesBeforeFailure = stream.Length };
+        Require(observedFields == 67, "Exact full native registry field total; repeated registration must not append duplicates.");
     }
 
     private static Dictionary<string, string> VerifyRegisteredWire()

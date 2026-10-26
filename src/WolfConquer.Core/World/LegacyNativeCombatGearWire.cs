@@ -13,6 +13,7 @@ internal static partial class LegacyNativeCombatGearWire
     {
         if (!LegacyNativeCombatGearTable.m_Load)
             return null;
+        ArgumentNullException.ThrowIfNull(message);
         using MemoryStream output = new MemoryStream();
         Serialize(output, message);
         return WrapObjectPayload(output, opcode);
@@ -22,6 +23,7 @@ internal static partial class LegacyNativeCombatGearWire
     {
         if (!LegacyNativeCombatGearTable.m_Load)
             return null;
+        ArgumentNullException.ThrowIfNull(message);
         using MemoryStream output = new MemoryStream();
         Serialize(output, message);
         return WrapObjectPayload(output, opcode);
@@ -31,6 +33,7 @@ internal static partial class LegacyNativeCombatGearWire
     {
         if (!LegacyNativeCombatGearTable.m_Load)
             return null;
+        ArgumentNullException.ThrowIfNull(message);
         using MemoryStream output = new MemoryStream();
         Serialize(output, message);
         return WrapObjectPayload(output, opcode);
@@ -42,23 +45,39 @@ internal static partial class LegacyNativeCombatGearWire
     {
         if (!LegacyNativeCombatGearTable.m_Load)
             return null;
-        byte[] array = stream.ToArray();
-        byte[] array2 = new byte[array.Length + 8];
+        ArgumentNullException.ThrowIfNull(stream);
+        long length = stream.Length;
+        if (length is < 4 or > ushort.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(stream), "Native frame must contain its four-byte header and fit the UInt16 length.");
+        byte[] array = CopyFrameBytes(stream, length);
+        byte[] array2 = new byte[checked((int)length + 8)];
         Buffer.BlockCopy(array, 0, array2, 0, array.Length);
-        Write((ushort)array.Length, 0, array2);
+        Write(checked((ushort)length), 0, array2);
         Write("TQServer", array2.Length - 8, array2);
         return array2;
     }
 
     private static byte[] WrapObjectPayload(MemoryStream stream, ushort opcode)
     {
-        byte[] array = stream.ToArray();
-        byte[] array2 = new byte[12 + array.Length];
+        ArgumentNullException.ThrowIfNull(stream);
+        long length = stream.Length;
+        if (length is < 0 or > ushort.MaxValue - 4)
+            throw new ArgumentOutOfRangeException(nameof(stream), "Native object payload plus its four-byte header must fit the UInt16 length.");
+        byte[] array = CopyFrameBytes(stream, length);
+        byte[] array2 = new byte[checked(12 + (int)length)];
         Buffer.BlockCopy(array, 0, array2, 4, array.Length);
-        Write((ushort)(array2.Length - 8), 0, array2);
+        Write(checked((ushort)(length + 4)), 0, array2);
         Write(opcode, 2, array2);
         Write("TQServer", array2.Length - 8, array2);
         return array2;
+    }
+
+    private static byte[] CopyFrameBytes(MemoryStream stream, long expectedLength)
+    {
+        byte[] bytes = stream.ToArray();
+        if (bytes is null || bytes.LongLength != expectedLength)
+            throw new InvalidOperationException("Native frame stream changed while copying.");
+        return bytes;
     }
 
     private static void Write(ushort arg, int offset, byte[] buffer)

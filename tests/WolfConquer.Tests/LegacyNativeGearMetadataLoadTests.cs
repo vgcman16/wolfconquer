@@ -34,7 +34,7 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
     [InlineData(0, true)]
     [InlineData(1, true)]
     [InlineData(2, true)]
-    public void MissingFileAndMissingSeparatorLogTheRawPathAndKeepTheCacheWithoutReplacement(int kind, bool missingSeparator)
+    public void MissingFileAndMissingSeparatorRefuseWithoutRepairingThePathOrReplacingTheCache(int kind, bool missingSeparator)
     {
         using var f = new LoadFixture();
         var prior = LoadFixture.Current(kind);
@@ -46,7 +46,7 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
 
         Assert.Same(prior, LoadFixture.Current(kind));
         Assert.Same(row, prior[999u]);
-        Assert.Equal("!File.Exists: " + prefix + LoadFixture.FileName(kind) + Environment.NewLine, f.Log);
+        Assert.Contains(typeof(IOException).FullName!, f.Log);
         Assert.False(File.Exists(prefix + LoadFixture.FileName(kind)));
         Assert.Equal(missingSeparator, File.Exists(f.PathFor(kind)));
     }
@@ -179,11 +179,11 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
-    public void ExactDoubleAtAndLiteralSpaceSeparatorsRemoveEmptyEntriesAndIgnoreExtraColumns(int kind)
+    public void ExactDoubleAtAndLiteralSpaceSeparatorsRemoveEmptyEntriesForCompleteRows(int kind)
     {
         using var f = new LoadFixture();
         var fields = Enumerable.Range(1, LoadFixture.Columns(kind)).Select(i => i.ToString(CultureInfo.InvariantCulture));
-        f.Write(kind, "@@  " + string.Join("@@@@  ", fields) + "@@not-a-number");
+        f.Write(kind, "@@  " + string.Join("@@@@  ", fields) + "@@  ");
 
         f.Load(kind);
 
@@ -194,23 +194,24 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
     }
 
     [Theory]
-    [InlineData(0, "blank", typeof(IndexOutOfRangeException))]
-    [InlineData(1, "blank", typeof(IndexOutOfRangeException))]
-    [InlineData(2, "blank", typeof(IndexOutOfRangeException))]
-    [InlineData(0, "duplicate", typeof(ArgumentException))]
-    [InlineData(1, "duplicate", typeof(ArgumentException))]
-    [InlineData(2, "duplicate", typeof(ArgumentException))]
+    [InlineData(0, "blank", typeof(InvalidDataException))]
+    [InlineData(1, "blank", typeof(InvalidDataException))]
+    [InlineData(2, "blank", typeof(InvalidDataException))]
+    [InlineData(0, "duplicate", typeof(InvalidDataException))]
+    [InlineData(1, "duplicate", typeof(InvalidDataException))]
+    [InlineData(2, "duplicate", typeof(InvalidDataException))]
     [InlineData(0, "overflow", typeof(OverflowException))]
     [InlineData(1, "overflow", typeof(OverflowException))]
     [InlineData(2, "overflow", typeof(OverflowException))]
     [InlineData(0, "format", typeof(FormatException))]
     [InlineData(1, "format", typeof(FormatException))]
     [InlineData(2, "format", typeof(FormatException))]
-    public void LateMalformedOrDuplicateRowsAreLoggedAndSwallowedAfterPriorPublication(int kind, string fault, Type exceptionType)
+    public void LateMalformedOrDuplicateRowsAreLoggedWithoutPublishingAnyPreparedRow(int kind, string fault, Type exceptionType)
     {
         using var f = new LoadFixture();
         var prior = LoadFixture.Current(kind);
         var priorRow = LoadFixture.Seed(kind, 999);
+        var priorValues = LoadFixture.Values(kind, priorRow).ToArray();
         var fields = LoadFixture.Row(kind, 2).Split("@@");
         var bad = fault switch
         {
@@ -225,12 +226,14 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
         Assert.Null(Record.Exception(() => f.Load(kind)));
 
         var current = LoadFixture.Current(kind);
-        Assert.NotSame(prior, current);
+        Assert.Same(prior, current);
         Assert.Equal(1, current.Count);
-        Assert.Equal(Enumerable.Range(1, LoadFixture.Columns(kind)).Select(i => (uint)i), LoadFixture.Values(kind, current[1u]!));
+        Assert.Same(priorRow, current[999u]);
+        Assert.False(current.Contains(1u));
         Assert.False(current.Contains(2u));
         Assert.False(current.Contains(3u));
         Assert.Same(priorRow, prior[999u]);
+        Assert.Equal(priorValues, LoadFixture.Values(kind, priorRow));
         Assert.Contains(exceptionType.FullName!, f.Log);
         Assert.DoesNotContain("!File.Exists:", f.Log);
     }
@@ -245,12 +248,39 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
     public void EmbeddedTabAndSingleAtAreNotRecognizedAsDelimiters(int kind, string separator)
     {
         using var f = new LoadFixture();
+        var prior = LoadFixture.Current(kind);
+        var retained = LoadFixture.Seed(kind, 999);
+        var values = LoadFixture.Values(kind, retained).ToArray();
         var fields = Enumerable.Range(1, LoadFixture.Columns(kind)).Select(i => i.ToString(CultureInfo.InvariantCulture)).ToArray();
         f.Write(kind, fields[0] + separator + fields[1] + "@@" + string.Join("@@", fields.Skip(2)));
 
         Assert.Null(Record.Exception(() => f.Load(kind)));
 
-        Assert.Equal(0, LoadFixture.Current(kind).Count);
-        Assert.Contains(typeof(FormatException).FullName!, f.Log);
+        Assert.Same(prior, LoadFixture.Current(kind));
+        Assert.Equal(1, prior.Count);
+        Assert.Same(retained, prior[999u]);
+        Assert.Equal(values, LoadFixture.Values(kind, retained));
+        Assert.Contains(typeof(InvalidDataException).FullName!, f.Log);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void ExtraColumnsRefuseTheEntireStandaloneReplacement(int kind)
+    {
+        using var f = new LoadFixture();
+        var prior = LoadFixture.Current(kind);
+        var retained = LoadFixture.Seed(kind, 999);
+        var values = LoadFixture.Values(kind, retained).ToArray();
+        f.Write(kind, LoadFixture.Row(kind, 1), LoadFixture.Row(kind, 2) + "@@ignored-before-sanitized-parity");
+
+        Assert.Null(Record.Exception(() => f.Load(kind)));
+
+        Assert.Same(prior, LoadFixture.Current(kind));
+        Assert.Equal(1, prior.Count);
+        Assert.Same(retained, prior[999u]);
+        Assert.Equal(values, LoadFixture.Values(kind, retained));
+        Assert.Contains(typeof(InvalidDataException).FullName!, f.Log);
     }
 }

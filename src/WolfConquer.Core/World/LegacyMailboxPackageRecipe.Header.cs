@@ -4,9 +4,9 @@ namespace WolfConquer.Core.World;
 
 internal sealed partial class LegacyMailboxPackageRecipe
 {
-    private static void WriteHeader(BinaryWriter writer, Guid domain, uint account, uint uid, string[] lineages)
+    private static void WriteHeader(BinaryWriter writer, Guid domain, uint account, uint uid, string[] lineages, uint magic = Magic)
     {
-        writer.Write(Magic); writer.Write(domain.ToByteArray()); writer.Write(account); writer.Write(uid);
+        writer.Write(magic); writer.Write(domain.ToByteArray()); writer.Write(account); writer.Write(uid);
         writer.Write(lineages.Length);
         foreach (var key in lineages) writer.Write(Convert.FromHexString(key));
         writer.Flush();
@@ -20,7 +20,8 @@ internal sealed partial class LegacyMailboxPackageRecipe
         {
             using var input = new MemoryStream(payload, writable: false);
             using var reader = new BinaryReader(input, Utf8);
-            if (reader.ReadUInt32() != Magic || new Guid(reader.ReadBytes(16)) != domain ||
+            var magic = reader.ReadUInt32();
+            if (magic != Magic && magic != StackMagic || new Guid(reader.ReadBytes(16)) != domain ||
                 reader.ReadUInt32() != account || reader.ReadUInt32() != uid) return false;
             var count = reader.ReadInt32();
             if (count is < 1 or > 40 || input.Length - input.Position < count * 32) return false;

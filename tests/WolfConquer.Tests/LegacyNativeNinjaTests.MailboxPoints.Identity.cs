@@ -110,8 +110,8 @@ public sealed partial class LegacyNativeNinjaTests
             case "row-added": ninja.Items[300] = new() { ItemID = 300 }; break;
             case "flag": ninja.Flag++; break;
             default:
-                var field = typeof(LegacyNativeNinja).GetField(fault, BindingFlags.Instance | BindingFlags.Public)!;
-                field.SetValue(ninja, checked((uint)field.GetValue(ninja)! + 1));
+                var property = typeof(LegacyNativeNinja).GetProperty(fault, BindingFlags.Instance | BindingFlags.Public)!;
+                property.SetValue(ninja, checked((uint)property.GetValue(ninja)! + 1));
                 break;
         }
     }

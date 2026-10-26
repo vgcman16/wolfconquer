@@ -31,11 +31,23 @@ internal partial class LegacyNativeCombatGearTable
         public uint Score;
     }
 
-    public static Dictionary<uint, Dictionary<uint, CQ>> Info;
+    public static Dictionary<uint, Dictionary<uint, CQ>> Info
+    {
+        get => ReadMailboxGraph().Gear;
+        set => SetMailboxCompatibility(graph => graph with { Gear = value });
+    }
 
-    internal static bool m_Load = false;
+    internal static bool m_Load
+    {
+        get => ReadMailboxGraph().RawGate;
+        set => SetMailboxCompatibility(graph => graph with { RawGate = value });
+    }
 
-    public static string Location = "";
+    public static string Location
+    {
+        get => ReadMailboxGraph().Location;
+        set => SetMailboxCompatibility(graph => graph with { Location = value });
+    }
 
     public static bool TryGetValue(uint id, uint level, out CQ type)
     {

@@ -1,64 +1,34 @@
-#nullable disable
+using System.Globalization;
 
 namespace WolfConquer.Core.World;
 
 internal partial class LegacyNativeNinjaFile
 {
-    // Complete native ElTabakh/NinjaFile.cs564..620; no startup caller installed.
+    // Source ElTabakh/NinjaFile.Load paths/schema, staged before publication.
+    // No normal startup/Host caller is installed by this bounded loader change.
     public static void Load()
     {
-        gouyu_type = new Dictionary<uint, NinjaSprintItem>();
-        if (!File.Exists(LegacyNativeServerConfig.DbLocation + "gouyu_type.txt"))
+        lock (tableLoadGate)
         {
-            Console.WriteLine("!File.Exists: " + LegacyNativeServerConfig.DbLocation + "gouyu_type.txt");
-            return;
-        }
-        string[] array = File.ReadAllLines(LegacyNativeServerConfig.DbLocation + "gouyu_type.txt");
-        string[] array2 = array;
-        foreach (string text in array2)
-        {
-            string[] array3 = text.Split(new string[2] { "@@", " " }, StringSplitOptions.RemoveEmptyEntries);
-            NinjaSprintItem ninjaSprintItem = new NinjaSprintItem();
-            ninjaSprintItem.ID = Convert.ToUInt32(array3[0]);
-            ninjaSprintItem.ItemID = Convert.ToUInt32(array3[1]);
-            ninjaSprintItem.Level = Convert.ToUInt32(array3[2]);
-            ninjaSprintItem.Exp = Convert.ToUInt32(array3[3]);
-            ninjaSprintItem.UK1 = Convert.ToUInt32(array3[4]);
-            ninjaSprintItem.UK2 = Convert.ToUInt32(array3[5]);
-            ninjaSprintItem.magic1 = Convert.ToUInt32(array3[6]);
-            ninjaSprintItem.magic2 = Convert.ToUInt32(array3[7]);
-            ninjaSprintItem.Power = Convert.ToInt32(array3[8]);
-            ninjaSprintItem.Damage = Convert.ToUInt32(array3[9]);
-            ninjaSprintItem.Score = Convert.ToUInt32(array3[11]);
-            ninjaSprintItem.UK5 = Convert.ToUInt32(array3[11]);
-            gouyu_type.Add(ninjaSprintItem.ID, ninjaSprintItem);
-        }
-        gouyu_immortals = new Dictionary<uint, Item>();
-        if (!File.Exists(LegacyNativeServerConfig.DbLocation + "gouyu_immortal.txt"))
-        {
-            Console.WriteLine("!File.Exists: " + LegacyNativeServerConfig.DbLocation + "gouyu_immortal.txt");
-            return;
-        }
-        array = File.ReadAllLines(LegacyNativeServerConfig.DbLocation + "gouyu_immortal.txt");
-        string[] array4 = array;
-        foreach (string text2 in array4)
-        {
-            string[] array5 = text2.Split(new string[2] { "@@", " " }, StringSplitOptions.RemoveEmptyEntries);
-            Item item = new Item();
-            item.Level = Convert.ToUInt32(array5[0]);
-            item.U1 = Convert.ToUInt32(array5[1]);
-            item.MaxHP = Convert.ToUInt32(array5[2]);
-            item.PAttack = Convert.ToUInt32(array5[3]);
-            item.PDefense = Convert.ToUInt32(array5[4]);
-            item.MDefense = Convert.ToUInt32(array5[5]);
-            item.Chance = Convert.ToUInt32(array5[6]);
-            item.Seconds = Convert.ToUInt32(array5[7]);
-            item.Rate = Convert.ToUInt32(array5[8]);
-            item.MovementSpeed = Convert.ToUInt32(array5[12]);
-            item.U13 = Convert.ToUInt32(array5[13]);
-            item.U14 = Convert.ToUInt32(array5[14]);
-            item.P = Convert.ToUInt32(array5[15]);
-            gouyu_immortals.Add(item.Level, item);
+            var prefix = LegacyNativeServerConfig.DbLocation;
+            var firstPath = prefix + "gouyu_type.txt";
+            var secondPath = prefix + "gouyu_immortal.txt";
+            var directory = Environment.CurrentDirectory;
+            var firstAbsolute = Path.GetFullPath(firstPath, directory);
+            var secondAbsolute = Path.GetFullPath(secondPath, directory);
+            var culture = CultureInfo.ReadOnly((CultureInfo)CultureInfo.CurrentCulture.Clone());
+            if (!File.Exists(firstAbsolute)) { Console.WriteLine("!File.Exists: " + firstPath); return; }
+            if (!File.Exists(secondAbsolute)) { Console.WriteLine("!File.Exists: " + secondPath); return; }
+            using var first = new FileStream(firstAbsolute, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var second = new FileStream(secondAbsolute, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (first.Length > MaximumTableBytes || second.Length > MaximumTableBytes - first.Length)
+                throw new InvalidDataException("Native Ninja table byte bound exceeded.");
+            var remaining = MaximumTableRows;
+            var types = ReadNinjaTable(first, fields => ParseNinjaType(fields, culture), ref remaining);
+            var immortals = ReadNinjaTable(second, fields => ParseNinjaImmortal(fields, culture), ref remaining);
+            // Both actual file leases are still held. No earlier valid row or
+            // table became live while a later parse/identity/IO check could fail.
+            Volatile.Write(ref tables, new NinjaTables(types, immortals));
         }
     }
 }

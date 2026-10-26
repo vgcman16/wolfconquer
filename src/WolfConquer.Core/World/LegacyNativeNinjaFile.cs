@@ -2,7 +2,7 @@
 
 namespace WolfConquer.Core.World;
 
-// Native NinjaFile table rows, initially-null static owners and complete Load.
+// Native NinjaFile table rows and initially-null, coherently loaded table owners.
 // SigilPacks NPC exchange and startup/host publication remain wholly absent.
 internal partial class LegacyNativeNinjaFile
 {
@@ -39,6 +39,4 @@ internal partial class LegacyNativeNinjaFile
         public uint P;
     }
 
-    public static Dictionary<uint, NinjaSprintItem> gouyu_type;
-    public static Dictionary<uint, Item> gouyu_immortals;
 }

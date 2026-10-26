@@ -62,9 +62,12 @@ public static partial class WorldPacketHandlers
             replacements[original.Id] = next;
             steps.Add(new(current, next, pays, classAfter, ninjaPoints, piratePoints));
         }
-        var attachmentSlots = all ? selected.DistinctBy(mail => mail.Id).Count(mail => mail.ItemId != 0) : 0;
-        if (grants.Count + attachmentSlots > LegacyInventorySlots - expected.PlayerItems.InventoryItems.Count)
-        { reason = MailboxClaimPrefix + "PackageCapacity"; return false; }
+        var grantRows = grants.ToArray();
+        var seed = LegacyMailboxPackageStackSeed.Create(producer.Domain, checked((uint)expected.AccountId),
+            checked((uint)expected.Character.Uid), selected,
+            [baseline.Character.Bytes, baseline.ItemsBefore, baseline.Mail.CopyImage(), gearBefore], grantRows);
+        if (!LegacyMailboxPackageStackPlan.TryCreate(expected.PlayerItems, grantRows, metadata,
+            steps.Select(step => step.Original).ToArray(), all, seed, out var stacks, out reason)) return false;
         updated = updated with { Character = WithCharacterAttribute(updated.Character, "ClassExperience", classAfter) };
         if (!TryCaptureMailboxPackageNative(owner, baseline.Character.Fields, classBefore, checked(classAfter - classBefore),
             ninjaPoints, piratePoints, pirateExp, gear!, gearBefore, out var native, out reason)) return false;
@@ -81,7 +84,7 @@ public static partial class WorldPacketHandlers
         var mailAfter = baseline.Mail.ProjectPackages(replacements);
         if (!TryProjectMailboxPackageCharacter(baseline, updated, out var characterAfter))
         { reason = MailboxClaimPrefix + "PackageCharacterInvalid"; return false; }
-        prepared = new(baseline, producer, selected, steps.ToArray(), grants.ToArray(), metadata.Values.ToArray(),
+        prepared = new(baseline, producer, selected, steps.ToArray(), grantRows, metadata.Values.ToArray(), stacks!,
             updated, mailAfter, gearPath, gearBefore, gearAfter, characterAfter,
             native.Class, native.Ninja, native.Pirate, native.SendClassExperience);
         reason = string.Empty;

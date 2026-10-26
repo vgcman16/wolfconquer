@@ -53,7 +53,16 @@ internal sealed partial class LegacyMailboxPackageWorkStore
 
     private void RequireCurrentIntent(Record row)
     {
-        if (!owner.IsCurrent(owner.UsersRoot, owner.ItemsRoot, owner.MailboxRoot, owner.Recovery) ||
+        if (!owner.IsCurrent(owner.UsersRoot, owner.ItemsRoot, owner.MailboxRoot, owner.Recovery))
+            throw new InvalidOperationException("Package work owner is not current.");
+        if (row.Version == 2)
+        {
+            if (!owner.TryValidateNoAllocationRecord(row, out _) ||
+                !owner.Registry.TryFindProducerIntent(domain, Guid.ParseExact(row.Operation, "N"), out _, out var found, out _) || found)
+                throw new InvalidOperationException("No-allocation work conflicts with its actual namespace.");
+            return;
+        }
+        if (
             !owner.Registry.TryReadProducerIntent(domain, Guid.ParseExact(row.Operation, "N"), out var actual, out _) ||
             actual is null || !MatchesIntent(row, actual))
             throw new InvalidOperationException("Package work has no current real producer intent.");

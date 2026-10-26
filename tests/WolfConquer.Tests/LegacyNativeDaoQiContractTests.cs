@@ -28,7 +28,14 @@ public sealed class LegacyNativeDaoQiContractTests
         try
         {
             LegacyNativeCombatGearTable.m_Load = true;
-            byte[] frame = Create(name)!;
+            var message = Create(name);
+            if (message is null)
+            {
+                Assert.Equal("message", Assert.Throws<ArgumentNullException>(() =>
+                    LegacyNativeCombatGearWire.Encode(message!, 2451)).ParamName);
+                return;
+            }
+            byte[] frame = message;
             byte[] expected = Convert.FromHexString(hex);
             Assert.Equal(expected.Length + 12, frame.Length);
             Assert.Equal((ushort)(frame.Length - 8), BinaryPrimitives.ReadUInt16LittleEndian(frame));

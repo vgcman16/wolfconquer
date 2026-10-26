@@ -118,7 +118,7 @@ internal static class LegacyNativeCombatGearLoadChildFixture
         $assembly=[Reflection.Assembly]::LoadFrom($paths[2])
         $type=$assembly.GetType('WolfConquer.Tests.LegacyNativeCombatGearLoadChildScenarios',$true)
         $entry=[Environment]::GetEnvironmentVariable('WOLF_GEAR_LOAD_ENTRY_METHOD')
-        if ($entry -cnotin @('Execute','ExecuteObjectPacket','ExecuteMailboxPackage')) { throw 'Known child entry required' }
+        if ($entry -cnotin @('Execute','ExecuteObjectPacket','ExecuteMailboxPackage','ExecutePirateRecovery')) { throw 'Known child entry required' }
         $method=$type.GetMethod($entry,[Reflection.BindingFlags]'Public,Static')
         $scenario=[Environment]::GetEnvironmentVariable('WOLF_GEAR_LOAD_SCENARIO')
         $json=[string]$method.Invoke($null,[object[]]@($scenario,$guard))

@@ -40,39 +40,24 @@ internal partial class LegacyNativeNinja
 
     public void Load(string? line)
     {
-        LegacyNativeDbReadLine readLine = new LegacyNativeDbReadLine(line, '/');
-        Flag = readLine.Read(0uL);
-        Exp = readLine.Read(0u);
-        Fire = readLine.Read(0u);
-        Water = readLine.Read(0u);
-        Earth = readLine.Read(0u);
-        Wind = readLine.Read(0u);
-        Lightning = readLine.Read(0u);
-        tmp_Fire = readLine.Read(0u);
-        tmp_Water = readLine.Read(0u);
-        tmp_Earth = readLine.Read(0u);
-        tmp_Wind = readLine.Read(0u);
-        tmp_Lightning = readLine.Read(0u);
-        readLine.Read(0u);
-        FireMastery = readLine.Read(0u);
-        WaterMastery = readLine.Read(0u);
-        EarthMastery = readLine.Read(0u);
-        WindMastery = readLine.Read(0u);
-        LightningMastery = readLine.Read(0u);
-        UnlockMastery = readLine.Read(0u);
-        int num = readLine.Read(0);
-        for (int i = 0; i < num; i++)
+        // Optional absent data has no mutation authority. A fresh native owner
+        // is already empty; ServerDatabase's explicit missing-field sentinel is0.
+        if (string.IsNullOrEmpty(line)) return;
+        PersistenceState prepared;
+        if (line == "0") prepared = new();
+        else
         {
-            Item item = new Item();
-            item.ItemID = readLine.Read(0u);
-            item.Level = readLine.Read(0u);
-            item.Position = readLine.Read(0u);
-            item.Exp = readLine.Read(0u);
-            item.UK = readLine.Read(0u);
-            if (!Items.ContainsKey(item.ItemID))
-            {
-                Items.Add(item.ItemID, item);
-            }
+            if (!MailboxRecoveryLine.TryRead(line, out var parsed))
+                throw new InvalidDataException("Native Ninja persisted state is incomplete or invalid.");
+            prepared = PreparePersistenceState(parsed!);
+        }
+        lock (persistenceLoadGate)
+        {
+            if (ReadPersistenceState().Items is null)
+                throw new InvalidDataException("Native Ninja storage owner is unavailable.");
+            // No setters, metadata queries or existing comparer/row callbacks.
+            // All rows and scalars are prepared before one aggregate publication.
+            Volatile.Write(ref persistenceState, prepared);
         }
     }
 }

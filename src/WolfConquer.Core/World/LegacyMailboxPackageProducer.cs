@@ -27,16 +27,27 @@ internal sealed partial class LegacyMailboxPackageProducer
     internal static bool TryCreate(LegacyItemUidRegistry registry, Guid expectedDomain,
         LegacyTradeRecoveryState recovery, string usersRoot, string itemsRoot, string mailboxRoot,
         string combatGearRoot, out LegacyMailboxPackageProducer? producer, out string reason)
+        => TryCreate(registry, expectedDomain, recovery, usersRoot, itemsRoot, mailboxRoot, combatGearRoot,
+            LegacyMailboxHistoryInterruption.None, out producer, out reason);
+
+    // Failure-only migration boundary; it supplies no writer, owner, or acceptance callback.
+    internal static bool TryCreate(LegacyItemUidRegistry registry, Guid expectedDomain,
+        LegacyTradeRecoveryState recovery, string usersRoot, string itemsRoot, string mailboxRoot,
+        string combatGearRoot, LegacyMailboxHistoryInterruption interruption,
+        out LegacyMailboxPackageProducer? producer, out string reason)
     {
         producer = null;
         reason = "mailboxPackageProducerUnavailable";
-        if (registry is null || recovery is null || expectedDomain == Guid.Empty ||
+        if (registry is null || recovery is null || expectedDomain == Guid.Empty || !Enum.IsDefined(interruption) ||
             !recovery.IsReadyForMailboxGear(usersRoot, itemsRoot, mailboxRoot, combatGearRoot) ||
             !registry.TryValidateProducerBinding(expectedDomain, usersRoot, itemsRoot, mailboxRoot, out reason)) return false;
         var candidate = new LegacyMailboxPackageProducer(registry, expectedDomain, recovery, Normalize(usersRoot), Normalize(itemsRoot),
             Normalize(mailboxRoot), Normalize(combatGearRoot));
         if (!registry.TryClaimMailboxPackageProducer(candidate, out reason)) return false;
         LegacyMailboxPackageMutationFence.Register(candidate);
+        try { candidate.workStore.EnsureHistoryLayout(interruption); }
+        catch (Exception error) when (IsWorkFailure(error))
+        { reason = "mailboxClaimRecoveryRequired:historyLayout:" + error.GetType().Name; return false; }
         if (!candidate.TryReconcileRetainedWork(out reason)) return false;
         producer = candidate;
         reason = string.Empty;

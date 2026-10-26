@@ -13,11 +13,12 @@ internal sealed class LegacyMailboxPackageCatalog
     private readonly string[] fields;
     internal ushort Durability { get; }
     internal ushort StackLimit { get; }
+    internal bool CanStack { get; }
     internal string Digest { get; }
 
     private LegacyMailboxPackageCatalog(WorldDataCatalog catalog, ItemType source, string[] fields,
-        ushort durability, ushort stackLimit, string digest)
-    { this.catalog = catalog; this.source = source; this.fields = fields; name = source.Name; Durability = durability; StackLimit = stackLimit; Digest = digest; }
+        ushort durability, ushort stackLimit, bool canStack, string digest)
+    { this.catalog = catalog; this.source = source; this.fields = fields; name = source.Name; Durability = durability; StackLimit = stackLimit; CanStack = canStack; Digest = digest; }
 
     internal static bool TryCapture(WorldDataCatalog catalog, uint id,
         out LegacyMailboxPackageCatalog? captured, out string reason)
@@ -42,7 +43,7 @@ internal sealed class LegacyMailboxPackageCatalog
             foreach (var field in fields) writer.Write(field);
         }
         var limit = source.IsLegacyAccessory ? (ushort)1 : Math.Max((ushort)1, stack);
-        var candidate = new LegacyMailboxPackageCatalog(catalog, source, fields, durability, limit,
+        var candidate = new LegacyMailboxPackageCatalog(catalog, source, fields, durability, limit, source.IsLegacyAccessory || stack != 0,
             Convert.ToHexString(SHA256.HashData(output.ToArray())).ToLowerInvariant());
         if (!candidate.IsCurrent()) return false;
         captured = candidate;

@@ -33,6 +33,7 @@ internal sealed partial class LegacyItemUidRegistry
                 blocked = reason;
                 return false;
             }
+            _ = CurrentArchives; // Admitted immutable membership; no history scan on ordinary actions.
         }
         catch (Exception error) when (IsFileFailure(error))
         {

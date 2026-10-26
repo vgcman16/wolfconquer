@@ -13,8 +13,8 @@ internal sealed partial class LegacyMailboxPackageProducer
             if (candidate.Character.Uid is <= 0 or > uint.MaxValue || !Same(candidate.UsersRoot, UsersRoot) ||
                 !IsCurrent(UsersRoot, ItemsRoot, MailboxRoot, Recovery) ||
                 !TryGetSinglePending(candidate.AccountId, out var intent, out var description, out reason) ||
-                intent!.Request.CharacterUid != candidate.Character.Uid) return false;
-            var paths = WorkPaths(intent.Request.AccountId, intent.Request.CharacterUid);
+                intent!.CharacterUid != candidate.Character.Uid) return false;
+            var paths = WorkPaths(intent.AccountId, intent.CharacterUid);
             var failure = reason;
             var valid = SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>
             {

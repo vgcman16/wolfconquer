@@ -38,15 +38,10 @@ public static partial class WorldPacketHandlers
                 if (!LegacyMailboxPackageCatalog.TryCapture(catalog, grant.ItemId, out entry, out reason)) return false;
                 metadata.Add(grant.ItemId, entry!);
             }
-            var remaining = grant.Quantity;
-            while (remaining != 0)
-            {
-                if (grants.Count >= LegacyInventorySlots) { reason = MailboxClaimPrefix + "PackageCapacity"; return false; }
-                var quantity = checked((ushort)Math.Min(remaining, entry!.StackLimit));
-                grants.Add(new(mailId, phase, grant.ItemId, quantity, entry.Durability, checked((byte)grant.Plus),
-                    grant.Bound ? (byte)1 : (byte)0, checked((uint)grant.SocketProgress), entry.Digest));
-                remaining -= quantity;
-            }
+            if (grants.Count >= 256 || grant.Quantity > ushort.MaxValue)
+            { reason = MailboxClaimPrefix + "PackageRecipeBound"; return false; }
+            grants.Add(new(mailId, phase, grant.ItemId, checked((ushort)grant.Quantity), entry!.Durability, checked((byte)grant.Plus),
+                grant.Bound ? (byte)1 : (byte)0, checked((uint)grant.SocketProgress), entry.Digest));
         }
         reason = string.Empty;
         return true;

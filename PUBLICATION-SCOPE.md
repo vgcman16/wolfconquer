@@ -19,6 +19,14 @@ The current update has 166 explicitly skipped external-fixture methods; the init
 
 No game content, production credentials, or original private history should be added to this repository. Keep externally supplied client files, loader payloads, database data, and local configuration outside the source tree or in ignored directories.
 
+The 2026-10-26 native loader/history/framing update imports only explicitly
+reviewed source/tests and concise public documentation from the private accepted
+checkpoints through96afebfe. Generic resource/configuration helpers contain
+synthetic tests and caller-supplied inputs only. Private translation catalogs,
+copied resource bytes, native initializer words, binary-analysis artifacts,
+operational handoffs and held unrelated working files remain excluded. Component
+proofs and pending exact-public CI are distinguished in VALIDATION.md.
+
 The optional Windows launcher includes newly created original wolf artwork, not
 art or binary assets extracted from the game client. The standalone update tools
 and their synthetic tests do not include a full-client release, signing keys or

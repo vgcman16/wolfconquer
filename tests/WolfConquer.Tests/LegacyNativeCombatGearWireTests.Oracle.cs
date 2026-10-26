@@ -35,16 +35,21 @@ public sealed partial class LegacyNativeCombatGearWireTests
     [InlineData("air-null-collection", "080010001800")]
     [InlineData("air-negative-int-flags", "08FFFFFFFFFFFFFFFFFF0110001800")]
     [InlineData("null-outer", "")]
-    public void FixedProjectionMatchesPinnedRegisteredSourceContracts(string name, string payloadHex)
+    public void FixedProjectionRetainsPinnedValidContractsAndRejectsMissingOuterMessage(string name, string payloadHex)
     {
         using var scope = new NativeCombatGearQueryScope();
         var message = Message(name);
+        if (message is null)
+        {
+            Assert.Equal("message", Assert.Throws<ArgumentNullException>(() =>
+                LegacyNativeCombatGearWire.Encode((Gear)null!, 2420)).ParamName);
+            return;
+        }
         byte[] frame = message switch
         {
             Gear gear => LegacyNativeCombatGearWire.Encode(gear, 2420),
             Skin skin => LegacyNativeCombatGearWire.Encode(skin, 2422),
             Air air => LegacyNativeCombatGearWire.Encode(air, 2464),
-            null => LegacyNativeCombatGearWire.Encode((Gear)null!, 2420),
             _ => throw new InvalidOperationException(),
         };
         var expected = Convert.FromHexString(payloadHex);

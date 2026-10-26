@@ -1555,6 +1555,173 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   Exact public816f3a20 passed Windows40304697861, updater434/434 and all8stages0.
   PS/pipeline proofs are standalone, not CI steps. No original data or game process changed.
 
+### FSB-107: Publish complete native Gear metadata and owned wire contracts together
+
+- Owners: native CombatGear/Daoqi/Lottery/Collection/Rank loaders and private
+  registrar. The old loader enabled its raw gate and published partial caches
+  before later input/registration failures; retries could also trust foreign or
+  incomplete model state. Standalone reloads discarded valid prior data early.
+- Correction: stage all five actual bounded inputs and publish one complete
+  graph; standalone readers prepare before replacement. Complete proof binds
+  actual owners/row values and privately registered twelve DTO/six enum contracts,
+  required fields/options and genuine serializer preparation. Foreign known
+  owners refuse; unrelated Ninja contracts remain permitted. Compatibility setter
+  writes invalidate complete proof, including same-reference assignments.
+- Cold Pirate storage restoration now uses that genuine completed load and the
+  entire canonical saved gear on a real detached owner. Final Store/connection/
+  player/scalar/slot checks follow borrowed reads before one-way adoption. No fake
+  loaded gate, substitute owner or ordinary Loading callback is used.
+- Verification: actual combined94691 passed1268/1268,0fail/skip,6m52s; includes
+  20cold Pirate,4nonzero/foreign enum,6registrar provenance/factory/surrogate/
+  packed-mutation,51staged/proof,48metadata and19rank outcomes. Earlier wide51174
+  had643passes and1old null-success oracle, corrected under FSB-108. Actual TRX read.
+- Limits: private source/component proof, not public CI, normal native Host/
+  Loading/equipment/skill/ranking, live client or SQL. Public field-shaped caches
+  become same-name properties requiring rebuild. Metadata checks scan retained
+  state and are not benchmarked; mutable runtime ranks remain separate from load
+  metadata. Complete load does not prove files stay unchanged forever afterward.
+
+### FSB-108: Refuse absent native messages and invalid frame lengths
+
+- Owner: LegacyNativeCombatGearWire actual object entry, six typed projections
+  and shared frame helpers. Null messages emitted empty success frames; unchecked
+  UInt16 casts wrapped oversized lengths, and raw0..3byte inputs let the seal
+  overlap a missing header.
+- Correction: reject active missing outer DTOs before serialization. Gate-off
+  refusal still precedes required-state/model access. Raw streams require4..65535
+  bytes; object payloads0..65531, with checked header/allocation arithmetic and a
+  copied-length recheck. Preserve positions, input bytes, opcode and eight-byte seal.
+- Verification: actual null7140 had1failure/9controls; actual frame3345 had
+  10failures/6controls. Corrected1268-case combined94691 includes all16new boundary
+  outcomes,13actual direct/implicit null-route checks and migrated old null-success
+  rows, retaining valid literal goldens. Exact maximum is independently verified
+  through the actual pinned serializer and fixed Opt projection; one more element
+  refuses. Actual terminal TRX inspected,0fail/skip.
+- Limits: serialization prepares its bytes before framing can bound them; upstream
+  object/count admission remains required. Caller-owned streams must not mutate
+  concurrently. These bounds prove header representability, not native transport
+  acceptance of every maximum-size packet, live-client behavior or Host activation.
+
+### FSB-109: Prepare both Ninja metadata files before replacing either cache
+
+- Owner: LegacyNativeNinjaFile.Load. The old path cleared/published its first
+  dictionary before checking later files/rows, so missing, locked, malformed or
+  duplicate input could erase or partially replace otherwise valid metadata.
+- Correction: capture the real literal prefix/current directory/culture, hold both
+  read-only file leases, parse complete bounded tables and publish one private pair.
+  Failure preserves both prior dictionaries, row identities and values. Minimum
+  source columns, opaque fields/extra tails, Score/UK5 mapping and insertion order
+  remain; no unsupported schema or new Host caller is invented.
+- Verification: actual new-case70799 had13failures/9controls. Corrected94691's
+  1268/1268selection includes all43loader outcomes (21retained+22new), real sharing
+  failures, full reloads/aliases, UTF8/16/32 BOMs, newline forms and genuine DBItem/
+  Score consumption. One reflection test retains exact two-cache property types
+  and all original row-field checks. No failures/skips; actual TRX read.
+- Limits: same-name properties require rebuilt consumers. Public dictionaries/
+  rows remain mutable and separate getters are not an operation-wide concurrent
+  snapshot. The existing stricter equipped-consumer bound remains. No normal
+  startup/rank/skill/equipment lifecycle, live client or full parity is proved.
+
+### FSB-106: Prepare complete Ninja saved state before replacing the live graph
+
+- Owner: LegacyNativeNinja.Persistence.Load; decompiled Ninja.Load immediately
+  overwrote scalars with fallback defaults and merged rows into existing storage.
+  Malformed input could partially overwrite state, publish zero/duplicate rows
+  and leave obsolete or matching stale rows behind on later valid loads.
+- Correction: validate complete canonical bounded input, copy all scalar/item
+  data into a detached real graph, then publish one aggregate reference under
+  the private state gate. Refusal leaves every prior scalar/row/owner unchanged.
+  Null/empty optional data does nothing; exact0 retains the genuine database
+  missing-field sentinel, and canonical empty state explicitly clears the graph.
+  Missing required item storage refuses instead of inventing a replacement owner.
+- Verification: actual owned-candidate RED48187 had20failures and2valid controls.
+  Corrected91187 passed545/545,0fail/skip,1m34s. All22new outcomes are present:
+  18malformed/bounded cases,2explicit empty states,4096valid rows and actual
+  Load-to-Save/native User producer with independent52-byte opcode2395 golden.
+  Thirteen prior profile facts retain valid/wide/derived-Score behavior while
+  unsafe oracles are replaced. Three reflection tests retain all18scalar checks.
+- Limits: five source/six test paths are intaken privately, not public CI or
+  native Host/client/SQL proof. Public implementation fields become same-name
+  properties: source compatibility requires rebuild, not compiled field ABI.
+  Gameplay/ToString still read multiple properties and mutable rows separately;
+  their whole-operation concurrency and general Save graph validation remain open.
+
+### FSB-103: Retain completed mailbox history without losing active writer fences
+
+- Owners: LegacyMailboxPackageWorkStore, LegacyMailboxPackageProducer and
+  LegacyItemUidRegistry. The flat lifetime work cap and bounded active UID ledger
+  could exhaust despite genuine completed claims; completed no-allocation work
+  could also disappear from a writer fence before actual Store publication.
+- Correction: bounded pending metadata plus immutable state-anchored completed
+  history/direct lineages; retire only genuine completed mailbox UID pairs with
+  a private proof, unchanged high-water and no reissued range/token. Preserve the
+  actual awaiting-publication account/operation fence through completion. Legacy
+  custody matches the current pending or anchored-completed record after valid
+  retirement; missing pending operation identity is a safe schema refusal.
+- Verification: actual owned-candidate63858 passed888/888,0fail/skip,21m26s.
+  Includes300successive no-UID claims with exact unchanged UID bytes, allocating
+  pressure, legacy migration/replay/retirement/fresh reopen,4publication-gap
+  writer controls,4UID interruption cuts and4malformed pending identities.
+  Earlier84375 failed compilation before any test ran. Root read actual TRX.
+- Limits: local focused source/component proof, not successor public CI, native
+  Host activation, live client/SQL or complete reward parity. Startup/retirement
+  scans and retained identity memory grow with history; no benchmark, pruning or
+  protection against coherent administrator rewriting is claimed. Other producers
+  need their own real completion owners. Active bounds and shared RNG limits remain.
+
+### FSB-104: Reject Trade mutations after either real endpoint ends
+
+- Owner: WorldPacketHandlers.Trade.Lifecycle. An existing pending/open pair could
+  accept, add items, debit gold/CP or confirm after the actual ended marker but
+  before FIFO disconnect cleanup acquired the world operation lease.
+- Correction: reject non-cancel actions from an ended sender or a pair with an
+  ended peer under the existing real lease/trade lock. Explicit cancellation and
+  genuine disconnect escrow refund retain their ordinary ownership path.
+- Verification: actual combined RED22521 had11Trade failures plus2Ninja failures
+  and6passing controls. Corrected79428 passed699/699,0fail/skip,1m34s, including
+  all15new Trade cases and176Trade outcomes overall. Actual FIFO final-confirm
+  and request controls pin complete files, sessions, escrow and packet order.
+- Limits: an exchange committed before the marker remains committed. Existing
+  journal/escrow reconciliation owns IO uncertainty; no SQL/native Trade/Host,
+  live UI, global raw-writer quiescence or complete trade safety is claimed.
+
+### FSB-105: Fence Ninja adoption after the last caller-owned attribute read
+
+- Owner: LegacyNativeNinja.MailboxRecoveryOwner. A same-value MsgNinja or final
+  ClassExperience read could remove the actual Store holder after its earlier
+  check, then still attach MyNinja and report success.
+- Correction: after all borrowed reads, recheck callback-free Store/transport/
+  native/player/UID/class/experience/cold-phase/empty-slot identity, then attach
+  once and truthfully report that one-way publication. No accepting substitute
+  owner, queue, EOF authority or post-attach rejection is introduced.
+- Verification: actual RED22521 exposed both retired-holder cases; all4new
+  unchanged-value controls pass in corrected79428's699/699 selection, including
+  523Ninja outcomes. Exact source points bytes and files remain pinned.
+- Limits: focused owned runtime proof, not native authenticated login/Host,
+  complete Ninja loading, live UI or general raw-field concurrency safety.
+
+### FSB-102: Reject incomplete mailbox work before copying or publication
+
+- Replacement integration defect: both real work-preparation paths dereferenced
+  an absent change row while cloning images. A malformed internal request threw
+  NullReferenceException instead of refusing with its real UID intent or pending
+  no-allocation work intact. This is not a claim about an observed client packet.
+- Both paths now capture exactly four nonnull rows and before/after arrays in one
+  indexed pass. Only a complete private copy reaches durable preparation. Existing
+  retained admission, current ownership, target and image checks remain required.
+- Actual regression58408 reproduced2null-row faults with6passing controls.
+  Corrected13961 passed39/39, including all8input cases and31stack/recovery cases,
+  zero failures/skips. Rejection pins all files, resources and outputs; valid
+  original requests subsequently commit. Both actual TRX were read.
+- The stack successor also preserves complete existing item state during merges,
+  allocates only genuinely new rows and retains explicit no-allocation work.
+  Eleven warm-vs-cold restart oracles were corrected using complete saved graphs,
+  pinned resources/files and the explicit zero-Vigor normal-startup phase. They
+  do not fabricate the previous session's derived HP or physical overlay.
+- Limits: owned C# component/registered Frame proof, not native executable,
+  client/SQL/Host or successor full CI. Exact shared native RNG, history scaling,
+  flags10-12, complete native loading and whole English parity remain open.
+
 ### FSB-101: Preserve pending mailbox work and stop stale postcommit delivery
 
 - The replacement mailbox join originally allowed ordinary claims/world actions

@@ -16,7 +16,7 @@ public sealed partial class LegacyNativeCombatGearOptTests
     [InlineData("negative-type", "08FFFFFFFFFFFFFFFFFF011000180020002800")]
     [InlineData("unknown-uint-item-id", "080010EFFDB6F5FDFFFFFFFF01180020002800")]
     [InlineData("null-outer", "")]
-    public void WireMatchesTenObservedPinnedRegisteredNativeOraclePayloads(string kind, string expected)
+    public void WireRetainsValidOraclePayloadsAndRefusesMissingOuterMessage(string kind, string expected)
     {
         using var s = new Scope();
         // Root observed the ten controls using the preserved protobuf-net2.0.0.668,
@@ -38,7 +38,13 @@ public sealed partial class LegacyNativeCombatGearOptTests
             _ => new Opt()
         };
 
-        Assert.Equal(expected, Payload(info!, 2421));
+        if (info is null)
+        {
+            Assert.Equal("message", Assert.Throws<ArgumentNullException>(() =>
+                WolfConquer.Core.World.LegacyNativeCombatGearWire.Encode(info!, 2421)).ParamName);
+            return;
+        }
+        Assert.Equal(expected, Payload(info, 2421));
 
         if (kind == "default")
         {

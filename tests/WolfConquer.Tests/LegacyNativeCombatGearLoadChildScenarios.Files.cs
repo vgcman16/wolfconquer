@@ -35,6 +35,14 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
         internal Dictionary<uint, Jade.CQ> OldJade { get; } = new() { [999] = new() };
         internal Dictionary<uint, Lottery.CQ> OldLottery { get; } = new() { [999] = new() };
         internal Dictionary<uint, Collection.CQ> OldCollection { get; } = new() { [999] = new() };
+        internal Dictionary<Rank.Type, Rank.Rank> OldRanks { get; } = new()
+        {
+            [Rank.Type.Dragonhowl] = new(Rank.Type.Dragonhowl)
+            {
+                MaxItems = 3,
+                RankingList = new() { [999] = new() { UID = 999, Type = Rank.Type.Dragonhowl, Name = "sentinel", TotalPoints = 999 } },
+            },
+        };
 
         internal Scope(bool seedGate = true)
         {
@@ -50,7 +58,7 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
             Jade.Info = OldJade;
             Lottery.Info = OldLottery;
             Collection.Info = OldCollection;
-            Rank.Ranks = new();
+            Rank.Ranks = OldRanks;
             Config.DbLocation = RankPrefix;
             Write("db-daoqi_dict_type.txt", "");
             Write("db-dict_lottery.txt", "");
@@ -71,12 +79,15 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
             files[path] = bytes;
         }
 
-        internal void RemoveGear()
+        internal void RemoveGear() => Remove("db-combat_gear.txt");
+
+        internal void Remove(string leaf)
         {
-            Require(files.ContainsKey(GearFile) && File.ReadAllBytes(GearFile).SequenceEqual(files[GearFile]), "Owned gear deletion guard.");
-            LegacyNativeDbReadOwnedFiles.OrdinaryChain(GearFile);
-            File.Delete(GearFile);
-            files.Remove(GearFile);
+            string path = Leaf(leaf);
+            Require(files.ContainsKey(path) && File.ReadAllBytes(path).SequenceEqual(files[path]), "Owned table deletion guard.");
+            LegacyNativeDbReadOwnedFiles.OrdinaryChain(path);
+            File.Delete(path);
+            files.Remove(path);
         }
 
         private string Leaf(string name)

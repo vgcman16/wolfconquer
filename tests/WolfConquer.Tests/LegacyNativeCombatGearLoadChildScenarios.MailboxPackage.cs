@@ -38,14 +38,17 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
     private static void RunMailboxPackageChild(Scope scope, string scenario)
     {
         Require(!Table.m_Load, "Fresh process must begin with the natural closed native gate.");
+        RequireNoProof();
         if (scenario == "MissingWire")
         {
             LegacyInventorySashUpgradeTests.RunNativePiratePackageMissingWireComponentAsync().GetAwaiter().GetResult();
             Require(!Table.m_Load && scope.Log.ToString() == "", "Missing wire refusal must preserve the natural closed gate.");
+            RequireNoProof();
         }
         else
         {
             Table.Load(scope.Prefix);
+            var proof = RequireProof();
             Require(Table.m_Load && scope.Log.ToString() == "", "Complete owned native table load must succeed without caught faults.");
             Require(Table.Location == scope.Prefix && Table.Info.Count == 1 && Table.Info[2].Count == 1 &&
                 Values(Table.Info[2][3]).SequenceEqual(Enumerable.Range(1, 19).Select(value => (uint)value)) &&
@@ -53,6 +56,7 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
             VerifyContracts();
             LegacyInventorySashUpgradeTests.RunNativePiratePackageComponentAsync(scenario == "ClaimAll").GetAwaiter().GetResult();
             Require(Table.m_Load && scope.Log.ToString() == "", "Component must retain the genuine loaded gate and produce no native fault log.");
+            Require(proof.IsCurrent() && ReferenceEquals(proof, RequireProof()), "Actual Pirate component must retain its original genuine completed-load witness.");
         }
     }
 }
