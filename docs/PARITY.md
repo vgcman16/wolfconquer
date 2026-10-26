@@ -1,6 +1,6 @@
 # Reconstruction progress and parity
 
-The working estimate is **about 55% toward strict legacy-server parity**, with a
+The working estimate is **about 55% toward legacy-server parity under Sanitized Parity**, with a
 deliberately broad **40-70% planning range and low confidence**. This is an
 engineering judgment, not measured coverage, a release score or a completion
 promise. It is not 55% of a complete English client or of newer-client features.

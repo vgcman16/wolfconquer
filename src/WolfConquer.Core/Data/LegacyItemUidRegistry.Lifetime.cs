@@ -8,7 +8,8 @@ internal sealed partial class LegacyItemUidRegistry
         string Claim, string Directory, string Lease, string State, string Pending);
     private sealed record RegistryState(int Version, string Domain, string Users, string Items,
         string Mailbox, string Redeem, string Claim, uint HistoricalFloor,
-        string HistoricalEvidence, ulong Generation, uint HighWater, OperationReservation[]? Operations = null);
+        string HistoricalEvidence, ulong Generation, uint HighWater, OperationReservation[]? Operations = null,
+        ProducerIntent[]? ProducerIntents = null);
 
     internal static bool TryBootstrap(LegacyItemUidRegistryOptions options,
         out LegacyItemUidRegistry? registry, out string reason) =>

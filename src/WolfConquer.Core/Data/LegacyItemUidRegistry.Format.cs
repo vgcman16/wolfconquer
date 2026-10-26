@@ -39,16 +39,19 @@ internal sealed partial class LegacyItemUidRegistry
         if (document.RootElement.ValueKind != JsonValueKind.Object) throw new JsonException("UID state must be an object.");
         if (!document.RootElement.TryGetProperty("Version", out var versionElement) ||
             versionElement.ValueKind != JsonValueKind.Number ||
-            !versionElement.TryGetInt32(out var version) || version is < 1 or > 2 ||
+            !versionElement.TryGetInt32(out var version) || version is < 1 or > 3 ||
             version == 1 && bytes.Length > LegacyMaximumStateBytes)
             throw new JsonException("Unsupported UID state version or length.");
         var names = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in document.RootElement.EnumerateObject())
             if ((!StateKeys.Contains(property.Name, StringComparer.Ordinal) &&
-                !(version == 2 && property.Name == "Operations")) || !names.Add(property.Name))
+                !(version >= 2 && property.Name == "Operations") &&
+                !(version == 3 && property.Name == "ProducerIntents")) || !names.Add(property.Name))
                 throw new JsonException("Unknown or duplicate UID state property.");
-        if (names.Count != StateKeys.Length + (version == 2 ? 1 : 0)) throw new JsonException("Missing UID state property.");
+        if (names.Count != StateKeys.Length + (version >= 2 ? 1 : 0) + (version == 3 ? 1 : 0))
+            throw new JsonException("Missing UID state property.");
         ValidateOperationJson(document.RootElement, version);
+        ValidateProducerIntentJson(document.RootElement, version);
         var state = JsonSerializer.Deserialize<RegistryState>(bytes) ?? throw new JsonException("Missing UID state.");
         if (!Guid.TryParseExact(state.Domain, "N", out var domain) || domain == Guid.Empty ||
             string.IsNullOrWhiteSpace(state.HistoricalEvidence) || state.HistoricalEvidence.Length > 4096 ||
@@ -57,6 +60,7 @@ internal sealed partial class LegacyItemUidRegistry
                 string.IsNullOrWhiteSpace(value) || !Path.IsPathFullyQualified(value)))
             throw new JsonException("Invalid UID state values.");
         ValidateOperationState(state);
+        ValidateProducerIntentState(state);
         return state;
     }
 }

@@ -28,10 +28,11 @@ internal static partial class LegacyTradeJournal
         {
             3 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "Domain"),
             4 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "MailboxDomain"),
+            5 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "MailboxGearDomain"),
             _ => GetProperties(rootElement, "Version", "TransactionId", "Changes"),
         };
         if (root["Version"].ValueKind != JsonValueKind.Number ||
-            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4) ||
+            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5) ||
             root["TransactionId"].ValueKind != JsonValueKind.String)
             throw new JsonException("Unsupported journal version or identity.");
         var transactionId = root["TransactionId"].GetString();
@@ -52,10 +53,12 @@ internal static partial class LegacyTradeJournal
         }
         var result = changes.ToArray();
         ValidateChanges(result, version);
+        if (version == 5) RequireMailboxGearOrder(result);
         return new(version, transactionId!, result)
         {
             Domain = version == 3 ? ReadQuestDomain(root["Domain"]) : null,
             MailboxDomain = version == 4 ? ReadMailboxDomain(root["MailboxDomain"]) : null,
+            MailboxGearDomain = version == 5 ? ReadMailboxGearDomain(root["MailboxGearDomain"]) : null,
         };
     }
 

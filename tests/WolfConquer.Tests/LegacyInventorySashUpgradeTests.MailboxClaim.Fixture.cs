@@ -199,7 +199,8 @@ public sealed partial class LegacyInventorySashUpgradeTests
         for (var index = 0; index < prefix.Count; index++) Assert.Equal(prefix[index], frames[index]);
         if (claimAll)
         {
-            Assert.True(LegacyMailListPacket.TryParse(ReadFrame(frames[prefix.Count]), out var refresh));
+            Assert.True(LegacyMailListPacket.TryParse(ReadFrame(frames[prefix.Count]),
+                ConquerProtocolProfile.VisibleDx8D13, out var refresh));
             Assert.Equal(LegacyMailListType.ClaimAllUpdate, refresh.Type);
             Assert.Equal(1, refresh.Count);
             var actual = Assert.Single(refresh.Mails);

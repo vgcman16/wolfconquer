@@ -1,5 +1,6 @@
 using System.Buffers;
 using WolfConquer.Core.Packets;
+using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
@@ -59,10 +60,15 @@ public sealed record LegacyMailListPacket(
         return new LegacyMailListPacket(LegacyMailListType.NewMail, Count: 0, [mail]);
     }
 
-    public static bool TryParse(PacketFrame frame, out LegacyMailListPacket packet)
+    public static bool TryParse(PacketFrame frame, out LegacyMailListPacket packet) =>
+        TryParse(frame, ConquerProtocolProfile.RootD11_7899, out packet);
+
+    public static bool TryParse(PacketFrame frame, ConquerProtocolProfile protocolProfile,
+        out LegacyMailListPacket packet)
     {
         packet = default!;
-        if (frame.Header.Opcode != Opcode)
+        if (protocolProfile is not (ConquerProtocolProfile.RootD11_7899 or ConquerProtocolProfile.VisibleDx8D13) ||
+            frame.Header.Opcode != Opcode)
         {
             return false;
         }
@@ -109,7 +115,7 @@ public sealed record LegacyMailListPacket(
                 case MailField:
                     if (wireType != LegacyProtoWire.LengthDelimitedWireType ||
                         !reader.TryReadLengthDelimited(out var mailPayload) ||
-                        !TryParseMail(mailPayload, out var mail))
+                        !TryParseMail(mailPayload, protocolProfile, out var mail))
                     {
                         return false;
                     }
@@ -135,15 +141,18 @@ public sealed record LegacyMailListPacket(
         return true;
     }
 
-    public byte[] ToFrameBytes()
+    public byte[] ToFrameBytes() => ToFrameBytes(ConquerProtocolProfile.RootD11_7899);
+
+    public byte[] ToFrameBytes(ConquerProtocolProfile protocolProfile)
     {
+        var (titleField, senderField) = TextFields(protocolProfile);
         var payload = new List<byte>();
         LegacyProtoWire.WriteVarintField(payload, TypeField, checked((ulong)(int)Type));
         LegacyProtoWire.WriteVarintField(payload, CountField, checked((ulong)Count));
 
         foreach (var mail in Mails)
         {
-            LegacyProtoWire.WriteBytesField(payload, MailField, CreateMailPayload(mail));
+            LegacyProtoWire.WriteBytesField(payload, MailField, CreateMailPayload(mail, titleField, senderField));
         }
 
         var writer = new PacketWriter(Opcode, payload.Count);
@@ -151,7 +160,14 @@ public sealed record LegacyMailListPacket(
         return writer.ToArray();
     }
 
-    private static byte[] CreateMailPayload(LegacyMailListEntry mail)
+    private static (int Title, int Sender) TextFields(ConquerProtocolProfile protocolProfile) => protocolProfile switch
+    {
+        ConquerProtocolProfile.RootD11_7899 => (8, 9),
+        ConquerProtocolProfile.VisibleDx8D13 => (9, 10),
+        _ => throw new ArgumentOutOfRangeException(nameof(protocolProfile)),
+    };
+
+    private static byte[] CreateMailPayload(LegacyMailListEntry mail, int titleField, int senderField)
     {
         var payload = new List<byte>();
         LegacyProtoWire.WriteVarintField(payload, 1, mail.Id);
@@ -161,14 +177,17 @@ public sealed record LegacyMailListPacket(
         LegacyProtoWire.WriteVarintField(payload, 5, mail.ItemId);
         LegacyProtoWire.WriteVarintField(payload, 6, mail.EMoneyRecordType);
         LegacyProtoWire.WriteVarintField(payload, 7, mail.Flag);
-        LegacyProtoWire.WriteStringField(payload, 8, mail.Title);
-        LegacyProtoWire.WriteStringField(payload, 9, mail.SenderName);
+        // D13 numeric field8 is optional and opaque; no value is guessed or emitted.
+        LegacyProtoWire.WriteStringField(payload, titleField, mail.Title);
+        LegacyProtoWire.WriteStringField(payload, senderField, mail.SenderName);
         return [.. payload];
     }
 
-    private static bool TryParseMail(ReadOnlySpan<byte> payload, out LegacyMailListEntry mail)
+    private static bool TryParseMail(ReadOnlySpan<byte> payload, ConquerProtocolProfile protocolProfile,
+        out LegacyMailListEntry mail)
     {
         mail = default!;
+        var (titleField, senderField) = TextFields(protocolProfile);
         var reader = new LegacyProtoWire.Reader(payload);
         ulong id = 0;
         ulong money = 0;
@@ -186,6 +205,21 @@ public sealed record LegacyMailListPacket(
             if (!reader.TryReadTag(out var fieldNumber, out var wireType))
             {
                 return false;
+            }
+
+            if (fieldNumber == titleField)
+            {
+                if (wireType != LegacyProtoWire.LengthDelimitedWireType || !reader.TryReadString(out title))
+                    return false;
+                seen |= 1 << 7;
+                continue;
+            }
+            if (fieldNumber == senderField)
+            {
+                if (wireType != LegacyProtoWire.LengthDelimitedWireType || !reader.TryReadString(out senderName))
+                    return false;
+                seen |= 1 << 8;
+                continue;
             }
 
             switch (fieldNumber)
@@ -246,23 +280,9 @@ public sealed record LegacyMailListPacket(
 
                     seen |= 1 << 6;
                     break;
-                case 8:
-                    if (wireType != LegacyProtoWire.LengthDelimitedWireType ||
-                        !reader.TryReadString(out title))
-                    {
-                        return false;
-                    }
-
-                    seen |= 1 << 7;
-                    break;
-                case 9:
-                    if (wireType != LegacyProtoWire.LengthDelimitedWireType ||
-                        !reader.TryReadString(out senderName))
-                    {
-                        return false;
-                    }
-
-                    seen |= 1 << 8;
+                case 8 when protocolProfile == ConquerProtocolProfile.VisibleDx8D13:
+                    // Consume the known optional numeric wire field without assigning semantics.
+                    if (!TryReadMailVarint(ref reader, wireType, out _)) return false;
                     break;
                 default:
                     if (!reader.TrySkipField(wireType))

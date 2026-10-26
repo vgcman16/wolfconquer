@@ -1,3 +1,5 @@
+using WolfConquer.Core.Runtime;
+
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
@@ -9,6 +11,15 @@ public static partial class WorldPacketHandlers
     {
         if (!monster.Boss)
         {
+            return;
+        }
+
+        // The profile-specific codec can refuse unknown profiles. Validate before
+        // ranking consumption, mailbox mutation or persistence.
+        if (context.ProtocolProfile is not (ConquerProtocolProfile.RootD11_7899 or ConquerProtocolProfile.VisibleDx8D13))
+        {
+            await context.Log.WriteLineAsync("WorldServer skipped legacy boss harm-rank mail rewards; unsupported protocol profile.")
+                .ConfigureAwait(false);
             return;
         }
 
@@ -71,7 +82,7 @@ public static partial class WorldPacketHandlers
             var mailListEntry = LegacyMailListPacket.FromMailboxEntry(storedMail, now);
 
             await active.Connection.SendAsync(
-                    LegacyMailListPacket.NewMail(mailListEntry).ToFrameBytes(),
+                    LegacyMailListPacket.NewMail(mailListEntry).ToFrameBytes(context.ProtocolProfile),
                     cancellationToken)
                 .ConfigureAwait(false);
             await active.Connection.SendAsync(

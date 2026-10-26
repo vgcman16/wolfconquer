@@ -2,7 +2,7 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-internal enum LegacyTradeJournalFileKind { Character, Items, Quests, Mailbox }
+internal enum LegacyTradeJournalFileKind { Character, Items, Quests, Mailbox, CombatGear }
 
 internal sealed record LegacyTradeJournalChange(
     LegacyTradeJournalFileKind Kind, long FileId, byte[]? Before, byte[] After);

@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.Packets;
+using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
@@ -36,6 +37,13 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (context.ProtocolProfile is not (ConquerProtocolProfile.RootD11_7899 or ConquerProtocolProfile.VisibleDx8D13))
+        {
+            await context.Log.WriteLineAsync("WorldServer skipped LegacyMailList; unsupported protocol profile.")
+                .ConfigureAwait(false);
+            return;
+        }
+
         var uid = CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid));
         var now = DateTime.Now;
         var mails = mailboxes.List(uid)
@@ -55,7 +63,7 @@ public static partial class WorldPacketHandlers
                 LegacyMailListType.FullPage,
                 Count: 1,
                 Mails: page);
-            await context.Connection.SendAsync(response.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+            await context.Connection.SendAsync(response.ToFrameBytes(context.ProtocolProfile), cancellationToken).ConfigureAwait(false);
             responseCount++;
         }
 

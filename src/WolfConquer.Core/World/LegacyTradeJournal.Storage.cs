@@ -8,6 +8,7 @@ internal static partial class LegacyTradeJournal
     {
         internal string? Quests { get; init; }
         internal string? Mailbox { get; init; }
+        internal string? CombatGear { get; init; }
     }
 
     private sealed record JournalRecord(int Version, string TransactionId, LegacyTradeJournalChange[] Changes)
@@ -17,6 +18,8 @@ internal static partial class LegacyTradeJournal
         public QuestJournalDomain? Domain { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public MailboxJournalDomain? MailboxDomain { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public MailboxGearJournalDomain? MailboxGearDomain { get; init; }
     }
 
     private sealed record JournalTarget(string Path, LegacyTradeJournalChange Change);
@@ -54,7 +57,7 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(copied, version);
         // The single-owner API's failpoint contract is character first, then items.
         // Do not reorder v1: its established four-target contract remains unchanged.
-        if (version is 2 or 3 or 4) copied = copied.OrderBy(change => change.Kind).ToArray();
+        if (version is 2 or 3 or 4 or 5) copied = copied.OrderBy(change => change.Kind).ToArray();
         return new(version, Guid.NewGuid().ToString("N"), copied);
     }
 
@@ -64,11 +67,17 @@ internal static partial class LegacyTradeJournal
         2 => 2,
         3 => 3,
         4 => 3,
+        5 => 4,
         _ => throw new ArgumentException("Unsupported journal version."),
     };
 
     private static void ValidateChanges(LegacyTradeJournalChange[] changes, int version)
     {
+        if (version == 5)
+        {
+            ValidateMailboxGearChanges(changes);
+            return;
+        }
         if (version == 4)
         {
             ValidateMailboxChanges(changes);
@@ -98,6 +107,7 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(record.Changes, record.Version);
         if (record.Version == 3) return GetQuestTargets(roots, record);
         if (record.Version == 4) return GetMailboxTargets(roots, record);
+        if (record.Version == 5) return GetMailboxGearTargets(roots, record);
         var targets = record.Changes.Select(change => new JournalTarget(Path.Combine(
             change.Kind == LegacyTradeJournalFileKind.Character ? roots.Users : roots.Items,
             change.FileId.ToString(CultureInfo.InvariantCulture) +

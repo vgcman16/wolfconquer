@@ -1,5 +1,6 @@
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Packets;
+using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
@@ -73,7 +74,7 @@ public static partial class WorldPacketHandlers
                 next = next.WithClearedItemId();
             }
             replacements[mail.Id] = next;
-            if (all) frames.Add(PrepareMailboxClaimRefresh(next, now));
+            if (all) frames.Add(PrepareMailboxClaimRefresh(next, now, baseline.Owner.Context.ProtocolProfile));
         }
         if (all || selected.Length != 0) frames.Add(packet.ToFrameBytes());
         if (!LegacyItemSaveGraph.TryCapture(updated.PlayerItems, out var after) ||
@@ -107,7 +108,8 @@ public static partial class WorldPacketHandlers
         return ReferenceEquals(character, session.Character) ? session : session with { Character = character };
     }
 
-    private static byte[] PrepareMailboxClaimRefresh(LegacyMailboxEntry mail, DateTime now) =>
+    private static byte[] PrepareMailboxClaimRefresh(LegacyMailboxEntry mail, DateTime now,
+        ConquerProtocolProfile protocolProfile) =>
         new LegacyMailListPacket(LegacyMailListType.ClaimAllUpdate, 1,
-            [LegacyMailListPacket.FromMailboxEntry(mail, now)]).ToFrameBytes();
+            [LegacyMailListPacket.FromMailboxEntry(mail, now)]).ToFrameBytes(protocolProfile);
 }

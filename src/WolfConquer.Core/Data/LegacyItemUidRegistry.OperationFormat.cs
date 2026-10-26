@@ -11,7 +11,8 @@ internal sealed partial class LegacyItemUidRegistry
     {
         if (version == 1) return;
         if (!root.TryGetProperty("Operations", out var operations) || operations.ValueKind != JsonValueKind.Array ||
-            operations.GetArrayLength() is < 1 or > MaximumOperationReceipts)
+            operations.GetArrayLength() > MaximumOperationReceipts ||
+            version == 2 && operations.GetArrayLength() == 0)
             throw new JsonException("Invalid UID operation receipt count.");
         foreach (var operation in operations.EnumerateArray())
         {
@@ -31,7 +32,8 @@ internal sealed partial class LegacyItemUidRegistry
             if (state.Operations is not null) throw new JsonException("Legacy UID state contains operations.");
             return;
         }
-        if (state.Operations is not { Length: >= 1 and <= MaximumOperationReceipts })
+        if (state.Operations is null || state.Operations.Length > MaximumOperationReceipts ||
+            state.Version == 2 && state.Operations.Length == 0)
             throw new JsonException("Missing UID operation receipts.");
         var identities = new HashSet<string>(StringComparer.Ordinal);
         ulong previousGeneration = 0;

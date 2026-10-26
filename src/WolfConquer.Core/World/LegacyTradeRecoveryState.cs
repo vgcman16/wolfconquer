@@ -6,6 +6,13 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
 {
     private readonly string? _questsRoot;
     private readonly string? _mailboxRoot;
+    private readonly string? _combatGearRoot;
+
+    internal LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot, string? questsRoot, string? mailboxRoot,
+        string? combatGearRoot) : this(usersRoot, itemsRoot, questsRoot, mailboxRoot)
+    {
+        _combatGearRoot = combatGearRoot;
+    }
 
     internal LegacyTradeRecoveryState(string? usersRoot, string? itemsRoot, string? questsRoot, string? mailboxRoot)
         : this(usersRoot, itemsRoot, questsRoot)
@@ -96,6 +103,24 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
         }
     }
 
+    internal bool IsReadyForMailboxGear(string? expectedUsersRoot, string? expectedItemsRoot,
+        string? expectedMailboxRoot, string? expectedCombatGearRoot)
+    {
+        lock (_gate)
+        {
+            if (!IsReadyForMailbox(expectedUsersRoot, expectedItemsRoot, expectedMailboxRoot) ||
+                string.IsNullOrWhiteSpace(_combatGearRoot) || string.IsNullOrWhiteSpace(expectedCombatGearRoot) ||
+                !Path.IsPathFullyQualified(_combatGearRoot) || !Path.IsPathFullyQualified(expectedCombatGearRoot)) return false;
+            try
+            {
+                return SameReadyRoot(_combatGearRoot, expectedCombatGearRoot) &&
+                    LegacyTradeJournal.IsMailboxGearDomainConfigured(usersRoot!, itemsRoot!, _mailboxRoot!, _combatGearRoot);
+            }
+            catch (Exception error) when (error is ArgumentException or NotSupportedException or System.Security.SecurityException)
+            { return false; }
+        }
+    }
+
     private static bool SameReadyRoot(string first, string second) => string.Equals(
         Path.TrimEndingDirectorySeparator(Path.GetFullPath(first)),
         Path.TrimEndingDirectorySeparator(Path.GetFullPath(second)),
@@ -128,7 +153,7 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
                         return false;
                     }
                 }
-                else if (!LegacyTradeJournal.TryRecover(usersRoot, itemsRoot, _questsRoot, _mailboxRoot, out _, out reason))
+                else if (!LegacyTradeJournal.TryRecover(usersRoot, itemsRoot, _questsRoot, _mailboxRoot, _combatGearRoot, out _, out reason))
                 {
                     Block(reason);
                     return false;

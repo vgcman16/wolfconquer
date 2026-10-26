@@ -12,7 +12,7 @@
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Bag/warehouse moves validate closure, PIN, capacity and escrow before persisted success; emptied-bank presence stays with its owner. Mailbox claims/deletion use three-file recovery before replies; full inventories receive only an error. Strict loads and prepared atomic saves protect images. Unsupported package payouts refuse before effects. Keyed UID retries have component proof; production item creation and native SaveClient/adoption remain unfinished.",
+      "implemented": "Bag/warehouse moves validate PIN, capacity and escrow before persisted success. Mailbox claims/deletion use three-file recovery; full bags receive only an error. D13 text fields follow the client. Strict loads/saves protect images. Durable UID intent and four-file Gear journals have component proof; package payouts stay fenced. Production item creation and native SaveClient/adoption remain unfinished.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {

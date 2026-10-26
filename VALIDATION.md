@@ -1,5 +1,14 @@
 # Publication validation
 
+## D13 mailbox text and reward-recovery prerequisites
+
+Focused42305 passed1593/1593 with no skips: retained1027 mailbox/UID/journal,
+545existing boss cases and21new D13 cases. Actual D13 Frame tests failed5/5
+before the text-tag correction. D13 uses title9/sender10; default D11 bytes stay
+unchanged. Registry v3 retains producer intent before allocation; typed journal
+v5 adds strict CombatGear participation. These are prerequisites with no Host or
+package activation. This successor awaits its complete Windows CI gate.
+
 ## Full-inventory mailbox rejection
 
 Tests-first4/4 failed on excess output; corrected focused944/944 passed with no

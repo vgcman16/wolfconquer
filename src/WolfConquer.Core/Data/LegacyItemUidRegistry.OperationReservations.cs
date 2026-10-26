@@ -44,6 +44,9 @@ internal sealed partial class LegacyItemUidRegistry
             { reason = "itemUidDomainMismatch"; return LegacyItemUidReservationOutcome.Rejected; }
 
             var operationId = request.OperationId.ToString("N");
+            // Intent-owned operations never issue a legacy materialization token.
+            if (state.ProducerIntents?.Any(row => row.OperationId == operationId) == true)
+            { reason = "itemUidProducerIntentOwnsOperation"; return LegacyItemUidReservationOutcome.Rejected; }
             var existing = state.Operations?.FirstOrDefault(row => row.OperationId == operationId);
             if (existing is not null)
                 return ReadRecordedOperation(request, existing, out receipt, out reason);
@@ -58,7 +61,7 @@ internal sealed partial class LegacyItemUidRegistry
             var operations = new OperationReservation[(state.Operations?.Length ?? 0) + 1];
             state.Operations?.CopyTo(operations, 0);
             operations[^1] = row;
-            var next = state with { Version = 2, Generation = row.Generation,
+            var next = state with { Version = Math.Max(2, state.Version), Generation = row.Generation,
                 HighWater = state.HighWater + (uint)request.Count, Operations = operations };
             // Prepare all return objects before crossing the durable boundary.
             var prepared = Reservation.Prepare(this, request.Count);

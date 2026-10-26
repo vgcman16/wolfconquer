@@ -1486,6 +1486,30 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-098: Select the client-confirmed D13 mailbox text fields explicitly
+
+- Source: LegacyMailListPacket used title8/sender9 for every profile. Cached DX8
+  D13 client SHA256 D13B45BD2681DB7D3D8548EA575D89E0D05613BA00E8F9763DBF3F89030402A5
+  has numeric optional8 and strings9/10 (CMailInfoPB serializerD539b3). Its parser
+  tag40 branch and actual initialization check permit omitting opaque numeric8.
+- Explicit D13 serialization/parsing now uses strings9/10 without inventing8.
+  Listing, committed ClaimAll refreshes and NewMail select the known host profile.
+  Default RootD11 bytes remain unchanged; this is not a new D11 native-schema claim.
+  Unknown profiles refuse before listing-cache or boss-ranking/mail mutations.
+- Current-API Frame baseline72346 failed5/5 solely on literal8/9 versus9/10 tags.
+  Final42305 passed1593/1593,0skips,20s: all1027prior mailbox/UID/journal rows,
+  545existing boss rows and21new D13 rows (5Frame,14literal codec,2producer).
+  Golden bytes, optional8, cross-profile refusal, all three senders, postcommit
+  ordering/replay and full-bag error-only behavior are covered.
+- Initial28538 stopped before tests for a missing test System.Buffers import.
+  Next61138 passed1591/1593; two producer cases stopped before invocation because
+  lethal-only damage creates no harm-ranking row. Root seeded a real nonlethal
+  hit before the kill, retaining every state/output assertion. No product rule
+  or test coverage was weakened to obtain the final result.
+- Static binary and owned handler proof are not current client rendering or
+  authenticated native ownership. Full successor Windows CI remains pending;
+  opaque8 semantics, broader schema, package payout and live acceptance stay OPEN.
+
 ### FSB-097: Do not acknowledge mailbox claims rejected for a full inventory
 
 - Source: the managed capacity branch retained the community server's mode4
@@ -1589,6 +1613,19 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ### Durable UID component continuation (FSB-036 remains open)
 
+- Registry-owned v3 producer intents now persist bounded immutable payload bytes
+  before range allocation in the real pending/state owner. Exact binding and
+  range remain discoverable after restart; this API returns reconciliation data,
+  never a replacement materialization token or permission to publish items.
+  Old token operations cannot adopt intent-owned IDs, and intents cannot adopt
+  an earlier legacy reservation. V1/v2 bytes and unrelated token lifetimes remain.
+- Root reviewed8production files and3test partials;16143 passed169/169 with no
+  skips,10s: all118prior outcomes retained plus51new intent/recovery/bounds cases.
+  The new API had no compilable behavioral baseline; no measured RED is claimed.
+  Limits:128permanent intents,8192bytes each,256KiB aggregate; no compaction or
+  completion protocol. Canonical business payload schema, live player authority,
+  reward-journal composition/publication and Host/global UID adoption stay OPEN.
+
 - The existing genuine leased registry now binds a stable operation GUID,
   expected domain, writer/account/character, canonical digest and range count to
   its durable high-water transaction. An identical replay returns its receipt
@@ -1605,6 +1642,25 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   the producer journal does not gain a replacement token. No global UID or
   package-grant completion is claimed; FSB-036 stays open. Full public91501b34
   LOCAL/GitHub gates above pass without activating a producer or Host.
+
+### Joint mailbox/gear component continuation (package payout remains open)
+
+- Typed journal v5 adds exactly Character/Items/Mailbox/CombatGear in canonical
+  order to the real shared pending/replacement/recovery engine. Four explicit
+  disjoint roots and exact before/after images are required; current Host does
+  not supply or infer the Gear recovery root. V1-v4 shapes/order remain unchanged.
+- Gear images must match the existing canonical UTF8 writer after counts are
+  bounded by actual sections/keys. Missing/corrupt images cannot become Empty
+  owner evidence. This strict component is not a migration or public-loader fix.
+- Root reviewed3new production partials,5glue diffs and3test partials. Candidate
+  42353 passed1027/1027 with0skips,14s: retained944 plus51intent and32gear cases.
+  Actual outcomes include all five recovery prefixes, fourth-target Windows
+  sharing failure/rollback/retry, wrong roots, malformed records and v4 controls.
+  New API baseline lacks compilation; no behavioral RED is claimed.
+- No handler/Host activation, live payout, shared native/Ninja authority, atomic
+  UID/business commit, outbox, power-loss or raw-writer proof follows. Canonical
+  business intent, genuine participants, reconciliation/publication and current
+  actual-client acceptance stay OPEN. Full package claims remain refused.
 
 ### FSB-092: Commit mailbox item and currency claims as one recoverable outcome
 
@@ -2510,7 +2566,7 @@ proved by the isolated UID-adoption proposals.
 | FSB-033 | Final comparer can change earlier state or prepared native loan metadata | Pure complete state and exact live frame checks after last comparer | Scoped status/flag/potion paths verified2392; general packet/raw-writer audit open |
 | FSB-034 | Rune insertion/cache publication can split; Count wraps; public arrays corrupt ownership | Complete owned staged publication, exact count and explicit unavailable queries | Scoped storage verified2896; full equip/load/save/economy/host remains open |
 | FSB-035 | Refinement publishes before late status failure or spends chance/stamina before preparation | Complete real state/frames before scoped proc acceptance | Scoped procs verified3065 both trees and full Windows39958461749; full cast/HP remains open |
-| FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator118/118 incl65keyed-receipt rows and full91501b34 LOCAL/GitHub gates pass; host activation, trusted migration, producer-intent recovery and all-producer adoption HOLD |
+| FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator169/169 incl51durable-intent cases; v3 remains a component prerequisite. Host activation, trusted migration, reward-journal reconciliation and all-producer adoption HOLD |
 | FSB-037 | Native save truncates before validation, persists prefixes or loses nested deposits | Complete owned image and truthful atomic file outcome before acknowledgement | Scoped native save verified3116 both trees and full Windows39959714814; host/loader/SQL recovery open |
 | FSB-038 | Fixed32 text reads/writes escape buffers or retain stale tails | Bounded field access, validate before write and explicit null admission | Scoped record verified34cases within3116 both trees; full load/postlude audit open |
 | FSB-039 | Selected DivineGuard resets cooldown and publishes refinement before fallible status work | Complete real preparation and final ownership before stamp/status/draw effects | Scoped proc verified3214 both trees; outer authorization/combat/HP/host remains open |

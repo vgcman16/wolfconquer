@@ -12,7 +12,11 @@ internal static partial class LegacyTradeJournal
         TryRecover(usersRoot, itemsRoot, questsRoot, mailboxRoot: null, out recovered, out reason);
 
     internal static bool TryRecover(string usersRoot, string itemsRoot, string? questsRoot, string? mailboxRoot,
-        out int recovered, out string reason)
+        out int recovered, out string reason) =>
+        TryRecover(usersRoot, itemsRoot, questsRoot, mailboxRoot, combatGearRoot: null, out recovered, out reason);
+
+    internal static bool TryRecover(string usersRoot, string itemsRoot, string? questsRoot, string? mailboxRoot,
+        string? combatGearRoot, out int recovered, out string reason)
     {
         recovered = 0;
         reason = string.Empty;
@@ -46,6 +50,15 @@ internal static partial class LegacyTradeJournal
                     return false;
                 }
                 roots = GetMailboxRoots(usersRoot, itemsRoot, mailboxRoot);
+            }
+            if (record.Version == 5)
+            {
+                if (string.IsNullOrWhiteSpace(mailboxRoot) || string.IsNullOrWhiteSpace(combatGearRoot))
+                {
+                    reason = RecoveryRequired + ":mailboxOrCombatGearRootMissing";
+                    return false;
+                }
+                roots = GetMailboxGearRoots(usersRoot, itemsRoot, mailboxRoot, combatGearRoot);
             }
             var targets = GetTargets(roots, record);
             var lockedReason = string.Empty;
