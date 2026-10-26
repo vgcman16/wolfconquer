@@ -17,7 +17,7 @@
     },
     {
       "id": "combat", "title": "Combat, monsters and death", "status": "partial",
-      "implemented": "Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof. Physical monster admission now validates actual minimum-damage, Rune, Gear and conditional Ninja owners before output/RNG; the explicit full-adjustment sentinel returns its intended maximum.",
+      "implemented": "Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof. Physical monster admission validates actual minimum-damage, Rune, Gear and conditional Ninja owners before output/RNG; the full-adjustment sentinel returns its intended maximum. Equipped sigils use owned snapshots and reject missing selected metadata before damage or cooldown spending.",
       "remaining": "Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios."
     },
     {
@@ -43,7 +43,7 @@
     },
     {
       "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
-      "detail": "Public e9f472f3 passes all eight clean Windows LOCAL stages (25,032 core passes; 165 existing exclusions), updater305/305, launcher57/57 and synthetic parsers20+13. Actual-client acceptance, GitHub CI and deployment are separate and not yet proven."
+      "detail": "Public 1e042149 passes all eight clean Windows LOCAL stages (25,071 core passes; 165 existing exclusions), updater305/305, launcher57/57 and synthetic parsers20+13. Actual-client acceptance, GitHub CI and deployment are separate and not yet proven."
     },
     {
       "id": "english", "title": "Complete English client", "status": "in-progress",

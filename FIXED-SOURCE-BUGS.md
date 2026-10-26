@@ -4,7 +4,23 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted LOCAL integration gate — coherent mailbox parsing GREEN
+## Latest accepted LOCAL integration gate — equipped sigil ownership GREEN
+
+Exact public `1e042149367ae8f784bb88825844d31884b07d7a` was extracted from a
+tracked-only git archive (5434files) into a fresh owned Temp workspace. Local
+session53716/receipt20261026T043853717Z-31626f9e finished2026-10-26T04:44:05.2731019Z;
+all8sequential stages exited0. Root read terminal receipt, actual TRX counters/
+outcome groups and stage logs: core **25071passed/0failed**,165existing NotExecuted
+rows (25236total); updater305/305, launcher57/57, synthetic parsers20+13 (no HTTP/
+services). Build190warnings/0errors,72.90s. All39new sigil cases, the corrected
+missing-metadata fact, four retained cooldown clamp controls and all43mailbox
+envelope cases pass. Public source was normal-fast-forward pushed and exact
+remote verified after this gate passed. This is Windows LOCAL proof, NOT GitHub
+CI, current actual-client acceptance, full Ninja/cast/mailbox transactions,
+complete English, deployment or full parity. Running sessions, original saves,
+protected clients, endpoints and60held Guild/Union paths remain unchanged.
+
+## Previous accepted LOCAL integration gate — coherent mailbox parsing GREEN
 
 Exact public `e9f472f338400f6d501146e664a32a253d8bcd09` was extracted from a
 tracked-only git archive (5427files) into a fresh owned Temp workspace. Local
@@ -1494,7 +1510,7 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   present but has no new forced-window test. Other DBItem placeholder consumers,
   full Ninja loading/profile repair, packet lifetime, complete cast/economy
   transactions, actual-client and native dispatch adoption remain open. Full
-  clean-public LOCAL successor/GitHub CI/live acceptance remain pending. No
+  clean-public LOCAL1e042149 passes above; GitHub CI/live remain unproved. No
   formula, wire layout, original data, live process or endpoint was changed.
 
 ### FSB-090: Bound mailbox counts and validate their physical packet envelope
