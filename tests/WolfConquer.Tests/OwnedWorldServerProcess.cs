@@ -24,6 +24,14 @@ internal sealed class OwnedWorldServerProcess : IAsyncDisposable
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
     internal OwnedWorldServerProcess(LegacyOwnedAdmissionRuntimeFixture data, bool encrypted, bool configured, bool listen)
+        : this(data.Users, data.Root, data.ConfigPath, encrypted, configured, listen) { }
+
+    internal OwnedWorldServerProcess(LegacyOwnedAdmissionOptions options, string ownedRoot,
+        string configurationPath, bool encrypted)
+        : this(options.UsersRoot, ownedRoot, configurationPath, encrypted, configured: true, listen: true) { }
+
+    private OwnedWorldServerProcess(string usersRoot, string ownedRoot, string configurationPath,
+        bool encrypted, bool configured, bool listen)
     {
         process = TestProjectProcess.Create(FindRepositoryRoot(), "WolfConquer.WorldServer");
         // Clear ambient routes/options/secrets so no original saves, SQL or live
@@ -31,14 +39,14 @@ internal sealed class OwnedWorldServerProcess : IAsyncDisposable
         foreach (var key in process.StartInfo.Environment.Keys.Where(key => key.StartsWith("WOLFCONQUER_", StringComparison.OrdinalIgnoreCase)).ToArray())
             process.StartInfo.Environment.Remove(key);
         var env = process.StartInfo.Environment;
-        env[CharacterSnapshotOptions.UsersRootEnvironmentVariable] = data.Users;
-        env[WorldDataOptions.SeedJsonEnvironmentVariable] = Path.Combine(data.Root, "seed");
+        env[CharacterSnapshotOptions.UsersRootEnvironmentVariable] = usersRoot;
+        env[WorldDataOptions.SeedJsonEnvironmentVariable] = Path.Combine(ownedRoot, "seed");
         env[ConquerProtocolProfileConfiguration.EnvironmentVariable] = nameof(ConquerProtocolProfile.VisibleDx8D13);
         env[LegacyLocalServerIdentity.ServerIdEnvironmentVariable] = "2";
-        env["WOLFCONQUER_OWNED_ADMISSION_CONFIG"] = configured ? data.ConfigPath : "";
+        env["WOLFCONQUER_OWNED_ADMISSION_CONFIG"] = configured ? configurationPath : "";
         // These are synthetic test handoff inputs, not account credentials. Keep
         // Program's genuine existing service/config path enabled in both modes.
-        env[AccountHandoffOptions.StoreRootEnvironmentVariable] = Path.Combine(data.Root, "handoff");
+        env[AccountHandoffOptions.StoreRootEnvironmentVariable] = Path.Combine(ownedRoot, "handoff");
         env[AccountHandoffOptions.SigningSecretEnvironmentVariable] = "owned-host-synthetic-handoff-secret";
         env["WOLFCONQUER_RUNTIME_CLOCK_START_UTC"] = "2026-10-26T12:00:00Z";
         if (listen) process.StartInfo.ArgumentList.Add("--listen");

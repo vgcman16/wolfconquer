@@ -95,6 +95,8 @@ public sealed partial class LegacyOwnedAdmissionFixtureTests : IDisposable
 
     public void Dispose()
     {
+        if (collectionHost is { Stopped: false })
+            throw new IOException("Owned WorldServer is still active; collection-startup fixture retained: " + parent);
         var full = Path.GetFullPath(parent);
         var name = Path.GetFileName(full);
         const string prefix = "wolf-owned-fixture-tests-";

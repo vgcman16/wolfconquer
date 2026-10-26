@@ -6,6 +6,11 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## Current update - focused verification, public full gate pending
 
+Clean public-derived source now passes250/250 focused controls after complete
+networking dependency restoration and native saved collection defaults. A new
+local disposable client session also reaches world entry and movement. Full
+public CI remains pending; neither compilation-only failure is reclassified.
+
 Public ef868fa8 Windows40415429365 failed compilation only because the native network birth tests referenced an omitted helper (three CS0246 errors; no tests executed). The existing tested bounded capture helper is now included unchanged. This is publication dependency repair, not a new gameplay fix or a passing full-suite claim.
 
 The source successor contains FSB114-123 and the explicit saved-state startup /
@@ -292,6 +297,31 @@ superseded by this exact accepted run, not silently reclassified as passes.
 No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
+
+### FSB-124: Seed the native saved collection defaults in new test fixtures
+
+The offline creator omitted CollectionID/CollectionStorage. The existing safe
+snapshot packet API refused missing required ID, so real startup skipped2450
+before22210. Native ServerDatabase1102/1104 reads default0/empty, Save661/663
+persists the real owner as0 and canonical0/0/, and MsgLoginHandler32 always
+loads/sends that state before hero. Exact D13 binary2450/type0 also handles its
+zero/empty lists and final refresh. No general packet fallback or native owner
+was fabricated: only future fresh fixtures gain these two saved fields.
+
+Clean public-derived run1005 passes250/250, zero failures/skips, including4 new
+creator/CLI/public Frame/raw/encrypted Host goldens for2450 immediately after
+config and before22210. Existing collection5, native-birth5, Hairface164,
+fixture29, API40 and Host7 all pass. The four omitted networking partials and
+all11 PIN/ended-owner cases are restored as their original complete dependency
+scope. Both earlier public attempts failed compilation only; neither is green.
+
+A new disposable live fixture then sent2450, accepted actual manual account
+login, progressed through77/78/132, rendered map1002 and accepted observed
+movement. The previous fixture/processes were retained/retired deliberately;
+original saves/routes/client assets were not repaired. This is a bounded local
+client result, not full public CI, all gameplay/SQL/English/distribution parity,
+or proof of the old font-thread stall's internal mechanism. Character-model
+visibility is still being checked separately; keep the working session open.
 
 ### FSB-123: Bind explicit saved-state ownership in real WorldServer startup
 

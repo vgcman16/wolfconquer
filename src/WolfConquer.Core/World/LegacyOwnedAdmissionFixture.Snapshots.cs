@@ -69,6 +69,8 @@ public static partial class LegacyOwnedAdmissionFixture
         SecurityPass=0,0,0
         WHMoney=0
         DynamicID=0
+        CollectionID=0
+        CollectionStorage=0/0/
         Day={{day.ToString(CultureInfo.InvariantCulture)}}
 
         """;

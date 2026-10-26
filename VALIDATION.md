@@ -2,6 +2,21 @@
 
 ## Current source update - exact public full gate pending
 
+The complete networking helper/coverage scope and fresh collection-startup
+correction now pass **250/250** in a clean publicc15-derived source copy, zero
+failures/skips: collection5, native-birth5, Hairface164, fixture29, API40 andHost7.
+The29fixture cases include4 new API/CLI/raw/encrypted2450 wire-order controls.
+Both prior public attempts failed compilation only: ef868fa8/40415429365 omitted
+the socket capture helper; c15dd464/40416738052 then exposed omitted PIN methods
+(eight reported errors, no tests). All four original missing networking partials,
+including11 PIN/ended-owner cases, are restored as a complete reviewed scope.
+This clean component gate does not replace the new exact public full Windows run.
+
+A fresh local disposable fixture now sends2450 beforehero, completes actual
+manual login through77/78/132, renders map1002 and accepts observed movement.
+This is bounded local candidate/client evidence; full gameplay, model visibility,
+English, SQL, distribution and current-public acceptance remain separate.
+
 Exact public ef868fa8 failed [Windows40415429365](https://github.com/vgcman16/wolfconquer/actions/runs/40415429365), job121896451710: restore passed, build failed with three CS0246 errors for the omitted NativePlayerLoopbackOutputCapture test helper. No tests ran. The unchanged34-line bounded real-socket helper was already present in the owned candidate (its five network-birth cases passed in the broader run). This source now includes that dependency; its exact full Windows gate is pending. No production or assertion change repairs this omission.
 
 The last accepted public source is f21e2a11618aae5a1d77df422e488db6ab10025d.
