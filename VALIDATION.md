@@ -1,5 +1,14 @@
 # Publication validation
 
+## Full-inventory mailbox rejection
+
+Tests-first4/4 failed on excess output; corrected focused944/944 passed with no
+skips. Two new actual D13 Frame cases preserve session/cache/files on repeated
+rejection, then use a real persisted warehouse deposit and successful claim retry.
+Two old full-bag success-echo oracles were deliberately replaced; successful claim
+goldens remain unchanged. Complete GitHub Windows validation is pending for this
+successor. Static D13 numeric field5/cache+18 evidence is not live-client proof.
+
 ## Standalone mailbox package admission
 
 Tracked-only base6bde6187 plus eight reviewed source/test changes passed the full

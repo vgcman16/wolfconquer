@@ -10,6 +10,8 @@ public static partial class WorldPacketHandlers
         LegacyMailboxEntry[] Selected, byte[][] Frames, bool Changed)
     {
         internal KeyValuePair<string, string>[] UpdatedFields { get; } = Updated.Character.Attributes.ToArray();
+        internal bool HasAcknowledgement => Frames.Any(static frame =>
+            PacketHeader.TryRead(frame, out var header) && header.Opcode == WorldPacketOpcodes.LegacyMailboxMode);
     }
 
     private static bool TryPrepareLegacyMailboxClaims(LegacyMailboxClaimBaseline baseline,
@@ -51,9 +53,6 @@ public static partial class WorldPacketHandlers
         if (neededSlots != 0 && neededSlots > LegacyInventorySlots - expected.PlayerItems.InventoryItems.Count)
         {
             frames.Add(LegacyMsgMessagePacket.SystemTalk("STR_BAG_FULL@@").ToFrameBytes());
-            if (all)
-                foreach (var mail in selected) frames.Add(PrepareMailboxClaimRefresh(mail, now));
-            frames.Add(packet.ToFrameBytes());
             plan = new(baseline, expected, baseline.Items, baseline.Mail.Project(replacements), distinct, frames.ToArray(), false);
             reason = string.Empty;
             return true;

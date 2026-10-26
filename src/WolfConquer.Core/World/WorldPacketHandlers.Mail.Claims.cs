@@ -83,7 +83,7 @@ public static partial class WorldPacketHandlers
         await context.Log.WriteLineAsync($"WorldServer handled LegacyMailboxMode type={packet.Type} id={packet.Id} " +
             $"money={delivery.Updated.Character.Money - delivery.Baseline.Owner.Expected.Character.Money} " +
             $"eMoney={delivery.Updated.Character.ConquerPoints - delivery.Baseline.Owner.Expected.Character.ConquerPoints} " +
-            $"committed={delivery.Changed} ack={delivery.Frames.Length != 0}.").ConfigureAwait(false);
+            $"committed={delivery.Changed} ack={delivery.HasAcknowledgement}.").ConfigureAwait(false);
     }
 
     private static bool IsMailboxClaimPreparationFailure(Exception error) => error is IOException or UnauthorizedAccessException or

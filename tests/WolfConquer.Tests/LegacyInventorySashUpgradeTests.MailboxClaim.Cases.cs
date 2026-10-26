@@ -117,7 +117,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
     });
 
     [Fact]
-    public Task ActualD13FrameMailboxCapacityReceiptPreservesCompleteFilesAndAttachment() => RunAsync(async fixture =>
+    public Task ActualD13FrameMailboxCapacityRefusalPreservesCompleteFilesAndAttachmentWithoutClaimReply() => RunAsync(async fixture =>
     {
         await fixture.EnterAtomicMailFrameAsync(inventoryCount: 40);
         var before = fixture.CaptureTransferFrame();
@@ -126,15 +126,14 @@ public sealed partial class LegacyInventorySashUpgradeTests
 
         fixture.AssertFiles(before.Files);
         var frames = fixture.Sent.Skip(before.FrameCount).ToArray();
-        Assert.Equal(2, frames.Length);
-        Assert.Equal(LegacyMsgMessagePacket.SystemTalk("STR_BAG_FULL@@").ToFrameBytes(), frames[0]);
-        Assert.Equal(Fixture.AtomicMailRequest(), frames[1]); // Source-shaped echo; client effect remains unverified.
+        Assert.Equal(LegacyMsgMessagePacket.SystemTalk("STR_BAG_FULL@@").ToFrameBytes(), Assert.Single(frames));
+        Assert.DoesNotContain(frames, bytes => ReadFrame(bytes).Header.Opcode is
+            WorldPacketOpcodes.LegacyMailboxMode or WorldPacketOpcodes.LegacyMailList);
         var repeatFirst = fixture.Sent.Count;
         await fixture.FrameAsync(Fixture.AtomicMailRequest());
         fixture.AssertFiles(before.Files);
-        Assert.Equal(frames[0], fixture.Sent[repeatFirst]);
-        Assert.Equal(frames[1], fixture.Sent[repeatFirst + 1]);
-        Assert.Equal(repeatFirst + 2, fixture.Sent.Count);
+        Assert.Equal(frames[0], Assert.Single(fixture.Sent.Skip(repeatFirst)));
+        Assert.Equal(repeatFirst + 1, fixture.Sent.Count);
     });
 
     [Fact]

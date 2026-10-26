@@ -1486,6 +1486,25 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-097: Do not acknowledge mailbox claims rejected for a full inventory
+
+- Source: the managed capacity branch retained the community server's mode4
+  echo; ClaimAll also emitted a mail refresh despite rejecting the whole move.
+- Capacity rejection now sends only STR_BAG_FULL@@, preserving session, wallet,
+  complete files and exact cached rows. Successful claim bytes/order stay intact.
+  The ack diagnostic checks actual prepared mailbox-mode frames, not frame count.
+- Tests-first49404:4failed/0passed/0skipped, all excess-output failures. Corrected
+ 34238:944passed/0failed/0skipped,18s. Two new actual D13 Frame rows and two
+  explicit unsafe-oracle migrations pass. Repeated failures leave state unchanged;
+  a genuine bank8 deposit frees a slot, then the same attachment claims and safely
+  replays through the real handler with persistence checked before each reply.
+- D13 static evidence shows a mode4 reply posts0xf0e and its conditional consumer
+  clears cached row+18; protobuf numeric field5 maps to that word. This makes an
+  error echo unsafe to assume harmless. Runtime HWND binding and actual client
+  rendering remain unproved; no specific rendered-loss claim is made.
+- Complete GitHub Windows validation for this successor is pending. Package payout,
+  shared native graph, SQL, outbox/delivery and current client acceptance stay OPEN.
+
 ### FSB-096: Refuse unowned standalone mailbox packages before rewards
 
 - Source: managed ClaimRecordType used session-local new-item UIDs, a missing
@@ -1505,7 +1524,7 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 - Package payout remains OPEN until a real live UID producer, stable durable
   reward intent/receipt reconciliation and joint gear/Ninja/package journal owners
   exist. Snapshot presence or a component reservation is not that authority.
-  The mode4 full-bag client-cache effect remains under D13 binary trace.
+  FSB097 removes the full-bag success echo; runtime client rendering remains open.
   Fresh tracked-source LOCAL passed25193core+165existing exclusions, updater305,
   launcher57, all8stages0; receipt20261026T064543721Z-2f26492d. GitHub full Windows
   for this successor and actual-client acceptance remain separate;
@@ -1606,8 +1625,9 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 - ClaimMoney keeps attachment/Flag and works with a full bag. Mixed Flag-zero
   claims commit wallet, attachment and mail together. Selected nonzero package
   flags refuse the whole ClaimAll: real package state and new-UID authority are
-  unresolved. Keep successful bytes/order and source-shaped bag-full mode4echo;
-  its actual-client UI effect remains UNVERIFIED, not claimed harmless.
+  unresolved. Successful bytes/order remain; FSB097 supersedes the earlier
+  source-shaped bag-full echo with an error-only reply. Actual UI acceptance
+  remains UNVERIFIED.
 - Tests-first29727:748pass/15fail of763,0skip. Money78628:0pass/10fail,0skip.
   Failures reproduced dirty files/cache, PIN bypass, overflow/stale admission or
   notification-before-durability. Corrected77436: **780/780**,0fail/skip,13s,

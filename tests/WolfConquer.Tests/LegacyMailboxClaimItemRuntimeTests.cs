@@ -65,7 +65,7 @@ public sealed class LegacyMailboxClaimItemRuntimeTests : IDisposable
     }
 
     [Fact]
-    public async Task ClaimItemWithFullInventorySendsBagFullKeepsItemAndStillAcks()
+    public async Task ClaimItemWithFullInventorySendsOnlyBagFullAndKeepsItem()
     {
         using var log = new StringWriter();
         var sent = new List<byte[]>();
@@ -85,10 +85,10 @@ public sealed class LegacyMailboxClaimItemRuntimeTests : IDisposable
                 MailId,
                 Items: []).ToFrameBytes()));
 
-        Assert.Equal(2, sent.Count);
+        Assert.Single(sent);
         AssertSystemTalk(sent[0], "STR_BAG_FULL@@");
-        // Legacy CMsgMailboxMode sends the ClaimItem ack after the full-bag message.
-        AssertMailboxAck(sent[1], LegacyMailboxModeType.ClaimItem, MailId, []);
+        Assert.DoesNotContain(sent, bytes => ReadFrame(bytes).Header.Opcode is
+            WorldPacketOpcodes.LegacyMailboxMode or WorldPacketOpcodes.LegacyMailList);
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
