@@ -6,8 +6,11 @@ Tests-first4/4 failed on excess output; corrected focused944/944 passed with no
 skips. Two new actual D13 Frame cases preserve session/cache/files on repeated
 rejection, then use a real persisted warehouse deposit and successful claim retry.
 Two old full-bag success-echo oracles were deliberately replaced; successful claim
-goldens remain unchanged. Complete GitHub Windows validation is pending for this
-successor. Static D13 numeric field5/cache+18 evidence is not live-client proof.
+goldens remain unchanged. GitHub Windows40283769355 on9a1a72bb passed all8stages,
+receipt20261026T070721633Z-6635ce0c ended2026-10-26T07:12:16Z: core25195pass plus
+165existing exclusions, updater305/305, launcher57/57, build157warnings/0errors.
+All14package/full-bag target outcomes pass. Static D13 numeric field5/cache+18
+evidence is not live-client proof.
 
 ## Standalone mailbox package admission
 

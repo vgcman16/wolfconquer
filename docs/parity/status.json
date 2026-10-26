@@ -12,7 +12,7 @@
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Bag/warehouse moves validate closure, PIN, capacity and escrow before persisted success; emptied-bank presence stays with its owner. Expired locks and validated houses save before output. Mailbox claims/deletion use three-file recovery before replies; strict loads and prepared atomic saves protect complete images. Keyed UID retries have component proof; production item creation and full native SaveClient/adoption remain unfinished.",
+      "implemented": "Bag/warehouse moves validate closure, PIN, capacity and escrow before persisted success; emptied-bank presence stays with its owner. Mailbox claims/deletion use three-file recovery before replies; full inventories receive only an error. Strict loads and prepared atomic saves protect images. Unsupported package payouts refuse before effects. Keyed UID retries have component proof; production item creation and native SaveClient/adoption remain unfinished.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
@@ -43,7 +43,7 @@
     },
     {
       "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
-      "detail": "Public 91501b34 passes all eight clean Windows LOCAL and GitHub Windows40277978050 stages (25,185 core passes; 165 unchanged existing exclusions), updater305/305, launcher57/57 and synthetic parsers20+13. The new81cases cover mailbox deletion/saves and UID receipts. Actual-client acceptance and deployment remain unproved."
+      "detail": "Public9a1a72bb passes all eight GitHub Windows40283769355 stages:25,195 core passes,165unchanged existing exclusions, updater305/305, launcher57/57 and synthetic parsers20+13. Package refusal and full-inventory error/retry checks pass. Package payout, actual-client acceptance and deployment remain unproved."
     },
     {
       "id": "english", "title": "Complete English client", "status": "in-progress",

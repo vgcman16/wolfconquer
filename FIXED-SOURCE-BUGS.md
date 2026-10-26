@@ -1494,7 +1494,7 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   complete files and exact cached rows. Successful claim bytes/order stay intact.
   The ack diagnostic checks actual prepared mailbox-mode frames, not frame count.
 - Tests-first49404:4failed/0passed/0skipped, all excess-output failures. Corrected
- 34238:944passed/0failed/0skipped,18s. Two new actual D13 Frame rows and two
+  34238:944passed/0failed/0skipped,18s. Two new actual D13 Frame rows and two
   explicit unsafe-oracle migrations pass. Repeated failures leave state unchanged;
   a genuine bank8 deposit frees a slot, then the same attachment claims and safely
   replays through the real handler with persistence checked before each reply.
@@ -1502,7 +1502,10 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   clears cached row+18; protobuf numeric field5 maps to that word. This makes an
   error echo unsafe to assume harmless. Runtime HWND binding and actual client
   rendering remain unproved; no specific rendered-loss claim is made.
-- Complete GitHub Windows validation for this successor is pending. Package payout,
+- GitHub Windows40283769355 on public9a1a72bb passed all8stages; actual runner
+  receipt20261026T070721633Z-6635ce0c ended2026-10-26T07:12:16.8894775Z.
+  Core25195pass+165existing exclusions, updater305/305, launcher57/57,
+  build157warnings/0errors. All14targeted package/full-bag outcomes pass. Package payout,
   shared native graph, SQL, outbox/delivery and current client acceptance stay OPEN.
 
 ### FSB-096: Refuse unowned standalone mailbox packages before rewards
@@ -1527,7 +1530,7 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   FSB097 removes the full-bag success echo; runtime client rendering remains open.
   Fresh tracked-source LOCAL passed25193core+165existing exclusions, updater305,
   launcher57, all8stages0; receipt20261026T064543721Z-2f26492d. GitHub full Windows
-  for this successor and actual-client acceptance remain separate;
+  on the later full-bag successor9a1a72bb also passed40283769355. Actual-client acceptance remains separate;
   no successful package transaction, Host activation or full parity is claimed.
 
 ### FSB-094: Commit mailbox deletion batches before cache removal or echoes

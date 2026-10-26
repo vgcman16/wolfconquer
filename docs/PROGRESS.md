@@ -5,6 +5,7 @@ Updated 2026-10-26. Not a percentage or a complete feature inventory.
 - [x] Sanitized C#/.NET 9 projects and constructed fixtures included.
 - [x] Later loader, player-state, equipment, spell, packet, and transport source changes imported with publication exclusions preserved.
 - [x] Latest tracked-source LOCAL Release gate: 25,193 core passed, 0 failed, 165 existing exclusions; updater305/305 and launcher57/57. Build157warnings/0errors. See [validation](../VALIDATION.md); this is separate from client acceptance.
+- [x] Public9a1a72bb passed GitHub Windows40283769355:25,195 core passes,165existing exclusions, updater305/305 and launcher57/57. Full-bag failures send only an error; unsupported package payouts remain fenced.
 - [x] Sequential check command and read-only local dashboard implemented and exercised.
 - [x] Owner-requested trusted-main Windows workflow defined; its results are separate from local validation.
 - [ ] Reduce existing complexity/large files without altering native ordering, arithmetic, or persistence behavior.
