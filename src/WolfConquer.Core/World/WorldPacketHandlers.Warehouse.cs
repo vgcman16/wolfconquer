@@ -50,7 +50,7 @@ public static partial class WorldPacketHandlers
 
         if (LegacyWarehousePacket.IsShowAction(packet.Action) || packet.Action == LegacyWarehouseAction.ShashShow)
         {
-            await HandleLegacyWarehouseShowAsync(context, packet, cancellationToken).ConfigureAwait(false);
+            await HandleLegacyWarehouseShowWithLockRefreshAsync(context, packet, cancellationToken).ConfigureAwait(false);
             return;
         }
 

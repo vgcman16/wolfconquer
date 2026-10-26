@@ -4,7 +4,21 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted LOCAL integration gate — warehouse and house-load GREEN
+## Latest accepted LOCAL integration gate — warehouse Show GREEN
+
+Exact public `5d78a448cb18e4eef20eab3688691b77c1e5ba50` was extracted from a
+tracked-only git archive (5393files) into a fresh owned Temp workspace. Local
+session72001/receipt20261026T014456139Z-3534d9d4 finished2026-10-26T01:49:14.552409Z;
+all8sequential stages exited0. Root inspected actual terminal receipt, TRX
+counters/outcome groups and stage logs: core **24711passed/0failed**,165 existing
+NotExecuted rows (24876total); updater305/305, launcher57/57, synthetic parsers20+13
+(no HTTP/services). Build191warnings/0errors,85.23s. All19new Show cases are included.
+This is Windows LOCAL verification, NOT GitHub CI, running-game acceptance,
+complete English, deployment, full warehouse/game parity or a cleared backlog.
+Runner2 remained offline/idle at the preflight; no Windows job or replacement
+listener was launched and no manual green GitHub status was written.
+
+## Previous accepted LOCAL integration gate — warehouse and house-load GREEN
 
 Exact public `50d1a22b27d6d65329ba020d9cd6235e247b8400` was extracted from a
 tracked-only git archive into a fresh owned Temp workspace outside the original
@@ -1384,6 +1398,40 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-082: Persist expired warehouse locks before client notification
+
+- Managed Show omitted native SendItemLocked clearing; the reference mutated live
+  Locked/Mode and sent an update without a durable item transaction. A failed save
+  or stale owner could therefore disagree with what the client had been shown.
+- Reuse the existing pure lock projection: selected displayed roots only,
+  Locked2 with timer0 or strictly past YYYYMMDD midnight clears Locked to0;
+  preserve timer/children/other banks/all unrelated bytes. Invalid required
+  calendar state rejects the complete action before any partial output.
+- Genuine private own-server identity issued through native startup is required
+  for clearing. Missing/foreign/wrapped identity keeps existing read-only locked
+  and future-date presentation; scalar0==0/catalog rows are not authority. Physical
+  bags remain read-only and never refresh their deposited locks from Show.
+- The real wrapper fully releases its Shared probe before fresh Exclusive
+  selection and actual Trade/PIN/Poker/recovery/graph validation. Prepare all
+  original locked Warehouse chunks, Update-mode cleared item frames, future
+  dates and extras, then reuse existing full item-file persistence and Store CAS.
+  Item file and Store are committed before the original chunk is sent. Release
+  Exclusive before checked delivery; do not relock/refund after send failure.
+- Root read all seven production postimages/glue, fixture change and nine rows.
+  Tests-first67276:3passed/6failed of9,0skipped,852ms; all six failures reached
+  handler/output assertions, not setup. First integration96413:1172/1172,0fail/
+  skip,9s. Expanded broad73290: **2794/2794**,0failed/skipped,64s. Root inspected
+  actual counters/outcomes, all nine new rows and zero missing prior1217rows.
+  Independent DBItem byte oracle and per-frame observers verify save/Store before
+  delivery, complete other-file/child preservation, sharing refusal/retry,
+  malformed fifth-row refusal, owner-replacement suppression and durable replay.
+- Limits: paused-send/second-writer interleaving is not directly tested by this
+  synchronous observer fixture. Active-Trade/uncertain-IO/cancellation composition,
+  IsShow cache coherence, genuine house authority, authenticated login, SQL,
+  power loss/global UID/hostile namespace/raw aliases and actual-client proof
+  remain open. This is focused offline acceptance; the latest full clean-public
+  gate above covers5d78a448 before this successor, not current GitHub CI.
+
 ### FSB-081: Capture and validate warehouse Show before publishing any frame
 
 - Ordinary/house-labelled/own-UID Show previously trusted stale Context state,
@@ -1411,10 +1459,11 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   chunk/future-date/extras bytes, current/stale owners, malformed late rows before
   any output, missing economic owners, real native PIN issuance/Poker and a fresh
   native owner after password change. Files and saved JSON remain unchanged.
-- Limits: this does not implement native expired-lock mutation or IsShow caching,
+- Limits: this Show batch alone did not implement expired-lock mutation (see
+  FSB082) or IsShow caching,
   genuine house entry/furniture authority, authenticated account-to-world proof,
   SQL, live-client rendering or full warehouse/game parity. The latest full LOCAL
-  gate above covers50d, before this Show successor; current GitHub CI is unproven.
+  Show gate above now passes exact5d78a448; current GitHub CI remains unproven.
 
 ### FSB-079: Commit all warehouse item moves before publishing success
 

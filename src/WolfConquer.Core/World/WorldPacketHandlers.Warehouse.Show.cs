@@ -13,12 +13,20 @@ public static partial class WorldPacketHandlers
                 $"npcId={request.NpcId} action={request.Action}; current owner, target or complete image unavailable.").ConfigureAwait(false);
             return;
         }
+        await SendLegacyWarehouseShowAsync(context, owner, request, frames, count, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask SendLegacyWarehouseShowAsync(WorldPacketHandlerContext context,
+        LegacyWarehouseShowOwner owner, LegacyWarehousePacket request, byte[][] frames, int count,
+        CancellationToken cancellationToken, bool requireRefreshOwner = false)
+    {
         var currentContext = context with { Session = owner.Session };
         foreach (var frame in frames)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!IsCurrentLegacyWarehouseShowOwner(context, owner) ||
-                !CanShowLegacyWarehouse(owner, request))
+                !CanShowLegacyWarehouse(owner, request) ||
+                requireRefreshOwner && !CanPublishLegacyWarehouseLockRefresh(context, owner))
             {
                 await context.Log.WriteLineAsync("WorldServer stopped LegacyWarehouse show; current owner or permission changed.")
                     .ConfigureAwait(false);

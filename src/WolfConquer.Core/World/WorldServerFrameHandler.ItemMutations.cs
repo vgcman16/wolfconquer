@@ -10,17 +10,25 @@ public sealed partial class WorldServerFrameHandler
         IsLegacyVendorPurchaseFrame(frame) ||
         IsLegacyInventorySashUpgradeFrame(frame) ||
         IsLegacyWarehouseItemTransferFrame(frame) ||
+        IsLegacyWarehouseLockRefreshFrame(frame) ||
         frame.Header.Opcode == WorldPacketOpcodes.LegacyFloorItem ||
         frame.Header.Opcode == WorldPacketOpcodes.MsgItemUsage &&
         MsgItemUsagePacket.TryParse(frame, out var packet) &&
         packet.Action is MsgItemUsageAction.SellItem or MsgItemUsageAction.DropItem;
 
     // Registered LegacyWarehouse uses the same action IDs in D11 and D13.
-    // Only parsed item mutations own the inner exclusive lease; show stays shared.
+    // Parsed item transfers own the inner Exclusive; physical-bag Show stays Shared.
     private static bool IsLegacyWarehouseItemTransferFrame(PacketFrame frame) =>
         frame.Header.Opcode == WorldPacketOpcodes.LegacyWarehouse &&
         LegacyWarehousePacket.TryParseRequest(frame, out var request) &&
         LegacyWarehouseItemTransferActions.IsMutation(request.Action);
+
+    // Ordinary/house/ownUID Show owns its Shared probe and, only when needed,
+    // a separately acquired Exclusive refresh. Frame must not wrap it in Shared.
+    private static bool IsLegacyWarehouseLockRefreshFrame(PacketFrame frame) =>
+        frame.Header.Opcode == WorldPacketOpcodes.LegacyWarehouse &&
+        LegacyWarehousePacket.TryParseRequest(frame, out var request) &&
+        LegacyWarehousePacket.IsShowAction(request.Action);
 
     // Both configured profiles dispatch MsgAction256 through this same registered owner.
     // Malformed actions retain Frame's ordinary shared lease and parse refusal.

@@ -46,13 +46,14 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests : IDisposable
     private string UserPath(uint uid) => Path.Combine(UsersRoot, uid.ToString(CultureInfo.InvariantCulture) + ".ini");
     private string ItemPath(uint uid) => Path.Combine(ItemsRoot, uid.ToString(CultureInfo.InvariantCulture) + ".bin");
 
-    private Owner NewOwner(DateTimeOffset? now = null, WorldDataCatalog? worldData = null)
+    private Owner NewOwner(DateTimeOffset? now = null, WorldDataCatalog? worldData = null,
+        LegacyLocalServerIdentity? identity = null)
     {
         var log = new StringWriter();
         var clock = new FixedTime(now ?? TestNow);
         var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(UsersRoot, ItemsRoot),
             handoffService: null, arenaStatistics: null, teamArenaStatistics: null, worldData: worldData,
-            runtimeUpdateLoop: LegacyRuntimeUpdateLoopOptions.Disabled with { TimeProvider = clock },
+            runtimeUpdateLoop: LegacyRuntimeUpdateLoopOptions.Disabled with { TimeProvider = clock, LocalServerIdentity = identity },
             log: log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13);
         var field = typeof(WorldServerFrameHandler).GetField("_sessions", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(field);
