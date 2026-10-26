@@ -10,9 +10,15 @@ legacy expectations and complete owned MsgNinja text preparation. Later review
 caught source-comparer callbacks after capture checks:2/2 failed with25->26 and
 75->76. Callback-free snapshots/private uint-key maps and final owner/scalar
 checks pass120/120,0failed/skipped; source-golden2395bytes stay fixed.
-These are owned component tests; full successor Windows CI is pending. No
-durable standalone AddPoints, active package payout, Host/native login, client
-rendering or full Ninja transaction is proved.
+Exact public42b0f6e29244ae2b5b1237d9487931643e254b01 passed
+[Windows40313587063](https://github.com/vgcman16/wolfconquer/actions/runs/40313587063).
+Receipt20261026T111637780Z-b26d2ef1 ended2026-10-26T11:21:56.683474Z:
+all8stages0, actual TRX25362core Passed+165existing NotExecuted, updater434/434,
+launcher57/57, synthetic parsers20+13, build157warnings/0errors (77.68s).
+The28 Python import-tool tests below ran standalone, outside this CI. These are
+automated component/integration checks; no durable standalone AddPoints, active
+package payout, Host/native login, client rendering or full Ninja transaction
+is proved.
 
 The separate selected-import Python tool suite passes28/28 in its public layout.
 It uses synthetic PE files and actual CLI refusal/success; it is not a native
