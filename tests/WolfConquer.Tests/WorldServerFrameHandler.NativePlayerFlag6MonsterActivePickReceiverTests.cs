@@ -90,8 +90,8 @@ public sealed partial class WorldServerFrameHandlerTests
                         Assert.Equal(1, Interlocked.Increment(ref pickCount));
                         byte[][] beforeSwap;
                         lock (captureGate) beforeSwap = allFrames.ToArray();
-                        var incoming = Assert.Single(beforeSwap.Where(candidate =>
-                            IsFlag6ActivePickMonsterInteraction(candidate, monster.Uid, uid, MsgAttackType.Physical)));
+                        var incoming = Assert.Single(beforeSwap, candidate =>
+                            IsFlag6ActivePickMonsterInteraction(candidate, monster.Uid, uid, MsgAttackType.Physical));
                         Assert.True(MsgAttackPacket.TryParse(ReadFrame(incoming), out var attack));
                         Assert.True(attack.Query.Damage >= 1); // Real positive/lethal draw, no exact damage forecast.
                         var current = ObserveFlag6ActivePickSession(handler, connection);
@@ -189,16 +189,16 @@ public sealed partial class WorldServerFrameHandlerTests
             AssertFlag6ActivePickHasNoRollOverrides(window.SessionAtTerminal);
 
             var frames = window.Frames;
-            var incomingIndex = Assert.Single(Enumerable.Range(0, frames.Length).Where(index =>
-                IsFlag6ActivePickMonsterInteraction(frames[index], monster.Uid, uid, MsgAttackType.Physical)));
-            var pickIndex = Assert.Single(Enumerable.Range(0, frames.Length).Where(index =>
+            var incomingIndex = Assert.Single(Enumerable.Range(0, frames.Length), index =>
+                IsFlag6ActivePickMonsterInteraction(frames[index], monster.Uid, uid, MsgAttackType.Physical));
+            var pickIndex = Assert.Single(Enumerable.Range(0, frames.Length), index =>
                 MsgActionPacket.TryParse(ReadFrame(frames[index]), out var action) &&
-                action.ObjId == uid && action.Type == MsgActionType.ActionPick));
-            var talkIndex = Assert.Single(Enumerable.Range(0, frames.Length).Where(index =>
+                action.ObjId == uid && action.Type == MsgActionType.ActionPick);
+            var talkIndex = Assert.Single(Enumerable.Range(0, frames.Length), index =>
                 LegacyMsgMessagePacket.TryParse(ReadFrame(frames[index]), out var message) &&
-                message.Content.Contains(LegacyPlayerDeathState.DeadTalkText)));
-            var endIndex = Assert.Single(Enumerable.Range(0, frames.Length).Where(index =>
-                IsFlag6ActivePickMonsterInteraction(frames[index], monster.Uid, uid, MsgAttackType.Death)));
+                message.Content.Contains(LegacyPlayerDeathState.DeadTalkText));
+            var endIndex = Assert.Single(Enumerable.Range(0, frames.Length), index =>
+                IsFlag6ActivePickMonsterInteraction(frames[index], monster.Uid, uid, MsgAttackType.Death));
             Assert.Equal(frames.Length - 1, endIndex); // Closed in the terminal send callback, not a later polling snapshot.
             Assert.True(incomingIndex < pickIndex && pickIndex < talkIndex && talkIndex < endIndex);
             Assert.Equal((ushort)2135, ReadFrame(frames[incomingIndex]).Header.Opcode);
@@ -275,10 +275,10 @@ public sealed partial class WorldServerFrameHandlerTests
                 new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Hitpoints, phase == 3 ? 0UL : 1UL),
             }, current.Updates);
         }
-        var query = Assert.Single(Enumerable.Range(0, frames.Length).Where(index =>
-            LegacyShowEquipmentPacket.TryParse(ReadFrame(frames[index]), out _)));
-        var status = Assert.Single(Enumerable.Range(0, frames.Length).Where(index =>
-            LegacyPlayerStatusPacket.TryParse(ReadFrame(frames[index]), out var packet) && packet.Uid == uid));
+        var query = Assert.Single(Enumerable.Range(0, frames.Length), index =>
+            LegacyShowEquipmentPacket.TryParse(ReadFrame(frames[index]), out _));
+        var status = Assert.Single(Enumerable.Range(0, frames.Length), index =>
+            LegacyPlayerStatusPacket.TryParse(ReadFrame(frames[index]), out var packet) && packet.Uid == uid);
         Assert.True(query < hp[0] && hp[1] < status && status < hp[2]);
         var vectors = Enumerable.Range(0, frames.Length).Where(index =>
             LegacyMsgUpdatePacket.TryParse(ReadFrame(frames[index]), out var packet) && packet.Uid == uid &&

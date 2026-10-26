@@ -81,7 +81,8 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        if (packet.Type is LegacyMailboxModeType.ClaimItem or LegacyMailboxModeType.ClaimMoney or LegacyMailboxModeType.ClaimAll)
+        if (packet.Type is LegacyMailboxModeType.ClaimItem or LegacyMailboxModeType.ClaimMoney or LegacyMailboxModeType.ClaimAll ||
+            IsLegacyMailboxDeletion(packet.Type))
         {
             await HandleLegacyMailboxClaimsAsync(context, packet, cancellationToken).ConfigureAwait(false);
             return;
@@ -127,54 +128,6 @@ public static partial class WorldPacketHandlers
                     await context.Log.WriteLineAsync(
                             "WorldServer handled LegacyMailboxMode " +
                             $"{FormatSession(context)} type={packet.Type} id={packet.Id} found=True response=content ack=True.")
-                        .ConfigureAwait(false);
-                    return;
-                }
-
-            case LegacyMailboxModeType.Delete:
-                {
-                    if (!mailboxes.TryRemoveIfEmpty(uid, packet.Id, out var entry))
-                    {
-                        await context.Log.WriteLineAsync(
-                                "WorldServer handled LegacyMailboxMode " +
-                                $"{FormatSession(context)} type={packet.Type} id={packet.Id} removed=False.")
-                            .ConfigureAwait(false);
-                        return;
-                    }
-
-                    mailboxes.Save(uid);
-                    await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-                    await context.Log.WriteLineAsync(
-                            "WorldServer handled LegacyMailboxMode " +
-                            $"{FormatSession(context)} type={packet.Type} id={entry.Id} removed=True ack=True.")
-                        .ConfigureAwait(false);
-                    return;
-                }
-
-            case LegacyMailboxModeType.DeleteClaim:
-                {
-                    var removedCount = 0;
-                    foreach (var rawMailId in packet.Items)
-                    {
-                        if (rawMailId > uint.MaxValue ||
-                            !mailboxes.TryRemoveIfEmpty(uid, (uint)rawMailId, out _))
-                        {
-                            continue;
-                        }
-
-                        removedCount++;
-                        await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-                    }
-
-                    if (removedCount > 0)
-                    {
-                        mailboxes.Save(uid);
-                    }
-
-                    await context.Log.WriteLineAsync(
-                            "WorldServer handled LegacyMailboxMode " +
-                            $"{FormatSession(context)} type={packet.Type} id={packet.Id} requested={packet.Items.Count} " +
-                            $"removed={removedCount} ackFrames={removedCount}.")
                         .ConfigureAwait(false);
                     return;
                 }

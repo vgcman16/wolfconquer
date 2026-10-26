@@ -15,6 +15,8 @@ public static partial class WorldPacketHandlers
     private static bool TryPrepareLegacyMailboxClaims(LegacyMailboxClaimBaseline baseline,
         LegacyMailboxModePacket packet, out LegacyMailboxClaimPlan plan, out string reason)
     {
+        if (IsLegacyMailboxDeletion(packet.Type))
+            return TryPrepareLegacyMailboxDeletion(baseline, packet, out plan, out reason);
         plan = null!;
         reason = MailboxClaimPrefix + "PlanInvalid";
         var all = packet.Type == LegacyMailboxModeType.ClaimAll;

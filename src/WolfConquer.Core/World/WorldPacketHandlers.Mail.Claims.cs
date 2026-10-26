@@ -75,6 +75,11 @@ public static partial class WorldPacketHandlers
             // A send exception is postcommit when Changed; never refund/restore attachments.
             await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
         }
+        if (IsLegacyMailboxDeletion(packet.Type))
+        {
+            await LogLegacyMailboxDeletionAsync(context, packet, delivery).ConfigureAwait(false);
+            return;
+        }
         await context.Log.WriteLineAsync($"WorldServer handled LegacyMailboxMode type={packet.Type} id={packet.Id} " +
             $"money={delivery.Updated.Character.Money - delivery.Baseline.Owner.Expected.Character.Money} " +
             $"eMoney={delivery.Updated.Character.ConquerPoints - delivery.Baseline.Owner.Expected.Character.ConquerPoints} " +

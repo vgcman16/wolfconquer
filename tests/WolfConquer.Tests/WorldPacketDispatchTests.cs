@@ -2494,13 +2494,8 @@ public sealed class WorldPacketDispatchTests
                     Flag = 0,
                     Timer = DateTime.Now.AddHours(1).Ticks
                 });
-            var session = CreateTitleStorageSession(Path.Combine(root, "Users"), "");
             var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
-            var context = new WorldPacketHandlerContext(
-                CreateConnection(sent),
-                log,
-                session,
-                Mailboxes: store);
+            var context = CreateOwnedMailboxDeletionContext(root, CreateConnection(sent), log, store);
 
             await registry.HandleAsync(
                 context,
@@ -2577,13 +2572,8 @@ public sealed class WorldPacketDispatchTests
                     Id = 16,
                     Timer = DateTime.Now.AddHours(1).Ticks
                 });
-            var session = CreateTitleStorageSession(Path.Combine(root, "Users"), "");
             var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
-            var context = new WorldPacketHandlerContext(
-                CreateConnection(sent),
-                log,
-                session,
-                Mailboxes: store);
+            var context = CreateOwnedMailboxDeletionContext(root, CreateConnection(sent), log, store);
 
             await registry.HandleAsync(
                 context,
@@ -3269,6 +3259,37 @@ public sealed class WorldPacketDispatchTests
         var writer = new PacketWriter(opcode, payload.Count);
         payload.CopyTo(writer.Payload);
         return ReadFrame(writer.ToArray());
+    }
+
+    private static WorldPacketHandlerContext CreateOwnedMailboxDeletionContext(string root,
+        ConquerTcpConnection connection, TextWriter log, LegacyMailboxStore mailboxes)
+    {
+        var usersRoot = Path.Combine(root, "Users");
+        var itemsRoot = Path.Combine(root, "PlayersItems");
+        Directory.CreateDirectory(usersRoot);
+        Directory.CreateDirectory(itemsRoot);
+        var seed = CreateTitleStorageSession(usersRoot, "");
+        var snapshotPath = WriteTitleStorageSnapshot(usersRoot, "");
+        var character = CharacterSnapshotParser.ParseText(File.ReadAllText(snapshotPath), snapshotPath);
+        Assert.Equal(seed.Character.Uid, character.Uid);
+        var uid = checked((uint)character.Uid);
+        var itemLoader = new PlayerItemSnapshotLoader(itemsRoot);
+        itemLoader.SaveByCharacterUid(uid, seed.PlayerItems);
+        mailboxes.Save(uid);
+        var session = seed with { Character = character, PlayerItems = itemLoader.LoadByCharacterUid(uid) };
+        var sessions = new WorldSessionStore();
+        sessions.Set(connection, session);
+        var mailboxRoot = Path.Combine(root, "PlayersMailList");
+        var recovery = new LegacyTradeRecoveryState(usersRoot, itemsRoot, null, mailboxRoot);
+        Assert.True(recovery.TryEnsureInitialized(out var reason), reason);
+        Assert.True(recovery.IsReadyForMailbox(usersRoot, itemsRoot, mailboxRoot));
+        return new WorldPacketHandlerContext(connection, log, session, Sessions: sessions,
+            PlayerItemsRoot: itemsRoot, Mailboxes: mailboxes)
+        {
+            Trades = new LegacyTradeStateStore(),
+            TradeOperations = new WorldOperationBarrier(),
+            TradeRecovery = recovery,
+        };
     }
 
     private static string WriteTitleStorageSnapshot(

@@ -126,8 +126,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
     private static int SingleSharedReviveGlobalIndex(
         IReadOnlyList<(uint Recipient, byte[] Bytes)> frames, uint uid, Func<byte[], bool> predicate) =>
-        Assert.Single(Enumerable.Range(0, frames.Count).Where(index =>
-            frames[index].Recipient == uid && predicate(frames[index].Bytes)));
+        Assert.Single(Enumerable.Range(0, frames.Count), index =>
+            frames[index].Recipient == uid && predicate(frames[index].Bytes));
 
     private static bool IsSharedReviveScalar(byte[] bytes, uint uid,
         LegacyMsgUpdateDataType type, ulong value) =>

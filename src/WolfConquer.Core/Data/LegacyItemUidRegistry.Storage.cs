@@ -16,7 +16,7 @@ internal sealed partial class LegacyItemUidRegistry
             ReplacePending(paths);
             if (interruption == LegacyItemUidInterruption.AfterStateReplace)
             { reason = RecoveryRequired + ":bootstrapAfterReplace"; return false; }
-            if (ReadState(paths.State) != initial)
+            if (!SameState(ReadState(paths.State), initial))
             { reason = RecoveryRequired + ":bootstrapPoststateUnproven"; return false; }
             return true;
         }
@@ -34,7 +34,7 @@ internal sealed partial class LegacyItemUidRegistry
             if (!TryValidateDirectory(paths, out reason) || File.Exists(paths.Pending))
             { reason = RecoveryRequired + ":pendingOrUnexpectedEntry"; return false; }
             beforeBytes = ReadBounded(paths.State);
-            if (ParseState(beforeBytes) != before)
+            if (!SameState(ParseState(beforeBytes), before))
             { reason = RecoveryRequired + ":stateChanged"; return false; }
             WritePending(paths.Pending, after);
             if (interruption == LegacyItemUidInterruption.AfterPendingFlush)
@@ -42,7 +42,7 @@ internal sealed partial class LegacyItemUidRegistry
             ReplacePending(paths);
             if (interruption == LegacyItemUidInterruption.AfterStateReplace)
             { reason = RecoveryRequired + ":reservationAfterReplace"; return false; }
-            if (ReadState(paths.State) != after)
+            if (!SameState(ReadState(paths.State), after))
             { reason = RecoveryRequired + ":reservationPoststateUnproven"; return false; }
             return true;
         }
@@ -82,18 +82,18 @@ internal sealed partial class LegacyItemUidRegistry
                 if (pending.Generation != 0)
                 { reason = RecoveryRequired + ":orphanReservation"; return false; }
             }
-            else if (pending != current && !IsNext(current, pending))
+            else if (!SameState(pending, current) && !IsNext(current, pending))
             { reason = RecoveryRequired + ":pendingChainInvalid"; return false; }
             if (pending.HighWater < observedMaximum)
             { reason = RecoveryRequired + ":unregisteredDataUid"; return false; }
-            if (pending == current)
+            if (SameState(pending, current))
             {
                 EnsureOrdinaryPath(paths.Pending);
                 File.Delete(paths.Pending);
             }
             else ReplacePending(paths);
             current = ReadState(paths.State);
-            if (current != pending)
+            if (!SameState(current, pending))
             { reason = RecoveryRequired + ":recoveryPoststateUnproven"; return false; }
         }
         if (current is null || current.HighWater < observedMaximum)
@@ -102,12 +102,6 @@ internal sealed partial class LegacyItemUidRegistry
         reason = string.Empty;
         return true;
     }
-
-    private static bool IsNext(RegistryState before, RegistryState after) =>
-        before.Generation != ulong.MaxValue && after.Generation == before.Generation + 1 &&
-        after.HighWater > before.HighWater &&
-        after.HighWater - (ulong)before.HighWater <= MaximumReservation &&
-        after == (before with { Generation = after.Generation, HighWater = after.HighWater });
 
     private static bool MatchesConfiguration(RegistryState state, RegistryPaths paths,
         LegacyItemUidRegistryOptions options) =>

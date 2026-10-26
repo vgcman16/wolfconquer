@@ -45,7 +45,7 @@ public sealed partial class LegacyNativeCanUseSpellTests
         finally { go.Set(); }
         Assert.True(Task.WaitAll(workers, TimeSpan.FromSeconds(10)), "Competing admissions did not finish.");
         Assert.True(bothReady, "Both admission workers must reach the start gate.");
-        Assert.Single(accepted.Where(result => result));
+        Assert.Single(accepted, result => result);
         for (int index = 0; index < 2; index++)
         {
             if (accepted[index]) { Assert.Same(f.Spell, rows[index]); Assert.Same(f.Row, database[index]); }

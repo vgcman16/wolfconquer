@@ -308,8 +308,8 @@ public sealed class LegacyNativeExtraEffectTests
 
     // Independent bounded reader for these two test contracts: varints and nested messages only.
     private readonly record struct Field(int Number, ulong Value, byte[]? Data);
-    private static ulong Scalar(List<Field> fields, int number) => Assert.Single(fields.Where(f => f.Number == number)).Value;
-    private static List<Field> Nested(List<Field> fields, int number) => ReadFields(Assert.Single(fields.Where(f => f.Number == number)).Data!);
+    private static ulong Scalar(List<Field> fields, int number) => Assert.Single(fields, f => f.Number == number).Value;
+    private static List<Field> Nested(List<Field> fields, int number) => ReadFields(Assert.Single(fields, f => f.Number == number).Data!);
     private static List<Field> ReadFrame(byte[] frame, ushort packetId)
     {
         Assert.Equal(frame.Length, BinaryPrimitives.ReadUInt16LittleEndian(frame));

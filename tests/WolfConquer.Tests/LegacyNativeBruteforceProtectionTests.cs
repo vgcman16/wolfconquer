@@ -43,18 +43,18 @@ public sealed class LegacyNativeBruteforceProtectionTests
         var methods = typeof(Native).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
         Assert.Equal(new[] { "AddWatch", "AllowAddress", "Init", "IsBanned", "_internalInit" },
             methods.Select(method => method.Name).OrderBy(name => name, StringComparer.Ordinal));
-        var worker = Assert.Single(methods.Where(method => method.Name == "_internalInit"));
+        var worker = Assert.Single(methods, method => method.Name == "_internalInit");
         Assert.True(worker.IsPrivate);
         Assert.Equal(typeof(void), worker.ReturnType);
         Assert.Empty(worker.GetParameters());
-        var init = Assert.Single(methods.Where(method => method.Name == "Init"));
+        var init = Assert.Single(methods, method => method.Name == "Init");
         Assert.True(init.IsPublic);
         Assert.Equal(typeof(void), init.ReturnType);
         Assert.Equal("WatchBeforeBan", Assert.Single(init.GetParameters()).Name);
         Assert.Equal(typeof(int), Assert.Single(init.GetParameters()).ParameterType);
         foreach (var name in new[] { "AddWatch", "AllowAddress", "IsBanned" })
         {
-            var method = Assert.Single(methods.Where(method => method.Name == name));
+            var method = Assert.Single(methods, method => method.Name == name);
             Assert.True(method.IsPublic);
             Assert.Equal(name == "AddWatch" ? typeof(void) : typeof(bool), method.ReturnType);
             Assert.Equal(("IPAddress", typeof(string)), (Assert.Single(method.GetParameters()).Name, Assert.Single(method.GetParameters()).ParameterType));

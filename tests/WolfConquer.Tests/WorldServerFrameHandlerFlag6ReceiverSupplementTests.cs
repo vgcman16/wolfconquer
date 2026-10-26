@@ -65,7 +65,7 @@ public sealed partial class WorldServerFrameHandlerTests
             Assert.Equal(0, GetSession(handler, target).Character.MinHitPoints);
             Assert.Same(model.Original, GetSession(handler, target).NativePlayer);
             var casterBefore = GetSession(handler, caster);
-            var learnedPray = Assert.Single(casterBefore.PlayerSpells.Spells.Where(spell => spell.Id == 1100));
+            var learnedPray = Assert.Single(casterBefore.PlayerSpells.Spells, spell => spell.Id == 1100);
             Assert.Equal((ushort)0, learnedPray.Level);
             Assert.Equal(5000, casterBefore.Character.MinMana);
             var targetStart = targetFrames.Count;
@@ -80,9 +80,9 @@ public sealed partial class WorldServerFrameHandlerTests
             armed = false;
 
             var frames = targetFrames.ToArray().Skip(targetStart).ToArray();
-            var maximum = Assert.Single(ParseFlag6SupplementUpdates(frames).Where(packet =>
+            var maximum = Assert.Single(ParseFlag6SupplementUpdates(frames), packet =>
                 packet.Uid == 1_293_601 && packet.Updates.Count == 1 &&
-                packet.Updates[0].Type == LegacyMsgUpdateDataType.MaxHitpoints));
+                packet.Updates[0].Type == LegacyMsgUpdateDataType.MaxHitpoints);
             var max = Assert.Single(maximum.Updates).Value;
             Assert.True(max > 0);
             var phase = Array.FindIndex(frames, bytes => Flag6PublicReceiverSupplementModel.FirstMaximum(bytes, 1_293_601));
@@ -238,10 +238,10 @@ public sealed partial class WorldServerFrameHandlerTests
             Assert.Equal(3, clock.RegisteredCount);
             byte[][] warmup;
             lock (captureGate) warmup = sent.Skip(warmupStart).ToArray();
-            var earnedXp = Assert.Single(warmup.Where(bytes =>
+            var earnedXp = Assert.Single(warmup, bytes =>
                 LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out var packet) &&
                 packet.Uid == 1_293_600 && packet.Updates.Count == 1 &&
-                packet.Updates[0].Type == LegacyMsgUpdateDataType.XPCircle));
+                packet.Updates[0].Type == LegacyMsgUpdateDataType.XPCircle);
             AssertSingleUpdate(earnedXp, 1_293_600, LegacyMsgUpdateDataType.XPCircle, 1);
             Assert.Equal(LegacyMsgUpdatePacket.CreateLegacyRuntimeXPCircleTickUpdate(1_293_600, 1).ToFrameBytes(), earnedXp);
             Assert.Equal("1", GetSession(handler, connection).Character.Attributes["XPCount"]);
@@ -299,9 +299,9 @@ public sealed partial class WorldServerFrameHandlerTests
             Assert.Equal(1_293_600U, revivedTarget.Uid);
             Assert.Equal(0U, revivedTarget.Damage);
             Assert.Equal(MsgAttackEffect.None, revivedTarget.Effect);
-            Assert.Single(ParseFlag6SupplementUpdates(frames.Skip(phase).Take(6)).Where(packet =>
+            Assert.Single(ParseFlag6SupplementUpdates(frames.Skip(phase).Take(6)), packet =>
                 packet.Uid == 1_293_600 && packet.Updates.Count == 1 &&
-                packet.Updates[0].Type == LegacyMsgUpdateDataType.StatusFlag));
+                packet.Updates[0].Type == LegacyMsgUpdateDataType.StatusFlag);
             Assert.DoesNotContain(frames, bytes => MsgAttackPacket.TryParse(ReadFrame(bytes), out var packet) &&
                 packet.Query.Uid == instance.Uid && packet.Query.AttackType == MsgAttackType.Physical);
             Assert.Equal(1, matchingSends);

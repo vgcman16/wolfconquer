@@ -60,7 +60,7 @@ public sealed partial class LegacyNativeCombatGearEntryTests
             Assert.True(field.IsPrivate);
             Assert.False(field.IsInitOnly);
             Assert.Equal(type, field.FieldType);
-            var member = Assert.Single(Members(property.GetMethod!).Where(instruction => instruction.Member is not null));
+            var member = Assert.Single(Members(property.GetMethod!), instruction => instruction.Member is not null);
             Assert.Equal(OpCodes.Ldfld, member.Op);
             Assert.Equal(field, member.Member);
             if (name != "Hair")

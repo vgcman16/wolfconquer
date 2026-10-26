@@ -22,7 +22,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
 
         internal async Task EnterAtomicMailFrameAsync(int inventoryCount = 1, bool mixed = false,
             uint flag = 0, bool malformedTail = false, ulong? rewardMoney = null,
-            uint? rewardCp = null, bool hasAttachment = true)
+            uint? rewardCp = null, bool hasAttachment = true, bool extraEmptyMail = false)
         {
             Seed(frameLogin: true);
             var inventory = Enumerable.Range(0, inventoryCount).Select(index => new PlayerItemSnapshotItem
@@ -58,8 +58,28 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 Id = 22, Title = "Unselected sentinel", SenderName = "Other sender", Content = "Keep me intact.",
                 Money = 37, EMoney = 11, EmoneyRecordType = 5, Timer = AtomicMailSeed.Timer,
             });
+            if (extraEmptyMail)
+                mailboxes.Add(Uid, new LegacyMailboxEntry
+                {
+                    Id = 23, Title = "Second empty row", SenderName = "Delete fixture", Content = "Empty reward fields.",
+                    EmoneyRecordType = 31, Timer = AtomicMailSeed.Timer,
+                });
             mailboxes.Save(Uid); // Genuine producer, before Frame construction/admission.
-            Assert.Equal(4 + 2 * 740, File.ReadAllBytes(AtomicMailPath).Length);
+            Assert.Equal(4 + (extraEmptyMail ? 3 : 2) * 740, File.ReadAllBytes(AtomicMailPath).Length);
+            if (extraEmptyMail)
+            {
+                // Valid uninterpreted padding after the first title NUL, not a malformed row.
+                // Deleting other rows must preserve it instead of normalizing this record.
+                var raw = File.ReadAllBytes(AtomicMailPath);
+                const int titleOffset = 4 + 740; // Unselected second row (ID22).
+                Assert.Equal(22U, BinaryPrimitives.ReadUInt32LittleEndian(raw.AsSpan(titleOffset + 704)));
+                Assert.Equal("Unselected sentinel", new LegacyMailboxStore(Root).Load(Uid)[1].Title);
+                Assert.InRange(raw.AsSpan(titleOffset, LegacyMailboxEntry.TitleByteLength).IndexOf((byte)0), 0, 62);
+                Assert.Equal((byte)0, raw[titleOffset + 63]);
+                raw[titleOffset + 63] = 0x5a;
+                File.WriteAllBytes(AtomicMailPath, raw);
+                Assert.Equal("Unselected sentinel", new LegacyMailboxStore(Root).Load(Uid)[1].Title);
+            }
 
             var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
             var loader = new CharacterSnapshotLoader(Users, Items, playerSpellsRoot: null,

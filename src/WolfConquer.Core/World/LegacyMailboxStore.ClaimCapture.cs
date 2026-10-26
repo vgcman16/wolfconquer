@@ -63,7 +63,7 @@ public sealed partial class LegacyMailboxStore
         string.Equals(left.SenderName, right.SenderName, StringComparison.Ordinal) &&
         string.Equals(left.Content, right.Content, StringComparison.Ordinal);
 
-    internal sealed class ClaimCapture
+    internal sealed partial class ClaimCapture
     {
         private readonly LegacyMailboxStore _store;
         private readonly uint _uid;

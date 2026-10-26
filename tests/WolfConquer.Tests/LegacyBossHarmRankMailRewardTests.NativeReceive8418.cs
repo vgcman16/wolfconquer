@@ -133,7 +133,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         Assert.Equal(5, calls); // no second selector invocation inside MapSideEffects.
         Assert.Equal("11", result.Character.Attributes["DailySpiritBeadCount"]);
         Assert.Equal(1, result.Character.ConquerPoints); // explicit deterministic tuned-policy fixture.
-        Assert.Single(scene.Sent.Where(IsReceive8418DeathFrame));
+        Assert.Single(scene.Sent, IsReceive8418DeathFrame);
         var spirit = scene.Sent.FindIndex(bytes =>
             LegacyMsgMessagePacket.TryParse(ReadFrame(bytes), out var message) &&
             message.Content[3] == "You received 4 spirites.");
@@ -261,7 +261,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         Assert.True(final.PlayerSpells.Spells.Single(spell => spell.Id == 11_030).Experience > 0);
         Assert.DoesNotContain(scene.Sent, IsReceive8418DeathFrame);
         Assert.DoesNotContain(ParseReceive8418Animations(scene.Sent), packet => packet.SpellId == 11_130);
-        Assert.Single(ParseReceive8418Animations(scene.Sent).Where(packet => packet.SpellId == 11_030));
+        Assert.Single(ParseReceive8418Animations(scene.Sent), packet => packet.SpellId == 11_030);
         var spellUpdate = scene.Sent.FindIndex(bytes => ReadFrame(bytes).Header.Opcode == LegacySpellPacket.Opcode);
         var animation = scene.Sent.FindIndex(bytes =>
             LegacySpellAnimationPacket.TryParse(ReadFrame(bytes), out var packet) && packet.SpellId == 11_030);
@@ -283,7 +283,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         var animation = scene.Sent.FindIndex(bytes =>
             LegacySpellAnimationPacket.TryParse(ReadFrame(bytes), out var packet) && packet.SpellId == 11_030);
         Assert.True(death >= 0 && death < animation);
-        Assert.Single(scene.Sent.Where(IsReceive8418DeathFrame));
+        Assert.Single(scene.Sent, IsReceive8418DeathFrame);
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         Assert.True(scene.Sessions.TryGet(recipientConnection, out var updated));
         Assert.True(updated!.Character.Experience > recipient.Character.Experience);
         Assert.Contains("WorldServer sent legacy monster team experience", scene.Log.ToString());
-        Assert.Single(ParseReceive8418Animations(scene.Sent).Where(packet => packet.SpellId == 11_030));
+        Assert.Single(ParseReceive8418Animations(scene.Sent), packet => packet.SpellId == 11_030);
         Assert.DoesNotContain(scene.Sent, IsReceive8418DeathFrame);
     }
 
@@ -346,8 +346,8 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         await InvokeReceive8418EagleEye(scene, _ =>
             throw new InvalidOperationException("Ordinary EagleEye must not use the8418 selector."));
         Assert.Equal(7U, scene.Session.NativePlayer!.Kills);
-        Assert.Single(scene.Sent.Where(IsReceive8418DeathFrame));
-        Assert.Single(ParseReceive8418Animations(scene.Sent).Where(packet => packet.SpellId == 11_030));
+        Assert.Single(scene.Sent, IsReceive8418DeathFrame);
+        Assert.Single(ParseReceive8418Animations(scene.Sent), packet => packet.SpellId == 11_030);
         Assert.True(scene.Sessions.TryGet(scene.Connection, out var final));
         Assert.Equal("11", final!.Character.Attributes["DailySpiritBeadCount"]);
     }

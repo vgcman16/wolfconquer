@@ -33,25 +33,7 @@ public sealed partial class LegacyMailboxStore
         return liveEntries.ToArray();
     }
 
-    private void SaveCore(uint playerUid)
-    {
-        var entries = List(playerUid);
-        var path = GetMailboxPath(playerUid);
-        var directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        using var stream = File.Create(path);
-        using var writer = new BinaryWriter(stream, encoding, leaveOpen: false);
-
-        writer.Write(entries.Count);
-        foreach (var entry in entries)
-        {
-            WriteEntry(writer, entry);
-        }
-    }
+    private void SaveCore(uint playerUid) => SavePreparedMailbox(playerUid);
 
     private uint GetNextIdCore(uint playerUid)
     {

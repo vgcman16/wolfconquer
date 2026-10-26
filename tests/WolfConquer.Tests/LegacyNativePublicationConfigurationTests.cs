@@ -56,8 +56,8 @@ public sealed class LegacyNativePublicationConfigurationTests
         Assert.Contains(instructions[(check + 1)..getter], instruction => instruction.Code == OpCodes.Throw);
         Assert.Contains(instructions[(check + 1)..getter], instruction => instruction.Member is ConstructorInfo ctor &&
             ctor.DeclaringType == typeof(InvalidOperationException));
-        Assert.Single(instructions.Where(instruction => instruction.Member is MethodInfo method &&
-            method.DeclaringType == typeof(Holder) && method.Name == "get_MySqlConnection"));
+        Assert.Single(instructions, instruction => instruction.Member is MethodInfo method &&
+            method.DeclaringType == typeof(Holder) && method.Name == "get_MySqlConnection");
         Assert.DoesNotContain(instructions, instruction => instruction.Member is MethodInfo method &&
             method.Name == "set_ConnectionString");
         Assert.DoesNotContain(instructions, instruction => instruction.Code == OpCodes.Stsfld &&

@@ -21,7 +21,8 @@ public sealed partial class WorldServerFrameHandler
     private static bool IsLegacyMailboxClaimFrame(PacketFrame frame) =>
         frame.Header.Opcode == WorldPacketOpcodes.LegacyMailboxMode &&
         LegacyMailboxModePacket.TryParse(frame, out var packet) &&
-        packet.Type is LegacyMailboxModeType.ClaimItem or LegacyMailboxModeType.ClaimMoney or LegacyMailboxModeType.ClaimAll;
+        packet.Type is LegacyMailboxModeType.ClaimItem or LegacyMailboxModeType.ClaimMoney or LegacyMailboxModeType.ClaimAll or
+            LegacyMailboxModeType.Delete or LegacyMailboxModeType.DeleteClaim;
 
     // Registered LegacyWarehouse uses the same action IDs in D11 and D13.
     // Parsed item transfers own the inner Exclusive; physical-bag Show stays Shared.

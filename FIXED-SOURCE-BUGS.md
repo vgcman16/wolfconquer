@@ -1476,6 +1476,72 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-094: Commit mailbox deletion batches before cache removal or echoes
+
+- Source: CMsgMailboxMode400..407/459..470 and managed Mail Delete/DeleteClaim.
+  The managed handler removed cached rows before independent Save; batch echoes
+  preceded that save, so write/send failures could publish an uncommitted result.
+- Both modes now reuse the actual exclusive-operation/Store/PIN/Trade/recovery
+  claim owners and typed v4 Character+Items+Mailbox transaction. Validate the
+  complete graph and exact baselines first. Character/items are exact no-op
+  participants. Remove only unique selected live rows with all reward fields
+  empty; preserve every retained740-byte raw record/order, including valid
+  uninterpreted string padding. Prepare the whole batch/cache/echoes first.
+- Commit/prove the entire batch before cache/Store publication or first echo;
+  a send fault cannot undo deletion or make replay delete/echo again. Missing,
+  nonempty, duplicate, expired and out-of-uint IDs retain their safe decisions.
+  Inventory capacity is not a deletion prerequisite. Last-row deletion writes
+  the real four-byte count-zero image.
+- Tests-first38371:16rows total,11failed/5passed/0skipped across deletion+Save;
+  all six new failing deletion rows reproduced dirty/early-published behavior.
+  Corrected57811:796/796,0failed/skipped,15s, retains all780prior outcomes and
+  adds all16new rows, including8deletion cases and two retained setup migrations.
+  Actual full-bag, raw-padding, exact-before-every-echo, sharing/retry, replay,
+  first-send-fault and count-zero outcomes were read. No assertion was weakened.
+- Limits: managed cooperating-owner controlled failures, not process-kill/power
+  loss, raw/multiprocess writers, outbox/guaranteed delivery, native economic
+  adoption, package rewards, full expiry/producer lifecycle or live-client proof.
+  A fresh full-public successor gate remains pending.
+
+### FSB-095: Prepare and validate ordinary mailbox saves before replacing files
+
+- Source: LegacyMailboxStore.SaveCore called File.Create before serializing
+  required text/encoding, so a later null/encoder fault truncated a valid file.
+  It could also publish duplicate attachment identities rejected by strict load.
+- Serialize a bounded complete managed image in owned memory with the existing
+  encoding/order, then validate it with the complete-image parser before file
+  or directory mutation. Reuse the shared snapshot file gate and existing
+  atomic writer. Failures preserve the prior complete file; count-zero writes
+  remain truthful. No second save engine or accepting persistence callback.
+- Five new current-API cases genuinely failed in38371 (three null fields, a
+  later-row UTF8 encoder fault and duplicate attachments). All8Save cases pass
+  in57811's796/796, together with retained parser/claim/journal coverage.
+  Real Windows replacement sharing refusal/release/retry, independent UTF8
+  bytes/numeric offsets and empty-image controls remain enabled.
+- Limits: ordinary single-file atomic replacement, not rollback of cache edits
+  made by callers before Save, ranking consumption or a multi-file reward
+  transaction. Existing writer cleanup/retry is reused; process-kill, power
+  loss, hostile namespace and uncooperative writers remain unproved. Full-public
+  successor gate and actual-client acceptance are pending.
+
+### Durable UID component continuation (FSB-036 remains open)
+
+- The existing genuine leased registry now binds a stable operation GUID,
+  expected domain, writer/account/character, canonical digest and range count to
+  its durable high-water transaction. An identical replay returns its receipt
+  and no second materialization token; conflicts reject without advancing.
+  Strict v2 receipts preserve v1 serialization and the immutable receipt prefix.
+- Root reviewed all6production files/all3test partials. Measured96606:
+ 118/118passed,0failed/skipped,6s = all53retained controls plus65new operation,
+  codec, controlled interruption/reopen, structural readback and concurrency rows.
+  A direct Assert.Single predicate avoids introducing an xUnit2031 warning.
+- This component has no Host/producer activation. The2048receipt limit refuses
+  new operations when full. Trusted migration/domain handoff, long-account-ID
+  adaptation, all-writer adoption, scalable retention and durable reward intent/
+  journal reconciliation remain required. A crash after reservation but before
+  the producer journal does not gain a replacement token. No global UID or
+  package-grant completion is claimed; FSB-036 stays open. Full gate pending.
+
 ### FSB-092: Commit mailbox item and currency claims as one recoverable outcome
 
 - Source: CMsgMailboxMode/MailList and managed WorldPacketHandlers.Mail mutated
@@ -1518,12 +1584,14 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   processes, power loss, hostile namespace, multiprocess/raw writers, outbox,
   actual-client acceptance or full mailbox parity. Direct stale-context/native
   generation windows, native/managed graph adoption, mailbox1000 presence/UID
-  aliases, package claims, deletion and ordinary producers/Save remain open.
+  aliases, package claims and producer/expiry lifecycle remain open. Deletion
+  and ordinary Save have separate scoped successor evidence in FSB-094/095.
   Clean publice64349a4 archive5455files: session87182 terminal0, all8Windows LOCAL
   stages pass; core25104pass/0fail plus unchanged165existing NotExecuted outcomes,
   all33new rows passed, updater305/305, launcher57/57, synthetic parsers20+13.
   Receipt20261026T052657357Z-4ef51c47 finished2026-10-26T05:32:45.3245849Z.
-  Normal-FF source push verified; GitHub Windows run40274944480 is separate/pending.
+  Normal-FF source push verified; GitHub Windows run40274944480 completed SUCCESS
+  on exacte64349a4, all8stages and the same25104/305/57terminal TRX passes read.
   No live/SQL/original-save,
   protected client, canonical UID/Host, endpoint or held Guild/Union changes.
 
@@ -1543,8 +1611,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 - Limits: complete managed-file admission, not native binary-save migration,
   rollback of earlier login effects, atomic ordinary Save/producers or full mail
   lifecycle. Current client target stays Chinese7899/cachedDX8D13. The full clean
-  publice64349a4 LOCAL gate above passes; GitHub CI and actual-client acceptance
-  remain separate and pending.
+  publice64349a4 LOCAL and GitHub CI gates above pass; actual-client acceptance
+  remains separate and pending.
 
 ### FSB-091: Capture real equipped sigil metadata before combat and cooldown commitment
 
@@ -2377,7 +2445,7 @@ proved by the isolated UID-adoption proposals.
 | FSB-033 | Final comparer can change earlier state or prepared native loan metadata | Pure complete state and exact live frame checks after last comparer | Scoped status/flag/potion paths verified2392; general packet/raw-writer audit open |
 | FSB-034 | Rune insertion/cache publication can split; Count wraps; public arrays corrupt ownership | Complete owned staged publication, exact count and explicit unavailable queries | Scoped storage verified2896; full equip/load/save/economy/host remains open |
 | FSB-035 | Refinement publishes before late status failure or spends chance/stamina before preparation | Complete real state/frames before scoped proc acceptance | Scoped procs verified3065 both trees and full Windows39958461749; full cast/HP remains open |
-| FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator component53/53 owned-file controls pass; host activation, trusted historical migration and all-producer adoption HOLD |
+| FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator component118/118 owned-file controls incl65keyed-receipt rows pass; full successor pending; host activation, trusted migration, producer-intent recovery and all-producer adoption HOLD |
 | FSB-037 | Native save truncates before validation, persists prefixes or loses nested deposits | Complete owned image and truthful atomic file outcome before acknowledgement | Scoped native save verified3116 both trees and full Windows39959714814; host/loader/SQL recovery open |
 | FSB-038 | Fixed32 text reads/writes escape buffers or retain stale tails | Bounded field access, validate before write and explicit null admission | Scoped record verified34cases within3116 both trees; full load/postlude audit open |
 | FSB-039 | Selected DivineGuard resets cooldown and publishes refinement before fallible status work | Complete real preparation and final ownership before stamp/status/draw effects | Scoped proc verified3214 both trees; outer authorization/combat/HP/host remains open |
@@ -2389,6 +2457,14 @@ proved by the isolated UID-adoption proposals.
 | FSB-045 | Duplicate exchange requirements reuse stock; partial consumption still awards; products can overflow | Complete summed material admission and private ordered full debit before reward | Scoped material repair verified446 private;442public plus4existing external skips; whole economy/UID lifecycle open |
 
 ## CodeFactor cleanup
+
+2026-10-26 prepared xUnit2031 batch: the actual preceding full build reported36
+unique diagnostics (72printed with summary repeats). Root reviewed/intook33
+direct Single(predicate) overload changes across11public files/32across10private
+files. The public-only publication test was not created in private. Every source
+expression/predicate and expected value is retained;3complex Select/OfType cases
+are deferred unchanged. This batch joins the mailbox/UID full successor gate;
+no measured warning reduction or new CodeFactor dashboard count is claimed yet.
 
 Current guardrail: defect-first batches, automated bounded cosmetics, no risky
 packet-switch rewrites for complexity scores and no per-warning full-CI cycle.
