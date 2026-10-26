@@ -18,17 +18,17 @@ public sealed partial class LegacyNativeAttackDispatchTests
         Assert.Equal(expected, Base.CalcDamageUser2Monster(100, 10, 120 + difference, 120, ranged));
 
     [Fact]
-    public void BaseAdjustmentConstantsBranchesAndOriginalShadowedFullSentinelAreNotNormalized()
+    public void BaseAdjustmentConstantsBranchesAndArithmeticBoundariesRemainCompatible()
     {
         Assert.Equal(-30000, Base.StatusConstants.AdjustSet); Assert.Equal(-32768, Base.StatusConstants.AdjustFull); Assert.Equal(30000, Base.StatusConstants.AdjustPercent);
         Assert.Equal(new[] { 1, 2, 3, 4 }, new[] { Base.StatusConstants.NAME_GREEN, Base.StatusConstants.NAME_WHITE, Base.StatusConstants.NAME_RED, Base.StatusConstants.NAME_BLACK });
         Assert.Equal(7, Base.CutTrail(3, 7)); Assert.Equal(7, Base.CutTrail(7, 3));
         Assert.Equal(50, Base.AdjustDataEx(100, 30050)); Assert.Equal(3, Base.AdjustDataEx(100, -30003));
-        Assert.Equal(2768, Base.AdjustDataEx(100, -32768, 999)); //<=-30000 shadows native AdjustFull branch.
+        Assert.Equal(999, Base.AdjustDataEx(100, Base.StatusConstants.AdjustFull, 999));
         Assert.Equal(105, Base.AdjustDataEx(100, 5));
         Assert.Equal(5, Base.AdjustHitrate(10, 30050)); Assert.Equal(0, Base.AdjustHitrate(-20, 0));
         Assert.Equal(50, Base.AdjustAttack(100, 0, 50)); Assert.Equal(100, Base.AdjustAttack(100, 0, 0));
-        Assert.Equal(50, Base.AdjustDefense(100, 30050)); Assert.Equal(2768, Base.AdjustDefense(100, -32768, 9));
+        Assert.Equal(50, Base.AdjustDefense(100, 30050)); Assert.Equal(9, Base.AdjustDefense(100, Base.StatusConstants.AdjustFull, 9));
         Assert.Equal(-2, Base.MulDiv(int.MaxValue, 2, 1)); Assert.Equal(-2L, Base.BigMulDiv(long.MaxValue, 2, 1));
         Assert.Equal(3L, Base.BigMulDiv(5, 1, 2)); Assert.Equal(-2L, Base.BigMulDiv(-5, 1, 2));
         Assert.Throws<DivideByZeroException>(() => Base.MulDiv(1, 2, 0)); Assert.Throws<DivideByZeroException>(() => Base.BigMulDiv(1, 2, 0));
@@ -40,7 +40,7 @@ public sealed partial class LegacyNativeAttackDispatchTests
         using var s = new Scope(); s.Client.Equipment!.LeftWeapon = 420009; s.Client.Equipment.RightWeapon = 410008;
         Assert.Equal(32, Base.AdjustMinDamageUser2Monster(1, s.Client)); Assert.Equal(100, Base.AdjustMinDamageUser2Monster(100, s.Client));
         s.Set("_level", (ushort)10); Assert.Equal(19, Base.AdjustMinDamageUser2Monster(1, s.Client));
-        s.Client.Equipment = null; Assert.Throws<NullReferenceException>(() => Base.AdjustMinDamageUser2Monster(1, s.Client));
+        s.Client.Equipment = null; Assert.Throws<InvalidDataException>(() => Base.AdjustMinDamageUser2Monster(1, s.Client));
     });
 
     [Fact]

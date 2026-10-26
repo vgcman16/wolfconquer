@@ -1427,6 +1427,54 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-086: Validate and capture actual minimum-damage owners before physical calculation
+
+- Source: native-derived Base.AdjustMinDamageUser2Monster and its managed
+  Physical.OnMonster caller. Partial client birth leaves Equipment absent; the
+  old formula dereferenced it after assigning output and consuming damage RNG.
+  A foreign equipment/player with the same UID was also accepted. An earlier
+  test deliberately required NullReferenceException.
+- A focused owned-input capture requires the actual current player and actual
+  equipment owner, reusing IsOwnedBy. Null client gets ArgumentNullException;
+  unavailable/mismatched physical owners get InvalidDataException. Capture the
+  real level and both weapon IDs, then compute the unchanged minimum formula:
+  1 + level/10 + left%10 + right%10. No replacement owner is fabricated.
+- Existing physical admission captures those inputs and rechecks references and
+  scalar values after real status-comparer traversal, before output/RNG. The
+  captured integer minimum is used at the original Math.Max point. Actual later
+  ExtraStatus callbacks can no longer cause this minimum step to reread missing
+  equipment or change its sampled floor. No monitor is held across RNG/sends.
+  The genuine floor-monster early return remains before this unused admission.
+- Add24 owner/formula/caller/drift rows and migrate the old null oracle. Shared
+  tests-first93629:494pass/24fail of518,0skip; failures are actual acceptance,
+  exception-type or value assertions, not setup/cleanup faults. Corrected4347:
+  **518/518**,0fail/skip; all38new rows across FSB086/087 and both corrected
+  existing facts passed. Root read actual TRX counters, failed messages, new
+  outcomes and both corrected facts.
+- Limits: offline component/caller proof, not a full cast/resource transaction.
+  Other combat owners, arbitrary raw writers, all mutable combat statistics,
+  packet-recycle failure, native Range/Magic adoption and actual-client gameplay
+  remain separate work. No host, SQL, original save, protected client or endpoint
+  changed. Full clean-public successor/GitHub CI/live acceptance are pending.
+
+### FSB-087: Restore the explicit full-adjustment sentinel branch
+
+- Source: Base declares AdjustFull=-32768 and contains return maxData for it, but
+  the preceding <=-30000 branch made that equality unreachable and returned2768.
+  Earlier tests intentionally enforced that defect.
+- Test the exact AdjustFull equality before the broader absolute-set branch.
+  Preserve other percent/add/set arithmetic and neighboring sentinel values;
+  migrate the two old expectations to supplied maxData. Add14 direct/boundary/
+  wrapper controls, including zero and int bounds.
+- Verified in the same tests-first93629/corrected4347 cohort as FSB086:
+  **518/518**,0fail/skip, all38new rows and both migrated facts passed. This is
+  an intentional server-logic correction based on the explicit constant/branch,
+  not a new client-confirmed spell rate or wire-format change.
+- Limits: managed production callers currently remain internal adjustment
+  wrappers with no external managed production call found. Native Range has a
+  data-driven spell12850 call, but no literal Full use was proven there. Other
+  unchecked arithmetic was not normalized. Full public/CI/live proof is pending.
+
 ### FSB-084: Reject incoherent account envelopes and malformed credential fallback
 
 - Source: previous managed legacy account parsers/AccountServerFrameHandler and

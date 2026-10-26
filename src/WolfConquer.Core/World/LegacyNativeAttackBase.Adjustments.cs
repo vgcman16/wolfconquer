@@ -87,11 +87,8 @@ internal static partial class LegacyNativeAttackBase
 
 	public static int AdjustMinDamageUser2Monster(int nDamage, LegacyNativeGameClientRuntime pAtker)
 	{
-		int num = 1;
-		num += pAtker.Player.Level / 10;
-		num += (int)(pAtker.Equipment.LeftWeapon % 10);
-		num += (int)(pAtker.Equipment.RightWeapon % 10);
-		return Math.Max(num, nDamage);
+		var inputs = CaptureMinimumMonsterDamageInputs(pAtker);
+		return Math.Max(inputs.MinimumDamage, nDamage);
 	}
 
 	public static int MulDiv(int number, int numerator, int denominator)
@@ -110,13 +107,13 @@ internal static partial class LegacyNativeAttackBase
 		{
 			return MulDiv(data, adjust - 30000, 100);
 		}
+		if (adjust == StatusConstants.AdjustFull)
+		{
+			return maxData;
+		}
 		if (adjust <= -30000)
 		{
 			return -1 * adjust + -30000;
-		}
-		if (adjust == -32768)
-		{
-			return maxData;
 		}
 		return data + adjust;
 	}

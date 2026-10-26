@@ -17,7 +17,7 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 		}
 		// Admission precedes the output assignment, RNG, local spell floor and proc sends.
 		// It does not turn the later multi-owner calculation into an atomic transaction.
-		RequireMonsterPhysicalStatus(player);
+		int minimumDamage = RequireMonsterPhysicalStatus(player);
 		SpellObj = new LegacyNativeMsgSpellAnimation.SpellObj(targetUid, 0u, LegacyNativeMsgAttackPacket.AttackEffect.None);
 		int damage = (int)LegacyNativeAttackBase.GetDamage(player.Owner.Status.MaxAttack, player.Owner.Status.MinAttack);
 		damage = (int)player.Owner.AjustAttack((uint)damage, player);
@@ -44,7 +44,7 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 		{
 			damage = LegacyNativeAttackBase.MulDiv(damage, 200, 100);
 		}
-		damage = LegacyNativeAttackBase.AdjustMinDamageUser2Monster(damage, player.Owner);
+		damage = Math.Max(minimumDamage, damage);
 		damage = LegacyNativeAttackBase.CalcDamageUser2Monster(damage, monster.Family.Defense, player.Level, monster.Level, Range: false);
 		damage = (int)LegacyNativeAttackBase.BigMulDiv(damage, monster.Family.Defense2, 10000L);
 		if (monster.Family.Defense2 > 0)
