@@ -1519,7 +1519,12 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   actual-client acceptance or full mailbox parity. Direct stale-context/native
   generation windows, native/managed graph adoption, mailbox1000 presence/UID
   aliases, package claims, deletion and ordinary producers/Save remain open.
-  Full clean-public successor/GitHub CI remain pending. No live/SQL/original-save,
+  Clean publice64349a4 archive5455files: session87182 terminal0, all8Windows LOCAL
+  stages pass; core25104pass/0fail plus unchanged165existing NotExecuted outcomes,
+  all33new rows passed, updater305/305, launcher57/57, synthetic parsers20+13.
+  Receipt20261026T052657357Z-4ef51c47 finished2026-10-26T05:32:45.3245849Z.
+  Normal-FF source push verified; GitHub Windows run40274944480 is separate/pending.
+  No live/SQL/original-save,
   protected client, canonical UID/Host, endpoint or held Guild/Union changes.
 
 ### FSB-093: Validate complete mailbox images before allocation and cache replacement
@@ -1537,8 +1542,9 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   No fixture or parser assertion was skipped, suppressed or relaxed.
 - Limits: complete managed-file admission, not native binary-save migration,
   rollback of earlier login effects, atomic ordinary Save/producers or full mail
-  lifecycle. Current client target stays Chinese7899/cachedDX8D13. Full public/
-  GitHub CI and actual-client acceptance remain separate and pending.
+  lifecycle. Current client target stays Chinese7899/cachedDX8D13. The full clean
+  publice64349a4 LOCAL gate above passes; GitHub CI and actual-client acceptance
+  remain separate and pending.
 
 ### FSB-091: Capture real equipped sigil metadata before combat and cooldown commitment
 

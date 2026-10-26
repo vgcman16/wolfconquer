@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "Sanitized legacy-server parity: client compatibility, corrected emulator defects (project planning)",
-  "reviewedAt": "2026-10-25",
+  "reviewedAt": "2026-10-26",
   "estimate": { "percent": 55, "low": 40, "high": 70, "confidence": "low", "asOf": "2026-10-19" },
   "sourceAudit": { "date": "2026-10-19", "files": 784, "lines": 260144, "targetComparison": "representative" },
   "domains": [
@@ -12,7 +12,7 @@
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Containers/snapshots exist. Bag/warehouse moves persist complete item files before success with capacity, closure, PIN and escrow checks. Show validates current owners and retains genuinely emptied banks for that owner lifetime. Selected expired locks commit before notification. House saves validate complete graphs and use one-file atomic replacement/create. Native queue, spell/proficiency, profile, ranking, mail and nobility have component proof; full SaveClient/adoption remain unfinished.",
+      "implemented": "Snapshot/container paths exist. Bag/warehouse moves validate closure, PIN, capacity and escrow before persisted success; emptied-bank presence stays with its owner. Expired locks and validated house graphs save before output. Mailbox item/currency claims journal character/items/mail before notification; strict loads preserve prior cache on rejection. Native queue, spells, profile, ranking, mail and nobility have component proof; full SaveClient/adoption remain unfinished.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
@@ -43,7 +43,7 @@
     },
     {
       "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
-      "detail": "Public 1e042149 passes all eight clean Windows LOCAL stages (25,071 core passes; 165 existing exclusions), updater305/305, launcher57/57 and synthetic parsers20+13. Actual-client acceptance, GitHub CI and deployment are separate and not yet proven."
+      "detail": "Public e64349a4 passes all eight clean Windows LOCAL stages (25,104 core passes; 165 unchanged existing exclusions), including33new mailbox cases, updater305/305, launcher57/57 and synthetic parsers20+13. GitHub Windows run40274944480 is pending; actual-client acceptance and deployment remain unproved."
     },
     {
       "id": "english", "title": "Complete English client", "status": "in-progress",
