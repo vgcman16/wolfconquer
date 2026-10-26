@@ -4,7 +4,24 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted integration gate — player-booth full Windows CI GREEN
+## Latest accepted LOCAL integration gate — warehouse and house-load GREEN
+
+Exact public `50d1a22b27d6d65329ba020d9cd6235e247b8400` was extracted from a
+tracked-only git archive into a fresh owned Temp workspace outside the original
+server-source ancestors. Local session60498/receipt20261026T011029802Z-536dd321
+finished2026-10-26T01:14:20.7259432Z; all8sequential stages exited0. Root inspected
+the terminal receipt, actual TRX counters/outcome groups and stage logs:
+core **24692passed/0failed**,165 existing NotExecuted rows (24857total);
+updater305/305, launcher57/57, synthetic receipt parsers20+13 (no HTTP/services).
+Build191warnings/0errors,55.16s. All41new warehouse/Trade rows and16new house rows
+are included. The earlier11native-INI fixture failures are corrected without
+changing the adapter or skipping assertions; the full clean-source gate now passes.
+This is Windows LOCAL verification, NOT GitHub CI, running-game acceptance,
+complete English, deployment, global UID safety or full gameplay parity.
+The trusted runner remains unavailable; no replacement launcher or manual green
+GitHub status was used to misrepresent a CI result.
+
+## Latest accepted GitHub CI gate — player-booth full Windows CI GREEN
 
 [Windows40051408447](https://github.com/vgcman16/wolfconquer/actions/runs/40051408447)
 passed exact public `b8cc5cfa12e1fa60c8a61b4478d12e5631309341`; job120744692469
@@ -1396,7 +1413,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   power-loss, global UID, hostile namespace/raw aliases, durable request nonce,
   outbox/client delivery or complete housing. Actual loaded-house/entry/furniture
   authority remains required; arbitrary DynamicID/packet labels grant no access.
-  Full clean-public gate, CI and live-client proof remain unaccepted.
+  Full clean-public LOCAL gate passes above; GitHub CI and live-client proof
+  remain unaccepted.
 
 ### FSB-080: Parse a complete valid house before publishing its owner
 

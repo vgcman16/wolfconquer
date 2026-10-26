@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "Sanitized legacy-server parity: client compatibility, corrected emulator defects (project planning)",
-  "reviewedAt": "2026-10-23",
+  "reviewedAt": "2026-10-25",
   "estimate": { "percent": 55, "low": 40, "high": 70, "confidence": "low", "asOf": "2026-10-19" },
   "sourceAudit": { "date": "2026-10-19", "files": 784, "lines": 260144, "targetComparison": "representative" },
   "domains": [
@@ -12,7 +12,7 @@
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Concrete items/containers and managed snapshots exist. Native component proof covers queues/member maps, spells/proficiencies, profile records, subclass/Ninja/HundredWeapons owners/ranks/metadata/messages, BinaryFile/mail persistence/codecs, and complete nobility ranking/paid-state/character-file loading. Actual queues, owned-file reloads and Windows clocks are tested; full SaveClient and production callers remain unfinished.",
+      "implemented": "Concrete items/containers and managed snapshots exist. Bag and warehouse transfers persist complete item files before success; capacity, nested metadata, PIN and escrow paths are tested. Native component proof covers queues, spells/proficiencies, profile/subclass/ranking/mail/nobility owners and formats. Full native SaveClient and production caller adoption remain unfinished.",
       "remaining": "Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery."
     },
     {
@@ -22,12 +22,12 @@
     },
     {
       "id": "progression", "title": "NPCs, shops, progression and housing", "status": "partial",
-      "implemented": "Main dispatch, shops, forging, skill learning and several durable progression/reward paths exist. Complete native quest definition loading, eligibility queries, quest/NPC/static-message primitives, Dialog methods and level-experience table loading have focused component proof; full quest gameplay, experience updates and callers remain unfinished.",
+      "implemented": "Main dispatch, shops, forging, skill learning and durable progression/reward paths exist. Native quest definitions, eligibility, dialog and experience tables have component proof. House loading validates complete files before owner publication; authenticated housing adoption, entry and furniture gameplay remain unfinished.",
       "remaining": "Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle."
     },
     {
       "id": "social", "title": "Trade, social systems and events", "status": "partial",
-      "implemented": "Managed item/gold/CP Trade and player-booth exchanges use ordered pair commits and a shared journal. Offline tests cover Trade refund/disconnect/restart and complete closures/UID collisions; booth tests cover stale-file/escrow refusal, awaited-writer isolation, failure/retry, detached children, current Anima authorization and registered D13 Frame settlement. Guild/clan projections, selected actions, timers, score panels and some event state machines also exist.",
+      "implemented": "Managed Trade and player-booth exchanges use ordered pair commits and a shared journal. Tests cover complete closures, stale-file/escrow refusal, failure/retry, refunds/disconnect/restart and D13 Frame settlement. Warehouse composition preserves real 300-silver escrow: changed offered roots refund; unrelated withdrawals allow exchange. Guild/clan projections, selected actions, timers, score panels and some event state machines exist.",
       "remaining": "Complete native/social/event ownership and real-client multiplayer acceptance. Broader inventory/storage and booth raw-writer/delivery lifecycles, remaining guild/union actions, brackets, rewards, claims, reset, database parity and durable recovery remain open; scoped managed tests do not certify all transfers."
     },
     {
