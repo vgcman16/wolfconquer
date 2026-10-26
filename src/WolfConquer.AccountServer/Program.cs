@@ -10,7 +10,7 @@ var connectionString = Environment.GetEnvironmentVariable("WOLFCONQUER_ACCOUNT_M
 var accountLogPaths = Environment.GetEnvironmentVariable("WOLFCONQUER_ACCOUNT_LOG_PATHS");
 var accountBanUidPath = Environment.GetEnvironmentVariable("WOLFCONQUER_ACCOUNT_BAN_UID_PATH");
 var legacyCaptureOverrideIdentifier = ResolveLegacyCaptureOverrideIdentifier();
-var legacyMalformedAuthFallbackRequest = ResolveLegacyMalformedAuthFallbackRequest();
+var legacyMalformedAuthFallbackConfigured = HasDisabledLegacyMalformedAuthFallbackConfiguration();
 var legacySavedPasswordRebinds = ResolveLegacySavedPasswordRebinds();
 var disconnectLegacyAccountAfterReady = IsTruthy(
     Environment.GetEnvironmentVariable("WOLFCONQUER_DISCONNECT_LEGACY_ACCOUNT_AFTER_READY"));
@@ -23,7 +23,6 @@ var handler = AccountServerFrameHandler.FromConnectionString(
     handoffService,
     worldEndpoint: startupOptions.WorldEndpoint,
     legacyCaptureOverrideIdentifier: legacyCaptureOverrideIdentifier,
-    legacyMalformedAuthFallbackRequest: legacyMalformedAuthFallbackRequest,
     legacySavedPasswordRebinds: legacySavedPasswordRebinds,
     disconnectLegacyAccountAfterReady: disconnectLegacyAccountAfterReady);
 
@@ -38,10 +37,9 @@ if (legacyCaptureOverrideIdentifier is uint captureIdentifier)
     Console.WriteLine($"Legacy account capture override: Ready identifier {captureIdentifier}");
 }
 
-if (legacyMalformedAuthFallbackRequest is not null)
+if (legacyMalformedAuthFallbackConfigured)
 {
-    Console.WriteLine(
-        $"Legacy malformed auth fallback: {legacyMalformedAuthFallbackRequest.Username}");
+    Console.WriteLine("Legacy malformed-auth credential fallback is disabled; malformed requests are rejected.");
 }
 
 if (legacySavedPasswordRebinds.Count > 0)
@@ -87,30 +85,11 @@ static bool IsTruthy(string? value)
         string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
 }
 
-static AccountLoginRequest? ResolveLegacyMalformedAuthFallbackRequest()
+static bool HasDisabledLegacyMalformedAuthFallbackConfiguration()
 {
-    var username = Environment.GetEnvironmentVariable("WOLFCONQUER_LEGACY_MALFORMED_AUTH_FALLBACK_USERNAME");
-    var password = Environment.GetEnvironmentVariable("WOLFCONQUER_LEGACY_MALFORMED_AUTH_FALLBACK_PASSWORD");
-    if (string.IsNullOrWhiteSpace(username) && string.IsNullOrEmpty(password))
-    {
-        return null;
-    }
-
-    if (!IsTruthy(Environment.GetEnvironmentVariable("WOLFCONQUER_ALLOW_LEGACY_MALFORMED_AUTH_FALLBACK")))
-    {
-        throw new InvalidOperationException(
-            "WOLFCONQUER_LEGACY_MALFORMED_AUTH_FALLBACK_USERNAME/PASSWORD requires explicit opt-in with " +
-            "WOLFCONQUER_ALLOW_LEGACY_MALFORMED_AUTH_FALLBACK=1, true, or yes.");
-    }
-
-    if (string.IsNullOrWhiteSpace(username) || string.IsNullOrEmpty(password))
-    {
-        throw new InvalidOperationException(
-            "WOLFCONQUER_LEGACY_MALFORMED_AUTH_FALLBACK_USERNAME and " +
-            "WOLFCONQUER_LEGACY_MALFORMED_AUTH_FALLBACK_PASSWORD must both be set.");
-    }
-
-    return new AccountLoginRequest(username.Trim(), password);
+    return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WOLFCONQUER_LEGACY_MALFORMED_AUTH_FALLBACK_USERNAME")) ||
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WOLFCONQUER_LEGACY_MALFORMED_AUTH_FALLBACK_PASSWORD")) ||
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WOLFCONQUER_ALLOW_LEGACY_MALFORMED_AUTH_FALLBACK"));
 }
 
 static IReadOnlyDictionary<string, string> ResolveLegacySavedPasswordRebinds()

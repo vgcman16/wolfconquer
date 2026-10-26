@@ -224,20 +224,27 @@ internal static partial class CharacterSnapshotFileCoordinator
         => WriteAtomically(path, temporary => File.WriteAllLines(temporary, lines, encoding), retainBackup: false, out _);
 
     private static void WriteAtomically(string path, Action<string> writeTemporary, bool retainBackup, out string backupPath)
+        => WriteAtomically(path, writeTemporary, retainBackup, createOnly: false, out backupPath, out _);
+
+    private static void WriteAtomically(string path, Action<string> writeTemporary, bool retainBackup,
+        bool createOnly, out string backupPath, out bool published)
     {
+        published = false;
         var transactionId = Guid.NewGuid().ToString("N");
         var tempPath = path + TransactionMarker + transactionId + ".tmp";
-        backupPath = path + TransactionMarker + transactionId + ".bak";
+        backupPath = createOnly ? string.Empty : path + TransactionMarker + transactionId + ".bak";
         var keepBackup = retainBackup;
 
         try
         {
             writeTemporary(tempPath);
-            File.Replace(tempPath, path, backupPath, ignoreMetadataErrors: true);
+            if (createOnly) File.Move(tempPath, path, overwrite: false);
+            else File.Replace(tempPath, path, backupPath, ignoreMetadataErrors: true);
+            published = true;
         }
         catch
         {
-            if (File.Exists(backupPath))
+            if (!createOnly && File.Exists(backupPath))
             {
                 keepBackup = !TryRestoreBackup(backupPath, path);
             }

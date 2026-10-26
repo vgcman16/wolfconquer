@@ -6,7 +6,7 @@ using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Tests;
 
-public sealed class AccountServerFrameHandlerTests
+public sealed partial class AccountServerFrameHandlerTests
 {
     [Fact]
     public void InternalLoginPacketRoundTripsNullTerminatedUtf8Fields()
@@ -418,7 +418,7 @@ public sealed class AccountServerFrameHandlerTests
     }
 
     [Fact]
-    public async Task HandlerUsesConfiguredFallbackForMalformedLegacyAuthentication()
+    public async Task HandlerRejectsMalformedLegacyAuthenticationDespiteConfiguredFallback()
     {
         var store = new InMemoryAccountHandoffTicketStore();
         using var log = new StringWriter();
@@ -442,19 +442,16 @@ public sealed class AccountServerFrameHandlerTests
 
         AssertLegacyForward(
             sent.Single(),
-            LegacyAccountForwardType.Ready,
-            identifier: 1293600,
-            port: 5818,
-            ip: "127.0.0.1");
-        var ticket = Assert.Single(store.Tickets);
-        Assert.Equal(account.Id, ticket.AccountId);
-        Assert.Equal("2", ticket.Username);
-        Assert.Equal(worldEndpoint, ticket.WorldEndpoint);
-        Assert.Contains("AccountServer malformed legacy auth fallback Ready username=2", log.ToString());
+            LegacyAccountForwardType.InvalidAuthenticationProtocol,
+            identifier: 0,
+            port: 0,
+            ip: string.Empty);
+        Assert.Empty(store.Tickets);
+        Assert.DoesNotContain("Ready", log.ToString());
     }
 
     [Fact]
-    public async Task HandlerDisconnectsAfterMalformedFallbackReadyWhenCompatibilityEnabled()
+    public async Task HandlerDoesNotSuccessDisconnectRejectedMalformedAuthenticationWhenCompatibilityEnabled()
     {
         var store = new InMemoryAccountHandoffTicketStore();
         var worldEndpoint = new ConquerEndpoint("WorldServer", "127.0.0.1", 5818);
@@ -490,12 +487,12 @@ public sealed class AccountServerFrameHandlerTests
 
         AssertLegacyForward(
             sent.Single(),
-            LegacyAccountForwardType.Ready,
-            identifier: 1293600,
-            port: 5818,
-            ip: "127.0.0.1");
-        Assert.True(disconnected);
-        Assert.Single(store.Tickets);
+            LegacyAccountForwardType.InvalidAuthenticationProtocol,
+            identifier: 0,
+            port: 0,
+            ip: string.Empty);
+        Assert.False(disconnected);
+        Assert.Empty(store.Tickets);
     }
 
     [Fact]

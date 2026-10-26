@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
-using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
 // Native-compatible House owner; loads validate complete files before publication.
-// The retained raw save path is not a crash-safe transaction.
+// Saves validate current ownership and a complete image before one-file replacement.
+// This does not transact caller-level furniture/economy state or authorize house entry.
 // Npc sender/interface adoption is separate and not required by this persistence owner.
 internal partial class LegacyNativeHouseRuntime
 {
@@ -32,6 +32,7 @@ internal partial class LegacyNativeHouseRuntime
 
 		public static DBNpc Create(LegacyNativeNpcRuntime npc)
 		{
+			ArgumentNullException.ThrowIfNull(npc);
 			return new DBNpc
 			{
 				UID = npc.UID,
@@ -74,39 +75,15 @@ internal partial class LegacyNativeHouseRuntime
 	{
 		if (UID == 0) throw new ArgumentOutOfRangeException(nameof(UID));
 		OwnerUid = UID;
-		if (!HousePoll.ContainsKey(UID))
+		SourcePath = ConfiguredHousePath(UID);
+		lock (LoadGate)
 		{
 			HousePoll.TryAdd(UID, this);
-		}
-		if (!LegacyNativeConstants.BlockAttackMap.Contains(UID))
-		{
-			LegacyNativeConstants.BlockAttackMap.Add(UID);
+			if (!LegacyNativeConstants.BlockAttackMap.Contains(UID))
+				LegacyNativeConstants.BlockAttackMap.Add(UID);
 		}
 	}
 
 	internal static void Load(LegacyNativeGameClientRuntime client) => TryLoad(client);
 
-	internal unsafe static void Save(LegacyNativeGameClientRuntime client)
-	{
-		if (client.MyHouse == null)
-		{
-			return;
-		}
-		LegacyNativeBinaryFile binaryFile = new LegacyNativeBinaryFile();
-		if (!binaryFile.Open(LegacyNativeServerConfig.DbLocation + "\\Houses\\" + client.Player.UID + ".bin", FileMode.Create))
-		{
-			return;
-		}
-		byte level = client.MyHouse.Level;
-		int count = client.MyHouse.Furnitures.Count;
-		binaryFile.Write(&level, 1);
-		binaryFile.Write(&count, 4);
-		foreach (LegacyNativeNpcRuntime value in client.MyHouse.Furnitures.Values)
-		{
-			LegacyNativeNpcRuntime npc = value;
-			DBNpc dBNpc = DBNpc.Create(npc);
-			binaryFile.Write(&dBNpc, sizeof(DBNpc));
-		}
-		binaryFile.Close();
-	}
 }

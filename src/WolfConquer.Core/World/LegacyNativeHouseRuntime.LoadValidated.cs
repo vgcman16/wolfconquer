@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
-using System.Globalization;
 
 namespace WolfConquer.Core.World;
 
@@ -16,9 +15,10 @@ internal partial class LegacyNativeHouseRuntime
     internal uint OwnerUid { get; }
 
     private LegacyNativeHouseRuntime(uint uid, byte level,
-        ConcurrentDictionary<uint, LegacyNativeNpcRuntime> furniture)
+        ConcurrentDictionary<uint, LegacyNativeNpcRuntime> furniture, string sourcePath)
     {
         OwnerUid = uid;
+        SourcePath = sourcePath;
         Level = level;
         Furnitures = furniture;
     }
@@ -37,10 +37,11 @@ internal partial class LegacyNativeHouseRuntime
                 return true;
             }
 
-            if (!TryReadHouse(uid, out var parsed) || !SamePlayer(client, player, uid)) return false;
+            if (!TryReadHouse(uid, out var parsed, out var sourcePath) || !SamePlayer(client, player, uid) ||
+                !HousePathComparer.Equals(sourcePath, ConfiguredHousePath(uid))) return false;
             // The constructor is deliberately not used until parsing finishes:
             // it publishes to both HousePoll and BlockAttackMap immediately.
-            var candidate = new LegacyNativeHouseRuntime(uid, parsed.Level, parsed.Furniture);
+            var candidate = new LegacyNativeHouseRuntime(uid, parsed.Level, parsed.Furniture, sourcePath);
             if (!HousePoll.TryAdd(uid, candidate))
             {
                 if (!HousePoll.TryGetValue(uid, out candidate) || !ValidOwner(candidate, uid)) return false;
@@ -61,14 +62,14 @@ internal partial class LegacyNativeHouseRuntime
 
     private sealed record ParsedHouse(byte Level, ConcurrentDictionary<uint, LegacyNativeNpcRuntime> Furniture);
 
-    private static bool TryReadHouse(uint uid, out ParsedHouse parsed)
+    private static bool TryReadHouse(uint uid, out ParsedHouse parsed, out string sourcePath)
     {
         parsed = null!;
+        sourcePath = string.Empty;
         try
         {
-            var configured = LegacyNativeServerConfig.DbLocation;
-            if (string.IsNullOrWhiteSpace(configured) || !Path.IsPathFullyQualified(configured)) return false;
-            var path = Path.Combine(Path.GetFullPath(configured), "Houses", uid.ToString(CultureInfo.InvariantCulture) + ".bin");
+            if (ConfiguredHousePath(uid) is not { } path) return false;
+            sourcePath = path;
             if (!HasOrdinaryExistingAncestors(path)) return false;
             using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             if (input.Length is < HouseHeaderSize or > MaximumHouseFileBytes) return false;

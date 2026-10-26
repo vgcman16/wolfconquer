@@ -7,11 +7,10 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Core.Accounts;
 
-public sealed class AccountServerFrameHandler
+public sealed partial class AccountServerFrameHandler
 {
     private readonly AccountHandoffService? _handoffService;
     private readonly uint? _legacyCaptureOverrideIdentifier;
-    private readonly AccountLoginRequest? _legacyMalformedAuthFallbackRequest;
     private readonly IReadOnlyDictionary<string, string> _legacySavedPasswordRebinds;
     private readonly bool _disconnectLegacyAccountAfterReady;
     private readonly AccountLoginService? _loginService;
@@ -36,7 +35,8 @@ public sealed class AccountServerFrameHandler
         _loginService = loginService;
         _handoffService = handoffService;
         _legacyCaptureOverrideIdentifier = legacyCaptureOverrideIdentifier;
-        _legacyMalformedAuthFallbackRequest = legacyMalformedAuthFallbackRequest;
+        // Retain source compatibility, but malformed packets never use saved credentials.
+        _ = legacyMalformedAuthFallbackRequest;
         _legacySavedPasswordRebinds = legacySavedPasswordRebinds ??
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         _disconnectLegacyAccountAfterReady = disconnectLegacyAccountAfterReady;
@@ -272,29 +272,26 @@ public sealed class AccountServerFrameHandler
         PacketFrame frame,
         CancellationToken cancellationToken)
     {
+        if (await RejectIncoherentLegacyAuthenticationEnvelopeAsync(connection, frame, cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        if (!LegacyAccountAuthenticationPacket.TryParse(frame, out var request))
+        {
+            await SendLegacyForwardAsync(
+                    connection,
+                    LegacyAccountForwardType.InvalidAuthenticationProtocol,
+                    identifier: 0,
+                    worldEndpoint: null,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            await LogMalformedLegacyAuthenticationAsync(frame).ConfigureAwait(false);
+            return;
+        }
+
         if (_legacyCaptureOverrideIdentifier is uint captureIdentifier)
         {
-            if (!LegacyAccountAuthenticationPacket.TryParse(frame, out var captureRequest))
-            {
-                if (await TrySendMalformedLegacyAuthenticationFallbackAsync(
-                        connection,
-                        frame,
-                        cancellationToken).ConfigureAwait(false))
-                {
-                    return;
-                }
-
-                await SendLegacyForwardAsync(
-                        connection,
-                        LegacyAccountForwardType.InvalidAuthenticationProtocol,
-                        identifier: 0,
-                        worldEndpoint: null,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                await LogMalformedLegacyAuthenticationAsync(frame).ConfigureAwait(false);
-                return;
-            }
-
             await SendLegacyForwardAsync(
                     connection,
                     LegacyAccountForwardType.Ready,
@@ -303,7 +300,7 @@ public sealed class AccountServerFrameHandler
                     cancellationToken)
                 .ConfigureAwait(false);
             await _log.WriteLineAsync(
-                    $"AccountServer legacy capture override Ready for {captureRequest.Username}.")
+                    $"AccountServer legacy capture override Ready for {request.Username}.")
                 .ConfigureAwait(false);
             return;
         }
@@ -319,27 +316,6 @@ public sealed class AccountServerFrameHandler
                 .ConfigureAwait(false);
             await _log.WriteLineAsync("AccountServer legacy login request received but no account repository is configured.")
                 .ConfigureAwait(false);
-            return;
-        }
-
-        if (!LegacyAccountAuthenticationPacket.TryParse(frame, out var request))
-        {
-            if (await TrySendMalformedLegacyAuthenticationFallbackAsync(
-                    connection,
-                    frame,
-                    cancellationToken).ConfigureAwait(false))
-            {
-                return;
-            }
-
-            await SendLegacyForwardAsync(
-                    connection,
-                    LegacyAccountForwardType.InvalidAuthenticationProtocol,
-                    identifier: 0,
-                    worldEndpoint: null,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await LogMalformedLegacyAuthenticationAsync(frame).ConfigureAwait(false);
             return;
         }
 
@@ -445,78 +421,6 @@ public sealed class AccountServerFrameHandler
             .ConfigureAwait(false);
     }
 
-    private async ValueTask<bool> TrySendMalformedLegacyAuthenticationFallbackAsync(
-        ConquerTcpConnection connection,
-        PacketFrame frame,
-        CancellationToken cancellationToken)
-    {
-        if (_legacyMalformedAuthFallbackRequest is null)
-        {
-            return false;
-        }
-
-        if (_loginService is null)
-        {
-            await SendLegacyForwardAsync(
-                    connection,
-                    LegacyAccountForwardType.ServersNotConfigured,
-                    identifier: 0,
-                    worldEndpoint: null,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await _log.WriteLineAsync(
-                    "AccountServer malformed legacy auth fallback requested but no account repository is configured.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var result = await _loginService.ValidateLegacyAsync(
-                _legacyMalformedAuthFallbackRequest,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (result.Status != AccountLoginStatus.Success ||
-            result.Account is null ||
-            !TryGetLegacyForwardIdentifier(result.Account, out var identifier))
-        {
-            await SendLegacyForwardAsync(
-                    connection,
-                    MapLegacyForwardType(result.Status),
-                    identifier: 0,
-                    worldEndpoint: null,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await _log.WriteLineAsync(
-                    "AccountServer malformed legacy auth fallback rejected " +
-                    $"status={result.Status} " +
-                    $"username={FormatLogValue(_legacyMalformedAuthFallbackRequest.Username)} " +
-                    $"{FormatMalformedLegacyAuthenticationDiagnostic(frame)}")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        if (_handoffService is not null)
-        {
-            _handoffService.Issue(
-                GetHandoffCharacterId(result.Account),
-                result.Account.Username,
-                _worldEndpoint);
-        }
-
-        await SendLegacyForwardAsync(
-                connection,
-                LegacyAccountForwardType.Ready,
-                identifier,
-                _worldEndpoint,
-                cancellationToken)
-            .ConfigureAwait(false);
-        await _log.WriteLineAsync(
-                "AccountServer malformed legacy auth fallback Ready " +
-                $"username={FormatLogValue(result.Account.Username)} " +
-                $"identifier={identifier.ToString(CultureInfo.InvariantCulture)} " +
-                $"{FormatMalformedLegacyAuthenticationDiagnostic(frame)}")
-            .ConfigureAwait(false);
-        return true;
-    }
 
     private async ValueTask<LegacyPasswordValidation> ValidateLegacyPasswordCandidatesAsync(
         LegacyAccountAuthenticationPacket request,

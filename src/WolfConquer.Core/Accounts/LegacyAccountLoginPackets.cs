@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Text;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.Packets;
@@ -15,9 +14,7 @@ public readonly record struct LegacyAccountPasswordSeedPacket(int Seed)
     {
         packet = default;
 
-        if (frame.Header.Opcode != Opcode ||
-            frame.Header.Length != FrameLength ||
-            !PacketReader.TryRead(frame.Frame.ToArray(), out var reader))
+        if (!LegacyAccountPacketEnvelope.TryRead(frame, Opcode, FrameLength, out var reader))
         {
             return false;
         }
@@ -59,14 +56,12 @@ public sealed record LegacyAccountAuthenticationPacket(
     {
         packet = default!;
 
-        if (frame.Header.Opcode != Opcode ||
-            frame.Header.Length != FrameLength ||
-            frame.Payload.Length != PayloadLength)
+        if (!LegacyAccountPacketEnvelope.TryRead(frame, Opcode, FrameLength, out var reader))
         {
             return false;
         }
 
-        var payload = frame.Payload.ToArray();
+        var payload = reader.Payload;
         var usernameLength = payload[UsernameLengthOffset];
         var passwordLength = payload[PasswordLengthOffset];
         var serverLength = payload[ServerLengthOffset];
@@ -85,7 +80,7 @@ public sealed record LegacyAccountAuthenticationPacket(
         var passwordOffset = usernameOffset + usernameLength;
         var serverOffset = passwordOffset + passwordLength;
 
-        var encryptedPasswordBytes = payload.AsSpan(passwordOffset, passwordLength).ToArray();
+        var encryptedPasswordBytes = payload.Slice(passwordOffset, passwordLength).ToArray();
         var sourcePasswordBytes = ReadLegacyEncryptedPasswordBytes(encryptedPasswordBytes);
         LegacyAccServerCipher.DecryptPasswordInPlace(sourcePasswordBytes);
         var sourcePassword = StripNulls(WireEncoding.GetString(sourcePasswordBytes));
@@ -95,9 +90,9 @@ public sealed record LegacyAccountAuthenticationPacket(
         var rawPassword = StripNulls(WireEncoding.GetString(rawPasswordBytes));
 
         packet = new LegacyAccountAuthenticationPacket(
-            StripNulls(WireEncoding.GetString(payload.AsSpan(usernameOffset, usernameLength))),
+            StripNulls(WireEncoding.GetString(payload.Slice(usernameOffset, usernameLength))),
             sourcePassword,
-            StripNulls(WireEncoding.GetString(payload.AsSpan(serverOffset, serverLength))))
+            StripNulls(WireEncoding.GetString(payload.Slice(serverOffset, serverLength))))
         {
             PasswordCandidates = CreatePasswordCandidates(sourcePassword, rawPassword),
         };
@@ -213,9 +208,7 @@ public readonly record struct LegacyAccountForwardPacket(
     {
         packet = default;
 
-        if (frame.Header.Opcode != Opcode ||
-            frame.Header.Length != FrameLength ||
-            !PacketReader.TryRead(frame.Frame.ToArray(), out var reader))
+        if (!LegacyAccountPacketEnvelope.TryRead(frame, Opcode, FrameLength, out var reader))
         {
             return false;
         }

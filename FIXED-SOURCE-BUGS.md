@@ -1412,6 +1412,101 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-084: Reject incoherent account envelopes and malformed credential fallback
+
+- Source: previous managed legacy account parsers/AccountServerFrameHandler and
+  AccountServer startup. Seed/forward trusted declared metadata while reading a
+  different embedded header; authentication ignored the physical frame. Rejected
+  parsing could enter a saved-credential fallback and issue Ready/a handoff ticket.
+  These are unsafe server behaviors, not client compatibility requirements.
+- A focused shared helper requires exact declared/embedded/physical/payload
+  coherence, actual enumerated byte totals and bounded copying/comparison. Fixed
+  frame sizes remain8/472/52; cap4096 segment visits per view, including empty
+  segments. Preserve coherent independent backing and every normal split, existing
+  Latin1/password-candidate behavior and all retained packet goldens. D13 binary
+  evidence independently confirms seed opcode1059/offset4 only; this does not
+  establish the protected native forward ABI or all three client wire contracts.
+- Validate the envelope and fields before capture override or missing-repository
+  shortcuts. Every malformed authentication emits InvalidAuthenticationProtocol
+  with zero identifier/port/address, without repository reads, tickets or Ready.
+  Remove the saved-credential fallback method/field entirely. Retain its constructor
+  parameter as ignored source compatibility only; startup no longer constructs or
+  passes credentials and emits a fixed disabled notice for deprecated settings.
+  Rejection of an incoherent sequence does not traverse it again for diagnostics.
+- Replace two old tests requiring malformed Ready/ticket/success-disconnect with
+  safe rejection invariants. New tests cover93 envelope,12 segment-limit and52
+  counted real-handler rows. Direct handler sends are an in-memory connection
+  fixture, NOT TCP/client proof. Valid diagnostic capture remains explicitly
+  diagnostic, not authenticated admission. No accepting fallback was invented.
+- Parser-only61756:50pass/55fail of105; all12 existing packet goldens passed.
+  Expanded tests-first31343:143pass/105fail of248,0skip:55parser,6segment-limit,
+  43handler and1adjacent DBNpc failure (FSB085), all actual behavior/assertions.
+  Corrected46691: **248/248**,0fail/skip; account/network regression30891:
+  **629/629**,0fail/skip,67s, including actual TCP/shutdown/handoff test families.
+  Root inspected counters/outcome groups and changed-case outcomes. Startup source
+  compiled in this build; deprecated-variable startup notice was not process-tested.
+- Limits: valid capture override, saved-password owner rebind and opaque legacy
+  uint/world handoff remain separate authority risks, not secure login completion.
+  Byte coherence is not cryptographic authentication or hostile in-process
+  MemoryManager/concurrent-buffer safety. A client depending on the removed
+  malformed-credential shortcut must obtain genuine decoding/authentication; do not
+  restore the bypass to pass a playtest. No running process/configuration, live
+  SQL/client, original save or endpoint changed. Full clean-public/CI acceptance
+  of this successor is pending; historical full LOCAL gate0dda7410 remains above.
+
+### FSB-085: Reject a null required DBNpc conversion input explicitly
+
+- Native-derived DBNpc.Create dereferenced a required null NPC and the earlier
+  conversion test enforced NullReferenceException. Add ArgumentNullException
+  with parameter `npc` before field reads. Both actual SaveCapture callers already
+  exclude null and do not treat the previous exception as permission/absence.
+- Migrate the existing ten-field conversion fact to the named rejection and
+  unchanged real HousePoll/BlockAttackMap snapshots. All fields,28-byte struct
+  layout and binary goldens remain intact; no new owner/case or gameplay behavior.
+- That fact failed at the exact exception assertion in31343, then passed with
+  all54 house rows in46691/30891. This is invalid-input safety only, not house
+  authority, furniture transaction, client or full parity proof.
+
+### FSB-083: Validate and atomically publish complete house saves
+
+- Source: native `MrRayzo.Role.Instance/House.cs:Save` and retained managed
+  `LegacyNativeHouseRuntime.Save`. The old path truncated the destination before
+  validating ownership/rows, silently returned on failed open, and could leak an
+  open file when a null furniture graph threw. Count/enumeration could disagree.
+- Capture the real physical client/player, immutable owner UID, exact current
+  HousePoll/house/furniture references and all ten modeled fields. Require valid
+  level1..6, nonzero key==UID rows, bounded complete image and unchanged capture.
+  Bind the save path at construction or validated load; a later configured-root
+  change cannot redirect that house. Existing cached load remains usable.
+- Prepare five-byte header plus28-byte rows before touching the destination;
+  preserve the exact ten-field golden. Alignment byte17 is encoded as0, not an
+  arbitrary original-byte-preservation claim. Existing duplicate-loader fixtures
+  now construct malformed bytes explicitly instead of requiring Save to emit them.
+- Under the actual shared file coordinator, validate an existing complete image
+  and reuse captured compare/atomic replacement. First save uses the same writer's
+  create-only move, never replacement of an appeared leaf. No directory creation,
+  fake owner, economic callback or accepting fallback. Absent house remains no-op;
+  invalid present state throws clearly, I/O refusal reports IOException, uncertain
+  publication fences later saves for explicit recovery rather than claiming success.
+- Tests-first36395:33passed/17failed of50,0skip;22new rows were5pass/17fail.
+  Fifteen reached direct behavior assertions; null-row/null-furniture failures
+  were masked by cleanup of the old leaked file handle, not claimed clean RED.
+  First corrected66410: **50/50**,0failed/skipped. Shared-writer/Trade/vendor/
+  warehouse regression97350: **990/990**,0failed/skipped,17s. Root inspected actual
+  TRX counters/groups, every house outcome and all changed source/glue/tests.
+- Separate addendum97063: **994/994**,0fail/skip,18s, including all54house rows.
+  Constructed/loaded path-redirection refusal and same-owner retry, malformed
+  beforeimage refusal, and actual create-only first-save/existing-identical/
+  existing-different controls pass. No concurrent creator/uncertain/crash injection
+  is claimed by those deterministic controls.
+- Limits: no current production caller of house Save is activated by this change.
+  Full clean-public successor/CI and live housing still need acceptance. This is
+  one-file replacement, not crash-safe furniture/economy coordination, SQL,
+  power-loss durability, all raw-alias/ABA writers, hostile namespace/multiprocess
+  safety, authenticated house entry or complete housing. Adjacent DBNpc null
+  conversion is corrected separately inFSB085. No live/original-save/D:/routing
+  change. Latest full LOCAL gate remains exact0dda7410 above.
+
 ### FSB-082: Persist expired warehouse locks before client notification
 
 - Managed Show omitted native SendItemLocked clearing; the reference mutated live

@@ -42,7 +42,13 @@ public sealed partial class LegacyNativeHousePersistenceTests
         Assert.Equal(npc.DynamicID, result.DynamicID); Assert.Equal(npc.Map, result.Map);
         Assert.False(result.Alive); Assert.False(result.AllowDynamic);
         Assert.Equal((ushort)0, result.PacketID); Assert.Equal((ushort)0, result.Leng);
-        Assert.Throws<NullReferenceException>(() => LegacyNativeHouseRuntime.DBNpc.Create(null!));
+        var poll = LegacyNativeHouseRuntime.HousePoll;
+        var entries = poll.ToArray();
+        var blocked = LegacyNativeConstants.BlockAttackMap.ToArray();
+        Assert.Throws<ArgumentNullException>("npc", () => LegacyNativeHouseRuntime.DBNpc.Create(null!));
+        Assert.Same(poll, LegacyNativeHouseRuntime.HousePoll);
+        Assert.Equal(entries.OrderBy(pair => pair.Key), poll.OrderBy(pair => pair.Key));
+        Assert.Equal(blocked, LegacyNativeConstants.BlockAttackMap.ToArray());
     }
 
     [Fact]
@@ -58,7 +64,7 @@ public sealed partial class LegacyNativeHousePersistenceTests
         Assert.False(File.Exists(path));
         client.MyHouse = new(17) { Level = 6 };
         var original = Npc();
-        client.MyHouse.Furnitures[999] = original; // Actual value UID, not dictionary key, is persisted.
+        client.MyHouse.Furnitures[original.UID] = original; // Native placement keys furniture by its actual UID.
         LegacyNativeHouseRuntime.Save(client);
         Assert.Equal(Convert.FromHexString("0601000000040302014433221166558877AA99CCBB0500EEDD4030201080706050"), File.ReadAllBytes(path));
         LegacyNativeHouseRuntime.HousePoll.Clear();
@@ -85,11 +91,14 @@ public sealed partial class LegacyNativeHousePersistenceTests
         var old = client.MyHouse = new(99);
         LegacyNativeHouseRuntime.Load(client);
         Assert.Same(old, client.MyHouse);
-        client.MyHouse = new(17);
-        var npc = Npc();
-        client.MyHouse.Furnitures[1] = npc;
-        client.MyHouse.Furnitures[2] = npc;
-        LegacyNativeHouseRuntime.Save(client);
+        // Corrupt-loader input is explicit fixture data, not a demand that Save
+        // create a malformed duplicate-UID file.
+        var one = HouseBytes();
+        var duplicate = new byte[61];
+        one.CopyTo(duplicate, 0);
+        one.AsSpan(5).CopyTo(duplicate.AsSpan(33));
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(duplicate.AsSpan(1), 2);
+        File.WriteAllBytes(Path.Combine(files.Root, "Houses", "17.bin"), duplicate);
         Assert.Equal(61, new FileInfo(Path.Combine(files.Root, "Houses", "17.bin")).Length);
         LegacyNativeHouseRuntime.HousePoll.Clear(); client.MyHouse = null!;
         LegacyNativeHouseRuntime.Load(client);
