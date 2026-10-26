@@ -32,6 +32,11 @@ internal sealed partial class LegacyItemSaveGraph
         return closure is not null;
     }
 
+    // Detached presentation rows, selected from the captured topology rather than a live list.
+    internal PlayerItemSnapshotItem[] CopyWarehouseRowsForPresentation(uint warehouseId) =>
+        stores[6].Rows.Where(row => row.Source.WarehouseId == warehouseId)
+            .OrderBy(row => row.Source.Uid).Select(row => row.CopyForPersistence()).ToArray();
+
     internal bool ContainsAny(Closure incoming) => incoming.ContainsAny(uids);
     internal bool HasBytes(ReadOnlySpan<byte> actual) => actual.SequenceEqual(bytes);
 

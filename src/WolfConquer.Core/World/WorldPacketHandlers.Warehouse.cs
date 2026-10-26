@@ -48,85 +48,16 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        if (context.Session is not { } session)
+        if (LegacyWarehousePacket.IsShowAction(packet.Action) || packet.Action == LegacyWarehouseAction.ShashShow)
         {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse {FormatSession(context)} action={packet.Action}; no character session is available.")
-                .ConfigureAwait(false);
+            await HandleLegacyWarehouseShowAsync(context, packet, cancellationToken).ConfigureAwait(false);
             return;
-        }
-
-        if (LegacyWarehousePacket.IsShowAction(packet.Action))
-        {
-            await HandleLegacyWarehouseShowAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        switch (packet.Action)
-        {
-            case LegacyWarehouseAction.ShashShow:
-                await HandleLegacyWarehouseSashShowAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
-                return;
-            default:
-                await context.Log.WriteLineAsync(
-                        $"WorldServer skipped unsupported LegacyWarehouse action {FormatSession(context)} npcId={packet.NpcId} action={packet.Action}.")
-                    .ConfigureAwait(false);
-                return;
-        }
-    }
-
-    private static async ValueTask HandleLegacyWarehouseShowAsync(
-            WorldPacketHandlerContext context,
-            WorldSession session,
-            LegacyWarehousePacket packet,
-            CancellationToken cancellationToken)
-    {
-        if (packet.Action == LegacyWarehouseAction.ShowInventorySash &&
-            packet.NpcId != CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)))
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse inventory sash show {FormatSession(context)} npcId={packet.NpcId}; player uid mismatch.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var warehouseItems = session.PlayerItems.WarehouseItems
-            .Where(item => item.WarehouseId == packet.NpcId)
-            .OrderBy(item => item.Uid)
-            .ToArray();
-        if (warehouseItems.Length == 0)
-        {
-            if (packet.Action == LegacyWarehouseAction.ShowInventorySash)
-            {
-                await context.Log.WriteLineAsync(
-                        $"WorldServer skipped LegacyWarehouse inventory sash show {FormatSession(context)} npcId={packet.NpcId}; inventory sash is empty (loadedInventoryItems={session.PlayerItems.InventoryItems.Count} loadedWarehouseItems={session.PlayerItems.WarehouseItems.Count}).")
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse show {FormatSession(context)} npcId={packet.NpcId}; no source items are loaded.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var capacity = GetLegacyWarehouseCapacity(session, packet.NpcId);
-        foreach (var chunk in warehouseItems.Chunk(4))
-        {
-            var response = new LegacyWarehousePacket(
-                packet.NpcId,
-                packet.Action,
-                ItemUid: 0,
-                capacity,
-                chunk);
-            await context.Connection.SendAsync(response.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
         }
 
         await context.Log.WriteLineAsync(
-                $"WorldServer sent LegacyWarehouse {FormatSession(context)} npcId={packet.NpcId} action={packet.Action} count={warehouseItems.Length}.")
+                $"WorldServer skipped unsupported LegacyWarehouse action {FormatSession(context)} npcId={packet.NpcId} action={packet.Action}.")
             .ConfigureAwait(false);
     }
-
 
     private static async ValueTask SendLegacyItemFollowupsAsync(
             WorldPacketHandlerContext context,
@@ -146,45 +77,6 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
         }
     }
-
-    private static async ValueTask SendLegacyItemExtraAggregateAsync(
-            WorldPacketHandlerContext context,
-            IReadOnlyList<PlayerItemSnapshotItem> items,
-            CancellationToken cancellationToken)
-    {
-        var now = DateTime.Now;
-        var purifications = new List<LegacyItemExtraPurification>();
-        var refineries = new List<LegacyItemExtraRefinery>();
-
-        foreach (var item in items)
-        {
-            if (!LegacyItemExtraPacket.TryCreate(item, now, out var itemExtra))
-            {
-                continue;
-            }
-
-            foreach (var purification in itemExtra.Purifications)
-            {
-                purifications.Add(purification);
-            }
-
-            foreach (var refinery in itemExtra.Refineries)
-            {
-                refineries.Add(refinery);
-            }
-        }
-
-        if (purifications.Count == 0 && refineries.Count == 0)
-        {
-            return;
-        }
-
-        await context.Connection.SendAsync(
-                new LegacyItemExtraPacket(purifications, refineries).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-    }
-
 
     private static bool CanUseLegacyWarehouse(
             WorldSession session,
@@ -296,12 +188,4 @@ public static partial class WorldPacketHandlers
                 $"{FormatSession(context)} npcId={npcId} option={optionId}.")
             .ConfigureAwait(false);
     }
-
-    private static ushort GetLegacyWarehouseCapacity(WorldSession session, uint npcId)
-    {
-        return npcId == CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid))
-            ? ReadAttributeUInt16(session.Character.Attributes, "InventorySashCount")
-            : LegacyWarehousePacket.DefaultCapacity;
-    }
-
 }

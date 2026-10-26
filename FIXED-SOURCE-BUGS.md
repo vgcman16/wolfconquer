@@ -1384,6 +1384,38 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-081: Capture and validate warehouse Show before publishing any frame
+
+- Ordinary/house-labelled/own-UID Show previously trusted stale Context state,
+  could publish an early chunk before a later invalid row, and did not consistently
+  enforce the actual current native PIN/Poker owner. Physical bags also lacked a
+  complete detached view and checked owner lifetime across asynchronous sends.
+- Select current Store/generation and actual physical client/player; validate the
+  full seven-store graph, target/capacity and real main-password admission. Prepare
+  every sorted chunk, future lock-date and aggregate extra frame before the first
+  send; recheck captured owner/graph/attributes/PIN/target before each delivery.
+  Read-only Show needs no invented Trade/economic/recovery owners or save call.
+  Bank order remains chunks of four, per-row future dates, aggregate extras;
+  physical bags retain their distinct single chunk plus extras and empty form.
+- Root read all source/glue and nineteen new cases. Initial13210 was NOT nineteen
+  behavioral failures: fifteen failed the strict pre-action save fixture because
+  deliberately unsorted rows differed from its canonical parsed image; four were
+  genuine handler failures. First integration91584 was1202passed/15setup failures.
+  Corrected only test setup: save canonical rows through the unchanged strict
+  oracle, then publish unsorted projections through the real session store. No
+  existing assertion or shared save helper was weakened. Corrected tests against
+  owned old50d production22783 measured2passed/17failed, all reaching handler/output
+  assertions. The two existing-success controls remain meaningful.
+- Corrected broad integration99870 passed **1217/1217**,0failed/skipped,16s. Actual
+  terminal counters and all19new outcomes were inspected. Cases retain rich4+1
+  chunk/future-date/extras bytes, current/stale owners, malformed late rows before
+  any output, missing economic owners, real native PIN issuance/Poker and a fresh
+  native owner after password change. Files and saved JSON remain unchanged.
+- Limits: this does not implement native expired-lock mutation or IsShow caching,
+  genuine house entry/furniture authority, authenticated account-to-world proof,
+  SQL, live-client rendering or full warehouse/game parity. The latest full LOCAL
+  gate above covers50d, before this Show successor; current GitHub CI is unproven.
+
 ### FSB-079: Commit all warehouse item moves before publishing success
 
 - Ordinary2561/2562, house-labelled5121/5122 and own-UID10241/10242 previously

@@ -67,11 +67,10 @@ public sealed partial class LegacyInventorySashUpgradeTests
         {
             var request = new LegacyWarehousePacket(TransferSashUid, action,
                 action == LegacyWarehouseAction.ShashShow ? 0 : TransferItemUid, 0, []);
-            // Show is unchanged and consumes its supplied snapshot. Mutations keep
-            // the original context so they must select the actual current Store.
-            var invocation = action == LegacyWarehouseAction.ShashShow ? Context with { Session = Current } : Context;
+            // All warehouse routes must select the actual current Store, even
+            // when this original context still contains a retired snapshot.
             // The actual registered transfer owns Exclusive. Never wrap in Shared.
-            var actual = Registry.HandleAsync(invocation, ReadFrame(request.ToFrameBytes()), CancellationToken.None).AsTask();
+            var actual = Registry.HandleAsync(Context, ReadFrame(request.ToFrameBytes()), CancellationToken.None).AsTask();
             Calls.Add(actual);
             return ObserveAsync(actual);
         }
