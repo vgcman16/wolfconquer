@@ -7,7 +7,14 @@ Focused42305 passed1593/1593 with no skips: retained1027 mailbox/UID/journal,
 before the text-tag correction. D13 uses title9/sender10; default D11 bytes stay
 unchanged. Registry v3 retains producer intent before allocation; typed journal
 v5 adds strict CombatGear participation. These are prerequisites with no Host or
-package activation. This successor awaits its complete Windows CI gate.
+package activation. Exact public9ce021196ec855de27695e77bb8e591ee8c71d3a passed
+[Windows40288903718](https://github.com/vgcman16/wolfconquer/actions/runs/40288903718).
+Actual receipt20261026T075718937Z-26791360 ended2026-10-26T08:02:11.8500648Z:
+all8stages0, core25299Passed/0Failed plus165unchanged NotExecuted outcomes,
+updater305/305, launcher57/57, synthetic parsers20+13, build157warnings/0errors.
+All1593focused outcomes are present and pass in the full TRX. Result outcomes,
+rather than the core Counters.notExecuted=0 field, establish those165exclusions.
+Current actual-client, SQL, deployment and full-client distribution remain unproved.
 
 ## Full-inventory mailbox rejection
 

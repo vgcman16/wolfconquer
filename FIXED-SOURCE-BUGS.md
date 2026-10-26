@@ -4,6 +4,16 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Latest accepted public CI — D13 mailbox and reward prerequisites
+
+Exact public9ce021196ec855de27695e77bb8e591ee8c71d3a passed Windows40288903718:
+all8stages0, actual TRX25299core passed+165unchanged NotExecuted, updater305/305,
+launcher57/57, synthetic parsers20+13, build157warnings/0errors. Receipt
+20261026T075718937Z-26791360 finished2026-10-26T08:02:11.8500648Z. All1593focused
+outcomes pass in the full run. This supersedes the older CI summaries, not their
+historical provenance. Package payout, actual-client acceptance and deployment
+remain OPEN; no live process/data changed.
+
 ## Latest accepted LOCAL integration gate — standalone package admission GREEN
 
 Tracked-only public base6bde6187 plus the eight reviewed package source/test paths
@@ -1506,8 +1516,12 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   lethal-only damage creates no harm-ranking row. Root seeded a real nonlethal
   hit before the kill, retaining every state/output assertion. No product rule
   or test coverage was weakened to obtain the final result.
-- Static binary and owned handler proof are not current client rendering or
-  authenticated native ownership. Full successor Windows CI remains pending;
+- GitHub Windows40288903718 on exact public9ce02119 completed success. Actual
+  receipt20261026T075718937Z-26791360 finished2026-10-26T08:02:11.8500648Z:
+  all8stages0, core25299passed/0failed+165unchanged NotExecuted outcomes,
+  updater305/305, launcher57/57, parsers20+13, build157warnings/0errors.
+  All1593focused outcomes are included and pass. Static binary and owned handler
+  proof are not current client rendering or authenticated native ownership;
   opaque8 semantics, broader schema, package payout and live acceptance stay OPEN.
 
 ### FSB-097: Do not acknowledge mailbox claims rejected for a full inventory

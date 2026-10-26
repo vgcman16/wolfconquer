@@ -19,7 +19,7 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | Milestone | Status | Detail |
 | --- | --- | --- |
 | Limited local live-client milestone | verified | Login, walking, one-item drop/pickup and saving were demonstrated on an earlier isolated local build. This does not validate the latest public source. |
-| Current public build live-client acceptance | planned | Public9a1a72bb passes all eight GitHub Windows40283769355 stages:25,195 core passes,165unchanged existing exclusions, updater305/305, launcher57/57 and synthetic parsers20+13. Package refusal and full-inventory error/retry checks pass. Package payout, actual-client acceptance and deployment remain unproved. |
+| Current public build live-client acceptance | planned | Public9ce02119 passes all eight GitHub Windows40288903718 stages:25,299 core passes,165unchanged existing exclusions, updater305/305, launcher57/57 and synthetic parsers20+13. D13 mailbox fields and durable reward prerequisites have offline proof. Package payout, actual-client acceptance, deployment and full-client distribution remain unproved. |
 | Complete English client | in-progress | Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete. |
 | Newer-client-only parity | planned | Not estimated. Features absent from the older server source require separate binary, data and observed-behavior evidence. |
 | Public full-client download and updates | in-progress | Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet. |
