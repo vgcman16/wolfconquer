@@ -4,7 +4,17 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted LOCAL integration gate — equipped sigil ownership GREEN
+## Latest accepted LOCAL integration gate — standalone package admission GREEN
+
+Tracked-only public base6bde6187 plus the eight reviewed package source/test paths
+passed all8sequential LOCAL stages, receipt20261026T064543721Z-2f26492d,
+finished2026-10-26T06:51:38.3601402Z. Core25193passed/0failed plus the same165
+existing NotExecuted rows; updater305/305 and launcher57/57. Build157warnings,
+0errors. All10new/migrated package checks pass; the only removed prior outcomes
+are the two explicitly replaced unsafe grant oracles. Full package payout and
+current actual-client acceptance remain OPEN. No live processes/data were changed.
+
+## Earlier accepted LOCAL integration gate — equipped sigil ownership GREEN
 
 Exact public `1e042149367ae8f784bb88825844d31884b07d7a` was extracted from a
 tracked-only git archive (5434files) into a fresh owned Temp workspace. Local
@@ -1475,6 +1485,31 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   No live/SQL/original-save/routing/deployment action.
 
 ## Active audit
+
+### FSB-096: Refuse unowned standalone mailbox packages before rewards
+
+- Source: managed ClaimRecordType used session-local new-item UIDs, a missing
+  CombatGear-to-Empty fallback, ordinary Store.Set and separate mail/sidecar saves.
+  It could publish partial rewards or bypass main-PIN admission before clearing Flag.
+- Mode5 now joins real exclusive/current Store, recovery and complete-baseline
+  admission, including main PIN and native binding when present. Missing/zero-Flag mail keeps the no-ack rule;
+  nonzero Flag refuses the whole unsupported action with PackageOwnersUnresolved.
+  No items, progression, cache, files, PIN admission or success frames change.
+  Remove the unreachable unsafe private grant helper; retain pure reward policies,
+  plans, native primitive codecs and valid packet goldens.
+- Tests-first:10failed rows (8new plus2 deliberate unsafe-oracle migrations).
+  Two missing/zero-Flag failures were diagnostic-only; they do not prove new
+  mutation defects. Corrected focused12300 terminal0:942passed/0failed/0skipped,
+  17s. Real Frame class/gear/full-bag/replay controls, exact current-session/file
+  invariants, supported ClaimMoney follow-up and genuine main-PIN issuer are covered.
+- Package payout remains OPEN until a real live UID producer, stable durable
+  reward intent/receipt reconciliation and joint gear/Ninja/package journal owners
+  exist. Snapshot presence or a component reservation is not that authority.
+  The mode4 full-bag client-cache effect remains under D13 binary trace.
+  Fresh tracked-source LOCAL passed25193core+165existing exclusions, updater305,
+  launcher57, all8stages0; receipt20261026T064543721Z-2f26492d. GitHub full Windows
+  for this successor and actual-client acceptance remain separate;
+  no successful package transaction, Host activation or full parity is claimed.
 
 ### FSB-094: Commit mailbox deletion batches before cache removal or echoes
 

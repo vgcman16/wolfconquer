@@ -81,7 +81,8 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        if (packet.Type is LegacyMailboxModeType.ClaimItem or LegacyMailboxModeType.ClaimMoney or LegacyMailboxModeType.ClaimAll ||
+        if (packet.Type is LegacyMailboxModeType.ClaimItem or LegacyMailboxModeType.ClaimMoney or LegacyMailboxModeType.ClaimAll or
+            LegacyMailboxModeType.ClaimRecordType ||
             IsLegacyMailboxDeletion(packet.Type))
         {
             await HandleLegacyMailboxClaimsAsync(context, packet, cancellationToken).ConfigureAwait(false);
@@ -132,64 +133,6 @@ public static partial class WorldPacketHandlers
                     return;
                 }
 
-            case LegacyMailboxModeType.ClaimRecordType:
-                {
-                    if (!mailboxes.TryGet(uid, packet.Id, out var entry))
-                    {
-                        await context.Log.WriteLineAsync(
-                                "WorldServer handled LegacyMailboxMode " +
-                                $"{FormatSession(context)} type={packet.Type} id={packet.Id} found=False.")
-                            .ConfigureAwait(false);
-                        return;
-                    }
-
-                    if (entry.Flag == 0)
-                    {
-                        await context.Log.WriteLineAsync(
-                                "WorldServer handled LegacyMailboxMode " +
-                                $"{FormatSession(context)} type={packet.Type} id={packet.Id} flag=0 ack=False.")
-                            .ConfigureAwait(false);
-                        return;
-                    }
-
-                    if (!LegacyBossHarmRankPackageClaimPlan.TryCreate(
-                        entry.Flag,
-                        session.Character.Class,
-                        LegacyInventorySlots - session.PlayerItems.InventoryItems.Count,
-                        out var claimPlan))
-                    {
-                        if (claimPlan.Status == LegacyBossHarmRankPackageClaimPlanStatus.InventoryFull)
-                        {
-                            await context.Connection.SendAsync(
-                                    LegacyMsgMessagePacket.SystemTalk("STR_BAG_FULL@@").ToFrameBytes(),
-                                    cancellationToken)
-                                .ConfigureAwait(false);
-                        }
-
-                        await context.Log.WriteLineAsync(
-                                "WorldServer handled LegacyMailboxMode " +
-                                $"{FormatSession(context)} type={packet.Type} id={packet.Id} flag={entry.Flag} " +
-                                $"packageStatus={claimPlan.Status} ack=False.")
-                            .ConfigureAwait(false);
-                        return;
-                    }
-
-                    var updatedSession = await ApplyLegacyBossHarmRankPackageClaimAsync(
-                            context,
-                            session,
-                            claimPlan,
-                            cancellationToken)
-                        .ConfigureAwait(false);
-                    mailboxes.TryClearFlag(uid, packet.Id, packageClaimSucceeded: true, out _);
-                    mailboxes.Save(uid);
-                    await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-                    await context.Log.WriteLineAsync(
-                            "WorldServer handled LegacyMailboxMode " +
-                            $"{FormatSession(context with { Session = updatedSession })} type={packet.Type} id={packet.Id} " +
-                            $"flag={entry.Flag} rank={claimPlan.Rank} itemStacks={claimPlan.ItemGrants.Count} ack=True.")
-                        .ConfigureAwait(false);
-                    return;
-                }
         }
 
         await context.Log.WriteLineAsync(

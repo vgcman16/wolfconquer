@@ -22,9 +22,24 @@ public sealed partial class LegacyInventorySashUpgradeTests
 
         internal async Task EnterAtomicMailFrameAsync(int inventoryCount = 1, bool mixed = false,
             uint flag = 0, bool malformedTail = false, ulong? rewardMoney = null,
-            uint? rewardCp = null, bool hasAttachment = true, bool extraEmptyMail = false)
+            uint? rewardCp = null, bool hasAttachment = true, bool extraEmptyMail = false,
+            long packageClass = 10, bool savedPackageGear = false)
         {
             Seed(frameLogin: true);
+            if (packageClass != 10)
+                File.WriteAllBytes(CharacterPath, ProjectSashFields(File.ReadAllBytes(CharacterPath),
+                    new Dictionary<string, string> { ["Class"] = packageClass.ToString(CultureInfo.InvariantCulture) }));
+            string? packageGearRoot = null;
+            if (savedPackageGear)
+            {
+                packageGearRoot = Path.Combine(Root, "PlayersCombatGear");
+                var gear = CombatGearSnapshot.Empty with
+                {
+                    MasteryPoints = 23, PirateExp = 17,
+                    AirPowers = CombatGearAirPowersSnapshot.Empty with { Points = 19 },
+                };
+                new CombatGearSnapshotLoader(packageGearRoot).SaveByCharacterUid(Uid, gear);
+            }
             var inventory = Enumerable.Range(0, inventoryCount).Select(index => new PlayerItemSnapshotItem
             {
                 Uid = checked((uint)(10_000 + index)), ItemId = 1_088_001,
@@ -83,7 +98,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
 
             var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
             var loader = new CharacterSnapshotLoader(Users, Items, playerSpellsRoot: null,
-                playerProficienciesRoot: null, playersCombatGearRoot: null, playerQuestsRoot: null);
+                playerProficienciesRoot: null, playersCombatGearRoot: packageGearRoot, playerQuestsRoot: null);
             frameOwner = new WorldServerFrameHandler(loader, handoff, worldData: null,
                 runtimeUpdateLoop: LegacyRuntimeUpdateLoopOptions.Disabled, log: Log,
                 protocolProfile: ConquerProtocolProfile.VisibleDx8D13);

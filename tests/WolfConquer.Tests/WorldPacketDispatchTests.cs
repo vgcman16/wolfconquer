@@ -2606,7 +2606,7 @@ public sealed class WorldPacketDispatchTests
     }
 
     [Fact]
-    public async Task HandlerLegacyMailboxModeClaimRecordTypeGrantsRankPackageAndClearsFlag()
+    public async Task HandlerLegacyMailboxModeClaimRecordTypeRequiresOwnedPackageCommitBeforeAnyGrant()
     {
         using var log = new StringWriter();
         var sent = new List<byte[]>();
@@ -2629,17 +2629,14 @@ public sealed class WorldPacketDispatchTests
                     Flag = 1,
                     Timer = DateTime.Now.AddHours(1).Ticks
                 });
-            var session = CreateTitleStorageSession(Path.Combine(root, "Users"), "");
-            var connection = CreateConnection(sent);
-            var sessions = new WorldSessionStore();
-            sessions.Set(connection, session);
+            var context = CreateOwnedMailboxDeletionContext(root, CreateConnection(sent), log, store);
+            var session = Assert.IsType<WorldSession>(context.Session);
+            var uid = checked((uint)session.Character.Uid);
+            var json = System.Text.Json.JsonSerializer.Serialize(session);
+            var cached = Assert.Single(store.List(uid));
+            var beforeFiles = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                .ToDictionary(path => path, File.ReadAllBytes);
             var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
-            var context = new WorldPacketHandlerContext(
-                connection,
-                log,
-                session,
-                Sessions: sessions,
-                Mailboxes: store);
 
             await registry.HandleAsync(
                 context,
@@ -2648,42 +2645,18 @@ public sealed class WorldPacketDispatchTests
                     Id: 11,
                     Items: []).ToFrameBytes()));
 
-            Assert.Equal(9, sent.Count);
-            var itemPackets = sent.Take(6)
-                .Select(bytes =>
-                {
-                    Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(bytes), out var item));
-                    return item;
-                })
-                .ToArray();
-            Assert.Equal(
-                new uint[] { 3_324_226, 4_050_001, 4_040_001, 3_009_003, 3_316_793, 3_330_770 },
-                itemPackets.Select(item => item.ItemId).ToArray());
-            Assert.Equal(
-                new ushort[] { 1, 200, 200, 5, 10, 10 },
-                itemPackets.Select(item => item.StackSize).ToArray());
-            AssertSingleUpdate(sent[6], LegacyMsgUpdateDataType.ClassExperience, 1_000);
-            Assert.True(LegacyDaoQiPacket.TryParse(ReadFrame(sent[7]), out var piratePoints));
-            Assert.Equal(LegacyDaoQiType.PiratePoints, piratePoints.Type);
-            Assert.Equal(50U, piratePoints.PirateExp);
-            AssertMailboxAck(sent[8], LegacyMailboxModeType.ClaimRecordType, 11, []);
-
-            Assert.True(sessions.TryGet(connection, out var updatedSession));
-            Assert.NotNull(updatedSession);
-            Assert.Equal(6, updatedSession.PlayerItems.InventoryItems.Count);
-            Assert.Equal("1000", updatedSession.Character.Attributes["ClassExperience"]);
-            Assert.NotNull(updatedSession.CombatGear);
-            Assert.Equal(50U, updatedSession.CombatGear!.PirateExp);
-            Assert.Equal(50U, updatedSession.CombatGear.AirPowers.Points);
-
-            var persisted = Assert.Single(new LegacyMailboxStore(root).Load(1_400_123));
-            Assert.Equal(0U, persisted.Flag);
-
-            var output = log.ToString();
-            Assert.Contains("type=ClaimRecordType", output);
-            Assert.Contains("rank=1", output);
-            Assert.Contains("itemStacks=6", output);
-            Assert.Contains("ack=True", output);
+            Assert.Empty(sent);
+            Assert.True(context.Sessions!.TryGet(context.Connection, out var current));
+            Assert.Same(session, current);
+            Assert.Equal(json, System.Text.Json.JsonSerializer.Serialize(current));
+            Assert.Same(cached, Assert.Single(store.List(uid)));
+            Assert.Equal(beforeFiles.Keys.Order(StringComparer.Ordinal),
+                Directory.GetFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal));
+            foreach (var (path, bytes) in beforeFiles) Assert.Equal(bytes, File.ReadAllBytes(path));
+            Assert.Equal(1U, Assert.Single(new LegacyMailboxStore(root).Load(uid)).Flag);
+            Assert.False(LegacyTradeJournal.HasPending(session.UsersRoot!));
+            Assert.Contains("type=ClaimRecordType", log.ToString());
+            Assert.Contains("mailboxClaimPackageOwnersUnresolved", log.ToString());
         }
         finally
         {
@@ -2695,7 +2668,7 @@ public sealed class WorldPacketDispatchTests
     }
 
     [Fact]
-    public async Task HandlerLegacyMailboxModeClaimRecordTypePersistsPackageRewardsThroughLiveHandler()
+    public async Task HandlerLegacyMailboxModeClaimRecordTypeWithSavedGearStillRequiresOwnedRewardCommit()
     {
         var dbRoot = Path.Combine(Path.GetTempPath(), "wolf-mail-claim-package-live-handler-" + Guid.NewGuid());
         var usersRoot = Path.Combine(dbRoot, "Users");
@@ -2741,6 +2714,8 @@ public sealed class WorldPacketDispatchTests
                 connection,
                 ReadFrame(new LegacyMsgLoginGamePacket(1_400_123).ToFrameBytes()));
             var countBeforeClaim = sent.Count;
+            var beforeFiles = Directory.GetFiles(dbRoot, "*", SearchOption.AllDirectories)
+                .ToDictionary(path => path, File.ReadAllBytes);
 
             await handler.HandleFrameAsync(
                 connection,
@@ -2749,31 +2724,22 @@ public sealed class WorldPacketDispatchTests
                     Id: 11,
                     Items: []).ToFrameBytes()));
 
-            var claimFrames = sent.Skip(countBeforeClaim).ToArray();
-            Assert.Equal(9, claimFrames.Length);
-            AssertSingleUpdate(claimFrames[6], LegacyMsgUpdateDataType.ClassExperience, 1_000);
-            Assert.True(LegacyDaoQiPacket.TryParse(ReadFrame(claimFrames[7]), out var piratePoints));
-            Assert.Equal(LegacyDaoQiType.PiratePoints, piratePoints.Type);
-            Assert.Equal(50U, piratePoints.PirateExp);
-            AssertMailboxAck(claimFrames[8], LegacyMailboxModeType.ClaimRecordType, 11, []);
-
+            Assert.Empty(sent.Skip(countBeforeClaim));
+            Assert.Equal(beforeFiles.Keys.Order(StringComparer.Ordinal),
+                Directory.GetFiles(dbRoot, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal));
+            foreach (var (path, bytes) in beforeFiles) Assert.Equal(bytes, File.ReadAllBytes(path));
             var persistedCharacter = CharacterSnapshotParser.ParseText(File.ReadAllText(snapshotPath));
-            Assert.Equal("1000", persistedCharacter.Attributes["ClassExperience"]);
-
-            var persistedItems = new PlayerItemSnapshotLoader(itemsRoot).LoadByCharacterUid(1_400_123);
-            Assert.Equal(
-                new uint[] { 3_324_226, 4_050_001, 4_040_001, 3_009_003, 3_316_793, 3_330_770 },
-                persistedItems.InventoryItems.Select(item => item.ItemId).ToArray());
-
+            Assert.Equal("0", persistedCharacter.Attributes["ClassExperience"]);
+            Assert.Empty(new PlayerItemSnapshotLoader(itemsRoot).LoadByCharacterUid(1_400_123).InventoryItems);
             var persistedCombatGear = new CombatGearSnapshotLoader(combatGearRoot).LoadByCharacterUid(1_400_123);
-            Assert.Equal(50U, persistedCombatGear.PirateExp);
-            Assert.Equal(50U, persistedCombatGear.AirPowers.Points);
-
-            var persistedMail = Assert.Single(new LegacyMailboxStore(dbRoot).Load(1_400_123));
-            Assert.Equal(0U, persistedMail.Flag);
+            Assert.Equal(0U, persistedCombatGear.PirateExp);
+            Assert.Equal(0U, persistedCombatGear.AirPowers.Points);
+            Assert.Equal(1U, Assert.Single(new LegacyMailboxStore(dbRoot).Load(1_400_123)).Flag);
+            Assert.False(LegacyTradeJournal.HasPending(usersRoot));
 
             var output = log.ToString();
-            Assert.Contains("WorldServer handled LegacyMailboxMode", output);
+            Assert.Contains("WorldServer skipped mailbox claim", output);
+            Assert.Contains("mailboxClaimPackageOwnersUnresolved", output);
             Assert.Contains("type=ClaimRecordType", output);
             Assert.DoesNotContain("PARITY-GAP category=runtime severity=error gap=player-items-persistence", output);
             Assert.DoesNotContain("PARITY-GAP category=runtime severity=error gap=combat-gear-persistence", output);

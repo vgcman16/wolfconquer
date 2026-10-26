@@ -1,5 +1,18 @@
 # Publication validation
 
+## Standalone mailbox package admission
+
+Tracked-only base6bde6187 plus eight reviewed source/test changes passed the full
+LOCAL Windows gate: receipt20261026T064543721Z-2f26492d, finished2026-10-26T06:51:38Z.
+All8stages exited0; core25193passed/0failed plus165unchanged existing exclusions,
+updater305/305, launcher57/57, synthetic parser checks20+13. Build157warnings/0errors.
+Tests-first package10failed (including2diagnostic-only controls), then focused942/942.
+All prior outcomes remain except two deliberately replaced unsafe package-grant
+oracles; their safe replacements pass. Unsupported package payout is fenced before
+effects until durable UID intent and joint reward owners exist. GitHub checks for
+this successor and current actual-client proof remain separate. No new CodeFactor
+issue count is inferred from these tests.
+
 ## Selected-status, nature-force and launcher diagnostics checkpoint
 
 Private Release core721/721 and launcher57/57 pass, zero failed/skipped.

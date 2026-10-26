@@ -17,6 +17,16 @@ public static partial class WorldPacketHandlers
     {
         if (IsLegacyMailboxDeletion(packet.Type))
             return TryPrepareLegacyMailboxDeletion(baseline, packet, out plan, out reason);
+        if (packet.Type == LegacyMailboxModeType.ClaimRecordType)
+        {
+            // The host has no live package UID producer or joint gear/Ninja reward
+            // commit. A snapshot or available bag slot cannot establish those owners.
+            plan = null!;
+            var package = baseline.Mail.FindLive(packet.Id, baseline.Mail.Now);
+            reason = package is null ? MailboxClaimPrefix + "MailUnavailable" :
+                package.Flag == 0 ? MailboxClaimPrefix + "PackageEmpty" : MailboxClaimPrefix + "PackageOwnersUnresolved";
+            return false;
+        }
         plan = null!;
         reason = MailboxClaimPrefix + "PlanInvalid";
         var all = packet.Type == LegacyMailboxModeType.ClaimAll;
