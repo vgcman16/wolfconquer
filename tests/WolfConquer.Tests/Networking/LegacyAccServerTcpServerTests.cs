@@ -8,7 +8,7 @@ using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyAccServerTcpServerTests
+public sealed partial class LegacyAccServerTcpServerTests
 {
     [Fact]
     public async Task LegacyAccountServerWireModeSendsEncryptedPasswordSeed()

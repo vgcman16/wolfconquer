@@ -1460,6 +1460,14 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   **629/629**,0fail/skip,67s, including actual TCP/shutdown/handoff test families.
   Root inspected counters/outcome groups and changed-case outcomes. Startup source
   compiled in this build; deprecated-variable startup notice was not process-tested.
+- Real encrypted TCP addendum58042: **4/4**,0fail/skip (two retained wire facts
+  and two new malformed/retry rows),179ms. A fresh tracked-only4d22ea7f archive
+  plus the reviewed test-only patch receives the actual seed, encrypts coherent
+  malformed472-byte and honestly short471-byte requests, and reads real socket
+  rejection bytes. After awaited handler completion: zero repository reads/tickets;
+  both continuously advanced cipher counters and the SAME socket then carry a
+  valid request yielding exactly one read/ticket. Root inspected actual TRX rows.
+  No production change or new tests-first RED is claimed by this addendum.
 - Limits: valid capture override, saved-password owner rebind and opaque legacy
   uint/world handoff remain separate authority risks, not secure login completion.
   Byte coherence is not cryptographic authentication or hostile in-process
