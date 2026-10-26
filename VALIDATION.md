@@ -8,8 +8,13 @@ The corrected complete updater suite passes357/357,0failed/skipped,1m28s,
 retaining305prior rows and all52new outcomes. Fourteen ordinary near-name controls
 publish and verify real ephemeral signed releases. The Windows exclusive-source
 and actual CLI absent-key cases establish rejection before those reads.
-No compiler warning/error text. The complete successor Windows CI gate remains
-pending. No real client package/feed, key, deployment or live acceptance follows.
+No compiler warning/error text in that focused project run. Exact public
+98be3f410a68272b53c170abe25d5fb8c182b4a3 passed
+[Windows40297219885](https://github.com/vgcman16/wolfconquer/actions/runs/40297219885).
+Receipt20261026T090840597Z-d2f7acd6 finished2026-10-26T09:13:49.6704534Z:
+all8stages0, core25299passed+165existing NotExecuted, updater357/357, launcher57/57,
+synthetic parsers20+13, build157warnings/0errors. All52new outcomes pass in full CI.
+No real client package/feed, key, deployment or live acceptance follows.
 
 ## D13 mailbox text and reward-recovery prerequisites
 

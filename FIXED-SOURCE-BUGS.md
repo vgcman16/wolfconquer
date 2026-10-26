@@ -4,12 +4,12 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted public CI — D13 mailbox and reward prerequisites
+## Latest accepted public CI — publisher filename admission
 
-Exact public9ce021196ec855de27695e77bb8e591ee8c71d3a passed Windows40288903718:
-all8stages0, actual TRX25299core passed+165unchanged NotExecuted, updater305/305,
+Exact public98be3f410a68272b53c170abe25d5fb8c182b4a3 passed Windows40297219885:
+all8stages0, actual TRX25299core passed+165unchanged NotExecuted, updater357/357,
 launcher57/57, synthetic parsers20+13, build157warnings/0errors. Receipt
-20261026T075718937Z-26791360 finished2026-10-26T08:02:11.8500648Z. All1593focused
+20261026T090840597Z-d2f7acd6 finished2026-10-26T09:13:49.6704534Z. All52new publisher
 outcomes pass in the full run. This supersedes the older CI summaries, not their
 historical provenance. Package payout, actual-client acceptance and deployment
 remain OPEN; no live process/data changed.
@@ -1517,8 +1517,11 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   compatibility and prior-install baseSha256 semantics stay intact. Names cannot
   detect renamed secrets or certify content. Exact reviewed BMP/DDS membership,
   source-image binding through staging/publishing, ambiguous INIs, portable client
-  configuration and full-client release remain OPEN. Full successor Windows CI
-  is still pending; no real client/configuration/key/feed or running service changed.
+  configuration and full-client release remain OPEN. Exact public98be3f41 passed
+  Windows40297219885/all8stages with all52new outcomes, updater357/357, core25299
+  plus165existing exclusions, launcher57/57. Receipt20261026T090840597Z-d2f7acd6
+  ended09:13:49.6704534Z; build157warnings/0errors. No real client/configuration/
+  key/feed or running service changed.
 
 ### FSB-098: Select the client-confirmed D13 mailbox text fields explicitly
 
