@@ -50,13 +50,37 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
     }
 
     [Fact]
-    public async Task AcceptedLoginWrapsCurrentUintMaxWhileLocalMarkerRemainsOne()
+    public async Task CurrentOnlineOverflowRejectsWithoutWrappingOrPublishingThePrefix()
     {
-        await AssertAcceptedAsync("True", initialOnline: uint.MaxValue, expectedOnline: 0, expectedRelic: true);
+        using var input = new PrefixInput("True");
+        await WithHandlerAsync(input, async (fixture, handler, log) =>
+        {
+            var (wire, birth) = await ConnectBornAsync(fixture);
+            var client = birth.Connection.NativeGameClient!;
+            var player = client.Player;
+            player.Online = uint.MaxValue;
+            var flags = player.BitVector;
+            var random = player.MyRandom;
+
+            var rejected = await SendLoginAsync(fixture, wire);
+
+            Assert.Null(rejected.Before);
+            Assert.Null(rejected.After);
+            Assert.Equal(0U, player.UID);
+            Assert.Equal(uint.MaxValue, player.Online);
+            Assert.False(player.RelicSpirit);
+            Assert.Same(flags, player.BitVector);
+            Assert.Same(random, player.MyRandom);
+            Assert.Null(client.Beasts);
+            Assert.Null(client.HairfaceStorage);
+            Assert.Equal(input.InitialBytes, File.ReadAllBytes(input.FilePath));
+            Assert.Null(handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
+            Assert.DoesNotContain("legacy MsgLoginGame Success", log.Text);
+        });
     }
 
     [Fact]
-    public async Task LocalWriteFailureRetainsUidOnlyAndPublishesNoSession()
+    public async Task LocalWriteFailureRetainsCompleteNativePrefixAndPublishesNoSession()
     {
         using var input = new PrefixInput("True");
         await WithHandlerAsync(input, async (fixture, handler, log) =>
@@ -70,7 +94,7 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
                 var login = await SendLoginAsync(fixture, wire);
                 Assert.Null(login.Before);
                 Assert.Null(login.After);
-                Assert.Equal(Uid, player.UID);
+                Assert.Equal(0U, player.UID);
                 Assert.Equal(9U, player.Online);
                 Assert.False(player.RelicSpirit);
                 Assert.Same(player, client.Player);
@@ -262,7 +286,7 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
     }
 
     [Fact]
-    public async Task AcceptedLoginRetainsExistingBeastOwnerButLoadsItsActivationDefault()
+    public async Task ForeignExistingBeastOwnerRejectsWithoutChangingEitherPlayerOrTheSave()
     {
         using var input = new PrefixInput("True");
         await WithHandlerAsync(input, async (fixture, handler, log) =>
@@ -275,36 +299,37 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
             var (_, foreignBirth) = await ConnectBornAsync(fixture);
             var foreignOwner = foreignBirth.Connection.NativeGameClient!;
             Assert.NotSame(client, foreignOwner);
-            // Controlled existing state; both Owner references are real socket-born clients.
             var existing = new LegacyNativeBeastsRuntime(foreignOwner)
             {
                 Activated = true, Points = 73, flag = 0x80000011U, FixedLevel = 7,
             };
             client.Beasts = existing;
 
-            var accepted = Assert.IsType<WorldSession>((await SendLoginAsync(fixture, wire)).After);
+            var rejected = await SendLoginAsync(fixture, wire);
 
-            Assert.Same(client, accepted.NativeGameClient);
-            Assert.Same(player, accepted.NativePlayer);
+            Assert.Null(rejected.Before);
+            Assert.Null(rejected.After);
+            Assert.Same(player, client.Player);
             Assert.Same(flags, player.BitVector);
             Assert.Same(random, player.MyRandom);
-            Assert.Equal(Uid, player.UID);
-            Assert.Equal(1U, player.Online);
-            Assert.True(player.RelicSpirit);
-            AssertPreservedBeast(client, existing, foreignOwner, points: 73, flag: 0, fixedLevel: 7, activated: false);
+            Assert.Equal(0U, player.UID);
+            Assert.Equal(0U, player.Online);
+            Assert.False(player.RelicSpirit);
+            Assert.Null(client.HairfaceStorage);
+            AssertPreservedBeast(client, existing, foreignOwner, points: 73, flag: 0x80000011U,
+                fixedLevel: 7, activated: true);
             Assert.Null(foreignOwner.Beasts);
             Assert.Equal(0U, foreignOwner.Player.UID);
-            Assert.Equal(1L, accepted.Character.Online);
-            Assert.Equal(input.ExpectedMarkerBytes, File.ReadAllBytes(input.FilePath));
-            var fresh = new CharacterSnapshotLoader(input.Users).TryLoadByAccountId(Uid);
-            Assert.Equal(CharacterSnapshotLoadStatus.Success, fresh.Status);
-            Assert.Equal(1L, fresh.Snapshot!.Online);
-            Assert.Contains("legacy MsgLoginGame Success", log.Text);
+            Assert.Equal(0U, foreignOwner.Player.Online);
+            Assert.False(foreignOwner.Player.RelicSpirit);
+            Assert.Equal(input.InitialBytes, File.ReadAllBytes(input.FilePath));
+            Assert.Null(handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
+            Assert.DoesNotContain("legacy MsgLoginGame Success", log.Text);
         });
     }
 
     [Fact]
-    public async Task FailedLocalWriteRetainsExistingBeastBeforeConditionalBirth()
+    public async Task FailedLocalWriteRetainsNativePrefixAndExistingBeast()
     {
         using var input = new PrefixInput("True");
         await WithHandlerAsync(input, async (fixture, handler, log) =>
@@ -326,7 +351,7 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
                 var rejected = await SendLoginAsync(fixture, wire);
                 Assert.Null(rejected.Before);
                 Assert.Null(rejected.After);
-                Assert.Equal(Uid, player.UID);
+                Assert.Equal(0U, player.UID);
                 Assert.Equal(9U, player.Online);
                 Assert.False(player.RelicSpirit);
                 Assert.Same(player, client.Player);

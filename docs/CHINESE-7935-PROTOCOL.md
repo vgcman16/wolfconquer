@@ -52,9 +52,25 @@ an Echo activation result discriminator for that branch; field 10 is not labeled
 a slot count. Other operation consumers and their final receivers remain under
 investigation. These static effects do not prove displayed text or delivery.
 
-Before adding a business handler, recover the actual operation 6 request producer,
-activation target, owned Echo state, matching catalog, permissions/costs and
-durable transaction. Existing RelicFuse 2356 is a separate protocol. The new
+The fresh activation callback009D72DF and builder011AF9D2 set operation6 and
+field4 to UI selection+1. Fresh protobuf initialization leaves response fields
+absent. The independent selection0 frame `0800540808062001` passes the actual
+codec/packet writer; field2/field10/data8/children are absent. Catalog lookup
+uses one-based cost keys, but the callback alone does not prove cost ownership.
+
+`ChineseLuaCatalogTransform.Decode` now provides the separate explicit12-byte-key
+byte transform: eleven ThreeWay rounds using the native big-endian block contract,
+then XOR54 on the final1..11bytes.43cases pass, including four primary published
+[known answers](https://raw.githubusercontent.com/weidai11/cryptopp/CRYPTOPP_8_9_0/TestData/3wayval.dat),
+every tail length, ownership and finite bounds. The public-domain reference's
+block byte order needs an adapter; native instructions define this API's contract.
+No key discovery/default, game key, asset, text/Lua execution or runtime binding
+is included. Two pinned private Echo catalogs (501/9114bytes) decode to
+UTF8-text candidates. Grammar/schema, runtime binding and gameplay authority
+remain unverified; no catalog text or key is bundled.
+
+Before adding a business handler, recover the owned Echo state, matching catalog,
+permissions/costs and durable transaction. Existing RelicFuse 2356 is a separate protocol. The new
 `XuanBaoEcho.dat` catalog, operation 13/14 meaning, fifth-slot behavior, profile
 transport/startup, copied-client rendering and gameplay acceptance remain open.
 No complete 7935 compatibility, live deployment or parity increase is claimed.

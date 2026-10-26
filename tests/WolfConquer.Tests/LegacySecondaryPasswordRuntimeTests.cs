@@ -340,29 +340,46 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task DuplicateCredentialOrUidFieldsCannotMintNoPinAdmissionAtLogin(bool duplicateUid)
+    public async Task DuplicateCredentialOrUidFieldsRejectLoginWithoutMintingPinOrTradeAuthority(bool duplicateUid)
     {
         const uint leftUid = 1_297_101;
         const uint rightUid = 1_297_102;
         Seed(leftUid, "111,0,0");
         Seed(rightUid, "0,0,0", 20, 2_000, 60);
         File.AppendAllText(UserPath(leftUid), duplicateUid ? $"UID={leftUid}\n" : "SecurityPass=0,0,0\n");
-        var criticalBeforeLogin = CriticalCredentialLines(leftUid);
+        var before = File.ReadAllBytes(UserPath(leftUid));
+        var criticalBefore = CriticalCredentialLines(leftUid);
+        var itemsBefore = File.ReadAllBytes(ItemPath(leftUid));
         var owner = NewOwner();
-        var left = await Login(owner, leftUid);
+        var left = CreateConnection(leftUid);
+
+        await owner.Handler.HandleFrameAsync(left.Connection,
+            ReadFrame(new LegacyMsgLoginGamePacket(leftUid).ToFrameBytes()), left.Lifetime.Token);
+
+        Assert.DoesNotContain(left.Sent, IsAnswerOk);
+        Assert.False(owner.Sessions.TryGet(left.Connection, out _));
+        Assert.Equal(0U, left.NativeClient.Player.UID);
+        Assert.False(left.NativeClient.Player.IsCheckedPass);
+        Assert.Equal(before, File.ReadAllBytes(UserPath(leftUid)));
+        Assert.Equal(criticalBefore, CriticalCredentialLines(leftUid));
+        Assert.Contains("normalPrefixCharacterFieldsAmbiguous", owner.Log.ToString());
+
         var right = await Login(owner, rightUid);
-        Assert.False(left.NativeClient.Player.IsCheckedPass);
-        Assert.Equal(criticalBeforeLogin, CriticalCredentialLines(leftUid));
-        // Capture full bytes after legitimate login scalar normalization, but
-        // require the ambiguous credential/identity lines themselves unchanged.
-        var beforeActions = File.ReadAllBytes(UserPath(leftUid));
-
+        var acceptedRight = Current(owner, right);
+        var rightBefore = File.ReadAllBytes(UserPath(rightUid));
+        var rightItemsBefore = File.ReadAllBytes(ItemPath(rightUid));
         AssertNoSuccess(await Password(owner, left, 1, newPin: 111));
-        Assert.False(left.NativeClient.Player.IsCheckedPass);
-        await AssertTradeDenied(owner, left, right);
+        await Trade(owner, left, new LegacyTradePacket(0) { UID = rightUid });
 
-        Assert.Equal(beforeActions, File.ReadAllBytes(UserPath(leftUid)));
-        Assert.Equal(criticalBeforeLogin, CriticalCredentialLines(leftUid));
+        Assert.False(owner.Sessions.TryGet(left.Connection, out _));
+        Assert.Same(acceptedRight, Current(owner, right));
+        Assert.False(Current(owner, right).LegacyTradeActive);
+        Assert.False(left.NativeClient.Player.IsCheckedPass);
+        Assert.Equal(before, File.ReadAllBytes(UserPath(leftUid)));
+        Assert.Equal(itemsBefore, File.ReadAllBytes(ItemPath(leftUid)));
+        Assert.Equal(rightBefore, File.ReadAllBytes(UserPath(rightUid)));
+        Assert.Equal(rightItemsBefore, File.ReadAllBytes(ItemPath(rightUid)));
+        Assert.Equal(criticalBefore, CriticalCredentialLines(leftUid));
     }
 
     [Theory]

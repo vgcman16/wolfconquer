@@ -4,38 +4,40 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Current successor — focused checks passed; exact-public full CI pending
+## Current successor — six CI oracles corrected; focused checks passed
 
-The preceding public 77c97b2812b46bbd8de36d3fddb8d355052ddef2 failed
-[Windows 40353357252](https://github.com/vgcman16/wolfconquer/actions/runs/40353357252):
-25,878 core passed, one failed, 165 existing exclusions; updater 434/434.
-Restore/build passed with 158 warnings and zero errors. Launcher and receipt
-parsers were not reached. The sole failure was the owned native-readiness test's
-socket release after its child exhausted the readiness allowance. This failed
-attempt does not supersede the earlier accepted a3cb full CI below.
+Exact publiccb49be1da4ead0e6a9aea78ab7fb00bcf839b431 failed
+[Windows40373707806](https://github.com/vgcman16/wolfconquer/actions/runs/40373707806),
+job121750963988. Its terminal receipt ended2026-10-26T18:32:20.4338084Z:
+core26,153passed/6failed/165existing exclusions, updater434/434. Restore/build
+passed; launcher/parsers were not reached. This is a failed full run.
 
-The failure was reproduced with an owned delayed-start child. The success-window
-fixture now has explicit headroom and preserves complete pre-result diagnostics;
-production limits and separate exact-timeout controls are unchanged. The full
-readiness family passes 32/32. The native prefix passes 135/135 after actual
-malformed/foreign/truncated-state regressions; ordinary admission remains open.
+Four prefix Facts required unsafe counter wrapping, UID-only failure publication
+or foreign Beast adoption; two duplicate Character-field rows required successful
+login. The replacements retain every input row and valid control, requiring
+unchanged-state rejection and genuine ownership. Actual focused225/225 pass,
+0fail/skip: prefix24, PIN55, retained Hairface71, existing Chinese packet31,
+independent Echo request1 and explicit-key catalog decoder43. The catalog cases
+include four primary published known answers and every native tail length.
 
-The complete explicit default-profile byte decoder and CLI, plus the separately
-named Chinese 7935-chain packet codec, pass 290/290 selected outcomes, no skips:
-197 configuration/retained controls, 62 actual CLI process cases and 31 packet
-cases. Independent compression vectors and known wire images are retained.
-Initial fixture and optional-presence failures were recorded before correction;
-FSB-111 describes the actual codec defect. These are focused component results,
-not a replacement for the successor's exact-public full Windows gate.
+Earlier separate component proofs remain290decoder/CLI/packet,135prefix and
+32readiness checks; private owned-input UI decoding is not runtime rendering.
+The current target stays Chinese7899 / VisibleDx8D13. Newer7935-chain research
+uses an explicit profile without game assets/keys, default routing or a business
+handler. See [protocol and catalog scope](docs/CHINESE-7935-PROTOCOL.md).
 
-An additional private owned-input proof decoded two copied UI layout assets into
-71,476 / 71,428 bytes using explicit default parameters. Native provider selection,
-mode2 parsing/text semantics, loading and rendering remain unproved. No game
-assets, native modulus/words, private parameters or decoded payloads are bundled.
-The current target remains Chinese 7899 / VisibleDx8D13; see the
-[newer-patch notes](docs/CHINESE-7935-PROTOCOL.md). No live client/server, original
-saves, routing, SQL or restore point was changed. Full English, distribution and
-parity remain unfinished. The reviewed successor needs its own full CI.
+Combined corrected-source verification passes330/330,0fail/skip: the prior225
+plus48AccountManager VIP transaction cases,55guild recruitment policy cases and
+two retained Frame VIP wire goldens. The controlled unchanged baseline had
+72failures/33valid controls (VIP40/8, guild32/23, Frame2pass); the preceding
+fixture-import attempt was compile-only. FSB-112/113 record behavior and limits.
+Two actual private Echo catalogs decode to UTF8-text candidates (501/9114bytes),
+without Lua execution, runtime binding or gameplay/schema acceptance.
+
+This reviewed successor needs its own exact-public full Windows gate. Earlier
+a3cb full CI and focused selections do not validate the complete successor or
+prove actual-client acceptance, full English, distribution, deployment or parity.
+Game/client processes, original saves, routes and restore points are preserved.
 
 ## Latest accepted public CI — recoverable mailbox owners
 
@@ -279,6 +281,39 @@ No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
 
+### FSB-112: Respect actual guild recruitment class permissions
+
+- Source Guild.cs286â€“377 and local AdmissionPolicy used a complement comparison
+  that admitted unselected classes; Windwalker queried Fire, and missing Info
+  threw. Require every requested known nonzero class bit, reject missing state,
+  and preserve all eleven class ranges and existing bit values.
+- Controlled baseline27699:32failed/23passed policy cases. Corrected94769:
+  55/55, within330/330 with0fail/skip. Genuine load-only owners and independent
+  class-boundary/mask/no-effect controls are used; no fake membership callbacks.
+- Limits: pure recruitment policy only. Managed membership mutations still refuse;
+  broader held Guild/Union, donation economy, persistence/recovery and live client
+  remain unfinished. The original held policy is preserved in an ignored backup.
+
+### FSB-113: Commit AccountManager VIP debit and grant before success
+
+- Options35/197 previously published the new session before saving and sent
+  success even after save failure; captured stale requests could overwrite state.
+  Prepare the complete three-field Character image and response frames, recheck
+  actual Store/recovery/lifetime ownership and exact saved bytes, then commit
+  through the real compare/replace writer before Store/success publication.
+- Keep donation costs30/100, VIP6/7,30-day extension and valid packet ordering.
+  Reject invalid/missing/stale owners, balances, files and date overflow unchanged.
+  A committed transport failure cannot refund/replay; uncertain publication holds
+  actual recovery rather than claiming an unchanged rejection.
+- Actual baseline27699:40failed/8passed new VIP cases plus2retained Frame goldens
+  passing. Corrected94769 passes48/48 plus both retained goldens, within330/330,
+  0fail/skip. Real Windows file locks, concurrent requests, captured-owner changes,
+  exact full-file images and post-commit transport failure/retirement are covered.
+  The earlier19367 was compile-only (missing fixture Runtime import), not RED.
+- Limits: one Character-file transaction, not SQL/multi-file/hardware power-loss
+  proof, complete unknown-write fault injection, native financial/VIP adoption,
+  production Host or actual-client acceptance. Other purchases remain separate.
+
 ### FSB-111: Preserve absent bytes in the new Chinese packet codec
 
 - Location: Chinese7935XuanbaoOperationPayload.TryParseKnownPayload, packet 2132
@@ -316,6 +351,10 @@ No live,SQL,original-save,routing or deployment action.
   Corrected65772 passed135/135,0fail/skip:71actual encrypted-loopback/prefix,
   16Beast state,30complete INI and18INI prerequisite cases. All37new prefix
   outcomes and retained valid controls are present in the actual terminal TRX.
+- Later fullcb49 CI exposed six remaining bug-preserving prefix/PIN outcomes.
+  Corrected expectations retain all input rows and valid controls. Focused225/225
+  includes24prefix+55PIN+71retainedHairface; counter overflow, denied writes,
+  foreign Beast and duplicate Character fields cannot publish login authority.
 - Limits: owned offline source/component proof, not successor full-public CI,
   native Host, SQL or live client. Paid-expiry, startup normalization, Store
   admission and persistent uncertain-write reconciliation remain outside this

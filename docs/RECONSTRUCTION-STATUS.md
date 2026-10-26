@@ -20,6 +20,8 @@ This is a component checklist, not a measured completion percentage.
   assets/parameters remain private and native parsing/loading is unproved.
 - [x] Research the official 7935 patch chain and add the separate known-schema
   packet2132 codec. No newer-profile default registration or gameplay claim.
+- [x] Commit managed AccountManager VIP debit/grant before success with real
+  file/Store ownership; correct the pure guild recruitment class predicate.
 - [ ] Verify this complete public source checkpoint through its exact Windows CI.
 - [ ] Finish flags10–12 and their real donation/SubClass/InnerPower participants.
 - [ ] Complete ordinary native startup, Store/normalization transactions,
@@ -30,9 +32,17 @@ This is a component checklist, not a measured completion percentage.
   curate a real client release, verify installation/update/recovery and actual
   client login/gameplay. Complete English remains unfinished.
 
-New focused evidence:290 decoder/CLI/newer-packet checks,135 native-prefix
-checks and32 readiness checks pass in their separate selections. Public77c
-full CI failed one readiness fixture; this successor awaits its own gate.
+Combined330/330 verifies VIP48, pure Guild policy55 and retained FrameVIP2
+alongside the225 prefix/PIN/decoder/packet selection. Broader Guild/Union and
+native financial ownership remain open. Two private Echo catalogs decode to
+UTF8-text candidates; runtime schema and gameplay integration remain open.
+
+Latest focused225/225 passes corrected prefix/PIN expectations and retained
+Hairface/packet controls plus43 explicit catalog-transform cases and one native
+Echo request golden. The fullcb49 gate failed six obsolete unsafe expectations
+(26,153core passes/165existing exclusions; updater434/434). The successor needs
+its own exact-public full gate. Earlier290/135/32 proofs remain separate focused
+selections, not a full-suite acceptance total.
 
 Owned-candidate evidence includes888history cases,1268merged native/recovery/
 framing cases and142client-tool cases, each with zero failures/skips in its
