@@ -129,6 +129,7 @@ internal partial class LegacyNativeNinja
     public LegacyNativeNinja(LegacyNativeGameClientRuntime _user)
     {
         user = _user;
+        combatConstructorOwner = _user;
         Items = new ConcurrentDictionary<uint, Item>();
     }
 

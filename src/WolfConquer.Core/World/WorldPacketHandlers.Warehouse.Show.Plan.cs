@@ -35,6 +35,11 @@ public static partial class WorldPacketHandlers
                 if (!TryReadLegacyWarehouseShowCapacity(owner, request.NpcId, out var capacity)) return false;
                 var rows = owner.Items.CopyWarehouseRowsForPresentation(request.NpcId);
                 count = rows.Length;
+                // An empty packet requires a bank retained by this physical
+                // owner's committed move, not merely a permitted target ID.
+                if (rows.Length == 0 && owner.Session.WarehouseBankPresence?.Contains(
+                    owner.Connection, owner.Identity, owner.Session, request.NpcId) == true)
+                    prepared.Add(new LegacyWarehousePacket(request.NpcId, request.Action, 0, capacity, []).ToFrameBytes());
                 // Existing overfull stores can still be inspected and withdrawn.
                 foreach (var chunk in rows.Chunk(4))
                 {

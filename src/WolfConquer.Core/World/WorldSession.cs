@@ -41,6 +41,11 @@ public sealed record WorldSession(
     [System.Text.Json.Serialization.JsonIgnore]
     internal LegacyNativePlayerRuntime? NativePlayer => NativeGameClient?.Player;
 
+    // Transient bank lifetime, issued by a committed warehouse move. A fresh
+    // loaded session starts without it; it is never serialized with item data.
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyWarehouseBankPresence? WarehouseBankPresence { get; init; }
+
     private CharacterSnapshot _character = Character;
     private LegacyCanAttackFlashingRegistration? _canAttackFlashingRegistration;
 

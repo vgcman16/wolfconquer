@@ -17,12 +17,12 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 		}
 		// Admission precedes the output assignment, RNG, local spell floor and proc sends.
 		// It does not turn the later multi-owner calculation into an atomic transaction.
-		int minimumDamage = RequireMonsterPhysicalStatus(player);
+		var owners = RequireMonsterPhysicalStatus(player, monster, DBSpell);
 		SpellObj = new LegacyNativeMsgSpellAnimation.SpellObj(targetUid, 0u, LegacyNativeMsgAttackPacket.AttackEffect.None);
 		int damage = (int)LegacyNativeAttackBase.GetDamage(player.Owner.Status.MaxAttack, player.Owner.Status.MinAttack);
 		damage = (int)player.Owner.AjustAttack((uint)damage, player);
 		damage = (int)player.Owner.AjustMaxAttack((uint)damage);
-		ushort defense = monster.Family.Defense;
+		ushort defense = owners.Family.Defense;
 		damage = Math.Max(0, damage - defense);
 		if (player.ContainFlag(LegacyNativeMsgUpdate.Flags.Superman))
 		{
@@ -44,10 +44,10 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 		{
 			damage = LegacyNativeAttackBase.MulDiv(damage, 200, 100);
 		}
-		damage = Math.Max(minimumDamage, damage);
-		damage = LegacyNativeAttackBase.CalcDamageUser2Monster(damage, monster.Family.Defense, player.Level, monster.Level, Range: false);
-		damage = (int)LegacyNativeAttackBase.BigMulDiv(damage, monster.Family.Defense2, 10000L);
-		if (monster.Family.Defense2 > 0)
+		damage = Math.Max(owners.MinimumDamage, damage);
+		damage = LegacyNativeAttackBase.CalcDamageUser2Monster(damage, owners.Family.Defense, player.Level, monster.Level, Range: false);
+		damage = (int)LegacyNativeAttackBase.BigMulDiv(damage, owners.Family.Defense2, 10000L);
+		if (owners.Family.Defense2 > 0)
 		{
 			SpellObj.Damage = (uint)Math.Max(1, damage);
 		}
@@ -67,7 +67,7 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 		}
 		uint num = 0u;
 		uint num2 = 0u;
-		if (DBSpell != null && (DBSpell.ID == 16420 || DBSpell.ID == 16430) && player.Owner.MyNinja!.TryGetValueEquip(LegacyNativeNinja.ItemType.WhirlSigilSage, out var obj))
+		if (owners.Ninja is not null && owners.Ninja.TryGetValueEquip(LegacyNativeNinja.ItemType.WhirlSigilSage, out var obj))
 		{
 			num = (uint)obj.DBItem.Power;
 			num2 = obj.DBItem.Damage;
@@ -87,11 +87,11 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 			SpellObj.Damage += SpellObj.Damage * (player.Owner.AjustCriticalStrike() / 100) / 100;
 			SpellObj.Damage += SpellObj.Damage * num2 / 100;
 		}
-		if ((monster.Family.Settings & LegacyNativeMonsterSettings.Guard) == LegacyNativeMonsterSettings.Guard)
+		if ((owners.Family.Settings & LegacyNativeMonsterSettings.Guard) == LegacyNativeMonsterSettings.Guard)
 		{
 			SpellObj.Damage /= 10u;
 		}
-		if (monster.Family.ID == 20211)
+		if (owners.Family.ID == 20211)
 		{
 			SpellObj.Damage = 1u;
 		}
@@ -106,20 +106,20 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 				SpellObj.Damage += PhysicalMonsterScale(SpellObj.Damage, player.DeathSighActive);
 			}
 		}
-		player.Owner.CombatGear!.AttackEffect(ref SpellObj, DBSpell, monster, ref SpellObj.Damage);
+		owners.CombatGear.AttackEffect(ref SpellObj, DBSpell, monster, ref SpellObj.Damage);
 		if (player.ContainFlag(LegacyNativeMsgUpdate.Flags.Infinity))
 		{
 			SpellObj.Damage = PhysicalMonsterScale(SpellObj.Damage, (DBSpell == null) ? player.InfinityDamage : player.InfinitySDamage);
 		}
-		if (monster.Name == "AncientDragon")
+		if (owners.Name == "AncientDragon")
 		{
 			SpellObj.Damage = 1u;
 		}
-		else if (monster.Name == "WarDevil")
+		else if (owners.Name == "WarDevil")
 		{
 			SpellObj.Damage = 1u;
 		}
-		else if (monster.Name!.Contains("Sprite"))
+		else if (owners.Name.Contains("Sprite"))
 		{
 			SpellObj.Damage = 1u;
 		}
@@ -148,7 +148,7 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 			}
 		}
 		byte itemLevel = 0;
-		if (player.Owner.Rune!.IsEquipped("Assassin", ref itemLevel) && player.Owner.Player.OnAutoHunt)
+		if (owners.Rune.IsEquipped("Assassin", ref itemLevel) && player.Owner.Player.OnAutoHunt)
 		{
 			SpellObj.Damage += 38000u;
 		}

@@ -1427,6 +1427,67 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-088: Preflight required physical combat owners and monster metadata
+
+- Source: Physical.OnMonster could discover missing Rune, CombatGear, conditional
+  Ninja or monster Family/Name only after damage output, RNG, Kylin updates or
+  Lucky sends. Earlier tests explicitly preserved late Rune/Ninja/name failures
+  and dirty prefixes.
+- Non-floor admission now captures the actual Rune and CombatGear owners, Ninja
+  only for spell16420/16430, and required Family/Name. Rune reuses its existing
+  physical ownership check; Gear/Ninja retain their genuine constructor owner
+  and reject mutable user rebinding as authority. Recheck bindings, target and
+  spell ID after actual status-comparer traversal. Use captured slots, Family and
+  immutable Name at the original late calculation points.
+- Preserve floor-monster early return and unrelated-spell optional Ninja absence.
+  Migrate unsafe Rune/Ninja/name and shared-row failure expectations to explicit
+  InvalidDataException with unchanged output, resources, queues, counters and RNG.
+  Retain the separate packet-recycle fault unchanged; it is not a fixed claim.
+- Add35 rows and split the combined name/recycle fact (+1 row). Shared tests-first
+  93354:634pass/41fail of675,0skip;32actual combat assertion/fault failures plus
+  9bank empty-response failures (FSB089). Corrected86856: **675/675**,0fail/skip,
+  6s. Root read counters, all failed messages, all35new outcomes, the split name
+  row, corrected Rune/Ninja/shared-row facts and retained recycle fact.
+- Limits: focused offline caller proof; full clean-public successor/CI/live pending.
+  Nested mutable Ninja/Gear metadata, arbitrary post-admission raw writes, packet
+  lease/recycle, complete cast/resource transactions and actual native dispatch
+  adoption remain separate. Captured owner slots do not make whole subsystems
+  immutable or authenticated. No live process, SQL, save baseline or endpoint changed.
+
+### FSB-089: Retain genuinely emptied warehouse banks for their owner lifetime
+
+- Source: native Warehouse.AddItem creates an outer bank key and last RemoveItem
+  retains it. Show emits one empty header for that existing empty key, while
+  missing keys emit nothing. Saving/loading persists only item rows and therefore
+  loses empty keys at fresh owner birth. The managed flattened item snapshot
+  omitted this runtime distinction and emitted no empty response after withdrawal.
+- Add private immutable transient bank presence, minted only from an actual
+  selected before/after row moving through the durable warehouse transfer.
+  Bind physical connection, Store identity, account/character and actual native
+  client/player references. Existing persisted Store CAS publishes item move and
+  presence together; captured transfer identity is checked again inside persistence.
+  Failed moves publish neither. No NPC catalog/eligibility-based bank birth,
+  second Set, global registry or item-file/schema marker is introduced.
+- Show still validates complete seven-store graph, owner, PIN/Poker, target and
+  capacity. Only a matching retained empty bank emits the existing empty header;
+  physical-sash behavior and nonempty/lock/extra bytes remain unchanged. Normal
+  same-generation copies retain presence; fresh loaded sessions start without it.
+  No lifetime IsShow suppression is enabled. Static D13 receive evidence supports
+  supplied-row upsert/removal but does not establish full resynchronization.
+- Add10 registered-handler rows: missing bank; ordinary/ownUID/returned65535 last
+  withdrawal; actual sharing refusal+retry; unrelated update; retired generation;
+  same-Store foreign connection; actual file/new-session reload with generation
+  unchanged; malformed foreign tail. Tests-first93354 had9actual missing-empty-
+  response failures; corrected86856 **675/675**,0fail/skip, all10new rows passed.
+  Root inspected actual TRX rows and full source/test packets. One retained
+  whole-session equality helper now requires the new marker while preserving
+  every original item/file/money/reference/recovery/wire assertion.
+- Limits: component reload, not public login/client proof. The nontransactional
+  mailbox1000 claim and reserved-UID alias remain unmapped; cache/reset lifetime,
+  true housing authority, arbitrary stale-record/raw-writer publication and wider
+  crash/power-loss guarantees remain separate. No file format, game/client/SQL,
+  original save, protected baseline or endpoint changed. Full public/CI/live pending.
+
 ### FSB-086: Validate and capture actual minimum-damage owners before physical calculation
 
 - Source: native-derived Base.AdjustMinDamageUser2Monster and its managed

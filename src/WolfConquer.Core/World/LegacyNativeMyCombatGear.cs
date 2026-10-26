@@ -14,6 +14,7 @@ internal partial class LegacyNativeMyCombatGear : LegacyNativeCombatGear
     public LegacyNativeMyCombatGear(LegacyNativeGameClientRuntime _user)
     {
         user = _user;
+        combatConstructorOwner = _user;
     }
 
     public LegacyNativeCombatGearRankTable.Entry GetEntry()

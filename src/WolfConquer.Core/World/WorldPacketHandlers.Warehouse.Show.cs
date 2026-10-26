@@ -39,7 +39,7 @@ public static partial class WorldPacketHandlers
             await context.Log.WriteLineAsync($"WorldServer sent LegacyWarehouse sash show {FormatSession(currentContext)} " +
                 $"sashUid={request.NpcId} count={count}.").ConfigureAwait(false);
         }
-        else if (count != 0)
+        else if (frames.Length != 0)
         {
             await context.Log.WriteLineAsync($"WorldServer sent LegacyWarehouse {FormatSession(currentContext)} " +
                 $"npcId={request.NpcId} action={request.Action} count={count}.").ConfigureAwait(false);

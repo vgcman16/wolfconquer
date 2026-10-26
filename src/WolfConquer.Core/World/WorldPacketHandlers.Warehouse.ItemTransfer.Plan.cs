@@ -6,9 +6,11 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private sealed record LegacyWarehouseItemTransferPlan(LegacyWarehouseItemTransferOwner Owner, WorldSession Updated,
-        LegacyItemSaveGraph Before, LegacyItemSaveGraph After, byte[][] Frames, ulong? InventorySashCount);
+        LegacyItemSaveGraph Before, LegacyItemSaveGraph After, byte[][] Frames, ulong? InventorySashCount,
+        LegacyWarehouseBankPresence.Transfer? BankTransfer);
 
-    private static bool TryPrepareLegacyWarehouseItemTransfer(LegacyWarehouseItemTransferOwner owner, LegacyWarehousePacket request,
+    private static bool TryPrepareLegacyWarehouseItemTransfer(WorldPacketHandlerContext context,
+        LegacyWarehouseItemTransferOwner owner, LegacyWarehousePacket request,
         out LegacyWarehouseItemTransferPlan plan, out string reason)
     {
         plan = null!;
@@ -25,7 +27,15 @@ public static partial class WorldPacketHandlers
                 : TryPrepareLegacyWarehouseMove(owner, before, request, out updated, out frames, out inventorySashCount);
             if (!prepared || !LegacyItemSaveGraph.TryCapture(updated.PlayerItems, out var after) ||
                 !before.IsCurrent(session.PlayerItems)) return false;
-            plan = new(owner, updated, before, after, frames, inventorySashCount);
+            LegacyWarehouseBankPresence.Transfer? bankTransfer = null;
+            if (!LegacyWarehouseItemTransferActions.IsPhysicalSash(request.Action))
+            {
+                if (context.Sessions is not { } store || !LegacyWarehouseBankPresence.TryPrepareTransfer(
+                    store, context.Connection, owner.Identity, session, updated, before, after, request.NpcId,
+                    request.ItemUid, LegacyWarehouseItemTransferActions.IsDeposit(request.Action), out bankTransfer)) return false;
+                updated = updated with { WarehouseBankPresence = bankTransfer.Presence };
+            }
+            plan = new(owner, updated, before, after, frames, inventorySashCount, bankTransfer);
             reason = string.Empty;
             return true;
         }

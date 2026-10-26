@@ -38,7 +38,7 @@ public sealed partial class LegacyNativeCombatCalculationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public Task LateOwnerFailureCannotWriteTheSharedSpellRowEvenAfterEffectiveFloorEvaluation(bool ninjaFailure)
+    public Task RequiredOwnerFailureRejectsWithoutChangingSharedCatalogRowOrOutput(bool ninjaFailure)
         => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); var monster = CombatMonster(s);
@@ -46,10 +46,13 @@ public sealed partial class LegacyNativeCombatCalculationTests
         if (ninjaFailure) { shared.ID = 16420; s.Client.MyNinja = null; }
         else s.Client.Rune = null;
         var before = PhysicalAdmissionSpellValues(shared);
-        Assert.Throws<NullReferenceException>(() =>
-            LegacyNativeCalculatePhysical.OnMonster(s.Player, monster, shared, out _));
-        Assert.Equal(before, PhysicalAdmissionSpellValues(shared)); Assert.Empty(s.Queue);
-        // This asserts catalog integrity, not rollback of RNG/output/counters or
-        // a safe admission policy for the separately held missing-owner paths.
+        var sentinel = PhysicalAdmissionSentinel(); var result = sentinel;
+        var resultBefore = PhysicalAdmissionResultValues(result);
+        var prefix = new PhysicalAdmissionPrefixSnapshot(s, monster);
+        Assert.Throws<InvalidDataException>(() =>
+            LegacyNativeCalculatePhysical.OnMonster(s.Player, monster, shared, out result));
+        Assert.Same(sentinel, result); Assert.Equal(resultBefore, PhysicalAdmissionResultValues(result));
+        Assert.Equal(before, PhysicalAdmissionSpellValues(shared)); prefix.AssertUnchanged(s);
+        Assert.Equal(new Random(1).Next(), LegacyNativeAttackBase.MyRandom.Next());
     });
 }

@@ -1,8 +1,11 @@
+using WolfConquer.Core.Data;
+
 namespace WolfConquer.Core.World;
 
 internal static partial class LegacyNativeCalculatePhysical
 {
-    private static int RequireMonsterPhysicalStatus(LegacyNativePlayerRuntime player)
+    private static PhysicalMonsterOwners RequireMonsterPhysicalStatus(
+        LegacyNativePlayerRuntime player, LegacyNativeMonsterRole monster, LegacyNativeMagicType.Magic? spell)
     {
         var client = player.Owner;
         lock (client.SpellAdmissionSyncRoot)
@@ -11,6 +14,7 @@ internal static partial class LegacyNativeCalculatePhysical
             var binding = LegacyNativeAttackBase.CaptureMinimumMonsterDamageInputs(client);
             if (!ReferenceEquals(binding.Player, player))
                 throw UnavailableMonsterPhysicalStatus();
+            var owners = CapturePhysicalMonsterOwners(client, monster, spell, binding.MinimumDamage);
             var vector = player.BitVector;
             uint uid = player.UID;
             if (vector is null || !ReferenceEquals(client.Player, player))
@@ -36,10 +40,10 @@ internal static partial class LegacyNativeCalculatePhysical
                 if (!vector.TryValidatePhysicalMonsterStatus(queried) ||
                     !ReferenceEquals(client.Player, player) || player.UID != uid ||
                     !ReferenceEquals(player.BitVector, vector) ||
-                    !binding.IsCurrent(client))
+                    !binding.IsCurrent(client) || !owners.IsCurrent(client, monster, spell))
                     throw UnavailableMonsterPhysicalStatus();
             }
-            return binding.MinimumDamage;
+            return owners;
         }
         // Do not hold admission/vector monitors across RNG or SendView. Remaining
         // legacy/raw writers and later publication are not a whole-cast transaction.

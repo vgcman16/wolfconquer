@@ -1,8 +1,10 @@
+using WolfConquer.Core.Networking;
+
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    private sealed record LegacyWarehouseShowOwner(WorldSession Session, object Identity,
+    private sealed record LegacyWarehouseShowOwner(WorldSession Session, object Identity, ConquerTcpConnection Connection,
         LegacyNativeGameClientRuntime? Client, LegacyNativePlayerRuntime? Player,
         KeyValuePair<string, string>[] Fields, LegacyItemSaveGraph Items);
 
@@ -26,7 +28,7 @@ public static partial class WorldPacketHandlers
                 !LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, session)) return false;
             if (!LegacyItemSaveGraph.TryCapture(session.PlayerItems, out var items)) return false;
             var client = context.Connection.NativeGameClient;
-            owner = new(session, identity, client, client?.Player, fields, items);
+            owner = new(session, identity, context.Connection, client, client?.Player, fields, items);
             return IsCurrentLegacyWarehouseShowOwner(context, owner);
         }
         catch (InvalidOperationException) { return false; }

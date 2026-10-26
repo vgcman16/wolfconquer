@@ -10,11 +10,15 @@ internal static class LegacyWarehouseItemTransferPersistence
     internal const string RecoveryRequired = "warehouseItemTransferRecoveryRequired";
 
     internal static bool TryPersist(WorldSession expected, WorldSession updated, string itemsRoot,
-        LegacyItemSaveGraph before, LegacyItemSaveGraph after, ulong? inventorySashCount, out string reason)
+        LegacyItemSaveGraph before, LegacyItemSaveGraph after, ulong? inventorySashCount, out string reason,
+        LegacyWarehouseBankPresence.Transfer? bankTransfer = null)
     {
         reason = "warehouseItemTransferStorageBindingInvalid";
         if (expected.AccountId <= 0 || expected.Character.Uid is <= 0 or > uint.MaxValue ||
-            !ReferenceEquals(expected.Character, updated.Character) || (expected with { PlayerItems = updated.PlayerItems }) != updated ||
+            !ReferenceEquals(expected.Character, updated.Character) ||
+            (expected with { PlayerItems = updated.PlayerItems,
+                WarehouseBankPresence = bankTransfer?.Presence ?? expected.WarehouseBankPresence }) != updated ||
+            bankTransfer is not null && !bankTransfer.IsCurrent(expected, updated) ||
             string.IsNullOrWhiteSpace(expected.UsersRoot) || !Path.IsPathFullyQualified(expected.UsersRoot) ||
             string.IsNullOrWhiteSpace(itemsRoot) || !Path.IsPathFullyQualified(itemsRoot)) return false;
         try
@@ -43,7 +47,8 @@ internal static class LegacyWarehouseItemTransferPersistence
                 var candidate = PlayerItemSnapshotLoader.ToLegacyBytes(after.WithOwnedItemsForPersistence(updated).PlayerItems);
                 if (!CharacterSnapshotFileBaseline.TryReadBytes(character, "warehouseItemTransfer", out var currentCharacter, out failure) ||
                     !currentCharacter.AsSpan().SequenceEqual(file!.Bytes) ||
-                    !before.IsCurrent(expected.PlayerItems) || !after.IsCurrent(updated.PlayerItems))
+                    !before.IsCurrent(expected.PlayerItems) || !after.IsCurrent(updated.PlayerItems) ||
+                    bankTransfer is not null && !bankTransfer.IsCurrent(expected, updated))
                 { failure = "warehouseItemTransferGraphChanged"; return false; }
                 var result = CharacterSnapshotFileCoordinator.TryReplaceCapturedImage(items, original, candidate,
                     out var uncertain, out failure);

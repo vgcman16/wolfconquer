@@ -114,7 +114,9 @@ public sealed partial class LegacyInventorySashUpgradeTests
         var bank = targetBank ?? WarehouseFamilyBank(action);
         var expectedItems = ExpectedWarehouseFamilyItems(before.Owner.PlayerItems, action, bank);
         var current = fixture.Current;
-        Assert.Equal(before.Owner with { PlayerItems = current.PlayerItems }, current);
+        Assert.NotNull(current.WarehouseBankPresence);
+        Assert.Equal(before.Owner with { PlayerItems = current.PlayerItems,
+            WarehouseBankPresence = current.WarehouseBankPresence }, current);
         Assert.Equal(before.Json, JsonSerializer.Serialize(before.Owner));
         Assert.Equal(JsonSerializer.Serialize(expectedItems), JsonSerializer.Serialize(current.PlayerItems));
         Assert.Same(before.Owner.PlayerItems.RelicFuseItems, current.PlayerItems.RelicFuseItems);

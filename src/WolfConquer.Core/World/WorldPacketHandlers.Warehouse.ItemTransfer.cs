@@ -24,7 +24,7 @@ public static partial class WorldPacketHandlers
             cancellationToken.ThrowIfCancellationRequested();
             if (TryCaptureLegacyWarehouseItemTransferOwner(context, out var owner) &&
                 recovery.IsReadyFor(owner.Session.UsersRoot, context.PlayerItemsRoot) &&
-                TryPrepareLegacyWarehouseItemTransfer(owner, packet, out var plan, out reason))
+                TryPrepareLegacyWarehouseItemTransfer(context, owner, packet, out var plan, out reason))
             {
                 var failure = "warehouseItemTransferOwnerChanged";
                 if (sessions.TryCommitSession(context.Connection, owner.Session, plan.Updated, () =>
@@ -37,7 +37,7 @@ public static partial class WorldPacketHandlers
                         !LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, owner.Session) ||
                         !plan.Before.IsCurrent(owner.Session.PlayerItems) || !plan.After.IsCurrent(plan.Updated.PlayerItems)) return false;
                     var saved = LegacyWarehouseItemTransferPersistence.TryPersist(owner.Session, plan.Updated,
-                        context.PlayerItemsRoot!, plan.Before, plan.After, plan.InventorySashCount, out failure);
+                        context.PlayerItemsRoot!, plan.Before, plan.After, plan.InventorySashCount, out failure, plan.BankTransfer);
                     if (!saved && failure.StartsWith(LegacyWarehouseItemTransferPersistence.RecoveryRequired, StringComparison.Ordinal))
                         recovery.Block(failure);
                     return saved;
