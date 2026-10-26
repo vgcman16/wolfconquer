@@ -4,7 +4,19 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted public CI — publisher filename admission
+## Latest accepted public CI — exact native asset reviews
+
+Exact public816f3a20d872aa6af4a877e6eb2145ff2b9577d7 passed
+[Windows40304697861](https://github.com/vgcman16/wolfconquer/actions/runs/40304697861):
+all8stages0, actual TRX25299core passed+165unchanged NotExecuted,
+updater434/434 and launcher57/57. Synthetic receipt parsers20+13 pass;
+Release157warnings/0errors. Receipt20261026T100636154Z-88b9948d finished
+2026-10-26T10:12:05.6248431Z. The standalone PS planner/exclusion/stager/native
+review/pipeline checks were measured separately, not invoked by this CI.
+No actual assets are approved; full-client distribution, current-public client
+acceptance, complete English and gameplay parity remain unfinished.
+
+## Earlier accepted public CI — publisher filename admission
 
 Exact public98be3f410a68272b53c170abe25d5fb8c182b4a3 passed Windows40297219885:
 all8stages0, actual TRX25299core passed+165unchanged NotExecuted, updater357/357,
@@ -1520,7 +1532,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   transaction. Late failures can retain owned partial stages or earlier immutable
   blobs; the discovery feed follows full content readiness. Raster/content purpose,
   actual native reviews, portable config and full-client release remain OPEN.
-  Full successor Windows CI is pending; no original data or game process changed.
+  Exact public816f3a20 passed Windows40304697861, updater434/434 and all8stages0.
+  PS/pipeline proofs are standalone, not CI steps. No original data or game process changed.
 
 ### FSB-099: Enforce filename quarantine at the actual publisher boundary
 

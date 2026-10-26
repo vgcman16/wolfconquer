@@ -86,5 +86,17 @@ pwsh -NoProfile -File tools/updates/Test-ClientDistributionStage.ps1
 pwsh -NoProfile -File tools/updates/Test-ClientDistributionNativeAssetReviews.ps1
 ```
 
+After building the updater, the separate signed pipeline check takes its
+explicit compiled DLL path:
+
+```powershell
+pwsh -NoProfile -File tools/updates/Test-ClientDistributionNativeAssetPipeline.ps1 -UpdaterDllPath ./src/WolfConquer.Updater/bin/Release/net9.0/WolfConquer.Updater.dll
+```
+
+It invokes the actual planner, stager and CLI using owned inputs and an ephemeral
+test signer, then verifies the resulting signatures/blobs and changed-stage refusal.
+These distribution scripts are standalone checks; the current Windows workflow
+runs the C# suites and separate receipt-parser fixtures.
+
 These use owned synthetic inputs. Their results do not approve real asset
 contents, prove client compatibility, or establish a published full-client feed.

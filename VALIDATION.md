@@ -13,7 +13,13 @@ groups; schema2 adds9groups/51owned fixtures. The actual metadata-planner ->
 stager -> compiled updater CLI pipeline passes2cases: independently verified
 P256 signatures and exact blobs, then changed-stage digest refusal without a
 publication directory. No actual client/asset approval, network or deployment.
-Complete successor Windows CI is pending; these are owned offline checks.
+Exact public816f3a20d872aa6af4a877e6eb2145ff2b9577d7 passed
+[Windows40304697861](https://github.com/vgcman16/wolfconquer/actions/runs/40304697861).
+Receipt20261026T100636154Z-88b9948d ended2026-10-26T10:12:05.6248431Z:
+all8stages0, actual TRX25299core Passed+165existing NotExecuted, updater434/434,
+launcher57/57, synthetic parsers20+13, build157warnings/0errors (93.42s).
+The PS distribution and joint pipeline checks above ran standalone; this CI's
+PowerShell steps test receipt parsers only. No real-client release follows.
 
 ## Direct publisher filename admission
 

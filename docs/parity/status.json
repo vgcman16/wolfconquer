@@ -43,7 +43,7 @@
     },
     {
       "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
-      "detail": "Public98be3f41 passes all eight GitHub Windows40297219885 stages:25,299 core passes,165unchanged existing exclusions, updater357/357, launcher57/57 and synthetic parsers20+13. Publisher filename admission, D13 mail and reward prerequisites have offline proof. Package payout, actual-client acceptance, deployment and full-client distribution remain unproved."
+      "detail": "Public816f3a20 passes all eight GitHub Windows40304697861 stages:25,299 core passes,165unchanged existing exclusions, updater434/434, launcher57/57 and synthetic parsers20+13. Exact native-review publication tooling also has separate standalone PS/pipeline proof. Package payout, actual-client acceptance, deployment and full-client distribution remain unproved."
     },
     {
       "id": "english", "title": "Complete English client", "status": "in-progress",
