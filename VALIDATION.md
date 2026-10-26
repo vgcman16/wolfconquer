@@ -2,6 +2,8 @@
 
 ## Current source update - exact public full gate pending
 
+Exact public ef868fa8 failed [Windows40415429365](https://github.com/vgcman16/wolfconquer/actions/runs/40415429365), job121896451710: restore passed, build failed with three CS0246 errors for the omitted NativePlayerLoopbackOutputCapture test helper. No tests ran. The unchanged34-line bounded real-socket helper was already present in the owned candidate (its five network-birth cases passed in the broader run). This source now includes that dependency; its exact full Windows gate is pending. No production or assertion change repairs this omission.
+
 The last accepted public source is f21e2a11618aae5a1d77df422e488db6ab10025d.
 [Windows40383185044](https://github.com/vgcman16/wolfconquer/actions/runs/40383185044)
 completed successfully: all8 stages exit0, core26,306passed/165existing exclusions,

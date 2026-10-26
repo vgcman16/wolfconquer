@@ -6,6 +6,8 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## Current update - focused verification, public full gate pending
 
+Public ef868fa8 Windows40415429365 failed compilation only because the native network birth tests referenced an omitted helper (three CS0246 errors; no tests executed). The existing tested bounded capture helper is now included unchanged. This is publication dependency repair, not a new gameplay fix or a passing full-suite claim.
+
 The source successor contains FSB114-123 and the explicit saved-state startup /
 synthetic-fixture tools. Relevant owned selections pass591/591,64/64,102/102 and
 corrected47/47. The earlier focused228 run remains225passed/3failed; its CP50,
