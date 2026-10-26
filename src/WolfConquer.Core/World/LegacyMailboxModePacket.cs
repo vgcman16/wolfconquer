@@ -1,5 +1,3 @@
-using System.Buffers;
-using System.Buffers.Binary;
 using WolfConquer.Core.Packets;
 
 namespace WolfConquer.Core.World;
@@ -33,43 +31,39 @@ public sealed record LegacyMailboxModePacket(
     public static bool TryParse(PacketFrame frame, out LegacyMailboxModePacket packet)
     {
         packet = default!;
-        if (frame.Header.Opcode != Opcode ||
-            frame.Payload.Length < HeaderPayloadLength)
+        if (frame.Header.Length < PacketHeader.Size + HeaderPayloadLength ||
+            !PacketFrameEnvelope.TryRead(frame, Opcode, frame.Header.Length, out var reader))
         {
             return false;
         }
 
-        var payload = frame.Payload.ToArray();
-        var type = BinaryPrimitives.ReadUInt16LittleEndian(payload.AsSpan(TypeOffset, sizeof(ushort)));
+        var type = reader.ReadUInt16(TypeOffset);
         if (!Enum.IsDefined(typeof(LegacyMailboxModeType), type))
         {
             return false;
         }
 
-        var count = BinaryPrimitives.ReadUInt32LittleEndian(payload.AsSpan(CountOffset, sizeof(uint)));
-        if (count > int.MaxValue)
+        var count = reader.ReadUInt32(CountOffset);
+        var remainingBytes = reader.Payload.Length - ItemsOffset;
+        if (remainingBytes % sizeof(ulong) != 0 ||
+            count != (uint)(remainingBytes / sizeof(ulong)))
         {
             return false;
         }
 
-        var itemCount = (int)count;
-        var payloadLength = checked(HeaderPayloadLength + (itemCount * sizeof(ulong)));
-        if (payload.Length != payloadLength)
-        {
-            return false;
-        }
-
-        var items = new ulong[itemCount];
+        // Exact equality with the bounded snapshot proves this allocation and
+        // every read fit; untrusted count multiplication cannot overflow first.
+        var items = new ulong[(int)count];
         var offset = ItemsOffset;
         for (var index = 0; index < items.Length; index++)
         {
-            items[index] = BinaryPrimitives.ReadUInt64LittleEndian(payload.AsSpan(offset, sizeof(ulong)));
+            items[index] = reader.ReadUInt64(offset);
             offset += sizeof(ulong);
         }
 
         packet = new LegacyMailboxModePacket(
             (LegacyMailboxModeType)type,
-            BinaryPrimitives.ReadUInt32LittleEndian(payload.AsSpan(IdOffset, sizeof(uint))),
+            reader.ReadUInt32(IdOffset),
             items);
         return true;
     }

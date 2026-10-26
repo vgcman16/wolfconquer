@@ -1444,6 +1444,38 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-090: Bound mailbox counts and validate their physical packet envelope
+
+- Source: LegacyMailboxModePacket.TryParse copied an independently supplied
+  payload and multiplied its untrusted count in checked int arithmetic before
+  rejecting its length. Hostile counts threw OverflowException; incoherent outer/
+  embedded headers, missing physical frames and altered payloads could be accepted.
+- Reuse the existing account envelope algorithm through PacketFrameEnvelope:
+  require declared/embedded header, actual frame bytes and independent payload
+  bytes to agree. Copy a bounded4..65535-byte snapshot, compare actual enumerated
+  lengths and retain independent4096-segment visit caps. The account wrapper
+  keeps its existing472-byte cap and exact fixed-length callers.
+- Mailbox mode parsing requires the complete10-byte payload header, whole
+  eight-byte remaining values and count exactly equal to that quotient before
+  casting/allocating. At most8190values fit. Invalid input returns false with
+  null output. All7mode values, uint IDs, full ulong values and outbound bytes
+  remain unchanged. Retained mailbox/account goldens and handler cases pass.
+- Add43parser rows: count/overflow boundaries, physical count/alignment, invalid
+  modes/short payloads, all valid modes, maximum aligned direct frame,14envelope
+  inconsistencies, every split/independent backing, and4096/4097visit boundaries.
+  Tests-first49916: **249passed/17failed of266**,0skip. Root read every failure:
+  actual overflows, lying-metadata copy exception or unsafe acceptance assertions.
+  Corrected39126: **266/266**,0fail/skip,710ms; all43new outcomes and TRX groups read.
+  No old assertion was deleted, weakened or skipped. A separate static helper
+  review found no actionable defect; it is not execution evidence.
+- Limits: focused offline parser proof; full clean-public successor remains
+  pending. Current target remains Chinese7899/cachedDX8D13, with no new receiver
+  or actual-client evidence. The65534-byte positive constructs PacketFrame
+  directly; transport/serializer default6844 is unchanged. Arbitrary throwing
+  MemoryManager/concurrent backing mutation, other mailbox parsers, authorization,
+  claim transactions/replay and UI lifecycle remain separate. No live process,
+  SQL, original save, protected client, endpoint or held Guild/Union path changed.
+
 ### FSB-088: Preflight required physical combat owners and monster metadata
 
 - Source: Physical.OnMonster could discover missing Rune, CombatGear, conditional
