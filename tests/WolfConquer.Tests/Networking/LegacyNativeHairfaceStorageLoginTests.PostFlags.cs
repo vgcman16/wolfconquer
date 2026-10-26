@@ -8,7 +8,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     [Theory]
     [InlineData("True ignored", "False", "True", true, false, true)]
     [InlineData("False", "True", "False", false, true, false)]
-    public async Task PostHairfaceFlagsReadIntoRetainedPlayerAndForeignOwnedBeast(
+    public async Task PostHairfaceFlagsReadIntoRetainedPlayerAndConstructorOwnedBeast(
         string activated, string effect, string skills,
         bool expectedActivated, bool expectedEffect, bool expectedSkills)
     {
@@ -44,14 +44,14 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             var foreignOwner = foreignBirth.Connection.NativeGameClient!;
             foreignOwner.Player.SpawinEffect = true;
             foreignOwner.Player.SpawinEffectSkills = false;
-            var beasts = new LegacyNativeBeastsRuntime(foreignOwner)
+            var beasts = new LegacyNativeBeastsRuntime(client)
             {
                 Activated = !expectedActivated, Points = 73, flag = 0x80000011U, FixedLevel = 7,
             };
             client.Beasts = beasts;
             player.SpawinEffect = !expectedEffect;
             player.SpawinEffectSkills = !expectedSkills;
-            var storage = new LegacyNativeHairfaceStorageRuntime(foreignOwner);
+            var storage = new LegacyNativeHairfaceStorageRuntime(client);
             var storageState = ReadEmptyState(storage);
             client.HairfaceStorage = storage;
 
@@ -69,14 +69,14 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.Equal(expectedEffect, player.SpawinEffect);
             Assert.Equal(expectedSkills, player.SpawinEffectSkills);
             Assert.Same(beasts, client.Beasts);
-            Assert.Same(foreignOwner, beasts.Owner);
+            Assert.Same(client, beasts.Owner);
             Assert.Equal(expectedActivated, beasts.Activated);
-            // Missing TotalPoints reads zero through the real setter; missing flag reads zero.
-            Assert.Equal(73U, beasts.Points);
+            // Saved TotalPoints is an absolute load from fresh native defaults; missing flag reads zero.
+            Assert.Equal(0U, beasts.Points);
             Assert.Equal(0U, beasts.flag);
-            Assert.Equal((byte)7, beasts.FixedLevel);
+            Assert.Equal((byte)1, beasts.FixedLevel);
             Assert.Equal(expectedActivated ? (byte)1 : (byte)0, beasts.Level);
-            AssertPreservedHairface(client, storage, foreignOwner, storageState);
+            AssertPreservedHairface(client, storage, client, storageState);
             Assert.Null(foreignOwner.Beasts);
             Assert.Null(foreignOwner.HairfaceStorage);
             Assert.Equal(0U, foreignOwner.Player.UID);

@@ -30,12 +30,10 @@ public sealed class LegacyNativeBeastsStateTests
     }
 
     [Fact]
-    public void ConstructorDoesNotInventNullOwnerValidation()
+    public void ConstructorRejectsNullBeforeCreatingAnUnusableOwner()
     {
-        var beasts = new Beasts(null!);
-        Assert.Null(beasts.Owner);
-        Assert.Equal((byte)1, beasts.FixedLevel);
-        Assert.Equal((byte)0, beasts.Level);
+        var error = Assert.Throws<ArgumentNullException>(() => new Beasts(null!));
+        Assert.Equal("client", error.ParamName);
     }
 
     [Fact]

@@ -17,7 +17,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     private const uint Uid = 1_293_600;
 
     [Fact]
-    public async Task AcceptedLoginPreservesExistingHairfaceAndItsForeignSocketBornOwner()
+    public async Task AcceptedLoginPreservesExistingHairfaceAndItsConstructorOwner()
     {
         using var input = new LoginInput();
         await WithHandlerAsync(input, async (fixture, handler, log) =>
@@ -30,14 +30,14 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             var (_, foreignBirth) = await ConnectBornAsync(fixture);
             var foreignOwner = foreignBirth.Connection.NativeGameClient!;
             Assert.NotSame(client, foreignOwner);
-            var existing = new LegacyNativeHairfaceStorageRuntime(foreignOwner);
+            var existing = new LegacyNativeHairfaceStorageRuntime(client);
             var state = ReadEmptyState(existing);
             client.HairfaceStorage = existing; // Controlled preexisting state, not a birth path.
 
             var accepted = Assert.IsType<WorldSession>((await SendLoginAsync(fixture, wire)).After);
 
             AssertAcceptedPlayer(client, accepted, player, flags, random);
-            AssertPreservedHairface(client, existing, foreignOwner, state);
+            AssertPreservedHairface(client, existing, client, state);
             Assert.Null(foreignOwner.HairfaceStorage);
             Assert.Null(foreignOwner.Beasts);
             Assert.Equal(0U, foreignOwner.Player.UID);
@@ -69,7 +69,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
                 var rejected = await SendLoginAsync(fixture, wire);
                 Assert.Null(rejected.Before);
                 Assert.Null(rejected.After);
-                Assert.Equal(Uid, player.UID);
+                Assert.Equal(0U, player.UID);
                 Assert.Equal(9U, player.Online);
                 Assert.False(player.RelicSpirit);
                 Assert.Same(player, client.Player);
@@ -384,7 +384,9 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     {
         using var beastMetadata = new NativeLoginBeastMetadataScope(1000);
         using var log = new NativePlayerDiagnosticLog();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(input.Users), handoff, log: log);
+        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(input.Users), handoff,
+            worldData: null, runtimeUpdateLoop: LegacyRuntimeUpdateLoopOptions.Disabled, log: log,
+            protocolProfile: ConquerProtocolProfile.VisibleDx8D13);
         await NativePlayerLoopback.RunAsync(ConquerTcpWireMode.LegacyGameServer,
             fixture => body(fixture, handler, log),
             handler.HandleFrameAsync, handler.ReadCurrentSessionForNativeOwnerObservation);
@@ -422,7 +424,13 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
 
         public void Dispose()
         {
-            if (Directory.Exists(root)) Directory.Delete(root, recursive: true); // Only this owned GUID fixture.
+            var absolute = Path.GetFullPath(root);
+            var temporary = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.GetTempPath()));
+            if (!Path.IsPathFullyQualified(root) ||
+                !string.Equals(Path.GetDirectoryName(absolute), temporary, StringComparison.OrdinalIgnoreCase) ||
+                !Path.GetFileName(absolute).StartsWith("wolf-hairface-login-", StringComparison.Ordinal))
+                throw new InvalidOperationException("Refusing cleanup outside the owned login fixture.");
+            if (Directory.Exists(absolute)) Directory.Delete(absolute, recursive: true);
         }
     }
 }

@@ -40,12 +40,12 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             var foreignPlayer = foreignOwner.Player;
             foreignPlayer.DeityLandLuckyPoints = 913;
             foreignPlayer.HeroPoints = 1014;
-            var beasts = new LegacyNativeBeastsRuntime(foreignOwner)
+            var beasts = new LegacyNativeBeastsRuntime(client)
             {
                 Activated = false, Points = 17, FixedLevel = 3, flag = 0,
             };
             client.Beasts = beasts;
-            var storage = new LegacyNativeHairfaceStorageRuntime(foreignOwner);
+            var storage = new LegacyNativeHairfaceStorageRuntime(client);
             var storageState = ReadEmptyState(storage);
             client.HairfaceStorage = storage;
             Assert.Equal(fixtureBytes, File.ReadAllBytes(input.FilePath));
@@ -66,13 +66,13 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.True(player.SpawinEffect);
             Assert.False(player.SpawinEffectSkills);
             Assert.Same(beasts, client.Beasts);
-            Assert.Same(foreignOwner, beasts.Owner);
+            Assert.Same(client, beasts.Owner);
             Assert.False(beasts.Activated);
-            Assert.Equal(17U, beasts.Points);
-            Assert.Equal((byte)3, beasts.FixedLevel);
+            Assert.Equal(0U, beasts.Points);
+            Assert.Equal((byte)1, beasts.FixedLevel);
             Assert.Equal((byte)0, beasts.Level);
             Assert.Equal(0U, beasts.flag);
-            AssertPreservedHairface(client, storage, foreignOwner, storageState);
+            AssertPreservedHairface(client, storage, client, storageState);
             Assert.Same(foreignPlayer, foreignOwner.Player);
             Assert.Equal(913U, foreignPlayer.DeityLandLuckyPoints);
             Assert.Equal(1014U, foreignPlayer.HeroPoints);

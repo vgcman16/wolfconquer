@@ -1,6 +1,39 @@
 # Publication validation
 
-## Native loaders, recovery and client tools — exact-public full CI pending
+## Current successor — focused checks passed; exact-public full CI pending
+
+The preceding public 77c97b2812b46bbd8de36d3fddb8d355052ddef2 failed
+[Windows 40353357252](https://github.com/vgcman16/wolfconquer/actions/runs/40353357252):
+25,878 core passed, one failed, 165 existing exclusions; updater 434/434.
+Restore/build passed with 158 warnings and zero errors. Launcher and receipt
+parsers were not reached. The sole failure was the owned native-readiness test's
+socket release after its child exhausted the readiness allowance. This failed
+attempt does not supersede the earlier accepted a3cb full CI below.
+
+The failure was reproduced with an owned delayed-start child. The success-window
+fixture now has explicit headroom and preserves complete pre-result diagnostics;
+production limits and separate exact-timeout controls are unchanged. The full
+readiness family passes 32/32. The native prefix passes 135/135 after actual
+malformed/foreign/truncated-state regressions; ordinary admission remains open.
+
+The complete explicit default-profile byte decoder and CLI, plus the separately
+named Chinese 7935-chain packet codec, pass 290/290 selected outcomes, no skips:
+197 configuration/retained controls, 62 actual CLI process cases and 31 packet
+cases. Independent compression vectors and known wire images are retained.
+Initial fixture and optional-presence failures were recorded before correction;
+FSB-111 describes the actual codec defect. These are focused component results,
+not a replacement for the successor's exact-public full Windows gate.
+
+An additional private owned-input proof decoded two copied UI layout assets into
+71,476 / 71,428 bytes using explicit default parameters. Native provider selection,
+mode2 parsing/text semantics, loading and rendering remain unproved. No game
+assets, native modulus/words, private parameters or decoded payloads are bundled.
+The current target remains Chinese 7899 / VisibleDx8D13; see the
+[newer-patch notes](docs/CHINESE-7935-PROTOCOL.md). No live client/server, original
+saves, routing, SQL or restore point was changed. Full English, distribution and
+parity remain unfinished. The reviewed successor needs its own full CI.
+
+## Earlier native loaders, recovery and client tools — focused proofs
 
 The reviewed public source update combines complete mailbox history/stack work,
 ordinary Ninja saved-state replacement, atomic native Gear/Ninja metadata,

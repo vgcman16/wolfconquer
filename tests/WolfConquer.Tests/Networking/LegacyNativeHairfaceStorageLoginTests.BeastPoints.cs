@@ -9,11 +9,11 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     [Theory]
     [InlineData(true, "00000000000035ignored", (byte)3)]
     [InlineData(false, "35", (byte)2)]
-    public async Task BeastPointsAndHighBitFlagLoadIntoTheRetainedForeignOwnedBeast(
+    public async Task BeastPointsAndHighBitFlagLoadIntoTheRetainedConstructorOwnedBeast(
         bool activated, string savedPoints, byte expectedLevel)
     {
         await AssertBeastPointsLoginAsync(activated, savedPoints, "2147483665",
-            expectedPoints: 12, expectedLevel: expectedLevel, expectedFlag: 0x80000011U);
+            expectedPoints: 5, expectedLevel: expectedLevel, expectedFlag: 0x80000011U);
     }
 
     [Theory]
@@ -23,7 +23,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
         string? savedPoints, string? savedFlag)
     {
         await AssertBeastPointsLoginAsync(true, savedPoints, savedFlag,
-            expectedPoints: 7, expectedLevel: 1, expectedFlag: 0);
+            expectedPoints: 0, expectedLevel: 1, expectedFlag: 0);
     }
 
     private static async Task AssertBeastPointsLoginAsync(
@@ -52,12 +52,12 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             var random = player.MyRandom;
             var (_, foreignBirth) = await ConnectBornAsync(fixture);
             var foreignOwner = foreignBirth.Connection.NativeGameClient!;
-            var beasts = new LegacyNativeBeastsRuntime(foreignOwner)
+            var beasts = new LegacyNativeBeastsRuntime(client)
             {
                 Activated = !activated, Points = 7, FixedLevel = 7, flag = 0x40000008U,
             };
             client.Beasts = beasts;
-            var storage = new LegacyNativeHairfaceStorageRuntime(foreignOwner);
+            var storage = new LegacyNativeHairfaceStorageRuntime(client);
             var storageState = ReadEmptyState(storage);
             client.HairfaceStorage = storage;
 
@@ -73,13 +73,13 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.False(player.SpawinEffect);
             Assert.True(player.SpawinEffectSkills);
             Assert.Same(beasts, client.Beasts);
-            Assert.Same(foreignOwner, beasts.Owner);
+            Assert.Same(client, beasts.Owner);
             Assert.Equal(activated, beasts.Activated);
             Assert.Equal(expectedPoints, beasts.Points);
             Assert.Equal(expectedLevel, beasts.Level);
-            Assert.Equal((byte)7, beasts.FixedLevel);
+            Assert.Equal((byte)1, beasts.FixedLevel);
             Assert.Equal(expectedFlag, beasts.flag);
-            AssertPreservedHairface(client, storage, foreignOwner, storageState);
+            AssertPreservedHairface(client, storage, client, storageState);
             Assert.Null(foreignOwner.Beasts);
             Assert.Null(foreignOwner.HairfaceStorage);
             Assert.Equal(0U, foreignOwner.Player.UID);
@@ -96,17 +96,17 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
                 Assert.Equal(14, "00000000000035".Length);
                 Assert.False(uint.TryParse(savedPoints, out _));
                 // Native ReadUInt32's fifteen-WCHAR buffer reads fourteen digits => 35.
-                Assert.Equal(12U, beasts.Points);
+                Assert.Equal(5U, beasts.Points);
             }
 
-            // A real repeated accepted-login frame must stop before the additive setter.
+            // A real repeated accepted-login frame must stop before another saved-state publication.
             var repeated = await SendLoginAsync(fixture, wire);
             Assert.Same(accepted, repeated.Before);
             Assert.Same(accepted, repeated.After);
             Assert.Same(beasts, client.Beasts);
             Assert.Equal(expectedPoints, beasts.Points);
             Assert.Equal(expectedLevel, beasts.Level);
-            Assert.Equal((byte)7, beasts.FixedLevel);
+            Assert.Equal((byte)1, beasts.FixedLevel);
             Assert.Equal(expectedFlag, beasts.flag);
             Assert.Equal(1U, player.Online);
             Assert.Equal(expectedMarker, File.ReadAllBytes(input.FilePath));

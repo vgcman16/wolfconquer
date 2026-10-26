@@ -4,7 +4,7 @@ namespace WolfConquer.Core.World;
 
 // Genuine native Beasts state/constructor/method prefix. Packet Load is NOT installed.
 // A GameClient field or MODEL assignment is not native LoadCharacter birth/adoption.
-internal class LegacyNativeBeastsRuntime
+internal partial class LegacyNativeBeastsRuntime
 {
 	public enum HammerRunes : uint
 	{
@@ -17,6 +17,7 @@ internal class LegacyNativeBeastsRuntime
 	}
 
 	public LegacyNativeGameClientRuntime Owner;
+	private readonly LegacyNativeGameClientRuntime constructorOwner;
 
 	public bool Activated;
 
@@ -92,7 +93,9 @@ internal class LegacyNativeBeastsRuntime
 
 	public LegacyNativeBeastsRuntime(LegacyNativeGameClientRuntime client)
 	{
+		ArgumentNullException.ThrowIfNull(client);
 		Owner = client;
+		constructorOwner = client;
 		FixedLevel = 1;
 	}
 

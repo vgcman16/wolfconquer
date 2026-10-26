@@ -7,8 +7,10 @@ namespace WolfConquer.Tests;
 
 public sealed partial class DataToolClientNativeLaunchProbeTests
 {
-    [Fact]
-    public async Task ReadinessKeepsRealConnectedChildAlivePastOld1500BoundaryThenCapturesFullWindow()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2500)]
+    public async Task ReadinessKeepsRealConnectedChildAlivePastOld1500BoundaryThenCapturesFullWindow(int startupDelayMilliseconds)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -19,6 +21,7 @@ public sealed partial class DataToolClientNativeLaunchProbeTests
         var listener = new TcpListener(IPAddress.Loopback, 0);
         TcpClient? accepted = null;
         Task<ConsoleRunResult>? running = null;
+        var elapsed = new Stopwatch();
         try
         {
             listener.Start();
@@ -33,6 +36,7 @@ public sealed partial class DataToolClientNativeLaunchProbeTests
                 $ErrorActionPreference = 'Stop'
                 $client = New-Object Net.Sockets.TcpClient
                 try {
+                    [Threading.Thread]::Sleep([int]$args[3])
                     $client.Connect('127.0.0.1', [int]$args[0])
                     [IO.File]::AppendAllText($args[1], "connected" + [Environment]::NewLine)
                     if ($client.GetStream().ReadByte() -ne 71) { throw 'Release token missing' }
@@ -43,14 +47,14 @@ public sealed partial class DataToolClientNativeLaunchProbeTests
                 }
                 """);
 
-            var elapsed = Stopwatch.StartNew();
+            elapsed.Start();
             running = RunDataToolAsync(
                 "client-native-launch-probe", GetWindowsPowerShellPath(),
-                "--workdir", tempRoot, "--timeout-ms", "5000", "--kill-after-ms", "1500",
+                "--workdir", tempRoot, "--timeout-ms", "20000", "--kill-after-ms", "1500",
                 "--debug-log", log, "--top-threads", "8", "--ready-file", ready,
                 "--args", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
-                port.ToString(CultureInfo.InvariantCulture), log, ready);
-            accepted = await accept.WaitAsync(TimeSpan.FromSeconds(5));
+                port.ToString(CultureInfo.InvariantCulture), log, ready, startupDelayMilliseconds.ToString(CultureInfo.InvariantCulture));
+            accepted = await accept.WaitAsync(TimeSpan.FromSeconds(10));
             // Intentional adversarial control, not a production wait/retry fix:
             // a real connected child withholds its marker beyond the old kill bound.
             await Task.Delay(1700);
@@ -58,39 +62,24 @@ public sealed partial class DataToolClientNativeLaunchProbeTests
             await accepted.GetStream().WriteAsync(new byte[] { 71 });
             var result = await running;
 
-            try
-            {
-                Assert.Equal(2, result.ExitCode);
-                Assert.True(elapsed.ElapsedMilliseconds >= 3200, "The unchanged post-ready1500 interval was not preserved.");
-                Assert.Contains("ReadinessObserved: True", result.StandardOutput);
-                Assert.Contains("ReadinessError: <none>", result.StandardOutput);
-                Assert.Contains("TimedOut: False", result.StandardOutput);
-                Assert.Contains("RuntimeSnapshot: reason=before-kill-after-bound", result.StandardOutput);
-                Assert.Contains("KillAttempted: True", result.StandardOutput);
-                Assert.Contains("Killed: True", result.StandardOutput);
-                Assert.Contains("Tcp: pid=", result.StandardOutput);
-                Assert.Contains("remote=127.0.0.1:" + port.ToString(CultureInfo.InvariantCulture), result.StandardOutput);
-                Assert.Matches(@"DebugLog: path=.*delta=[1-9]\d*", result.StandardOutput);
-                Assert.Matches(@"Modules: pid=\d+ count=[1-9]\d*", result.StandardOutput);
-                Assert.Contains("Thread: pid=", result.StandardOutput);
-                Assert.Empty(result.StandardError);
-            }
-            catch (Exception failure)
-            {
-                throw new InvalidOperationException(
-                    $"""
-                    Native readiness integration failed; complete real DataTool result follows.
-                    TestElapsedMs: {elapsed.ElapsedMilliseconds}
-                    DataToolExitCode: {result.ExitCode}
-                    --- stdout begin ---
-                    {result.StandardOutput}
-                    --- stdout end ---
-                    --- stderr begin ---
-                    {result.StandardError}
-                    --- stderr end ---
-                    """,
-                    failure);
-            }
+            Assert.Equal(2, result.ExitCode);
+            Assert.True(elapsed.ElapsedMilliseconds >= 3200 + startupDelayMilliseconds, "The unchanged post-ready1500 interval was not preserved.");
+            Assert.Contains("ReadinessObserved: True", result.StandardOutput);
+            Assert.Contains("ReadinessError: <none>", result.StandardOutput);
+            Assert.Contains("TimedOut: False", result.StandardOutput);
+            Assert.Contains("RuntimeSnapshot: reason=before-kill-after-bound", result.StandardOutput);
+            Assert.Contains("KillAttempted: True", result.StandardOutput);
+            Assert.Contains("Killed: True", result.StandardOutput);
+            Assert.Contains("Tcp: pid=", result.StandardOutput);
+            Assert.Contains("remote=127.0.0.1:" + port.ToString(CultureInfo.InvariantCulture), result.StandardOutput);
+            Assert.Matches(@"DebugLog: path=.*delta=[1-9]\d*", result.StandardOutput);
+            Assert.Matches(@"Modules: pid=\d+ count=[1-9]\d*", result.StandardOutput);
+            Assert.Contains("Thread: pid=", result.StandardOutput);
+            Assert.Empty(result.StandardError);
+        }
+        catch (Exception failure) when (running is not null)
+        {
+            throw await AddReadinessProbeDiagnosticsAsync(running, elapsed.ElapsedMilliseconds, failure);
         }
         finally
         {

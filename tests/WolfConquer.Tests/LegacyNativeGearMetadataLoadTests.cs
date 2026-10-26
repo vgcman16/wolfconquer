@@ -23,7 +23,7 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
 
         Assert.Same(prior, LoadFixture.Current(kind));
         Assert.Same(row, prior[999u]);
-        Assert.Equal(1, prior.Count);
+        Assert.Single(prior);
         Assert.Equal("", f.Log);
     }
 
@@ -74,12 +74,12 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
 
         var current = LoadFixture.Current(kind);
         Assert.NotSame(first, current);
-        Assert.Equal(1, current.Count);
+        Assert.Single(current);
         Assert.True(current.Contains(3u));
         Assert.Same(retainedRow, first[1u]);
         Assert.Equal(2, first.Count);
         Assert.Same(originalRow, original[999u]);
-        Assert.Equal(1, original.Count);
+        Assert.Single(original);
         Assert.Equal("", f.Log);
     }
 
@@ -97,7 +97,7 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
         f.Load(kind);
 
         Assert.NotSame(prior, LoadFixture.Current(kind));
-        Assert.Equal(0, LoadFixture.Current(kind).Count);
+        Assert.Empty(LoadFixture.Current(kind));
         Assert.Same(retained, prior[999u]);
         Assert.Equal("", f.Log);
     }
@@ -189,7 +189,7 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
 
         Assert.Equal(Enumerable.Range(1, LoadFixture.Columns(kind)).Select(i => (uint)i),
             LoadFixture.Values(kind, LoadFixture.Current(kind)[1u]!));
-        Assert.Equal(1, LoadFixture.Current(kind).Count);
+        Assert.Single(LoadFixture.Current(kind));
         Assert.Equal("", f.Log);
     }
 
@@ -227,7 +227,7 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
 
         var current = LoadFixture.Current(kind);
         Assert.Same(prior, current);
-        Assert.Equal(1, current.Count);
+        Assert.Single(current);
         Assert.Same(priorRow, current[999u]);
         Assert.False(current.Contains(1u));
         Assert.False(current.Contains(2u));
@@ -257,7 +257,7 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
         Assert.Null(Record.Exception(() => f.Load(kind)));
 
         Assert.Same(prior, LoadFixture.Current(kind));
-        Assert.Equal(1, prior.Count);
+        Assert.Single(prior);
         Assert.Same(retained, prior[999u]);
         Assert.Equal(values, LoadFixture.Values(kind, retained));
         Assert.Contains(typeof(InvalidDataException).FullName!, f.Log);
@@ -278,7 +278,7 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
         Assert.Null(Record.Exception(() => f.Load(kind)));
 
         Assert.Same(prior, LoadFixture.Current(kind));
-        Assert.Equal(1, prior.Count);
+        Assert.Single(prior);
         Assert.Same(retained, prior[999u]);
         Assert.Equal(values, LoadFixture.Values(kind, retained));
         Assert.Contains(typeof(InvalidDataException).FullName!, f.Log);

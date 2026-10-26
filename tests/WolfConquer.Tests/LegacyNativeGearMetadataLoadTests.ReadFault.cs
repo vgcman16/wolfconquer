@@ -20,10 +20,10 @@ public sealed partial class LegacyNativeGearMetadataLoadTests
         Assert.Null(Record.Exception(() => fixture.Load(kind)));
 
         Assert.Same(prior, LoadFixture.Current(kind));
-        Assert.Equal(1, LoadFixture.Current(kind).Count);
+        Assert.Single(LoadFixture.Current(kind));
         Assert.Same(priorRow, prior[999u]);
         Assert.Equal(values, LoadFixture.Values(kind, priorRow));
-        Assert.Equal(1, prior.Count);
+        Assert.Single(prior);
         Assert.Contains(typeof(IOException).FullName!, fixture.Log);
         Assert.DoesNotContain("!File.Exists:", fixture.Log);
     }

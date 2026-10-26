@@ -68,19 +68,18 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     [InlineData(null, null)]
     [InlineData("not-body", "not-face")]
     [InlineData("-1", "65536")]
-    public async Task ReflectionPrefixUsesNativeBodyFaceDefaultsWithoutRewritingTheSnapshot(
+    public async Task ReflectionPrefixRejectsAStaleBodyFaceSnapshotBeforeNativeOrSavedChanges(
         string? rawBody, string? rawFace)
     {
         using var input = new LoginInput();
-        // Snapshot admission currently requires both numeric fields. Read a valid snapshot
-        // before controlling the actual INI; this proves the real prefix, NOT TCP admission
-        // of malformed/missing Body/Face or a new parser compatibility rule.
+        // A previously read valid snapshot cannot authorize loading a different
+        // file, even where the native INI reader has numeric fallback defaults.
         var snapshot = new CharacterSnapshotLoader(input.Users).TryLoadByAccountId(Uid).Snapshot!;
         var text = Encoding.UTF8.GetString(input.InitialBytes)
             .Replace("Body=1008\r\n", rawBody is null ? "" : "Body=" + rawBody + "\r\n", StringComparison.Ordinal)
             .Replace("Face=154\r\n", rawFace is null ? "" : "Face=" + rawFace + "\r\n", StringComparison.Ordinal);
-        var expectedBytes = Encoding.UTF8.GetBytes(text.Replace("Online=7\r\n", "Online=1\r\n", StringComparison.Ordinal));
-        File.WriteAllBytes(input.FilePath, Encoding.UTF8.GetBytes(text));
+        var expectedBytes = Encoding.UTF8.GetBytes(text);
+        File.WriteAllBytes(input.FilePath, expectedBytes);
 
         await WithHandlerAsync(input, async (fixture, handler, log) =>
         {
@@ -94,17 +93,22 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
                 BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)!;
             object?[] arguments = [birth.Connection, snapshot, null, null];
 
-            Assert.True((bool)prefix.Invoke(handler, arguments)!);
+            Assert.False((bool)prefix.Invoke(handler, arguments)!);
 
-            Assert.Equal((ushort)1002, player.Body);
-            Assert.Equal((ushort)0, player.Face);
-            Assert.Equal(1002u, player.Mesh);
+            Assert.Equal((ushort)2002, player.Body);
+            Assert.Equal((ushort)17, player.Face);
+            Assert.Equal(172002u, player.Mesh);
             Assert.Same(player, client.Player);
             Assert.Same(view, player.View);
             Assert.False(client.FullLoading);
             Assert.Null(client.Map);
             Assert.Null(client.Socket);
+            Assert.Null(client.Beasts);
+            Assert.Null(client.HairfaceStorage);
+            Assert.Equal(0U, player.UID);
+            Assert.Equal(0U, player.Online);
             var updated = Assert.IsType<CharacterSnapshot>(arguments[2]);
+            Assert.Same(snapshot, updated);
             Assert.Equal(1008L, updated.Body);
             Assert.Equal(154L, updated.Face);
             Assert.Equal("1008", updated.Attributes["Body"]);

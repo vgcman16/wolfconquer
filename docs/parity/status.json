@@ -43,15 +43,15 @@
     },
     {
       "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
-      "detail": "Publica3cb2624 passes all eight GitHub Windows40321922059 stages:25,473 core passes,165unchanged existing exclusions, updater434/434, launcher57/57 and synthetic parsers20+13. Explicit allocating mailbox work/recovery/native components have automated proof. Production Host, actual-client acceptance, complete English and full-client distribution remain unproved."
+      "detail": "The preceding public77c97b28 Windows40353357252 failed one readiness fixture (25,878 core passes,165 existing exclusions; updater434/434). The reviewed successor has focused prefix135, readiness32 and decoder/CLI/newer-packet290 proofs; its exact-public full gate is pending. Earlier a3cb full CI does not validate this successor. Production Host, actual-client acceptance, complete English and full-client distribution remain unproved."
     },
     {
       "id": "english", "title": "Complete English client", "status": "in-progress",
       "detail": "Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete."
     },
     {
-      "id": "newer-client", "title": "Newer-client-only parity", "status": "planned",
-      "detail": "Not estimated. Features absent from the older server source require separate binary, data and observed-behavior evidence."
+      "id": "newer-client", "title": "Newer-client-only parity", "status": "in-progress",
+      "detail": "Official Chinese patches through7935 are downloaded and extracted privately. Actual newer-engine parser/writer evidence supports a separate known-schema2132 codec with31 passing component cases. No default activation or full newer-client compatibility; gameplay, catalog, transport and live acceptance remain open. Not estimated."
     },
     {
       "id": "distribution", "title": "Public full-client download and updates", "status": "in-progress",

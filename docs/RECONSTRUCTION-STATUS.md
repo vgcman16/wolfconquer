@@ -14,15 +14,25 @@ This is a component checklist, not a measured completion percentage.
   valid packet goldens and inactive behavior.
 - [x] Generic Unicode-source/reviewed-resource tooling and bounded configuration
   word/type-1 helpers; no client content or key constants are bundled.
+- [x] Prepare the genuine native saved prefix before publication; complete
+  malformed/foreign/hidden-tail controls pass, without claiming full login.
+- [x] Complete explicit offline byte decoder and new-output CLI; original
+  assets/parameters remain private and native parsing/loading is unproved.
+- [x] Research the official 7935 patch chain and add the separate known-schema
+  packet2132 codec. No newer-profile default registration or gameplay claim.
 - [ ] Verify this complete public source checkpoint through its exact Windows CI.
 - [ ] Finish flags10–12 and their real donation/SubClass/InnerPower participants.
 - [ ] Complete ordinary native startup, Store/normalization transactions,
   equipment, skills, ranking and runtime resumption; enable Host only when ready.
 - [ ] Complete SQL/persistence, native trade/social/event/housing coverage and
   remaining gameplay. Existing managed transaction checks do not prove all of it.
-- [ ] Resolve portable configuration filename/provider/full-transform/encoding,
+- [ ] Resolve portable configuration filename/provider/parser/encoding,
   curate a real client release, verify installation/update/recovery and actual
   client login/gameplay. Complete English remains unfinished.
+
+New focused evidence:290 decoder/CLI/newer-packet checks,135 native-prefix
+checks and32 readiness checks pass in their separate selections. Public77c
+full CI failed one readiness fixture; this successor awaits its own gate.
 
 Owned-candidate evidence includes888history cases,1268merged native/recovery/
 framing cases and142client-tool cases, each with zero failures/skips in its

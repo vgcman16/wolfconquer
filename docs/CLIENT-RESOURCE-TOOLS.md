@@ -47,8 +47,30 @@ runtime-provider selection. Full/minimal width, required padding, delimiter and
 caller output capacity are checked before returning owned payload bytes. Padding
 acceptance alone does not authenticate data or authorize configuration changes.
 
-Static findings narrow the context constructor/default slot and byte order, but
-the existing-global/provider overrides, actual basename, complete transform,
-accumulated output bounds and encoding remain unresolved. These helpers are not
-a file decoder, configuration writer, successful native startup or portable
-release. Do not use them to rewrite opaque configuration or infer a client feed.
+`ClientConfigDefaultPublicTransform` performs the inspected unsigned big-endian
+65537 modular operation on explicitly supplied public parameters, then applies
+the type-1 decoder. `ClientConfigDefaultContents` snapshots and decodes bounded
+modulus-width chunks. `ClientConfigDefaultFileDecoder` composes those stages with
+the actual requested-length gzip reader, including its buffer/trailer timing;
+it does not substitute strict whole-stream validation. All outputs are owned bytes.
+
+The DataTool `client-config-decode` command requires these explicit option pairs:
+
+```text
+--profile d13-default --input <absolute-file>
+(--modulus-file <unsigned-big-endian-file> | --encoded-words-file <64-uint32-json>)
+--output-new <absolute-fresh-file> --max-transformed-bytes <N> --max-result-bytes <N>
+```
+
+Both bounds are required, capped at 64 MiB. No output directory is created and no
+existing output is replaced. The command holds ordinary input read leases,
+prepares every output byte, then promotes one flushed temporary file without
+overwrite. Unsupported profile/parameters, malformed chunks, exceeded bounds,
+linked roles and existing output refuse. There is no native key/provider lookup.
+
+Actual focused proof includes 62 command process cases and 197 configuration/
+retained controls, plus two private copied UI assets decoded with explicit
+parameters. Runtime global/provider selection, native mode2 byte-parser semantics,
+text normalization, loading/rendering and portable release remain open. These
+tools do not establish a client feed or authorize rewriting opaque installed
+configuration. The caller must supply its own authorized inputs and parameters.

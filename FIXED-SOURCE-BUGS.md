@@ -4,6 +4,39 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Current successor — focused checks passed; exact-public full CI pending
+
+The preceding public 77c97b2812b46bbd8de36d3fddb8d355052ddef2 failed
+[Windows 40353357252](https://github.com/vgcman16/wolfconquer/actions/runs/40353357252):
+25,878 core passed, one failed, 165 existing exclusions; updater 434/434.
+Restore/build passed with 158 warnings and zero errors. Launcher and receipt
+parsers were not reached. The sole failure was the owned native-readiness test's
+socket release after its child exhausted the readiness allowance. This failed
+attempt does not supersede the earlier accepted a3cb full CI below.
+
+The failure was reproduced with an owned delayed-start child. The success-window
+fixture now has explicit headroom and preserves complete pre-result diagnostics;
+production limits and separate exact-timeout controls are unchanged. The full
+readiness family passes 32/32. The native prefix passes 135/135 after actual
+malformed/foreign/truncated-state regressions; ordinary admission remains open.
+
+The complete explicit default-profile byte decoder and CLI, plus the separately
+named Chinese 7935-chain packet codec, pass 290/290 selected outcomes, no skips:
+197 configuration/retained controls, 62 actual CLI process cases and 31 packet
+cases. Independent compression vectors and known wire images are retained.
+Initial fixture and optional-presence failures were recorded before correction;
+FSB-111 describes the actual codec defect. These are focused component results,
+not a replacement for the successor's exact-public full Windows gate.
+
+An additional private owned-input proof decoded two copied UI layout assets into
+71,476 / 71,428 bytes using explicit default parameters. Native provider selection,
+mode2 parsing/text semantics, loading and rendering remain unproved. No game
+assets, native modulus/words, private parameters or decoded payloads are bundled.
+The current target remains Chinese 7899 / VisibleDx8D13; see the
+[newer-patch notes](docs/CHINESE-7935-PROTOCOL.md). No live client/server, original
+saves, routing, SQL or restore point was changed. Full English, distribution and
+parity remain unfinished. The reviewed successor needs its own full CI.
+
 ## Latest accepted public CI — recoverable mailbox owners
 
 Exact publica3cb2624592efdc8a17ae7f01e814c442c124fd7 passed
@@ -245,6 +278,48 @@ superseded by this exact accepted run, not silently reclassified as passes.
 No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
+
+### FSB-111: Preserve absent bytes in the new Chinese packet codec
+
+- Location: Chinese7935XuanbaoOperationPayload.TryParseKnownPayload, packet 2132
+  for the explicitly selected official 7935-chain DX8 engine. This is a new
+  implementation defect caught before publication, not a claimed emulator bug.
+- The conditional combining null with ReadOnlyMemory<byte> selected a nonnullable
+  conversion. Parsed absent field 8 became present empty and added wire bytes
+  42 00. Use an explicit nullable-memory null to retain real protobuf presence.
+- Actual combined run 61403 had 225 passes / 1 failure: the independent duplicate
+  child golden exposed the extra field. Two new parsed absence/empty goldens
+  retain their distinct images. Corrected run 17613 passes all 290 selected
+  outcomes: 31 packet, 62 CLI and 197 configuration/retained controls, no skips.
+- Limits: known-schema codec only, no default registration, business handler,
+  Host activation or live-client proof. Unknown fields deliberately refuse.
+
+### FSB-110: Prepare the existing-character native prefix before publication
+
+- Owners: the actual existing-character Frame prefix and sourceLoadCharacter
+  lines758–788. The old path wrote Online and native fields before validating
+  Hairface/Beast state; malformed input could leave partial saved/native state.
+- Correction: capture the genuine native owners before snapshot/INI callbacks,
+  validate the complete Character image and prepare every prefix participant.
+  Commit an exact Online afterimage, then publish only prepared plain fields.
+  Known unchanged failure retains the prior file and native owners; uncertain
+  replacement is reported as recovery-required, not an unchanged rejection.
+- Beast prefix loads now use absolute fresh-state arithmetic with complete
+  positive progression metadata and byte bounds. Constructor null ownership
+  rejects; foreign/relabelled Beast and foreign Hairface owners cannot authorize
+  publication. Ordinary direct Beast mutation remains a separate audit horizon.
+- Hairface prefix loads reject incomplete, duplicate/ambiguous, overflowing or
+  truncated rows, including a valid254-character prefix hiding a longer tail.
+  They replace obsolete rows with owned metadata copies. Native quoted boolean,
+  numeric/string buffer behavior and valid source fields remain covered.
+- Verification: actual unchanged-source88952 had14failures/1valid control.
+  Corrected65772 passed135/135,0fail/skip:71actual encrypted-loopback/prefix,
+  16Beast state,30complete INI and18INI prerequisite cases. All37new prefix
+  outcomes and retained valid controls are present in the actual terminal TRX.
+- Limits: owned offline source/component proof, not successor full-public CI,
+  native Host, SQL or live client. Paid-expiry, startup normalization, Store
+  admission and persistent uncertain-write reconciliation remain outside this
+  prefix; the full ordinary-admission successor is still isolated/unexecuted.
 
 ### FSB-001: Reject spell admissions before spending resources
 
@@ -1527,6 +1602,16 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   No live/SQL/original-save/routing/deployment action.
 
 ## Active audit
+
+### Open: Ordinary login can persist paid expiry before rejecting admission
+
+Root's independent encrypted-loopback run 52563 has 5 failures / 2 controls passing,
+no skips. Malformed Hairface, foreign Hairface/Beast owners, missing Beast metadata
+and Online overflow reject after changing the Character paid-nobility image.
+Denied-write and valid accepted/repeated-login controls pass. This is measured
+open behavior, not repaired by the verified local-prefix slice. The separate ordinary-admission transaction is still under review.
+These new audit regressions are not included in the accepted component counts.
+
 
 ### Distribution continuation: exact reviewed native assets (FSB-099 retained)
 

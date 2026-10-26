@@ -7,7 +7,7 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeHairfaceStorageLoginTests
 {
     [Fact]
-    public async Task AcceptedLoginReadsSavedHairfaceIntoTheSameForeignOwnedStorage()
+    public async Task AcceptedLoginReadsSavedHairfaceIntoTheSameConstructorOwnedStorage()
     {
         var previous = Table.Hairfaces;
         try
@@ -22,7 +22,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
                 var client = birth.Connection.NativeGameClient!;
                 var (_, foreignBirth) = await ConnectBornAsync(fixture);
                 var foreignOwner = foreignBirth.Connection.NativeGameClient!;
-                var existing = new LegacyNativeHairfaceStorageRuntime(foreignOwner);
+                var existing = new LegacyNativeHairfaceStorageRuntime(client);
                 var before = existing.Objects;
                 client.HairfaceStorage = existing;
 
@@ -30,7 +30,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
 
                 Assert.Same(client, accepted.NativeGameClient);
                 Assert.Same(existing, client.HairfaceStorage);
-                Assert.Same(foreignOwner, ReadPrivateField(existing, "Owner"));
+                Assert.Same(client, ReadPrivateField(existing, "Owner"));
                 Assert.NotSame(before, existing.Objects);
                 var loaded = Assert.Single(existing.Objects);
                 Assert.NotSame(catalog, loaded);
@@ -38,7 +38,8 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
                 Assert.Equal(LegacyHairFaceStorageType.Avatar, loaded.Type);
                 Assert.Equal((byte)6, loaded.EquippedColor);
                 Assert.Equal(new byte[] { 1, 0 }, loaded.Colors);
-                Assert.Same(catalog.Classes, loaded.Classes);
+                Assert.NotSame(catalog.Classes, loaded.Classes);
+                Assert.Equal(catalog.Classes, loaded.Classes);
                 Assert.Equal("1/4201/6/2/1/0/", existing.ToString());
                 Assert.Null(foreignOwner.HairfaceStorage);
                 Assert.Equal("1/4201/6/2/1/0/", accepted.Character.Attributes["HairfaceStorage"]);
@@ -53,7 +54,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     }
 
     [Fact]
-    public async Task AcceptedLoginUsesNativeDefaultIniBufferNotTheUntruncatedSnapshotAttribute()
+    public async Task TruncatedNativeHairfaceBufferRefusesBeforePublishingAnyPrefixState()
     {
         var previous = Table.Hairfaces;
         try
@@ -66,15 +67,21 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             await WithHandlerAsync(input, async (fixture, handler, log) =>
             {
                 var (wire, birth) = await ConnectBornAsync(fixture);
+                var client = birth.Connection.NativeGameClient!;
+                var before = File.ReadAllBytes(input.FilePath);
 
-                var accepted = Assert.IsType<WorldSession>((await SendLoginAsync(fixture, wire)).After);
+                var rejected = await SendLoginAsync(fixture, wire);
 
-                var storage = Assert.IsType<LegacyNativeHairfaceStorageRuntime>(
-                    birth.Connection.NativeGameClient!.HairfaceStorage);
-                Assert.Empty(storage.Objects);
-                Assert.Equal("0/", storage.ToString());
-                Assert.Equal(saved, accepted.Character.Attributes["HairfaceStorage"]);
-                Assert.Contains("legacy MsgLoginGame Success", log.Text);
+                Assert.Null(rejected.Before);
+                Assert.Null(rejected.After);
+                Assert.Null(client.HairfaceStorage);
+                Assert.Null(client.Beasts);
+                Assert.Equal(0U, client.Player.UID);
+                Assert.Equal(0U, client.Player.Online);
+                Assert.False(client.Player.RelicSpirit);
+                Assert.Equal(before, File.ReadAllBytes(input.FilePath));
+                Assert.Null(handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
+                Assert.DoesNotContain("legacy MsgLoginGame Success", log.Text);
             });
         }
         finally
