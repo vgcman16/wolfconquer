@@ -21,7 +21,7 @@ public sealed class WindowsShellCompositionTheoryAttribute : TheoryAttribute
 }
 
 // Reuses the existing nonparallel counter collection, not a runtime lock.
-// Constructor/order tests are inert; Windows-only tests use an owned workspace dir.
+// Constructor/order tests are inert; Windows-only tests use an owned temporary dir.
 [Collection("NativeItemCounterSourcePrerequisite")]
 public sealed class LegacyNativeItemCounterShellCompositionTests
 {
@@ -344,7 +344,7 @@ public sealed class LegacyNativeItemCounterShellCompositionTests
         finally { LegacyNativePoolItems.ItemCounter = original; }
     }
 
-    // No process-wide cwd mutation. All native paths use this new workspace child.
+    // No process-wide cwd mutation. Keep native INI paths independent of checkout depth.
     private sealed class OwnedShell : IDisposable
     {
         private readonly string _root;
@@ -355,21 +355,17 @@ public sealed class LegacyNativeItemCounterShellCompositionTests
 
         public OwnedShell()
         {
-            DirectoryInfo? workspace = new(AppContext.BaseDirectory);
-            while (workspace is not null &&
-                !File.Exists(Path.Combine(workspace.FullName, "WolfConquer.sln")))
-                workspace = workspace.Parent;
-            if (workspace is null) throw new InvalidOperationException("Requires a workspace.");
-            var parent = Path.GetFullPath(Path.Combine(workspace.FullName,
-                ".artifacts", "verification-direct-triple17490-20261015"));
+            var parent = Path.GetFullPath(Path.GetTempPath());
             NoReparse(parent);
-            _root = Path.Combine(parent,
-                "root-native-item-counter-shell-composition-goal517-owned-" +
-                Guid.NewGuid().ToString("N"));
+            _root = Path.Combine(parent, "wolf-shell-" + Guid.NewGuid().ToString("N"));
+            MissingDirectory = Path.Combine(_root, "absent-" + Guid.NewGuid().ToString("N"));
+            // The compatibility profile APIs are not long-path-aware. Refuse an
+            // unsupported fixture path rather than silently testing default reads.
+            if (ShellPath.Length >= 260 || MissingShellPath.Length >= 260)
+                throw new IOException("Owned INI fixture exceeds the native profile path limit.");
             if (File.Exists(_root) || Directory.Exists(_root)) throw new IOException("Root exists.");
             Directory.CreateDirectory(_root);
             NoReparse(_root);
-            MissingDirectory = Path.Combine(_root, "absent-" + Guid.NewGuid().ToString("N"));
             Validate(ShellPath);
             Validate(MissingShellPath);
         }

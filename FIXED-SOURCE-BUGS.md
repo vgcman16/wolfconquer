@@ -1491,6 +1491,19 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   its withdrawal persistence and subsequent redeposit assertions. No production
   change, test deletion or skip. Preserve this failed receipt; successor full
   acceptance remains pending, and later launcher/parser stages did not run.
+- Second full341365ba/48421 passed the corrected warehouse Frame row but failed
+  5unchanged native counter/INI cases: core24984pass/5fail+165exclusions,
+  updater305/305; later stages not started. The first258-character fixture path
+  had20/20 passes; the deeper262-character path had15/20. The fixture nested
+  long verification names under the checkout, crossing the compatibility API's
+  [Windows path limit](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation).
+  Move only that fixture to an owned short Temp directory, retain create-new,
+  reparse/containment and nonrecursive cleanup guards, and reject unsupported
+  fixture path lengths clearly. All expected counter values/order/fault assertions
+  remain unchanged. In the SAME deep checkout, focused60531 passes **20/20**,
+  0fail/skip,121ms; actual counters and formerly failed rows were read. Production
+  INI, native-counter semantics and activation remain unchanged. This is test
+  portability repair, not long-path support or durable/global UID completion.
 - Limits: component reload, not public login/client proof. The nontransactional
   mailbox1000 claim and reserved-UID alias remain unmapped; cache/reset lifetime,
   true housing authority, arbitrary stale-record/raw-writer publication and wider
