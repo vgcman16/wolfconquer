@@ -10,6 +10,9 @@ Updated 2026-10-26. Not a percentage or a complete feature inventory.
 - [x] Sequential check command and read-only local dashboard implemented and exercised.
 - [x] Owner-requested trusted-main Windows workflow defined; its results are separate from local validation.
 - [x] Actual publisher/CLI quarantine and exact native-asset review tooling are implemented. Full updater434/434 and the actual synthetic PS->stage->publish pipeline pass. Successor Windows40304697861 passes; the PS distribution/pipeline checks ran separately. No actual client assets have been approved or released.
+- [x] Ninja credit overflow/missing-owner regressions corrected, unsafe legacy assertions migrated, and complete saved-state projection guarded:120/120 focused pass. Successor Windows CI pending; package/Host/native-client activation remains held.
+- [x] Reusable selected normal-import inspection passes28 standalone synthetic Python tests; physical metadata is separate from native runtime proof.
+- [ ] Complete package pending/completed-work reconciliation and restart mutation fencing, then verify genuine registered payouts and stack fidelity.
 - [ ] Reduce existing complexity/large files without altering native ordering, arithmetic, or persistence behavior.
 - [ ] Complete remaining native login/loader and host/database integration.
 - [ ] Complete atomic mailbox package payout: mode5 and nonzero-Flag ClaimAll currently refuse before effects. Pure policies/plans remain; real UID producer intent and joint gear/Ninja journal owners are still required.

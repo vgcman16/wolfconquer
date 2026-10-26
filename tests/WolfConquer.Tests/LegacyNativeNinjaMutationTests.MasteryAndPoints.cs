@@ -54,7 +54,7 @@ public sealed partial class LegacyNativeNinjaMutationTests
     });
 
     [Fact]
-    public Task PointsWrapAndZeroAdditionStillSendOnlyPointsWithUidZero() => NativePacketTestThread.Run(() =>
+    public Task PointsRejectOverflowAndKeepZeroAndFullWidthValidCredits() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         scope.Client.Player.UID = uint.MaxValue;
@@ -62,15 +62,19 @@ public sealed partial class LegacyNativeNinjaMutationTests
         scope.Ninja.Flag = ulong.MaxValue;
         scope.Ninja.Fire = scope.Ninja.WaterMastery = scope.Ninja.UnlockMastery = uint.MaxValue;
         scope.Ninja.Items = null!;
-        scope.Ninja.AddPoints(1);
-        Assert.Equal(0u, scope.Ninja.Exp);
+        Assert.Throws<OverflowException>(() => scope.Ninja.AddPoints(1));
+        Assert.Equal(uint.MaxValue, scope.Ninja.Exp);
+        scope.NoSerialization();
         scope.Ninja.AddPoints(0);
-        Assert.Equal(0u, scope.Ninja.Exp);
+        Assert.Equal(uint.MaxValue, scope.Ninja.Exp);
+        scope.Ninja.Exp = 0; // Independent valid zero/full-width credit controls.
+        scope.Ninja.AddPoints(0);
+        Assert.Equal(0U, scope.Ninja.Exp);
         scope.Ninja.AddPoints(uint.MaxValue);
         Assert.Equal(uint.MaxValue, scope.Ninja.Exp);
         Assert.Equal(3, scope.Queue.Count);
         Assert.Equal(1, scope.Available);
-        scope.Sent(Frame(2));
+        scope.Sent(Frame(2, 0, 0, uint.MaxValue));
         scope.Sent(Frame(2), 1);
         scope.Sent(Frame(2, 0, 0, uint.MaxValue), 2);
         Assert.Empty(scope.Log);
@@ -90,16 +94,15 @@ public sealed partial class LegacyNativeNinjaMutationTests
     });
 
     [Fact]
-    public Task NullOwnerFaultRetainsWrappedPointsAndFullySerializedDisposedPacket() => NativePacketTestThread.Run(() =>
+    public Task NullOwnerRefusesBeforePointMutationOrPacketLoan() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        scope.Ninja.Exp = uint.MaxValue;
+        scope.Ninja.Exp = 71;
         scope.Ninja.user = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Ninja.AddPoints(3));
-        Assert.Equal(2u, scope.Ninja.Exp);
-        Assert.Empty(scope.Queue);
-        Assert.Equal(3, scope.Available);
-        scope.Serialized(Frame(2, 0, 0, 2));
+        var failure = Record.Exception(() => scope.Ninja.AddPoints(3));
+        Assert.Equal(71U, scope.Ninja.Exp);
+        Assert.IsType<InvalidOperationException>(failure);
+        scope.NoSerialization();
         Assert.Empty(scope.Log);
     });
 }

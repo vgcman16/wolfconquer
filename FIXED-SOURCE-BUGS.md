@@ -1535,6 +1535,33 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   Exact public816f3a20 passed Windows40304697861, updater434/434 and all8stages0.
   PS/pipeline proofs are standalone, not CI steps. No original data or game process changed.
 
+### FSB-100: Reject unsafe Ninja point credits before mutation
+
+- Source: native Ninja.AddPoints unchecked uint addition wraps a credit to zero;
+  it also mutates Exp before dereferencing an absent owner. Older tests required
+  those defects and were replaced with unchanged-state refusal assertions.
+- Corrected direct API: require the genuine current constructor-owned client and
+  reciprocal Player before a packet loan; compute checked points, serialize the
+  complete native packet before changing Exp, and recheck owner/counter state.
+  Valid zero/full-width credits retain their source-golden Type2/UID-zero bytes.
+- Actual tests-first overflow baseline:2failed/0passed, both counters became0
+  instead of retaining4294967295/4294967246. The separate missing-owner baseline
+  failed with71->74. After correction the widened Ninja suite passed118/118,
+  zero failed/skipped:59new saved-line/capture/bounds cases,2new overflow rows,
+  and57retained or deliberately migrated native mutation/contract cases.
+  A subsequent review exposed callback-bearing source dictionary lookups in the
+  new capture: actual2/2 RED changed25->26 and75->76 after prior checks. Bounded
+  enumeration/private uint-key maps now avoid those callbacks and recheck the
+  captured owner/scalars last. The widened successor passed120/120,0fail/skip.
+- The mailbox Ninja projection additionally prepares complete Character.MsgNinja
+  text and source-golden2395bytes without sending or mutating; it publishes Exp
+  only at the caller's explicit postcommit boundary. The full mailbox package
+  producer/journal/registered-handler join is still being implemented.
+- Limits: owned offline component fixtures, not full CI, durable standalone
+  AddPoints, authenticated Host birth, real client rendering or complete Ninja
+  transactions. Existing post-credit native send/log behavior, unrelated APIs
+  and broader raw-writer concurrency still need their own audit.
+
 ### FSB-099: Enforce filename quarantine at the actual publisher boundary
 
 - Distribution tooling defect: planner/stager rejected private/generated/control

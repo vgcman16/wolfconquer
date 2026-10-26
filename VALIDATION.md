@@ -1,5 +1,23 @@
 # Publication validation
 
+## Ninja credits and mailbox-state preparation
+
+Actual direct-credit overflow regressions failed2/2 (both wrapped to0), and
+missing-owner regression failed1/1 (71->74). Checked arithmetic/current genuine
+owners and pre-credit serialization now preserve rejected state and valid
+Type2/UID-zero packet bytes. The widened118/118 run included replaced unsafe
+legacy expectations and complete owned MsgNinja text preparation. Later review
+caught source-comparer callbacks after capture checks:2/2 failed with25->26 and
+75->76. Callback-free snapshots/private uint-key maps and final owner/scalar
+checks pass120/120,0failed/skipped; source-golden2395bytes stay fixed.
+These are owned component tests; full successor Windows CI is pending. No
+durable standalone AddPoints, active package payout, Host/native login, client
+rendering or full Ninja transaction is proved.
+
+The separate selected-import Python tool suite passes28/28 in its public layout.
+It uses synthetic PE files and actual CLI refusal/success; it is not a native
+execution or runtime import-target check. See docs/PE-IMPORT-SLOTS.md.
+
 ## Exact native asset reviews
 
 Complete updater candidate434/434passes,0failed/skipped,1m41s:357retained,
