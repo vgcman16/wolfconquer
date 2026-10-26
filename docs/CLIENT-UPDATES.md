@@ -4,6 +4,14 @@ Status: experimental Windows tooling. There is **no official full-client downloa
 
 The standalone `WolfConquer.Updater` does not depend on or start the game servers. Its automated tests exercise synthetic clients and real temporary Git repositories. They are not real-client login proof.
 
+Future publishing also enforces the planner/stager filename quarantine at the
+actual publisher API and CLI. A hand-written plan cannot admit private, generated,
+backup, legacy AutoP or updater trust/control names. The entire plan is checked
+before source/output work; CLI checks precede signing-key reads. Existing signed
+manifest and repoint compatibility is retained. Filename checks do not inspect
+content or approve native resource-name collisions; an exact reviewed-asset
+mechanism and the real client package remain unfinished.
+
 ## Build and test
 
 ```powershell

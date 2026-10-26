@@ -16,6 +16,12 @@ internal static class PublishingCommand
             ["--plan", "--key", "--manifest", "--base"]);
         var plan = LocalFiles.Read<PublicationPlan>(arguments.Required("--plan"), 64 * 1024 * 1024);
         if (plan.SchemaVersion != 1 || plan.Files is null) throw new InvalidDataException("Unsupported curated publication plan.");
+        if (command == "publish")
+        {
+            if (plan.Files.Length > SignedUpdateManifest.MaximumFiles || plan.Files.Any(entry => entry is null))
+                throw new InvalidDataException("Publication plan is invalid or too large.");
+            foreach (PublishEntry entry in plan.Files) PublicationPathPolicy.ValidateRelativePath(entry.Path);
+        }
         var keyPath = Path.GetFullPath(arguments.Required("--key"));
         var publishedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(plan.PublishRoot));
         var sourceRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(plan.SourceRoot));

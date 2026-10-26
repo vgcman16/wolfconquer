@@ -1,5 +1,16 @@
 # Publication validation
 
+## Direct publisher filename admission
+
+Current-API publisher baseline75rows had37pass/38fail,0skips:36unsafe existing
+synthetic payloads were accepted, plus source/key preflight order failures.
+The corrected complete updater suite passes357/357,0failed/skipped,1m28s,
+retaining305prior rows and all52new outcomes. Fourteen ordinary near-name controls
+publish and verify real ephemeral signed releases. The Windows exclusive-source
+and actual CLI absent-key cases establish rejection before those reads.
+No compiler warning/error text. The complete successor Windows CI gate remains
+pending. No real client package/feed, key, deployment or live acceptance follows.
+
 ## D13 mailbox text and reward-recovery prerequisites
 
 Focused42305 passed1593/1593 with no skips: retained1027 mailbox/UID/journal,

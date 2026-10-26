@@ -12,13 +12,14 @@ public static partial class ReleasePublisher
     {
         ArgumentNullException.ThrowIfNull(options); ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(signingKey);
+        PublishEntry[] entries = plan.Take(SignedUpdateManifest.MaximumFiles + 1).ToArray();
+        if (entries.Length > SignedUpdateManifest.MaximumFiles || entries.Any(entry => entry is null))
+            throw new InvalidDataException("Publication plan is invalid or too large.");
+        foreach (PublishEntry entry in entries) PublicationPathPolicy.ValidateRelativePath(entry.Path);
         string source = PublishFileSystem.Root(options.SourceRoot, mustExist: true);
         string publish = PublishFileSystem.Root(options.PublishRoot, mustExist: false);
         if (PublishFileSystem.Contains(source, publish) || PublishFileSystem.Contains(publish, source))
             throw new InvalidDataException("Source and publication roots must not overlap.");
-        PublishEntry[] entries = plan.Take(SignedUpdateManifest.MaximumFiles + 1).ToArray();
-        if (entries.Length > SignedUpdateManifest.MaximumFiles || entries.Any(entry => entry is null))
-            throw new InvalidDataException("Publication plan is invalid or too large.");
         ManifestValidation.Identifier(options.ProductId + ".index");
         // Validate all plan paths/collisions/base hashes and the signer before any output writes.
         var preview = MakeManifest(options, entries.Select(entry => new UpdateFileEntry(entry.Path, 0,

@@ -1496,6 +1496,30 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-099: Enforce filename quarantine at the actual publisher boundary
+
+- Distribution tooling defect: planner/stager rejected private/generated/control
+  names, but a direct ReleasePublisher plan could publish those same files. CLI
+  publish also read the external signing-key path before rejecting such a plan.
+- New PublicationPathPolicy retains structural Windows-path checks and the
+  existing ordered filename categories, with bounded culture-invariant matching.
+  Publish validates the entire bounded plan before root/source/signer/output work;
+  CLI publish validates before opening key bytes. Errors contain static reasons,
+  not the rejected filename. No blanket exemption or native-asset waiver exists.
+- Current-API59740 RED:75total,37passed/38failed,0skips,2s. All36unsafe existing
+  synthetic files were accepted; exclusive-first preflight reached the wrong
+  source read, and CLI reached its absent key. All failure messages were read.
+- Corrected91767 GREEN: full updater357/357,0failed/skipped,1m28s, including all
+  305prior rows and52new outcomes (36refusal,14valid signed near-name controls,
+  one Windows exclusive-source and one actual CLI pre-key case). No compiler
+  warning/error text. Root reviewed/intook3production and2test paths in both roots.
+- Limits: future publishing admission only. Existing signed-manifest/repoint
+  compatibility and prior-install baseSha256 semantics stay intact. Names cannot
+  detect renamed secrets or certify content. Exact reviewed BMP/DDS membership,
+  source-image binding through staging/publishing, ambiguous INIs, portable client
+  configuration and full-client release remain OPEN. Full successor Windows CI
+  is still pending; no real client/configuration/key/feed or running service changed.
+
 ### FSB-098: Select the client-confirmed D13 mailbox text fields explicitly
 
 - Source: LegacyMailListPacket used title8/sender9 for every profile. Cached DX8
