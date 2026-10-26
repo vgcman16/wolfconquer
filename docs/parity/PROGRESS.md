@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-25**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `f3bfae4aae83cf2409e86827d7a55ce6685d9fa3` (short: `f3bfae4aae83`).
+Source commit: `e9f472f338400f6d501146e664a32a253d8bcd09` (short: `e9f472f33840`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -19,7 +19,7 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | Milestone | Status | Detail |
 | --- | --- | --- |
 | Limited local live-client milestone | verified | Login, walking, one-item drop/pickup and saving were demonstrated on an earlier isolated local build. This does not validate the latest public source. |
-| Current public build live-client acceptance | planned | Public f3bfae4a passes all eight clean Windows LOCAL stages (24,989 core passes; 165 existing exclusions), updater305/305, launcher57/57 and synthetic parsers20+13. Actual-client acceptance, GitHub CI and deployment are separate and not yet proven. |
+| Current public build live-client acceptance | planned | Public e9f472f3 passes all eight clean Windows LOCAL stages (25,032 core passes; 165 existing exclusions), updater305/305, launcher57/57 and synthetic parsers20+13. Actual-client acceptance, GitHub CI and deployment are separate and not yet proven. |
 | Complete English client | in-progress | Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete. |
 | Newer-client-only parity | planned | Not estimated. Features absent from the older server source require separate binary, data and observed-behavior evidence. |
 | Public full-client download and updates | in-progress | Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet. |
@@ -28,7 +28,7 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 
 | Domain | Status | Implemented evidence | Remaining work |
 | --- | --- | --- | --- |
-| Transport, authentication and startup | partial | Packet, cipher, startup and replacement-service paths exist. Legacy account envelopes now reject inconsistent bytes and malformed saved-credential admission; secure native handoff is still unproved. An earlier build demonstrated limited local gameplay. | Prove the authenticated native account-to-world handoff and protected D13 login payload; complete ownership and loader joins, then verify the published build and staged endpoint migration with the actual client. |
+| Transport, authentication and startup | partial | Packet, cipher, startup and replacement-service paths exist. Account and mailbox mode parsers validate coherent physical envelopes; hostile mailbox counts reject before item allocation. Malformed saved-credential admission is removed; secure native handoff is still unproved. An earlier build demonstrated limited local gameplay. | Prove the authenticated native account-to-world handoff and protected D13 login payload; complete ownership and loader joins, then verify the published build and staged endpoint migration with the actual client. |
 | Shared player, items and persistence | partial | Containers/snapshots exist. Bag/warehouse moves persist complete item files before success with capacity, closure, PIN and escrow checks. Show validates current owners and retains genuinely emptied banks for that owner lifetime. Selected expired locks commit before notification. House saves validate complete graphs and use one-file atomic replacement/create. Native queue, spell/proficiency, profile, ranking, mail and nobility have component proof; full SaveClient/adoption remain unfinished. | Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery. |
 | Combat, monsters and death | partial | Substantial spell, damage, receive, equipment, monster AI, rewards and death behavior has focused automated proof. Physical monster admission now validates actual minimum-damage, Rune, Gear and conditional Ninja owners before output/RNG; the explicit full-adjustment sentinel returns its intended maximum. | Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios. |
 | NPCs, shops, progression and housing | partial | Main dispatch, shops, forging, skill learning and durable progression/reward paths exist. Native quest definitions, eligibility, dialog and experience tables have component proof. House load/save validate complete files/graphs before publication; authenticated housing adoption, entry and furniture economy remain unfinished. | Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle. |

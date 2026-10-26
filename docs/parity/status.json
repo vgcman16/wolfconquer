@@ -7,7 +7,7 @@
   "domains": [
     {
       "id": "transport", "title": "Transport, authentication and startup", "status": "partial",
-      "implemented": "Packet, cipher, startup and replacement-service paths exist. Legacy account envelopes now reject inconsistent bytes and malformed saved-credential admission; secure native handoff is still unproved. An earlier build demonstrated limited local gameplay.",
+      "implemented": "Packet, cipher, startup and replacement-service paths exist. Account and mailbox mode parsers validate coherent physical envelopes; hostile mailbox counts reject before item allocation. Malformed saved-credential admission is removed; secure native handoff is still unproved. An earlier build demonstrated limited local gameplay.",
       "remaining": "Prove the authenticated native account-to-world handoff and protected D13 login payload; complete ownership and loader joins, then verify the published build and staged endpoint migration with the actual client."
     },
     {
@@ -43,7 +43,7 @@
     },
     {
       "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
-      "detail": "Public f3bfae4a passes all eight clean Windows LOCAL stages (24,989 core passes; 165 existing exclusions), updater305/305, launcher57/57 and synthetic parsers20+13. Actual-client acceptance, GitHub CI and deployment are separate and not yet proven."
+      "detail": "Public e9f472f3 passes all eight clean Windows LOCAL stages (25,032 core passes; 165 existing exclusions), updater305/305, launcher57/57 and synthetic parsers20+13. Actual-client acceptance, GitHub CI and deployment are separate and not yet proven."
     },
     {
       "id": "english", "title": "Complete English client", "status": "in-progress",

@@ -4,7 +4,23 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted LOCAL integration gate — combat owners and empty warehouse GREEN
+## Latest accepted LOCAL integration gate — coherent mailbox parsing GREEN
+
+Exact public `e9f472f338400f6d501146e664a32a253d8bcd09` was extracted from a
+tracked-only git archive (5427files) into a fresh owned Temp workspace. Local
+session7563/receipt20261026T042713959Z-10d749b3 finished2026-10-26T04:32:24.4981243Z;
+all8sequential stages exited0. Root read the terminal receipt, actual TRX counters/
+outcome groups and logs: core **25032passed/0failed**,165existing NotExecuted
+rows (25197total); updater305/305, launcher57/57, synthetic parsers20+13 (no HTTP/
+services). Build190warnings/0errors,72.12s. All43new mailbox envelope cases pass;
+retained account/mailbox cases and wire goldens also pass. Public source was
+normal-fast-forward pushed and exact remote verified after this gate passed.
+This is Windows LOCAL proof, NOT GitHub CI, current actual-client acceptance,
+mailbox business-transaction completion, complete English, deployment or full
+parity. Original saves, running sessions, protected clients, endpoints and the
+60held Guild/Union paths remain unchanged.
+
+## Previous accepted LOCAL integration gate — combat owners and empty warehouse GREEN
 
 Exact public `f3bfae4aae83cf2409e86827d7a55ce6685d9fa3` was extracted from a
 tracked-only git archive (5424files) into a fresh owned Temp workspace. Local
@@ -1468,8 +1484,9 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   Corrected39126: **266/266**,0fail/skip,710ms; all43new outcomes and TRX groups read.
   No old assertion was deleted, weakened or skipped. A separate static helper
   review found no actionable defect; it is not execution evidence.
-- Limits: focused offline parser proof; full clean-public successor remains
-  pending. Current target remains Chinese7899/cachedDX8D13, with no new receiver
+- Full clean-public LOCAL e9f472f3 passes above; GitHub CI/live remain unproved.
+  Limits: focused offline parser proof. Current target remains
+  Chinese7899/cachedDX8D13, with no new receiver
   or actual-client evidence. The65534-byte positive constructs PacketFrame
   directly; transport/serializer default6844 is unchanged. Arbitrary throwing
   MemoryManager/concurrent backing mutation, other mailbox parsers, authorization,
