@@ -52,6 +52,7 @@ internal static class SnapshotFilePersistence
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentException.ThrowIfNullOrWhiteSpace(transactionMarker);
+        WolfConquer.Core.World.LegacyMailboxPackageMutationFence.RequireFileMutation(path);
 
         var directory = Path.GetDirectoryName(Path.GetFullPath(path))
             ?? throw new ArgumentException("Snapshot path must have a parent directory.", nameof(path));

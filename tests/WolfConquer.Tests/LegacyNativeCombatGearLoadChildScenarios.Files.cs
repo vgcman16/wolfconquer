@@ -36,7 +36,7 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
         internal Dictionary<uint, Lottery.CQ> OldLottery { get; } = new() { [999] = new() };
         internal Dictionary<uint, Collection.CQ> OldCollection { get; } = new() { [999] = new() };
 
-        internal Scope()
+        internal Scope(bool seedGate = true)
         {
             Require(!File.Exists(Root) && !Directory.Exists(Root), "Fresh owned root required.");
             LegacyNativeDbReadOwnedFiles.OrdinaryChain(Root);
@@ -44,7 +44,7 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
             Console.SetOut(Log);
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
-            Table.m_Load = false;
+            if (seedGate) Table.m_Load = false;
             Table.Location = "old-location";
             Table.Info = OldInfo;
             Jade.Info = OldJade;

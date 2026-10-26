@@ -20,7 +20,7 @@ public static partial class WorldPacketHandlers
         // Pickup owns its exclusive lease, just like Drop/Sell. No socket send
         // may run during reservation, persistence or current-holder publication.
         using (var operation = context.TradeOperations is { } operations
-            ? await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false) : null)
+            ? await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false) : null)
         {
             if (!TryAdmitLegacyFloorPickup(context, out var current, out reason)) { }
             else if (!LegacyFloorItemPacket.TryParsePickupRequest(frame, out floorUid)) reason = "malformedPickupRequest";

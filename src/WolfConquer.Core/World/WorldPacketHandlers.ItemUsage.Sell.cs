@@ -14,7 +14,7 @@ public static partial class WorldPacketHandlers
         // Dispatch must not retain a shared lease for Sell. Keep mutation and
         // durable publication exclusive, but never await a socket under this lease.
         using (var operation = context.TradeOperations is { } operations
-            ? await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false) : null)
+            ? await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false) : null)
         {
             if (context.TradeRecovery?.IsBlocked == true) reason = "recoveryRequired";
             else if (context.Trades?.HasConnectionEnded(context.Connection) == true) reason = "connectionEnded";

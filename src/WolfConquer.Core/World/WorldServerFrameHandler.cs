@@ -694,6 +694,8 @@ public sealed partial class WorldServerFrameHandler
         Func<WorldSession, CancellationToken, ValueTask>? afterStartupBeforeRuntime = null,
         LegacyNativeGameClientRuntime? nativeLoadedClient = null)
     {
+        if (await TryStartMailboxDebtRecoverySessionAsync(connection, accountId, username, snapshot,
+                nativeLoadedClient, cancellationToken).ConfigureAwait(false)) return;
         var nativeEquipment = BeginLegacyNativeEquipmentRawLoad(connection);
         var playerItems = _snapshotLoader?.LoadPlayerItemsByCharacterUid(snapshot.Uid,
             bytes => nativeEquipment?.CaptureRawLoad(bytes)) ?? PlayerItemSnapshot.Empty;

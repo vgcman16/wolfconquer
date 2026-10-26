@@ -79,7 +79,10 @@ public sealed class PacketHandlerRegistry<TContext>
     {
         try
         {
-            return method.CreateDelegate<PacketHandler<TContext>>();
+            var handler = method.CreateDelegate<PacketHandler<TContext>>();
+            return (context, frame, cancellationToken) => context is IPacketHandlerInvocation<TContext> invocation
+                ? invocation.InvokeHandlerAsync(handler, frame, cancellationToken)
+                : handler(context, frame, cancellationToken);
         }
         catch (ArgumentException exception)
         {

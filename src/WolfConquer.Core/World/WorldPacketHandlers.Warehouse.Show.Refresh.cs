@@ -14,7 +14,7 @@ public static partial class WorldPacketHandlers
         }
 
         var operations = context.TradeOperations;
-        using (operations is null ? null : await operations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+        using (operations is null ? null : await operations.EnterPacketSharedAsync(cancellationToken).ConfigureAwait(false))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (context.TradeRecovery?.IsBlocked == true)
@@ -64,7 +64,7 @@ public static partial class WorldPacketHandlers
         }
         LegacyWarehouseLockRefreshDelivery? delivery;
         string reason;
-        using (await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false))
+        using (await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false))
         lock (trades.SyncRoot)
         {
             cancellationToken.ThrowIfCancellationRequested();

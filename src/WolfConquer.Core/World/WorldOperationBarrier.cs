@@ -2,7 +2,7 @@ namespace WolfConquer.Core.World;
 
 // Handler-lifetime operation isolation, not a session/client identity. Never nest
 // acquisitions. Every successful lease must be disposed, including after errors.
-internal sealed class WorldOperationBarrier
+internal sealed partial class WorldOperationBarrier
 {
     private readonly object _gate = new();
     private readonly LinkedList<Waiter> _queue = new();
@@ -97,6 +97,7 @@ internal sealed class WorldOperationBarrier
     private sealed class Lease(WorldOperationBarrier owner, bool exclusive) : IDisposable
     {
         private WorldOperationBarrier? _owner = owner;
+        internal bool IsOwnedBy(WorldOperationBarrier candidate) => ReferenceEquals(Volatile.Read(ref _owner), candidate);
         public void Dispose() => Interlocked.Exchange(ref _owner, null)?.Exit(exclusive);
     }
 }

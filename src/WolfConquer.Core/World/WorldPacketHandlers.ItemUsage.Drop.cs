@@ -13,7 +13,7 @@ public static partial class WorldPacketHandlers
         // Like Trade/Sell, Drop owns its mutation lease. Dispatch must not retain
         // a shared lease here, and no socket send may run inside this phase.
         using (var operation = context.TradeOperations is { } operations
-            ? await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false) : null)
+            ? await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false) : null)
         {
             if (context.TradeRecovery?.IsBlocked == true) reason = "recoveryRequired";
             else if (context.Trades?.HasConnectionEnded(context.Connection) == true) reason = "connectionEnded";

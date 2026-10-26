@@ -13,7 +13,7 @@ internal static class LegacyNativeCombatGearLoadChildFixture
     private const string Marker = "__NATIVE_GEAR_LOAD__";
     private const string ProtobufSha256 = "66653D787AB796A55C55AFDFA35D2FD9AD78C89BBD51E0D01965214399FA56B6";
 
-    internal static JsonElement Run(string scenario, ITestOutputHelper output, bool objectPacket = false)
+    internal static JsonElement Run(string scenario, ITestOutputHelper output, bool objectPacket = false, string? knownEntry = null)
     {
         Assert.True(OperatingSystem.IsWindows());
         var executable = Environment.GetEnvironmentVariable(LegacyNativeConsoleChildFixture.PwshPathVariable);
@@ -50,7 +50,7 @@ internal static class LegacyNativeCombatGearLoadChildFixture
         }
         start.Environment["WOLF_GEAR_LOAD_GUARD"] = guard;
         start.Environment["WOLF_GEAR_LOAD_SCENARIO"] = scenario;
-        start.Environment["WOLF_GEAR_LOAD_ENTRY_METHOD"] = objectPacket ? "ExecuteObjectPacket" : "Execute";
+        start.Environment["WOLF_GEAR_LOAD_ENTRY_METHOD"] = knownEntry ?? (objectPacket ? "ExecuteObjectPacket" : "Execute");
         using var process = new Process { StartInfo = start };
         using var stdout = new MemoryStream();
         using var stderr = new MemoryStream();
@@ -118,7 +118,7 @@ internal static class LegacyNativeCombatGearLoadChildFixture
         $assembly=[Reflection.Assembly]::LoadFrom($paths[2])
         $type=$assembly.GetType('WolfConquer.Tests.LegacyNativeCombatGearLoadChildScenarios',$true)
         $entry=[Environment]::GetEnvironmentVariable('WOLF_GEAR_LOAD_ENTRY_METHOD')
-        if ($entry -cnotin @('Execute','ExecuteObjectPacket')) { throw 'Known child entry required' }
+        if ($entry -cnotin @('Execute','ExecuteObjectPacket','ExecuteMailboxPackage')) { throw 'Known child entry required' }
         $method=$type.GetMethod($entry,[Reflection.BindingFlags]'Public,Static')
         $scenario=[Environment]::GetEnvironmentVariable('WOLF_GEAR_LOAD_SCENARIO')
         $json=[string]$method.Invoke($null,[object[]]@($scenario,$guard))

@@ -230,6 +230,7 @@ internal static partial class CharacterSnapshotFileCoordinator
         bool createOnly, out string backupPath, out bool published)
     {
         published = false;
+        WolfConquer.Core.World.LegacyMailboxPackageMutationFence.RequireFileMutation(path);
         var transactionId = Guid.NewGuid().ToString("N");
         var tempPath = path + TransactionMarker + transactionId + ".tmp";
         backupPath = createOnly ? string.Empty : path + TransactionMarker + transactionId + ".bak";

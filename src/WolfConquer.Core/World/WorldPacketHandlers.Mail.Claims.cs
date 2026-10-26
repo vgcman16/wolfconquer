@@ -19,7 +19,7 @@ public static partial class WorldPacketHandlers
         }
         LegacyMailboxClaimPlan? delivery = null;
         var failure = MailboxClaimPrefix + "OwnerUnavailable";
-        using (await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false))
+        using (await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false))
         lock (trades.SyncRoot)
         lock (mailboxes.SyncRoot)
         {
@@ -28,23 +28,27 @@ public static partial class WorldPacketHandlers
             try
             {
                 if (TryCaptureLegacyMailboxClaimOwner(context, out var owner) &&
-                    TryReadLegacyMailboxClaimBaseline(owner, out var baseline, out failure) &&
-                    TryPrepareLegacyMailboxClaims(baseline, packet, out var plan, out failure))
+                    TryReadLegacyMailboxClaimBaseline(owner, out var baseline, out failure))
                 {
-                    if (!plan.Changed)
+                    if (NeedsMailboxPackageJoin(baseline, packet))
+                        _ = TryCommitMailboxPackage(baseline, packet, cancellationToken, out delivery, out durable, out failure);
+                    else if (TryPrepareLegacyMailboxClaims(baseline, packet, out var plan, out failure))
                     {
-                        if (MailboxClaimAdmissionCurrent(owner) && baseline.Items.IsCurrent(owner.Expected.PlayerItems) &&
-                            baseline.Mail.IsCurrent()) delivery = plan;
+                        if (!plan.Changed)
+                        {
+                            if (MailboxClaimAdmissionCurrent(owner) && baseline.Items.IsCurrent(owner.Expected.PlayerItems) &&
+                                baseline.Mail.IsCurrent()) delivery = plan;
+                        }
+                        else if (sessions.TryCommitSession(context.Connection, owner.Expected, plan.Updated, () =>
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            if (!MailboxClaimAdmissionCurrent(owner)) return false;
+                            if (!TryPersistLegacyMailboxClaim(plan, out failure)) return false;
+                            durable = true;
+                            mailboxes.PublishClaims(baseline.Mail, plan.MailAfter);
+                            return true;
+                        })) delivery = plan;
                     }
-                    else if (sessions.TryCommitSession(context.Connection, owner.Expected, plan.Updated, () =>
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (!MailboxClaimAdmissionCurrent(owner)) return false;
-                        if (!TryPersistLegacyMailboxClaim(plan, out failure)) return false;
-                        durable = true;
-                        mailboxes.PublishClaims(baseline.Mail, plan.MailAfter);
-                        return true;
-                    })) delivery = plan;
                 }
             }
             catch (Exception error) when (IsMailboxClaimPreparationFailure(error))
@@ -64,9 +68,10 @@ public static partial class WorldPacketHandlers
         foreach (var frame in delivery.Frames)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!delivery.ItemsAfter.IsCurrent(delivery.Updated.PlayerItems) ||
-                !delivery.Updated.Character.Attributes.SequenceEqual(delivery.UpdatedFields) ||
-                !IsCurrentLegacyMailboxClaimOwner(delivery.Baseline.Owner, delivery.Updated))
+            if (!MailboxClaimDeliveryManagedCurrent(delivery, out var pin) ||
+                !IsCurrentLegacyMailboxClaimOwner(delivery.Baseline.Owner, delivery.Updated) ||
+                !MailboxClaimDeliveryOwnerFinalCurrent(delivery, pin!) ||
+                delivery.PackagePublication is { } publication && !publication.IsPublishedCurrent())
             {
                 await context.Log.WriteLineAsync("WorldServer mailbox claim delivery stopped; owner retired after outcome.")
                     .ConfigureAwait(false);
@@ -86,7 +91,7 @@ public static partial class WorldPacketHandlers
             $"committed={delivery.Changed} ack={delivery.HasAcknowledgement}.").ConfigureAwait(false);
     }
 
-    private static bool IsMailboxClaimPreparationFailure(Exception error) => error is IOException or UnauthorizedAccessException or
+    private static bool IsMailboxClaimPreparationFailure(Exception error) => error is IOException or InvalidDataException or UnauthorizedAccessException or
         ArgumentException or InvalidOperationException or OverflowException or FormatException or
         IndexOutOfRangeException or NotSupportedException or System.Security.SecurityException;
 }

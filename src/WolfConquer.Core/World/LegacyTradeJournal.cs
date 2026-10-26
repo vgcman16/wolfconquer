@@ -81,6 +81,7 @@ internal static partial class LegacyTradeJournal
                 return false;
             }
             EnsureTargetsMatch(targets, allowAfter: false);
+            LegacyMailboxPackageMutationFence.RequireJournalMutation(targets.Select(target => target.Path).ToArray(), record.Changes);
             Directory.CreateDirectory(roots.Items);
             Directory.CreateDirectory(roots.Journal);
             EnsureSafePath(roots.Journal);

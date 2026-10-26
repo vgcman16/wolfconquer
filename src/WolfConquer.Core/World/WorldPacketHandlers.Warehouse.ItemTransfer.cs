@@ -18,7 +18,7 @@ public static partial class WorldPacketHandlers
         }
         LegacyWarehouseItemTransferPlan? committed = null;
         var reason = "warehouseItemTransferOwnerUnavailable";
-        using (await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false))
+        using (await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false))
         lock (trades.SyncRoot)
         {
             cancellationToken.ThrowIfCancellationRequested();

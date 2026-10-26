@@ -40,7 +40,8 @@ public sealed partial class WorldServerFrameHandler
             // Register from login onward, including a pending trade's recipient who
             // may disconnect before ever sending a trade packet of their own.
             RegisterTradeDisconnect(connection, cancellationToken);
-            await HandleFrameCoreAsync(connection, frame, cancellationToken).ConfigureAwait(false);
+            if (!await AdmitMailboxDebtFrameAsync(connection, frame, cancellationToken).ConfigureAwait(false)) return;
+            await HandleFrameCoreAsync(connection, frame, cancellationToken, operation).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -64,7 +65,8 @@ public sealed partial class WorldServerFrameHandler
     private async ValueTask HandleFrameCoreAsync(
         ConquerTcpConnection connection,
         PacketFrame frame,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IDisposable? frameOperation)
     {
         if (frame.Header.Opcode == WorldPacketOpcodes.InternalSnapshotRequest)
         {
@@ -151,6 +153,8 @@ public sealed partial class WorldServerFrameHandler
                 Trades = _tradeStates,
                 TradeOperations = _worldOperations,
                 TradeRecovery = _tradeRecovery,
+                MailboxPackages = _mailboxPackages,
+                FrameOperationLease = frameOperation,
                 LocalServerIdentity = _runtimeUpdateLoop.LocalServerIdentity,
             };
             try

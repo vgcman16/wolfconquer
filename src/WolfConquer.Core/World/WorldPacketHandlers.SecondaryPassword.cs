@@ -19,7 +19,7 @@ public static partial class WorldPacketHandlers
         // Like Trade, mutate/persist exclusively but release the lease before
         // awaiting sockets. No PIN values or raw packets enter diagnostic logs.
         using (var operation = context.TradeOperations is { } operations
-            ? await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false) : null)
+            ? await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false) : null)
         lock (LegacySecondaryPasswordRuntime.SyncRoot)
         {
             if (context.TradeRecovery?.IsBlocked == true) reason = "recoveryRequired";
@@ -33,6 +33,12 @@ public static partial class WorldPacketHandlers
                     (context.TimeProvider ?? TimeProvider.System).GetLocalNow().DateTime, DateTimeKind.Local);
                 var transition = state.Apply(packet, wasChecked, now);
                 if (transition is null) reason = "ignoredAction";
+                else if (TryHandleMailboxRecoveryPin(context, sessions, current, packet, state, wasChecked,
+                    transition, out var recoveryResponse, out var recoveryReason))
+                {
+                    response = recoveryResponse;
+                    reason = recoveryReason;
+                }
                 else
                 {
                     var changed = transition.State != state;

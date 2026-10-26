@@ -26,7 +26,7 @@ public static partial class WorldPacketHandlers
         // The live handler supplies the shared operation owner. Keep the exclusive
         // lease over mutation/persistence only, not the subsequent socket writes.
         using (var operation = context.TradeOperations is { } operations
-            ? await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false)
+            ? await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false)
             : null)
         lock (trades.SyncRoot)
         {

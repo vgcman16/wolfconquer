@@ -19,7 +19,7 @@ public static partial class WorldPacketHandlers
         var reason = "vendor-recovery-unavailable";
         // Frame skips its shared lease ONLY for valid profile-specific buy requests.
         // This actual lease drains earlier shared writers before any source selection.
-        using (await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false))
+        using (await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!recovery.IsBlocked)

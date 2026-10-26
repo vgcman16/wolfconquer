@@ -1,5 +1,26 @@
 # Publication validation
 
+## Recoverable mailbox reward owners (full successor CI pending)
+
+The explicit allocating package join uses a real UID intent/receipt and four-file
+Character/Items/Mailbox/Gear journal, closed prepared/completed work metadata,
+exact replay admission, pending-work save/packet fences and postcommit native /
+session / delivery checks. It is not enabled by the production Host.
+
+Actual REDs: route2/2, retained-work mutations6/6 and delivery-tail10/12 (the two
+unchanged controls passed). Corrected focused admission passed8/8. All263inventory/
+mailbox cases passed; three added Pirate cases initially failed in the parent
+registrar setup before their bodies. The corrected ordered native/callback/Pirate
+run passed28/28,0fail/skip, including actual fresh-process table.Load and missing
+wire controls. Native pending recovery, protected PIN and cold-load controls pass
+9/9,0fail/skip. Raw saved-state tests retain complete files and resource checks;
+they do not manufacture old derived physical overlays. These are separate runs,
+not a new full-suite or live-client result.
+
+See [transaction scope](docs/MAILBOX-PACKAGE-TRANSACTIONS.md). Stack merging/colors,
+no-allocation work, flags10-12, complete native special-owner/Inventory/wallet/save
+adoption, secure native login/Host and actual-client acceptance remain open.
+
 ## Ninja credits and mailbox-state preparation
 
 Actual direct-credit overflow regressions failed2/2 (both wrapped to0), and

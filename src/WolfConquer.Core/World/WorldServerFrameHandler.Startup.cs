@@ -20,7 +20,8 @@ public sealed partial class WorldServerFrameHandler
         PlayerSpellSnapshot playerSpells,
         CombatGearSnapshot combatGear,
         CancellationToken cancellationToken,
-        LegacyNativeGameClientRuntime? nativeLoadedClient = null)
+        LegacyNativeGameClientRuntime? nativeLoadedClient = null,
+        bool preserveMailboxRecoveryState = false)
     {
         PrepareLegacyLocalServerIdentity(connection, snapshot.Uid);
         await SendLegacyWorldEntryStartupPrefixAsync(connection, cancellationToken).ConfigureAwait(false);
@@ -95,18 +96,21 @@ public sealed partial class WorldServerFrameHandler
             .ConfigureAwait(false);
         await SendLegacyGameItemsAsync(connection, playerItems.EquipmentItems, "equipment", cancellationToken)
             .ConfigureAwait(false);
-        if (!await SendLegacyEquipmentStartupSideEffectsAsync(
-                connection,
-                snapshot,
-                playerItems,
-                playerSpells,
-                combatGear,
-                cancellationToken).ConfigureAwait(false) ||
-            !TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out var afterEquipmentQuery)) return;
-        snapshot = afterEquipmentQuery.Character;
-        playerItems = afterEquipmentQuery.PlayerItems;
-        playerSpells = afterEquipmentQuery.PlayerSpells;
-        combatGear = afterEquipmentQuery.CombatGear ?? CombatGearSnapshot.Empty;
+        if (!preserveMailboxRecoveryState)
+        {
+            if (!await SendLegacyEquipmentStartupSideEffectsAsync(
+                    connection,
+                    snapshot,
+                    playerItems,
+                    playerSpells,
+                    combatGear,
+                    cancellationToken).ConfigureAwait(false) ||
+                !TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out var afterEquipmentQuery)) return;
+            snapshot = afterEquipmentQuery.Character;
+            playerItems = afterEquipmentQuery.PlayerItems;
+            playerSpells = afterEquipmentQuery.PlayerSpells;
+            combatGear = afterEquipmentQuery.CombatGear ?? CombatGearSnapshot.Empty;
+        }
         await SendLegacyGameItemsAsync(connection, playerItems.RuneItems, "rune", cancellationToken)
             .ConfigureAwait(false);
         await connection.SendAsync(LegacyAutoHuntPacket.Startup.ToFrameBytes(), cancellationToken)
@@ -268,18 +272,21 @@ public sealed partial class WorldServerFrameHandler
                         .ConfigureAwait(false);
                 }
 
-                if (!await SendLegacyEquipmentStartupSideEffectsAsync(
-                        connection,
-                        snapshot,
-                        playerItems,
-                        playerSpells,
-                        combatGear,
-                        cancellationToken).ConfigureAwait(false) ||
-                    !TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out var afterRevelatorQuery)) return;
-                snapshot = afterRevelatorQuery.Character;
-                playerItems = afterRevelatorQuery.PlayerItems;
-                playerSpells = afterRevelatorQuery.PlayerSpells;
-                combatGear = afterRevelatorQuery.CombatGear ?? CombatGearSnapshot.Empty;
+                if (!preserveMailboxRecoveryState)
+                {
+                    if (!await SendLegacyEquipmentStartupSideEffectsAsync(
+                            connection,
+                            snapshot,
+                            playerItems,
+                            playerSpells,
+                            combatGear,
+                            cancellationToken).ConfigureAwait(false) ||
+                        !TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out var afterRevelatorQuery)) return;
+                    snapshot = afterRevelatorQuery.Character;
+                    playerItems = afterRevelatorQuery.PlayerItems;
+                    playerSpells = afterRevelatorQuery.PlayerSpells;
+                    combatGear = afterRevelatorQuery.CombatGear ?? CombatGearSnapshot.Empty;
+                }
             }
 
             await connection.SendAsync(LegacyAirPowerUpPacket.CreateStartup(snapshot, combatGear).ToFrameBytes(), cancellationToken)

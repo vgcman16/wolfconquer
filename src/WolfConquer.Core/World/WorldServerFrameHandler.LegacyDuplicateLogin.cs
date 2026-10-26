@@ -49,6 +49,8 @@ public sealed partial class WorldServerFrameHandler
             }
 
             var snapshot = snapshotLoad.Snapshot;
+            if (await TryStartLegacyMailboxRecoveryBeforePrefixAsync(connection, characterUid, snapshot, cancellationToken)
+                    .ConfigureAwait(false)) return;
             if (!TryApplyLegacyExistingCharacterLocalPrefix(
                     connection, snapshot, out snapshot, out var prefixReason))
             {

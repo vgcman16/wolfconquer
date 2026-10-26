@@ -39,12 +39,15 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(session);
 
+        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection), session);
         var gate = _connectionGates.GetValue(connection, static _ => new object());
         lock (gate)
         {
             using var nativeGateScope = EnterNativeConnectionGate();
             var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
             var previous = holder.Read();
+            if (!LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, previous, session))
+                throw new InvalidOperationException("mailboxClaimRecoveryRequired:pendingPackageSessionWrite");
             holder.Publish(session);
             _sessionChanged?.Invoke(connection, previous, session);
         }
@@ -59,12 +62,14 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(expectedSession);
         ArgumentNullException.ThrowIfNull(session);
 
+        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, expectedSession, session);
         var gate = _connectionGates.GetValue(connection, static _ => new object());
         lock (gate)
         {
             using var nativeGateScope = EnterNativeConnectionGate();
             var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
-            if (!ReferenceEquals(holder.Read(), expectedSession))
+            if (!ReferenceEquals(holder.Read(), expectedSession) ||
+                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedSession, session))
             {
                 return false;
             }
@@ -79,6 +84,7 @@ public sealed partial class WorldSessionStore
     {
         ArgumentNullException.ThrowIfNull(connection);
 
+        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection));
         var gate = _connectionGates.GetValue(connection, static _ => new object());
         lock (gate)
         {
@@ -120,6 +126,7 @@ public sealed partial class WorldSessionStore
     internal bool WithCurrentNativeClientIdentity(
         ConquerTcpConnection connection, long originalUid, Action<object> action)
     {
+        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection));
         if (!_connectionGates.TryGetValue(connection, out var gate)) return false;
         lock (gate)
         {

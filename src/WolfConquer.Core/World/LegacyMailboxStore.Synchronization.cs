@@ -13,26 +13,34 @@ public sealed partial class LegacyMailboxStore
         if (_claimFailure is { } failure) throw new InvalidOperationException("Mailbox requires fresh recovery: " + failure);
     }
 
+    private void RequireWritable(uint uid)
+    {
+        RequireWritable();
+        if (ClaimRoot is { } root)
+            LegacyMailboxPackageMutationFence.RequireFileMutation(Path.Combine(root,
+                uid.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin"));
+    }
+
     public IReadOnlyList<LegacyMailboxEntry> Load(uint playerUid)
     { lock (SyncRoot) return LoadCore(playerUid); }
     public IReadOnlyList<LegacyMailboxEntry> List(uint playerUid)
     { lock (SyncRoot) return ListCore(playerUid); }
     public void Save(uint playerUid)
-    { lock (SyncRoot) { RequireWritable(); SaveCore(playerUid); } }
+    { lock (SyncRoot) { RequireWritable(playerUid); SaveCore(playerUid); } }
     public uint GetNextId(uint playerUid)
     { lock (SyncRoot) return GetNextIdCore(playerUid); }
     public LegacyMailboxEntry Add(uint playerUid, LegacyMailboxEntry entry)
-    { lock (SyncRoot) { RequireWritable(); return AddCore(playerUid, entry); } }
+    { lock (SyncRoot) { RequireWritable(playerUid); return AddCore(playerUid, entry); } }
     public bool TryGet(uint playerUid, uint mailId, out LegacyMailboxEntry entry)
     { lock (SyncRoot) return TryGetCore(playerUid, mailId, out entry); }
     public bool TryReplace(uint playerUid, LegacyMailboxEntry entry)
-    { lock (SyncRoot) { RequireWritable(); return TryReplaceCore(playerUid, entry); } }
+    { lock (SyncRoot) { RequireWritable(playerUid); return TryReplaceCore(playerUid, entry); } }
     public bool TryRemoveIfEmpty(uint playerUid, uint mailId, out LegacyMailboxEntry entry)
-    { lock (SyncRoot) { RequireWritable(); return TryRemoveIfEmptyCore(playerUid, mailId, out entry); } }
+    { lock (SyncRoot) { RequireWritable(playerUid); return TryRemoveIfEmptyCore(playerUid, mailId, out entry); } }
     public bool TryClaimMoney(uint playerUid, uint mailId, out ulong money, out uint eMoney, out LegacyMailboxEntry entry)
-    { lock (SyncRoot) { RequireWritable(); return TryClaimMoneyCore(playerUid, mailId, out money, out eMoney, out entry); } }
+    { lock (SyncRoot) { RequireWritable(playerUid); return TryClaimMoneyCore(playerUid, mailId, out money, out eMoney, out entry); } }
     public bool TryClearFlag(uint playerUid, uint mailId, bool packageClaimSucceeded, out LegacyMailboxEntry entry)
-    { lock (SyncRoot) { RequireWritable(); return TryClearFlagCore(playerUid, mailId, packageClaimSucceeded, out entry); } }
+    { lock (SyncRoot) { RequireWritable(playerUid); return TryClearFlagCore(playerUid, mailId, packageClaimSucceeded, out entry); } }
     public bool TryClearItemId(uint playerUid, uint mailId, bool itemClaimSucceeded, out LegacyMailboxEntry entry)
-    { lock (SyncRoot) { RequireWritable(); return TryClearItemIdCore(playerUid, mailId, itemClaimSucceeded, out entry); } }
+    { lock (SyncRoot) { RequireWritable(playerUid); return TryClearItemIdCore(playerUid, mailId, itemClaimSucceeded, out entry); } }
 }

@@ -4,7 +4,17 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted public CI — exact native asset reviews
+## Latest accepted public CI — Ninja safety and import tooling
+
+Exact public42b0f6e29244ae2b5b1237d9487931643e254b01 passed
+[Windows40313587063](https://github.com/vgcman16/wolfconquer/actions/runs/40313587063):
+all8stages0, actual TRX25362core Passed+165existing NotExecuted, updater434/434,
+launcher57/57, synthetic parsers20+13, build157warnings/0errors. Receipt
+20261026T111637780Z-b26d2ef1 ended2026-10-26T11:21:56.683474Z. The28import-tool
+Python tests ran standalone. The later mailbox transaction source below has focused
+proof; its full successor CI is pending. No client/deployment/parity claim follows.
+
+## Earlier accepted public CI — exact native asset reviews
 
 Exact public816f3a20d872aa6af4a877e6eb2145ff2b9577d7 passed
 [Windows40304697861](https://github.com/vgcman16/wolfconquer/actions/runs/40304697861):
@@ -1534,6 +1544,41 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   actual native reviews, portable config and full-client release remain OPEN.
   Exact public816f3a20 passed Windows40304697861, updater434/434 and all8stages0.
   PS/pipeline proofs are standalone, not CI steps. No original data or game process changed.
+
+### FSB-101: Preserve pending mailbox work and stop stale postcommit delivery
+
+- The replacement mailbox join originally allowed ordinary claims/world actions
+  and saves to invalidate retained reward beforeimages. Restart normalization could
+  strand that work; a catalog callback could also change native state after the
+  final delivery checks. Complete resource and ownership admission is required.
+- Actual initial route tests failed2/2, retained-work mutation cases failed6/6,
+  then combined admission/transaction tests passed8/8. Same-value catalog callbacks
+  exposed10fail/2unchanged-control passes (extra packet after commit).
+- The complete inventory/mailbox class passed263cases. Its combined run also had
+  3parent-registrar setup failures before Pirate test bodies; putting genuine
+  Ninja use in the existing native prerequisite collection preserved all real
+  registrar assertions. The ordered native/callback/Pirate group then passed28/28,
+  zero failures/skips, including genuine table.Load and missing-wire controls.
+- Explicit UID producer, immutable intent/range, closed prepared/completed work
+  metadata and actual four-file v5 journal precede native/session/output changes.
+  Exact requests alone may replay pending work. Store/cache/file/packet owners
+  fence ordinary mutations; fresh startup reconciles exact retained images.
+- Packet-specific real leases recheck queued requests without imposing inherited
+  packet admission on transport cleanup. Delivery performs callback-bearing reads
+  first, then current Store/PIN/native checks immediately before each send.
+- Early native recovery skips the mutating Online prefix. Pure cold preparation
+  publishes only saved fields under the actual Store identity; PIN verification
+  does not rewrite saved PIN state. Malformed PIN refuses before cold publication
+  or login success. Native recovery/cold-load/PIN controls pass9/9, zero skips.
+- Additional corrected integration defects: full bags get only the established
+  STR_BAG_FULL error, and InvalidDataException is a truthful refusal. Five earlier
+  raw-vs-derived test oracles were corrected to assert complete actual raw loader
+  state plus pinned resources/files, without inventing a prior physical overlay.
+- Limits: owned C# components/Frame dispatch and capture transports, not native
+  executable/client/SQL/Host proof. Source intake is reviewed; full successor CI
+  is pending. Stack/color fidelity, no-allocation claims, flags10-12, native
+  special-owner loading, inventory/wallet/save adoption and live acceptance remain
+  open. Existing native cold loading does not fabricate Ninja/Pirate reward owners.
 
 ### FSB-100: Reject unsafe Ninja point credits before mutation
 

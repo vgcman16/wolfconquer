@@ -10,6 +10,7 @@ public static partial class WorldPacketHandlers
         LegacyItemSaveGraph ItemsAfter, LegacyMailboxStore.ClaimProjection MailAfter,
         LegacyMailboxEntry[] Selected, byte[][] Frames, bool Changed)
     {
+        internal MailboxPackagePublication? PackagePublication { get; init; }
         internal KeyValuePair<string, string>[] UpdatedFields { get; } = Updated.Character.Attributes.ToArray();
         internal bool HasAcknowledgement => Frames.Any(static frame =>
             PacketHeader.TryRead(frame, out var header) && header.Opcode == WorldPacketOpcodes.LegacyMailboxMode);

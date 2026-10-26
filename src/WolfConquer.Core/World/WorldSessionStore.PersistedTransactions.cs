@@ -27,12 +27,14 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(updated);
         ArgumentNullException.ThrowIfNull(persist);
         if (IsCurrentThreadInsideAnyConnectionGate) return false;
+        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, expected, updated);
         var gate = _connectionGates.GetValue(connection, static _ => new object());
         lock (gate)
         {
             using var scope = EnterNativeConnectionGate();
             if (!_sessions.TryGetValue(connection, out var holder) ||
-                !ReferenceEquals(holder.Read(), expected) || !persist()) return false;
+                !ReferenceEquals(holder.Read(), expected) ||
+                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expected, updated) || !persist()) return false;
             holder.Publish(updated);
             return true;
         }
@@ -58,6 +60,8 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(updatedSecond);
         ArgumentNullException.ThrowIfNull(persist);
         if (ReferenceEquals(firstConnection, secondConnection) || IsCurrentThreadInsideAnyConnectionGate) return false;
+        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages,
+            expectedFirst, expectedSecond, updatedFirst, updatedSecond);
         var firstGate = _connectionGates.GetValue(firstConnection, static _ => new object());
         var secondGate = _connectionGates.GetValue(secondConnection, static _ => new object());
         var firstOrder = GetConnectionGateOrder(firstConnection);
@@ -71,7 +75,9 @@ public sealed partial class WorldSessionStore
             if (!_sessions.TryGetValue(firstConnection, out var firstHolder) ||
                 !_sessions.TryGetValue(secondConnection, out var secondHolder) ||
                 !ReferenceEquals(firstHolder.Read(), expectedFirst) ||
-                !ReferenceEquals(secondHolder.Read(), expectedSecond) || !persist()) return false;
+                !ReferenceEquals(secondHolder.Read(), expectedSecond) ||
+                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedFirst, updatedFirst) ||
+                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedSecond, updatedSecond) || !persist()) return false;
             firstHolder.Publish(updatedFirst);
             secondHolder.Publish(updatedSecond);
             return true;

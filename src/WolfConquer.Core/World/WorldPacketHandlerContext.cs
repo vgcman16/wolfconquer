@@ -4,7 +4,7 @@ using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
-public sealed record WorldPacketHandlerContext(
+public sealed partial record WorldPacketHandlerContext(
     ConquerTcpConnection Connection,
     TextWriter Log,
     WorldSession? Session = null,
@@ -50,6 +50,9 @@ public sealed record WorldPacketHandlerContext(
 
     [System.Text.Json.Serialization.JsonIgnore]
     internal LegacyTradeRecoveryState? TradeRecovery { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyMailboxPackageProducer? MailboxPackages { get; init; }
 
     [System.Text.Json.Serialization.JsonIgnore]
     internal LegacyLocalServerIdentity? LocalServerIdentity { get; init; }

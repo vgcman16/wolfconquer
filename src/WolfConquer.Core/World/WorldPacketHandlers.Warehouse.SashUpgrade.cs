@@ -26,7 +26,7 @@ public static partial class WorldPacketHandlers
         LegacySashUpgradeOwner? denied = null;
         var reason = "sashUpgradeOwnerUnavailable";
         // Frame delegates this exact action to the exclusive owner; never upgrade a shared lease.
-        using (await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false))
+        using (await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false))
         lock (trades.SyncRoot)
         {
             cancellationToken.ThrowIfCancellationRequested();

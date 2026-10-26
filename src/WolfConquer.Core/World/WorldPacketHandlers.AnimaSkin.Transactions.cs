@@ -20,7 +20,7 @@ public static partial class WorldPacketHandlers
         { await LogDragonSkinRefusalAsync(context, "dragonSkinRecoveryOrOperationOwnerUnavailable").ConfigureAwait(false); return; }
         DragonSkinMutationPlan? committed = null;
         byte[]? rejection = null;
-        using (await operations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false))
+        using (await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false))
         {
             if (!recovery.IsReadyFor(session.UsersRoot, context.PlayerItemsRoot)) reason = "dragonSkinRecoveryRequired";
             else if (context.Trades?.HasConnectionEnded(context.Connection) == true) reason = "dragonSkinConnectionEnded";

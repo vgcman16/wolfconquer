@@ -5,9 +5,16 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class WorldServerFrameHandler
 {
+    internal static bool HandlerOwnsOperation(PacketFrame frame, ConquerProtocolProfile profile) =>
+        frame.Header.Opcode is WorldPacketOpcodes.LegacyTrade or WorldPacketOpcodes.LegacySecondaryPassword ||
+        IsLegacyExclusiveItemMutationFrame(frame, profile);
+
     private bool IsLegacyExclusiveItemMutationFrame(PacketFrame frame) =>
+        IsLegacyExclusiveItemMutationFrame(frame, _protocolProfile);
+
+    private static bool IsLegacyExclusiveItemMutationFrame(PacketFrame frame, ConquerProtocolProfile profile) =>
         IsLegacyDragonSkinMutationFrame(frame) ||
-        IsLegacyVendorPurchaseFrame(frame) ||
+        IsLegacyVendorPurchaseFrame(frame, profile) ||
         IsLegacyMailboxClaimFrame(frame) ||
         IsLegacyInventorySashUpgradeFrame(frame) ||
         IsLegacyWarehouseItemTransferFrame(frame) ||
@@ -46,12 +53,12 @@ public sealed partial class WorldServerFrameHandler
 
     // Only valid buys hand ownership to the vendor's exclusive async wrapper.
     // Profile collision/malformed branches keep the ordinary Frame lease and dispatch fences.
-    private bool IsLegacyVendorPurchaseFrame(PacketFrame frame) =>
-        _protocolProfile == ConquerProtocolProfile.VisibleDx8D13 &&
+    private static bool IsLegacyVendorPurchaseFrame(PacketFrame frame, ConquerProtocolProfile profile) =>
+        profile == ConquerProtocolProfile.VisibleDx8D13 &&
         frame.Header.Opcode == WorldPacketOpcodes.MsgItemUsage &&
         MsgItemUsagePacket.TryParse(frame, out var usage) &&
         usage.Action == MsgItemUsageAction.BuyVendingItem && usage.DwParam <= uint.MaxValue ||
-        _protocolProfile == ConquerProtocolProfile.RootD11_7899 &&
+        profile == ConquerProtocolProfile.RootD11_7899 &&
         frame.Header.Opcode == WorldPacketOpcodes.MsgItemOperation &&
         MsgItemOperationPacket.TryParse(frame, out var operation) &&
         operation.Action == MsgItemOperationAction.BuyVendingItem &&
