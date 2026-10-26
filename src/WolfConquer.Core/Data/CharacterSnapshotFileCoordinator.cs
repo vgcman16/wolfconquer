@@ -3,7 +3,7 @@ using System.Text;
 
 namespace WolfConquer.Core.Data;
 
-internal static class CharacterSnapshotFileCoordinator
+internal static partial class CharacterSnapshotFileCoordinator
 {
     private const string CharacterSection = "Character";
     private const int PersistenceAttemptCount = 5;
@@ -221,15 +221,18 @@ internal static class CharacterSnapshotFileCoordinator
     }
 
     private static void WriteAllLinesAtomically(string path, string[] lines, Encoding encoding)
+        => WriteAtomically(path, temporary => File.WriteAllLines(temporary, lines, encoding), retainBackup: false, out _);
+
+    private static void WriteAtomically(string path, Action<string> writeTemporary, bool retainBackup, out string backupPath)
     {
         var transactionId = Guid.NewGuid().ToString("N");
         var tempPath = path + TransactionMarker + transactionId + ".tmp";
-        var backupPath = path + TransactionMarker + transactionId + ".bak";
-        var keepBackup = false;
+        backupPath = path + TransactionMarker + transactionId + ".bak";
+        var keepBackup = retainBackup;
 
         try
         {
-            File.WriteAllLines(tempPath, lines, encoding);
+            writeTemporary(tempPath);
             File.Replace(tempPath, path, backupPath, ignoreMetadataErrors: true);
         }
         catch

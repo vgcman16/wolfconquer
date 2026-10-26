@@ -18,6 +18,21 @@ internal sealed class LegacyTradeRecoveryState(string? usersRoot, string? itemsR
 
     internal bool IsBlocked => Volatile.Read(ref _failureReason) is not null;
 
+    // One-file actions still require this world's ACTUAL completed startup recovery.
+    // They do not gain an unrelated item-file prerequisite or initialize recovery themselves.
+    internal bool IsReadyForUsers(string? expectedUsersRoot)
+    {
+        lock (_gate)
+        {
+            if (!_initialized || _failureReason is not null ||
+                string.IsNullOrWhiteSpace(usersRoot) || string.IsNullOrWhiteSpace(expectedUsersRoot) ||
+                !Path.IsPathFullyQualified(usersRoot) || !Path.IsPathFullyQualified(expectedUsersRoot)) return false;
+            try { return SameReadyRoot(usersRoot, expectedUsersRoot); }
+            catch (Exception error) when (error is ArgumentException or NotSupportedException or System.Security.SecurityException)
+            { return false; }
+        }
+    }
+
     // Evidence of this configured owner's completed startup recovery, not an
     // initializer or a live-world replay operation.
     internal bool IsReadyFor(string? expectedUsersRoot, string? expectedItemsRoot)

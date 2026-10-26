@@ -1367,6 +1367,42 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-077: Save the 90-CP sash-slot purchase before publishing success
+
+- The registered action256 published a new session and all three success updates
+  before attempting the character save; write failure only logged. It could spend
+  from stale context, overwrite a foreign wallet/count baseline, ignore active
+  trade/escrow or reinterpret a malformed present count as zero.
+- Preserve native cost90, cap300, no-trade eligibility and the established
+  CP/max300/count wire sequence. Take the real exclusive world operation before
+  fresh current-owner selection, require actual initialized same-Users recovery,
+  validate participant/generation/attributes/escrow and prepare all frames first.
+- Under real Trades/Store/file locks, bind AccountId filename to Character UID,
+  validate the complete bounded original file and economic baseline, and atomically
+  replace only CP/count before persisted-session CAS publication. The new exact-image
+  entry point shares the existing file writer; old callers keep their contracts.
+  Verified afterimage commits, verified original rejects, uncertain disk outcome
+  retains backup evidence and fences the real world instead of claiming unchanged.
+- Tests-only9980 measured2passed/20failed/0skipped of22 (not20 distinct bugs).
+  First integration90011 passed67/67,0failed/skipped,654ms, including all22new
+  cases and unchanged old Frame/dispatch/action-codec controls. Terminal TRX
+  counters/outcome groups read. Broad76790 passed **971/971**,0failed/skipped,12s,
+  including all27new sash cases, the four booth/WAL recovery extensions and retained
+  character-file, Trade, vendor, item-loader, Warehouse, dispatch and action-codec
+  controls. All three exact encoding/newline cases pass (UTF8 BOM/CRLF, Windows1252
+  without final newline, and missing count with CR-only delimiters). The actual
+  send delegate observes complete saved bytes/current CP150->60/count0->1 before
+  its awaited IOException; no refund occurs and an unaffordable retry sends only
+  failure talk. A genuine ended marker after the first send stops remaining stale
+  frames without undo. Actual terminal counters/outcomes were read. Public source
+  export/full Windows integration remain pending; no new live-client proof.
+- Limits: cooperating-writer, single-character-file managed transaction. No new
+  item-file/SQL/multi-file journal, live-client, raw-alias/ABA, hostile namespace,
+  power-loss or automatic retained-backup reconciliation proof. This action has
+  no nonce: a later valid funded request intentionally buys another slot; this
+  is not durable request-replay deduplication. No success-send fault may refund
+  an already committed CP/count pair. Sash deposit/withdraw remain separate work.
+
 ### FSB-076: Validate and durably settle complete player-booth purchases
 
 - Root-only booth admission allowed restricted deposited children, descendant UID
@@ -1402,6 +1438,20 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   Frame and sharing-failure/retry controls pass with retained Trade journal/recovery,
   vendor, item-loader, Warehouse and PIN regression families. Public full Windows
   40051408447 passed exactb8cc5cfa with24569core passes, as recorded above.
+- Recovery extension:46762 passed **88/88**,0failed/skipped,3s,
+  including all45booth cases and retained journal/restart controls. Four added
+  cases feed real registered booth before/after images through actual v1 prefixes
+  0/2/4 and fresh Frame admission, plus unknown-valid-image evidence preservation
+  and both-admission fencing. This is focused component composition proof, not a
+  production crash/restart or new fixed source defect. The earlier accepted booth
+  full Windows run predates these four cases. Their export is batched with the
+  sash behavioral increment, not a separate full CI run for four tests; broad76790
+  also retains all four controls. Public integration of that batch is pending.
+  Initial91833 measured85/3of88; diagnostic19981/53219 each1/3of4. The original
+  zero-stat/HP1 seed legitimately clamped HP during startup, changing its INI.
+  Only this new fixture now seeds real parsed Strength1 before any WAL capture;
+  original wire/raw-file assertions remain. Callback diagnostics are raised in
+  the test body so the production runtime boundary cannot swallow test assertions.
 - Limits: offline cooperating-writer managed paths only. Live client, SQL, complete
   native host, global UID ownership, raw-alias/ABA, hostile filesystem, multiprocess/
   power-loss and durable notification delivery are not established by this batch.
