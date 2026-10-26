@@ -7,12 +7,12 @@
   "domains": [
     {
       "id": "transport", "title": "Transport, authentication and startup", "status": "partial",
-      "implemented": "Packet, cipher, startup and replacement-service paths exist; a limited local gameplay milestone was demonstrated on an earlier build.",
+      "implemented": "Packet, cipher, startup and replacement-service paths exist. Legacy account envelopes now reject inconsistent bytes and malformed saved-credential admission; secure native handoff is still unproved. An earlier build demonstrated limited local gameplay.",
       "remaining": "Prove the authenticated native account-to-world handoff and protected D13 login payload; complete ownership and loader joins, then verify the published build and staged endpoint migration with the actual client."
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Concrete containers/snapshots exist. Bag/warehouse moves persist complete item files before success with capacity, closure, PIN and escrow checks. Show prepares complete current-owner views; selected expired root locks commit before notification using issued server identity. Native component proof covers queue, spell/proficiency, profile/subclass/ranking/mail/nobility formats and owners; full SaveClient and production caller adoption remain unfinished.",
+      "implemented": "Concrete containers/snapshots exist. Bag/warehouse moves persist complete item files before success with capacity, closure, PIN and escrow checks. Show validates current-owner views; selected expired root locks commit before notification using issued identity. House saves validate complete owned graphs and use one-file atomic replacement/create. Native queue, spell/proficiency, profile, ranking, mail and nobility have component proof; full SaveClient/adoption remain unfinished.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
@@ -22,7 +22,7 @@
     },
     {
       "id": "progression", "title": "NPCs, shops, progression and housing", "status": "partial",
-      "implemented": "Main dispatch, shops, forging, skill learning and durable progression/reward paths exist. Native quest definitions, eligibility, dialog and experience tables have component proof. House loading validates complete files before owner publication; authenticated housing adoption, entry and furniture gameplay remain unfinished.",
+      "implemented": "Main dispatch, shops, forging, skill learning and durable progression/reward paths exist. Native quest definitions, eligibility, dialog and experience tables have component proof. House load/save validate complete files/graphs before publication; authenticated housing adoption, entry and furniture economy remain unfinished.",
       "remaining": "Close deferred mutations and exact economy/persistence ordering; complete housing, occupants and furniture lifecycle."
     },
     {
@@ -43,7 +43,7 @@
     },
     {
       "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
-      "detail": "Not yet proven against the current published commit. Automated tests and prior local deployment proof are separate."
+      "detail": "Public c1ee382d passes all eight clean Windows LOCAL stages (24,903 core passes; 165 existing exclusions). Actual-client acceptance, GitHub CI and deployment are separate and not yet proven."
     },
     {
       "id": "english", "title": "Complete English client", "status": "in-progress",

@@ -4,7 +4,22 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted LOCAL integration gate — durable warehouse locks GREEN
+## Latest accepted LOCAL integration gate — house saves and account rejection GREEN
+
+Exact public `c1ee382d7669189037fd7d22618c283e7537ee38` was extracted from a
+tracked-only git archive (5410files) into a fresh owned Temp workspace. Local
+session14425/receipt20261026T025716423Z-2a4bf698 finished2026-10-26T03:02:13.3892318Z;
+all8sequential stages exited0. Actual terminal receipt, TRX counters/outcome groups
+and stage logs were inspected: core **24903passed/0failed**,165existing NotExecuted
+rows (25068total); updater305/305, launcher57/57, synthetic parsers20+13 (no HTTP/
+services). Build191warnings/0errors,52.09s. All157new account rows,54house rows and
+both corrected malformed-auth tests pass. Public source was normal-fast-forward
+pushed and exact remote verified only after this clean-source gate passed.
+This is Windows LOCAL proof, NOT GitHub CI, actual game-client login, complete
+English, housing/authenticated world-handoff completion, deployment or full parity.
+No running process/configuration, original save, protected client or endpoint changed.
+
+## Previous accepted LOCAL integration gate — durable warehouse locks GREEN
 
 Exact public `0dda74102c9ebdba590eee0823227922961d2bf1` was extracted from a
 tracked-only git archive (5398files) into a fresh owned Temp workspace. Local
@@ -1451,8 +1466,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   MemoryManager/concurrent-buffer safety. A client depending on the removed
   malformed-credential shortcut must obtain genuine decoding/authentication; do not
   restore the bypass to pass a playtest. No running process/configuration, live
-  SQL/client, original save or endpoint changed. Full clean-public/CI acceptance
-  of this successor is pending; historical full LOCAL gate0dda7410 remains above.
+  SQL/client, original save or endpoint changed. Full clean-public LOCAL c1ee382d
+  is accepted above; current GitHub CI and real-client acceptance remain unproved.
 
 ### FSB-085: Reject a null required DBNpc conversion input explicitly
 
@@ -1500,12 +1515,12 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   existing-different controls pass. No concurrent creator/uncertain/crash injection
   is claimed by those deterministic controls.
 - Limits: no current production caller of house Save is activated by this change.
-  Full clean-public successor/CI and live housing still need acceptance. This is
+  Full clean-public LOCAL successor is accepted above; CI/live housing still need acceptance. This is
   one-file replacement, not crash-safe furniture/economy coordination, SQL,
   power-loss durability, all raw-alias/ABA writers, hostile namespace/multiprocess
   safety, authenticated house entry or complete housing. Adjacent DBNpc null
   conversion is corrected separately inFSB085. No live/original-save/D:/routing
-  change. Latest full LOCAL gate remains exact0dda7410 above.
+  change. Latest full LOCAL gate is exactc1ee382d above.
 
 ### FSB-082: Persist expired warehouse locks before client notification
 
