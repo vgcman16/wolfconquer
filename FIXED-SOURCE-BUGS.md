@@ -4,7 +4,24 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted LOCAL integration gate — house saves and account rejection GREEN
+## Latest accepted LOCAL integration gate — combat owners and empty warehouse GREEN
+
+Exact public `f3bfae4aae83cf2409e86827d7a55ce6685d9fa3` was extracted from a
+tracked-only git archive (5424files) into a fresh owned Temp workspace. Local
+session61648/receipt20261026T041147705Z-eb1c0faa finished2026-10-26T04:16:55.4688490Z;
+all8sequential stages exited0. Actual receipt, TRX counters/outcome groups and
+stage logs were inspected: core **24989passed/0failed**,165existing NotExecuted
+rows (25154total); updater305/305, launcher57/57, synthetic parsers20+13 (no HTTP/
+services). Build190warnings/0errors,71.51s. All38minimum/sentinel,35required-owner
+and10bank-presence new cases pass, alongside the corrected Frame withdrawal and
+all20native counter fixture cases. The two earlier full failures and narrow
+test-only corrections remain documented in FSB089. Source was normal-fast-forward
+pushed and exact remote verified after acceptance. This is Windows LOCAL proof,
+NOT GitHub CI, current game-client acceptance, complete English, deployment, full
+cast/warehouse transactions or full parity. Running sessions, original saves,
+protected clients, endpoints and the60held Guild/Union paths remain unchanged.
+
+## Previous accepted LOCAL integration gate — house saves and account rejection GREEN
 
 Exact public `c1ee382d7669189037fd7d22618c283e7537ee38` was extracted from a
 tracked-only git archive (5410files) into a fresh owned Temp workspace. Local
@@ -1448,7 +1465,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   9bank empty-response failures (FSB089). Corrected86856: **675/675**,0fail/skip,
   6s. Root read counters, all failed messages, all35new outcomes, the split name
   row, corrected Rune/Ninja/shared-row facts and retained recycle fact.
-- Limits: focused offline caller proof; full clean-public successor/CI/live pending.
+- Full clean-public LOCAL f3bfae4a passes above; GitHub CI/live remain unproved.
+  Limits: focused offline caller proof.
   Nested mutable Ninja/Gear metadata, arbitrary post-admission raw writes, packet
   lease/recycle, complete cast/resource transactions and actual native dispatch
   adoption remain separate. Captured owner slots do not make whole subsystems
@@ -1504,11 +1522,14 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   0fail/skip,121ms; actual counters and formerly failed rows were read. Production
   INI, native-counter semantics and activation remain unchanged. This is test
   portability repair, not long-path support or durable/global UID completion.
+- Third full f3bfae4a/61648 passes all8stages above:24989core/305updater/57launcher,
+  parsers20+13,0failed. Both corrected old tests and all83new combat/bank rows pass.
 - Limits: component reload, not public login/client proof. The nontransactional
   mailbox1000 claim and reserved-UID alias remain unmapped; cache/reset lifetime,
   true housing authority, arbitrary stale-record/raw-writer publication and wider
   crash/power-loss guarantees remain separate. No file format, game/client/SQL,
-  original save, protected baseline or endpoint changed. Full public/CI/live pending.
+  original save, protected baseline or endpoint changed. Full LOCAL is accepted
+  above; GitHub CI and current actual-client acceptance remain unproved.
 
 ### FSB-086: Validate and capture actual minimum-damage owners before physical calculation
 
@@ -1538,7 +1559,7 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   Other combat owners, arbitrary raw writers, all mutable combat statistics,
   packet-recycle failure, native Range/Magic adoption and actual-client gameplay
   remain separate work. No host, SQL, original save, protected client or endpoint
-  changed. Full clean-public successor/GitHub CI/live acceptance are pending.
+  changed. Full clean-public LOCAL f3bfae4a passes above; GitHub CI/live remain open.
 
 ### FSB-087: Restore the explicit full-adjustment sentinel branch
 
@@ -1556,7 +1577,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 - Limits: managed production callers currently remain internal adjustment
   wrappers with no external managed production call found. Native Range has a
   data-driven spell12850 call, but no literal Full use was proven there. Other
-  unchecked arithmetic was not normalized. Full public/CI/live proof is pending.
+  unchecked arithmetic was not normalized. Full LOCAL f3bfae4a passes above;
+  GitHub CI/live proof remains pending.
 
 ### FSB-084: Reject incoherent account envelopes and malformed credential fallback
 
