@@ -8,12 +8,12 @@
     {
       "id": "transport", "title": "Transport, authentication and startup", "status": "partial",
       "implemented": "Packet, cipher, startup and replacement-service paths exist; a limited local gameplay milestone was demonstrated on an earlier build.",
-      "remaining": "Complete native ownership and loader joins; verify the current published build and staged endpoint migration with the actual client."
+      "remaining": "Prove the authenticated native account-to-world handoff and protected D13 login payload; complete ownership and loader joins, then verify the published build and staged endpoint migration with the actual client."
     },
     {
       "id": "persistence", "title": "Shared player, items and persistence", "status": "partial",
-      "implemented": "Concrete items/containers and managed snapshots exist. Bag and warehouse transfers persist complete item files before success; capacity, nested metadata, PIN and escrow paths are tested. Native component proof covers queues, spells/proficiencies, profile/subclass/ranking/mail/nobility owners and formats. Full native SaveClient and production caller adoption remain unfinished.",
-      "remaining": "Finish one shared native player/item graph, complete login-loader, real login/save worker and inventory mutation ordering, production caller integration, legacy SQL/provider compatibility and restart recovery."
+      "implemented": "Concrete containers/snapshots exist. Bag/warehouse moves persist complete item files before success with capacity, closure, PIN and escrow checks. Show prepares complete current-owner views; selected expired root locks commit before notification using issued server identity. Native component proof covers queue, spell/proficiency, profile/subclass/ranking/mail/nobility formats and owners; full SaveClient and production caller adoption remain unfinished.",
+      "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
       "id": "combat", "title": "Combat, monsters and death", "status": "partial",

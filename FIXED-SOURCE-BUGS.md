@@ -4,7 +4,21 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted LOCAL integration gate — warehouse Show GREEN
+## Latest accepted LOCAL integration gate — durable warehouse locks GREEN
+
+Exact public `0dda74102c9ebdba590eee0823227922961d2bf1` was extracted from a
+tracked-only git archive (5398files) into a fresh owned Temp workspace. Local
+session93031/receipt20261026T020222654Z-a7ab0d5d finished2026-10-26T02:06:08.3792132Z;
+all8sequential stages exited0. Root inspected terminal receipt, actual TRX counters/
+outcome groups and stage logs: core **24720passed/0failed**,165 existing NotExecuted
+rows (24885total); updater305/305, launcher57/57, synthetic parsers20+13 (no HTTP/
+services). Build191warnings/0errors,52.13s. All9new expiry cases pass. Public source
+was normal-fast-forward pushed only after this clean-source gate passed.
+This is Windows LOCAL verification, NOT GitHub CI, running-game acceptance,
+complete English, full warehouse/game parity, deployment or a cleared backlog.
+No replacement listener/manual GitHub status was used to claim CI success.
+
+## Previous accepted LOCAL integration gate — warehouse Show GREEN
 
 Exact public `5d78a448cb18e4eef20eab3688691b77c1e5ba50` was extracted from a
 tracked-only git archive (5393files) into a fresh owned Temp workspace. Local
@@ -1430,7 +1444,7 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   IsShow cache coherence, genuine house authority, authenticated login, SQL,
   power loss/global UID/hostile namespace/raw aliases and actual-client proof
   remain open. This is focused offline acceptance; the latest full clean-public
-  gate above covers5d78a448 before this successor, not current GitHub CI.
+  gate above now passes exact0dda7410; current GitHub CI remains unproven.
 
 ### FSB-081: Capture and validate warehouse Show before publishing any frame
 
