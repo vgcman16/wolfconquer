@@ -4,7 +4,17 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest accepted public CI — Ninja safety and import tooling
+## Latest accepted public CI — recoverable mailbox owners
+
+Exact publica3cb2624592efdc8a17ae7f01e814c442c124fd7 passed
+[Windows40321922059](https://github.com/vgcman16/wolfconquer/actions/runs/40321922059),
+job121568740813: all8stages0. Actual receipt20261026T122322395Z-6de9e39e ended
+2026-10-26T12:34:05.4328605Z: core25473Passed+165existing NotExecuted,
+updater434/434, launcher57/57, synthetic parsers20+13, build157warnings/0errors
+(103.14s). Actual terminal receipt/TRX and GitHub conclusion were read. This
+supersedes the pending checkpoint status, not the client/Host/parity limits.
+
+## Earlier accepted public CI — Ninja safety and import tooling
 
 Exact public42b0f6e29244ae2b5b1237d9487931643e254b01 passed
 [Windows40313587063](https://github.com/vgcman16/wolfconquer/actions/runs/40313587063):
@@ -1575,8 +1585,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   raw-vs-derived test oracles were corrected to assert complete actual raw loader
   state plus pinned resources/files, without inventing a prior physical overlay.
 - Limits: owned C# components/Frame dispatch and capture transports, not native
-  executable/client/SQL/Host proof. Source intake is reviewed; full successor CI
-  is pending. Stack/color fidelity, no-allocation claims, flags10-12, native
+  executable/client/SQL/Host proof. Reviewed source passed exacta3cb full Windows
+  CI40321922059 above. Stack/color fidelity, no-allocation claims, flags10-12, native
   special-owner loading, inventory/wallet/save adoption and live acceptance remain
   open. Existing native cold loading does not fabricate Ninja/Pirate reward owners.
 

@@ -1,6 +1,14 @@
 # Publication validation
 
-## Recoverable mailbox reward owners (full successor CI pending)
+## Recoverable mailbox reward owners — full public CI passed
+
+Exact publica3cb2624592efdc8a17ae7f01e814c442c124fd7 passed
+[Windows40321922059](https://github.com/vgcman16/wolfconquer/actions/runs/40321922059),
+job121568740813: all8stages0. Actual receipt20261026T122322395Z-6de9e39e ended
+2026-10-26T12:34:05.4328605Z: core25473Passed+165existing NotExecuted,
+updater434/434, launcher57/57, synthetic parsers20+13, build157warnings/0errors
+(103.14s). Actual terminal receipt/TRX and GitHub conclusion were read. This
+supersedes the pending checkpoint status, not the client/Host/parity limits.
 
 The explicit allocating package join uses a real UID intent/receipt and four-file
 Character/Items/Mailbox/Gear journal, closed prepared/completed work metadata,

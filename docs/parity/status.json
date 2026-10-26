@@ -43,7 +43,7 @@
     },
     {
       "id": "public-build", "title": "Current public build live-client acceptance", "status": "planned",
-      "detail": "Public42b0f6e2 passes all eight GitHub Windows40313587063 stages:25,362 core passes,165unchanged existing exclusions, updater434/434, launcher57/57 and synthetic parsers20+13. Native-review PS/pipeline and28selected-import Python tests have separate standalone proof. Package payout, actual-client acceptance, deployment and full-client distribution remain unproved."
+      "detail": "Publica3cb2624 passes all eight GitHub Windows40321922059 stages:25,473 core passes,165unchanged existing exclusions, updater434/434, launcher57/57 and synthetic parsers20+13. Explicit allocating mailbox work/recovery/native components have automated proof. Production Host, actual-client acceptance, complete English and full-client distribution remain unproved."
     },
     {
       "id": "english", "title": "Complete English client", "status": "in-progress",
