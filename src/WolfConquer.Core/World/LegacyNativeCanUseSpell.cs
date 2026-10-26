@@ -32,7 +32,8 @@ internal partial class LegacyNativeCanUseSpell
                     updates = PreparedUpdates.Create(player.UID, plan!);
                     // A lifecycle writer not participating in admission must not cause
                     // a prepared cost to be applied to a different physical Player.
-                    if (!ReferenceEquals(client.Player, player))
+                    if (!ReferenceEquals(client.Player, player) ||
+                        plan!.SigilCapture is { } sigilCapture && !sigilCapture.IsCurrent())
                     {
                         updates.Dispose();
                         return false;
@@ -72,7 +73,7 @@ internal partial class LegacyNativeCanUseSpell
     private sealed record AdmissionPlan(
         LegacyNativeMagicType.Magic DatabaseSpell,
         LegacyNativeSpellAdmissionCommit Commit,
-        bool SendStamina, bool SendMana);
+        bool SendStamina, bool SendMana, LegacyNativeNinja.EquippedSigilCapture? SigilCapture);
 
     private static bool TryPrepare(LegacyNativeInteractQuery attack,
         LegacyNativeGameClientRuntime client, LegacyNativePlayerRuntime player,
@@ -96,7 +97,7 @@ internal partial class LegacyNativeCanUseSpell
             !client.IsInSpellRange(attack.OpponentUID, row.Range))
             return false;
         if (!TryPrepareResources(client, player, row, out int staminaCost, out int manaCost) ||
-            !TryPrepareCooldown(client, player, learned, row, out bool startCooldown, out DateTime deadline))
+            !TryPrepareCooldown(client, player, learned, row, out bool startCooldown, out DateTime deadline, out var sigilCapture))
             return false;
 
         plan = new AdmissionPlan(row,
@@ -104,7 +105,7 @@ internal partial class LegacyNativeCanUseSpell
                 (ushort)(player.Stamina - staminaCost), (ushort)(player.Mana - manaCost),
                 learned.UseSpellSoul > 0 ? learned.ID : (ushort)0,
                 consumeWeaponAuthorization, learned, startCooldown, deadline),
-            staminaCost > 0, manaCost > 0 && client.FullLoading);
+            staminaCost > 0, manaCost > 0 && client.FullLoading, sigilCapture);
         return true;
     }
 

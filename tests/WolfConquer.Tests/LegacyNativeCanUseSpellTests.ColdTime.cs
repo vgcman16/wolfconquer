@@ -118,7 +118,7 @@ public sealed partial class LegacyNativeCanUseSpellTests
     });
 
     [Fact]
-    public Task AbsentSigilMetadataUsesZeroReductionButMalformedTableRejectsBeforeCommit()
+    public Task MissingSigilMetadataAndMalformedTableBothRejectBeforeCommit()
         => NativePacketTestThread.Run(() =>
     {
         using var f = new Fixture();
@@ -128,15 +128,12 @@ public sealed partial class LegacyNativeCanUseSpellTests
         f.Row.UseStamina = 3;
         f.Row.UseMana = 5;
         f.Owner.MyNinja!.Items[1] = new() { ItemID = 102, Level = 3, Position = 1 };
-        var before = DateTime.Now;
-        Assert.True(f.Run(out _, out _));
-        var after = DateTime.Now;
-        Assert.InRange(f.Spell.ColdTime, before.AddMilliseconds(1000), after.AddMilliseconds(1000));
-        f.Spell.ColdTime = DateTime.MinValue;
-        f.Spell.IsSpellWithColdTime = false;
-        LegacyNativeNinjaFile.gouyu_type = null!;
         var snapshot = Capture(f);
         Assert.False(f.Run(out var spell, out var row));
+        Assert.Null(spell); Assert.Null(row); Unchanged(f, snapshot);
+        LegacyNativeNinjaFile.gouyu_type = null!;
+        snapshot = Capture(f);
+        Assert.False(f.Run(out spell, out row));
         Assert.Null(spell); Assert.Null(row); Unchanged(f, snapshot);
         Assert.Contains("Spell admission preparation", f.Log.ToString());
     });

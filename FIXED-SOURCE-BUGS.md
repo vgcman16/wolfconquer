@@ -1460,6 +1460,43 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-091: Capture real equipped sigil metadata before combat and cooldown commitment
+
+- Source: Ninja.TryGetValueEquip and Item.DBItem were queried late by Physical.
+  OnMonster and cooldown admission. Missing metadata fabricated a zero row;
+  invalid/foreign owners could be treated as absence, or fail after output/RNG.
+  Late alias changes could alter this hit's damage or cause null faults.
+- Add a factory-issued capture bound to the actual constructor/current Ninja,
+  Player/class, Equipment and item Values order. Validate all five item fields
+  and actual metadata Values. Keep first matching Values row within a slot,
+  last matching slot, alternate9..16 preference with paired1..8 fallback, and
+  first exact ItemID+Level metadata. Dictionary keys do not become authority.
+  Missing selected metadata/null rows are invalid; genuine absence and matching
+  zero-valued metadata remain distinct valid states. Non-Ninja absence does not
+  read unrelated Equipment/items/catalogs.
+- Physical admission rechecks the capture after real status traversal and before
+  output/RNG, then uses immutable captured values at the existing late formula
+  point. Cooldown preparation retains the capture and checks it again after
+  PreparedUpdates, before resource/authorization/cooldown commitment. Existing
+  signed-power clamp and all four cooldown-ID positives remain unchanged.
+- Add39rows (9invalid physical,8selection/absence/budgets,12admission/late-alias
+  drift,10cooldown). Replace one old missing-metadata success oracle with exact
+  rejection/state preservation. Tests-first34552: **1089passed/28failed of1117**,
+  0skip (27new failures plus that migrated fact). Root read every actual message:
+  unsafe acceptance, late null faults, missing preflight and changed damage.
+  Corrected28715: **1117/1117**,0fail/skip,3s. All39new outcomes, migrated fact,
+  four retained clamp controls and actual TRX groups were read. Independent
+  static review found no production behavioral defect; it is not runtime proof.
+- Limits: logical work budgets4096item/16384metadata rows bound accepted captures
+  and helper arrays. ConcurrentDictionary.Values snapshots internally after the
+  Count gate; an uncooperating growing raw writer can allocate beyond that gate.
+  No hard allocation/race bound is claimed. The post-PreparedUpdates recheck is
+  present but has no new forced-window test. Other DBItem placeholder consumers,
+  full Ninja loading/profile repair, packet lifetime, complete cast/economy
+  transactions, actual-client and native dispatch adoption remain open. Full
+  clean-public LOCAL successor/GitHub CI/live acceptance remain pending. No
+  formula, wire layout, original data, live process or endpoint was changed.
+
 ### FSB-090: Bound mailbox counts and validate their physical packet envelope
 
 - Source: LegacyMailboxModePacket.TryParse copied an independently supplied

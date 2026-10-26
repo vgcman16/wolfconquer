@@ -39,8 +39,10 @@ internal partial class LegacyNativeCanUseSpell
 
     private static bool TryPrepareCooldown(LegacyNativeGameClientRuntime client,
         LegacyNativePlayerRuntime player, LegacyNativeMsgSpell learned,
-        LegacyNativeMagicType.Magic row, out bool startCooldown, out DateTime deadline)
+        LegacyNativeMagicType.Magic row, out bool startCooldown, out DateTime deadline,
+        out LegacyNativeNinja.EquippedSigilCapture? sigilCapture)
     {
+        sigilCapture = null;
         deadline = learned.ColdTime;
         startCooldown = row.IsSpellWithColdTime && row.ID != 15710 && row.ID != 20280 &&
             !player.ContainFlag(LegacyNativeMsgUpdate.Flags.CannonBarrage) &&
@@ -48,16 +50,17 @@ internal partial class LegacyNativeCanUseSpell
         if (!startCooldown)
             return true;
         DateTime now = DateTime.Now;
-        if (learned.ColdTime > now || !TryGetSigilReduction(client, learned.ID, row.ColdTime, out int reduction))
+        if (learned.ColdTime > now || !TryGetSigilReduction(client, learned.ID, row.ColdTime, out int reduction, out sigilCapture))
             return false;
         deadline = now.AddMilliseconds(row.ColdTime - reduction);
         return true;
     }
 
     private static bool TryGetSigilReduction(LegacyNativeGameClientRuntime client,
-        ushort spellId, int cooldown, out int reduction)
+        ushort spellId, int cooldown, out int reduction, out LegacyNativeNinja.EquippedSigilCapture? sigilCapture)
     {
         reduction = 0;
+        sigilCapture = null;
         LegacyNativeNinja.ItemType? relevant = spellId switch
         {
             16520 => LegacyNativeNinja.ItemType.WildSigilRapid,
@@ -70,8 +73,9 @@ internal partial class LegacyNativeCanUseSpell
             return true;
         if (client.MyNinja is null)
             return false;
-        if (client.MyNinja.TryGetValueEquip(relevant.Value, out var item))
-            reduction = Math.Clamp(item.DBItem.Power, 0, cooldown);
+        sigilCapture = client.MyNinja.CaptureEquippedSigil(client, relevant.Value);
+        if (sigilCapture.Found)
+            reduction = Math.Clamp(sigilCapture.Power, 0, cooldown);
         return true;
     }
 }

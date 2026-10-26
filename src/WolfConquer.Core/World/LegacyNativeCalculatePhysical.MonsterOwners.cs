@@ -6,7 +6,8 @@ internal static partial class LegacyNativeCalculatePhysical
 {
     private readonly record struct PhysicalMonsterOwners(
         int MinimumDamage, LegacyNativeRuneItemStorage Rune, LegacyNativeMyCombatGear CombatGear,
-        LegacyNativeNinja? Ninja, LegacyNativeMonsterFamily Family, string Name,
+        LegacyNativeNinja? Ninja, LegacyNativeNinja.EquippedSigilCapture? Sigil,
+        LegacyNativeMonsterFamily Family, string Name,
         uint TargetUid, ushort? SpellId)
     {
         internal bool IsCurrent(LegacyNativeGameClientRuntime client, LegacyNativeMonsterRole monster,
@@ -17,7 +18,8 @@ internal static partial class LegacyNativeCalculatePhysical
             ReferenceEquals(monster.Family, Family) && monster.UID == TargetUid &&
             string.Equals(monster.Name, Name, StringComparison.Ordinal) && spell?.ID == SpellId &&
             (SpellId is not (16420 or 16430) ||
-                (Ninja is not null && ReferenceEquals(client.MyNinja, Ninja) && Ninja.IsCombatOwnedBy(client)));
+                (Ninja is not null && ReferenceEquals(client.MyNinja, Ninja) && Ninja.IsCombatOwnedBy(client))) &&
+            (Sigil is null || Sigil.IsCurrent());
     }
 
     private static PhysicalMonsterOwners CapturePhysicalMonsterOwners(
@@ -39,7 +41,8 @@ internal static partial class LegacyNativeCalculatePhysical
             throw UnavailablePhysicalMonsterOwners();
         }
 
-        var owners = new PhysicalMonsterOwners(minimumDamage, rune, combatGear, ninja,
+        var sigil = ninja?.CaptureEquippedSigil(client, LegacyNativeNinja.ItemType.WhirlSigilSage);
+        var owners = new PhysicalMonsterOwners(minimumDamage, rune, combatGear, ninja, sigil,
             family, name, monster.UID, spellId);
         if (!owners.IsCurrent(client, monster, spell))
         {

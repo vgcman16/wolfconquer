@@ -67,10 +67,10 @@ public static void OnMonster(LegacyNativePlayerRuntime player, LegacyNativeMonst
 		}
 		uint num = 0u;
 		uint num2 = 0u;
-		if (owners.Ninja is not null && owners.Ninja.TryGetValueEquip(LegacyNativeNinja.ItemType.WhirlSigilSage, out var obj))
+		if (owners.Sigil is { Found: true } sigil)
 		{
-			num = (uint)obj.DBItem.Power;
-			num2 = obj.DBItem.Damage;
+			num = (uint)sigil.Power;
+			num2 = sigil.Damage;
 		}
 		if (LegacyNativeAttackBase.GetRefinery())
 		{
