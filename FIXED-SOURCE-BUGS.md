@@ -1501,7 +1501,12 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 - Limits: managed cooperating-owner controlled failures, not process-kill/power
   loss, raw/multiprocess writers, outbox/guaranteed delivery, native economic
   adoption, package rewards, full expiry/producer lifecycle or live-client proof.
-  A fresh full-public successor gate remains pending.
+  Clean public91501b34 archive5469files:62788 terminal0/all8Windows LOCAL stages,
+  core25185pass/0fail+165unchanged existing NotExecuted; all81new successor rows
+  and all914focused mailbox/UID outcomes pass. Updater305/305, launcher57/57,
+  synthetic parsers20+13; receipt20261026T055841147Z-8d6e7b2c ended06:03:26.0363585Z.
+  Normal-FF source push verified. GitHub Windows40277978050 on exact91501b34
+  completed SUCCESS/all8stages; actual25185/305/57TRX outcomes read.
 
 ### FSB-095: Prepare and validate ordinary mailbox saves before replacing files
 
@@ -1521,8 +1526,9 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 - Limits: ordinary single-file atomic replacement, not rollback of cache edits
   made by callers before Save, ranking consumption or a multi-file reward
   transaction. Existing writer cleanup/retry is reused; process-kill, power
-  loss, hostile namespace and uncooperative writers remain unproved. Full-public
-  successor gate and actual-client acceptance are pending.
+  loss, hostile namespace and uncooperative writers remain unproved. The full
+  clean public91501b34 LOCAL/GitHub gates above pass; actual-client acceptance
+  remains pending.
 
 ### Durable UID component continuation (FSB-036 remains open)
 
@@ -1540,7 +1546,8 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   adaptation, all-writer adoption, scalable retention and durable reward intent/
   journal reconciliation remain required. A crash after reservation but before
   the producer journal does not gain a replacement token. No global UID or
-  package-grant completion is claimed; FSB-036 stays open. Full gate pending.
+  package-grant completion is claimed; FSB-036 stays open. Full public91501b34
+  LOCAL/GitHub gates above pass without activating a producer or Host.
 
 ### FSB-092: Commit mailbox item and currency claims as one recoverable outcome
 
@@ -2445,7 +2452,7 @@ proved by the isolated UID-adoption proposals.
 | FSB-033 | Final comparer can change earlier state or prepared native loan metadata | Pure complete state and exact live frame checks after last comparer | Scoped status/flag/potion paths verified2392; general packet/raw-writer audit open |
 | FSB-034 | Rune insertion/cache publication can split; Count wraps; public arrays corrupt ownership | Complete owned staged publication, exact count and explicit unavailable queries | Scoped storage verified2896; full equip/load/save/economy/host remains open |
 | FSB-035 | Refinement publishes before late status failure or spends chance/stamina before preparation | Complete real state/frames before scoped proc acceptance | Scoped procs verified3065 both trees and full Windows39958461749; full cast/HP remains open |
-| FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator component118/118 owned-file controls incl65keyed-receipt rows pass; full successor pending; host activation, trusted migration, producer-intent recovery and all-producer adoption HOLD |
+| FSB-036 | Per-session max+1 and deterministic starter item IDs can collide across accounts, deposits and restarts | One durable forward-only domain allocator adopted by every real producer before effects | Allocator118/118 incl65keyed-receipt rows and full91501b34 LOCAL/GitHub gates pass; host activation, trusted migration, producer-intent recovery and all-producer adoption HOLD |
 | FSB-037 | Native save truncates before validation, persists prefixes or loses nested deposits | Complete owned image and truthful atomic file outcome before acknowledgement | Scoped native save verified3116 both trees and full Windows39959714814; host/loader/SQL recovery open |
 | FSB-038 | Fixed32 text reads/writes escape buffers or retain stale tails | Bounded field access, validate before write and explicit null admission | Scoped record verified34cases within3116 both trees; full load/postlude audit open |
 | FSB-039 | Selected DivineGuard resets cooldown and publishes refinement before fallible status work | Complete real preparation and final ownership before stamp/status/draw effects | Scoped proc verified3214 both trees; outer authorization/combat/HP/host remains open |
@@ -2463,8 +2470,9 @@ unique diagnostics (72printed with summary repeats). Root reviewed/intook33
 direct Single(predicate) overload changes across11public files/32across10private
 files. The public-only publication test was not created in private. Every source
 expression/predicate and expected value is retained;3complex Select/OfType cases
-are deferred unchanged. This batch joins the mailbox/UID full successor gate;
-no measured warning reduction or new CodeFactor dashboard count is claimed yet.
+are deferred unchanged. Full91501b34 LOCAL/GitHub gates pass; build warnings fell
+190->157 and actual unique xUnit2031 diagnostics36->3, matching the deferred set.
+This is measured analyzer cleanup; no new CodeFactor dashboard count is claimed.
 
 Current guardrail: defect-first batches, automated bounded cosmetics, no risky
 packet-switch rewrites for complexity scores and no per-warning full-CI cycle.
