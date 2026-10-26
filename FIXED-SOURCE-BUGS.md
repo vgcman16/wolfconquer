@@ -1482,6 +1482,15 @@ This verifies offline Victory integration, not deployment or complete gameplay.
   Root inspected actual TRX rows and full source/test packets. One retained
   whole-session equality helper now requires the new marker while preserving
   every original item/file/money/reference/recovery/wire assertion.
+- First full clean-public45d1ca16/27979 finished failed at the solution-test stage:
+  build0; core24988pass/1fail+165existing exclusions, updater305/305. The sole
+  failure was the older Frame withdrawal test expecting no Show response after
+  emptying returned bank65535 (74frames expected,75actual). Root read its complete
+  operation and actual TRX. Correct that stale oracle to require exactly one
+  empty header, exact bytes/parsed target/capacity, and unchanged item file; retain
+  its withdrawal persistence and subsequent redeposit assertions. No production
+  change, test deletion or skip. Preserve this failed receipt; successor full
+  acceptance remains pending, and later launcher/parser stages did not run.
 - Limits: component reload, not public login/client proof. The nontransactional
   mailbox1000 claim and reserved-UID alias remain unmapped; cache/reset lifetime,
   true housing authority, arbitrary stale-record/raw-writer publication and wider

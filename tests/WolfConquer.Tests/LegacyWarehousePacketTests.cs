@@ -393,6 +393,7 @@ public sealed class LegacyWarehousePacketTests : IDisposable
         Assert.Equal(1001U, persistedInventoryItem.Uid);
         Assert.Equal(0U, persistedInventoryItem.WarehouseId);
         Assert.Empty(persistedAfterWithdraw.WarehouseItems);
+        var itemFileAfterWithdraw = File.ReadAllBytes(Path.Combine(itemsRoot, "1293600.bin"));
 
         var countBeforeShow = sent.Count;
         var show = new LegacyWarehousePacket(
@@ -404,8 +405,14 @@ public sealed class LegacyWarehousePacketTests : IDisposable
 
         await handler.HandleFrameAsync(connection, ReadFrame(show.ToFrameBytes()));
 
-        Assert.Equal(countBeforeShow, sent.Count);
-        Assert.Contains("no source items are loaded", log.ToString());
+        Assert.Equal(countBeforeShow + 1, sent.Count);
+        Assert.Equal(new LegacyWarehousePacket(WarehouseNpcId, LegacyWarehouseAction.Show, 0,
+            LegacyWarehousePacket.DefaultCapacity, []).ToFrameBytes(), sent[countBeforeShow]);
+        var emptyShow = AssertWarehouseResponse(sent[countBeforeShow], LegacyWarehouseAction.Show);
+        Assert.Equal(WarehouseNpcId, emptyShow.NpcId);
+        Assert.Equal(LegacyWarehousePacket.DefaultCapacity, emptyShow.Capacity);
+        Assert.Empty(emptyShow.Items);
+        Assert.Equal(itemFileAfterWithdraw, File.ReadAllBytes(Path.Combine(itemsRoot, "1293600.bin")));
 
         var countBeforeDeposit = sent.Count;
         var deposit = new LegacyWarehousePacket(
