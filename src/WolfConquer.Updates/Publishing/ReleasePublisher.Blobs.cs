@@ -13,6 +13,11 @@ public static partial class ReleasePublisher
         string temporary = Temporary(blobs);
         try
         {
+            if (source.Review is not null)
+            {
+                NativeAssetSource.ValidateRootSpelling(source.SourceRoot);
+                _ = NativeAssetSource.ExactFile(source.SourceRoot, source.Entry.Path);
+            }
             using var input = PublishFileSystem.Read(source.FullPath);
             if (input.Length != source.Length || File.GetLastWriteTimeUtc(source.FullPath) != source.LastWriteUtc)
                 throw new InvalidDataException("A source file changed after plan validation.");
@@ -25,6 +30,8 @@ public static partial class ReleasePublisher
             if (input.Length != source.Length || File.GetLastWriteTimeUtc(source.FullPath) != source.LastWriteUtc)
                 throw new InvalidDataException("A source file changed while publishing.");
             PublishFileSystem.Check(source.FullPath);
+            if (source.Review is not null)
+                NativeAssetSource.VerifyCopiedDigest(source.Review, source.Length, hash);
             PromoteBlob(temporary, blobs, source.Length, hash);
             return new UpdateFileEntry(source.Entry.Path, source.Length, hash, source.Entry.BaseSha256);
         }

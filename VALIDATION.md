@@ -1,5 +1,20 @@
 # Publication validation
 
+## Exact native asset reviews
+
+Complete updater candidate434/434passes,0failed/skipped,1m41s:357retained,
+75new review/CLI/membership cases and2controlled actual preflight/copy cases.
+Reviewed bytes changed with equal length/restored write time reject before blob
+promotion; the unchanged-byte control succeeds. A case-alias fixture retains its
+valid native prefix so it reaches the intended duplicate-admission check.
+
+Retained PowerShell planner9/exclusion9/staging10groups pass with no skipped
+groups; schema2 adds9groups/51owned fixtures. The actual metadata-planner ->
+stager -> compiled updater CLI pipeline passes2cases: independently verified
+P256 signatures and exact blobs, then changed-stage digest refusal without a
+publication directory. No actual client/asset approval, network or deployment.
+Complete successor Windows CI is pending; these are owned offline checks.
+
 ## Direct publisher filename admission
 
 Current-API publisher baseline75rows had37pass/38fail,0skips:36unsafe existing

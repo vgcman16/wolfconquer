@@ -1,4 +1,6 @@
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'ClientDistribution.AssetReview.ps1')
+. (Join-Path $PSScriptRoot 'ClientDistribution.AssetReview.Paths.ps1')
 
 function Assert-CdJsonKeys([Text.Json.JsonElement]$Element) {
     if ($Element.ValueKind -eq [Text.Json.JsonValueKind]::Object) {
@@ -42,12 +44,14 @@ function Read-CdPolicy([string]$Path, [string]$Source) {
     $json = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
     $document = [Text.Json.JsonDocument]::Parse($json)
     $utcStrings = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
+    $reviewRows = $null
     try {
         Assert-CdJsonKeys $document.RootElement
         # ConvertFrom-Json date handling differs by PowerShell version. Read the
         # original JSON string tokens, never stringify a coerced date/number.
         if ($document.RootElement.ValueKind -eq [Text.Json.JsonValueKind]::Object) {
             foreach ($property in $document.RootElement.EnumerateObject()) {
+                if ($property.Name -ceq 'nativeAssetReviews') { $reviewRows = ConvertFrom-CdNativeReviewJson $property.Value }
                 if ($property.Name -ceq 'publication' -and $property.Value.ValueKind -eq [Text.Json.JsonValueKind]::Object) {
                     foreach ($field in $property.Value.EnumerateObject()) {
                         if ($field.Name -cin @('createdUtc', 'expiresUtc')) {
@@ -61,8 +65,12 @@ function Read-CdPolicy([string]$Path, [string]$Source) {
     } finally { $document.Dispose() }
     $policy = $json | ConvertFrom-Json -AsHashtable -Depth 16
     if ($policy -isnot [Collections.IDictionary]) { throw 'Policy must be a JSON object.' }
-    Assert-CdKeys $policy @('schemaVersion', 'assetDirectories', 'files', 'publication') @('excludePaths')
-    if (($policy.schemaVersion -isnot [long] -and $policy.schemaVersion -isnot [int]) -or $policy.schemaVersion -ne 1) { throw 'Unsupported distribution-policy schema.' }
+    if (-not $policy.Contains('schemaVersion') -or ($policy.schemaVersion -isnot [long] -and $policy.schemaVersion -isnot [int]) -or $policy.schemaVersion -notin 1,2) { throw 'Unsupported distribution-policy schema.' }
+    $required = @('schemaVersion', 'assetDirectories', 'files', 'publication')
+    if ($policy.schemaVersion -eq 2) { $required += 'nativeAssetReviews' }
+    Assert-CdKeys $policy $required @('excludePaths')
+    $reviews = New-CdEmptyNativeReview
+    if ($policy.schemaVersion -eq 2) { $reviews = Read-CdNativeAssetReviews $reviewRows }
     $directories = Get-CdPathSet $policy.assetDirectories -TopLevelOnly
     $files = Get-CdPathSet $policy.files
     $excludeList = @()
@@ -114,6 +122,8 @@ function Read-CdPolicy([string]$Path, [string]$Source) {
             if ($file.Equals($exclude, [StringComparison]::OrdinalIgnoreCase) -or $file.StartsWith($exclude + '/', [StringComparison]::OrdinalIgnoreCase)) { throw 'Exact-file approval conflicts with an exclusion.' }
         }
     }
+    Assert-CdNativeReviewPolicy $Source $reviews $directories $files $excludes
     return [pscustomobject]@{ Publication = $p; PublishRoot = $publish; Directories = $directories; Files = $files; Excludes = $excludes
+        SchemaVersion = $policy.schemaVersion; NativeReviews = $reviews
         Sha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)) }
 }

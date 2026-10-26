@@ -9,7 +9,7 @@ Updated 2026-10-26. Not a percentage or a complete feature inventory.
 - [x] D13 mailbox strings use client-confirmed fields9/10; default D11 bytes remain. Durable UID intent and four-file Gear journal prerequisites have focused proof:1593/1593,0skips, all included in the passed full CI. Payouts remain fenced; no Host activation.
 - [x] Sequential check command and read-only local dashboard implemented and exercised.
 - [x] Owner-requested trusted-main Windows workflow defined; its results are separate from local validation.
-- [x] Actual publisher and CLI reject planner/stager-quarantined payload names before source/output and private-key reads. All52new outcomes pass within updater357/357 in the complete Windows CI above. Native-asset review exceptions remain unimplemented.
+- [x] Actual publisher/CLI quarantine and exact native-asset review tooling are implemented. Full updater434/434 and the actual synthetic PS->stage->publish pipeline pass. Complete successor Windows CI is pending; no actual client assets have been approved or released.
 - [ ] Reduce existing complexity/large files without altering native ordering, arithmetic, or persistence behavior.
 - [ ] Complete remaining native login/loader and host/database integration.
 - [ ] Complete atomic mailbox package payout: mode5 and nonzero-Flag ClaimAll currently refuse before effects. Pure policies/plans remain; real UID producer intent and joint gear/Ninja journal owners are still required.

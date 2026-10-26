@@ -9,8 +9,10 @@ actual publisher API and CLI. A hand-written plan cannot admit private, generate
 backup, legacy AutoP or updater trust/control names. The entire plan is checked
 before source/output work; CLI checks precede signing-key reads. Existing signed
 manifest and repoint compatibility is retained. Filename checks do not inspect
-content or approve native resource-name collisions; an exact reviewed-asset
-mechanism and the real client package remain unfinished.
+content. [Exact native asset reviews](NATIVE-ASSET-REVIEWS.md) provide local schema2
+admission for two closed naming collisions, with complete file membership and
+source length/SHA checks through staging and publishing. This does not approve
+actual assets; portable configuration and the real client package remain unfinished.
 
 ## Build and test
 

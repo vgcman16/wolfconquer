@@ -14,10 +14,12 @@ function Read-CdsPlan([string]$Path) {
     $options = [Text.Json.JsonDocumentOptions]::new(); $options.MaxDepth = 16
     $document = [Text.Json.JsonDocument]::Parse($json, $options)
     $utcStrings = @{}
+    $reviewRows = $null
     try {
         Assert-CdJsonKeys $document.RootElement
         if ($document.RootElement.ValueKind -ne [Text.Json.JsonValueKind]::Object) { throw 'Publication plan must be an object.' }
         foreach ($property in $document.RootElement.EnumerateObject()) {
+            if ($property.Name -ceq 'nativeAssetReviews') { $reviewRows = ConvertFrom-CdNativeReviewJson $property.Value }
             if ($property.Name -cin @('createdUtc','expiresUtc')) {
                 if ($property.Value.ValueKind -ne [Text.Json.JsonValueKind]::String) { throw 'Plan timestamps must be JSON strings.' }
                 $utcStrings[$property.Name] = $property.Value.GetString()
@@ -25,10 +27,15 @@ function Read-CdsPlan([string]$Path) {
         }
     } finally { $document.Dispose() }
     $plan = $json | ConvertFrom-Json -AsHashtable -Depth 16
-    Assert-CdKeys $plan @('schemaVersion','sourceRoot','publishRoot','productId','channel','sequence',
+    if (-not $plan.Contains('schemaVersion') -or ($plan.schemaVersion -isnot [int] -and $plan.schemaVersion -isnot [long]) -or $plan.schemaVersion -notin 1,2) { throw 'Unsupported publication-plan schema.' }
+    $required = @('schemaVersion','sourceRoot','publishRoot','productId','channel','sequence',
         'contentBaseUrl','createdUtc','expiresUtc','keyId','files','includeBundle','allowLoopbackHttp')
-    if (($plan.schemaVersion -isnot [int] -and $plan.schemaVersion -isnot [long]) -or $plan.schemaVersion -ne 1) {
-        throw 'Unsupported publication-plan schema.'
+    if ($plan.schemaVersion -eq 2) { $required += 'nativeAssetReviews' }
+    Assert-CdKeys $plan $required
+    $reviews = New-CdEmptyNativeReview
+    if ($plan.schemaVersion -eq 2) {
+        $reviews = Read-CdNativeAssetReviews $reviewRows
+        $plan.nativeAssetReviews = $reviewRows
     }
     foreach ($name in $utcStrings.Keys) { $plan[$name] = $utcStrings[$name] }
     foreach ($name in @('sourceRoot','publishRoot','productId','channel','contentBaseUrl','createdUtc','expiresUtc','keyId')) {
@@ -68,7 +75,7 @@ function Read-CdsPlan([string]$Path) {
         Assert-CdKeys $file @('path','baseSha256')
         if ($file.path -isnot [string]) { throw 'Plan paths must be strings.' }
         Assert-CdRelative $file.path
-        if (Get-CdRisk $file.path) { throw 'Plan selects a quarantined private, local-data, or control path.' }
+        if ((Get-CdRisk $file.path) -and -not $reviews.Files.ContainsKey($file.path)) { throw 'Plan selects a quarantined private, local-data, or control path.' }
         if (-not $paths.Add($file.path)) { throw 'Plan paths contain duplicates or Windows case aliases.' }
         if ($null -ne $file.baseSha256 -and ($file.baseSha256 -isnot [string] -or $file.baseSha256 -cnotmatch '^[A-Fa-f0-9]{64}$')) {
             throw 'BaseSha256 must be null or a 64-digit hexadecimal prior-install hash.'
@@ -81,10 +88,12 @@ function Read-CdsPlan([string]$Path) {
             if ($paths.Contains($parent)) { throw 'A plan path is both a file and a directory prefix.' }
         }
     }
+    Assert-CdNativeReviewPlan $reviews $plan.files
     return $plan
 }
 
-function Get-CdsSourceFiles([string]$Source, [object[]]$Files) {
+function Get-CdsSourceFiles([string]$Source, [object[]]$Files, [object]$Reviews) {
+    Assert-CdNativeReviewSources $Source $Reviews
     # Cache each visited directory's name index, not its contents. This avoids
     # rescanning large asset directories once per selected file.
     $indices = [Collections.Generic.Dictionary[string,object]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -114,7 +123,8 @@ function Get-CdsSourceFiles([string]$Source, [object[]]$Files) {
         if ($info.Length -gt 4GB) { throw 'An approved file exceeds the 4 GiB publisher bound.' }
         $total += $info.Length
         if ($total -gt 32GB) { throw 'Approved file bytes exceed the 32 GiB publisher bound.' }
-        $observed.Add([pscustomobject]@{ Relative=$file.path; Source=$current; Length=$info.Length; WriteUtc=$info.LastWriteTimeUtc })
+        $expected = if ($Reviews.Files.ContainsKey($file.path)) { $Reviews.Files[$file.path].expectedSourceSha256 } else { $null }
+        $observed.Add([pscustomobject]@{ Relative=$file.path; Source=$current; Length=$info.Length; WriteUtc=$info.LastWriteTimeUtc; ExpectedSourceSha256=$expected })
     }
     return [pscustomobject]@{ Files=$observed.ToArray(); Bytes=$total }
 }

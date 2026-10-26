@@ -26,6 +26,14 @@ function Visit-CdEntry([string]$Path, [string]$Relative, [bool]$ApprovedDirector
     $risk = Get-CdRisk $Relative
     $approved = $ApprovedDirectory -or $Policy.Files.Contains($Relative) -or $Policy.Directories.Contains($Relative)
     $partial = -not $approved -and $directory -and (Test-CdPolicyBelow $Policy $Relative)
+    $native = $Policy.NativeReviews
+    $scope = Get-CdNativeObjectScope $native $Relative
+    if ($scope -or $native.Files.ContainsKey($Relative)) {
+        if ($directory) {
+            if (-not $native.Prefixes.Contains($Relative)) { throw 'Native asset directory membership changed after review.' }
+        } elseif (-not $native.Files.ContainsKey($Relative)) { throw 'Native asset file membership changed after review.' }
+        $risk = $null; $approved = -not $directory; $partial = $directory
+    }
     if ($risk) {
         $State.Quarantined.Add([ordered]@{ path = $Relative; reason = $risk })
         if ($approved -or $partial) { $State.Blocked.Add($Relative) }
@@ -41,6 +49,7 @@ function Visit-CdEntry([string]$Path, [string]$Relative, [bool]$ApprovedDirector
     }
     if (-not $approved) { $State.Review.Add($Relative); return }
     $length = ([IO.FileInfo]::new($Path)).Length
+    if ($native.Files.ContainsKey($Relative) -and $length -ne $native.Files[$Relative].length) { throw 'Native asset length changed after review.' }
     if ($length -gt [long]::MaxValue - $State.Bytes) { throw 'Source byte count overflow.' }
     $State.Files.Add($Relative, $length); $State.Bytes += $length
     if ($State.Files.Count -gt 200000) { throw 'Plan exceeds the publisher maximum file count.' }
@@ -65,5 +74,9 @@ function Get-CdScan([string]$Source, [object]$Policy) {
             includedBytes = $state.Bytes - $bytes; excludedEntries = $state.Excluded.Count - $excluded
             reviewRequiredEntries = $state.Review.Count - $review; blockedEntries = $state.Blocked.Count - $blocked })
     }
+    foreach ($review in $Policy.NativeReviews.Rows) {
+        if (-not $state.Files.ContainsKey($review.path)) { throw 'A native asset review was not used by the completed scan.' }
+    }
+    Assert-CdNativeReviewSources $Source $Policy.NativeReviews
     return $state
 }

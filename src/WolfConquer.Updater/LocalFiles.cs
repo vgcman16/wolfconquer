@@ -10,9 +10,10 @@ internal static class LocalFiles
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         RespectRequiredConstructorParameters = true, MaxDepth = 16
     };
-    internal static T Read<T>(string path, int maximum) where T : class
+    internal static T Read<T>(string path, int maximum) where T : class => Parse<T>(Bytes(path, maximum));
+
+    internal static T Parse<T>(ReadOnlySpan<byte> bytes) where T : class
     {
-        var bytes = Bytes(path, maximum);
         var reader = new Utf8JsonReader(bytes, new JsonReaderOptions { MaxDepth = 16 });
         var fields = new Stack<HashSet<string>>();
         while (reader.Read())

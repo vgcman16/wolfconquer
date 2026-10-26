@@ -36,6 +36,9 @@ function Copy-CdsFile([object]$Observed, [string]$Destination) {
         $target.Flush($true); $target.Position = 0
         $sourceHash = [Convert]::ToHexString($digest.GetHashAndReset())
         $targetHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($target))
+        if ($null -ne $Observed.ExpectedSourceSha256 -and -not $sourceHash.Equals($Observed.ExpectedSourceSha256, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Native reviewed source bytes differ from the expected digest.'
+        }
         if ($target.Length -ne $copied -or $sourceHash -cne $targetHash) { throw 'Staging source/destination byte verification failed.' }
         Assert-CdNoReparse $Observed.Source
         Assert-CdNoReparse $Destination

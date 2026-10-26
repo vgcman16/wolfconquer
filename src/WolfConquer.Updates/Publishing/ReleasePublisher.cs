@@ -5,17 +5,19 @@ namespace WolfConquer.Updates.Publishing;
 
 public static partial class ReleasePublisher
 {
-    private sealed record SourceFile(PublishEntry Entry, string FullPath, long Length, DateTime LastWriteUtc);
+    private sealed record SourceFile(PublishEntry Entry, string FullPath, long Length, DateTime LastWriteUtc,
+        string SourceRoot, NativeAssetReview? Review);
 
     public static PublishedRelease Publish(ReleasePublishOptions options, IEnumerable<PublishEntry> plan,
-        ECDsa signingKey, string keyId)
+        ECDsa signingKey, string keyId) => Publish(options, plan, signingKey, keyId, null);
+
+    public static PublishedRelease Publish(ReleasePublishOptions options, IEnumerable<PublishEntry> plan,
+        ECDsa signingKey, string keyId, IEnumerable<NativeAssetReview>? nativeAssetReviews)
     {
         ArgumentNullException.ThrowIfNull(options); ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(signingKey);
-        PublishEntry[] entries = plan.Take(SignedUpdateManifest.MaximumFiles + 1).ToArray();
-        if (entries.Length > SignedUpdateManifest.MaximumFiles || entries.Any(entry => entry is null))
-            throw new InvalidDataException("Publication plan is invalid or too large.");
-        foreach (PublishEntry entry in entries) PublicationPathPolicy.ValidateRelativePath(entry.Path);
+        NativeAssetReviewSet admission = NativeAssetReviewSet.Create(plan, nativeAssetReviews);
+        PublishEntry[] entries = admission.Entries;
         string source = PublishFileSystem.Root(options.SourceRoot, mustExist: true);
         string publish = PublishFileSystem.Root(options.PublishRoot, mustExist: false);
         if (PublishFileSystem.Contains(source, publish) || PublishFileSystem.Contains(publish, source))
@@ -26,7 +28,8 @@ public static partial class ReleasePublisher
             new string('0', 64), entry.BaseSha256)));
         ManifestValidation.Validate(preview, options.AllowLoopbackHttp);
         _ = SignedUpdateManifest.CreateEnvelope(MakeManifest(options, []), keyId, signingKey, options.AllowLoopbackHttp);
-        SourceFile[] sources = entries.Select(entry => Inspect(source, entry)).ToArray();
+        NativeAssetSource.ValidateMembership(source, admission.Reviews);
+        SourceFile[] sources = entries.Select(entry => Inspect(source, entry, admission.For(entry.Path))).ToArray();
         var sizedPreview = MakeManifest(options, sources.Select(item => new UpdateFileEntry(item.Entry.Path,
             item.Length, new string('0', 64), item.Entry.BaseSha256)),
             options.IncludeBundle ? new UpdateBundle(long.MaxValue, new string('0', 64)) : null);
@@ -40,6 +43,7 @@ public static partial class ReleasePublisher
         if (Directory.Exists(feed)) throw new IOException("Feed path names a directory.");
         PublishFileSystem.EnsureDirectory(blobs);
         var files = sources.Select(item => CopySource(item, blobs)).ToArray();
+        NativeAssetSource.ValidateMembership(source, admission.Reviews);
         UpdateBundle? bundle = options.IncludeBundle ? BuildBundle(blobs, files) : null;
         var manifest = MakeManifest(options, files, bundle);
         byte[] full = SignedUpdateManifest.CreateEnvelope(manifest, keyId, signingKey, options.AllowLoopbackHttp);
@@ -73,13 +77,21 @@ public static partial class ReleasePublisher
             1, release.ProductId + ".index", release.Channel, release.Sequence, release.CreatedUtc, release.ExpiresUtc,
             baseUrl, [new UpdateFileEntry("manifest.json", length, hash, null)]), keyId, key, allowLoopbackHttp);
 
-    private static SourceFile Inspect(string root, PublishEntry entry)
+    private static SourceFile Inspect(string root, PublishEntry entry, NativeAssetReview? review)
     {
-        string path = PublishFileSystem.Contained(root, entry.Path);
+        string path = review is null ? PublishFileSystem.Contained(root, entry.Path) :
+            NativeAssetSource.ExactFile(root, entry.Path);
         using var stream = PublishFileSystem.Read(path);
         long length = stream.Length;
         DateTime lastWrite = File.GetLastWriteTimeUtc(path);
-        return new SourceFile(entry, path, length, lastWrite);
+        if (review is not null)
+        {
+            NativeAssetSource.VerifyDigest(stream, review);
+            _ = NativeAssetSource.ExactFile(root, entry.Path);
+            if (File.GetLastWriteTimeUtc(path) != lastWrite)
+                throw new InvalidDataException("Reviewed source changed during preflight.");
+        }
+        return new SourceFile(entry, path, length, lastWrite, root, review);
     }
 
     private static void WriteFeed(string destination, byte[] bytes)

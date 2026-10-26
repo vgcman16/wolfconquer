@@ -6,22 +6,16 @@ namespace WolfConquer.Updater;
 
 internal sealed record PublicationPlan(int SchemaVersion, string SourceRoot, string PublishRoot,
     string ProductId, string Channel, long Sequence, string ContentBaseUrl, string CreatedUtc, string ExpiresUtc,
-    string KeyId, PublishEntry[] Files, bool IncludeBundle = true, bool AllowLoopbackHttp = false);
+    string KeyId, PublishEntry[] Files, bool IncludeBundle = true, bool AllowLoopbackHttp = false,
+    NativeAssetReview[]? NativeAssetReviews = null);
 
-internal static class PublishingCommand
+internal static partial class PublishingCommand
 {
     internal static async Task<int> Run(string command, string[] args, TextWriter output, CancellationToken cancellation)
     {
         var arguments = new CommandOptions(args, [], command == "publish" ? ["--plan", "--key"] :
             ["--plan", "--key", "--manifest", "--base"]);
-        var plan = LocalFiles.Read<PublicationPlan>(arguments.Required("--plan"), 64 * 1024 * 1024);
-        if (plan.SchemaVersion != 1 || plan.Files is null) throw new InvalidDataException("Unsupported curated publication plan.");
-        if (command == "publish")
-        {
-            if (plan.Files.Length > SignedUpdateManifest.MaximumFiles || plan.Files.Any(entry => entry is null))
-                throw new InvalidDataException("Publication plan is invalid or too large.");
-            foreach (PublishEntry entry in plan.Files) PublicationPathPolicy.ValidateRelativePath(entry.Path);
-        }
+        var plan = ReadPlan(arguments.Required("--plan"), command == "publish");
         var keyPath = Path.GetFullPath(arguments.Required("--key"));
         var publishedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(plan.PublishRoot));
         var sourceRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(plan.SourceRoot));
@@ -37,7 +31,8 @@ internal static class PublishingCommand
         {
             var result = ReleasePublisher.Publish(new ReleasePublishOptions(plan.SourceRoot, plan.PublishRoot,
                 plan.ProductId, plan.Channel, plan.Sequence, new Uri(plan.ContentBaseUrl),
-                ParseUtc(plan.CreatedUtc), ParseUtc(plan.ExpiresUtc), plan.IncludeBundle, plan.AllowLoopbackHttp), plan.Files, key, plan.KeyId);
+                ParseUtc(plan.CreatedUtc), ParseUtc(plan.ExpiresUtc), plan.IncludeBundle, plan.AllowLoopbackHttp),
+                plan.Files, key, plan.KeyId, plan.NativeAssetReviews);
             await output.WriteLineAsync($"Published {result.Manifest.ProductId}/{result.Manifest.Channel} sequence {result.Manifest.Sequence}: {result.Manifest.Files.Count} curated files.");
         }
         else

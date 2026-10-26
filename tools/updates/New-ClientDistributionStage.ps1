@@ -37,7 +37,9 @@ if ([IO.File]::Exists($stage) -or [IO.Directory]::Exists($stage)) { throw 'Stage
 if (-not [IO.Directory]::Exists([IO.Path]::GetDirectoryName($stage))) { throw 'Create the explicit staging parent before running this tool.' }
 Assert-CdFreshArtifact $output $source $publish
 if (Test-CdWithin $stage $output) { throw 'OutputPlan must be outside the staging directory.' }
-$observed = Get-CdsSourceFiles $source $plan.files
+$nativeReviews = New-CdEmptyNativeReview
+if ($plan.schemaVersion -eq 2) { $nativeReviews = Read-CdNativeAssetReviews $plan.nativeAssetReviews }
+$observed = Get-CdsSourceFiles $source $plan.files $nativeReviews
 # Retain all approved publication semantics, file order, and prior-install hashes.
 # Only the source root is rebased; no signature or prior review hash is invented.
 $rebased = [ordered]@{}
@@ -57,14 +59,19 @@ try {
         $copiedBytes += Copy-CdsFile $file $destination
         $copiedFiles++
     }
+    Assert-CdNativeReviewSources $source $nativeReviews
+    Assert-CdNativeReviewSources $stage $nativeReviews
     # All content copies must succeed before a fresh publisher plan can appear.
     Assert-CdFreshArtifact $output $source $publish
     if (Test-CdWithin $stage $output) { throw 'OutputPlan escaped the approved artifact location.' }
     Write-CdNewArtifact $output $rebased
     $planWritten = $true
+    $boundary = if ($plan.schemaVersion -eq 2) {
+        'Offline exact-list copy verified by SHA256 readback. Reviewed native files also match supplied expected source digests; metadata planning did not read their contents. No signing, packaging, publication, client edits, or process launch.'
+    } else { 'Offline exact-list current-byte copy verified by SHA256 readback. Names-only input is not historical byte authority. No signing, packaging, publication, client edits, or process launch.' }
     [ordered]@{ outcome='staged-not-published'; files=$copiedFiles; bytes=$copiedBytes
         sourceRoot=$source; stageRoot=$stage; planPath=$output
-        boundary='Offline exact-list current-byte copy verified by SHA256 readback. Names-only input is not historical byte authority. No signing, packaging, publication, client edits, or process launch.' } | ConvertTo-Json
+        boundary=$boundary } | ConvertTo-Json
 } catch {
     if ($stageCreated) {
         if ($planWritten) { throw [IO.IOException]::new("Verified stage and rebased plan were completed at '$stage' and '$output', but reporting the result failed.", $_.Exception) }

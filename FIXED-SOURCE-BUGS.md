@@ -1496,6 +1496,32 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### Distribution continuation: exact reviewed native assets (FSB-099 retained)
+
+- Schema2 now permits only two typed naming collisions with one exact review per
+  payload file: native mapobj/.../obj resources and exact data/main/LogS.BMP.
+  Every other risky segment still refuses. Explicit membership, ordinary exact
+  spelling/type, bounds and source length/SHA survive planning, staging/rebase
+  and the actual publisher. No inherited recursive approval or generic waiver.
+- Schema1 behavior and the original four-argument Publish CLR signature remain;
+  review-aware inputs are local metadata, not new signed-manifest wire fields.
+  baseSha256 still describes prior installed bytes. CLI shape admission precedes
+  key reads; actual source and copied-byte digests are checked before promotion.
+- Actual C#89580 passed434/434,0fail/skip,1m41s:357retained+75new+2root controls.
+  The two root cases call genuine preflight then actual guarded copy, proving
+  same-length/restored-time mutation refusal and the unchanged-byte positive.
+  A case-alias seed was refined to retain a valid native prefix; assertions stay.
+- Actual PS83615 passed retained9planner/9exclusion/10stage groups, no skipped
+  groups, plus9new groups/51fixtures. The real PS->stage->compiled CLI pipeline
+  passes2cases, verifies both P256 signatures/exact blobs and refuses changed
+  reviewed stage bytes without creating the publication root. No missing-type
+  compile failure is called behavioral RED; these are new API/feature tests.
+- Limits: ordinary cooperating filesystem, not hostile namespace or a multi-file
+  transaction. Late failures can retain owned partial stages or earlier immutable
+  blobs; the discovery feed follows full content readiness. Raster/content purpose,
+  actual native reviews, portable config and full-client release remain OPEN.
+  Full successor Windows CI is pending; no original data or game process changed.
+
 ### FSB-099: Enforce filename quarantine at the actual publisher boundary
 
 - Distribution tooling defect: planner/stager rejected private/generated/control

@@ -39,11 +39,12 @@ $report = [ordered]@{
 $p = $policy.Publication
 $files = @($scan.Files.GetEnumerator() | ForEach-Object { [ordered]@{ path = $_.Key; baseSha256 = $null } })
 $plan = [ordered]@{
-    schemaVersion = 1; sourceRoot = $source; publishRoot = $policy.PublishRoot; productId = $p.productId; channel = $p.channel
+    schemaVersion = $policy.SchemaVersion; sourceRoot = $source; publishRoot = $policy.PublishRoot; productId = $p.productId; channel = $p.channel
     sequence = $p.sequence; contentBaseUrl = $p.contentBaseUrl; createdUtc = $p.createdUtc; expiresUtc = $p.expiresUtc; keyId = $p.keyId
     files = $files; includeBundle = $(if ($p.Contains('includeBundle')) { $p.includeBundle } else { $true })
     allowLoopbackHttp = $(if ($p.Contains('allowLoopbackHttp')) { $p.allowLoopbackHttp } else { $false })
 }
+if ($policy.SchemaVersion -eq 2) { $plan.nativeAssetReviews = $policy.NativeReviews.Rows }
 Write-CdNewArtifact $reportFile $report
 if (-not $ready) { throw 'Explicit policy review is incomplete or selects quarantined paths; report created, publisher plan not created.' }
 Write-CdNewArtifact $planFile $plan
