@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-26**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `77c97b2812b46bbd8de36d3fddb8d355052ddef2` (short: `77c97b2812b4`).
+Source commit: `cb49be1da4ead0e6a9aea78ab7fb00bcf839b431` (short: `cb49be1da4ea`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -19,9 +19,9 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | Milestone | Status | Detail |
 | --- | --- | --- |
 | Limited local live-client milestone | verified | Login, walking, one-item drop/pickup and saving were demonstrated on an earlier isolated local build. This does not validate the latest public source. |
-| Current public build live-client acceptance | planned | Publica3cb2624 passes all eight GitHub Windows40321922059 stages:25,473 core passes,165unchanged existing exclusions, updater434/434, launcher57/57 and synthetic parsers20+13. Explicit allocating mailbox work/recovery/native components have automated proof. Production Host, actual-client acceptance, complete English and full-client distribution remain unproved. |
+| Current public build live-client acceptance | planned | The preceding public77c97b28 Windows40353357252 failed one readiness fixture (25,878 core passes,165 existing exclusions; updater434/434). The reviewed successor has focused prefix135, readiness32 and decoder/CLI/newer-packet290 proofs; its exact-public full gate is pending. Earlier a3cb full CI does not validate this successor. Production Host, actual-client acceptance, complete English and full-client distribution remain unproved. |
 | Complete English client | in-progress | Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete. |
-| Newer-client-only parity | planned | Not estimated. Features absent from the older server source require separate binary, data and observed-behavior evidence. |
+| Newer-client-only parity | in-progress | Official Chinese patches through7935 are downloaded and extracted privately. Actual newer-engine parser/writer evidence supports a separate known-schema2132 codec with31 passing component cases. No default activation or full newer-client compatibility; gameplay, catalog, transport and live acceptance remain open. Not estimated. |
 | Public full-client download and updates | in-progress | Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet. |
 
 ## Legacy-server domains
