@@ -9,10 +9,18 @@ public sealed partial class WorldServerFrameHandler
         IsLegacyDragonSkinMutationFrame(frame) ||
         IsLegacyVendorPurchaseFrame(frame) ||
         IsLegacyInventorySashUpgradeFrame(frame) ||
+        IsLegacyPhysicalSashTransferFrame(frame) ||
         frame.Header.Opcode == WorldPacketOpcodes.LegacyFloorItem ||
         frame.Header.Opcode == WorldPacketOpcodes.MsgItemUsage &&
         MsgItemUsagePacket.TryParse(frame, out var packet) &&
         packet.Action is MsgItemUsageAction.SellItem or MsgItemUsageAction.DropItem;
+
+    // Registered LegacyWarehouse uses the same action IDs in D11 and D13.
+    // Only parsed physical-bag mutations own the inner exclusive lease.
+    private static bool IsLegacyPhysicalSashTransferFrame(PacketFrame frame) =>
+        frame.Header.Opcode == WorldPacketOpcodes.LegacyWarehouse &&
+        LegacyWarehousePacket.TryParseRequest(frame, out var request) &&
+        request.Action is LegacyWarehouseAction.ShashDepositItem or LegacyWarehouseAction.ShashWithdrawItem;
 
     // Both configured profiles dispatch MsgAction256 through this same registered owner.
     // Malformed actions retain Frame's ordinary shared lease and parse refusal.

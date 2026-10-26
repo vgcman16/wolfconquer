@@ -54,12 +54,10 @@ public sealed partial class LegacyTradeRuntimeTests
             // The recipient can access the same physical child through the real
             // registered sash path; its fields/UID are not recreated from a preview.
             var withdraw = new LegacyWarehousePacket(10, LegacyWarehouseAction.ShashWithdrawItem, 11, 0, []);
-            using (await closureOperations.EnterSharedAsync())
-                await handlers.HandleAsync(ItemClosureContext(right), ReadFrame(withdraw.ToFrameBytes()));
+            await handlers.HandleAsync(ItemClosureContext(right), ReadFrame(withdraw.ToFrameBytes()));
             AssertItemUnchanged(Item(11), Assert.Single(Current(right).PlayerItems.InventoryItems, item => item.Uid == 11));
             Assert.Equal(12U, Assert.Single(Assert.Single(Current(right).PlayerItems.InventoryItems,
                 item => item.Uid == 10).DepositedItems).Uid);
-            new PlayerItemSnapshotLoader(ItemsRoot).SaveByCharacterUid(right.Uid, Current(right).PlayerItems);
             AssertPersisted(right);
         });
 

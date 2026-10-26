@@ -42,6 +42,12 @@ public static partial class WorldPacketHandlers
                 $"WorldServer handled LegacyWarehouse {FormatSession(context)} npcId={packet.NpcId} action={packet.Action} itemUid={packet.ItemUid}.")
             .ConfigureAwait(false);
 
+        if (packet.Action is LegacyWarehouseAction.ShashDepositItem or LegacyWarehouseAction.ShashWithdrawItem)
+        {
+            await HandleLegacySashTransferAsync(context, packet, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         if (context.Session is not { } session)
         {
             await context.Log.WriteLineAsync(
@@ -66,16 +72,10 @@ public static partial class WorldPacketHandlers
             case LegacyWarehouseAction.InventorySashDepositItem:
                 await HandleLegacyWarehouseDepositAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
                 return;
-            case LegacyWarehouseAction.ShashDepositItem:
-                await HandleLegacyWarehouseSashDepositAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
-                return;
             case LegacyWarehouseAction.WithdrawItem:
             case LegacyWarehouseAction.WithdrawItem_WH_House:
             case LegacyWarehouseAction.InventorySashWithdrawItem:
                 await HandleLegacyWarehouseWithdrawAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
-                return;
-            case LegacyWarehouseAction.ShashWithdrawItem:
-                await HandleLegacyWarehouseSashWithdrawAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
                 return;
             default:
                 await context.Log.WriteLineAsync(

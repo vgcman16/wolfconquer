@@ -104,14 +104,11 @@ public sealed partial class LegacyTradeRuntimeTests
     {
         var request = new LegacyWarehousePacket(sashUid, LegacyWarehouseAction.ShashDepositItem,
             itemUid, Capacity: 0, Items: []);
-        using (await closureOperations.EnterSharedAsync())
-            await handlers.HandleAsync(ItemClosureContext(player), ReadFrame(request.ToFrameBytes()));
+        await handlers.HandleAsync(ItemClosureContext(player), ReadFrame(request.ToFrameBytes()));
         var sash = Assert.Single(Current(player).PlayerItems.InventoryItems, item => item.Uid == sashUid);
         Assert.Single(sash.DepositedItems, item => item.Uid == itemUid);
         Assert.DoesNotContain(Current(player).PlayerItems.InventoryItems, item => item.Uid == itemUid);
-        // Declared fixture setup: direct Registry has no Frame _sessionChanged
-        // sidecar callback. Save the actual registered result with the actual loader.
-        new PlayerItemSnapshotLoader(ItemsRoot).SaveByCharacterUid(player.Uid, Current(player).PlayerItems);
+        // The registered transfer owns its Exclusive commit and actual save.
         AssertPersisted(player);
     }
 

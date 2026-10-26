@@ -44,7 +44,7 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
             sendAsync: async (frame, _) =>
             {
                 var bytes = frame.ToArray();
-                Harness.Sent.Add(new D13VendorSentFrame(recipient, bytes));
+                lock (Harness.Sent) Harness.Sent.Add(new D13VendorSentFrame(recipient, bytes));
                 if (SettlementSendObserver is { } observer) await observer(recipient, bytes);
             });
 
@@ -82,15 +82,13 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
 
         private async Task DepositSettlementScopeAsync(uint childUid)
         {
-            using var operation = await SettlementOperations.EnterSharedAsync();
             var request = new LegacyWarehousePacket(10, LegacyWarehouseAction.ShashDepositItem, childUid, 0, []);
             await Registry.HandleAsync(Context(SellerConnection), D13VendorTestHarness.ReadFrame(request.ToFrameBytes()));
             Assert.DoesNotContain(Seller.PlayerItems.InventoryItems, item => item.Uid == childUid);
             Assert.Single(Assert.Single(Seller.PlayerItems.InventoryItems, item => item.Uid == 10).DepositedItems,
                 item => item.Uid == childUid);
-            // Declared direct-registry setup, not proof of Frame auto-save. Keep
-            // its genuine loader save inside the same caller-held operation.
-            new PlayerItemSnapshotLoader(Harness.PlayerItemsRoot).SaveByCharacterUid(Seller.Character.Uid, Seller.PlayerItems);
+            // The registered transfer owns its Exclusive commit and actual save.
+            Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(Seller.PlayerItems), File.ReadAllBytes(ItemPath(Seller)));
         }
 
         internal async Task ObserveSettlementAsync(Task actual)

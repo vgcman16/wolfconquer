@@ -1367,6 +1367,42 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-078: Persist physical-sash transfers before Store and success delivery
+
+- Actual registered2080 actions7681/7682 send success before unconditional Store
+  publication; Frame autosave follows that publication and can only log failure.
+  Direct Registry calls have no guaranteed save. Stale Context and awaited sends
+  can overwrite a fresher owner; main SecurityPass/native IsCheckedPass is missing.
+- Corrected invariant: real Exclusive/current owner/initialized exact-root recovery,
+  complete seven-store graph and bounded full Character/item baselines, actual
+  secondary-password and physical Poker admission, prepare frames then replace
+  only the complete item file before persisted-session CAS. Coherent real Trade
+  claims remain read-only; final Trade validation retains changed-offer refund.
+  Release mutation ownership before slow sends and stop later stale-owner output.
+- Tests-only52505 measured **0passed/31failed/0skipped**,1s, before production
+  changes. Actual terminal TRX counters, groups and first failures were read;
+  these are31 failing cases, not31 distinct bugs. Separate15570 measured0/3of3,
+ 243ms; all three orphan/malformed claim refusals failed before production changes.
+  Root fully read frozen7file production and2file migration packets plus all new
+  tests and actual owners, then intook7source paths and4legitimate caller-test
+  migrations. The old paused-writer Fact becomes two controls (net+1) for actual
+  Shared->Sash->Buy FIFO and postcommit notification not blocking a saved purchase.
+  Existing four real changed-offer/refund tests stay unchanged. Three obsolete
+  outer Shared/manual-save substitutes are removed; saved-image assertions stay.
+  The test transport List Add is briefly locked, never across its awaited observer.
+  First broader integration65642 passed **1107/1107**,0failed/skipped,17s. Actual
+  terminal counters/outcomes were read, including all34new transfer cases, both
+  replacement Booth concurrency controls and all four genuine changed-offer
+  Trade/refund cases unchanged. Exact successful wire/full-file and password-issuer,
+  stale-disk/current-owner, missing-owner/roots, orphan/malformed escrow, sharing
+  refusal/retry and committed-send-fault/retirement cases pass. This is focused
+  offline integration proof, not full Windows or live-client acceptance.
+- Limits remain open: full Windows CI, live-client, native transport/Host/global UID,
+  genuine poker/table lifecycle, SQL, power-loss, hostile namespace,
+  arbitrary raw-alias or automatic uncertain-backup reconciliation proof. Existing
+  public slot-source Windows run40248699439 was cancelled while queued/offline;
+  no runner listener was started and no CI acceptance was inferred.
+
 ### FSB-077: Save the 90-CP sash-slot purchase before publishing success
 
 - The registered action256 published a new session and all three success updates

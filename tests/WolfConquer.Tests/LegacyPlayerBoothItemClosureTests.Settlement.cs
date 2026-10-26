@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using WolfConquer.Core.Data;
+using WolfConquer.Core.Packets;
 using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
@@ -184,7 +185,91 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
         });
 
     [Fact]
-    public Task RegisteredBoothBuyWaitsForActualAwaitedSashWriterAndItsOwnedSave() =>
+    public Task RegisteredBoothSharedPredecessorQueuesRealSashThenBuyInFifoCommitOrder() =>
+        RunBoothSettlementAsync(async fixture =>
+        {
+            fixture.Seed(BoothItem(10, 1_100_003), BoothItem(11));
+            await fixture.StartAsync();
+            await fixture.ListAsync();
+            var before = fixture.Capture();
+            // Observation-only capture of the ACTUAL transport delegate calls.
+            // Two publishers may run concurrently; do not infer ordering from
+            // racing reads of the fixture's ordinary List during publication.
+            var observed = new System.Collections.Concurrent.ConcurrentQueue<D13VendorSentFrame>();
+            fixture.SettlementSendObserver = (recipient, bytes) =>
+            {
+                observed.Enqueue(new D13VendorSentFrame(recipient, bytes));
+                return Task.CompletedTask;
+            };
+            IDisposable? predecessor = await fixture.SettlementOperations.EnterSharedAsync();
+            try
+            {
+                var deposit = StartRegisteredBoothSashDeposit(fixture);
+                await ObserveQueuedBoothWriterAsync(fixture.SettlementOperations, deposit, 1);
+                var buy = fixture.BuyAsync();
+                await ObserveQueuedBoothWriterAsync(fixture.SettlementOperations, buy, 2);
+                Assert.False(deposit.IsCompleted);
+                Assert.False(buy.IsCompleted);
+                fixture.AssertUnchanged(before);
+                predecessor.Dispose();
+                predecessor = null;
+                await fixture.ObserveSettlementAsync(deposit);
+                await fixture.ObserveSettlementAsync(buy);
+                fixture.SettlementSendObserver = null;
+
+                // Independent finite oracle for the intermediate committed sash;
+                // this is NEVER installed as a live owner or saved by the test.
+                var originalSash = Assert.Single(before.Seller.PlayerItems.InventoryItems, item => item.Uid == 10);
+                var child = Assert.Single(before.Seller.PlayerItems.InventoryItems, item => item.Uid == 11)
+                    .WithWarehouseId(0, position: 0);
+                var depositedSash = originalSash.WithDepositedItems(new[] { child });
+                var sellerAfterDeposit = before.Seller with
+                { PlayerItems = before.Seller.PlayerItems with { InventoryItems = new[] { depositedSash } } };
+                var afterDepositFiles = new Dictionary<string, byte[]>(before.Files, StringComparer.OrdinalIgnoreCase)
+                {
+                    [Path.GetRelativePath(fixture.Root, fixture.ItemPath(before.Seller))] =
+                        PlayerItemSnapshotLoader.ToLegacyBytes(sellerAfterDeposit.PlayerItems),
+                };
+                var afterDeposit = before with
+                { Seller = sellerAfterDeposit, SellerValues = JsonSerializer.Serialize(sellerAfterDeposit), Files = afterDepositFiles };
+                AssertSettledBoothValues(fixture, afterDeposit); // Exact economics, all stores, full file set and bytes.
+                var received = Assert.Single(fixture.Buyer.PlayerItems.InventoryItems, item => item.Uid == 10);
+                Assert.Equal(11U, Assert.Single(received.DepositedItems).Uid); // Buy observed Sash's earlier commit.
+
+                var attempted = observed.ToArray();
+                static bool IsSashFrame(D13VendorSentFrame frame) => frame.Recipient == "seller" &&
+                    ((MsgItemUsagePacket.TryParse(D13VendorTestHarness.ReadFrame(frame.Bytes), out var usage) &&
+                        usage.Action == MsgItemUsageAction.RemoveInventory && usage.Id == 11) ||
+                     (LegacyWarehousePacket.TryParse(D13VendorTestHarness.ReadFrame(frame.Bytes), out var warehouse) &&
+                        warehouse.Action == LegacyWarehouseAction.ShashDepositItem));
+                var sashFrames = attempted.Where(IsSashFrame).ToArray();
+                Assert.InRange(sashFrames.Length, 0, 2);
+                var sashExpected = new[]
+                {
+                    new MsgItemUsagePacket(11, 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0).ToFrameBytes(),
+                    new LegacyWarehousePacket(10, LegacyWarehouseAction.ShashDepositItem, 0, 0, new[] { child }).ToFrameBytes(),
+                };
+                for (var index = 0; index < sashFrames.Length; index++) Assert.Equal(sashExpected[index], sashFrames[index].Bytes);
+                // FIFO proves commit order, not global send serialization. A
+                // current-owner check may race the competing commit before send.
+                var frames = attempted.Where(frame => !IsSashFrame(frame)).ToArray();
+                Assert.Equal(6, frames.Length);
+                var request = BoothFixture.BuyRequest();
+                Assert.Equal(new[] { "buyer", "buyer", "seller", "seller", "buyer", "seller" }, frames.Select(frame => frame.Recipient));
+                Assert.Equal(LegacyGameItemPacket.FromSnapshotItem(depositedSash).ToFrameBytes(), frames[0].Bytes);
+                Assert.Equal(request.ToFrameBytes(), frames[1].Bytes);
+                Assert.Equal((request with { Action = MsgItemUsageAction.RemoveVendingItem }).ToFrameBytes(), frames[2].Bytes);
+                Assert.Equal(new MsgItemUsagePacket(10, 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0).ToFrameBytes(), frames[3].Bytes);
+                Assert.Equal(new LegacyMsgUpdatePacket(D13VendorTestHarness.BuyerCharacterUid,
+                    [new(LegacyMsgUpdateDataType.Money, 875)]).ToFrameBytes(), frames[4].Bytes);
+                Assert.Equal(new LegacyMsgUpdatePacket(D13VendorTestHarness.SellerCharacterUid,
+                    [new(LegacyMsgUpdateDataType.Money, 425)]).ToFrameBytes(), frames[5].Bytes);
+            }
+            finally { predecessor?.Dispose(); }
+        });
+
+    [Fact]
+    public Task RegisteredBoothBuyCommitsWhileSashFirstSendWaitsThenSuppressesItsRemainingWarehouseFrame() =>
         RunBoothSettlementAsync(async fixture =>
         {
             fixture.Seed(BoothItem(10, 1_100_003), BoothItem(11));
@@ -195,42 +280,50 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
             fixture.SettlementReleases.Add(release);
             fixture.SettlementSendObserver = async (recipient, bytes) =>
             {
-                if (recipient == "seller" && LegacyWarehousePacket.TryParse(D13VendorTestHarness.ReadFrame(bytes), out var packet) &&
-                    packet.Action == LegacyWarehouseAction.ShashDepositItem)
+                if (recipient == "seller" && MsgItemUsagePacket.TryParse(D13VendorTestHarness.ReadFrame(bytes), out var packet) &&
+                    packet.Action == MsgItemUsageAction.RemoveInventory && packet.Id == 11)
                 {
+                    fixture.AssertSettlementSaved(); // Sash's actual file commit precedes its FIRST send.
+                    Assert.DoesNotContain(fixture.Seller.PlayerItems.InventoryItems, item => item.Uid == 11);
+                    Assert.Equal(11U, Assert.Single(Assert.Single(fixture.Seller.PlayerItems.InventoryItems).DepositedItems).Uid);
                     entered.TrySetResult();
                     await release.Task;
                 }
             };
-            var deposit = fixture.DepositAsync(11);
-            await entered.Task.WaitAsync(SettlementBound);
-            Assert.False(deposit.IsCompleted);
-            var buyerBefore = fixture.Buyer;
-            var buyerBytes = File.ReadAllBytes(fixture.ItemPath(buyerBefore));
-            var framesBeforeBuy = fixture.Harness.Sent.Count;
-            var buy = fixture.BuyAsync();
-
-            await ObserveQueuedBoothWriterAsync(fixture.SettlementOperations, buy);
-            Assert.False(buy.IsCompleted);
-            Assert.Same(buyerBefore, fixture.Buyer);
-            Assert.Equal(buyerBytes, File.ReadAllBytes(fixture.ItemPath(buyerBefore)));
-            Assert.Equal(framesBeforeBuy, fixture.Harness.Sent.Count);
-            release.TrySetResult();
-            await fixture.ObserveSettlementAsync(deposit);
-            await fixture.ObserveSettlementAsync(buy);
-            fixture.SettlementSendObserver = null;
-
-            Assert.Equal(875, fixture.Buyer.Character.Money);
-            Assert.Equal(425, fixture.Seller.Character.Money);
-            var received = Assert.Single(fixture.Buyer.PlayerItems.InventoryItems, item => item.Uid == 10);
-            Assert.Equal(11U, Assert.Single(received.DepositedItems).Uid);
-            Assert.Empty(fixture.Seller.PlayerItems.InventoryItems);
-            Assert.Empty(fixture.Seller.LegacyVendorListings!.Listings);
-            Assert.Equal(framesBeforeBuy + 6, fixture.Harness.Sent.Count);
-            fixture.AssertSettlementSaved();
+            try
+            {
+                var deposit = StartRegisteredBoothSashDeposit(fixture);
+                await entered.Task.WaitAsync(SettlementBound);
+                Assert.False(deposit.IsCompleted);
+                var beforeBuy = fixture.Capture();
+                var buy = fixture.BuyAsync();
+                await fixture.ObserveSettlementAsync(buy); // Completes while Sash is STILL paused.
+                Assert.False(deposit.IsCompleted);
+                AssertOneSettledBoothPurchase(fixture, beforeBuy); // Exact six buy frames, economics and complete files.
+                var received = Assert.Single(fixture.Buyer.PlayerItems.InventoryItems, item => item.Uid == 10);
+                Assert.Equal(11U, Assert.Single(received.DepositedItems).Uid);
+                var committed = fixture.Capture();
+                release.TrySetResult();
+                await fixture.ObserveSettlementAsync(deposit);
+                fixture.SettlementSendObserver = null;
+                fixture.AssertUnchanged(committed); // No later Warehouse frame or stale Seller overwrite.
+            }
+            finally { release.TrySetResult(); } // Also registered with actual fixture cleanup on assertion failure.
         });
 
-    private static async Task ObserveQueuedBoothWriterAsync(WorldOperationBarrier operations, Task buy)
+    private static Task StartRegisteredBoothSashDeposit(BoothFixture fixture)
+    {
+        // The sequential DepositAsync helper keeps its own-item postconditions;
+        // this overlapping test tracks the real Registry task directly instead.
+        var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
+        var request = new LegacyWarehousePacket(10, LegacyWarehouseAction.ShashDepositItem, 11, 0, []);
+        var actual = registry.HandleAsync(fixture.Context(fixture.SellerConnection),
+            D13VendorTestHarness.ReadFrame(request.ToFrameBytes())).AsTask();
+        fixture.Calls.Add(actual);
+        return actual;
+    }
+
+    private static async Task ObserveQueuedBoothWriterAsync(WorldOperationBarrier operations, Task actual, int expectedCount)
     {
         var type = typeof(WorldOperationBarrier);
         var gate = type.GetField("_gate", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(operations)!;
@@ -239,8 +332,12 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
         using var budget = new CancellationTokenSource(SettlementBound);
         while (true)
         {
-            lock (gate) { if ((int)count.GetValue(queue)! > 0) return; }
-            if (buy.IsCompleted) { await buy; Assert.Fail("Buy completed without queuing behind the actual sash reader."); }
+            lock (gate)
+            {
+                var queued = (int)count.GetValue(queue)!;
+                if (queued >= expectedCount) { Assert.Equal(expectedCount, queued); return; }
+            }
+            if (actual.IsCompleted) { await actual; Assert.Fail("Operation completed before its expected actual FIFO queue position."); }
             await Task.Delay(10, budget.Token);
         }
     }
