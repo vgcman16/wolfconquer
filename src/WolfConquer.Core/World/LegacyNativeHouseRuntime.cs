@@ -3,7 +3,8 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Whole native House owner; genuine furniture references and BinaryFile only.
+// Native-compatible House owner; loads validate complete files before publication.
+// The retained raw save path is not a crash-safe transaction.
 // Npc sender/interface adoption is separate and not required by this persistence owner.
 internal partial class LegacyNativeHouseRuntime
 {
@@ -71,6 +72,8 @@ internal partial class LegacyNativeHouseRuntime
 
 	public LegacyNativeHouseRuntime(uint UID)
 	{
+		if (UID == 0) throw new ArgumentOutOfRangeException(nameof(UID));
+		OwnerUid = UID;
 		if (!HousePoll.ContainsKey(UID))
 		{
 			HousePoll.TryAdd(UID, this);
@@ -81,36 +84,7 @@ internal partial class LegacyNativeHouseRuntime
 		}
 	}
 
-	internal unsafe static void Load(LegacyNativeGameClientRuntime client)
-	{
-		if (HousePoll.ContainsKey(client.Player.UID))
-		{
-			client.MyHouse = HousePoll[client.Player.UID];
-			return;
-		}
-		LegacyNativeBinaryFile binaryFile = new LegacyNativeBinaryFile();
-		if (!binaryFile.Open(LegacyNativeServerConfig.DbLocation + "\\Houses\\" + client.Player.UID + ".bin", FileMode.Open))
-		{
-			return;
-		}
-		int num = 0;
-		byte level = 0;
-		binaryFile.Read(&level, 1);
-		client.MyHouse = new LegacyNativeHouseRuntime(client.Player.UID);
-		client.MyHouse.Level = level;
-		binaryFile.Read(&num, 4);
-		for (int i = 0; i < num; i++)
-		{
-			DBNpc dbnpc = default(DBNpc);
-			binaryFile.Read(&dbnpc, sizeof(DBNpc));
-			LegacyNativeNpcRuntime serverNpc = DBNpc.GetServerNpc(dbnpc);
-			if (!client.MyHouse.Furnitures.ContainsKey(serverNpc.UID))
-			{
-				client.MyHouse.Furnitures.TryAdd(serverNpc.UID, serverNpc);
-			}
-		}
-		binaryFile.Close();
-	}
+	internal static void Load(LegacyNativeGameClientRuntime client) => TryLoad(client);
 
 	internal unsafe static void Save(LegacyNativeGameClientRuntime client)
 	{

@@ -26,6 +26,12 @@ internal sealed partial class LegacyItemSaveGraph
         return closure is not null;
     }
 
+    internal bool TryGetWarehouse(uint warehouseId, uint uid, out Closure closure)
+    {
+        closure = stores[6].Rows.FirstOrDefault(row => row.Source.WarehouseId == warehouseId && row.Source.Uid == uid)!;
+        return closure is not null;
+    }
+
     internal bool ContainsAny(Closure incoming) => incoming.ContainsAny(uids);
     internal bool HasBytes(ReadOnlySpan<byte> actual) => actual.SequenceEqual(bytes);
 

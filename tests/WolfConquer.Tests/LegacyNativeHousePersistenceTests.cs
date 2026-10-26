@@ -6,7 +6,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LegacyNativeHousePersistenceTests
+public sealed partial class LegacyNativeHousePersistenceTests
 {
     [Fact]
     public void WholeConstructorPublishesOnlyFirstOwnerButAlwaysPreservesTheActualBlockMapList()
@@ -76,7 +76,7 @@ public sealed class LegacyNativeHousePersistenceTests
     }
 
     [Fact]
-    public void LoadMissingFilePreservesOldClientReferenceAndDuplicateFurnitureUidsKeepFirstRecord()
+    public void LoadMissingFileAndDuplicateFurnitureUidsPreserveOldClientWithoutPublishingPartialOwner()
     {
         using var state = new HouseState();
         using var files = new NativeSaveRecordFiles();
@@ -93,7 +93,8 @@ public sealed class LegacyNativeHousePersistenceTests
         Assert.Equal(61, new FileInfo(Path.Combine(files.Root, "Houses", "17.bin")).Length);
         LegacyNativeHouseRuntime.HousePoll.Clear(); client.MyHouse = null!;
         LegacyNativeHouseRuntime.Load(client);
-        Assert.Single(client.MyHouse!.Furnitures);
+        Assert.Null(client.MyHouse);
+        Assert.Empty(LegacyNativeHouseRuntime.HousePoll);
     }
 
     [Theory]

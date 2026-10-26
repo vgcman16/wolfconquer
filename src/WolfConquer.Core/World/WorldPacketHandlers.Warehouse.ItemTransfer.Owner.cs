@@ -2,10 +2,10 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    private sealed record LegacySashTransferOwner(WorldSession Session, object Identity,
+    private sealed record LegacyWarehouseItemTransferOwner(WorldSession Session, object Identity,
         LegacyNativeGameClientRuntime? Client, LegacyNativePlayerRuntime? Player, KeyValuePair<string, string>[] Fields);
 
-    private static bool TryCaptureLegacySashTransferOwner(WorldPacketHandlerContext context, out LegacySashTransferOwner owner)
+    private static bool TryCaptureLegacyWarehouseItemTransferOwner(WorldPacketHandlerContext context, out LegacyWarehouseItemTransferOwner owner)
     {
         owner = null!;
         if (context.Sessions is not { } sessions || context.Trades is not { } trades ||
@@ -20,16 +20,16 @@ public static partial class WorldPacketHandlers
             var captured = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var field in fields)
                 if (string.IsNullOrEmpty(field.Key) || field.Value is null || !captured.TryAdd(field.Key, field.Value)) return false;
-            if (!HasCoherentLegacySashTrade(context, session, captured) ||
+            if (!HasCoherentLegacyWarehouseTransferTrade(context, session, captured) ||
                 !LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, session)) return false;
             var client = context.Connection.NativeGameClient;
             owner = new(session, identity, client, client?.Player, fields);
-            return IsCurrentLegacySashTransferOwner(context, owner, session) && LegacySashTransferAttributesCurrent(owner);
+            return IsCurrentLegacyWarehouseItemTransferOwner(context, owner, session) && LegacyWarehouseItemTransferAttributesCurrent(owner);
         }
         catch (InvalidOperationException) { return false; }
     }
 
-    private static bool IsCurrentLegacySashTransferOwner(WorldPacketHandlerContext context, LegacySashTransferOwner owner,
+    private static bool IsCurrentLegacyWarehouseItemTransferOwner(WorldPacketHandlerContext context, LegacyWarehouseItemTransferOwner owner,
         WorldSession expected) => context.Sessions is { } sessions && context.Trades is { } trades &&
         !trades.HasConnectionEnded(context.Connection) &&
         LegacyNativeClientPublication.TryCurrent(sessions, context.Connection, expected.Character.Uid, owner.Identity, out var current) &&
@@ -38,7 +38,7 @@ public static partial class WorldPacketHandlers
         (owner.Client is null || owner.Client.PokerPlayer is null && owner.Player is not null && ReferenceEquals(owner.Client.Player, owner.Player) &&
             ReferenceEquals(owner.Player.Owner, owner.Client) && owner.Player.UID == expected.Character.Uid);
 
-    private static bool LegacySashTransferAttributesCurrent(LegacySashTransferOwner owner)
+    private static bool LegacyWarehouseItemTransferAttributesCurrent(LegacyWarehouseItemTransferOwner owner)
     {
         try { return owner.Session.Character.Attributes.SequenceEqual(owner.Fields); }
         catch (InvalidOperationException) { return false; }
@@ -46,7 +46,7 @@ public static partial class WorldPacketHandlers
 
     // Called only under the actual Trades gate. Storage may change an offered
     // graph; final Trade validation owns its abort/refund, not this item-only move.
-    private static bool HasCoherentLegacySashTrade(WorldPacketHandlerContext context, WorldSession session,
+    private static bool HasCoherentLegacyWarehouseTransferTrade(WorldPacketHandlerContext context, WorldSession session,
         IReadOnlyDictionary<string, string> fields)
     {
         var trades = context.Trades!;

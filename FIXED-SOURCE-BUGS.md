@@ -1367,6 +1367,60 @@ This verifies offline Victory integration, not deployment or complete gameplay.
 
 ## Active audit
 
+### FSB-079: Commit all warehouse item moves before publishing success
+
+- Ordinary2561/2562, house-labelled5121/5122 and own-UID10241/10242 previously
+  sent success before unconditional stale-session Store.Set and had no guaranteed
+  durable save. Native Warehouse.AddItem also ignored the advertised60/purchased
+  capacity, and root-only ArrestToken checks could be bypassed by a stored child.
+- Reuse one genuine exclusive/current-owner/recovery/Trade/PIN/Poker/full-graph
+  transaction for all8item mutations, replacing the sash-only implementation,
+  not adding a second save mechanism. Validate exact account/item baselines and
+  replace the complete item image before Store CAS, then release the operation
+  lease before checked success sends. Retain bank withdrawal declared-count0 and
+  physical-bag count1; no successful packet layout/order changed.
+- Deposit counts destination roots: NPC60 or strict saved/live purchased0..300;
+  own-UID aliases share that cap. Reject ArrestToken711624 anywhere in incoming
+  bank closure, not physical bags. Allow safe existing-item withdrawal despite
+  malformed/overfull purchased capacity; do not trap already stored tokens.
+- Root read both complete native warehouse files, actual owners and all proposed
+  postimages/tests. Tests-first4491:9passed/28failed of37,0skipped. First broad64854
+  passed1166/1166,0failed/skipped,17s, including all37new routes/capacity/refusal/
+  retry/current-D13Frame cases plus retained physical bags, Trade/booth and files.
+  Four additional genuine escrow300 composition rows pass in combined95817:
+  offered-root deposit refunds; unrelated withdrawal preserves an unchanged
+  offer's successful exchange. Combined1198/1198,0failed/skipped,13s, retains
+  all41new warehouse/Trade rows, all28house rows and22native-INI rows. Actual
+  terminal counters and individual new-family outcomes were inspected.
+- Limits: one complete item-file cooperating-writer transaction, not SQL,
+  power-loss, global UID, hostile namespace/raw aliases, durable request nonce,
+  outbox/client delivery or complete housing. Actual loaded-house/entry/furniture
+  authority remains required; arbitrary DynamicID/packet labels grant no access.
+  Full clean-public gate, CI and live-client proof remain unaccepted.
+
+### FSB-080: Parse a complete valid house before publishing its owner
+
+- Native/current House.Load published MyHouse/HousePoll/BlockAttackMap before
+  checking complete reads, trusted unchecked counts and silently kept the first
+  duplicate furniture UID. Malformed files could replace previous state and
+  huge declared counts could loop after EOF. Cached entries lacked owner binding.
+- New bounded parser validates exact5byteheader +28byteDBNpc records, level1..6,
+  complete count/length, unique nonzero furniture IDs and ordinary absolute
+  server-selected file before publishing. An immutable constructor owner UID
+  binds cache adoption; invalid state preserves previous client/pool/blocked-map
+  and bytes. No house-entry or warehouse permission is inferred.
+- Safe tests-first40008 measured0passed/5failed,35ms. Truncated headers and extreme
+  counts were deliberately not executed against the old unchecked native loop;
+  all16new rows remain for postproduction verification, none skipped/weakened.
+  Root read actual native/current owner, complete source/test proposal and retained
+  binary goldens, then integrated. Combined95817 passed1198/1198,0failed/skipped,
+  13s, including all28house rows (16new) and the retained exact DBNpc golden.
+  All truncation/count/duplicate/invalid-owner cases preserve prior state; repaired
+  files retry successfully. This verifies the component loader, not login adoption.
+- Required work remains: real authenticated login adoption/house-entry/furniture
+  authority, raw mutable-owner lifetime, atomic saves/house economy, SQL and live
+  client. This component parser is not complete housing or deployed behavior.
+
 ### FSB-078: Persist physical-sash transfers before Store and success delivery
 
 - Actual registered2080 actions7681/7682 send success before unconditional Store

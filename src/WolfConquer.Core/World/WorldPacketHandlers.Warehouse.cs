@@ -42,9 +42,9 @@ public static partial class WorldPacketHandlers
                 $"WorldServer handled LegacyWarehouse {FormatSession(context)} npcId={packet.NpcId} action={packet.Action} itemUid={packet.ItemUid}.")
             .ConfigureAwait(false);
 
-        if (packet.Action is LegacyWarehouseAction.ShashDepositItem or LegacyWarehouseAction.ShashWithdrawItem)
+        if (LegacyWarehouseItemTransferActions.IsMutation(packet.Action))
         {
-            await HandleLegacySashTransferAsync(context, packet, cancellationToken).ConfigureAwait(false);
+            await HandleLegacyWarehouseItemTransferAsync(context, packet, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -66,16 +66,6 @@ public static partial class WorldPacketHandlers
         {
             case LegacyWarehouseAction.ShashShow:
                 await HandleLegacyWarehouseSashShowAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
-                return;
-            case LegacyWarehouseAction.DepositItem:
-            case LegacyWarehouseAction.DepositItem_WH_House:
-            case LegacyWarehouseAction.InventorySashDepositItem:
-                await HandleLegacyWarehouseDepositAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
-                return;
-            case LegacyWarehouseAction.WithdrawItem:
-            case LegacyWarehouseAction.WithdrawItem_WH_House:
-            case LegacyWarehouseAction.InventorySashWithdrawItem:
-                await HandleLegacyWarehouseWithdrawAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
                 return;
             default:
                 await context.Log.WriteLineAsync(
@@ -137,79 +127,6 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
     }
 
-    private static async ValueTask HandleLegacyWarehouseDepositAsync(
-            WorldPacketHandlerContext context,
-            WorldSession session,
-            LegacyWarehousePacket packet,
-            CancellationToken cancellationToken)
-    {
-        if (!CanUseLegacyWarehouse(session, packet.NpcId, packet.Action))
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse deposit {FormatSession(context)} npcId={packet.NpcId} action={packet.Action}; warehouse is not allowed.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var item = session.PlayerItems.InventoryItems.FirstOrDefault(item => item.Uid == packet.ItemUid);
-        if (item is null)
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse deposit {FormatSession(context)} itemUid={packet.ItemUid}; inventory item was not found.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (item.ItemId == LegacyArrestTokenItemId)
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse deposit {FormatSession(context)} itemUid={item.Uid}; arrest tokens cannot be deposited.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (session.PlayerItems.WarehouseItems.Any(warehouseItem => warehouseItem.Uid == item.Uid))
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse deposit {FormatSession(context)} itemUid={item.Uid}; warehouse item already exists.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var warehouseItem = item.WithWarehouseId(packet.NpcId, position: 0);
-        var updated = session with
-        {
-            PlayerItems = MoveInventoryItemToWarehouse(session.PlayerItems, item, warehouseItem),
-        };
-
-        await context.Connection.SendAsync(
-                new MsgItemUsagePacket(
-                    item.Uid,
-                    DwParam: 0,
-                    MsgItemUsageAction.RemoveInventory,
-                    Timestamp: 0,
-                    DwParam2: 0,
-                    DwParam3: 0,
-                    DwParam4: 0).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        await context.Connection.SendAsync(
-                new LegacyWarehousePacket(
-                    packet.NpcId,
-                    packet.Action,
-                    ItemUid: 0,
-                    Capacity: 0,
-                    Items: [warehouseItem]).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacyItemFollowupsAsync(context, warehouseItem, cancellationToken).ConfigureAwait(false);
-
-        context.Sessions?.Set(context.Connection, updated);
-        await context.Log.WriteLineAsync(
-                $"WorldServer handled LegacyWarehouse deposit {FormatSession(context)} npcId={packet.NpcId} itemUid={item.Uid} itemId={item.ItemId}.")
-            .ConfigureAwait(false);
-    }
 
     private static async ValueTask SendLegacyItemFollowupsAsync(
             WorldPacketHandlerContext context,
@@ -268,64 +185,6 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
     }
 
-    private static async ValueTask HandleLegacyWarehouseWithdrawAsync(
-            WorldPacketHandlerContext context,
-            WorldSession session,
-            LegacyWarehousePacket packet,
-            CancellationToken cancellationToken)
-    {
-        if (!CanUseLegacyWarehouse(session, packet.NpcId, packet.Action))
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse withdraw {FormatSession(context)} npcId={packet.NpcId} action={packet.Action}; warehouse is not allowed.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (!HasLegacyInventorySpace(session.PlayerItems, 1))
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse withdraw {FormatSession(context)} itemUid={packet.ItemUid}; inventory is full.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var item = session.PlayerItems.WarehouseItems
-            .FirstOrDefault(item => item.WarehouseId == packet.NpcId && item.Uid == packet.ItemUid);
-        if (item is null)
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped LegacyWarehouse withdraw {FormatSession(context)} itemUid={packet.ItemUid}; warehouse item was not found.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var inventoryItem = item.WithWarehouseId(0, position: 0);
-        var updated = session with
-        {
-            PlayerItems = MoveWarehouseItemToInventory(session.PlayerItems, item, inventoryItem),
-        };
-
-        await context.Connection.SendAsync(
-                LegacyGameItemPacket.FromSnapshotItem(inventoryItem).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        await context.Connection.SendAsync(
-                new LegacyWarehousePacket(
-                    packet.NpcId,
-                    packet.Action,
-                    packet.ItemUid,
-                    Capacity: 0,
-                    Items: []).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        context.Sessions?.Set(context.Connection, updated);
-        await context.Log.WriteLineAsync(
-                $"WorldServer handled LegacyWarehouse withdraw {FormatSession(context)} npcId={packet.NpcId} itemUid={item.Uid} itemId={item.ItemId}.")
-            .ConfigureAwait(false);
-    }
 
     private static bool CanUseLegacyWarehouse(
             WorldSession session,

@@ -219,11 +219,11 @@ public sealed class LegacyNativeItemCounterShellIniTests
             while (workspace is not null && !File.Exists(Path.Combine(workspace.FullName, "WolfConquer.sln")))
                 workspace = workspace.Parent;
             if (workspace is null) throw new InvalidOperationException("Requires a real workspace.");
-            var parent = Path.GetFullPath(Path.Combine(workspace.FullName,
-                ".artifacts", "verification-direct-triple17490-20261015"));
+            // Windows profile APIs retain a legacy path budget even when managed
+            // file APIs can create longer paths. Keep owned fixture names short.
+            var parent = Path.GetFullPath(Path.Combine(workspace.FullName, ".artifacts"));
             NoReparse(parent);
-            _root = Path.Combine(parent,
-                "root-native-item-counter-ini-adapter-goal516-owned-" + Guid.NewGuid().ToString("N"));
+            _root = Path.Combine(parent, "ini-" + Guid.NewGuid().ToString("N"));
             if (File.Exists(_root) || Directory.Exists(_root)) throw new IOException("Owned root exists.");
             Directory.CreateDirectory(_root);
             NoReparse(_root);
@@ -288,6 +288,8 @@ public sealed class LegacyNativeItemCounterShellIniTests
         public void Validate(string path)
         {
             var full = Path.GetFullPath(path);
+            if (full.Length >= 260)
+                throw new IOException("Owned INI path exceeds the Windows profile API path budget.");
             if (!string.Equals(full, path, StringComparison.OrdinalIgnoreCase) ||
                 !full.StartsWith(_root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 throw new IOException("Outside owned fixture root.");
