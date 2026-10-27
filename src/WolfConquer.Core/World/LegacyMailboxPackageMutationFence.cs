@@ -43,15 +43,17 @@ internal static partial class LegacyMailboxPackageMutationFence
     internal static bool CanMutateSession(LegacyMailboxPackageProducer? bound, WorldSession? previous, WorldSession next,
         LegacyOrdinaryAdmissionPlan? admission)
     {
-        if (!LegacyOrdinaryAdmissionMutationFence.CanMutateSession(previous, next, admission)) return false;
+        if (!LegacySessionStorageRoot.TryNormalize(previous?.UsersRoot, out var oldRoot) ||
+            !LegacySessionStorageRoot.TryNormalize(next.UsersRoot, out var nextRoot) ||
+            !LegacyOrdinaryAdmissionMutationFence.CanMutateSession(previous, next, admission)) return false;
         if (bound is not null && (!bound.TryRequireAccountWritable(next.AccountId, out _) ||
             previous is not null && !bound.TryRequireAccountWritable(previous.AccountId, out _))) return false;
         foreach (var owner in Snapshot())
         {
             var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            if (next.UsersRoot is { } nextRoot && string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(nextRoot)), owner.UsersRoot, comparison) &&
+            if (nextRoot is not null && string.Equals(nextRoot, owner.UsersRoot, comparison) &&
                 !owner.TryRequireAccountWritable(next.AccountId, out _)) return false;
-            if (previous?.UsersRoot is { } oldRoot && string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(oldRoot)), owner.UsersRoot, comparison) &&
+            if (previous is not null && oldRoot is not null && string.Equals(oldRoot, owner.UsersRoot, comparison) &&
                 !owner.TryRequireAccountWritable(previous.AccountId, out _)) return false;
         }
         return true;

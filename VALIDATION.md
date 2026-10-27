@@ -1,5 +1,34 @@
 # Publication validation
 
+## Session-root correction and D13 codec — final focused checks passed
+
+The owned public-derived selection 15047 is terminal/reaped **250/250 passed,
+zero failures/skips**. It includes D13 RandomDailyTask codec 71; new ordinary
+Store-root 24 (including five alias/navigation cases) plus genuine mailbox
+recovery 6, **30 new root cases**; retained Store 24, Clan 9, Training 29, Anima 12
+and ClassicTitle 75. All six cases from the latest failed full run pass here.
+This is verification of the matching owned public candidate, not a new full run.
+
+Exact public `5ec4e1f4` [Windows40438330239](https://github.com/vgcman16/wolfconquer/actions/runs/40438330239),
+job121972342308, remains FAILED: 26,776 core passed / 6 failed / 164 exclusions;
+updater 434/434 passed. Restore/build passed; launcher/parsers were not reached.
+Last accepted full source remains `f21e2a11`; new exact-public full CI is pending.
+
+The new root regressions first produced 20 failures / 5 passing controls on prior
+source (25 total). The broader corrected attempt 74510 remains terminal FAILED:
+556 passed / 1 supplied-alias failure / 0 skipped, 557 total, 24m36s. Windows removed
+a trailing dot/space before normalized-only validation. The final raw-input
+preflight plus five added alias/navigation controls corrects that sole failure;
+selection 15047 is the accepted focused successor. Neither earlier run is renamed
+or counted as green.
+
+Invalid supplied roots now reject before Store mutation, persistence callbacks
+or recovery-producer binding, preserving explicit `null` storage-free sessions and
+genuine owner/pending-journal checks (FSB-129). The [2419 codec](docs/D13-RANDOM-DAILY-TASK.md)
+adds no handler, assignment/day/reset state, payment or reward authority. No private
+English catalog/test content is included. Full gameplay, live acceptance,
+distribution and total parity remain unfinished. Earlier evidence below is history.
+
 ## CI fixture correction and explicit D13 profile - focused checks passed
 
 The exact7d6514a3 full [Windows40429173377](https://github.com/vgcman16/wolfconquer/actions/runs/40429173377)

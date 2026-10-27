@@ -31,11 +31,13 @@ internal static partial class LegacyOrdinaryAdmissionMutationFence
 
     internal static bool CanMutateSession(WorldSession? previous, WorldSession next, LegacyOrdinaryAdmissionPlan? admission)
     {
-        if (!ConfiguredSessionWritable(previous) || !ConfiguredSessionWritable(next)) return false;
+        if (!LegacySessionStorageRoot.TryNormalize(previous?.UsersRoot, out var previousUsers) ||
+            !LegacySessionStorageRoot.TryNormalize(next.UsersRoot, out var nextUsers) ||
+            !ConfiguredSessionWritable(previousUsers) || !ConfiguredSessionWritable(nextUsers)) return false;
         foreach (var owner in Snapshot())
-            foreach (var session in new[] { previous, next })
-                if (session is not null && session.AccountId is > 0 and <= uint.MaxValue && session.UsersRoot is { } users &&
-                    string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(users)), owner.Roots.Users, StringComparison.OrdinalIgnoreCase) &&
+            foreach (var (session, users) in new[] { (previous, previousUsers), (next, nextUsers) })
+                if (session is not null && session.AccountId is > 0 and <= uint.MaxValue && users is not null &&
+                    string.Equals(users, owner.Roots.Users, StringComparison.OrdinalIgnoreCase) &&
                     owner.IsPending((uint)session.AccountId) &&
                     (admission is null || !admission.MatchesPendingOwner(owner, (uint)session.AccountId))) return false;
         return true;

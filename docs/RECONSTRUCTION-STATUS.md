@@ -3,6 +3,29 @@
 Updated2026-10-26. Current target: Chinese client7899 / `VisibleDx8D13`.
 This is a component checklist, not measured completion or a release claim.
 
+## Latest verified components — complete source check still pending
+
+The matching owned public-derived candidate passes **250/250 focused cases**,
+zero failures/skips (selection 15047): 71 codec cases, 30 new root cases and 149
+retained Store/gameplay controls. This does not replace full public CI.
+Exact `5ec4e1f4` Windows40438330239 remains failed (26,776/6/164; updater 434 passed).
+New exact-public full verification is pending; last accepted full source is
+`f21e2a11`. [Receipt history and scope](../VALIDATION.md).
+
+- [x] Supplied session-root validation rejects invalid syntax and recovery-root
+  mismatches before mutation, callbacks or producer binding. Explicit `null` memory
+  sessions, valid relative/drive-relative navigation, UNC volume labels and real
+  pending-owner fences remain covered (FSB-129).
+- [x] D13 RandomDailyTask 2419 known-schema reader/writer: 71/71 focused codec cases.
+  [Schema and limits](D13-RANDOM-DAILY-TASK.md). No daily-task handler, durable
+  assignment/payment/reward owner or Chinese 7935 activation is added.
+
+Private English catalogs/tests are excluded from this public batch. No new live,
+distribution or full-parity acceptance is claimed. The checklist/evidence below
+is retained history; incomplete gameplay, SQL, English and download items remain open.
+
+## Retained component checklist and earlier focused evidence
+
 Latest focused successor:314/314 pass, including20 explicit D13 fixture cases.
 Saved-login preservation, genuine smoke owners and PIN/quest fixtures replace
 the fifteen failures in the prior7d6514a3 full run. That run remains failed;

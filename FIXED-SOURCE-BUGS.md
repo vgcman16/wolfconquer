@@ -4,6 +4,23 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Session-root fix and D13 codec — focused acceptance, full CI pending
+
+Owned public-derived selection 15047 passed 250/250, zero failures/skips, including
+30 new root cases and 71 D13 RandomDailyTask codec cases plus retained controls.
+The prior new 25-case baseline exposed 20 failures / 5 passing controls. Broader 74510
+stays failed 556/1/0 (557 total, 24m36s); final raw-alias validation and five added
+navigation cases correct its sole failure. See FSB-129 and [validation](VALIDATION.md).
+
+Exact public `5ec4e1f4` Windows40438330239/job121972342308 remains FAILED:
+26,776 core passed / 6 failed / 164 excluded; updater 434/434 passed, build passed,
+launcher/parsers not reached. All six failed cases pass in the focused successor,
+but no newer full-source acceptance follows. Last accepted full source remains
+`f21e2a11`; a new exact-public full gate is pending. The codec is a protocol
+prerequisite, not a new gameplay authority or separately numbered source-bug fix.
+Private English catalogs/tests are not included. Historical sections below do
+not establish a newer live, distribution or full-parity result.
+
 ## Current update - focused verification, public full gate pending
 
 Clean public-derived source now passes250/250 focused controls after complete
@@ -297,6 +314,36 @@ superseded by this exact accepted run, not silently reclassified as passes.
 No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
+
+### FSB-129: Validate supplied session roots before fences and recovery binding
+
+**Source/location:** `LegacyOrdinaryAdmissionMutationFence` and configured-domain
+checks; `LegacyMailboxPackageMutationFence`/StoreScope; `WorldSessionStore` mailbox
+recovery admission; shared `LegacySessionStorageRoot`.
+
+**Defect:** empty/whitespace/malformed UsersRoot could be classified as no storage,
+then normalized only after retained owner or bound-producer short circuits. This
+made rejection order-dependent and caused Path.GetFullPath(empty) exceptions.
+Recovery could bind a producer before refusing missing/mismatched saved routes.
+The first correction also checked only normalized Windows components, allowing
+normalization to erase a supplied trailing-dot/space alias.
+
+**Corrected invariant:** null alone retains ordinary storage-free semantics.
+Invalid supplied syntax rejects before callbacks, persistence or publication;
+both bool fences return `false` and Store scope rejects its invalid precondition.
+Recovery requires a nonnull, fully-qualified normalized match to the genuine
+producer's UsersRoot before binding. Windows raw and normalized components are
+checked while preserving real '.'/'..', relative/drive-relative and UNC volume
+semantics. No owner registry is cleared, fake authority supplied or journal fault
+converted to allowed absence. The six memory-only legacy outcomes now use
+explicit `null`; successful packets and behavioral assertions remain unchanged.
+
+**Verification:** new 25-case prior-source baseline 20 failed / 5 controls passed.
+Broader 74510 remains failed 556/1/0; final owned public-derived 15047 passes 250/250,
+zero failures/skips, including all 30 new root cases and all six former full-CI
+failures. The total includes 71 separate codec cases and retained controls; it is
+not 250 root tests. New exact-public full CI remains pending. This proves the
+focused Store/admission invariants, not live gameplay, full parity or crash safety.
 
 ### FSB-128: Explicit D13 synthetic fixtures select the catalogued class
 

@@ -180,7 +180,7 @@ public sealed class LegacyClanHandlerTests
         var requesterConnection = CreateConnection(requesterSent);
         var leaderConnection = CreateConnection(leaderSent);
         var requesterSession = CreateSession(
-            usersRoot: string.Empty,
+            usersRoot: null,
             money: 0,
             clanDonation: 0,
             uid: 1_293_600,
@@ -188,7 +188,7 @@ public sealed class LegacyClanHandlerTests
             clanId: 0,
             clanRank: 0);
         var leaderSession = CreateSession(
-            usersRoot: string.Empty,
+            usersRoot: null,
             money: 1_000,
             clanDonation: 500,
             uid: 1_293_601,
@@ -228,9 +228,9 @@ public sealed class LegacyClanHandlerTests
         var leaderSent = new List<byte[]>();
         var requesterConnection = CreateConnection(requesterSent);
         var leaderConnection = CreateConnection(leaderSent);
-        var requesterSession = CreateSession(string.Empty, money: 0, clanDonation: 0);
+        var requesterSession = CreateSession(null, money: 0, clanDonation: 0);
         var leaderSession = CreateSession(
-            usersRoot: string.Empty,
+            usersRoot: null,
             money: 1_000,
             clanDonation: 500,
             uid: 1_293_601,
@@ -493,7 +493,7 @@ public sealed class LegacyClanHandlerTests
     }
 
     private static WorldSession CreateSession(
-        string usersRoot,
+        string? usersRoot,
         long money,
         ulong clanDonation,
         long uid = 1_293_600,

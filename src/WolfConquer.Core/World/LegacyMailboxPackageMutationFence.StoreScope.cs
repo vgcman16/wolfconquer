@@ -8,10 +8,17 @@ internal static partial class LegacyMailboxPackageMutationFence
 
     internal static IDisposable EnterStoreScope(LegacyMailboxPackageProducer? bound, params WorldSession?[] sessions)
     {
+        var roots = new List<string>();
+        foreach (var session in sessions)
+        {
+            if (!LegacySessionStorageRoot.TryNormalize(session?.UsersRoot, out var root))
+                throw new InvalidOperationException("sessionStorageRootInvalid");
+            if (root is not null) roots.Add(root);
+        }
         var owners = Snapshot();
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        var needed = bound is not null || sessions.Any(session => session?.UsersRoot is { } root && owners.Any(owner =>
-            string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)), owner.UsersRoot, comparison)));
+        var needed = bound is not null || roots.Any(root => owners.Any(owner =>
+            string.Equals(root, owner.UsersRoot, comparison)));
         if (!needed) return new StoreScope(false);
         // All Store entry points, including the native identity callback owner,
         // enter here BEFORE a connection gate. Never invert that order through

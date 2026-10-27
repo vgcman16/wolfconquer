@@ -51,12 +51,12 @@ internal static partial class LegacyOrdinaryAdmissionMutationFence
                 throw new IOException("ordinaryAdmissionRecoveryRequired:pendingConfiguredJournalWrite");
     }
 
-    private static bool ConfiguredSessionWritable(WorldSession? session)
+    // Receives only a successfully normalized root; null alone means storage-free.
+    private static bool ConfiguredSessionWritable(string? users)
     {
-        if (session?.UsersRoot is not { } users || string.IsNullOrWhiteSpace(users)) return true;
-        var normalized = Path.TrimEndingDirectorySeparator(Path.GetFullPath(users));
+        if (users is null) return true;
         string? actual;
-        lock (DomainGate) ConfiguredUsers.TryGetValue(normalized, out actual);
+        lock (DomainGate) ConfiguredUsers.TryGetValue(users, out actual);
         return actual is null || !LegacyTradeJournal.HasPending(actual);
     }
 }

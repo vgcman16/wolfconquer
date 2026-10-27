@@ -379,7 +379,7 @@ public sealed class VisibleDx8D13TrainingVitalityProtectPacketTests
             ["DragonTime"] = "1",
             ["RetreatedDragon"] = "9-90|10-100|11-110|12-120",
         };
-        var original = CreateSession(1_293_600, string.Empty, "fixture", attributes);
+        var original = CreateSession(1_293_600, null, "fixture", attributes);
         GetSessions(handler).Set(connection, original);
 
         await handler.HandleFrameAsync(connection, ReadFrame(frameHex));
@@ -424,7 +424,7 @@ public sealed class VisibleDx8D13TrainingVitalityProtectPacketTests
             attributes["RetreatedDragon"] = retreatedPower;
         }
 
-        var original = CreateSession(1_293_600, string.Empty, "fixture", attributes);
+        var original = CreateSession(1_293_600, null, "fixture", attributes);
         GetSessions(handler).Set(connection, original);
         var request = new VisibleDx8D13TrainingVitalityProtectPacket(
             (ushort)VisibleDx8D13TrainingVitalityProtectAction.CancelRetreat,
@@ -592,7 +592,7 @@ public sealed class VisibleDx8D13TrainingVitalityProtectPacketTests
 
     private static WorldSession CreateSession(
         long uid,
-        string usersRoot,
+        string? usersRoot,
         string sourceFile,
         IReadOnlyDictionary<string, string> attributes)
     {

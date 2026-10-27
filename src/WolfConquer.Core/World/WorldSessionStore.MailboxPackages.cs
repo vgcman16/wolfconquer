@@ -23,6 +23,11 @@ public sealed partial class WorldSessionStore
     {
         admitted = null;
         reason = "mailboxClaimRecoveryRequired:packageReadOnlyAdmission";
+        var users = candidate.UsersRoot;
+        if (users is null || !LegacySessionStorageRoot.TryNormalize(users, out var normalizedUsers) || normalizedUsers is null ||
+            !Path.IsPathFullyQualified(users) || !string.Equals(normalizedUsers, producer.UsersRoot,
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        { reason = "sessionStorageRootInvalid"; return false; }
         BindMailboxPackages(producer);
         using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(producer, candidate);
         var gate = _connectionGates.GetValue(connection, static _ => new object());
