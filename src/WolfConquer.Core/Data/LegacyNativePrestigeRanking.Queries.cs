@@ -81,11 +81,16 @@ internal partial class LegacyNativePrestigeRanking
 	{
 		lock (SynRoot)
 		{
-			var ranks = Ranks;
-			foreach (Rank value in ranks.Values)
+			if (UID == 0)
+				throw new InvalidOperationException("Prestige removal requires a positive character UID.");
+			var sources = CapturePrestigeRefreshRegistry();
+			var prepared = new List<PreparedPrestigeRank>();
+			foreach (var source in sources)
 			{
-				value.Remove(UID);
+				var change = PreparePrestigeRankChange(source, UID, replacement: null);
+				if (change is not null) prepared.Add(change);
 			}
+			foreach (var change in prepared) PublishPrestigeRank(change);
 		}
 	}
 

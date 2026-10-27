@@ -5,82 +5,49 @@ internal partial class LegacyNativePrestigeRanking
     internal static void PublishPrestigeEntry(Entry entry, bool includeClass)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        // Keep the existing low-score no-op, including its separate stale-low issue.
-        if (entry.TotalPoints < 20_000)
-        {
-            return;
-        }
-
         lock (SynRoot)
         {
-            if (entry.UID == 0 || (uint)entry.type is < 1 or > 11 || Ranks is null)
+            var uid = entry.UID;
+            var category = entry.type;
+            if (uid == 0 || (uint)category is < 1 or > 11)
             {
-                throw new InvalidOperationException("Prestige publication requires a valid entry and ranking graph.");
+                throw new InvalidOperationException("Prestige publication requires a valid entry identity and category.");
             }
 
-            var ranks = Ranks;
-            var world = RequirePrestigePublicationRank(ranks, Type.World);
-            var classRank = includeClass ? RequirePrestigePublicationRank(ranks, entry.type) : null;
-            var preparedClass = classRank is null ? null : PreparePrestigePublication(classRank, entry);
-            var preparedWorld = PreparePrestigePublication(world, entry);
-
-            // Every lookup, validation, allocation, sort and champion selection has
-            // succeeded. Only reference assignments remain under the shared gate.
-            if (preparedClass is not null)
+            var sources = CapturePrestigeRefreshRegistry();
+            RequirePrestigeRefreshOwner(sources, Type.World);
+            if (includeClass)
             {
-                PublishPrestigeRank(preparedClass);
+                RequirePrestigeRefreshOwner(sources, category);
             }
-            PublishPrestigeRank(preparedWorld);
-        }
-    }
 
-    private static Rank RequirePrestigePublicationRank(
-        LegacyNativeDbSafeDictionary<Type, Rank> ranks, Type category)
-    {
-        if (!ranks.TryGetValue(category, out var rank) || rank is null ||
-            rank._Type != category || rank.Items is null || rank.MaxItems <= 0)
-        {
-            throw new InvalidOperationException("Prestige publication requires a complete ranking owner.");
-        }
-
-        ValidatePrestigePublicationItems(rank.Items);
-        return rank;
-    }
-
-    private static void ValidatePrestigePublicationItems(IReadOnlyDictionary<uint, Entry> items)
-    {
-        foreach (var pair in items)
-        {
-            if (pair.Value is null || pair.Key == 0 || pair.Value.UID != pair.Key)
+            var eligible = entry.TotalPoints >= 20_000;
+            var prepared = new List<PreparedPrestigeRank>(sources.Length);
+            foreach (var source in sources)
             {
-                throw new InvalidOperationException("Prestige publication found an invalid ranking identity.");
+                var retain = eligible && (source.Category == Type.World ||
+                    (includeClass && source.Category == category));
+                var change = PreparePrestigeRankChange(source, uid, retain ? entry : null);
+                if (change is not null)
+                {
+                    prepared.Add(change);
+                }
+            }
+
+            // All affected dictionaries and champions are ready. Publication only
+            // stores references; the captured physical Rank owners remain in place.
+            foreach (var change in prepared)
+            {
+                PublishPrestigeRank(change);
             }
         }
     }
 
-    private static PreparedPrestigeRank PreparePrestigePublication(Rank rank, Entry entry)
+    private static void RequirePrestigeRefreshOwner(PrestigeRankSource[] sources, Type category)
     {
-        // Replacing an existing key keeps its prior position; adding appends it.
-        // Stable OrderByDescending/Take retains valid AddItem tie/cap semantics.
-        var candidates = new Dictionary<uint, Entry>(rank.Items, rank.Items.Comparer)
+        if (!sources.Any(source => source.Category == category))
         {
-            [entry.UID] = entry,
-        };
-        ValidatePrestigePublicationItems(candidates);
-        var items = candidates.OrderByDescending(pair => pair.Value.TotalPoints)
-            .Take(rank.MaxItems)
-            .ToDictionary(pair => pair.Key, pair => pair.Value);
-        return new PreparedPrestigeRank(rank, items, items.Values.First());
+            throw new InvalidOperationException("Prestige publication requires its world and included class owners.");
+        }
     }
-
-    private static void PublishPrestigeRank(PreparedPrestigeRank prepared)
-    {
-        prepared.Owner.Items = prepared.Items;
-        prepared.Owner.BestOfClass = prepared.Champion;
-    }
-
-    private sealed record PreparedPrestigeRank(
-        Rank Owner,
-        Dictionary<uint, Entry> Items,
-        Entry Champion);
 }

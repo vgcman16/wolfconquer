@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "Sanitized legacy-server parity: client compatibility, corrected emulator defects (project planning)",
-  "reviewedAt": "2026-10-26",
+  "reviewedAt": "2026-10-27",
   "estimate": {
     "percent": 55,
     "low": 40,
@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Last accepted full sourcef21e2a11 passed Windows40383185044. Earlier ef868fa8/c15dd464 failed compilation only. Windows40420961276 was canceled for unsafe native-probe PID cleanup. Its retained-handle correction now has11 public-derived focused passes; final READY actors also pass in a clean private17-case selection. A new exact-public full gate is pending. Client freezes, English, SQL and distribution remain open."
+      "detail": "Accepted full source e7d85b70063d698fad3ea15c77bbe441bf383850 passed Windows40474236546: core 27404 passed, 0 failed, 164 existing cases not executed; updater 434/434, launcher 57/57, synthetic parser gates 20+13, all eight steps exit 0. Receipt20261027T083328942Z-73c6dd50 spans 2026-10-27T08:33:29.0777429Z to 2026-10-27T09:16:49.7448393Z. Newer prestige refresh/rank mutation and welcome wording changes have public-derived focused 843/843 proof only; their own exact-source full gate is not yet accepted. Current public-build live-client acceptance, client-freeze resolution, complete English, SQL and distribution remain open."
     },
     {
       "id": "english",

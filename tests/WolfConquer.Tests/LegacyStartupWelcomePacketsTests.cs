@@ -59,10 +59,10 @@ public sealed class LegacyStartupWelcomePacketsTests
         Assert.Equal(
         [
             ((byte)LegacyStaticGuiMode.Body, "Welcome to TestSrv."),
-            ((byte)LegacyStaticGuiMode.Body, "- Anti-cheat protection is active. Do not use cheat tools."),
+            ((byte)LegacyStaticGuiMode.Body, "- Please avoid cheats and report reproducible bugs."),
             ((byte)LegacyStaticGuiMode.Body, "- Never share your account information with anyone."),
-            ((byte)LegacyStaticGuiMode.Body, "- We sell server builds for multiple versions. Contact staff if needed."),
-            ((byte)LegacyStaticGuiMode.Footer, "Do not sell items outside the game. Thank you. TestSrv`s staff. ")
+            ((byte)LegacyStaticGuiMode.Body, "- Development build: gameplay and English are incomplete."),
+            ((byte)LegacyStaticGuiMode.Footer, "Thank you for testing TestSrv.")
         ], staticMessages);
         Assert.True(LegacyNpcReplyPacket.TryParse(ReadFrame(frames[^1]), out var footer));
         Assert.Equal((byte)LegacyStaticGuiMode.Footer, footer.OptionId);

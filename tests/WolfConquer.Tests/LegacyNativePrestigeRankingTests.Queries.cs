@@ -58,7 +58,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
     }
 
     [Fact]
-    public void GlobalRemoveUsesLiveRankValuesAndLeavesStaleBestOfAndSafeDictionaryCache()
+    public void GlobalRemoveUsesActualRankValuesRefreshesChampionAndPreservesTheEscapedCacheAndItems()
     {
         using var state = new State();
         Ranking.Create();
@@ -68,12 +68,14 @@ public sealed partial class LegacyNativePrestigeRankingTests
         var replacement = new Ranking.Rank(Ranking.Type.Ninja) { MaxItems = 30 };
         var live = Entry();
         replacement.AddItem(live);
+        var escaped = replacement.Items;
         Ranking.Ranks[Ranking.Type.Ninja] = replacement;
         Assert.Same(cached, Ranking.Ranks.GetValues());
         Ranking.Remove(41);
         Assert.Empty(replacement.Items);
         Assert.Single(old.Items);
-        Assert.Same(live,replacement.BestOfClass);
+        Assert.Null(replacement.BestOfClass);
+        Assert.Same(live, Assert.Single(escaped).Value);
         Assert.Same(cached,Ranking.Ranks.GetValues());
     }
 

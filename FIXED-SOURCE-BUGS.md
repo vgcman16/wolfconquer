@@ -4,7 +4,21 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Current focused qualification and accepted prior full source
+## Current retained-rank qualification; prior full CI accepted
+
+Prestige refresh and standalone/global rank mutations now retire obsolete same-UID
+memberships and prepare admitted dictionaries/champions before publication
+(FSB-137..138). Public-derived843/843 focused checks pass, including every one of
+the489 tests-only baseline names (previously133 failed/356 passed). The three
+shorter startup messages preserve all11 frames. See [rank refresh](docs/PRESTIGE-RANK-REFRESH.md).
+
+Accepted prior sourcee7d85b70063d698fad3ea15c77bbe441bf383850 passed
+Windows40474236546: core27,404 passed/164 existing exclusions/0 failed,
+updater434, launcher57, synthetic parsers20+13; all eight stages exit0.
+Receipt20261027T083328942Z-73c6dd50 finished2026-10-27T09:16:49.7448393Z.
+This newer rank/wording source needs its own full gate. Runtime adoption,
+CheckReborn/remaining queries, crash recovery and live-client stability remain open.
+## Historical client/effect focused qualification
 
 Prestige client/effect preparation plus wardrobe-save ownership passed735/735
 public-derived and740/740 private focused checks, zero failures/skips. Baselines
@@ -13,6 +27,78 @@ The prior loader/Save source42a1116b passed Windows40466127994: core27,367 passe
 164 existing exclusions, updater434, launcher57 and synthetic parsers20+13; all
 eight stages exit0. This new source still needs its own exact-public full gate.
 Older status sections retain their historical outcomes.
+
+### FSB-138: Prepare standalone and global prestige rank mutations before stores
+
+**Source:** `LegacyNativePrestigeRanking.Rank.cs` AddItem/Remove,
+`PreparedRanks.cs`, and only global Remove in `Queries.cs`.
+
+**Defects:** AddItem/Remove changed escaped dictionaries before fallible sorting,
+could leave an insertion/deletion prefix on malformed tails, and retained stale
+champions. AddItem's finally could invoke a native diagnostic after dirty output.
+Global removal changed earlier owners before a later owner failed. Low scores
+could bypass the shared gate and complete owner admission.
+
+**Correction:** admit complete physical owners and rows, including capped tails,
+positive matching raw UID keys and usable caps. Detached ranks require no global
+registry; global removal scans actual present owners, not cached GetValues.
+Validate every affected global owner and prepare every dictionary/champion before
+reference stores. Preserve escaped maps, Entry/point identities, stable ties,
+positive configured caps and valid sparse World/class mirrors/shared maps. Refresh
+the targeted champion even when old raw deletion left it absent from Items;
+genuine absence remains a no-op without healing unrelated stale champions.
+Nonpositive caps refuse without native logging; low and eligible operations both
+require the real shared gate. No new Entry.Class/text/Points matching rule is added.
+
+**Verification:** shared tests-only E7 baseline was 133 failed/356 passed/0 skipped
+(489 total). The corrected public-derived selection passed 843/843, zero failures/
+skips, including every one of those 489 baseline names. Tests retain exact threshold,
+cap/tie/Entry aliases, detached and sparse owners, malformed late owners/tails,
+historical champion-only state, immutable escaped maps, actual cache identity,
+null-gate and owned native-diagnostic controls. Other ranking families' successful
+removal/hash metrics and CheckReborn assertions remain unchanged.
+
+This is retained-cache preparation safety under cooperating SynRoot users, not
+an uncapped leaderboard, whole concurrent snapshot or crash/persistence transaction.
+Create, CheckReborn and other query/diagnostic paths remain unchanged/open. The
+current correction has no exact-source full CI yet; accepted E7 Windows40474236546
+predates it. No dynamic immutable-catalog refresh, client or deployment proof.
+
+### FSB-137: Retire obsolete prestige memberships during coherent refresh
+
+**Source:** `LegacyNativePrestigeRanking.Publication.cs` and
+`Publication.Registry.cs`, consumed by LegacyNativeGameClientRuntime.CreatePrestigePoints.
+
+**Defects:** the below-20,000 early return retained an old eligible same-UID Entry
+and champion after its score fell. Eligible class migration or the existing
+World-only exclusion left the UID in its former class, exposing stale ranks and
+potentially persisting the obsolete class row.
+
+**Correction:** under SynRoot, admit the actual present registry before treating
+absence as permission. Require World and an included target class; validate real
+owners, caps, complete UID maps and cross-class uniqueness without inventing
+missing buckets. At 20,000 or more, prepare World/current included class and remove
+that UID from other present classes. Below threshold, prepare removal everywhere.
+A target UID retained only by BestOfClass is still affected; select actual survivors
+or null. Publish all prepared rank references before the caller commits client
+points, Entry, physical perfection and genuine guild-member fields. Keep source
+GetIndex/exclusion decisions, stable replacement ties and real Entry aliases.
+
+**Verification:** the combined tests-only E7 baseline was 133 failed/356 passed/
+0 skipped (489 total); corrected public-derived qualification passed 843/843,
+zero failures/skips, and all 489 baseline names pass. Genuine client controls
+cover exact 0/19,999 decline, next/null champions, eligible class and literal
+10000..10002 World-only migration, sparse/shared-map mirrors, exact threshold,
+stable ties/caps, no invented backfill and corrupt late-state refusal before any
+client/rank/perfection/guild output changes. This is shared batch evidence, not
+a separate 843-case count for each defect entry.
+
+The immutable saved WorldDataCatalog.PrestigeRanks projection is separate and is
+not dynamically refreshed here; GenericRanking/Viewer and other query/reborn paths
+remain open. Discarded candidates cannot be backfilled from an uncapped owner
+that does not exist. No new packet layout or class-eligibility rule, crash-safe
+transaction, runtime adoption, live-client or full-parity claim is made. Current
+source still needs its own full CI; accepted E7 Windows40474236546 is prior evidence.
 
 ### FSB-136: Require physical wardrobe ownership at item-save consumption
 

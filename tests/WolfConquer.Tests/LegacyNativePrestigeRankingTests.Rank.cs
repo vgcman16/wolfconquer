@@ -28,18 +28,23 @@ public sealed partial class LegacyNativePrestigeRankingTests
     [Theory]
     [InlineData(0u)]
     [InlineData(19999u)]
-    public void BelowTwentyThousandDoesNotReplaceRemoveSortOrChangeBestOf(uint points)
+    public void BelowTwentyThousandRemovesTheSameUidAndClearsTheLastChampionWithoutMutatingEscapedItems(uint points)
     {
         var rank = new Ranking.Rank(Ranking.Type.Ninja) { MaxItems = 1 };
         var prior = Entry();
         rank.AddItem(prior);
         var escaped = rank.Items;
         rank.AddItem(Entry(41, points));
-        Assert.Same(prior, rank.Items[41]);
-        Assert.Same(prior, rank.BestOfClass);
-        Assert.Same(escaped, rank.Items);
-        Assert.Throws<NullReferenceException>(() => rank.AddItem(null!));
-        Assert.Same(prior, rank.BestOfClass);
+        Assert.Empty(rank.Items);
+        Assert.Null(rank.BestOfClass);
+        Assert.NotSame(escaped, rank.Items);
+        Assert.Same(prior, Assert.Single(escaped).Value);
+        var empty = rank.Items;
+        rank.AddItem(Entry(99, points));
+        Assert.Same(empty, rank.Items); // A genuinely absent low UID remains a no-op.
+        Assert.Throws<ArgumentNullException>(() => rank.AddItem(null!));
+        Assert.Same(empty, rank.Items);
+        Assert.Null(rank.BestOfClass);
     }
 
     [Fact]
@@ -54,7 +59,8 @@ public sealed partial class LegacyNativePrestigeRankingTests
         var escaped = rank.Items;
         var replacement = Entry(1,uint.MaxValue);
         rank.AddItem(replacement);
-        Assert.Same(replacement, escaped[1]);
+        Assert.Same(rows[0], escaped[1]);
+        Assert.Equal(20_000u, rows[0].TotalPoints);
         Assert.NotSame(escaped, rank.Items);
         Assert.Equal(new uint[] {3,1,2}, rank.Items.Keys);
         replacement.Name = "live";
@@ -62,7 +68,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
     }
 
     [Fact]
-    public void RemoveMissingDoesNotSortAndPresentRemovalKeepsTheStaleNativeBestOfAlias()
+    public void RemoveMissingIsAnExactNoOpAndPresentRemovalRefreshesNextThenNullChampion()
     {
         var rank = new Ranking.Rank(Ranking.Type.Ninja) { MaxItems = 3 };
         var best = Entry(41,40000);
@@ -74,38 +80,47 @@ public sealed partial class LegacyNativePrestigeRankingTests
         Assert.Same(escaped, rank.Items);
         rank.Remove(41);
         Assert.NotSame(escaped, rank.Items);
-        Assert.False(escaped.ContainsKey(41));
-        Assert.Same(best, rank.BestOfClass); // Remove intentionally never refreshes this cache.
+        Assert.Same(best, escaped[41]);
+        Assert.Same(second, rank.BestOfClass);
         Assert.Same(second, Assert.Single(rank.Items).Value);
+        var secondEscaped = rank.Items;
+        rank.Remove(42);
+        Assert.Empty(rank.Items);
+        Assert.Null(rank.BestOfClass);
+        Assert.Same(second, Assert.Single(secondEscaped).Value);
     }
 
     [Fact]
-    public void RemoveSortFaultPublishesDeletionButDoesNotReplaceDictionaryOrBestOf()
+    public void RemoveMalformedTailRefusesWithoutDeletionDictionaryReplacementOrChampionMutation()
     {
         var rank = new Ranking.Rank(Ranking.Type.Ninja) { MaxItems = 3 };
         var best = Entry();
         rank.AddItem(best);
         rank.Items.Add(77, null!);
         var escaped = rank.Items;
-        Assert.Throws<NullReferenceException>(() => rank.Remove(41));
+        Assert.Throws<InvalidOperationException>(() => rank.Remove(41));
         Assert.Same(escaped, rank.Items);
-        Assert.False(escaped.ContainsKey(41));
+        Assert.Same(best, escaped[41]);
         Assert.Same(best, rank.BestOfClass);
         Assert.Null(escaped[77]);
     }
 
     [Fact]
-    public void AddSortFaultStillRunsFinallyAndPublishesFirstExistingEntryAsBestOf()
+    public void AddMalformedTailRefusesWithoutInsertingTheCandidateOrSelectingAPrefixChampion()
     {
         var rank = new Ranking.Rank(Ranking.Type.Ninja) { MaxItems = 3 };
         var first = Entry(1,20000);
         rank.Items.Add(1, first);
         rank.Items.Add(2, null!);
+        var sentinel = Entry(99, 60_000);
+        rank.BestOfClass = sentinel;
         var escaped = rank.Items;
         var inserted = Entry(3,50000);
-        Assert.Throws<NullReferenceException>(() => rank.AddItem(inserted));
+        Assert.Throws<InvalidOperationException>(() => rank.AddItem(inserted));
         Assert.Same(escaped, rank.Items);
-        Assert.Same(inserted, escaped[3]);
-        Assert.Same(first, rank.BestOfClass); // Finally reads unsorted still-live dictionary.
+        Assert.Equal(new uint[] { 1, 2 }, escaped.Keys);
+        Assert.Same(first, escaped[1]);
+        Assert.Null(escaped[2]);
+        Assert.Same(sentinel, rank.BestOfClass);
     }
 }

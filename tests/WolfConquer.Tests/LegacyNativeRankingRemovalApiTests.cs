@@ -46,14 +46,41 @@ public sealed class LegacyNativeRankingRemovalApiTests
 
     [Theory]
     [InlineData(0)] [InlineData(1)] [InlineData(2)]
-    public void PrestigeRemovalUsesOneLookupAndRetainsValidMissingOrSortedCappedSemantics(int mode)
+    public void PrestigeRemovalRetainsValidMissingOrSortedCappedSemanticsWithoutMutatingEscapedItems(int mode)
     {
         var probes = new RemovalHashProbes();
         var rank = new Prestige.Rank(Prestige.Type.Ninja) { MaxItems = 2 };
         rank.Items = Book(probes, mode,
             new Prestige.Entry { UID = 3, TotalPoints = 10 }, new Prestige.Entry { UID = 42, TotalPoints = 20 },
             new Prestige.Entry { UID = 1, TotalPoints = uint.MaxValue }, new Prestige.Entry { UID = 2, TotalPoints = 10 });
-        Verify(rank.Items, () => rank.Items, rank.Remove, probes, mode);
+        VerifyPrestige(rank, mode);
+    }
+
+    private static void VerifyPrestige(Prestige.Rank rank, int mode)
+    {
+        var original = rank.Items;
+        var initial = original.ToArray();
+        var oldChampion = initial.LastOrDefault().Value;
+        rank.BestOfClass = oldChampion;
+        uint uid = mode == 2 ? 42u : 99u;
+        rank.Remove(uid);
+        // Prestige now validates the complete owner and prepares a private map.
+        // The other three families retain their separate one-lookup assertion.
+        Assert.Equal(initial.Select(pair => pair.Key), original.Keys);
+        foreach (var pair in initial) Assert.Same(pair.Value, original[pair.Key]);
+        if (mode == 2)
+        {
+            Assert.NotSame(original, rank.Items);
+            Assert.Equal(new uint[] { 1, 3 }, rank.Items.Keys);
+            Assert.Same(initial.Single(pair => pair.Key == 1).Value, rank.BestOfClass);
+        }
+        else
+        {
+            Assert.Same(original, rank.Items);
+            Assert.Same(oldChampion, rank.BestOfClass);
+        }
+        foreach (var pair in rank.Items)
+            Assert.Same(initial.Single(saved => saved.Key == pair.Key).Value, pair.Value);
     }
 
     private static Dictionary<uint, T> Book<T>(RemovalHashProbes probes, int mode,

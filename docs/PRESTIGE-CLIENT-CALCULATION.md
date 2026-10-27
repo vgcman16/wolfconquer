@@ -8,8 +8,10 @@ Qualification: tests-only old42a baseline was 35 failed/207 passed/zero skipped
 (242 total). The wardrobe-save caller baseline was two failed/six passed.
 Corrected public-derived Release passed735/735; independent private Release
 passed740/740, including five compact-English controls. All baseline names pass.
-These are focused offline checks. The new exact-public full Windows gate is pending;
-preceding42a1116b passed Windows40466127994 as recorded in the status documents.
+These focused checks were followed by accepted exact E7 Windows40474236546:
+core27,404 passed/164 existing exclusions, updater434, launcher57 and synthetic
+parsers20+13, all eight stages exit0. The later [rank refresh](PRESTIGE-RANK-REFRESH.md)
+has its own focused qualification and still needs a new exact-source full gate.
 
 ## Prepare before publishing
 
@@ -90,6 +92,7 @@ This is preparation and rejection/output safety within the managed owner model.
 It establishes no authenticated runtime adoption, complete gameplay authority,
 whole concurrent snapshot, lock-free reader atomicity, crash/database transaction,
 restart recovery, deployment, rendered client behavior, or full client parity.
-Public mutable inputs do not all share the rank gate. Low-score same-UID stale rank
-retention and other ranking APIs remain separate. Exact-source full checks and
+Public mutable inputs do not all share the rank gate. Same-UID retained-rank
+refresh is now covered by [FSB-137..138](PRESTIGE-RANK-REFRESH.md); CheckReborn
+and remaining query APIs stay separate. Exact-source full checks and
 live acceptance remain separate evidence; no running server/client was changed.

@@ -3,7 +3,29 @@
 Updated2026-10-27. Current target: Chinese client7899 / `VisibleDx8D13`.
 This is a component checklist, not measured completion or a release claim.
 
-## Latest prestige calculation and wardrobe ownership qualification
+## Latest retained-rank refresh qualification
+
+[Retained-rank refresh](PRESTIGE-RANK-REFRESH.md) now removes obsolete same-UID
+World/class memberships after score declines or class changes. Standalone/global
+mutations prepare validated maps and champions before stores. FSB-137..138 record
+the safety boundary. Public-derived843/843 focused checks pass, including all489
+baseline names (formerly133 failed/356 passed). Three startup messages now use
+shorter development-build wording, retaining the11-frame protocol sequence.
+This source has not been deployed and needs its own exact-public full check.
+
+Accepted prior sourcee7d85b70063d698fad3ea15c77bbe441bf383850 passed
+[Windows40474236546](https://github.com/vgcman16/wolfconquer/actions/runs/40474236546):
+core27,404 passed/164 existing exclusions, updater434, launcher57, synthetic
+parsers20+13; all eight stages exit0. Receipt20261027T083328942Z-73c6dd50
+finished2026-10-27T09:16:49.7448393Z. This predates the new refresh correction.
+
+The staged D13 client reached Twin City again on October27, but two earlier
+announcement-History trials ended with access violations, including one with
+the original announcement resource. Crash cause and current-public live-client
+acceptance remain unproved. No full-client feed/forum-readiness claim follows.
+The55%(40-70%) parity figure remains the low-confidence October19 planning estimate.
+
+## Historical prestige calculation and wardrobe ownership qualification
 
 Character prestige/effect rebuilds now prepare valid results before client/rank
 publication, and item saves reject foreign-born or null-born wardrobes with a

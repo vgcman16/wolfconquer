@@ -1,6 +1,3 @@
-using WolfConquer.Core.World;
-using WolfConquer.Core.Runtime;
-
 namespace WolfConquer.Core.Data;
 
 internal partial class LegacyNativePrestigeRanking
@@ -24,44 +21,21 @@ internal partial class LegacyNativePrestigeRanking
 		{
 			lock (SynRoot)
 			{
-				if (Items.Remove(UID))
-				{
-					Items = Items.OrderByDescending((KeyValuePair<uint, Entry> p) => p.Value.TotalPoints).Take(MaxItems).ToDictionary((KeyValuePair<uint, Entry> pair) => pair.Key, (KeyValuePair<uint, Entry> pair) => pair.Value);
-				}
+				var source = CapturePrestigeRankSource(this);
+				var prepared = PreparePrestigeRankChange(source, UID, replacement: null);
+				if (prepared is not null) PublishPrestigeRank(prepared);
 			}
 		}
 
 		public void AddItem(Entry item)
 		{
-			if (item.TotalPoints < 20000)
-			{
-				return;
-			}
+			ArgumentNullException.ThrowIfNull(item);
 			lock (SynRoot)
 			{
-				try
-				{
-					if (!Items.ContainsKey(item.UID))
-					{
-						Items.Add(item.UID, item);
-					}
-					else if (Items.ContainsKey(item.UID))
-					{
-						Items[item.UID] = item;
-					}
-					Items = Items.OrderByDescending((KeyValuePair<uint, Entry> p) => p.Value.TotalPoints).Take(MaxItems).ToDictionary((KeyValuePair<uint, Entry> pair) => pair.Key, (KeyValuePair<uint, Entry> pair) => pair.Value);
-				}
-				finally
-				{
-					try
-					{
-						BestOfClass = Items.Values.First();
-					}
-					catch
-					{
-						LegacyNativeConsole.SaveException(new Exception("Prestige Rank Type " + _Type.ToString() + "is empty."));
-					}
-				}
+				var source = CapturePrestigeRankSource(this);
+				var prepared = PreparePrestigeRankChange(source, item.UID,
+					item.TotalPoints >= 20_000 ? item : null);
+				if (prepared is not null) PublishPrestigeRank(prepared);
 			}
 		}
 	}

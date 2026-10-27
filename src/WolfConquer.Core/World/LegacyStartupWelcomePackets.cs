@@ -51,10 +51,10 @@ public static class LegacyStartupWelcomePackets
     private static IEnumerable<(LegacyStaticGuiMode Mode, string Text)> CreateStaticGuiMessages(string serverName)
     {
         yield return (LegacyStaticGuiMode.Body, $"Welcome to {serverName}.");
-        yield return (LegacyStaticGuiMode.Body, "- Anti-cheat protection is active. Do not use cheat tools.");
+        yield return (LegacyStaticGuiMode.Body, "- Please avoid cheats and report reproducible bugs.");
         yield return (LegacyStaticGuiMode.Body, "- Never share your account information with anyone.");
-        yield return (LegacyStaticGuiMode.Body, "- We sell server builds for multiple versions. Contact staff if needed.");
-        yield return (LegacyStaticGuiMode.Footer, $"Do not sell items outside the game. Thank you. {serverName}`s staff. ");
+        yield return (LegacyStaticGuiMode.Body, "- Development build: gameplay and English are incomplete.");
+        yield return (LegacyStaticGuiMode.Footer, $"Thank you for testing {serverName}.");
     }
 
     private static bool IsPrivilegedAccount(CharacterSnapshot snapshot)

@@ -37,14 +37,17 @@ Failure preserves prior graph, caches, champions, rows, points and source bytes.
 
 ## Rank publication and remaining work
 
-The final CreatePrestigePoints class/world update resolves real required owners,
-validates their complete UID maps and privately prepares both outcomes under the
-same gate before assignment. Excluded classes10000..10002 remain world-only;
-low-score publication remains the existing no-op. Queries/removal use the shared gate.
+The current CreatePrestigePoints refresh admits every actual present owner and
+complete UID map, prepares World/current-class updates and removes obsolete
+memberships before reference stores. Below20,000 it removes retained same-UID
+memberships. Excluded classes10000..10002 remain World-only. Detached/global
+rank mutations use the same preparation rules; see [rank refresh](PRESTIGE-RANK-REFRESH.md).
 
-Client-field preparation is covered by [FSB-135](../FIXED-SOURCE-BUGS.md) and the
-[calculation contract](PRESTIGE-CLIENT-CALCULATION.md). Stale-low retention and
-other Rank APIs remain open. Save now validates/serializes current class rows completely
+Client-field preparation is covered by FSB-135 and the
+[calculation contract](PRESTIGE-CLIENT-CALCULATION.md); refresh/mutations are
+FSB-137..138. CheckReborn, remaining query/diagnostic behavior and complete
+leaderboard backfill remain open.
+Save now validates/serializes current class rows completely
 before creating a same-directory exclusive flushed stage. Existing files use
 Replace with an owned backup; missing destinations use create-only Move. Valid
 sparse graphs, fulluint, variable point arrays, UTF8 without BOM and the exact

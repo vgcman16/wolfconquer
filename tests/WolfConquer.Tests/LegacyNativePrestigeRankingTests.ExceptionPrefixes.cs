@@ -9,29 +9,28 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativePrestigeRankingTests
 {
     [WindowsPrestigeFact]
-    public Task EmptyRankFinallyPreservesNativeDiagnosticFaultAfterPublishingEmptySortedOwner() => NativePacketTestThread.Run(() =>
+    public Task NonpositiveRankLimitRefusesBeforePublishingOrInvokingTheNativeDiagnostic() => NativePacketTestThread.Run(() =>
+        RunPrestigeDiagnosticRefusal(files =>
     {
-        using var state = new State();
-        using var files = new OwnedDiagnosticDirectories();
         var counter = (LegacyNativeCounter)typeof(LegacyNativeConsole)
             .GetField("ExceptionsCounter",BindingFlags.NonPublic|BindingFlags.Static)!.GetValue(null)!;
         uint before = counter.Count;
         foreach (int limit in new[] {0,-1})
         {
-            var rank = new Ranking.Rank(Ranking.Type.Ninja) {MaxItems=limit};
-            var old = rank.Items;
-            var row = Entry();
-            // Source creates a never-thrown Exception; its real logger faults on TargetSite.
-            Assert.Throws<NullReferenceException>(()=>rank.AddItem(row));
-            Assert.Empty(rank.Items);
-            Assert.NotSame(old,rank.Items);
-            Assert.Same(row,old[41]);
-            Assert.Null(rank.BestOfClass);
+            var rank = new Ranking.Rank(Ranking.Type.Ninja) {MaxItems=30};
+            rank.AddItem(Entry(17,40_000));
+            rank.MaxItems = limit;
+            var prior = new PrestigeMutationRankImage(rank);
+
+            var error = Record.Exception(() => rank.AddItem(Entry()));
+
+            prior.RequireUnchanged();
             Assert.Equal(before,counter.Count);
+            Assert.False(Directory.Exists(Path.Combine(files.Root,"Exceptions")));
+            Assert.IsType<InvalidOperationException>(error);
         }
-        Assert.True(Directory.Exists(Path.Combine(files.Root,"Exceptions")));
         Assert.Empty(Directory.GetFiles(files.Root,"*",SearchOption.AllDirectories));
-    });
+    }));
 
     [WindowsPrestigeFact]
     public Task MissingWorldBucketInvokesRealDiagnosticAndPreservesItsDirectoryOnlyFaultPrefix() => NativePacketTestThread.Run(() =>
@@ -45,19 +44,47 @@ public sealed partial class LegacyNativePrestigeRankingTests
         Assert.Empty(Directory.GetFiles(files.Root,"*",SearchOption.AllDirectories));
     });
 
-    [Fact]
-    public void NullSharedGateIsNotReadForLowScoreButFaultsBeforeEligibleRankMutation()
+    [Theory]
+    [InlineData("low-add")]
+    [InlineData("eligible-add")]
+    [InlineData("present-remove")]
+    [InlineData("absent-remove")]
+    public void NullSharedGateRejectsLowEligibleAndRemovalOperationsBeforeAnyRankMutation(string operation)
     {
         using var state = new State();
-        Ranking.SynRoot = null!;
         var rank = new Ranking.Rank(Ranking.Type.Ninja){MaxItems=30};
-        var escaped = rank.Items;
-        rank.AddItem(Entry(41,19999));
-        Assert.Throws<ArgumentNullException>(()=>rank.AddItem(Entry()));
-        Assert.Throws<ArgumentNullException>(()=>rank.Remove(41));
-        Assert.Empty(rank.Items);
-        Assert.Same(escaped,rank.Items);
-        Assert.Null(rank.BestOfClass);
+        rank.AddItem(Entry(41,40_000));
+        Ranking.SynRoot = null!;
+        var prior = new PrestigeMutationRankImage(rank);
+
+        var error = Record.Exception(() =>
+        {
+            switch (operation)
+            {
+                case "low-add": rank.AddItem(Entry(41,19_999)); break;
+                case "eligible-add": rank.AddItem(Entry(41,50_000)); break;
+                case "present-remove": rank.Remove(41); break;
+                case "absent-remove": rank.Remove(99); break;
+                default: throw new ArgumentOutOfRangeException(nameof(operation));
+            }
+        });
+
+        prior.RequireUnchanged();
+        Assert.IsType<ArgumentNullException>(error);
+    }
+
+    private static void RunPrestigeDiagnosticRefusal(Action<OwnedDiagnosticDirectories> action)
+    {
+        State? state = null;
+        OwnedDiagnosticDirectories? files = null;
+        var failures = new List<Exception>();
+        try { state = new(); files = new(); action(files); } catch (Exception error) { failures.Add(error); }
+        try { files?.Dispose(); } catch (Exception error) { failures.Add(error); }
+        try { state?.Dispose(); } catch (Exception error) { failures.Add(error); }
+        if (failures.Count == 1)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failures[0]).Throw();
+        if (failures.Count > 1)
+            throw new AggregateException("Prestige diagnostic assertion and owned cleanup failed.", failures);
     }
 
     private sealed class WindowsPrestigeFactAttribute : FactAttribute
