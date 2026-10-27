@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Accepted full source e7d85b70063d698fad3ea15c77bbe441bf383850 passed Windows40474236546: core 27404 passed, 0 failed, 164 existing cases not executed; updater 434/434, launcher 57/57, synthetic parser gates 20+13, all eight steps exit 0. Receipt20261027T083328942Z-73c6dd50 spans 2026-10-27T08:33:29.0777429Z to 2026-10-27T09:16:49.7448393Z. Newer prestige refresh/rank mutation and welcome wording changes have public-derived focused 843/843 proof only; their own exact-source full gate is not yet accepted. Current public-build live-client acceptance, client-freeze resolution, complete English, SQL and distribution remain open."
+      "detail": "Accepted prior sourcee7d85b70 passed Windows40474236546: core27,404 passed/164 existing exclusions, updater434, launcher57, synthetic parsers20+13; all8 stages exit0. New rank refresh/mutation and welcome wording changes pass843/843 focused checks; their own full CI is pending. Current-public live acceptance, client-crash resolution, complete English, SQL and distribution remain open."
     },
     {
       "id": "english",
