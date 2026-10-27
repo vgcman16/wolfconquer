@@ -34,7 +34,9 @@ public sealed partial class LegacyNativeHundredWeaponsTests
     [InlineData(1001u, 40, 0, true)]
     [InlineData(1001u, 1, 1, true)]
     [InlineData(1051u, 40, 0, true)]
-    [InlineData(1052u, 140, 1, false)]
+    [InlineData(1052u, 140, 1, true)]
+    [InlineData(1057u, 40, 0, true)]
+    [InlineData(1058u, 140, 1, false)]
     [InlineData(5001u, 140, 1, false)]
     public Task ValidUsesActualTrojanPromotionLevelAndRebirth(uint job, ushort level, byte reborn, bool expected) => NativePacketTestThread.Run(() =>
     {

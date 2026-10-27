@@ -10,7 +10,8 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
 {
     public static string ExecutePirateRecovery(string scenario, string guard)
     {
-        Require(scenario is "Mode5" or "ClaimAll" or "MissingTables" or "BadTables" or "MetadataMiss" or
+        var (fixtureScenario, job) = SelectPirateTargetScenario(scenario);
+        Require(fixtureScenario is "Mode5" or "ClaimAll" or "MissingTables" or "BadTables" or "MetadataMiss" or
             "DuplicateItem" or "DuplicateRune" or "Noncanonical" or "MissingAnima" or "OwnerSwap" or "MetadataSwap" or "StaleOwner" or
             "Publish-valid" or "Publish-unadmitted" or "Publish-rebound-player" or "Publish-rebound-owner" or "Publish-loaded-phase" or "Publish-stale-session" or
             "Publish-callback-store" or "Publish-callback-exp",
@@ -21,22 +22,22 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
         string? result = null;
         try
         {
-            SeedPirateRecoveryTables(scope, scenario);
+            SeedPirateRecoveryTables(scope, fixtureScenario);
             Require(!Table.m_Load && !Table.TryCaptureMailboxLoadProof(out _), "Natural cold table state required.");
-            if (scenario != "MissingTables")
+            if (fixtureScenario != "MissingTables")
             {
                 Table.Load(scope.Prefix);
-                if (scenario == "BadTables") Require(!Table.TryCaptureMailboxLoadProof(out _), "Incomplete table load must refuse.");
+                if (fixtureScenario == "BadTables") Require(!Table.TryCaptureMailboxLoadProof(out _), "Incomplete table load must refuse.");
                 else Require(Table.TryCaptureMailboxLoadProof(out var proof) && proof!.IsCurrent(), "Complete real table load required.");
             }
-            if (scenario.StartsWith("Publish-", StringComparison.Ordinal))
-                LegacyInventorySashUpgradeTests.RunDetachedPirateRecoveryScenarioAsync(scenario[8..]).GetAwaiter().GetResult();
-            else LegacyInventorySashUpgradeTests.RunColdPirateRecoveryScenarioAsync(scenario).GetAwaiter().GetResult();
+            if (fixtureScenario.StartsWith("Publish-", StringComparison.Ordinal))
+                LegacyInventorySashUpgradeTests.RunDetachedPirateRecoveryScenarioAsync(fixtureScenario[8..]).GetAwaiter().GetResult();
+            else LegacyInventorySashUpgradeTests.RunColdPirateRecoveryScenarioAsync(fixtureScenario, job).GetAwaiter().GetResult();
             result = JsonSerializer.Serialize(new
             {
                 Guard = guard, Scenario = scenario, Completed = true,
                 FrameworkDescription = RuntimeInformation.FrameworkDescription,
-                Data = new { Passed = true, Scenario = scenario, Loaded = Table.m_Load },
+                Data = new { Passed = true, Scenario = scenario, Loaded = Table.m_Load, FixtureClass = job },
             });
         }
         catch (Exception error) { errors.Add(error); }

@@ -4,21 +4,21 @@ internal partial class LegacyNativeGuildRuntime
 {
     public bool Profession(uint profession)
     {
-        // These are the genuine source class ranges. This predicate checks
-        // recruitment permission only; it does not publish membership.
+        // Existing families continue through suffix 57 in the target primary.
+        // This checks recruitment permission only; it does not publish membership.
         var required = profession switch
         {
-            >= 1000 and <= 1051 => ClassFlag.Trojan,
-            >= 2000 and <= 2051 => ClassFlag.Warrior,
-            >= 4000 and <= 4051 => ClassFlag.Archer,
-            >= 5000 and <= 5051 => ClassFlag.Ninja,
-            >= 6000 and <= 6051 => ClassFlag.Monk,
-            >= 7000 and <= 7051 => ClassFlag.Pirate,
-            >= 8000 and <= 8051 => ClassFlag.DragonWarrior,
-            >= 9000 and <= 9051 => ClassFlag.Thunderstriker,
-            >= 13002 and <= 13051 => ClassFlag.Water,
-            >= 14002 and <= 14051 => ClassFlag.Fire,
-            >= 16000 and <= 16051 => ClassFlag.Windwalker,
+            >= 1000 and <= 1057 => ClassFlag.Trojan,
+            >= 2000 and <= 2057 => ClassFlag.Warrior,
+            >= 4000 and <= 4057 => ClassFlag.Archer,
+            >= 5000 and <= 5057 => ClassFlag.Ninja,
+            >= 6000 and <= 6057 => ClassFlag.Monk,
+            >= 7000 and <= 7057 => ClassFlag.Pirate,
+            >= 8000 and <= 8057 => ClassFlag.DragonWarrior,
+            >= 9000 and <= 9057 => ClassFlag.Thunderstriker,
+            >= 13002 and <= 13057 => ClassFlag.Water,
+            >= 14002 and <= 14057 => ClassFlag.Fire,
+            >= 16000 and <= 16057 => ClassFlag.Windwalker,
             _ => ClassFlag.None,
         };
         return ContainsFlag(required);

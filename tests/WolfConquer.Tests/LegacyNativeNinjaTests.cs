@@ -82,7 +82,7 @@ public sealed partial class LegacyNativeNinjaTests
     [InlineData(4999u, false)]
     [InlineData(5000u, true)]
     [InlineData(5051u, true)]
-    [InlineData(5052u, false)]
+    [InlineData(5058u, false)]
     [InlineData(uint.MaxValue, false)]
     public void NinjaClassGateClearsOutBeforeMissingEquipmentOrItems(uint job, bool accepted)
     {

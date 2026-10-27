@@ -12,10 +12,10 @@ public sealed partial class LegacyNativePlayerStatCalculationTests
     [InlineData(1005u, 37)]
     [InlineData(1006u, 37)]
     [InlineData(1051u, 37)]
-    [InlineData(1052u, 33)]
+    [InlineData(1052u, 37)]
     [InlineData(100000u, 33)]
     [InlineData(uint.MaxValue, 33)]
-    public void HitpointCalculationUsesEveryLiteralNativePromotionBandAndTruncatesOnlyAfterSum(uint profession, ushort expected)
+    public void HitpointCalculationUsesKnownPromotionBandsAndTruncatesOnlyAfterSum(uint profession, ushort expected)
     {
         using var scope = new Scope(); Class(scope.Client, profession);
         scope.Client.Player.Agility = scope.Client.Player.Spirit = scope.Client.Player.Strength = scope.Client.Player.Vitality = 1;
@@ -73,12 +73,12 @@ public sealed partial class LegacyNativePlayerStatCalculationTests
     [InlineData(14004u, 25)]
     [InlineData(13005u, 30)]
     [InlineData(13051u, 30)]
-    [InlineData(13052u, 5)]
+    [InlineData(13052u, 30)]
     [InlineData(14005u, 30)]
     [InlineData(14051u, 30)]
-    [InlineData(14052u, 5)]
+    [InlineData(14052u, 30)]
     [InlineData(uint.MaxValue, 5)]
-    public void ManaUsesLiteralWaterFireClassRangesAndRealSpiritWithUInt16Wrapping(uint profession, ushort multiplier)
+    public void ManaUsesKnownWaterFireClassRangesAndRealSpiritWithUInt16Wrapping(uint profession, ushort multiplier)
     {
         using var scope = new Scope(); Class(scope.Client, profession);
         scope.Client.Player.Spirit = 1; Assert.Equal(multiplier, scope.Client.CalculateMana());

@@ -4,7 +4,109 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Current class/reborn and D13 raw-codec qualification
+## Current target-class qualification
+
+Nine production files and37 test files correct confirmed target stages52–57 in
+shared class/stat selection, HP/mana, guild permission queries, configured boss
+package rewards and Trojan-lineage login spells (FSB-141–145). Public and private
+focused selections each pass **2,006/2,006**, zero failures/skips. Every exact
+public baseline name is retained; that baseline was335 failures/1,671 passes.
+See [the qualification guide](docs/JOB-FAMILY-TARGET-QUALIFICATION.md) for actual
+consumer coverage, retained-journal compatibility and incomplete runtime limits.
+
+Prior exact source252bb950 passed Windows40501867920: core27,926 passed/164 existing
+NotExecuted, updater434, launcher57; all8 steps exit0, synthetic parsers20+13.
+The new46-path C# batch still needs its own full gate. No deployment, live-client
+acceptance, full English, SQL ownership, distribution or full-parity claim follows.
+
+### FSB-141: Recognize confirmed target stages in shared families and stat selection
+
+**Source:** `LegacyNativeAtributesStatus.JobFamilies.cs` and
+`LegacyNativeAtributesStatus.State.cs` PositionArray.
+
+**Defect:** family cutoffs at suffix 51 rejected confirmed target stages 52–57;
+duplicated stat selectors could route them to fallback despite corrected callers.
+
+**Correction:** extend the eleven existing families through confirmed suffix 57
+and reuse their predicates in the original stat-selection order. Preserve row
+keys, fallback, broad Taoist compatibility and the separate Lee 8049 gate. No
+mapping or permission is invented for unmodeled jobs.
+
+**Verification:** shared public baseline 335 failed/1,671 passed/0 skipped;
+corrected 2,006/2,006, retaining every exact baseline name. Private selection40466 also passed2,006/2,006, zero failures/skips. This shared result also supports FSB-142–145; it is not five separate
+2,006-case runs. State table APIs have direct coverage, without a production
+adoption claim. Other direct bounds and the byte-class InfoStr defect remain open.
+
+### FSB-142: Apply existing HP and Mana formulas to confirmed target stages
+
+**Source:** physical `CalculateHitPoint.cs`/`CalculateMana.cs`, ordinary
+`LegacyFirstCharacterStarterProfiles.cs` and `LegacyEquipmentNativeMana.cs`.
+
+**Defect:** independent suffix-51 limits selected fallback HP/Mana contributions
+for known later stages even when class-family admission succeeded.
+
+**Correction:** extend only the confirmed Trojan HP and Water/Fire mana bounds.
+Preserve coefficients, truncation, UInt16 physical/class contributions, ordinary
+long arithmetic and packet fields. Equipment's Pirate bound is unchanged.
+
+**Verification:** the shared result in FSB-141 includes genuine managed
+RefreshVitals and EquipmentQuery.Prefix consumers plus physical calculator
+controls and suffix-58 fallback. Private selection40466 also passed2,006/2,006, zero failures/skips. Whole level-up,
+equipment rebuild, overflow-policy changes and native pipeline adoption are not
+claimed.
+
+### FSB-143: Honor existing guild class permissions through target stage 57
+
+**Source:** `LegacyNativeGuildRuntime.AdmissionPolicy.cs` Profession.
+
+**Defect:** a guild carrying the correct existing class bit still rejected
+confirmed stages 52–57 because the classifier stopped at 51.
+
+**Correction:** extend the eleven known bands only. Preserve the flag enum,
+Full mask, missing-Info/missing-bit refusals, funds and membership/success gates.
+World-only, unmodeled and unknown inputs receive no recruitment permission.
+
+**Verification:** the shared public result includes genuine loaded-guild API
+controls and unchanged owner/Info/funds/collections. Private selection40466 also passed2,006/2,006, zero failures/skips.
+No clean-baseline managed production Profession caller was found; this is a
+permission-query fix, not guild-join or economy qualification. Held Guild/Union
+work is outside the change.
+
+### FSB-144: Select existing boss-package rewards for confirmed target stages
+
+**Source:** `LegacyBossHarmRankPackagePolicy.cs` GetJobFromClassCode, consumed by
+ClaimPlan, PackageCatalog and PackageNative.
+
+**Defect:** known later Trojan/Warrior/Archer/Ninja/Pirate stages became Other;
+Ninja/Pirate claims could omit their configured points/native projection.
+
+**Correction:** extend those five configured bands through 57. Preserve every
+amount, item, rank rule, capacity check and owner/commit gate. Pirate ranks 8/9
+retain no job bonus; no reward family is invented for other classes.
+
+**Verification:** the shared public result includes pure plans and genuine cold
+Ninja/Pirate recovery, PIN, journal, reward and replay controls. Private selection40466 also passed2,006/2,006, zero failures/skips. Old v5 journals retain their pinned old result. Before-only retries
+whose recomputed recipe differs refuse and retain debt; migration and completed
+claim compensation remain open. See the [qualification guide](docs/JOB-FAMILY-TARGET-QUALIFICATION.md).
+
+### FSB-145: Recognize target Trojan lineage in the existing login spell grant
+
+**Source:** `LegacyClassOwnedSpellGrantProfile.cs` IsTrojanFamily and its existing
+ordinary-admission, spell-image, normalization and startup consumers.
+
+**Defect:** current/first/second Trojan stages 52–57 omitted the existing
+missing-only Cyclone grant.
+
+**Correction:** extend only the Trojan upper bound to 1057. Preserve lineage OR,
+grant 1110, sequence, flags and saved spell bytes; no magic metadata is fabricated.
+
+**Verification:** the shared public result includes real transactional ordinary
+login, exact twelve-byte record preservation and repeat idempotence. Private selection40466 also passed2,006/2,006, zero failures/skips. Version-6/7 pending records may fail recomputed grant
+validation; no journal migration is supplied. The older reachable best-effort
+save helper can still return learned state after failed persistence. Whole grant
+durability, CLI/startup adoption and live-client behavior remain open.
+
+## Earlier class/reborn and D13 raw-codec qualification
 
 FSB-139..140 correct stale reborn cleanup and prestige class resolution through
 D13 suffix57. Public932/932 class/reborn/Map cases pass, including all843 baseline

@@ -7,9 +7,9 @@ namespace WolfConquer.Tests;
 
 public sealed partial class LegacyInventorySashUpgradeTests
 {
-    private static void AssertPirateRecoveryNative(LegacyNativeMyCombatGear gear, CombatGearSnapshot expected)
+    private static void AssertPirateRecoveryNative(LegacyNativeMyCombatGear gear, CombatGearSnapshot expected, uint job = 7051)
     {
-        Assert.Equal(7051U, gear.GetClass());
+        Assert.Equal(job, gear.GetClass());
         Assert.Equal(expected.MasteryPoints, gear.MasteryPoints);
         Assert.Equal(expected.TaoistReiki, gear.TaoistReiki);
         Assert.Equal(expected.PirateExp, gear.PirateExp);
@@ -34,10 +34,10 @@ public sealed partial class LegacyInventorySashUpgradeTests
         Assert.Equal(0U, gear.StarFlow); Assert.Equal(0U, gear.Archshadow); Assert.Equal(0U, gear.ArrowBlades);
     }
 
-    private static void AssertPirateRecoveryCommitted(Fixture fixture, PackageJoin join, PackageJoinBefore before, bool claimAll)
+    private static void AssertPirateRecoveryCommitted(Fixture fixture, PackageJoin join, PackageJoinBefore before, bool claimAll, uint job = 7051)
     {
         var intent = AssertPackageJoinAllocation(fixture, join);
-        var expected = ExpectedPackageJoinUnallocatedFiles(fixture, before, claimAll, 7051);
+        var expected = ExpectedPackageJoinUnallocatedFiles(fixture, before, claimAll, job);
         var items = ExpectedPackageJoinItems(before, intent, claimAll);
         var gear = PirateRecoveryAfter(PirateRecoveryGear());
         expected[Path.GetRelativePath(fixture.Root, fixture.ItemPath)] = PlayerItemSnapshotLoader.ToLegacyBytes(items);
@@ -50,7 +50,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
         Assert.Equal("1031", join.Current.Character.Attributes["ClassExperience"]);
         Assert.Equal(before.Owner.Character.Money + (claimAll ? (long)AtomicMailMoney : 0), join.Current.Character.Money);
         Assert.Equal(before.Owner.Character.ConquerPoints + (claimAll ? AtomicMailCp : 0), join.Current.Character.ConquerPoints);
-        AssertPirateRecoveryNative(Assert.IsType<LegacyNativeMyCombatGear>(join.NativeClient.CombatGear), gear);
+        AssertPirateRecoveryNative(Assert.IsType<LegacyNativeMyCombatGear>(join.NativeClient.CombatGear), gear, job);
         Assert.False(LegacyTradeJournal.HasPending(fixture.Users));
     }
 }

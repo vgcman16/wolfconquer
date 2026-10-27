@@ -168,7 +168,7 @@ internal static class LegacyFirstCharacterStarterProfiles
     public static long CalculateMana(long classCode, long spirit)
     {
         var normalizedSpirit = Math.Max(0, spirit);
-        if (classCode is >= 13_005 and <= 13_051 or >= 14_005 and <= 14_057)
+        if (classCode is >= 13_005 and <= 13_057 or >= 14_005 and <= 14_057)
         {
             return normalizedSpirit * 30;
         }

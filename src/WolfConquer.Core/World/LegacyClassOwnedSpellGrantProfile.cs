@@ -32,6 +32,6 @@ public static class LegacyClassOwnedSpellGrantProfile
 
     private static bool IsTrojanFamily(long classCode)
     {
-        return classCode is >= 1_000 and <= 1_051;
+        return classCode is >= 1_000 and <= 1_057;
     }
 }

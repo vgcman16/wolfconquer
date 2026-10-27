@@ -16,7 +16,7 @@ public static class LegacyEquipmentNativeMana
 
     public static ushort ClassAndSpirit(CharacterSnapshot character)
     {
-        var multiplier = character.Class is >= 13_005 and <= 13_051 or >= 14_005 and <= 14_051
+        var multiplier = character.Class is >= 13_005 and <= 13_057 or >= 14_005 and <= 14_057
             ? 30 : character.Class switch
             {
                 13_002 or 14_002 => 15,

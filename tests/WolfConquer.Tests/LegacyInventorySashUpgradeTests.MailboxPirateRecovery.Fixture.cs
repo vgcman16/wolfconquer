@@ -45,9 +45,9 @@ public sealed partial class LegacyInventorySashUpgradeTests
     }
 
     private static LegacyItemUidProducerIntentSnapshot PreparePirateRecoveryIntent(Fixture fixture, PackageJoin join,
-        PackageJoinBefore before, bool claimAll, bool allocated, string scenario)
+        PackageJoinBefore before, bool claimAll, bool allocated, string scenario, uint job = 7051)
     {
-        var recipe = CreatePackageJoinStackRecipe(fixture, join, before, claimAll, 7051, PirateRecoveryAfter(PirateRecoveryGear(scenario)));
+        var recipe = CreatePackageJoinStackRecipe(fixture, join, before, claimAll, job, PirateRecoveryAfter(PirateRecoveryGear(scenario)));
         var payload = recipe.CopyPayload();
         var request = new LegacyItemUidReservationRequest(recipe.OperationId, LegacyMailboxPackageProducer.Writer,
             recipe.AccountId, recipe.CharacterUid, Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant(), recipe.Count);

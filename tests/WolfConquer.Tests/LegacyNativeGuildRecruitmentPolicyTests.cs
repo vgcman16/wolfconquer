@@ -10,21 +10,23 @@ public sealed class LegacyNativeGuildRecruitmentPolicyTests
 {
     public static IEnumerable<object[]> ClassRanges =>
     [
-        [1000u, 1051u, 2u], [2000u, 2051u, 4u], [4000u, 4051u, 16u],
-        [5000u, 5051u, 32u], [6000u, 6051u, 64u], [7000u, 7051u, 128u],
-        [8000u, 8051u, 256u], [9000u, 9051u, 512u], [13002u, 13051u, 8192u],
-        [14002u, 14051u, 16384u], [16000u, 16051u, 65536u],
+        [1000u, 1057u, 2u], [2000u, 2057u, 4u], [4000u, 4057u, 16u],
+        [5000u, 5057u, 32u], [6000u, 6057u, 64u], [7000u, 7057u, 128u],
+        [8000u, 8057u, 256u], [9000u, 9057u, 512u], [13002u, 13057u, 8192u],
+        [14002u, 14057u, 16384u], [16000u, 16057u, 65536u],
     ];
 
-    // These retain all 18 original range controls, under the genuine Full
-    // constructor default rather than using the broken empty-mask admission.
+    // Keep every original probe ID; known stages 52 now require their real
+    // permission bit. Adjacent stage 58 remains outside this target boundary.
     [Theory]
-    [InlineData(1000u, true)] [InlineData(1051u, true)] [InlineData(1052u, false)]
+    [InlineData(1000u, true)] [InlineData(1051u, true)] [InlineData(1052u, true)]
     [InlineData(2000u, true)] [InlineData(2051u, true)] [InlineData(4000u, true)]
     [InlineData(5000u, true)] [InlineData(6000u, true)] [InlineData(7000u, true)]
     [InlineData(8000u, true)] [InlineData(9000u, true)] [InlineData(13001u, false)]
     [InlineData(13002u, true)] [InlineData(14002u, true)] [InlineData(16000u, true)]
-    [InlineData(16051u, true)] [InlineData(16052u, false)] [InlineData(0u, false)]
+    [InlineData(16051u, true)] [InlineData(16052u, true)] [InlineData(0u, false)]
+    [InlineData(1057u, true)] [InlineData(1058u, false)]
+    [InlineData(16057u, true)] [InlineData(16058u, false)]
     public void FullRecruitmentPreservesEveryEstablishedClassRange(uint profession, bool expected)
     {
         var guild = CreateGuild();

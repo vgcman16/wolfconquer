@@ -169,11 +169,11 @@ public static class LegacyBossHarmRankPackagePolicy
     {
         return classCode switch
         {
-            >= 1_000 and <= 1_051 => LegacyBossHarmRankPackageJob.Trojan,
-            >= 2_000 and <= 2_051 => LegacyBossHarmRankPackageJob.Warrior,
-            >= 4_000 and <= 4_051 => LegacyBossHarmRankPackageJob.Archer,
-            >= 5_000 and <= 5_051 => LegacyBossHarmRankPackageJob.Ninja,
-            >= 7_000 and <= 7_051 => LegacyBossHarmRankPackageJob.Pirate,
+            >= 1_000 and <= 1_057 => LegacyBossHarmRankPackageJob.Trojan,
+            >= 2_000 and <= 2_057 => LegacyBossHarmRankPackageJob.Warrior,
+            >= 4_000 and <= 4_057 => LegacyBossHarmRankPackageJob.Archer,
+            >= 5_000 and <= 5_057 => LegacyBossHarmRankPackageJob.Ninja,
+            >= 7_000 and <= 7_057 => LegacyBossHarmRankPackageJob.Pirate,
             _ => LegacyBossHarmRankPackageJob.Other
         };
     }

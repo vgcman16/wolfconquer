@@ -14,43 +14,43 @@ internal partial class LegacyNativeAtributesStatus : Dictionary<uint, Dictionary
 
     private uint PositionArray(uint Class)
     {
-        if (Class >= 1000 && Class <= 1051)
+        if (IsTrojan(Class))
         {
             return 1005u;
         }
-        if (Class >= 2000 && Class <= 2051)
+        if (IsWarrior(Class))
         {
             return 2005u;
         }
-        if (Class >= 4000 && Class <= 4051)
+        if (IsArcher(Class))
         {
             return 4005u;
         }
-        if (Class >= 5000 && Class <= 5051)
+        if (IsNinja(Class))
         {
             return 5005u;
         }
-        if (Class >= 6000 && Class <= 6051)
+        if (IsMonk(Class))
         {
             return 6005u;
         }
-        if (Class >= 7000 && Class <= 7051)
+        if (IsPirate(Class))
         {
             return 7005u;
         }
-        if (Class >= 8000 && Class <= 8051)
+        if (IsLee(Class))
         {
             return 8005u;
         }
-        if (Class >= 9000 && Class <= 9051)
+        if (IsThunderStriker(Class))
         {
             return 9005u;
         }
-        if (Class >= 10000 && Class <= 14051)
+        if (IsTaoist(Class))
         {
             return 10000u;
         }
-        if (Class >= 16000 && Class <= 16051)
+        if (IsWindWalker(Class))
         {
             return 16005u;
         }

@@ -37,7 +37,7 @@ public sealed class LegacyClassOwnedSpellGrantProfileTests
     [InlineData(1_057, 0, 0)]
     [InlineData(2_000, 1_052, 0)]
     [InlineData(2_000, 0, 1_057)]
-    public void GetSpellIdsUsesMatchingTrojanUpperBound(
+    public void GetSpellIdsRecognizesConfirmedTargetTrojanStagesInExistingLineageSlots(
         long currentClass,
         long firstClass,
         long secondClass)
@@ -47,7 +47,7 @@ public sealed class LegacyClassOwnedSpellGrantProfileTests
             firstClass,
             secondClass);
 
-        Assert.Empty(spellIds);
+        Assert.Equal(new ushort[] { LegacyClassOwnedSpellGrantProfile.CycloneSpellId }, spellIds);
     }
 
     [Theory]

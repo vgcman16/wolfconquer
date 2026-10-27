@@ -3,6 +3,21 @@
 Updated2026-10-27. Current target: Chinese client7899 / `VisibleDx8D13`.
 This is a component checklist, not measured completion or a release claim.
 
+## Current target-class qualification
+
+Nine production files and37 test files correct confirmed target stages52–57 in
+shared class/stat selection, HP/mana, guild permission queries, configured boss
+package rewards and Trojan-lineage login spells (FSB-141–145). Public and private
+focused selections each pass **2,006/2,006**, zero failures/skips. Every exact
+public baseline name is retained; that baseline was335 failures/1,671 passes.
+See [the qualification guide](JOB-FAMILY-TARGET-QUALIFICATION.md) for actual
+consumer coverage, retained-journal compatibility and incomplete runtime limits.
+
+Prior exact source252bb950 passed Windows40501867920: core27,926 passed/164 existing
+NotExecuted, updater434, launcher57; all8 steps exit0, synthetic parsers20+13.
+The new46-path C# batch still needs its own full gate. No deployment, live-client
+acceptance, full English, SQL ownership, distribution or full-parity claim follows.
+
 ## Latest class, reborn and D13 wire qualification
 
 The dedicated prestige resolver now retains stages52..57 in their confirmed

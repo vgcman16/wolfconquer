@@ -381,7 +381,7 @@ public sealed partial class LegacyCharacterPersistenceStarterTests : IDisposable
 
     [Theory]
     [InlineData(13051, 7, 210)]
-    [InlineData(13057, 7, 35)]
+    [InlineData(13057, 7, 210)]
     [InlineData(14051, 7, 210)]
     [InlineData(14057, 7, 210)]
     [InlineData(14058, 7, 35)]

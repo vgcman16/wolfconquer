@@ -96,7 +96,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
         var characterPath = Path.GetRelativePath(fixture.Root, fixture.CharacterPath);
         var fields = new Dictionary<string, string>
         { ["ClassExperience"] = (PackageClassExperience + 1000).ToString(CultureInfo.InvariantCulture) };
-        if (job == 5051) fields["MsgNinja"] = PackageJoinNinjaLine.Replace("1/25/", "1/75/", StringComparison.Ordinal);
+        if (job is >= 5000 and <= 5057) fields["MsgNinja"] = PackageJoinNinjaLine.Replace("1/25/", "1/75/", StringComparison.Ordinal);
         if (claimAll)
         {
             fields["Money"] = (before.Owner.Character.Money + (long)AtomicMailMoney).ToString(CultureInfo.InvariantCulture);
@@ -119,7 +119,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
     private static CombatGearSnapshot PackageJoinGearAfter(long job)
     {
         var gear = PackageJoinGear();
-        return job == 7051 ? gear with { PirateExp = 67, AirPowers = gear.AirPowers with { Points = 69 } } : gear;
+        return job is >= 7000 and <= 7057 ? gear with { PirateExp = 67, AirPowers = gear.AirPowers with { Points = 69 } } : gear;
     }
 
     private static void AssertPackageJoinLedger(Fixture fixture, PackageJoinBefore before, Dictionary<string, byte[]> expected)

@@ -38,22 +38,24 @@ public sealed partial class LegacyNativeAtributesStatusTests
     }
 
     [Theory]
-    [InlineData(1000u, 1051u, 1005u)]
-    [InlineData(2000u, 2051u, 2005u)]
-    [InlineData(4000u, 4051u, 4005u)]
-    [InlineData(5000u, 5051u, 5005u)]
-    [InlineData(6000u, 6051u, 6005u)]
-    [InlineData(7000u, 7051u, 7005u)]
-    [InlineData(8000u, 8051u, 8005u)]
-    [InlineData(9000u, 9051u, 9005u)]
-    [InlineData(10000u, 14051u, 10000u)]
-    [InlineData(16000u, 16051u, 16005u)]
+    [InlineData(1000u, 1057u, 1005u)]
+    [InlineData(2000u, 2057u, 2005u)]
+    [InlineData(4000u, 4057u, 4005u)]
+    [InlineData(5000u, 5057u, 5005u)]
+    [InlineData(6000u, 6057u, 6005u)]
+    [InlineData(7000u, 7057u, 7005u)]
+    [InlineData(8000u, 8057u, 8005u)]
+    [InlineData(9000u, 9057u, 9005u)]
+    [InlineData(10000u, 14057u, 10000u)]
+    [InlineData(16000u, 16057u, 16005u)]
     public void EveryMappedFamilyKeepsInclusiveBoundsAndRoutesRealResetAndCheck(uint first, uint last, uint key)
     {
         var selected = Row(20);
         var fallback = Row(40);
         var table = new Table { [key] = new() { [7] = selected }, [0] = new() { [7] = fallback } };
-        foreach (uint job in new[] { first - 1, first, first + 1, (first + last) / 2, last - 1, last, last + 1 })
+        uint oldLast = last - 6;
+        foreach (uint job in new[] { first - 1, first, first + 1, (first + oldLast) / 2,
+                     oldLast - 1, oldLast, oldLast + 1, last - 1, last, last + 1 })
         {
             bool member = job >= first && job <= last;
             Assert.Equal(member ? key : 0u, (uint)Position.Invoke(table, [job])!);
@@ -72,15 +74,15 @@ public sealed partial class LegacyNativeAtributesStatusTests
         var fallback = Row(40);
         var taoist = Row(20);
         var table = new Table { [0] = new() { [7] = fallback }, [10000] = new() { [7] = taoist } };
-        foreach (uint job in new uint[] { 0, 999, 1052, 1999, 2052, 3000, 3999, 4052, 4999, 5052,
-            5999, 6052, 6999, 7052, 7999, 8052, 8999, 9052, 9999, 14052, 15000, 15999, 16052, uint.MaxValue })
+        foreach (uint job in new uint[] { 0, 999, 1058, 1999, 2058, 3000, 3999, 4058, 4999, 5058,
+            5999, 6058, 6999, 7058, 7999, 8058, 8999, 9058, 9999, 14058, 15000, 15999, 16058, uint.MaxValue })
         {
             Assert.Equal(0u, (uint)Position.Invoke(table, [job])!);
             var player = Player(job);
             table.ResetStatsNonReborn(player);
             AssertStats(fallback, player);
         }
-        foreach (uint job in new uint[] { 10000, 10051, 11000, 12000, 13000, 13001, 13002, 13051, 13500, 14000, 14001, 14002, 14051 })
+        foreach (uint job in new uint[] { 10000, 10051, 11000, 12000, 13000, 13001, 13002, 13051, 13500, 14000, 14001, 14002, 14051, 14052, 14057 })
         {
             Assert.Equal(10000u, (uint)Position.Invoke(table, [job])!);
             var player = Player(job);

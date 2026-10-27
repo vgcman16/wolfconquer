@@ -2,13 +2,14 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class LegacyNativeGameClientRuntime
 {
-    // Complete native GameClient1677..1692. Finite native UInt16 stats bound
+    // Native GameClient1677..1692 formulas; known D13 Trojan stages extend through 57.
+    // Finite native UInt16 stats bound
     // each floating term sum to0..2487053.25; the scoped conversion keeps x86
     // truncation then UInt16 low bits instead of a modern saturating cast.
     public ushort CalculateHitPoint()
     {
         ushort num = 0;
-        if (Player.Class >= 1005 && Player.Class <= 1051)
+        if (Player.Class >= 1005 && Player.Class <= 1057)
         {
             return (ushort)(num + NativeStatDoubleToUInt16((double)(int)Player.Agility * 3.45 + (double)(int)Player.Spirit * 3.45 + (double)(int)Player.Strength * 3.45 + (double)(int)Player.Vitality * 27.6));
         }

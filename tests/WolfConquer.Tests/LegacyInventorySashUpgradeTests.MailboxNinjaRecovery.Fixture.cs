@@ -8,7 +8,7 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyInventorySashUpgradeTests
 {
     private static async Task<PackageJoinBefore> ReloadNinjaRecoverySavedStateAsync(Fixture fixture, PackageJoin join,
-        string line = PackageJoinNinjaLine)
+        string line = PackageJoinNinjaLine, uint job = 5051)
     {
         var text = Encoding.UTF8.GetString(File.ReadAllBytes(fixture.CharacterPath));
         Assert.DoesNotContain("MsgNinja=", text, StringComparison.Ordinal);
@@ -18,14 +18,14 @@ public sealed partial class LegacyInventorySashUpgradeTests
         File.WriteAllBytes(fixture.CharacterPath, new UTF8Encoding(false).GetBytes(text));
         WriteSashField(fixture, "Online", "0");
         await join.RestartAsync();
-        Assert.Equal(5051, join.Current.Character.Class);
+        Assert.Equal((long)job, join.Current.Character.Class);
         return CapturePackageJoin(fixture, join);
     }
 
     private static LegacyItemUidProducerIntentSnapshot PrepareNinjaRecoveryIntent(Fixture fixture, PackageJoin join,
-        PackageJoinBefore before, bool claimAll, bool allocated)
+        PackageJoinBefore before, bool claimAll, bool allocated, uint job = 5051)
     {
-        var recipe = CreatePackageJoinStackRecipe(fixture, join, before, claimAll, job: 5051);
+        var recipe = CreatePackageJoinStackRecipe(fixture, join, before, claimAll, job: job);
         var payload = recipe.CopyPayload();
         var request = new LegacyItemUidReservationRequest(recipe.OperationId, LegacyMailboxPackageProducer.Writer,
             recipe.AccountId, recipe.CharacterUid, Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant(), recipe.Count);

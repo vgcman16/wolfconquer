@@ -5,11 +5,11 @@ namespace WolfConquer.Tests;
 
 public sealed partial class LegacyInventorySashUpgradeTests
 {
-    internal static Task RunColdPirateRecoveryScenarioAsync(string scenario) => RunPackageJoinAsync(async (fixture, join) =>
+    internal static Task RunColdPirateRecoveryScenarioAsync(string scenario, uint job = 7051) => RunPackageJoinAsync(async (fixture, join) =>
     {
         var claimAll = scenario != "Mode5";
         var initial = await SeedPirateRecoveryAsync(fixture, join, scenario);
-        var intent = PreparePirateRecoveryIntent(fixture, join, initial, claimAll, allocated: claimAll, scenario);
+        var intent = PreparePirateRecoveryIntent(fixture, join, initial, claimAll, allocated: claimAll, scenario, job);
         var files = fixture.PackageFiles();
         var first = fixture.Sent.Count;
         var client = await join.RestartNativeDebtRecoveryAsync();
@@ -29,8 +29,8 @@ public sealed partial class LegacyInventorySashUpgradeTests
         }
         var gear = Assert.IsType<LegacyNativeMyCombatGear>(client.CombatGear);
         Assert.True(gear.IsCombatOwnedBy(client));
-        AssertPirateRecoveryNative(gear, PirateRecoveryGear());
-        Assert.Equal(7051U, client.Player.Class);
+        AssertPirateRecoveryNative(gear, PirateRecoveryGear(), job);
+        Assert.Equal(job, client.Player.Class);
         Assert.Equal(31U, client.Player.ClassExperience);
         Assert.False(client.FullLoading);
         Assert.Equal(0U, client.Player.Online);
@@ -45,7 +45,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
         await DebtRegisteredAsync(fixture, ActualDebtContext(fixture, join), PackageJoinRequest(claimAll), direct: true);
         Assert.Equal(first, fixture.Sent.Count);
         AssertPackageJoinFiles(fixture, files);
-        AssertPirateRecoveryNative(gear, PirateRecoveryGear());
+        AssertPirateRecoveryNative(gear, PirateRecoveryGear(), job);
         await AssertNativeDebtPinAsync(fixture, join, 999, 6, 0);
         Assert.False(client.Player.IsCheckedPass);
         AssertPackageJoinFiles(fixture, files);
@@ -66,18 +66,18 @@ public sealed partial class LegacyInventorySashUpgradeTests
             Assert.Equal(first, fixture.Sent.Count);
             AssertPackageJoinFiles(fixture, files);
             AssertNinjaRecoveryIntentRetained(join, intent);
-            AssertPirateRecoveryNative(gear, PirateRecoveryGear());
+            AssertPirateRecoveryNative(gear, PirateRecoveryGear(), job);
             Assert.Equal(31U, client.Player.ClassExperience);
             return;
         }
         var sends = 0;
-        join.SendObserver = _ => { AssertPirateRecoveryCommitted(fixture, join, initial, claimAll); sends++; };
+        join.SendObserver = _ => { AssertPirateRecoveryCommitted(fixture, join, initial, claimAll, job); sends++; };
         first = fixture.Sent.Count;
         var started = DateTime.Now;
         await DebtRegisteredAsync(fixture, ActualDebtContext(fixture, join), PackageJoinRequest(claimAll), direct: false);
         join.SendObserver = null;
         Assert.True(sends > 0);
-        AssertPirateRecoveryCommitted(fixture, join, initial, claimAll);
+        AssertPirateRecoveryCommitted(fixture, join, initial, claimAll, job);
         AssertColdPirateRecoveryFrames(fixture, join, initial, claimAll, first, started, DateTime.Now);
         Assert.Same(gear, client.CombatGear);
         Assert.False(client.FullLoading);
@@ -91,8 +91,8 @@ public sealed partial class LegacyInventorySashUpgradeTests
         AssertPackageJoinFiles(fixture, committed);
         Assert.Equal(committedLive, System.Text.Json.JsonSerializer.Serialize(join.Current));
         AssertPackageJoinReplay(fixture, claimAll, first);
-        AssertPirateRecoveryNative(gear, PirateRecoveryAfter(PirateRecoveryGear()));
+        AssertPirateRecoveryNative(gear, PirateRecoveryAfter(PirateRecoveryGear()), job);
         Assert.Equal(1031U, client.Player.ClassExperience);
         AssertPackageJoinAllocation(fixture, join);
-    }, job: 7051);
+    }, job: job);
 }

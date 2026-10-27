@@ -2,11 +2,11 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class LegacyNativeGameClientRuntime
 {
-    // Complete native GameClient1694..1715, literal class ranges and narrowing.
+    // Native GameClient1694..1715 formulas/narrowing; known D13 Water/Fire stages extend through 57.
     public ushort CalculateMana()
     {
         ushort num = 0;
-        if ((Player.Class >= 13005 && Player.Class <= 13051) || (Player.Class >= 14005 && Player.Class <= 14051))
+        if ((Player.Class >= 13005 && Player.Class <= 13057) || (Player.Class >= 14005 && Player.Class <= 14057))
         {
             return (ushort)(num + (ushort)(Player.Spirit * 30));
         }
