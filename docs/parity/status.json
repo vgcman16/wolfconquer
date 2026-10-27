@@ -64,13 +64,13 @@
       "id": "live-client",
       "title": "Limited local live-client milestone",
       "status": "verified",
-      "detail": "An October26 local disposable D13 fixture completed manual authentication, world initialization and observed movement after canonical collection defaults. Its own model is missing (name/shadow visible), so visual acceptance is incomplete. Earlier local drop/pickup/save proof applies to an older build; no complete current public acceptance follows."
+      "detail": "An October26 disposable D13 fixture completed manual authentication, world initialization and movement. Supported Body1008 passed41 focused checks; root and user confirmed its full body visible in Twin City. One local trial does not prove restart reliability or the whole public build. Earlier drop/pickup/save proof applies to an older build."
     },
     {
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Last accepted full sourcef21e2a11 passed Windows40383185044. The ef868fa8/c15dd464 attempts failed compilation only; missing networking dependencies are restored. Clean source passes250 focused cases, and exact6df87b72 Windows40420961276 is pending. Local login/movement do not prove full native ownership, English, SQL or distribution."
+      "detail": "Last accepted full sourcef21e2a11 passed Windows40383185044. ef868fa8/c15dd464 failed compilation only; missing dependencies are restored and250 focused checks pass. Root canceled6df87b72 Windows40420961276 after finding unsafe native-probe PID cleanup; its fix and a new full gate are pending. Tracker40421451578 passed. Local rendering is separate evidence."
     },
     {
       "id": "english",

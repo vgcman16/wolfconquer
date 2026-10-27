@@ -1,6 +1,30 @@
 # Publication validation
 
-## Current source update - exact public full gate pending
+## Current appearance correction and process-safety hold
+
+Future synthetic D13 fixtures now use supported Body1008, retaining Face154,
+Haire27, economy, items and UID history. Current hero packet layouts are unchanged;
+existing Body1003 saves are not silently remapped. Clean public-derived focused
+checks pass41/41, zero failures/skips, including5 new appearance cases. Root then
+observed a complete player body and actual movement in a manually authenticated
+local D13 Twin City session; the user independently confirmed the visible body.
+This is one isolated local rendering/movement trial, not full public acceptance.
+The subsequent main-panel audit also found untranslated/garbled text and real
+quest/ranking/achievement gaps. The client later became unresponsive during a
+general-ranking click; its cause remains under investigation. After an exact
+test-client restart, manual relogin into the same server restored the saved
+position through CompleteLogin. Later menu navigation froze the second client
+as independently confirmed by the user. See the [live UI audit](docs/LIVE-CLIENT-AUDIT-20261026.md).
+
+Root canceled [Windows40420961276](https://github.com/vgcman16/wolfconquer/actions/runs/40420961276)
+for6df87b72 after confirming an unsafe native-probe cleanup path that reopens old
+observed PIDs without retained process identity. Its correction and a new full run
+are pending. No causal connection to an earlier unexpected client exit is proved.
+Tracker40421451578 passed for ae40c548; generated-only ec3a2795 was reviewed. The
+last accepted full Windows source remains f21e2a11. Full gameplay, restart
+reliability, SQL, English localization and real full-client distribution remain open.
+
+## Prior collection/startup focused checkpoint
 
 The complete networking helper/coverage scope and fresh collection-startup
 correction now pass **250/250** in a clean publicc15-derived source copy, zero
@@ -14,8 +38,9 @@ This clean component gate does not replace the new exact public full Windows run
 
 A fresh local disposable fixture now sends2450 beforehero, completes actual
 manual login through77/78/132, renders map1002 and accepts observed movement.
-This is bounded local candidate/client evidence; full gameplay, model visibility,
-English, SQL, distribution and current-public acceptance remain separate.
+This is bounded local candidate/client evidence; full gameplay,
+English, SQL, distribution and current-public acceptance remain separate. The
+later appearance trial above separately confirms one visible player model.
 
 Exact public ef868fa8 failed [Windows40415429365](https://github.com/vgcman16/wolfconquer/actions/runs/40415429365), job121896451710: restore passed, build failed with three CS0246 errors for the omitted NativePlayerLoopbackOutputCapture test helper. No tests ran. The unchanged34-line bounded real-socket helper was already present in the owned candidate (its five network-birth cases passed in the broader run). This source now includes that dependency; its exact full Windows gate is pending. No production or assertion change repairs this omission.
 

@@ -298,6 +298,28 @@ No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
 
+### FSB-125: Select a supported D13 body for new synthetic fixtures
+
+The offline creator inherited Body1003 from an older loot fixture. Exact
+VisibleDx8D13 CMsgUserInfo2221 parses Mesh as field3/tag18 at00DD5360 into
+wrapper+434; handler00DD61FD-00DD6214 passes Mesh modulo1000 to the native look
+setter. Body1003/Face154 therefore requests look3. The staged Look table and
+c3 index support look8/1008, while look3/1003 is absent. Both existing hero
+packet producers already encode the correct Mesh field and packing.
+
+Only future synthetic owned fixtures now select Body1008, retaining Face154,
+Haire27, class, economy, items and real UID history. The independent expected
+Mesh is1541008, field3 bytes18 90 87 5E. No existing saved body is rewritten,
+no global player remap is added and no armor, skin or native owner is invented.
+
+Root's clean public-derived focused run passes41/41, zero failures/skips,
+including all5 new appearance cases: creator/CLI through actual public Frame,
+raw/encrypted real WorldServer startup and an existing Body1003 preservation
+control. Root then observed actual manual login in the staged D13 client: LootFixture's complete body was visibly rendered on
+map1002/Twin City and actual movement reached409/356. The user independently confirmed that the body is visible. This is one isolated
+local client rendering/movement result. It does not prove reliable restart, general English,
+full gameplay/parity, public full CI or distribution readiness.
+
 ### FSB-124: Seed the native saved collection defaults in new test fixtures
 
 The offline creator omitted CollectionID/CollectionStorage. The existing safe

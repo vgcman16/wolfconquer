@@ -32,13 +32,14 @@ public static partial class LegacyOwnedAdmissionFixture
             throw new InvalidDataException("Synthetic Character/items failed canonical writer roundtrip.");
     }
 
-    // Same synthetic state as the existing loot-roundtrip seeder. These values
-    // are test data, not imported saves, account credentials or live grants.
+    // Synthetic loot-roundtrip state with body 1008 for the D13 look 8 assets.
+    // The older body 1003 fixture requests look 3, absent from the staged D13 set.
+    // These values are test data, not imported saves, credentials or live grants.
     private static string CharacterText(uint character, int day) => $$"""
         [Character]
         UID={{character.ToString(CultureInfo.InvariantCulture)}}
         Name=LootFixture
-        Body=1003
+        Body=1008
         Face=154
         Haire=27
         Class=10

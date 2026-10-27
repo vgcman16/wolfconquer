@@ -48,7 +48,7 @@ internal sealed class OwnedHostWireClient : IAsyncDisposable
         await Stream.WriteAsync(bytes, timeout.Token);
     }
 
-    internal async Task<byte[][]> ReadThroughHeroAsync()
+    internal async Task<byte[][]> ReadThroughHeroAsync(ushort throughOpcode = LegacyLoaderHeroInfoPacket.Opcode)
     {
         var frames = new List<byte[]>();
         using var timeout = new CancellationTokenSource(Timeout);
@@ -70,7 +70,7 @@ internal sealed class OwnedHostWireClient : IAsyncDisposable
                 bytes = plain;
             }
             frames.Add(bytes);
-            if (parsed.Opcode == LegacyLoaderHeroInfoPacket.Opcode) return frames.ToArray();
+            if (parsed.Opcode == throughOpcode) return frames.ToArray();
         }
         throw new InvalidDataException("Saved character hero was absent from bounded startup frames.");
     }
