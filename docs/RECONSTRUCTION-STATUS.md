@@ -1,5 +1,22 @@
 # Reconstruction status
 
+## Current source qualification
+
+The opt-in world-wire observer and metadata-only default frame formatters pass
+229 focused cases in both public and private test copies, zero failures/skips.
+All138 public baseline names remain; the old source had16Failed/122Passed,
+with91 additional logger-API controls. An equivalent OS-guarded ACL-test loop
+cleanup follows those runs; the exact-source full gate remains pending.
+[Operator guidance](WORLD-WIRE-DIAGNOSTICS.md) records activation and limits.
+No live capture, deployment or new packet meaning is claimed.
+
+Confirmed class-family repairs also pass2,006 focused cases in each copy.
+Earlier full source252bb950 passed Windows40501867920 (core27,926/164 existing
+NotExecuted; updater434; launcher57; all8steps0). Newer class/logger code awaits
+its own full CI. Ninja Loading/SpellStorage transaction work is still isolated;
+its incomplete proposal is not published. Full English, SQL ownership, current
+public live acceptance and full-client distribution remain open.
+
 Updated2026-10-27. Current target: Chinese client7899 / `VisibleDx8D13`.
 This is a component checklist, not measured completion or a release claim.
 

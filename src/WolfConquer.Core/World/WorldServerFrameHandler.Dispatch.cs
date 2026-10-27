@@ -114,6 +114,7 @@ public sealed partial class WorldServerFrameHandler
 
         if (_packetHandlers.TryGetHandler(frame.Header.Opcode, out var handler))
         {
+            _wireDiagnostics?.RecordPacket(_protocolProfile, frame, unknownOpcode: false, connection, _sessions);
             _sessions.TryGet(connection, out var session);
             var context = new WorldPacketHandlerContext(
                 connection,
@@ -175,6 +176,7 @@ public sealed partial class WorldServerFrameHandler
             return;
         }
 
+        _wireDiagnostics?.RecordPacket(_protocolProfile, frame, unknownOpcode: true, connection, _sessions);
         await _log.WriteLineAsync(
                 LegacyParityGapDiagnostics.UnsupportedPacket(
                     frame.Header.Opcode,

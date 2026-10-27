@@ -147,6 +147,12 @@ if (!string.IsNullOrWhiteSpace(runtimeClockStart))
     }
 }
 
+if (!UnknownPacketAndFieldLogger.TryCreateFromEnvironment(out var configuredWireDiagnostics, out var wireDiagnosticReason))
+{
+    Console.Error.WriteLine($"World wire diagnostics disabled: {wireDiagnosticReason}.");
+}
+using var wireDiagnostics = configuredWireDiagnostics;
+
 WorldServerFrameHandler handler;
 try
 {
@@ -160,7 +166,8 @@ try
         worldEntryStartupProbe,
         accountEmailVerifier,
         protocolProfile: protocolProfile,
-        ownedAdmission: ownedAdmission);
+        ownedAdmission: ownedAdmission,
+        wireDiagnostics: wireDiagnostics);
 }
 catch (ArgumentException) when (ownedAdmission is not null)
 {

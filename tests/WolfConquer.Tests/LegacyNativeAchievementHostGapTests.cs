@@ -24,7 +24,7 @@ public sealed class LegacyNativeAchievementHostGapTests
         Assert.Contains("native ClientAchievement.AchievementHandler [Packet(2307)] exists", output);
         Assert.Contains("achievement persistence/load and host owner adoption remain unintegrated", output);
         Assert.Contains("PARITY-GAP native achievement host adoption", output);
-        Assert.Contains($"opcode=2307 payloadLength=20 payloadSampleHex={Convert.ToHexString(payload)}", output);
+        Assert.Contains("opcode=2307 payloadLength=20", output);
         Assert.DoesNotContain("source-silent", output); Assert.DoesNotContain("unknown world opcode", output);
         Assert.DoesNotContain("handler exception", output);
     }

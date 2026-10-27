@@ -4,6 +4,38 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Current opt-in world diagnostics
+
+### FSB-146: Default world frame diagnostics exposed raw payload prefixes
+
+**Source:** replacement `WorldPacketHandlers.Diagnostics.cs` and
+`WorldServerFrameHandler.Diagnostics.cs`, including the pre-session exception
+fallback. This is a replacement-server diagnostic defect, not a claimed
+client-confirmed game rule or newly discovered decompiled behavior.
+
+**Defect:** unknown/malformed packet logs sampled up to 32 payload bytes by
+default; the old PIN-only exception did not protect other arbitrary payloads.
+
+**Correction:** both ordinary formatters emit only opcode and payload length.
+The separate logger defaults off, creates an exclusive private output, and
+bounds records, bytes, rate, signatures, fields and capture lengths. Structural
+scanning and raw prefixes each require an explicit matching-profile allowlist;
+raw also requires the actual current admitted session. Auth/PIN/text families
+are excluded. It never grants an operation or produces a gameplay response.
+
+**Verification:** public focused 229/229 passed, zero failures/skips. Every one
+of the 138 baseline cases is retained; baseline16 Failed/122 Passed. Ninety-one
+additional cases exercise the real new API, file ownership/failure, bounded
+scanning and genuine-session raw gating/dedupe. Private focused qualification also passed 229/229, zero failures/skips.
+The new exact-source full gate remains pending. A subsequent mechanical ACL-test loop
+cleanup retains the same assertions; it awaits that full gate.
+
+**Limits:** no live capture, runtime restart, gameplay activation, reliable log
+delivery or complete logging/privacy audit. Write failure can leave a partial
+last line; synchronous filesystem latency remains. Earlier stored logs and
+other diagnostics are not retroactively sanitized. See
+[operator guidance](docs/WORLD-WIRE-DIAGNOSTICS.md).
+
 ## Current target-class qualification
 
 Nine production files and37 test files correct confirmed target stages52–57 in

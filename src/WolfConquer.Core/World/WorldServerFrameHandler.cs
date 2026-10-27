@@ -55,6 +55,7 @@ public sealed partial class WorldServerFrameHandler
     private readonly LegacyClientCompatibilityOptions _clientCompatibility;
     private readonly LegacyWorldEntryStartupProbeOptions _worldEntryStartupProbe;
     private readonly ConquerProtocolProfile _protocolProfile;
+    private readonly UnknownPacketAndFieldLogger? _wireDiagnostics;
     private readonly SemaphoreSlim _paidNobilityExpiryLock = new(1, 1);
     private readonly TextWriter _log;
     private int _legacyRuntimeGlobalLoopStarted;
@@ -107,7 +108,8 @@ public sealed partial class WorldServerFrameHandler
         LegacyWorldEntryStartupProbeOptions? worldEntryStartupProbe = null,
         IAccountEmailVerifier? accountEmailVerifier = null,
         ConquerProtocolProfile protocolProfile = ConquerProtocolProfile.RootD11_7899,
-        LegacyOwnedAdmissionRuntime? ownedAdmission = null)
+        LegacyOwnedAdmissionRuntime? ownedAdmission = null,
+        UnknownPacketAndFieldLogger? wireDiagnostics = null)
         : this(
             snapshotLoader,
             handoffService,
@@ -121,7 +123,8 @@ public sealed partial class WorldServerFrameHandler
             worldEntryStartupProbe,
             voteStates: null,
             accountEmailVerifier,
-            protocolProfile)
+            protocolProfile,
+            wireDiagnostics)
     {
         if (ownedAdmission is not null)
         {
@@ -209,7 +212,8 @@ public sealed partial class WorldServerFrameHandler
         LegacyWorldEntryStartupProbeOptions? worldEntryStartupProbe = null,
         LegacyVoteRuntimeStateStore? voteStates = null,
         IAccountEmailVerifier? accountEmailVerifier = null,
-        ConquerProtocolProfile protocolProfile = ConquerProtocolProfile.RootD11_7899)
+        ConquerProtocolProfile protocolProfile = ConquerProtocolProfile.RootD11_7899,
+        UnknownPacketAndFieldLogger? wireDiagnostics = null)
     {
         if (!Enum.IsDefined(protocolProfile))
         {
@@ -237,6 +241,7 @@ public sealed partial class WorldServerFrameHandler
         _clientCompatibility = clientCompatibility ?? LegacyClientCompatibilityOptions.DecompiledSourceCompatible;
         _worldEntryStartupProbe = worldEntryStartupProbe ?? LegacyWorldEntryStartupProbeOptions.Default;
         _protocolProfile = protocolProfile;
+        _wireDiagnostics = wireDiagnostics;
         _guildWarRuntime = new LegacyGuildWarRuntimeScheduler(_guildWarStates);
         _log = TextWriter.Synchronized(log ?? TextWriter.Null);
         _tradeRecovery = new(_snapshotLoader?.UsersRoot, _snapshotLoader?.PlayerItemsRoot,

@@ -146,7 +146,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed MsgAction packet session=none.", output);
-        Assert.Contains("opcode=2046 payloadLength=2 payloadSampleHex=0801", output);
+        Assert.Contains("opcode=2046 payloadLength=2", output);
         Assert.DoesNotContain("WorldServer received opcode 2046", output);
     }
 
@@ -164,7 +164,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyNpcReply packet session=none.", output);
-        Assert.Contains("opcode=2255 payloadLength=3 payloadSampleHex=AABBCC", output);
+        Assert.Contains("opcode=2255 payloadLength=3", output);
         Assert.DoesNotContain("WorldServer received opcode 2255", output);
     }
 
@@ -1078,7 +1078,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyPlayerStatus packet session=none.", output);
-        Assert.Contains("opcode=2301 payloadLength=3 payloadSampleHex=000000", output);
+        Assert.Contains("opcode=2301 payloadLength=3", output);
         Assert.DoesNotContain("WorldServer received opcode 2301", output);
     }
 
@@ -1166,7 +1166,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyHeroReward packet session=none.", output);
-        Assert.Contains("opcode=2077 payloadLength=4 payloadSampleHex=00000000", output);
+        Assert.Contains("opcode=2077 payloadLength=4", output);
         Assert.DoesNotContain("WorldServer received opcode 2077", output);
     }
 
@@ -1201,7 +1201,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyExchangeShopGoodsInfo packet session=none.", output);
-        Assert.Contains("opcode=2212 payloadLength=1 payloadSampleHex=08", output);
+        Assert.Contains("opcode=2212 payloadLength=1", output);
         Assert.DoesNotContain("WorldServer received opcode 2212", output);
     }
 
@@ -1315,7 +1315,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyCoatStorage packet session=none.", output);
-        Assert.Contains("opcode=2220 payloadLength=2 payloadSampleHex=0801", output);
+        Assert.Contains("opcode=2220 payloadLength=2", output);
         Assert.DoesNotContain("WorldServer received opcode 2220", output);
     }
 
@@ -1348,7 +1348,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacySubClass packet session=none.", output);
-        Assert.Contains("opcode=2033 payloadLength=2 payloadSampleHex=0600", output);
+        Assert.Contains("opcode=2033 payloadLength=2", output);
         Assert.DoesNotContain("WorldServer received opcode 2033", output);
     }
 
@@ -1381,7 +1381,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyBlessingInfo packet session=none.", output);
-        Assert.Contains("opcode=2258 payloadLength=4 payloadSampleHex=00000000", output);
+        Assert.Contains("opcode=2258 payloadLength=4", output);
         Assert.DoesNotContain("WorldServer received opcode 2258", output);
     }
 
@@ -1414,7 +1414,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyClaim packet session=none.", output);
-        Assert.Contains("opcode=2143 payloadLength=4 payloadSampleHex=05000000", output);
+        Assert.Contains("opcode=2143 payloadLength=4", output);
         Assert.DoesNotContain("WorldServer received opcode 2143", output);
     }
 
@@ -1448,7 +1448,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyHundredWeaponsInfo packet session=none.", output);
-        Assert.Contains("opcode=2352 payloadLength=2 payloadSampleHex=1001", output);
+        Assert.Contains("opcode=2352 payloadLength=2", output);
         Assert.DoesNotContain("WorldServer received opcode 2352", output);
     }
 
@@ -1470,7 +1470,7 @@ public sealed class WorldPacketDispatchTests
             output);
         Assert.Contains("sourceName=CMsgRedEnvelops", output);
         Assert.Contains("MrRayzo.Packets catalog", output);
-        Assert.Contains("opcode=2029 payloadLength=6 payloadSampleHex=080B20022809", output);
+        Assert.Contains("opcode=2029 payloadLength=6", output);
         Assert.DoesNotContain("WorldServer received opcode 2029", output);
         Assert.DoesNotContain("unknown world opcode", output);
     }
@@ -1538,8 +1538,8 @@ public sealed class WorldPacketDispatchTests
         Assert.Contains("sourceName=unmapped", output);
         Assert.Contains("opcode 2369 is absent from MrRayzo.Game.GamePackets", output);
         Assert.Contains("captured 4 source-silent frames with payloadLength=74", output);
-        Assert.Contains(
-            "payloadSampleHex=" + Convert.ToHexString(payload.AsSpan(0, 32)) + "...",
+        Assert.DoesNotContain(
+            "payloadSampleHex=",
             output);
         Assert.DoesNotContain("WorldServer received opcode 2369", output);
         Assert.DoesNotContain("unknown world opcode", output);
@@ -1569,7 +1569,7 @@ public sealed class WorldPacketDispatchTests
         Assert.Contains("sourceName=unmapped", output);
         Assert.Contains("opcode 2433 is absent from MrRayzo.Game.GamePackets", output);
         Assert.Contains("captured 9 source-silent frames with payloadLength=4", output);
-        Assert.Contains($"payloadSampleHex={Convert.ToHexString(frame.Payload.ToArray())}", output);
+        Assert.DoesNotContain("payloadSampleHex=", output);
         Assert.DoesNotContain("WorldServer received opcode 2433", output);
         Assert.DoesNotContain("unknown world opcode", output);
     }
@@ -1594,8 +1594,8 @@ public sealed class WorldPacketDispatchTests
         Assert.Contains("MsgMessage.cs command ttp writes 21 literal payload bytes and calls Finalize(2311)", output);
         Assert.Contains("this serializer does not establish an inbound handler", output);
         Assert.Contains("observed an all-zero 516-byte client frame", output);
-        Assert.Contains(
-            "payloadSampleHex=0000000000000000000000000000000000000000000000000000000000000000...",
+        Assert.DoesNotContain(
+            "payloadSampleHex=",
             output);
         Assert.DoesNotContain("WorldServer received opcode 2311", output);
         Assert.DoesNotContain("unknown world opcode", output);
@@ -2014,7 +2014,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyCaptureTheFlagUpdate packet session=none.", output);
-        Assert.Contains("opcode=2062 payloadLength=3 payloadSampleHex=AABBCC", output);
+        Assert.Contains("opcode=2062 payloadLength=3", output);
         Assert.DoesNotContain("source-silent legacy packet", output);
         Assert.DoesNotContain("WorldServer received opcode 2062", output);
     }
@@ -2096,7 +2096,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyTeamElitePkBrackets packet session=none.", output);
-        Assert.Contains("opcode=2198 payloadLength=2 payloadSampleHex=0400", output);
+        Assert.Contains("opcode=2198 payloadLength=2", output);
         Assert.DoesNotContain("source-silent legacy packet", output);
         Assert.DoesNotContain("WorldServer received opcode 2198", output);
     }
@@ -2890,7 +2890,7 @@ public sealed class WorldPacketDispatchTests
         Assert.Empty(sent);
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyApprenticeInformation packet session=none.", output);
-        Assert.Contains("opcode=2200 payloadLength=3 payloadSampleHex=AABBCC", output);
+        Assert.Contains("opcode=2200 payloadLength=3", output);
         Assert.DoesNotContain("WorldServer deferred LegacyApprenticeInformation", output);
         Assert.DoesNotContain("WorldServer received opcode 2200", output);
     }
@@ -2954,7 +2954,7 @@ public sealed class WorldPacketDispatchTests
 
         var output = log.ToString();
         Assert.Contains("WorldServer rejected malformed LegacyLotteryList packet session=none.", output);
-        Assert.Contains("opcode=2432 payloadLength=1 payloadSampleHex=08", output);
+        Assert.Contains("opcode=2432 payloadLength=1", output);
         Assert.DoesNotContain("source-silent legacy packet", output);
         Assert.DoesNotContain("WorldServer received opcode 2432", output);
     }
@@ -3183,7 +3183,7 @@ public sealed class WorldPacketDispatchTests
         Assert.Contains("PARITY-GAP category=unsupported-packet severity=warning gap=unsupported-packet", output);
         Assert.Contains("dedupe=unsupported-packet:unsupported-packet:opcode=4999:packet=World", output);
         Assert.Contains(
-            "PARITY-GAP unknown world opcode session=none opcode=4999 payloadLength=2 payloadSampleHex=AABB from 127.0.0.1:9958",
+            "PARITY-GAP unknown world opcode session=none opcode=4999 payloadLength=2 from 127.0.0.1:9958",
             output);
     }
 

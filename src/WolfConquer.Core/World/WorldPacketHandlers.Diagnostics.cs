@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Globalization;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.Packets;
@@ -38,19 +37,7 @@ public static partial class WorldPacketHandlers
 
     private static string FormatFrameDiagnostic(PacketFrame frame)
     {
-        if (frame.Header.Opcode == WorldPacketOpcodes.LegacySecondaryPassword)
-            return "opcode=" + frame.Header.Opcode + " payloadLength=" +
-                frame.Payload.Length.ToString(CultureInfo.InvariantCulture) + " payloadSampleHex=[redacted]";
-        var sampleLength = (int)Math.Min(frame.Payload.Length, MalformedPayloadSampleBytes);
-        var sample = sampleLength == 0
-            ? string.Empty
-            : Convert.ToHexString(frame.Payload.Slice(0, sampleLength).ToArray());
-        var truncated = frame.Payload.Length > sampleLength
-            ? "..."
-            : string.Empty;
-
         return "opcode=" + frame.Header.Opcode +
-            " payloadLength=" + frame.Payload.Length.ToString(CultureInfo.InvariantCulture) +
-            " payloadSampleHex=" + sample + truncated;
+            " payloadLength=" + frame.Payload.Length.ToString(CultureInfo.InvariantCulture);
     }
 }

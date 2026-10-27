@@ -867,6 +867,5 @@ public static partial class WorldPacketHandlers
 
 
 
-    private const int MalformedPayloadSampleBytes = 32;
 
 }
