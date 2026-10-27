@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-27**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `f091bf1df29206b1db2fa3844db352d3b49d0c99` (short: `f091bf1df292`).
+Source commit: `71fd1df93743a4a01e6aab5b6e6233aab51785f5` (short: `71fd1df93743`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -19,7 +19,7 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | Milestone | Status | Detail |
 | --- | --- | --- |
 | Limited local live-client milestone | verified | An October26 disposable D13 fixture completed manual authentication, world initialization and movement. Supported Body1008 passed41 focused checks; root and user confirmed its full body visible in Twin City. One local trial does not prove restart reliability or the whole public build. Earlier drop/pickup/save proof applies to an older build. |
-| Current public build live-client acceptance | planned | Accepted source252bb950 passed Windows40501867920: core27,926 passed/164 existing exclusions, updater434, launcher57; all8 stages0. Target-class repairs pass2,006 focused cases in public and private; every baseline case is retained. Newer source full CI is pending. D13 prestige query activation, client-crash resolution, complete English, SQL and distribution remain open. |
+| Current public build live-client acceptance | planned | Accepted source252bb950 passed Windows40501867920: core27,926 passed/164 existing exclusions, updater434, launcher57; all8 stages0. Class repairs pass2,006 focused cases per checkout; wire diagnostics229 per checkout. Newer exact-source full CI is pending. D13 prestige activation, crash resolution, complete English, SQL and full-client distribution remain open. |
 | Complete English client | in-progress | Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete. |
 | Newer-client-only parity | in-progress | Official patches through7935 are downloaded/extracted privately. Separate2132codec, Echo request/catalog transform/threshold selection and item2350reader/writer have focused proof. The102-case writer run includes37 existing-schema controls, not extra patch coverage. No default7935 activation, real state/cost/save join or actual7935 client acceptance. Not estimated. |
 | Public full-client download and updates | in-progress | Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet. |
