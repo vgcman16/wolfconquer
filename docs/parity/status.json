@@ -20,14 +20,14 @@
       "id": "transport",
       "title": "Transport, authentication and startup",
       "status": "partial",
-      "implemented": "Packet/cipher/startup paths validate physical envelopes. Explicit WorldServer startup opens only its configured existing UID domain. Owned API/raw/encrypted process/restart/lease/drain controls pass. A fresh local D13 fixture now completes manual account login, world entry and movement; secure native handoff remains unproved.",
+      "implemented": "Packet/cipher/startup paths validate envelopes and configured UID domains. Owned process/restart controls and one local D13 login/walk fixture have passed. Ordinary admission now loads saved physical class/level after durable commit. Native account-to-world handoff, complete ownership and current-public client acceptance remain open.",
       "remaining": "Prove the authenticated native account-to-world handoff and protected D13 login payload; complete ownership and loader joins, then verify the published build and staged endpoint migration with the actual client."
     },
     {
       "id": "persistence",
       "title": "Shared player, items and persistence",
       "status": "partial",
-      "implemented": "Managed storage and mailbox transactions validate ownership, capacity and escrow before persisted success. Package prerequisites join UID history, recovery journals, PIN and delivery checks. Ordinary admission preserves complete saved progression without starter regrant. The offline creator makes only new synthetic domains with canonical collection defaults; full native/SQL ownership remains open.",
+      "implemented": "Managed storage, mailbox and selected trade closures use validated journal participants. Ordinary login preserves saved progress and loads physical class/level after commit. Scoped Ninja rank-file persistence and Performer learning prepare complete state before publication, retaining opaque spell bytes. Native/session spell ownership, broader writers and real SQL remain open.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
@@ -48,7 +48,7 @@
       "id": "social",
       "title": "Trade, social systems and events",
       "status": "partial",
-      "implemented": "Managed Trade and player-booth exchanges use ordered pair commits and a shared journal. Tests cover complete closures, stale-file/escrow refusal, failure/retry, refunds/disconnect/restart and D13 Frame settlement. Warehouse composition preserves real 300-silver escrow: changed offered roots refund; unrelated withdrawals allow exchange. Guild/clan projections, selected actions, timers, score panels and some event state machines exist.",
+      "implemented": "Managed Trade and booth exchanges use ordered participant commits and a shared journal. Owned tests cover selected failure/retry, refund, disconnect and recovery paths. Performer learning binds the current session and saved spell image before commitment. Guild/clan projections and selected event/timer flows exist; broader native/social ownership and multiplayer acceptance remain open.",
       "remaining": "Complete native/social/event ownership and real-client multiplayer acceptance. Broader inventory/storage and booth raw-writer/delivery lifecycles, remaining guild/union actions, brackets, rewards, claims, reset, database parity and durable recovery remain open; scoped managed tests do not certify all transfers."
     },
     {
@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Source4b9762cc Windows40537900359 built but failed two stale plan-argument tests: Core28,528 passed/164 existing exclusions/2failed; Updater434 passed. Corrected public focused1,082 and private1,067 pass, including all814 baseline names;15 tooling cases now pass. The new composed source needs its own full gate. Native owner/sender adoption, prestige activation, crash resolution, complete English, SQL and full-client distribution stay open."
+      "detail": "Full9e779d5d Windows40555473262 failed: Core28,861 passed/164 NotExecuted/1 stale null-item frame control; Updater434 passed, launcher/parsers not reached. Repaired null control and composed player/rank/Performer batch pass524 focused cases in both public/private. New exact-source full gate and live acceptance remain pending."
     },
     {
       "id": "english",

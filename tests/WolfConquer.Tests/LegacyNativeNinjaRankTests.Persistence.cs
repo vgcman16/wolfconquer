@@ -10,6 +10,7 @@ public sealed partial class LegacyNativeNinjaRankTests
     {
         using var state = new State();
         using var files = new OwnedRankFile();
+        Ranking.Create();
         var original = Entry();
         Place(original);
         Ranking.Save();
@@ -38,76 +39,62 @@ public sealed partial class LegacyNativeNinjaRankTests
     }
 
     [Fact]
-    public void ZeroCountReaderFalseStillRunsCreateAndPreservesExtraBuckets()
+    public void ExplicitZeroCountPublishesExactlySixFreshEmptyOwnersAndLeavesEscapedGraphIntact() =>
+        WithOwnedRankPersistence(files =>
     {
-        using var state = new State();
-        using var files = new OwnedRankFile();
         files.Seed(Text());
-        var old = Place(Entry(), Ranking.Type.Overall);
+        _ = SeedPersistenceGraph();
         var extra = new Ranking.Rank((Ranking.Type)99) { MaxItems = 9 };
         Ranking.Ranks.Add((Ranking.Type)99, extra);
+        _ = Ranking.Ranks.GetValues();
+        var before = new PersistenceGraphImage();
         Ranking.Load();
-        Assert.Equal(7, Ranking.Ranks.Count);
-        Assert.NotSame(old, Ranking.Ranks[Ranking.Type.Overall]);
-        Assert.Single(old.RankingList);
-        Assert.Same(extra, Ranking.Ranks[(Ranking.Type)99]);
-        Assert.All(Enumerable.Range(0, 6).Select(value => Ranking.Ranks[(Ranking.Type)value]),
-            rank => Assert.Empty(rank.RankingList));
-    }
+        RequireFreshSixRanks(before);
+        Assert.All(Ranking.Ranks.Values, rank => Assert.Empty(rank.RankingList));
+        Assert.False(Ranking.Ranks.ContainsKey((Ranking.Type)99));
+        files.Expect(Text());
+    });
 
     [Fact]
-    public void InvalidPhysicalTypeFaultsAfterEarlierRowsAndBeforeLaterRows()
+    public void InvalidPhysicalTypeRefusesWithoutPublishingAnyEarlierRows() => WithOwnedRankPersistence(files =>
     {
-        using var state = new State();
-        using var files = new OwnedRankFile();
         files.Seed(Text(FullRow, Row(19, type: "6"), Row(23)));
-        Assert.Throws<NullReferenceException>(() => Ranking.Load());
-        Assert.Equal(6, Ranking.Ranks.Count);
-        Assert.Single(Ranking.Ranks[Ranking.Type.Water].RankingList);
-        Assert.Equal(21, Values(Ranking.Ranks[Ranking.Type.Water].RankingList[41]).Length);
-        Assert.Empty(Ranking.Ranks[Ranking.Type.Overall].RankingList);
-        Assert.Null(Ranking.Ranks[Ranking.Type.Count]);
-    }
+        RequireRejectedRankLoad(files);
+    });
 
-    [Fact]
-    public void ShortRowsOverflowAndMalformedFieldsUseLiteralReadLineDefaults()
+    [Theory]
+    [InlineData("short")]
+    [InlineData("uid-overflow")]
+    [InlineData("type-byte-overflow")]
+    [InlineData("points-format")]
+    [InlineData("level-overflow")]
+    [InlineData("mesh-negative")]
+    public void ShortOrMalformedSavedFieldsCannotPublishDefaultsOrAnEarlierPrefix(string invalid) =>
+        WithOwnedRankPersistence(files =>
     {
-        using var state = new State();
-        using var files = new OwnedRankFile();
         string[] fields = FullRow.Split('/');
-        fields[0] = "4294967296";
-        fields[2] = "256"; // Type is read as byte then widened, not uint.
-        fields[3] = "bad";
-        fields[5] = "256";
-        fields[6] = "-1";
-        files.Seed(Text("17/Short/1/", string.Join('/', fields)));
-        Ranking.Load();
-        var shortRow = Assert.Single(Ranking.Ranks[Ranking.Type.Fire].RankingList).Value;
-        Assert.Equal(new object[] { 17u, "Short", 1u, 0u, 0u, (byte)0, 0u, 0u, 0u, 0u, 0u,
-            0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, "" }, Values(shortRow));
-        var malformed = Assert.Single(Ranking.Ranks[Ranking.Type.Overall].RankingList).Value;
-        Assert.Equal(0u, malformed.UID);
-        Assert.Equal(0u, malformed.TotalPoints);
-        Assert.Equal((byte)0, malformed.Level);
-        Assert.Equal(0u, malformed.Mesh);
-        Assert.Equal(505u, malformed.Class);
-        Assert.Equal("Guild", malformed.GuildName);
-    }
+        fields[0] = "19";
+        switch (invalid)
+        {
+            case "uid-overflow": fields[0] = "4294967296"; break;
+            case "type-byte-overflow": fields[2] = "256"; break;
+            case "points-format": fields[3] = "bad"; break;
+            case "level-overflow": fields[5] = "256"; break;
+            case "mesh-negative": fields[6] = "-1"; break;
+        }
+        files.Seed(Text(FullRow, invalid == "short" ? "17/Short/1/" : string.Join('/', fields), Row(23)));
+        RequireRejectedRankLoad(files);
+    });
 
-    [Fact]
-    public void DeclaredRowsPastEofCreateDefaultUidZeroRecordAndDuplicateRowsReplaceEarlierAliases()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MissingDeclaredRowsAndDuplicateUidRefuseTheWholeSnapshot(bool duplicate) => WithOwnedRankPersistence(files =>
     {
-        using var state = new State();
-        using var files = new OwnedRankFile();
-        files.Seed("Count=4" + Environment.NewLine + Row(17, 10) + Environment.NewLine + Row(17, 20) + Environment.NewLine);
-        Ranking.Load();
-        var rank = Ranking.Ranks[Ranking.Type.Overall];
-        Assert.Equal(2, rank.RankingList.Count);
-        Assert.Equal(20u, rank.RankingList[17].TotalPoints);
-        Assert.Equal(0u, rank.RankingList[0].TotalPoints);
-        Assert.Equal("", rank.RankingList[0].Name);
-        Assert.Equal(new uint[] { 17, 0 }, rank.RankingList.Keys);
-    }
+        files.Seed(duplicate ? Text(FullRow, Row(17, 10), Row(17, 20)) :
+            "Count=3" + Environment.NewLine + FullRow + Environment.NewLine + Row(17, 10) + Environment.NewLine);
+        RequireRejectedRankLoad(files);
+    });
 
     [Fact]
     public void ReaderAndWriterUseCurrentCultureIncludingCustomPositiveSign()
@@ -128,10 +115,9 @@ public sealed partial class LegacyNativeNinjaRankTests
     }
 
     [Fact]
-    public void SaveUsesStaleSafeDictionaryArrayUntilARealAddInvalidatesIt()
+    public void SaveUsesTheCurrentCompleteRegistryRatherThanItsStaleCachedArray() => WithOwnedRankPersistence(files =>
     {
-        using var state = new State();
-        using var files = new OwnedRankFile();
+        Ranking.Create();
         var old = Place(Entry());
         var cached = Ranking.Ranks.GetValues();
         var replacement = new Ranking.Rank(Ranking.Type.Water) { MaxItems = 10 };
@@ -139,27 +125,28 @@ public sealed partial class LegacyNativeNinjaRankTests
         Assert.Same(cached, Ranking.Ranks.GetValues());
         Assert.Null(Ranking.GetInfo(Ranking.Type.Water, 41));
         Ranking.Save();
-        files.Expect(Text(FullRow));
+        files.Expect(Text());
+        Assert.Same(replacement, Ranking.Ranks[Ranking.Type.Water]);
         Ranking.Ranks.Add(Ranking.Type.Water, replacement);
         Ranking.Save();
         files.Expect(Text());
         Assert.Single(old.RankingList);
-    }
+    });
 
     [Fact]
-    public void SaveNarrowsTypeToByteAndNullStringFaultNeverExecutesQueuedPrefix()
+    public void SaveRefusesAnInvalidPhysicalTypeBeforeNarrowingOrTouchingTheFile() => WithOwnedRankPersistence(files =>
     {
-        using var state = new State();
-        using var files = new OwnedRankFile();
+        Ranking.Create();
+        files.Seed("owned prior bytes");
         var row = Entry();
         row.Type = (Ranking.Type)258;
-        var rank = Place(row);
-        Ranking.Save();
-        files.Expect(Text(FullRow)); // 258 narrows to native byte2.
-        rank.RankingList.Add(19, new Ranking.Entry { UID = 19, Name = null! });
-        Assert.Throws<NullReferenceException>(() => Ranking.Save());
-        files.Expect(Text(FullRow));
-    }
+        Place(row);
+        var before = new PersistenceGraphImage();
+        var error = Record.Exception(Ranking.Save);
+        before.RequireCurrent();
+        files.Expect("owned prior bytes");
+        Assert.IsType<InvalidOperationException>(error);
+    });
 
     [Fact]
     public void SaveReadOnlyShareFaultPreservesExistingFileAndLiveRows()
@@ -168,10 +155,14 @@ public sealed partial class LegacyNativeNinjaRankTests
         using var files = new OwnedRankFile();
         string before = "owned previous bytes";
         files.Seed(before);
+        Ranking.Create();
         var row = Entry();
         Place(row);
+        _ = Ranking.Ranks.GetValues();
+        var graph = new PersistenceGraphImage();
         using (var held = new FileStream(files.PathFor(), FileMode.Open, FileAccess.Read, FileShare.Read))
             Assert.Throws<IOException>(() => Ranking.Save());
+        graph.RequireCurrent();
         files.Expect(before);
         Assert.Same(row, Ranking.Ranks[Ranking.Type.Water].RankingList[41]);
     }

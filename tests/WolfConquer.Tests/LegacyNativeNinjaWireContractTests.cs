@@ -36,6 +36,18 @@ public sealed class LegacyNativeNinjaWireContractTests
         {
             using var fixture = new NativeSpellTestFixture();
             Fill(fixture.Packet);
+            if (name == "item-null")
+            {
+                // Required null envelope rejects before touching native storage;
+                // the historical successful empty frame is not acceptance.
+                var before = ReadStorage(fixture.Packet);
+                Assert.Throws<ArgumentNullException>(() => fixture.Packet.CreateNinjaItem(null!));
+                Assert.Equal(before, ReadStorage(fixture.Packet));
+                Assert.Equal(321, fixture.Packet.Size);
+                Assert.Equal(237, fixture.Packet.Position);
+                Assert.Empty(fixture.Queue);
+                return;
+            }
             bool rank = name.StartsWith("rank-", StringComparison.Ordinal);
             var returned = rank ? fixture.Packet.CreateMsgRankMemberShow(ShowValue(name)!) :
                 fixture.Packet.CreateNinjaItem(ItemValue(name)!);
@@ -130,6 +142,13 @@ public sealed class LegacyNativeNinjaWireContractTests
         "item-null" => null,
         _ => throw new ArgumentOutOfRangeException(nameof(name)),
     };
+
+    private static unsafe byte[] ReadStorage(LegacyNativePacket packet)
+    {
+        var bytes = new byte[packet.Capacity];
+        Marshal.Copy((IntPtr)packet.Memory, bytes, 0, bytes.Length);
+        return bytes;
+    }
 
     private static unsafe void Fill(LegacyNativePacket packet)
     {

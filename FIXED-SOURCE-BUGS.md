@@ -4,6 +4,99 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Ordinary physical identity and persistence — focused qualification
+
+FSB-154–157 share the same focused batch qualification; these are not four
+independent runs. Public corrected: **524/524 passed, zero failures/skips**.
+Private corrected: **524/524 passed, zero failures/skips**. New full check: **Pending for this composed source**.
+See [scope and limits](docs/ORDINARY-PLAYER-PERSISTENCE.md).
+
+The tests-only baseline was 508: 102 failed/406 passed/zero skipped. Three actual
+PowerShell 7 prerequisite reruns passed 3/3; one aborted high-login cleanup rerun
+passed 1/1. The remaining 98 intended differences are rank 75, physical identity 15
+and Performer 8. Preserve the original receipt and these distinct rerun outcomes.
+Prior full 40555473262 on 9e779d5d failed one stale null-item frame assertion;
+Core 28,861 passed/164 NotExecuted, Updater 434 passed, launcher/parsers not reached.
+That null control now expects ArgumentNullException and complete storage retention;
+valid wire goldens remain. No SQL/live/client/crash-safe completion is claimed.
+
+### FSB-154: Ordinary prefix omitted saved physical Class and Level
+
+**Source:** `LegacyNativePlayerRuntime.ExistingPrefixLoad.cs`,
+`LegacyNativeExistingPrefixBefore.cs`, `LegacyNativeExistingCharacterPrefix.Admission.cs`
+and ordinary admission validation/preparation.
+
+**Defect:** admission could publish a physical Player with unloaded class/level;
+fresh admission also accepted a level too wide for its later LoaderHeroInfo byte.
+
+**Correction:** prepare/check complete before/after values, publish saved
+physical widths only after the actual committed prefix, preserve transformation
+and reciprocal owners, and fence the full published image. Apply the byte limit
+only to fresh emitting admission; preserve direct ushort and retained journal domains.
+
+**Verification:** 524/524 public and 524/524 private, same shared selection; genuine ordinary/direct-prefix,
+callback/change/refusal and owner controls. Original Level's 150 clamp/reward
+transition, managed XP cap 140 and saved-level policy remain distinct/unresolved.
+No global level-cap normalization or complete native owner adoption is claimed.
+
+### FSB-155: Ninja rank Load published incomplete or defaulted state
+
+**Source:** `LegacyNativeNinjaRank.Persistence.cs`, `.Persistence.Input.cs` and
+`.Persistence.Parse.cs`.
+
+**Defect:** destructive/incremental loading and tolerant fields could replace a
+valid graph with partial, malformed or invented values.
+
+**Correction:** read a bounded strictly decoded complete file, validate
+all rows/counts/UID/category/width/text state, prepare six genuine detached owners,
+then recheck the current owner/location and publish once. Missing/unreadable input
+propagates its real failure; invalid content cannot authorize empty defaults.
+
+**Verification:** 524/524 public and 524/524 private, same shared selection; malformed tails/decoding/counts,
+owner/gate changes, exact valid rows, empty/tie/cap and escaped-graph controls.
+This prepares persistence; ordinary host rank activation remains separate.
+
+### FSB-156: Ninja rank Save accepted stale graphs and wrote targets in place
+
+**Source:** `LegacyNativeNinjaRank.Persistence.cs` / `.Persistence.Save.cs`.
+
+**Defect:** Save could use a stale cached registry array and accept incomplete or
+corrupt graphs. It wrote the target in place, exposing it to I/O failures, without
+cooperating capture-to-write ordering. Old Save queued row serialization before
+Execute; a serialization fault did not necessarily mutate the destination.
+
+**Correction:** validate/capture the complete current six-owner graph,
+prepare exact serialized bytes, retain the real target-path coordinator through
+capture/write, flush/verify a same-directory stage and replace one file only after
+preparation. Preserve the literal path, successful layout and real ranking rules.
+
+**Verification:** 524/524 public and 524/524 private, same shared selection; malformed graph/text/owners and
+unchanged-target controls, valid serialization and real gate ordering. Failures
+before replacement retain the target; post-replacement uncertainty, raw writers,
+multi-file/SQL transactions and process/power-loss durability remain outside it.
+
+### FSB-157: Performer learning saved a stale session and erased opaque row bytes
+
+**Source:** `WorldPacketHandlers.NpcEntrypoints.Performer.Dance*.cs` and extracted
+method in `WorldPacketHandlers.NpcEntrypoints.SubclassMasters.cs`.
+
+**Defect:** saving before unconditional Set could overwrite newer membership;
+modeled reserialization zeroed existing opaque spell byte 11. During review of
+the proposed replacement, a late InputsCurrent attribute lookup was also found
+able to alter row backing after its earlier check. That replacement gap is not
+claimed as a demonstrated original emulator mechanism.
+
+**Correction:** prepare stable rows/seven genuine frames, commit actual
+persistence through expected-session TryCommitSession, reconcile modeled disk
+membership and append while preserving existing raw bytes. Recheck known backing
+without callbacks after the final attribute read; reject unsupported shapes.
+Preserve eight dance IDs, phase/duplicate dialogs and valid sequence bytes.
+
+**Verification:** 524/524 public and 524/524 private, same shared selection; stale/retired/foreign Store contexts,
+real file failure, padding/conflict, late lookup and repeated-learning controls.
+Committed delivery failure does not roll back learning. Generic writer uncertain
+errors, other learning producers and native/session spell authority remain open.
+
 ## Ninja and spell component safety
 
 FSB-147–153 share one focused public qualification: **1,082 passed, zero failures

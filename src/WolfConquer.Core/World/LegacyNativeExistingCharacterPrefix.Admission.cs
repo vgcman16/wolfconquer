@@ -9,7 +9,8 @@ internal sealed partial class LegacyNativeExistingCharacterPrefix
     internal CharacterSnapshot AdmissionSnapshot => updated;
     internal bool IsPublishedAdmissionOwnerCurrent() => published && ReferenceEquals(connection.NativeGameClient, client) &&
         ReferenceEquals(client.Player, player) && ReferenceEquals(player.Owner, client) && !client.FullLoading && !client.Fake &&
-        player.UID == updated.Uid && ReferenceEquals(client.Beasts, beasts.Target) && ReferenceEquals(client.HairfaceStorage, hairface.Target);
+        player.UID == updated.Uid && playerLoad.IsPublishedCurrent() &&
+        ReferenceEquals(client.Beasts, beasts.Target) && ReferenceEquals(client.HairfaceStorage, hairface.Target);
     internal static bool AdmissionMatchesSnapshot(CharacterSnapshot expected, byte[] image, string path) => SnapshotMatches(expected, image, path);
 
     // Only the genuine enclosing admission transaction calls this after its

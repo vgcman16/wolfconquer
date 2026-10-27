@@ -1,5 +1,30 @@
 # Reconstruction status
 
+## Ordinary player persistence checkpoint
+
+The reviewed offline batch passes 524/524 focused cases in both public and private
+snapshots, zero failures/skips. All 508 baseline names remain; the 16 additional
+corrected-only cases never ran on the old reader. FSB-154–157 and
+[the qualification guide](ORDINARY-PLAYER-PERSISTENCE.md) record the exact scope.
+
+Ordinary login now publishes saved physical class/level after durable commitment
+and checks its emitted byte-level bound before saving. Complete Ninja rank load/
+save preserves the old graph/target on known precommit refusal. Performer learning
+uses the exact current Store owner and actual spell-file transaction, retaining
+opaque saved bytes and the existing seven-frame/eight-choice contract.
+
+Full Windows 40555473262 on source9e779d5d finished FAILED: Core28,861 passed,
+164 existing NotExecuted and one stale null-item successful-empty-frame control;
+Updater434 passed. Launcher/parsers were not reached. The actual receipt/logs/TRXs
+are retained. The repaired null case now asserts explicit rejection and full
+packet preservation; this composed source still needs its own full gate.
+
+Next is the consumed native/session spell ownership join across real Store
+publication and reverse writers, followed by physical equipment/metadata/rank
+activation. Target level-cap policy, complete SQL/gameplay, current-public live
+acceptance, full English and client distribution/forum readiness remain open.
+Original saves, routes, restore copies and running sessions remain preserved.
+
 ## Ninja and spell checkpoint (offline)
 
 Reviewed component code and tests are integrated. Public focused qualification

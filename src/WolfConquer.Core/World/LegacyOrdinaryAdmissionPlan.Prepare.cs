@@ -17,7 +17,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             if (!LegacyOrdinaryAdmissionReconciliation.TryRequireOwner(loader, uids, out reason)) return false;
             if (uids?.IsPending(checked((uint)accountId)) == true)
             { reason = "ordinaryAdmissionRecoveryRequired:unsafeRetainedWorkRequiresReconciliation"; return false; }
-            LegacyOrdinaryAdmissionValidation.ValidateCharacter(raw);
+            LegacyOrdinaryAdmissionValidation.ValidateStartupCharacter(raw);
             LegacyNativeExistingCharacterPrefix? prefix = null;
             if (connection.NativeGameClient is not null &&
                 !LegacyNativeExistingCharacterPrefix.TryPrepare(connection, raw, loader.UsersRoot, out prefix, out reason)) return false;
@@ -67,7 +67,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
                 gear = parsedGear;
             }
             var normalized = frame.PrepareOrdinaryNormalization(character, items, spells, gear);
-            LegacyOrdinaryAdmissionValidation.ValidateCharacter(normalized.Character);
+            LegacyOrdinaryAdmissionValidation.ValidateStartupCharacter(normalized.Character);
             if (normalized.NeedsFreshItemIds) throw new InvalidDataException("Ordinary admission cannot allocate starter items.");
             if (roots.Spells is null && !PlayerSpellSnapshotLoader.ToLegacyBytes(spells).AsSpan()
                     .SequenceEqual(PlayerSpellSnapshotLoader.ToLegacyBytes(normalized.Spells)))

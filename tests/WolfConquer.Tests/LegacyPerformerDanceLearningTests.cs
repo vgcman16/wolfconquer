@@ -7,7 +7,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyPerformerDanceLearningTests : IDisposable
+public sealed partial class LegacyPerformerDanceLearningTests : IDisposable
 {
     private const uint PerformerNpcId = 7_776;
     private const long CharacterUid = 1_293_600;

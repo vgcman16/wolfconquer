@@ -4,6 +4,8 @@ namespace WolfConquer.Core.World;
 
 internal sealed record LegacyNativePrefixValues(
     uint Uid,
+    uint Class,
+    ushort Level,
     bool RelicSpirit,
     uint Online,
     bool SpawinEffect,
@@ -47,11 +49,13 @@ public sealed partial class LegacyNativePlayerRuntime
             if (client?.Player is not { } player || !ReferenceEquals(player.Owner, client) || client.FullLoading || client.Fake ||
                 player.Name is null || player.Spouse is null ||
                 snapshot.Uid is <= 0 or > uint.MaxValue || snapshot.Class is < 0 or > uint.MaxValue ||
+                snapshot.Level is < 0 or > ushort.MaxValue ||
                 player.UID != 0 && player.UID != snapshot.Uid || player._class != 0 && player._class != snapshot.Class) return null;
             var before = Read(player);
             var job = player._class; var transformation = player._transformationid;
             var relic = ini.ReadBool("Character", "RelicSpirit", false);
-            var after = new LegacyNativePrefixValues(checked((uint)snapshot.Uid), relic, checked(before.Online + 1),
+            var after = new LegacyNativePrefixValues(checked((uint)snapshot.Uid), checked((uint)snapshot.Class),
+                checked((ushort)snapshot.Level), relic, checked(before.Online + 1),
                 ini.ReadBool("Character", "SpawinEffect", false), ini.ReadBool("Character", "SpawinEffectSkills", false),
                 ini.ReadUInt32("Character", "DeityLandLuckyPoints"), ini.ReadUInt32("Character", "HeroPoints"),
                 ini.ReadUInt32("Character", "ClassExperience"), ini.ReadUInt32("Character", "SavePromote"),
@@ -66,6 +70,8 @@ public sealed partial class LegacyNativePlayerRuntime
 
         internal static LegacyNativePrefixValues Read(LegacyNativePlayerRuntime value) => new(
             value.UID,
+            value._class,
+            value._level,
             value.RelicSpirit,
             value.Online,
             value.SpawinEffect,
@@ -88,9 +94,14 @@ public sealed partial class LegacyNativePlayerRuntime
         internal bool IsCurrent() => !published && ReferenceEquals(client.Player, player) && ReferenceEquals(player.Owner, client) &&
             !client.FullLoading && !client.Fake && player._class == job && player._transformationid == transformation && Read(player) == before;
 
+        internal bool IsPublishedCurrent() => published && ReferenceEquals(client.Player, player) && ReferenceEquals(player.Owner, client) &&
+            !client.FullLoading && !client.Fake && player._transformationid == transformation && Read(player) == after;
+
         internal void PublishPrepared()
         {
             player.UID = after.Uid;
+            player._class = after.Class;
+            player._level = after.Level;
             player.RelicSpirit = after.RelicSpirit;
             player.Online = after.Online;
             player.SpawinEffect = after.SpawinEffect;

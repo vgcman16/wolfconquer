@@ -4,6 +4,15 @@ namespace WolfConquer.Core.World;
 
 internal static class LegacyOrdinaryAdmissionValidation
 {
+    internal static void ValidateStartupCharacter(CharacterSnapshot value)
+    {
+        ValidateCharacter(value);
+        // Fresh ordinary startup emits LoaderHeroInfo.Level as a byte. Retained
+        // journal validation and the non-emitting native prefix keep their wider domain.
+        if (value.Level > byte.MaxValue)
+            throw new InvalidDataException("Ordinary startup LoaderHeroInfo Level exceeds its byte field.");
+    }
+
     internal static void ValidateCharacter(CharacterSnapshot value)
     {
         if (value.Uid is <= 0 or > uint.MaxValue || value.Class is < 0 or > uint.MaxValue ||

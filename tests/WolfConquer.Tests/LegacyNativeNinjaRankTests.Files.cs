@@ -27,13 +27,16 @@ public sealed partial class LegacyNativeNinjaRankTests
         internal void UseLocation(bool prefix = false) =>
             LegacyNativeServerConfig.DbLocation = Root + Path.DirectorySeparatorChar + (prefix ? "prefix" : "");
 
-        internal void Seed(string text, bool prefix = false)
+        internal void Seed(string text, bool prefix = false) => SeedBytes(Encoding.UTF8.GetBytes(text), prefix);
+
+        internal void SeedBytes(byte[] image, bool prefix = false)
         {
+            ArgumentNullException.ThrowIfNull(image);
             string path = PathFor(prefix);
             Guard(path);
             Assert.Null(expected[path]);
             Assert.False(File.Exists(path) || Directory.Exists(path));
-            byte[] bytes = Encoding.UTF8.GetBytes(text);
+            byte[] bytes = image.ToArray();
             using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
                 file.Write(bytes);

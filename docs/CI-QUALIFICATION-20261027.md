@@ -1,5 +1,28 @@
 # CI qualification: 2026-10-27
 
+## Ordinary player persistence checkpoint
+
+Full Windows run [40555473262](https://github.com/vgcman16/wolfconquer/actions/runs/40555473262)
+tested source `9e779d5d1d6233aee934a5c98c7b4e5b3852bf78`; terminal outcome FAILED,
+not timeout. Receipt `20261027T175957217Z-4b2511f0` ran from17:59:57Z to18:52:16Z.
+Restore/build passed. Core TRX:28,861 passed/164 NotExecuted/1 failed; Updater:434
+passed. Launcher/parser stages were not reached. Actual failed artifacts are retained.
+
+The only failure was `LegacyNativeNinjaWireContractTests` item-null: the historical
+successful empty frame conflicted with the new required-envelope rejection.
+The same case now checks ArgumentNullException, complete native storage, cursor,
+size and queue preservation. All nonnull literal goldens are unchanged.
+
+The newer composed batch passes524/524 focused public and524/524 private cases,
+zero failures/skips; exact name sets match. Baseline508 was102 failed/406 passed;
+the3 missing-PS7 controls separately passed3/3 with the measured runtime bound,
+and one existing aborted high-login cleanup separately passed1/1 unchanged.
+The98 intended differences remain actual old-source failures. All508 names are
+retained;16 unsafe old reader/native bounds ran only after correction.
+
+This is focused qualification, not a repaired historical receipt, new full gate,
+deployment or live-client proof. See [scope and limits](ORDINARY-PLAYER-PERSISTENCE.md).
+
 ## Latest full result and corrected plan assertions
 
 [Windows40537900359](https://github.com/vgcman16/wolfconquer/actions/runs/40537900359)

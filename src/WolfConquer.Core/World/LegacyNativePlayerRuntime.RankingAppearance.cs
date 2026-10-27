@@ -21,7 +21,7 @@ public sealed partial class LegacyNativePlayerRuntime
 
     public ushort Strength;
 
-    // Native Player1115/1127/1165, implicit zero. Class/Level setters remain absent;
+    // Native Player1115/1127/1165; saved identity hydration belongs to ExistingPrefixLoad.
     // the whole Hair property is owned by its dedicated partial.
     private uint _class;
 
@@ -47,7 +47,7 @@ public sealed partial class LegacyNativePlayerRuntime
 
     public byte WingPlus = 0;
 
-    // Genuine read accessors only; no writable cold path or partial live setter is installed.
+    // Genuine read accessors. Committed cold loading uses ExistingPrefixLoad; public live setters remain absent.
     public uint Class
     {
         get
