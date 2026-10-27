@@ -10,6 +10,9 @@ public sealed partial class LegacyNpcSaleTransactionTests
     private const uint PickupQuestItemId = 711_352;
     private const string PickupQuestItemName = "Quest1311Loot";
     private string PickupQuestRoot => Path.Combine(root, "Quests");
+    private string PickupQuestSpellsRoot => Path.Combine(root, "PlayersSpells");
+    private string PickupQuestProficienciesRoot => Path.Combine(root, "PlayersProfs");
+    private string PickupQuestCombatGearRoot => Path.Combine(root, "PlayersCombatGear");
     private string PickupQuestPath(uint uid) => Path.Combine(PickupQuestRoot, uid + ".bin");
 
     [Theory]
@@ -231,7 +234,8 @@ public sealed partial class LegacyNpcSaleTransactionTests
         var data = LegacyItemWorldDataFixture.Create(QuestPickupItemType(ItemId, "OrdinaryFixture"),
             QuestPickupItemType(PickupQuestItemId, PickupQuestItemName));
         var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(UsersRoot, ItemsRoot,
-                playerSpellsRoot: null, playerProficienciesRoot: null, playersCombatGearRoot: null, playerQuestsRoot: PickupQuestRoot),
+                playerSpellsRoot: PickupQuestSpellsRoot, playerProficienciesRoot: PickupQuestProficienciesRoot,
+                playersCombatGearRoot: PickupQuestCombatGearRoot, playerQuestsRoot: PickupQuestRoot),
             handoffService: null, worldData: data,
             runtimeUpdateLoop: LegacyRuntimeUpdateLoopOptions.Disabled with { LocalServerIdentity = new(42) },
             log: log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13);
@@ -243,7 +247,11 @@ public sealed partial class LegacyNpcSaleTransactionTests
     private PlayerQuestSnapshot SeedPickupQuest(uint uid, PlayerQuestStatus? status, IReadOnlyList<uint> intentions)
     {
         Seed(uid);
-        Directory.CreateDirectory(PickupQuestRoot);
+        foreach (var participant in new[] { PickupQuestRoot, PickupQuestSpellsRoot,
+                     PickupQuestProficienciesRoot, PickupQuestCombatGearRoot }) Directory.CreateDirectory(participant);
+        new PlayerSpellSnapshotLoader(PickupQuestSpellsRoot).SaveByCharacterUid(uid, PlayerSpellSnapshot.Empty);
+        new PlayerProficiencySnapshotLoader(PickupQuestProficienciesRoot).SaveByCharacterUid(uid, PlayerProficiencySnapshot.Empty);
+        new CombatGearSnapshotLoader(PickupQuestCombatGearRoot).SaveByCharacterUid(uid, CombatGearSnapshot.Empty);
         var sentinel = new PlayerQuestSnapshotEntry(9001, PlayerQuestStatus.Finished, 456, [7U, 8U]);
         var quests = status is { } value
             ? new PlayerQuestSnapshot([new(1311, value, 123, intentions), sentinel])

@@ -790,7 +790,7 @@ internal static partial class Program
         Console.WriteLine("  WolfConquer.DataTool legacy-account-smoke <address> <port> <username> <password> <serverName> [--expect-ip ip] [--expect-port port] [--timeout-ms ms]");
         Console.WriteLine("  WolfConquer.DataTool legacy-guard-shield-smoke <address> <port> [--command text] [--expect-response text] [--timeout-ms ms]");
         Console.WriteLine("  WolfConquer.DataTool legacy-world-smoke <address> <port> <accountKey> [--timeout-ms ms]");
-        Console.WriteLine("  WolfConquer.DataTool seed-owned-admission-fixture <NEW-absolute-wolf-owned-admission-GUID-dir> <account-key> <character-uid> <item-uid>");
+        Console.WriteLine("  WolfConquer.DataTool seed-owned-admission-fixture <NEW-absolute-wolf-owned-admission-GUID-dir> <account-key> <character-uid> <item-uid> [--profile RootD11_7899|VisibleDx8D13]");
         Console.WriteLine("  WolfConquer.DataTool seed-loot-roundtrip-fixture <NEW-absolute-DBServer-dir> <account-key> <character-uid> <item-uid>");
         Console.WriteLine("  WolfConquer.DataTool legacy-loot-roundtrip-smoke <loopback-ip> <port> <account-key> <character-uid> <item-uid> [--timeout-ms ms] [--verify-only]");
         Console.WriteLine("  WolfConquer.DataTool local-live-stack-smoke <address> <gatewayPort> <accountPort> <username> <password> <serverName> [--login-web-base-url url] [--expect-world-ip ip] [--expect-world-port port] [--timeout-ms ms]");

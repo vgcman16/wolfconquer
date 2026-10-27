@@ -10,9 +10,10 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 [Collection(DataToolLegacyWorldSmokeTestCollection.Name)]
-public sealed class DataToolLegacyWorldSmokeTests : IDisposable
+public sealed partial class DataToolLegacyWorldSmokeTests : IDisposable
 {
-    private readonly string _usersRoot = Path.Combine(Path.GetTempPath(), "wolf-world-smoke-" + Guid.NewGuid());
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "wolf-world-smoke-" + Guid.NewGuid());
+    private string _usersRoot => Path.Combine(_root, "Users");
 
     [Fact]
     public async Task LegacyWorldSmokePrintsAnswerOk()
@@ -20,7 +21,8 @@ public sealed class DataToolLegacyWorldSmokeTests : IDisposable
         using var beastMetadata = new NativeLoginBeastMetadataScope(1000);
         Directory.CreateDirectory(_usersRoot);
         WriteSnapshot(1_293_600);
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot));
+        await using var owned = new OwnedSmokeWorldFixture(_usersRoot, 1_293_600);
+        var handler = owned.Handler;
         await using var server = CreateLegacyLoopbackServer(handler.HandleFrameAsync);
 
         server.Start();
@@ -33,6 +35,7 @@ public sealed class DataToolLegacyWorldSmokeTests : IDisposable
             "10000");
 
         Assert.Equal(0, result.ExitCode);
+        Assert.Contains("ordinary admission committed key=1293600", owned.Log.ToString());
         Assert.Contains("Legacy world smoke:", result.StandardOutput);
         Assert.Contains($"endpoint=127.0.0.1:{server.BoundEndPoint.Port}", result.StandardOutput);
         Assert.Contains("accountKey=1293600", result.StandardOutput);
@@ -73,7 +76,8 @@ public sealed class DataToolLegacyWorldSmokeTests : IDisposable
         Directory.CreateDirectory(_usersRoot);
         WriteSnapshot(1_293_600);
         var outputPath = Path.Combine(_usersRoot, "legacy-world-capture.json");
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot));
+        await using var owned = new OwnedSmokeWorldFixture(_usersRoot, 1_293_600);
+        var handler = owned.Handler;
         await using var server = CreateLegacyLoopbackServer(handler.HandleFrameAsync);
 
         server.Start();
@@ -91,13 +95,15 @@ public sealed class DataToolLegacyWorldSmokeTests : IDisposable
             "8");
 
         Assert.Equal(0, result.ExitCode);
+        Assert.Contains("ordinary admission committed key=1293600", owned.Log.ToString());
         Assert.Contains("Legacy world capture:", result.StandardOutput);
         Assert.Contains($"endpoint=127.0.0.1:{server.BoundEndPoint.Port}", result.StandardOutput);
         Assert.Contains("accountKey=1293600", result.StandardOutput);
         Assert.Contains(outputPath, result.StandardOutput);
         Assert.Contains("answerOk=True", result.StandardOutput);
+        // CLI displays Take(8); the JSON assertion below pins all nine raw frames.
         Assert.True(result.StandardOutput.Contains(
-            "observed-opcodes=2179, 2161, 2224, 2047, 22210, 2221, 2165, 2165",
+            "observed-opcodes=2179, 2161, 2224, 2047, 2450, 22210, 2221, 2165",
             StringComparison.Ordinal), result.StandardOutput);
         Assert.Equal(string.Empty, result.StandardError);
 
@@ -113,8 +119,8 @@ public sealed class DataToolLegacyWorldSmokeTests : IDisposable
         var frames = root.GetProperty("frames");
         Assert.InRange(frames.GetArrayLength(), 21, 24);
         var firstFrame = frames[0];
-        Assert.Equal(new[] { 2179, 2161, 2224, 2047, 22210, 2221, 2165, 2165 },
-            frames.EnumerateArray().Take(8).Select(frame => frame.GetProperty("opcode").GetInt32()));
+        Assert.Equal(new[] { 2179, 2161, 2224, 2047, 2450, 22210, 2221, 2165, 2165 },
+            frames.EnumerateArray().Take(9).Select(frame => frame.GetProperty("opcode").GetInt32()));
         Assert.True(firstFrame.TryGetProperty("length", out var length), "Captured frames should include a length field.");
         Assert.True(length.GetInt32() > 0);
         Assert.True(firstFrame.TryGetProperty("sampleLength", out var sampleLength), "Captured frames should include a sampleLength field.");
@@ -193,9 +199,9 @@ public sealed class DataToolLegacyWorldSmokeTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_usersRoot))
+        if (Directory.Exists(_root))
         {
-            Directory.Delete(_usersRoot, recursive: true);
+            Directory.Delete(_root, recursive: true);
         }
     }
 
@@ -249,6 +255,9 @@ public sealed class DataToolLegacyWorldSmokeTests : IDisposable
             GuildDontion=900
             PkPoints=0
             Online=7
+            SecurityPass=0,0,0
+            CollectionID=0
+            CollectionStorage=0/0/
             Day=0
             Enilghten=200
             Achivement=0/171966688/262144/523784/939949824/524288/1342381056/3/576/0/0/524288/25167856/6817280/0/

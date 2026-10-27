@@ -298,6 +298,23 @@ No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
 
+### FSB-128: Explicit D13 synthetic fixtures select the catalogued class
+
+The owned fixture creator inherited Class10 from its legacy compatibility input.
+Exact D13 ProfessionalName data contains1000/InternTrojan, not10; the native
+family calculation `(class % 100000) / 1000` also distinguishes them. Add a closed,
+explicit creator profile selecting1000 only for new `VisibleDx8D13` fixtures.
+Default/RootD11 calls retain10; ambient settings do not select it and existing
+saves are never rewritten. Current hero codecs and economic/item/UID values stay.
+
+The final public-derived focused selection passes314/314, zero failures/skips,
+including20 new profile cases: API/CLI rejection before filesystem work, both
+hero class widths, genuine ordinary Character/Spells1110 commit before success,
+Action78/relogin without regrant, actual file-lock refusal and raw/encrypted Host
+restart. This corrects fixture input selection, not a global class migration or
+new casting implementation. Live class/skill UI, casting, full Windows CI,
+complete English and7935 gameplay remain unverified.
+
 ### FSB-126: Native-probe cleanup requires retained process identity
 
 The diagnostic probe previously reopened historical observed PIDs and terminated

@@ -1,4 +1,5 @@
 using WolfConquer.Core.Data;
+using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
@@ -14,18 +15,33 @@ public static partial class LegacyOwnedAdmissionFixture
     public const string ConfigurationFileName = "owned-admission.json";
     public const string HistoricalEvidence = "synthetic owned fixture: exactly one initial item; no prior issuance";
 
+    // Preserve the established compatibility fixture. Targeted fixtures require
+    // an explicit profile; no ambient environment selects their saved class.
     public static bool TryCreate(string newRoot, uint accountKey, uint characterUid, uint itemUid,
         out LegacyOwnedAdmissionFixtureResult? fixture, out string reason) =>
-        TryCreate(newRoot, accountKey, characterUid, itemUid, LegacyOwnedAdmissionFixtureInterruption.None,
-            out fixture, out reason);
+        TryCreate(newRoot, accountKey, characterUid, itemUid, ConquerProtocolProfile.RootD11_7899,
+            LegacyOwnedAdmissionFixtureInterruption.None, out fixture, out reason);
+
+    public static bool TryCreate(string newRoot, uint accountKey, uint characterUid, uint itemUid,
+        ConquerProtocolProfile protocolProfile, out LegacyOwnedAdmissionFixtureResult? fixture, out string reason) =>
+        TryCreate(newRoot, accountKey, characterUid, itemUid, protocolProfile,
+            LegacyOwnedAdmissionFixtureInterruption.None, out fixture, out reason);
 
     internal static bool TryCreate(string newRoot, uint accountKey, uint characterUid, uint itemUid,
         LegacyOwnedAdmissionFixtureInterruption interruption, out LegacyOwnedAdmissionFixtureResult? fixture,
-        out string reason)
+        out string reason) =>
+        TryCreate(newRoot, accountKey, characterUid, itemUid, ConquerProtocolProfile.RootD11_7899,
+            interruption, out fixture, out reason);
+
+    internal static bool TryCreate(string newRoot, uint accountKey, uint characterUid, uint itemUid,
+        ConquerProtocolProfile protocolProfile, LegacyOwnedAdmissionFixtureInterruption interruption,
+        out LegacyOwnedAdmissionFixtureResult? fixture, out string reason)
     {
         fixture = null; reason = "ownedAdmissionFixtureIdentifiersInvalid";
         if (accountKey == 0 || accountKey != characterUid || itemUid is 0 or uint.MaxValue ||
             itemUid == characterUid || !Enum.IsDefined(interruption)) return false;
+        if (protocolProfile is not (ConquerProtocolProfile.RootD11_7899 or ConquerProtocolProfile.VisibleDx8D13))
+        { reason = "ownedAdmissionFixtureProfileInvalid"; return false; }
         if (!TryValidateTarget(newRoot, out var root, out reason)) return false;
         var stage = Path.Combine(Path.GetDirectoryName(root)!, "." + Path.GetFileName(root) + ".staging");
         try
@@ -33,7 +49,7 @@ public static partial class LegacyOwnedAdmissionFixture
             RequireAbsent(stage);
             CreateNewDirectory(stage);
             RequirePhysicalDirectoryChain(stage);
-            WriteSnapshots(stage, accountKey, characterUid, itemUid);
+            WriteSnapshots(stage, accountKey, characterUid, itemUid, protocolProfile);
             // Rename refuses any target that appeared after preflight. Bootstrap
             // follows the rename, so its persisted absolute routes are FINAL.
             RequirePhysicalDirectoryChain(Path.GetDirectoryName(root)!);

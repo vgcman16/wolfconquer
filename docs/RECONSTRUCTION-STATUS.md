@@ -3,6 +3,11 @@
 Updated2026-10-26. Current target: Chinese client7899 / `VisibleDx8D13`.
 This is a component checklist, not measured completion or a release claim.
 
+Latest focused successor:314/314 pass, including20 explicit D13 fixture cases.
+Saved-login preservation, genuine smoke owners and PIN/quest fixtures replace
+the fifteen failures in the prior7d6514a3 full run. That run remains failed;
+new exact-public full Windows checks are pending. See [validation](../VALIDATION.md).
+
 - [x] Recoverable managed mailbox transactions, UID history and guarded native
   saved-state/metadata prerequisites, within their documented producer limits.
 - [x] Coherent ordinary saved admission preserves progression and complete files;
@@ -13,6 +18,8 @@ This is a component checklist, not measured completion or a release claim.
   actual raw/encrypted process, restart, lease and actor-drain controls pass.
 - [x] Offline disposable-fixture CLI creates new synthetic files/history without
   account creation, imported saves or production startup bootstrap.
+- [x] An explicit D13 creator profile selects its real Class1000; default/RootD11
+  Class10 and existing saved classes remain unchanged.
 - [x] Generic resource/configuration tools and separate known-schema Chinese7935
   packet/catalog research, including item2350 reader/writer and Echo thresholds.
 - [ ] Verify this complete public source successor in its own full Windows run.

@@ -1,5 +1,30 @@
 # Publication validation
 
+## CI fixture correction and explicit D13 profile - focused checks passed
+
+The exact7d6514a3 full [Windows40429173377](https://github.com/vgcman16/wolfconquer/actions/runs/40429173377)
+failed with26,745 core passes/15 failures/164 exclusions; updater434/434 passed.
+Restore/build passed with148 warnings/0 errors; launcher/parsers were not reached.
+That run remains failed. Last accepted full source remains f21e2a11.
+
+The reviewed successor replaces two destructive saved-login expectations,
+binds three smoke fixtures to genuine saved-state/UID owners and corrects ten
+PIN/quest cases. Fresh creation's level-one goldens remain unchanged. Rejected
+admission must preserve files and send no success; no production guard is relaxed.
+The initial successor attempt failed compilation on four test owner accesses,
+with no tests executed. A later314-case run passed311/failed3; the three smoke
+assertions were corrected to the actual eight-opcode console limit and empty
+application output on rejection. Exact nine-frame JSON ordering remains checked.
+
+The final public-derived selection passes314/314, zero failures/skips, including
+all20 new explicit-profile cases. An optional `--profile VisibleDx8D13` creates
+new synthetic Class1000 fixtures; default/RootD11 creation retains Class10 and
+existing saves are unchanged. Both hero widths, actual ordinary1110 commit and
+publication, lock rejection and restart/no-regrant are covered. FSB-128 records
+the boundary. New exact-public full Windows verification remains pending.
+These focused results do not prove casting, reliable client restart, complete
+English,7935 gameplay, distribution readiness or full parity.
+
 ## Retained-process cleanup correction - full public check pending
 
 Native-probe cleanup no longer terminates a historical PID without a fresh,

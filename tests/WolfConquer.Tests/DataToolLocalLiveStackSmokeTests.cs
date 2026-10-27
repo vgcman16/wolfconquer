@@ -14,7 +14,8 @@ namespace WolfConquer.Tests;
 public sealed class DataToolLocalLiveStackSmokeTests : IDisposable
 {
     private readonly LoginLoaderPayloadFixture _loaderPayloads = new();
-    private readonly string _usersRoot = Path.Combine(Path.GetTempPath(), "wolf-local-live-smoke-" + Guid.NewGuid());
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "wolf-local-live-smoke-" + Guid.NewGuid());
+    private string _usersRoot => Path.Combine(_root, "Users");
 
     [Fact]
     public async Task LocalLiveStackSmokeProvesLoaderGatewayAccountAndWorldRoute()
@@ -22,11 +23,12 @@ public sealed class DataToolLocalLiveStackSmokeTests : IDisposable
         using var beastMetadata = new NativeLoginBeastMetadataScope(1000);
         Directory.CreateDirectory(_usersRoot);
         WriteSnapshot(1_400_123);
+        await using var owned = new OwnedSmokeWorldFixture(_usersRoot, 1_400_123);
 
         await using var loginWeb = LoginLoaderHttpServer.Start(IPAddress.Loopback, port: 0);
         await using var gateway = CreateLegacyGuardShieldLoopbackServer();
         await using var world = CreateLegacyWorldLoopbackServer(
-            new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot)).HandleFrameAsync);
+            owned.Handler.HandleFrameAsync);
         world.Start();
         await using var account = CreateLegacyAccountLoopbackServer(
             new AccountServerFrameHandler(
@@ -66,6 +68,7 @@ public sealed class DataToolLocalLiveStackSmokeTests : IDisposable
         Assert.True(
             result.ExitCode == 0,
             $"DataTool exit code: {result.ExitCode}{Environment.NewLine}stdout: {result.StandardOutput}{Environment.NewLine}stderr: {result.StandardError}");
+        Assert.Contains("ordinary admission committed key=1400123", owned.Log.ToString());
         Assert.Contains("Local live stack smoke:", result.StandardOutput);
         Assert.Contains("loginweb=http://127.0.0.1:", result.StandardOutput);
         Assert.Contains("ready=True", result.StandardOutput);
@@ -97,9 +100,9 @@ public sealed class DataToolLocalLiveStackSmokeTests : IDisposable
     public void Dispose()
     {
         _loaderPayloads.Dispose();
-        if (Directory.Exists(_usersRoot))
+        if (Directory.Exists(_root))
         {
-            Directory.Delete(_usersRoot, recursive: true);
+            Directory.Delete(_root, recursive: true);
         }
     }
 
@@ -176,6 +179,9 @@ public sealed class DataToolLocalLiveStackSmokeTests : IDisposable
             BankCps=0
             PkPoints=0
             Online=0
+            SecurityPass=0,0,0
+            CollectionID=0
+            CollectionStorage=0/0/
 
             """);
     }

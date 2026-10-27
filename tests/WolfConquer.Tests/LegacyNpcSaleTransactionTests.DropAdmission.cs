@@ -50,20 +50,59 @@ public sealed partial class LegacyNpcSaleTransactionTests
     [Theory]
     [InlineData("malformed")]
     [InlineData("111,1,9223372036854775807,")]
-    public async Task MalformedStoredPinStillAdmitsGameLoginButCannotDropOrVerify(string stored)
+    public async Task MalformedStoredPinRejectsGameLoginWithoutDropOrVerificationAuthority(string stored)
     {
         const uint uid = 1_299_411;
         SeedPinDrop(uid, stored);
         var owner = NewOwner();
-        var player = await LoginPinDrop(owner, uid);
-        Assert.False(player.Connection.NativeGameClient!.Player.IsCheckedPass);
-        var before = File.ReadAllBytes(UserPath(uid));
+        var player = CreateConnection(uid);
+        var native = player.Connection.NativeGameClient!;
+        var physical = native.Player;
+        var nativeBefore = (physical.UID, physical.Class, physical.ClassExperience, physical.Online,
+            physical.Body, physical.Face, physical.Hair, physical.Name, physical.Spouse, physical.ServerID,
+            physical.SecurityPassword, physical.OnReset, physical.IsCheckedPass, native.FullLoading, native.Fake);
+        // These participants belong to GameClient. Observe the actual physical
+        // Player.Owner path too; Player has no independent copies of these slots.
+        var beastsBefore = native.Beasts;
+        var playerBeastsBefore = physical.Owner.Beasts;
+        var hairfaceBefore = native.HairfaceStorage;
+        var playerHairfaceBefore = physical.Owner.HairfaceStorage;
+        var equipmentBefore = native.RawEquipmentObservation;
+        var files = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+            .ToDictionary(path => path, File.ReadAllBytes, StringComparer.OrdinalIgnoreCase);
 
-        await AssertPinDropDenied(owner, player);
-        Assert.DoesNotContain(await VerifyDropPin(owner, player, 111), packet => packet.Action == 5 && packet.OldPassword == 257);
-        await AssertPinDropDenied(owner, player);
+        await SendLogin(owner, player);
 
-        Assert.Equal(before, File.ReadAllBytes(UserPath(uid)));
+        AssertRejectedState();
+        Assert.Contains("ordinaryAdmissionPreparation:InvalidDataException", owner.Log.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("legacy MsgLoginGame Success", owner.Log.ToString(), StringComparison.Ordinal);
+        await DropPinItem(owner, player, SoldUid);
+        Assert.Empty(await VerifyDropPin(owner, player, 111));
+        await DropPinItem(owner, player, SoldUid);
+        AssertRejectedState();
+
+        void AssertRejectedState()
+        {
+            Assert.Empty(player.Sent);
+            Assert.False(owner.Sessions.TryGet(player.Connection, out _));
+            Assert.Same(native, player.Connection.NativeGameClient);
+            Assert.Same(physical, native.Player);
+            Assert.Same(native, physical.Owner);
+            Assert.Equal(nativeBefore, (physical.UID, physical.Class, physical.ClassExperience, physical.Online,
+                physical.Body, physical.Face, physical.Hair, physical.Name, physical.Spouse, physical.ServerID,
+                physical.SecurityPassword, physical.OnReset, physical.IsCheckedPass, native.FullLoading, native.Fake));
+            Assert.False(physical.IsCheckedPass);
+            Assert.Same(beastsBefore, native.Beasts);
+            Assert.Same(playerBeastsBefore, physical.Owner.Beasts);
+            Assert.Same(hairfaceBefore, native.HairfaceStorage);
+            Assert.Same(playerHairfaceBefore, physical.Owner.HairfaceStorage);
+            Assert.Same(equipmentBefore, native.RawEquipmentObservation);
+            Assert.Empty(DropFloor(owner).SnapshotVisible(DateTimeOffset.UtcNow));
+            Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
+            Assert.Equal(files.Keys.Order(StringComparer.OrdinalIgnoreCase),
+                Directory.GetFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.OrdinalIgnoreCase));
+            foreach (var (path, bytes) in files) Assert.Equal(bytes, File.ReadAllBytes(path));
+        }
     }
 
     [Theory]

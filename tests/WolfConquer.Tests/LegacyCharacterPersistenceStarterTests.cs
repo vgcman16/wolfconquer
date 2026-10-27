@@ -10,7 +10,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyCharacterPersistenceStarterTests : IDisposable
+public sealed partial class LegacyCharacterPersistenceStarterTests : IDisposable
 {
     private const uint AccountKey = 1_293_600;
     private const long CharacterUid = 1_293_600;
@@ -393,101 +393,35 @@ public sealed class LegacyCharacterPersistenceStarterTests : IDisposable
     }
 
     [Fact]
-    public async Task LegacyWorldLoginRepairsSourceBoostedStarterShellToBoundedLevelOne()
+    public async Task OrdinarySavedLoginPreservesLevel100TrojanEconomyItemsAndLearnedSpellsAcrossRelog()
     {
-        var usersRoot = UsersRoot();
-        var loader = new CharacterSnapshotLoader(usersRoot);
-        loader.CreateLegacyFirstCharacterSnapshot(CharacterUid, "Boosted", 1008, 1_000);
-        RewriteAsSourceBoostedTrojanSnapshot(usersRoot);
-        new PlayerItemSnapshotLoader(Path.Combine(_root, "PlayersItems")).SaveByCharacterUid(
-            CharacterUid,
-            CreateSourceBoostedTrojanItems());
-        new PlayerSpellSnapshotLoader(Path.Combine(_root, "PlayersSpells")).SaveByCharacterUid(
-            CharacterUid,
-            CreateSpellSnapshot(1045, 1046, 1110));
-        using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
+        // The helper deletes only after confirmed owner drains; failed fixtures are retained.
+        var fixture = new LegacyOwnedAdmissionRuntimeFixture(bootstrap: false);
+        WriteSnapshot(fixture.Users, LegacyOwnedAdmissionRuntimeFixture.Uid,
+            name: "SavedTrojan", classCode: 1_000, level: 100, experience: 0,
+            mapId: 1_002, x: 410, y: 350, strength: 155, agility: 60,
+            vitality: 92, spirit: 0, minHitPoints: 2_853, money: 10_000_000);
 
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new LegacyMsgLoginGamePacket(AccountKey).ToFrameBytes()));
-
-        var repaired = loader.LoadByAccountId(CharacterUid);
-        Assert.NotNull(repaired);
-        Assert.Equal(1, repaired!.Level);
-        Assert.NotEqual(100, repaired.Level);
-        Assert.Equal(0, repaired.Experience);
-        Assert.Equal(5, repaired.Strength);
-        Assert.Equal(2, repaired.Agility);
-        Assert.Equal(3, repaired.Vitality);
-        Assert.Equal(0, repaired.Spirit);
-        Assert.Equal(93, repaired.MinHitPoints);
-        Assert.Equal(100_000, repaired.Money);
-        Assert.Equal(0, repaired.ConquerPoints);
-        var playerProficienciesPath = Path.Combine(
-            _root,
-            "PlayersProfs",
-            CharacterUid.ToString(CultureInfo.InvariantCulture) + ".bin");
-        Assert.True(File.Exists(playerProficienciesPath));
-        Assert.Equal(sizeof(int), new FileInfo(playerProficienciesPath).Length);
-
-        var repairedItems = loader.LoadPlayerItemsByCharacterUid(CharacterUid);
-        Assert.Empty(repairedItems.InventoryItems);
-        Assert.Equal(
-            [132_009U, 420_301U, 420_301U, 150_003U],
-            repairedItems.EquipmentItems.Select(item => item.ItemId).ToArray());
-
-        var repairedSpells = loader.LoadPlayerSpellsByCharacterUid(CharacterUid);
-        Assert.Equal([1046U, 1110U], repairedSpells.SpellIds.ToArray());
-        Assert.Equal(CreateSpellSnapshot(1046, 1110).Spells, repairedSpells.Spells);
-        Assert.Equal(repairedSpells.Spells, GetSession(handler, connection).PlayerSpells.Spells);
-        Assert.Equal(93, GetSession(handler, connection).Character.MinHitPoints);
-        Assert.Contains("sourceConquerPoints=50000", log.ToString());
+        await AssertSavedAdmissionWithOwnerAcrossRelogAsync(fixture,
+            CreateSourceBoostedTrojanItems(), CreateSpellSnapshot(1045, 1046, 1110),
+            expectedClass: 1_000, expectedLevel: 100, expectedMoney: 10_000_000,
+            expectedConquerPoints: 50_000, proficiencyId: 420);
     }
 
     [Fact]
-    public async Task LegacyWorldLoginSanitizesFreshNonTrojanStarterSpellPollution()
+    public async Task OrdinarySavedLoginPreservesAllSixWarriorLearnedSpellsWithoutInferringBirthFromLevelOne()
     {
-        var usersRoot = UsersRoot();
-        WriteSnapshot(
-            usersRoot,
-            CharacterUid,
-            name: "WarStarter",
-            classCode: 2_000,
-            level: 1,
-            experience: 0,
-            mapId: 1_002,
-            x: 410,
-            y: 350,
-            strength: 5,
-            agility: 2,
-            vitality: 3,
-            spirit: 0,
-            minHitPoints: 93,
-            money: 100_000);
-        var loader = new CharacterSnapshotLoader(usersRoot);
-        new PlayerItemSnapshotLoader(Path.Combine(_root, "PlayersItems")).SaveByCharacterUid(
-            CharacterUid,
-            CreateTunedWarriorStarterItems());
-        new PlayerSpellSnapshotLoader(Path.Combine(_root, "PlayersSpells")).SaveByCharacterUid(
-            CharacterUid,
-            CreateSpellSnapshot(1025, 1045, 1046, 1020, 1015, 1040));
-        using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(loader, log);
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
+        // The helper deletes only after confirmed owner drains; failed fixtures are retained.
+        var fixture = new LegacyOwnedAdmissionRuntimeFixture(bootstrap: false);
+        WriteSnapshot(fixture.Users, LegacyOwnedAdmissionRuntimeFixture.Uid,
+            name: "SavedWarrior", classCode: 2_000, level: 1, experience: 0,
+            mapId: 1_002, x: 410, y: 350, strength: 5, agility: 2,
+            vitality: 3, spirit: 0, minHitPoints: 93, money: 100_000);
 
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new LegacyMsgLoginGamePacket(AccountKey).ToFrameBytes()));
-
-        var repairedSpells = loader.LoadPlayerSpellsByCharacterUid(CharacterUid);
-        Assert.Equal([1020U, 1015U, 1040U], repairedSpells.SpellIds.ToArray());
-        Assert.DoesNotContain(1045U, repairedSpells.SpellIds);
-        Assert.DoesNotContain(1046U, repairedSpells.SpellIds);
-        Assert.Contains("class=2000 spellIds=1020,1015,1040", log.ToString());
+        await AssertSavedAdmissionWithOwnerAcrossRelogAsync(fixture,
+            CreateTunedWarriorStarterItems(), CreateSpellSnapshot(1025, 1045, 1046, 1020, 1015, 1040),
+            expectedClass: 2_000, expectedLevel: 1, expectedMoney: 100_000,
+            expectedConquerPoints: 0, proficiencyId: 561);
     }
 
     [Fact]

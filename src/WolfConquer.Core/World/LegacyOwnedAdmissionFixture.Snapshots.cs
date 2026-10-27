@@ -1,16 +1,21 @@
 using System.Globalization;
 using System.Text;
 using WolfConquer.Core.Data;
+using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
 public static partial class LegacyOwnedAdmissionFixture
 {
-    private static void WriteSnapshots(string root, uint account, uint character, uint item)
+    private static void WriteSnapshots(string root, uint account, uint character, uint item,
+        ConquerProtocolProfile protocolProfile)
     {
         foreach (var name in new[] { "Users", "PlayersItems", "PlayersSpells", "PlayersProfs", "Quests", "PlayersCombatGear", "PlayersMailList" })
             Directory.CreateDirectory(Path.Combine(root, name));
-        var text = CharacterText(character, DateTime.Now.DayOfYear);
+        // A D13-targeted new fixture uses the real catalogued InternTrojan class.
+        // Existing compatibility calls retain class10 and never rewrite a save.
+        var classCode = protocolProfile == ConquerProtocolProfile.VisibleDx8D13 ? 1_000u : 10u;
+        var text = CharacterText(character, DateTime.Now.DayOfYear, classCode);
         if (CharacterSnapshotParser.ParseText(text).Uid != character)
             throw new InvalidDataException("Synthetic Character image is not coherent.");
         using (var output = new FileStream(Path.Combine(root, "Users", account.ToString(CultureInfo.InvariantCulture) + ".ini"),
@@ -35,14 +40,14 @@ public static partial class LegacyOwnedAdmissionFixture
     // Synthetic loot-roundtrip state with body 1008 for the D13 look 8 assets.
     // The older body 1003 fixture requests look 3, absent from the staged D13 set.
     // These values are test data, not imported saves, credentials or live grants.
-    private static string CharacterText(uint character, int day) => $$"""
+    private static string CharacterText(uint character, int day, uint classCode) => $$"""
         [Character]
         UID={{character.ToString(CultureInfo.InvariantCulture)}}
         Name=LootFixture
         Body=1008
         Face=154
         Haire=27
-        Class=10
+        Class={{classCode.ToString(CultureInfo.InvariantCulture)}}
         FirstClass=0
         SecoundeClass=0
         Reborn=0

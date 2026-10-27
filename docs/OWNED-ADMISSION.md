@@ -23,6 +23,21 @@ they do not register an authenticated account. The generated character uses
 Twin City1002/410/354, level120/class10, money100, CP50, no bank balance and one
 unbound/unlocked item1001000. Existing data is never imported or replaced.
 
+For a new fixture targeting the D13 client, append the exact optional selector:
+
+```powershell
+dotnet run --project src/WolfConquer.DataTool -- seed-owned-admission-fixture $taskFixture 1399701 1399701 2399701 --profile VisibleDx8D13
+```
+
+Use this command instead of the earlier creator command, with a fresh root.
+Explicit D13 selects Class1000/InternTrojan; omitted profile or explicit
+`RootD11_7899` retains Class10. Other initial values remain the same. Only those
+two exact profile names are accepted. The creator ignores ambient profile
+settings; WorldServer's `WOLFCONQUER_PROTOCOL_PROFILE` remains separately explicit.
+The initial spell file stays empty. Actual ordinary admission subsequently commits
+the legitimate missing Trojan1110 before publishing success and its learned row;
+relogin does not regrant it. Casting and rendered class/skill UI remain unverified.
+
 The command writes the six canonical snapshot files, creates the exact new UID
 history, releases its lease and publishes `owned-admission.json` last. The initial
 historical floor is that one known synthetic item UID. A stopped/failed creation
