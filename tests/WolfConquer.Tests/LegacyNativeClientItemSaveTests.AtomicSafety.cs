@@ -109,6 +109,7 @@ public sealed partial class LegacyNativeClientItemSaveTests
     [Theory]
     [InlineData("foreign-inventory")] [InlineData("foreign-equipment")]
     [InlineData("foreign-wardrobe")] [InlineData("foreign-warehouse")]
+    [InlineData("retrofitted-foreign-wardrobe")] [InlineData("retrofitted-null-wardrobe")]
     [InlineData("retrofitted-rune")] [InlineData("foreign-player")]
     public void SaveDoesNotInferAuthorityFromMatchingUidOrRetrofittedOwnerSlots(string corruption)
     {
@@ -119,6 +120,8 @@ public sealed partial class LegacyNativeClientItemSaveTests
             case "foreign-inventory": client.Inventory = new(foreign); break;
             case "foreign-equipment": client.Equipment = new(foreign); break;
             case "foreign-wardrobe": client.MyWardrobe = new(foreign); break;
+            case "retrofitted-foreign-wardrobe": client.MyWardrobe = new(foreign) { Owner = client }; break;
+            case "retrofitted-null-wardrobe": client.MyWardrobe = new(null) { Owner = client }; break;
             case "foreign-warehouse": client.Warehouse = new(foreign); break;
             case "retrofitted-rune": client.Rune = new(null) { Owner = client }; break;
             case "foreign-player": client.Player = foreign.Player; break;

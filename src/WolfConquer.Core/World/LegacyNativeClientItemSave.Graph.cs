@@ -61,7 +61,7 @@ internal static partial class LegacyNativeClientItemSave
             ReferenceEquals(client.Inventory, inventory) && ReferenceEquals(inventory.Owner, client) &&
             ReferenceEquals(client.Equipment, equipment) && equipment.IsOwnedBy(client) &&
             ReferenceEquals(client.Warehouse, warehouse) && ReferenceEquals(warehouse.User, client) &&
-            ReferenceEquals(client.MyWardrobe, wardrobe) && ReferenceEquals(wardrobe.Owner, client) &&
+            ReferenceEquals(client.MyWardrobe, wardrobe) && wardrobe.IsOwnedBy(client) &&
             ReferenceEquals(client.Rune, rune) && rune.IsSaveOwnedBy(client) &&
             ReferenceEquals(client.RelicFuse, relic) && ReferenceEquals(client.GearMythsoulBag, gear);
 

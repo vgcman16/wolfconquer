@@ -172,11 +172,11 @@ public sealed partial class LegacyNativeCreatePrestigeTests
     }
 
     [Fact]
-    public void NativeUInt32ItemArithmeticWrapsAndPerfectionLevelNarrowsToNegativeIntWithoutSaturation()
+    public void NativeUInt32EquipmentContributionPreservesTheLargestSafeDoubledValue()
     {
         using var fixture=new Fixture();var client=fixture.Client;
-        client.Equipment!.CurentEquip=[new(){ItemPoints=uint.MaxValue}];
-        client.PrestigeLevel=uint.MaxValue;
+        client.Equipment!.CurentEquip=[new(){ItemPoints=uint.MaxValue/2}];
+        client.PrestigeLevel=0;
         client.CreatePrestigePoints();
         Assert.Equal(uint.MaxValue-1,client.PrestigePoints[3]);
         Assert.Equal(uint.MaxValue-1,client.MyPrestigePoints);

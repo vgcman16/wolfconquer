@@ -1,10 +1,17 @@
 namespace WolfConquer.Core.World;
 
-// Whole native PerfectionEffect39..337. Reset/threshold writes precede every real rune read.
-// No delegate, projection, cache, rollback or null-owner repair is introduced.
+// Retain the complete source threshold/rune calculation in CalculateUpdate.
+// Public Update prepares a detached value before copying into this physical owner;
+// preparation failure leaves its fields untouched. Concurrent-reader atomicity remains open.
 internal partial class LegacyNativePerfectionEffect
 {
 	public void Update(int perfectionLevel, LegacyNativeGameClientRuntime client)
+	{
+		var prepared = PrepareUpdate(perfectionLevel, client);
+		ApplyPrepared(prepared);
+	}
+
+	private void CalculateUpdate(int perfectionLevel, LegacyNativeGameClientRuntime client)
 	{
 		ToxinEraser = (LightOfStamina = (DivineGuard = (CalmWind = (LuckyStrike = (StrikeLock = (FreeSoul = (StraightLife = (DrainingTouch = (BloodSpawn = (CoreStrike = (KillingFlash = (MirrorOfSin = (InvisibleArrow = (ShieldBreak = (AbsoluteLuck = 0.0)))))))))))))));
 		if (perfectionLevel > 0)

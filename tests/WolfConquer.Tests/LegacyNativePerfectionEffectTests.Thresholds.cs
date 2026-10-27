@@ -44,20 +44,39 @@ public sealed partial class LegacyNativePerfectionEffectTests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(325)]
-    [InlineData(601)]
-    public void NullClientOrRuneFaultAfterResetAndAllThresholdWritesWithoutRollback(int level)
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(325, false)]
+    [InlineData(325, true)]
+    [InlineData(601, false)]
+    [InlineData(601, true)]
+    public void NullClientOrMissingRuneRefusesBeforeChangingAnyExistingPerfectionField(int level, bool missingRune)
     {
         using var fixture = new Fixture();
         var state = fixture.Client.PerfectionStatus;
         Poison(state);
-        Assert.Throws<NullReferenceException>(() => state.Update(level, null!));
-        Assert.Equal(Expected(level), Values(state));
-        Poison(state);
-        fixture.Client.Rune = null;
-        Assert.Throws<NullReferenceException>(() => state.Update(level, fixture.Client));
-        Assert.Equal(Expected(level), Values(state));
-        Assert.Null(fixture.Client.Rune);
+        var prior = Values(state);
+        Exception? failure;
+        if (missingRune)
+        {
+            fixture.Client.Rune = null;
+            failure = Record.Exception(() => state.Update(level, fixture.Client));
+        }
+        else
+        {
+            failure = Record.Exception(() => state.Update(level, null!));
+        }
+        Assert.Equal(prior, Values(state));
+        Assert.Same(state, fixture.Client.PerfectionStatus);
+        if (missingRune)
+        {
+            Assert.Null(fixture.Client.Rune);
+            Assert.IsType<InvalidOperationException>(failure);
+        }
+        else
+        {
+            Assert.Same(fixture.Storage, fixture.Client.Rune);
+            Assert.IsType<ArgumentNullException>(failure);
+        }
     }
 }

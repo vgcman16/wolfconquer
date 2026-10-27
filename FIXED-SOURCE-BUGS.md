@@ -4,16 +4,68 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Current prestige file qualification and accepted prior full source
+## Current focused qualification and accepted prior full source
 
-The loader/publication/numeric batch passed1,295 public-derived cases with129
-existing exclusions and698/698 private cases. The Save successor now passes765/765
-public-derived and770/770 private cases, zero failures/skips. Exact prior adcae028 passed
-Windows40456938513: core27,168/164 existing exclusions, updater434, launcher57,
-synthetic parsers20+13; all eight stages exit0. That full run predates this batch.
-Earlier status sections below are retained history.
+Prestige client/effect preparation plus wardrobe-save ownership passed735/735
+public-derived and740/740 private focused checks, zero failures/skips. Baselines
+were35failed/207passed and two failed/six passed. FSB-135..136 record exact limits.
+The prior loader/Save source42a1116b passed Windows40466127994: core27,367 passed/
+164 existing exclusions, updater434, launcher57 and synthetic parsers20+13; all
+eight stages exit0. This new source still needs its own exact-public full gate.
+Older status sections retain their historical outcomes.
 
-## Session-root fix and D13 codec — focused acceptance, full CI pending
+### FSB-136: Require physical wardrobe ownership at item-save consumption
+
+**Source:** ClientItemSave.SaveGraph.HasCurrentOwners and mutable Wardrobe.Owner.
+
+**Defect:** a foreign-born or null-born wardrobe could be installed in the current
+client slot and have public Owner rewritten, then be accepted for a real item save.
+
+**Correction:** retain the actual wardrobe constructor binding and require it,
+public Owner and the current client slot to match. The save graph consumes this
+same physical-owner guard. Public Owner remains mutable for existing query APIs;
+no placeholder owner or automatic adoption is introduced.
+
+**Verification:** existing real-file authority theory expanded by two cases.
+Before the graph guard, both incorrectly committed (two failed/six passed).
+Both now reject with prior file/graph unchanged in public735/private740 selections.
+Valid genuine wardrobe/equipment alias serialization remains covered. This does not
+establish a whole inventory transaction or crash/hostile namespace safety.
+
+### FSB-135: Prepare prestige and perfection results before publishing
+
+**Source:** GameClientRuntime.CreatePrestigePoints and PerfectionEffect.Update.
+
+**Defects:** failed calculations could reset or partially replace client points,
+Entry, physical effects or guild totals before a required owner or rank failed.
+Unchecked arithmetic/narrowing could publish wrapped scores. Foreign optional UID
+owners, rewritten wardrobe owners and unregistered guild members could contribute.
+Malformed saved-row text or out-of-range Chi values could also be published.
+
+**Correction:** prepare real component scores, total, Entry/point copy and effects
+privately; validate physical constructor/slot/UID ownership, configured identity,
+actual guild registration, complete equipment and required metadata. Recheck captured
+owners and equipment values, publish prepared ranks under the shared gate, then
+apply plain field stores to client, the existing physical effect and genuine member.
+Foreign-server calculations still avoid rank/gate consultation. Checked arithmetic,
+actual Chi bounds and strict text admission reject invalid data before publication.
+Standalone effect Update also prepares before changing its existing sixteen fields.
+
+**Verification:** tests-only old42a baseline35failed/207passed/zero skipped,242total.
+First correction733/733; final coherent public735/735 and private740/740 pass with
+zero failures/skips (five extra private compact-English controls). All242 baseline
+names and eight item-save authority rows pass. Includes late-world failures, real
+owner/guild mismatches, score overflow,39/44-slot valid arrays versus38 rejection,
+Chi bounds, Unicode, effect identity and valid source formulas/thresholds.
+
+This is managed preparation/rejection safety, not runtime adoption, a complete
+concurrent snapshot, atomic observation of all sixteen fields, crash/database
+transactions, deployment, client rendering or full parity. Double equipment and
+wardrobe Items[1] formulas remain source-shaped observations pending client evidence.
+Low-score same-UID retention and other ranking APIs remain open.
+[Calculation contract](docs/PRESTIGE-CLIENT-CALCULATION.md).
+
+## Historical session-root fix and D13 codec qualification
 
 Owned public-derived selection 15047 passed 250/250, zero failures/skips, including
 30 new root cases and 71 D13 RandomDailyTask codec cases plus retained controls.
@@ -388,8 +440,8 @@ valid ordering and entry identity. Shared-gate queries/removal observe one graph
 
 **Verification:** nine publication cases plus retained formula/ranking/caller
 controls pass. Five new publication checks failed against prior production.
-Earlier client-field mutations, stale-low retention and other global Rank APIs
-remain open; this is not a whole CreatePrestigePoints or crash-safe transaction.
+Client-field mutation windows are addressed by FSB-135. Stale-low retention and
+other global Rank APIs remain open; no crash-safe transaction is claimed.
 
 ### FSB-131: Validate complete prestige files before replacing the live graph
 
@@ -411,7 +463,7 @@ world 100/class 30 and deterministic saved-order ties are retained.
 The broader public-derived selection passed 1,295 with 129 existing exclusions;
 private passed 698/698, including five English controls. Existing valid formats,
 literal path prefixes, Unicode, malformed tails, duplicates, caches and consumers
-are covered. Save remains a separate pending correction. No production Load caller,
+are covered. Save was subsequently corrected by FSB-134. No production Load caller,
 native execution, deployed refresh, power-loss recovery or live-client proof is
 established. [Storage contract](docs/PRESTIGE-FILE-STORAGE.md).
 

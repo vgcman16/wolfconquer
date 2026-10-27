@@ -45,39 +45,34 @@ public sealed partial class LegacyNativeCreatePrestigeTests
     }
 
     [Fact]
-    public void MissingHundredWeaponsFaultsAfterArrayResetButBeforeTotalOrRankEntryReplacement()
-    {
-        using var fixture=new Fixture();var client=fixture.Client;
-        var prior=new Ranking.Entry(){TotalPoints=123};client.PrestrigeEntry=prior;client.MyPrestigePoints=777;
-        var old=client.PrestigePoints;Array.Fill(old,999u);client.HundredWeapons=null;
-        Assert.Throws<NullReferenceException>(()=>client.CreatePrestigePoints());
-        Assert.NotSame(old,client.PrestigePoints);Assert.Equal(new uint[43],client.PrestigePoints);
-        Assert.Equal(777u,client.MyPrestigePoints);Assert.Same(prior,client.PrestrigeEntry);
-    }
+    public void MissingHundredWeaponsRefusesWithoutChangingClientOrRankOwners() =>
+        RunPrestigeClientPreparation(fixture =>
+        {
+            var client = SeedPrestigeClientPreparation(fixture);
+            SetNextPrestigeClientInputs(client);
+            client.HundredWeapons = null;
+            RequirePrestigeClientPreparationRefusal(client);
+        });
 
     [Fact]
-    public void NullLaterEquipmentEntryLeavesItsEarlierPointPrefixButOldTotalAndEntry()
-    {
-        using var fixture=new Fixture();var client=fixture.Client;
-        var prior=new Ranking.Entry(){TotalPoints=123};client.PrestrigeEntry=prior;client.MyPrestigePoints=777;
-        client.Equipment!.CurentEquip=[new(){ItemPoints=17},null!];
-        Assert.Throws<NullReferenceException>(()=>client.CreatePrestigePoints());
-        Assert.Equal(17u,client.PrestigePoints[3]);Assert.Equal(777u,client.MyPrestigePoints);
-        Assert.Same(prior,client.PrestrigeEntry);
-    }
+    public void NullLaterEquipmentEntryRefusesWithoutPublishingItsEarlierPointPrefix() =>
+        RunPrestigeClientPreparation(fixture =>
+        {
+            var client = SeedPrestigeClientPreparation(fixture);
+            SetNextPrestigeClientInputs(client);
+            client.Equipment!.CurentEquip = [new() { ItemPoints = 17 }, null!];
+            RequirePrestigeClientPreparationRefusal(client);
+        });
 
     [Fact]
-    public void MissingConfiguredIdentityFaultsAfterCompleteEntryCopyButBeforeRanksAndPerfection()
-    {
-        using var fixture=new Fixture();var client=fixture.Client;
-        client.Equipment!.CurentEquip=[new(){ItemPoints=10000}];client.PerfectionStatus.ToxinEraser=19;
-        LegacyNativeGroupServerList.MyServerInfo=null!;
-        Assert.Throws<NullReferenceException>(()=>client.CreatePrestigePoints());
-        Assert.Equal(20000u,client.PrestrigeEntry!.TotalPoints);
-        Assert.Equal(20000u,client.PrestrigeEntry.Points![3]);
-        Assert.Equal(19d,client.PerfectionStatus.ToxinEraser);
-        Assert.All(Ranking.Ranks.Values,rank=>Assert.Empty(rank.Items));
-    }
+    public void MissingConfiguredIdentityRefusesBeforeChangingEntryRanksPerfectionOrGuild() =>
+        RunPrestigeClientPreparation(fixture =>
+        {
+            var client = SeedPrestigeClientPreparation(fixture);
+            SetNextPrestigeClientInputs(client);
+            LegacyNativeGroupServerList.MyServerInfo = null!;
+            RequirePrestigeClientPreparationRefusal(client);
+        });
 
     [Fact]
     public void MissingNamedRuneMetadataGrantsNoBonusAndAllowsCompletePrestigeAndGuildUpdate()
@@ -85,8 +80,9 @@ public sealed partial class LegacyNativeCreatePrestigeTests
         using var fixture=new Fixture();var client=fixture.Client;
         client.Player.ServerID=2;client.Player.Reborn=2;SavedField(client.Player,"_level",(ushort)15);
         client.Player.MyGuild=LegacyNativeGuildRuntime.CreateLoadedGuild("Owned Guild");
-        var member=new LegacyNativeGuildRuntime.Member(){PrestigePoints=777};
+        var member=new LegacyNativeGuildRuntime.Member(){UID=client.Player.UID,Name=client.Player.Name,PrestigePoints=777};
         client.Player.MyGuildMember=member;
+        Assert.True(client.Player.MyGuild.Members.TryAdd(member.UID,member));
         client.PrestigeLevel=601;client.Equipment!.CurentEquip=[new(){ItemPoints=10000}];
         const uint id=4010001;
         LegacyNativePoolItems.ItemsBase![id]=new(){ID=id,Name="Sanctity"};
@@ -113,7 +109,8 @@ public sealed partial class LegacyNativeCreatePrestigeTests
     {
         using var fixture=new Fixture();var client=fixture.Client;
         client.Player.MyGuild=LegacyNativeGuildRuntime.CreateLoadedGuild("Owned Guild");
-        var member=new LegacyNativeGuildRuntime.Member(){PrestigePoints=777};client.Player.MyGuildMember=member;
+        var member=new LegacyNativeGuildRuntime.Member(){UID=client.Player.UID,Name=client.Player.Name,PrestigePoints=777};client.Player.MyGuildMember=member;
+        Assert.True(client.Player.MyGuild.Members.TryAdd(member.UID,member));
         client.Equipment!.CurentEquip=[new(){ItemPoints=10000}];client.PrestigeLevel=601;
         client.CreatePrestigePoints();
         Assert.Same(member,client.Player.MyGuildMember);Assert.Equal(20000u,member.PrestigePoints);

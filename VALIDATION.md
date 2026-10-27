@@ -1,6 +1,22 @@
 # Publication validation
 
-## Latest Save successor — focused checks passed
+## Latest prestige calculation and wardrobe ownership qualification
+
+Character prestige/effect rebuilds now prepare valid results before client/rank
+publication, and item saves reject foreign-born or null-born wardrobes with a
+rewritten public Owner. Public-derived735/735 and private740/740 focused cases
+passed without failures/skips; the five extra private cases cover compact English
+announcements. Old baselines exposed35 and two failures respectively. See FSB-135..136
+and the calculation contract. No runtime was deployed and no new client proof follows.
+
+The previous source42a1116b passed [Windows40466127994](https://github.com/vgcman16/wolfconquer/actions/runs/40466127994),
+job122061848685. Actual receipt20261027T071728193Z-6bcab685 finished
+2026-10-27T07:59:40.8903469Z; all eight stages exited0. Actual TRXs: core27,367
+passed/164 existing exclusions, updater434/434, launcher57/57. The20 status and13
+smoke-parser cases are synthetic-only/no network. The current successor still
+needs its own exact-public full gate. Older sections retain historical outcomes.
+
+## Historical Save focused qualification
 
 Prestige Save now prepares a complete validated image, stages and flushes it before
 real Replace/Move, and reconciles observed outcomes. Public-derived765/765 and
@@ -9,7 +25,7 @@ the additional observer baseline was1failed/2passed. FSB-134 and the storage con
 describe the exact real-filesystem/observer scope. Crash/startup recovery and runtime
 adoption remain unproven. A new exact-public full Windows check is still required;
 last accepted full source remainsadcae028. Older sections below retain history.
-## Latest focused successor and accepted prior full source
+## Historical loader qualification and prior full source
 
 The loader/publication/numeric successor passed 1,295 public-derived cases with
 129 existing exclusions and 698/698 private cases. All576 original baseline cases

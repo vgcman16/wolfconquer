@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace WolfConquer.Core.World;
 
 // Concrete native non-wire Wardrobe owner. Real packets/EquipItem are absent, not no-ops.
-internal class LegacyNativeWardrobeRuntime
+internal partial class LegacyNativeWardrobeRuntime
 {
 	public enum ItemsType : byte
 	{
@@ -16,6 +16,7 @@ internal class LegacyNativeWardrobeRuntime
 	public ConcurrentDictionary<uint, LegacyNativeGameItemRuntime>[] Items;
 
 	public LegacyNativeGameClientRuntime? Owner;
+	private readonly LegacyNativeGameClientRuntime? constructorOwner;
 
 	public ItemsType GetItemType(uint ID)
 	{
@@ -46,6 +47,7 @@ internal class LegacyNativeWardrobeRuntime
 	public LegacyNativeWardrobeRuntime(LegacyNativeGameClientRuntime? _owner)
 	{
 		Owner = _owner;
+		constructorOwner = _owner;
 		Items = new ConcurrentDictionary<uint, LegacyNativeGameItemRuntime>[2];
 		for (int i = 0; i < 2; i++)
 		{

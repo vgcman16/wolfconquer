@@ -42,8 +42,9 @@ validates their complete UID maps and privately prepares both outcomes under the
 same gate before assignment. Excluded classes10000..10002 remain world-only;
 low-score publication remains the existing no-op. Queries/removal use the shared gate.
 
-Earlier client-field mutation windows, stale-low retention and other Rank API
-defects remain open. Save now validates/serializes current class rows completely
+Client-field preparation is covered by [FSB-135](../FIXED-SOURCE-BUGS.md) and the
+[calculation contract](PRESTIGE-CLIENT-CALCULATION.md). Stale-low retention and
+other Rank APIs remain open. Save now validates/serializes current class rows completely
 before creating a same-directory exclusive flushed stage. Existing files use
 Replace with an owned backup; missing destinations use create-only Move. Valid
 sparse graphs, fulluint, variable point arrays, UTF8 without BOM and the exact
