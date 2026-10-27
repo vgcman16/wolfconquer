@@ -88,6 +88,12 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         internal void SetPlayerField(string name, object value) => typeof(LegacyNativePlayerRuntime)
             .GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(Client.Player, value);
         internal void UseNullBin() => Bin.SetValue(null, null);
+        internal void UseSingleOwnedPacketBin(LegacyNativePacket packet)
+        {
+            var queue = new ConcurrentQueue<LegacyNativePacket>();
+            queue.Enqueue(packet);
+            Bin.SetValue(null, queue);
+        }
         internal void RestoreOwnedBin() => Bin.SetValue(null, ownedBin);
 
         internal LegacyNativeNinja.Item Item(uint key, uint id, uint level = 1, uint position = 0, uint exp = 0, uint uk = 0)

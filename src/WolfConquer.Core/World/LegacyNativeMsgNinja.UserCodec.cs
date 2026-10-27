@@ -8,9 +8,10 @@ internal static partial class LegacyNativeMsgNinja
 
     public static LegacyNativePacket CreateNinjaUser(this LegacyNativePacket stream, MsgNinjaUser obj)
     {
-        stream.InitWriter();
-        stream.ProtoBufferSerialize(obj);
-        stream.Finalize(2395);
+        LegacyNativePreparedPacketStorage.Validate(stream, 4);
+        var seal = LegacyNativePreparedPacketFrames.CaptureSeal();
+        var frame = PrepareNinjaUserFrame(obj, seal);
+        LegacyNativePreparedPacketStorage.Write(stream, frame);
         return stream;
     }
 }

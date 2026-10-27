@@ -6,7 +6,7 @@ namespace WolfConquer.Core.World;
 
 // Native Role.Instance.Spell physical owner and methods. RuneSpells queries the
 // genuine mutable Pool.Magic owner directly, never a snapshot or managed catalog.
-internal class LegacyNativeSpellStorage
+internal partial class LegacyNativeSpellStorage
 {
     public ConcurrentDictionary<ushort, LegacyNativeMsgSpell> ClientSpells =
         new ConcurrentDictionary<ushort, LegacyNativeMsgSpell>();
@@ -33,70 +33,33 @@ internal class LegacyNativeSpellStorage
 
     public void ClearSpells(List<ushort> StaticSpells, LegacyNativePacket stream)
     {
-        foreach (LegacyNativeMsgSpell value in ClientSpells.Values)
-        {
-            if (!StaticSpells.Contains(value.ID))
-            {
-                Remove(value.ID, stream);
-            }
-            else
-            {
-                RebornSpell(stream, value.ID);
-            }
-        }
+        ArgumentNullException.ThrowIfNull(StaticSpells);
+        var retained = new HashSet<ushort>();
+        foreach (var id in StaticSpells) retained.Add(id);
+        ExecuteTypedMutation(stream, SpellMutationKind.Clear, 0, null, retained);
     }
 
     public void Remove(ushort ID, LegacyNativePacket stream)
     {
-        if (ClientSpells.TryRemove(ID, out var _))
-        {
-            LegacyNativeActionQuery pQuery = new LegacyNativeActionQuery
-            {
-                Type = 109,
-                ObjId = Owner.Player.UID,
-                dwParam = ID
-            };
-            Owner.Send(stream.ActionCreate(pQuery));
-        }
+        ExecuteTypedMutation(stream, SpellMutationKind.Remove, ID, null, null);
     }
 
     public void Add(LegacyNativePacket stream, ushort ID, ushort level = 0,
         byte levelsoul = 0, byte previouslevel = 0, int Experience = 0, bool ClearExp = false)
     {
-        if (ID != 1105 && (ID < 4000 || ID > 4070))
-        {
-            LegacyNativeMsgSpell msgSpell = new LegacyNativeMsgSpell();
-            msgSpell.ID = ID;
-            msgSpell.Level = level;
-            msgSpell.Experience = Experience;
-            msgSpell.SoulLevel = levelsoul;
-            msgSpell.PreviousLevel = previouslevel;
-            msgSpell.Experience = Experience;
-            if (ClearExp)
-            {
-                msgSpell.Experience = 0;
-            }
-            if (ClientSpells.ContainsKey(ID))
-            {
-                ClientSpells[ID] = msgSpell;
-            }
-            ClientSpells.TryAdd(msgSpell.ID, msgSpell);
-            Owner.Send(stream.SpellCreate(msgSpell));
-        }
+        if (!PermittedNinjaSkill(ID)) return;
+        var row = CreateTypedSpell(ID, level, levelsoul, previouslevel, ClearExp ? 0 : Experience);
+        ExecuteTypedMutation(stream, SpellMutationKind.Add, ID, row, null);
     }
 
     public bool RebornSpell(LegacyNativePacket stream, ushort ID)
     {
-        if (ClientSpells.TryRemove(ID, out var value))
-        {
-            Add(stream, ID, 0, value.SoulLevel, (byte)value.Level);
-            return true;
-        }
-        return false;
+        return ExecuteTypedMutation(stream, SpellMutationKind.Reborn, ID, null, null);
     }
 
     public void Update(LegacyNativePacket stream, LegacyNativeMsgSpell spell)
     {
+        ArgumentNullException.ThrowIfNull(spell);
         Add(stream, spell.ID, spell.Level, spell.SoulLevel, spell.PreviousLevel, spell.Experience);
     }
 

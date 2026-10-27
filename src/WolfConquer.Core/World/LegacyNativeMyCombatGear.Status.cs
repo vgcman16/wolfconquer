@@ -14,27 +14,24 @@ internal partial class LegacyNativeMyCombatGear
 		if (Check(user.Player.Class))
 		{
 			VRANK valueRank = LegacyNativeCombatGear.GetValueRank(user.Player.UID, user.Player.Class);
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.LuckyStrike, valueRank.CoreStrike);
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.Parry, valueRank.Parry);
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.CoreStrike, valueRank.CoreStrike);
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.PAttack, valueRank.PAttack);
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.PDefense, valueRank.PDefense);
-			A(LegacyNativeDaoqiDictTypeTable.AttrType.MDefense, valueRank.MDefense);
+			var spells = user.MySpells ?? throw UnavailableStatusRankBonus();
+			var rankBonus = new PreparedStatusRankBonus(this, spells, valueRank);
 			if (LegacyNativeAtributesStatus.IsPirate(user.Player.Class))
 			{
 				if (valueRank.Magic != 0)
 				{
-					user.MySpells.Add(stream, valueRank.Magic, valueRank.MagicLevel, 0, 0);
+					spells.Add(stream, valueRank.Magic, valueRank.MagicLevel, 0, 0);
 				}
-				else if (user.MySpells.ClientSpells.ContainsKey(21930))
+				else if (spells.ClientSpells.ContainsKey(21930))
 				{
-					user.MySpells.Remove(21930, stream);
+					spells.Remove(21930, stream);
 				}
 			}
-			else if (user.MySpells.ClientSpells.ContainsKey(21930))
+			else if (spells.ClientSpells.ContainsKey(21930))
 			{
-				user.MySpells.Remove(21930, stream);
+				spells.Remove(21930, stream);
 			}
+			if (!rankBonus.TryApply()) return;
 			if (LegacyNativeAtributesStatus.IsPirate(user.Player.Class))
 			{
 				foreach (LegacyNativeDictCollectionTable.CQ item in GetNutBook())

@@ -18,7 +18,7 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         Assert.Equal(Enumerable.Repeat(uint.MaxValue, 5), new[] { item.ItemID, item.Level, item.Position, item.Exp, item.UK });
         Assert.Same(item, scope.Ninja.Items[17]);
         scope.RestoreOwnedBin();
-        Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available); scope.Untaken(0);
+        AssertNoRankingPackets(scope);
     });
 
     [Theory]
@@ -30,6 +30,7 @@ public sealed partial class LegacyNativeNinjaLoadingTests
     public Task AddItemClampsOnlyLevelAndKeepsFullStoredValuesWhileSingleProducerOmitsUk(uint input, uint expected) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
+        scope.Meta(7, 100, expected, score: 0);
         scope.Ninja.AddItem(100, input, uint.MaxValue, uint.MaxValue, uint.MaxValue);
         var item = Assert.Single(scope.Ninja.Items).Value;
         Assert.Equal(new uint[] { 100, expected, uint.MaxValue, uint.MaxValue, uint.MaxValue },
@@ -41,69 +42,77 @@ public sealed partial class LegacyNativeNinjaLoadingTests
     });
 
     [Fact]
-    public Task AddItemUsesPhysicalIdKeyOverwritesOnlyThatSlotAndRetainsOtherAliases() => NativePacketTestThread.Run(() =>
+    public Task AddItemReplacesOnlyTheCanonicalSlotAndKeepsEscapedPreviousMapsUnchanged() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        var old = scope.Item(100, 200, 2, 3, 4, 5);
-        Assert.True(scope.Ninja.Items.TryAdd(900, old));
-        var differentKey = scope.Item(901, 101, 2);
+        var old = scope.Item(100, 100, 2, 3, 4, 5);
+        var other = scope.Item(101, 101, 2);
+        var escaped = scope.Ninja.Items;
+        scope.Meta(1, 100, 2); scope.Meta(2, 100, 3);
+        scope.Meta(3, 101, 2); scope.Meta(4, 101, 4);
+
         scope.Ninja.AddItem(100, 3, 6, 7, 8);
+        var afterFirst = scope.Ninja.Items;
+        Assert.NotSame(escaped, afterFirst);
+        Assert.Same(old, escaped[100]); Assert.Same(other, escaped[101]);
+        Assert.Same(other, afterFirst[101]);
         scope.Ninja.AddItem(101, 4, 9, 10, 11);
-        Assert.Equal(4, scope.Ninja.Items.Count);
+
+        Assert.Equal(2, scope.Ninja.Items.Count);
         Assert.NotSame(old, scope.Ninja.Items[100]);
-        Assert.Same(old, scope.Ninja.Items[900]);
-        Assert.Same(differentKey, scope.Ninja.Items[901]);
-        Assert.NotSame(differentKey, scope.Ninja.Items[101]);
-        Assert.Equal(new uint[] { 200, 2, 3, 4, 5 }, new[] { old.ItemID, old.Level, old.Position, old.Exp, old.UK });
-        scope.Sent(ItemFrame(ItemAction.Add, 17, (100, 3, 6, 7, 0)),
-            ItemFrame(ItemAction.Add, 17, (101, 4, 9, 10, 0)));
+        Assert.NotSame(other, scope.Ninja.Items[101]);
+        Assert.Same(other, afterFirst[101]);
+        Assert.Equal(new uint[] { 100, 2, 3, 4, 5 }, new[] { old.ItemID, old.Level, old.Position, old.Exp, old.UK });
+        scope.Sent(ItemFrame(ItemAction.Add, 17, (100, 3, 6, 7, 0)), ItemFrame(ItemAction.Add, 17, (101, 4, 9, 10, 0)));
         Assert.Equal(10, scope.Available);
     });
 
     [Fact]
-    public Task NullItemsFaultAfterSendBeforePublicationLeavesFormerDictionaryUntouched() => NativePacketTestThread.Run(() =>
+    public Task NullItemsRefuseBeforeAnyItemRankOrPacketPublication() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        var old = scope.Item(100, 200);
+        var old = scope.Item(100, 100);
         var dictionary = scope.Ninja.Items;
         scope.Ninja.Items = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Ninja.AddItem(100, 0, 3, 4, 5));
-        byte[] frame = ItemFrame(ItemAction.Add, 17, (100, 1, 3, 4, 0));
-        scope.Sent(frame); scope.Serialized(0, frame);
+        var before = new RankingGraphWitness();
+        Assert.Throws<InvalidOperationException>(() => scope.Ninja.AddItem(100, 0, 3, 4, 5));
         Assert.Null(scope.Ninja.Items); Assert.Same(old, dictionary[100]);
-        Assert.Equal(11, scope.Available);
+        before.RequireUnchanged();
+        AssertNoRankingPackets(scope);
     });
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public Task ProducerOwnerOrRecycleFailureHappensBeforeDictionaryPublication(bool recycle) => NativePacketTestThread.Run(() =>
+    public Task MissingOwnerOrPacketStorageRefusesBeforeItemAndRankPublication(bool recycle) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        var old = scope.Item(100, 200);
+        var old = scope.Item(100, 100);
+        var map = scope.Ninja.Items;
+        scope.Meta(1, 100, 1); scope.Meta(9, 100, 9);
+        var before = new RankingGraphWitness();
         if (recycle) scope.UseNullBin(); else scope.Ninja.user = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Ninja.AddItem(100, 9, 3, 4, 5));
+        Assert.Throws<InvalidOperationException>(() => scope.Ninja.AddItem(100, 9, 3, 4, 5));
+        Assert.Same(map, scope.Ninja.Items);
         Assert.Same(old, Assert.Single(scope.Ninja.Items).Value);
-        Assert.Empty(scope.Queue);
-        if (recycle)
-        {
-            scope.RestoreOwnedBin(); Assert.Equal(12, scope.Available); scope.Untaken(0);
-        }
-        else { Assert.Equal(11, scope.Available); scope.UnserializedDisposed(0); }
+        before.RequireUnchanged();
+        if (recycle) scope.RestoreOwnedBin();
+        AssertNoRankingPackets(scope);
     });
 
     [Fact]
-    public Task RankFaultRetainsAlreadySentAndStoredNewItemAndEarlierOverallRank() => NativePacketTestThread.Run(() =>
+    public Task RankRefusalLeavesItemMapEveryRankAndOutputQueueUnchanged() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        scope.Meta(7, 100, 3, score: 1000);
+        var old = scope.Item(101, 101, 2);
+        var map = scope.Ninja.Items;
+        scope.Meta(1, 101, 2); scope.Meta(7, 100, 3, score: 1000);
         LegacyNativeNinjaRank.Ranks.Remove(RankType.Fire);
-        Assert.Throws<NullReferenceException>(() => scope.Ninja.AddItem(100, 3, 4, 5, 6));
-        var item = scope.Ninja.Items[100];
-        Assert.Equal(new uint[] { 100, 3, 4, 5, 6 }, new[] { item.ItemID, item.Level, item.Position, item.Exp, item.UK });
-        Assert.Equal(1000u, scope.Rank(RankType.Overall).RankingList[17].TotalPoints);
-        Assert.False(LegacyNativeNinjaRank.Ranks.ContainsKey(RankType.Fire));
-        byte[] frame = ItemFrame(ItemAction.Add, 17, (100, 3, 4, 5, 0));
-        scope.Sent(frame); scope.Serialized(0, frame); Assert.Equal(11, scope.Available);
+        var before = new RankingGraphWitness();
+        Assert.Throws<InvalidOperationException>(() => scope.Ninja.AddItem(100, 3, 4, 5, 6));
+        Assert.Same(map, scope.Ninja.Items);
+        Assert.Same(old, Assert.Single(scope.Ninja.Items).Value);
+        before.RequireUnchanged();
+        AssertNoRankingPackets(scope);
     });
 }

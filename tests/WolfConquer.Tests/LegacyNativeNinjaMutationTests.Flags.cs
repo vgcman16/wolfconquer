@@ -82,8 +82,8 @@ public sealed partial class LegacyNativeNinjaMutationTests
         using var scope = new Scope();
         scope.Ninja.Flag = remove ? 1UL : 0UL;
         scope.UseNullBin();
-        if (remove) Assert.Throws<NullReferenceException>(() => scope.Ninja.RemoveFlag(1));
-        else Assert.Throws<NullReferenceException>(() => scope.Ninja.AddFlag(1));
+        if (remove) Assert.Throws<InvalidOperationException>(() => scope.Ninja.RemoveFlag(1));
+        else Assert.Throws<InvalidOperationException>(() => scope.Ninja.AddFlag(1));
         Assert.Equal(remove ? 1UL : 0UL, scope.Ninja.Flag);
         scope.RestoreOwnedBin();
         scope.NoSerialization();
@@ -92,18 +92,15 @@ public sealed partial class LegacyNativeNinjaMutationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public Task NullOwnerFaultComesAfterFlagMutationAndSerializationThenDisposesPacket(bool remove) => NativePacketTestThread.Run(() =>
+    public Task NullOwnerRefusesBeforeFlagMutationOrPacketLoan(bool remove) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         scope.Ninja.Flag = remove ? ulong.MaxValue : 0;
         scope.Ninja.user = null!;
-        if (remove) Assert.Throws<NullReferenceException>(() => scope.Ninja.RemoveFlag(ulong.MaxValue));
-        else Assert.Throws<NullReferenceException>(() => scope.Ninja.AddFlag(ulong.MaxValue));
-        ulong expected = remove ? 0UL : ulong.MaxValue;
-        Assert.Equal(expected, scope.Ninja.Flag);
-        Assert.Empty(scope.Queue);
-        Assert.Equal(3, scope.Available);
-        scope.Serialized(Frame(1, 0, expected));
+        if (remove) Assert.Throws<InvalidOperationException>(() => scope.Ninja.RemoveFlag(ulong.MaxValue));
+        else Assert.Throws<InvalidOperationException>(() => scope.Ninja.AddFlag(ulong.MaxValue));
+        Assert.Equal(remove ? ulong.MaxValue : 0UL, scope.Ninja.Flag);
+        scope.NoSerialization();
         Assert.Empty(scope.Log);
     });
 }

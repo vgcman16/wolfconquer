@@ -4,6 +4,140 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Ninja and spell component safety
+
+FSB-147–153 share one focused public qualification: **1,082 passed, zero failures
+or skips**, comprising 1,067 Ninja/caller cases plus 15 LocalDevelopmentTools cases.
+Private v2 passed the same **1,067 common Ninja cases**, zero failures/skips.
+All 814 public baseline names remain; that tests-only baseline was 279 failed /
+535 passed / zero skipped. These are shared suites, not seven separate runs.
+See [qualification and limits](docs/NINJA-SPELL-SAFETY.md).
+
+The initial private compilation lacked the configured ignored MySql dependency;
+the existing original DLL was restored only into its owned snapshot before v2.
+The prior full `4b9762cc` check failed only two stale plan-argument assertions;
+its actual failed receipt remains. The new composed source needs a new full gate.
+No live/SQL/crash-safety or host-adoption claim is made by these entries.
+
+### FSB-147: Ninja rank refresh and AddItem published partial or invalid state
+
+**Source:** `LegacyNativeNinja.Ranking.*`, `AddItem*`,
+`LegacyNativeNinjaRank.Refresh*` and `LegacyNativeMsgNinja.ItemCodec.cs`.
+
+**Defect:** Wind used Overall category; stale low/ineligible memberships remained.
+Unchecked scores, malformed item identities/appearance and late rank faults could
+follow item stores or notices. The writer checked storage too late.
+
+**Correction:** validate all six real rank owners/tails and canonical item/metadata
+identities; prepare checked scores, all affected maps, candidate item state and
+bounded exact bytes before stores. Preserve legitimate thresholds/ties/caps and
+old escaped graphs. Final plain fences follow comparer-capable appearance reads.
+
+**Verification:** shared suites above include genuine refresh, AddItem, comparer,
+late-fault and independent wire controls. Tiny unsafe old writers were not run.
+Standalone rank persistence/mutation APIs and outer costs remain separate.
+
+### FSB-148: Loading and typed spell mutations retained dirty failure prefixes
+
+**Source:** `LegacyNativeNinja.Loading*`, `Alternate.cs`, `GetLevel.cs`,
+`LegacyNativeSpellStorage*` and prepared spell/user/action/update frame helpers.
+
+**Defect:** later owner/metadata/frame/comparer failures could leave earlier ranks,
+skills or badge updates; sequential map writes and native encoders could fail
+after publication or write beyond actual capacity.
+
+**Correction:** prepare complete real maps, badge and ordered frames; retain and
+check actual comparers against raw expected identities. Reject typed recursive or
+inverted entry before actor locks. Admit all real storage before commit/copy and
+publish only committed outcomes, skipping stale notifications.
+
+**Verification:** shared suites cover original identities/outputs on refusal,
+real comparer reentry, successful sequence goldens and corrected-only bounds.
+Raw external writers, recycler retention and delivery/durability remain unproved.
+
+### FSB-149: Direct spell writers could modify escaped copy-on-write rows
+
+**Source:** `LegacyNativeMsgSpell.Handler.cs` / `SoulPreparation.cs`,
+`LegacyNativeUpdateSpell*`, `SpellStorage.DirectWriters.cs` and proficiency ownership.
+
+**Defect:** soul/XP writers could resolve a row before acquiring its actual gate
+or continue using it after legitimate replacement; late frame/owner faults could
+follow a store.
+
+**Correction:** capture current physical rows under the real spell gate, prepare
+responses/progress and revalidate bindings/metadata/rows after callouts before
+plain stores. Require actual equipment/proficiency owners only when used.
+
+**Verification:** shared current-row, owner, reentry and byte controls above.
+Earlier proficiency effects are not rolled back. XP checks are not universal:
+capped/rune/level-gated paths and full proficiency transactions remain open.
+
+### FSB-150: Spell files accepted incomplete rows and incoherent save graphs
+
+**Source:** `LegacyNativeServerDatabasePersistence.Spells*` and
+`LegacyNativeItemRecordFile.SpellLength.cs`.
+
+**Defect:** ignored read results invented spell zero or reused preceding fields;
+incremental publication, missing required metadata and count/row mismatch could
+leave partial graphs. Save could truncate before required graph validation.
+
+**Correction:** read/close a complete bounded image, validate required known-spell
+and rune metadata, prepare the merged current map and publish once. Preserve
+existing/duplicate-first and actual rune-denial policy. Snapshot valid save rows
+before public create/truncate; propagate incomplete writes and close handles.
+
+**Verification:** shared malformed/read/metadata/comparer/closure/save controls.
+Unknown saved IDs remain opaque membership, not cast permission. IO may still
+leave a partial file; opened-file callers may already have truncated it. No
+recoverable replacement, SQL or whole-login transaction is claimed.
+
+### FSB-151: Flags and Points could publish before notice admission or lose credits
+
+**Source:** `LegacyNativeNinja.Flags.cs` / `FlagPreparation.cs` and
+`Points.cs` / `PointPreparation.cs`.
+
+**Defect:** flags could change before owner/frame failure. Points read/checks
+preceded a separately locked setter, allowing concurrent credits to overwrite.
+
+**Correction:** prepare complete state/frame under genuine actor/persistence
+gates, admit real storage, then copy and publish one aggregate. Preserve any-overlap
+flag no-ops, AddFlag(0), zero-credit notices and full widths; check point addition.
+
+**Verification:** shared full-width/zero/refusal and corrected-only storage cases;
+real joined workers require final 79 from 71+3+5 and unordered valid notices.
+Delivery, concurrent notification order and paid outer spending remain open.
+
+### FSB-152: Status applied rank bonuses before required spell refusal
+
+**Source:** `LegacyNativeMyCombatGear.Status.cs` / `StatusRankBonus.cs`.
+
+**Defect:** six bonus calls changed status/perfection before a required spell
+owner/map/frame check; callouts could replace the later write targets.
+
+**Correction:** validate intended spell ownership and prepare the exact seven
+scalar results against captured real targets. Apply after the spell call only
+while bindings/values remain current; otherwise stop later Status work without
+misreporting a committed spell as an uncommitted rejection.
+
+**Verification:** shared malformed/foreign storage, real target-change comparer,
+500/500/300 arithmetic and literal removal-frame controls. Later Status and other
+CombatGear/Pirate/HundredWeapons outer prefixes are not certified.
+
+### FSB-153: Training trusted a consumed metadata key over the actual row identity
+
+**Source:** `LegacyNativeUpdateSpell.DirectPreparation.cs` / `DirectCommit.cs`.
+
+**Defect:** a keyed row declaring another spell ID or level could supply training
+rules; a later callout could change those identities before progress publication.
+
+**Correction:** when consumed, require declared ID/level to match the selected
+spell/captured level before either proficiency pass and recheck after callouts.
+Missing/null/mismatched consumed metadata retains the fail-soft return.
+
+**Verification:** shared actual metadata/proficiency caller and independent wire
+controls. Count-based early-cap behavior, unused/next-level metadata, previous-level
+restoration and prior proficiency side effects remain explicit open boundaries.
+
 ## CI regression-control follow-up
 
 FSB-145's1057 full-suite test still required the old missing-grant bug; it now

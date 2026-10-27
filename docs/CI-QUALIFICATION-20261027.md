@@ -1,5 +1,29 @@
 # CI qualification: 2026-10-27
 
+## Latest full result and corrected plan assertions
+
+[Windows40537900359](https://github.com/vgcman16/wolfconquer/actions/runs/40537900359)
+tested exact source4b9762ccbcd362a1af208b3bb5b627e11dd7a90f and finished FAILED
+at16:58:36Z. Restore/build passed. Actual Core results:28,528 Passed,164 existing
+excluded cases and2 Failed; Updater434/434 passed. The only failures were the
+Plan/DryRun argument-index assertions after adding the two serial test flags.
+Earlier native-launch, poison and1057 cases passed. Launcher/parsers were not
+reached. The real failed receipt, two TRXs and stdout/stderr are retained.
+
+Core finished16:56:31.857Z; Updater started16:56:39.110Z. This verifies no overlap
+for that run, without proving the earlier timing-failure causes. The public test
+now checks the exact configuration pairs, serial flags, logger/results positions
+and all retained spacing/probe/no-write controls. All15 local-tool cases pass in
+the1,082-case public focused run. No script logic or deadline was relaxed.
+
+The composed Ninja/caller selection also passed1,067/1,067 in the private snapshot;
+see [qualification and limits](NINJA-SPELL-SAFETY.md). The new publication batch
+requires its own exact-public full gate. Prior failed receipts remain failed.
+No game/client/service restart, SQL, route/save/restore-ZIP change or live-client
+acceptance follows from these checks.
+
+## Earlier repair checkpoint
+
 [Windows40523086178](https://github.com/vgcman16/wolfconquer/actions/runs/40523086178)
 failed on exact source71fd1df9 after54 minutes. Restore/build passed. Actual TRXs
 report Core28,527 Passed/164 NotExecuted/3 Failed and Updater432 Passed/2 Failed.

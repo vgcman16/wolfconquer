@@ -34,7 +34,7 @@
       "id": "combat",
       "title": "Combat, monsters and death",
       "status": "partial",
-      "implemented": "Substantial spell, damage, receive, equipment, AI and death logic has focused proof. Required spell metadata and bounded XP precede local credit. Physical/sigil admission checks real owners and metadata before effects. Committed new1110 and Action78 responses retain source order and publication ownership; complete callers and multiplayer acceptance remain open.",
+      "implemented": "Spell, damage, equipment, AI and death logic has focused proof. Required metadata and bounded XP precede local credit; physical/sigil admission checks real owners.1110/Action78 responses retain publication ownership. Scoped Ninja/rank/spell preparation passes1,067 common private/public cases. Native owner/sender adoption, full callers and multiplayer acceptance remain open.",
       "remaining": "Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios."
     },
     {
@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Source71fd1df9 Windows40523086178 built but failed5 tests: core28,527 passed/164 existing exclusions/3failed; updater432/2. CI repairs pass47Core+3Updater focused; serial8-step plan is validated, new full gate pending. Class2,006 and wire229 focused controls per checkout remain scoped evidence. Prestige activation, crash resolution, complete English, SQL and full-client distribution stay open."
+      "detail": "Source4b9762cc Windows40537900359 built but failed two stale plan-argument tests: Core28,528 passed/164 existing exclusions/2failed; Updater434 passed. Corrected public focused1,082 and private1,067 pass, including all814 baseline names;15 tooling cases now pass. The new composed source needs its own full gate. Native owner/sender adoption, prestige activation, crash resolution, complete English, SQL and full-client distribution stay open."
     },
     {
       "id": "english",

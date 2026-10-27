@@ -4,16 +4,50 @@ namespace WolfConquer.Core.World;
 
 internal partial class LegacyNativeMsgSpell
 {
-    // Native HandlerSpell127..136. Entry body only: no host packet-dispatch adoption.
+    // Prepared response/current-row publication only; no host dispatch adoption.
     public static void HandlerSpell(LegacyNativeGameClientRuntime client, LegacyNativePacket stream)
     {
-        stream.GetSpell(out var spell);
-        if (client.MySpells!.ClientSpells.TryGetValue(spell.ID, out var value) && value.SoulLevel >= spell.UseSpellSoul)
+        ArgumentNullException.ThrowIfNull(client);
+        LegacyNativeSpellStorage.RequireDirectEntry(client);
+        var request = ReadSoulRequest(stream);
+        var incoming = request.Value;
+        LegacyNativePlayerRuntime player;
+        LegacyNativeSpellStorage storage;
+        LegacyNativeSpellStorage.DirectSpellSnapshot.DirectSpellChange change;
+        byte[] frame;
+        nint address;
+        LegacyNativeSecuritySocket? socket;
+        bool fake;
+        lock (client.SpellAdmissionSyncRoot)
         {
-            value.UseSoul = spell.UseSoul;
-            client.MySpells!.ClientSpells[spell.ID] = value;
-            spell.Type = 3;
-            client.Send(stream.SpellCreate(spell));
+            player = client.Player ?? throw new InvalidOperationException("Soul request requires the physical player.");
+            lock (player.SpellAdmissionSyncRoot)
+            {
+                LegacyNativeSpellStorage.RequireDirectEntry(client);
+                storage = client.MySpells ?? throw new InvalidOperationException("Soul request requires the actual spell owner.");
+                socket = client.Socket; fake = client.Fake;
+                lock (storage.MutationGate)
+                {
+                    var selected = storage.CaptureDirectSnapshot(client, player).Find(incoming.ID);
+                    if (selected is null || selected.Value.SoulLevel < incoming.UseSpellSoul)
+                    { request.RequireCurrent(stream); stream.Seek(request.End); return; }
+                    change = selected;
+                }
+                incoming.Type = 3;
+                frame = LegacyNativeSpellPacket.PrepareSpellFrame(incoming, LegacyNativePreparedPacketFrames.CaptureSeal());
+                LegacyNativePreparedPacketStorage.Validate(stream, frame.Length);
+                address = LegacyNativePreparedPacketStorage.Address(stream);
+                change.PrepareSoul(incoming.UseSoul);
+                lock (storage.MutationGate)
+                {
+                    LegacyNativePreparedPacketStorage.Validate(stream, frame.Length);
+                    if (LegacyNativePreparedPacketStorage.Address(stream) != address) throw new InvalidOperationException("Soul response storage changed.");
+                    request.RequireCurrent(stream);
+                    if (!ReferenceEquals(client.Socket, socket) || client.Fake != fake) throw new InvalidOperationException("Soul response owner changed.");
+                    change.CommitSoul();
+                }
+            }
         }
+        PublishSoulFrame(client, player, storage, change, stream, frame, address, socket, fake);
     }
 }

@@ -68,14 +68,19 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         });
 
     [Fact]
-    public Task NullItemObjectEncodesOnlyNativeHeaderAndNullStreamFaultsBeforeTakingAnyPacket() =>
+    public Task MissingItemMessageRefusesUnchangedAndGenuineDefaultMessageKeepsRequiredFields() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
-            Assert.Same(scope.Packet, scope.Packet.CreateNinjaItem(null!));
-            Assert.Equal(new byte[] { 4, 0, 89, 9 }, NativeSpellTestFixture.Bytes(scope.Packet));
+            var before = NativeSpellTestFixture.Bytes(scope.Packet);
+            var position = scope.Packet.Position;
+            Assert.Throws<ArgumentNullException>(() => scope.Packet.CreateNinjaItem(null!));
+            Assert.Equal(before, NativeSpellTestFixture.Bytes(scope.Packet));
+            Assert.Equal(position, scope.Packet.Position);
+            Assert.Same(scope.Packet, scope.Packet.CreateNinjaItem(new ItemQuery()));
+            Assert.Equal(Convert.FromHexString("0800590908001000"), NativeSpellTestFixture.Bytes(scope.Packet));
             Assert.Equal(4, scope.Packet.Position);
-            Assert.Throws<NullReferenceException>(() => LegacyNativeMsgNinja.CreateNinjaItem(null!, new ItemQuery()));
+            Assert.Throws<InvalidOperationException>(() => LegacyNativeMsgNinja.CreateNinjaItem(null!, new ItemQuery()));
             Assert.Equal(12, scope.Available); scope.Untaken(0); Assert.Empty(scope.Queue);
         });
 

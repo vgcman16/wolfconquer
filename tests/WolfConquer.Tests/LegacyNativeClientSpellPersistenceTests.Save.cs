@@ -17,7 +17,7 @@ public sealed partial class LegacyNativeClientSpellPersistenceTests
     }
 
     [Fact]
-    public void SaveUsesActualValueIdsAndNativeFieldsThenRealLoadReconstructsThem()
+    public void SaveUsesCoherentValueIdsAndNativeFieldsThenRealLoadReconstructsThem()
     {
         using var files = new OwnedSpells();
         var client = Client();
@@ -25,14 +25,14 @@ public sealed partial class LegacyNativeClientSpellPersistenceTests
             PreviousLevel = 99, SoulLevel = 3, UseSpellSoul = 2 };
         var second = new LegacyNativeMsgSpell { ID = 32, Level = 5, Experience = int.MaxValue,
             PreviousLevel = 17, SoulLevel = 4, UseSpellSoul = 4 };
-        client.MySpells!.ClientSpells.TryAdd(333, first);
-        client.MySpells.ClientSpells.TryAdd(777, second);
+        client.MySpells!.ClientSpells.TryAdd(31, first);
+        client.MySpells.ClientSpells.TryAdd(32, second);
         var orderedValues = client.MySpells.ClientSpells.Values.ToArray();
         var expected = Image(2, orderedValues.Select(spell => Row(spell.ID, spell.Level, spell.Experience,
             spell.PreviousLevel, spell.SoulLevel, spell.UseSpellSoul)).ToArray());
         LegacyNativeServerDatabasePersistence.SaveClientSpells(client);
         Assert.Equal(expected, File.ReadAllBytes(files.FilePath));
-        Assert.Same(first, client.MySpells.ClientSpells[333]); Assert.Same(second, client.MySpells.ClientSpells[777]);
+        Assert.Same(first, client.MySpells.ClientSpells[31]); Assert.Same(second, client.MySpells.ClientSpells[32]);
         AssertClosed(files.FilePath);
         var loaded = Client();
         LegacyNativeServerDatabasePersistence.LoadClientSpells(loaded);
@@ -45,49 +45,44 @@ public sealed partial class LegacyNativeClientSpellPersistenceTests
     }
 
     [Fact]
-    public void OpenedSaveConversionFaultKeepsHeaderAndEarlierRecordAndSkipsClose()
+    public void OpenedSaveNullTailRefusesBeforeAnyWriteAndClosesTheActualFile()
     {
         using var files = new OwnedSpells();
         var client = Client();
-        client.MySpells!.ClientSpells.TryAdd(12, new());
-        client.MySpells.ClientSpells.TryAdd(87, new());
-        var keys = client.MySpells.ClientSpells.ToArray().Select(entry => entry.Key).ToArray();
-        var first = new LegacyNativeMsgSpell { ID = 40, Level = 2, Experience = 3, PreviousLevel = 4, SoulLevel = 1, UseSpellSoul = 2 };
-        client.MySpells.ClientSpells[keys[0]] = first;
-        client.MySpells.ClientSpells[keys[1]] = null!;
-        Assert.Same(first, client.MySpells.ClientSpells.Values.First());
+        var first = new LegacyNativeMsgSpell { ID = 40, Level = 2, Experience = 3,
+            PreviousLevel = 4, SoulLevel = 1, UseSpellSoul = 1 };
+        Assert.True(client.MySpells!.ClientSpells.TryAdd(first.ID, first));
+        Assert.True(client.MySpells.ClientSpells.TryAdd(87, null!));
+        var map = client.MySpells.ClientSpells;
         var file = files.Open(FileMode.Create);
         try
         {
-            Assert.Throws<NullReferenceException>(() => LegacyNativeServerDatabasePersistence.SaveClientSpellsOpenedFile(file, client));
-            Assert.Equal(Image(2, Row(40, 2, 3, 4, 1, 2)), ReadWhileOpen(files.FilePath));
-            Assert.True(file.Success);
-            Assert.Throws<IOException>(() =>
-            {
-                using var unexpected = new FileStream(files.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            });
+            Assert.Throws<InvalidOperationException>(() => LegacyNativeServerDatabasePersistence.SaveClientSpellsOpenedFile(file, client));
+            Assert.Same(map, client.MySpells.ClientSpells);
+            Assert.Same(first, map[40]);
+            Assert.Null(map[87]);
+            Assert.Equal(2, map.Count);
+            AssertClosed(files.FilePath);
+            Assert.Empty(File.ReadAllBytes(files.FilePath));
         }
         finally { file.Close(); }
-        AssertClosed(files.FilePath);
     }
 
+
     [Fact]
-    public void OpenedSaveMissingOwnerFaultsBeforeCountWriteAndLeavesCreatedFileOpen()
+    public void OpenedSaveMissingOwnerRefusesBeforeCountWriteAndClosesTheActualFile()
     {
         using var files = new OwnedSpells();
         var client = Client(spells: false);
         var file = files.Open(FileMode.Create);
         try
         {
-            Assert.Throws<NullReferenceException>(() => LegacyNativeServerDatabasePersistence.SaveClientSpellsOpenedFile(file, client));
-            Assert.Empty(ReadWhileOpen(files.FilePath));
-            Assert.True(file.Success);
-            Assert.Throws<IOException>(() =>
-            {
-                using var unexpected = new FileStream(files.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            });
+            Assert.Throws<InvalidOperationException>(() => LegacyNativeServerDatabasePersistence.SaveClientSpellsOpenedFile(file, client));
+            AssertClosed(files.FilePath);
+            Assert.Empty(File.ReadAllBytes(files.FilePath));
+            Assert.Null(client.MySpells);
         }
         finally { file.Close(); }
-        AssertClosed(files.FilePath);
     }
+
 }

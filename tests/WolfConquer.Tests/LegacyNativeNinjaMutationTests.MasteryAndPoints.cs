@@ -86,8 +86,8 @@ public sealed partial class LegacyNativeNinjaMutationTests
         using var scope = new Scope();
         scope.Ninja.Exp = 71;
         scope.UseNullBin();
-        Assert.Throws<NullReferenceException>(() => scope.Ninja.AddPoints(9));
-        Assert.Throws<NullReferenceException>(() => scope.Ninja.AddPoints(0));
+        Assert.Throws<InvalidOperationException>(() => scope.Ninja.AddPoints(9));
+        Assert.Throws<InvalidOperationException>(() => scope.Ninja.AddPoints(0));
         Assert.Equal(71u, scope.Ninja.Exp);
         scope.RestoreOwnedBin();
         scope.NoSerialization();

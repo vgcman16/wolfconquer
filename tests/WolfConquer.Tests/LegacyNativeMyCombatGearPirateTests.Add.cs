@@ -108,29 +108,64 @@ public sealed partial class LegacyNativeMyCombatGearPirateTests
         Assert.Equal(4, fixture.Storage.ClientSpells.Count);
     });
 
-    [Fact]
-    public Task CurrentMySpellsReferenceKeepsItsActualForeignOwnerSendAndRemovalUid() => NativePacketTestThread.Run(() =>
+    [Theory]
+    [InlineData((byte)1)]
+    [InlineData((byte)0)]
+    public Task ForeignSpellStorageWithoutItsOwnCurrentSlotRefusesWithoutMutation(byte mode) => NativePacketTestThread.Run(() =>
     {
         using var tables = new NativeCombatGearQueryScope();
         using var fixture = new NativeSpellTestFixture();
+        fixture.Storage.Add(fixture.Packet, 12345, 7); // Genuine prior owner frame/state.
         var (caller, current) = GearOwners(fixture);
         var foreignQueue = new Queue<byte[]>();
         var foreign = NativeSpellTestFixture.CreateOwner(foreignQueue);
         foreign.Player.UID = 99;
         var foreignStorage = new LegacyNativeSpellStorage(foreign);
-        fixture.Owner.MySpells = foreignStorage; // Explicit physical-reference prestate, not rebinding the owner.
-        current.Items[Gear.TypeID.Pirate1] = new Gear.Weapon { ItemID = Gear.TypeID.Dragonhowl };
+        var foreignCurrentSlot = foreign.MySpells;
+        Assert.NotSame(foreignStorage, foreignCurrentSlot); // Preserve the original invalid setup.
+        Seed(foreignStorage, 21540); Seed(foreignStorage, 21920);
+        fixture.Owner.MySpells = foreignStorage;
+        var weapon = new Gear.Weapon { ItemID = Gear.TypeID.Dragonhowl };
+        current.Items[Gear.TypeID.Pirate1] = weapon;
+        var items = current.Items;
+        var beforeOwnMap = new LegacyNativeSpellMutationWitness(fixture.Storage);
+        var beforeForeignMap = new LegacyNativeSpellMutationWitness(foreignStorage);
+        var beforeCallerPacket = new LegacyNativePacketMutationWitness(fixture.Packet);
+        var frames = fixture.Queue.ToArray();
+        var frameBytes = frames.Select(frame => frame.ToArray()).ToArray();
+        using var rental = new WolfConquer.Core.Networking.LegacyNativePacket(
+            WolfConquer.Core.Networking.LegacyNativePacket.MAX_SIZE);
+        unsafe
+        {
+            System.Runtime.InteropServices.Marshal.Copy(Enumerable.Repeat((byte)0xA5, rental.Capacity).ToArray(),
+                0, (nint)rental.Memory, rental.Capacity);
+        }
+        rental.Size = 321; rental.Seek(0); // Normal post-Reuse cursor.
+        var beforeRental = new LegacyNativePacketMutationWitness(rental);
+        var bin = typeof(WolfConquer.Core.Networking.LegacyNativePacketRecycle).GetField("bin",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        var priorPool = bin.GetValue(null);
+        bin.SetValue(null, new System.Collections.Concurrent.ConcurrentQueue<WolfConquer.Core.Networking.LegacyNativePacket>([rental]));
+        try
+        {
+            var error = Record.Exception(() => caller.IsPirate(mode));
 
-        caller.IsPirate(1);
-
-        Added(foreignQueue, (21540, 0), (21920, 0));
-        Assert.Empty(fixture.Queue);
-        Assert.Empty(fixture.Storage.ClientSpells);
-        foreignQueue.Clear();
-        caller.IsPirate(0);
-        Assert.Equal(new ushort[] { 21540, 21920 }, foreignQueue.Select(frame => Removed(frame, 99)));
-        Assert.Empty(foreignStorage.ClientSpells);
-        Assert.Empty(fixture.Queue);
-        Assert.Null(foreign.Socket!.Connection);
+            beforeOwnMap.RequireUnchanged(); beforeForeignMap.RequireUnchanged();
+            beforeCallerPacket.RequireUnchanged(); beforeRental.RequireUnchanged();
+            Assert.Same(foreignStorage, fixture.Owner.MySpells);
+            Assert.Same(foreignCurrentSlot, foreign.MySpells);
+            Assert.Same(items, current.Items);
+            Assert.Same(weapon, Assert.Single(items).Value);
+            Assert.Null(caller.Items); Assert.Same(current, fixture.Owner.CombatGear);
+            Assert.Equal(frames.Length, fixture.Queue.Count);
+            for (var index = 0; index < frames.Length; index++)
+            {
+                Assert.Same(frames[index], fixture.Queue.ElementAt(index));
+                Assert.Equal(frameBytes[index], fixture.Queue.ElementAt(index));
+            }
+            Assert.Empty(foreignQueue); Assert.Null(foreign.Socket!.Connection);
+            Assert.IsType<InvalidOperationException>(error);
+        }
+        finally { bin.SetValue(null, priorPool); }
     });
 }

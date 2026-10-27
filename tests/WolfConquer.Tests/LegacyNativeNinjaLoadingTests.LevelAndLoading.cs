@@ -25,7 +25,7 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
-            scope.Item(99, 100, levels, 1);
+            scope.Item(100, 100, levels, 1);
             scope.SetNinia(255);
             scope.Ninja.GetLevel();
             Assert.Equal((byte)badge, scope.Client.Player.NiniaP0);
@@ -37,21 +37,28 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         });
 
     [Fact]
-    public Task GetLevelReadsClientMyNinjaAndItsRealAlternateFallbackRatherThanReceiverItems() =>
+    public Task GetLevelRefusesDetachedReceiverBeforeUsingAnotherCurrentNinja() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             var selected = new LegacyNativeNinja(scope.Client);
-            selected.Items.TryAdd(1, new LegacyNativeNinja.Item { ItemID = 100, Position = 1, Level = 100 });
-            selected.Items.TryAdd(2, new LegacyNativeNinja.Item { ItemID = 200, Position = 9, Level = 5 });
-            selected.Items.TryAdd(3, new LegacyNativeNinja.Item { ItemID = 300, Position = 2, Level = 4 });
+            selected.Items.TryAdd(100, new LegacyNativeNinja.Item { ItemID = 100, Position = 1, Level = 100 });
+            selected.Items.TryAdd(200, new LegacyNativeNinja.Item { ItemID = 200, Position = 9, Level = 5 });
+            selected.Items.TryAdd(300, new LegacyNativeNinja.Item { ItemID = 300, Position = 2, Level = 4 });
             scope.Client.MyNinja = selected;
             scope.Client.Equipment!.Alternante = true;
             scope.Ninja.Items = null!;
-            scope.Ninja.GetLevel();
-            Assert.Equal((byte)1, scope.Client.Player.NiniaP0);
-            scope.Sent(LevelFrame(17, 1)); Assert.Same(selected, scope.Client.MyNinja);
-            Assert.Equal(3, selected.Items.Count); scope.Serialized(0, LevelFrame(17, 1));
+            scope.SetNinia(7);
+            var selectedMap = selected.Items;
+            var rows = selectedMap.ToArray();
+            var before = new LoadingTransactionWitness(scope);
+            var error = Record.Exception(() => scope.Ninja.GetLevel());
+            before.RequireUnchanged();
+            Assert.Same(selectedMap, selected.Items);
+            Assert.Equal(rows.Select(pair => pair.Key), selected.Items.ToArray().Select(pair => pair.Key));
+            foreach (var row in rows) Assert.Same(row.Value, selected.Items[row.Key]);
+            Assert.Equal(new uint[] { 100, 5, 4 }, new[] { selected.Items[100].Level, selected.Items[200].Level, selected.Items[300].Level });
+            Assert.IsType<InvalidOperationException>(error);
         });
 
     [Theory]
@@ -59,7 +66,7 @@ public sealed partial class LegacyNativeNinjaLoadingTests
     [InlineData("equipment")]
     [InlineData("items")]
     [InlineData("player")]
-    public Task GetLevelMissingOwnersFaultBeforeTakingOrPublishingBadge(string missing) =>
+    public Task GetLevelMissingOwnersRefuseBeforeTakingOrPublishingBadge(string missing) =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
@@ -69,9 +76,12 @@ public sealed partial class LegacyNativeNinjaLoadingTests
             if (missing == "equipment") scope.Client.Equipment = null;
             if (missing == "items") scope.Ninja.Items = null!;
             if (missing == "player") scope.Client.Player = null!;
-            Assert.Throws<NullReferenceException>(() => scope.Ninja.GetLevel());
+            var before = new LoadingTransactionWitness(scope);
+            var error = Record.Exception(() => scope.Ninja.GetLevel());
+            before.RequireUnchanged();
             Assert.Equal((byte)7, player.NiniaP0);
             Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available); scope.Untaken(0);
+            Assert.IsType<InvalidOperationException>(error);
         });
 
     [Fact]
@@ -112,7 +122,7 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
-            var item = scope.Item(999, 100, 9, 1, 4, 5);
+            var item = scope.Item(100, 100, 9, 1, 4, 5);
             scope.Meta(1, 100, 9, 1000, 16310, 16320);
             scope.Ninja.Fire = 2; scope.Ninja.FireMastery = 3;
             scope.Ninja.Exp = 6; scope.Ninja.Flag = 7;
@@ -142,9 +152,12 @@ public sealed partial class LegacyNativeNinjaLoadingTests
             using var scope = new Scope();
             scope.Rank(RankType.Overall).UpdateItem(new LegacyNativeNinjaRank.Entry { UID = 17, TotalPoints = 3000 });
             scope.SetClass(4000);
-            scope.Client.Equipment = null; scope.Client.MySpells = null; scope.Client.MyNinja = null;
+            scope.Client.Equipment = null; scope.Client.MySpells = null;
             scope.Ninja.Items = null!;
-            scope.Ninja.Loading();
+            LegacyNativeNinjaFile.gouyu_type = null!;
+            scope.UseNullBin();
+            try { scope.Ninja.Loading(); }
+            finally { scope.RestoreOwnedBin(); }
             Assert.Empty(scope.Rank(RankType.Overall).RankingList);
             Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available); scope.Untaken(0);
         });
@@ -156,37 +169,37 @@ public sealed partial class LegacyNativeNinjaLoadingTests
             using var scope = new Scope();
             scope.Ninja.FireMastery = 1000;
             LegacyNativeNinjaRank.Ranks = new(); // Genuine SafeDictionary absent lookup returns null.
-            Assert.Throws<NullReferenceException>(() => scope.Ninja.Loading());
+            Assert.Throws<InvalidOperationException>(() => scope.Ninja.Loading());
             Assert.Empty(scope.Queue); Assert.Empty(scope.Spells.ClientSpells);
             Assert.Equal((byte)0, scope.Client.Player.NiniaP0); Assert.Equal(12, scope.Available); scope.Untaken(0);
         });
 
     [Fact]
-    public Task LoadingAlternateFaultRetainsAlreadyPublishedRanksAndDisposesItsTakenPacket() =>
+    public Task LoadingMissingEquipmentPreservesEveryRankSpellBadgeAndOutput() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             scope.Ninja.FireMastery = 1000;
-            scope.Client.Equipment = null; // AddInfo tolerates this; Alternate does not.
-            Assert.Throws<NullReferenceException>(() => scope.Ninja.Loading());
-            Assert.Equal(1000u, scope.Rank(RankType.Overall).RankingList[17].TotalPoints);
-            Assert.Equal(1000u, scope.Rank(RankType.Fire).RankingList[17].TotalPoints);
-            Assert.Empty(scope.Queue); Assert.Equal((byte)0, scope.Client.Player.NiniaP0);
-            scope.UnserializedDisposed(0); Assert.Equal(11, scope.Available); scope.Untaken(1);
+            scope.Client.Equipment = null;
+            var before = new LoadingTransactionWitness(scope);
+            var error = Record.Exception(() => scope.Ninja.Loading());
+            before.RequireUnchanged();
+            Assert.IsType<InvalidOperationException>(error);
         });
 
     [Fact]
-    public Task LoadingGetLevelFaultOccursAfterAlternateAndBeforeUserOrItemProducers() =>
+    public Task LoadingMissingCurrentNinjaRefusesBeforeRankSkillsBadgeOrPackets() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             scope.Ninja.FireMastery = 1000;
-            scope.Spell(16310);
+            var spell = scope.Spell(16310);
             scope.Client.MyNinja = null;
-            Assert.Throws<NullReferenceException>(() => scope.Ninja.Loading());
-            scope.Sent(RemoveFrame(17, 16310)); Assert.Empty(scope.Spells.ClientSpells);
-            Assert.Equal(1000u, scope.Rank(RankType.Overall).RankingList[17].TotalPoints);
+            var before = new RankingGraphWitness();
+            Assert.Throws<InvalidOperationException>(() => scope.Ninja.Loading());
+            before.RequireUnchanged();
+            Assert.Same(spell, Assert.Single(scope.Spells.ClientSpells).Value);
             Assert.Equal((byte)0, scope.Client.Player.NiniaP0);
-            scope.Serialized(0, RemoveFrame(17, 16310)); Assert.Equal(11, scope.Available); scope.Untaken(1);
+            AssertNoRankingPackets(scope);
         });
 }

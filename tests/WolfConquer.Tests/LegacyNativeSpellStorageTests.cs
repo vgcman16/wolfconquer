@@ -53,25 +53,33 @@ public sealed class LegacyNativeSpellStorageTests
     });
 
     [Fact]
-    public Task AddPublishesBeforeNullStreamFaultButExcludedIdsDoNotTouchIt() => NativePacketTestThread.Run(() =>
+    public Task AddWithMissingStorageRefusesUnchangedButExcludedIdsNeedNoStream() => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeSpellTestFixture();
         f.Storage.Add(null!, 1105);
         f.Storage.Add(null!, 4000);
         Assert.Empty(f.Storage.ClientSpells);
-        Assert.Throws<NullReferenceException>(() => f.Storage.Add(null!, 1000, 8));
-        Assert.Equal((ushort)8, f.Storage.ClientSpells[1000].Level);
+        var before = new LegacyNativeSpellMutationWitness(f.Storage);
+        var packet = new LegacyNativePacketMutationWitness(f.Packet);
+        var error = Record.Exception(() => f.Storage.Add(null!, 1000, 8));
+        before.RequireUnchanged();
+        packet.RequireUnchanged();
         Assert.Empty(f.Queue);
+        Assert.IsType<InvalidOperationException>(error);
     });
 
     [Fact]
-    public Task RemoveDeletesBeforeActionWriterFaultAndMissingIdsDoNotReadStream() => NativePacketTestThread.Run(() =>
+    public Task RemoveWithMissingStoragePreservesTheRowAndAbsentIdsNeedNoFrame() => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeSpellTestFixture();
         f.Storage.ClientSpells[1000] = new LegacyNativeMsgSpell { ID = 1000 };
-        Assert.Throws<NullReferenceException>(() => f.Storage.Remove(1000, null!));
-        Assert.Empty(f.Storage.ClientSpells);
-        f.Storage.Remove(1000, null!);
+        var before = new LegacyNativeSpellMutationWitness(f.Storage);
+        var packet = new LegacyNativePacketMutationWitness(f.Packet);
+        var error = Record.Exception(() => f.Storage.Remove(1000, null!));
+        before.RequireUnchanged();
+        packet.RequireUnchanged();
+        Assert.IsType<InvalidOperationException>(error);
+        f.Storage.Remove(2000, null!);
         Assert.Empty(f.Queue);
     });
 
@@ -79,7 +87,7 @@ public sealed class LegacyNativeSpellStorageTests
     public Task RemoveSendsTheCurrentActualOwnerUidAndRemovedDictionaryKey() => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeSpellTestFixture();
-        f.Storage.ClientSpells[1001] = new LegacyNativeMsgSpell { ID = 2000 };
+        f.Storage.ClientSpells[1001] = new LegacyNativeMsgSpell { ID = 1001 };
         f.Owner.Player.UID = 73;
         f.Storage.Remove(1001, f.Packet);
         Assert.Empty(f.Storage.ClientSpells);
@@ -101,16 +109,16 @@ public sealed class LegacyNativeSpellStorageTests
     });
 
     [Fact]
-    public Task RebornRetainsSoulButTruncatesPriorLevelAndResetsOtherSpellState() => NativePacketTestThread.Run(() =>
+    public Task RebornRetainsSoulAndTheRepresentablePriorLevelBoundary() => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeSpellTestFixture();
-        var old = new LegacyNativeMsgSpell { ID = 1000, Level = 300, Experience = 123, UseSpellSoul = 2, SoulLevel = 3 };
+        var old = new LegacyNativeMsgSpell { ID = 1000, Level = 255, Experience = 123, UseSpellSoul = 2, SoulLevel = 3 };
         f.Storage.ClientSpells[1000] = old;
         Assert.True(f.Storage.RebornSpell(f.Packet, 1000));
         var fresh = f.Storage.ClientSpells[1000];
         Assert.NotSame(old, fresh);
         Assert.Equal((ushort)0, fresh.Level);
-        Assert.Equal((byte)44, fresh.PreviousLevel);
+        Assert.Equal((byte)255, fresh.PreviousLevel);
         Assert.Equal((byte)3, fresh.SoulLevel);
         Assert.Equal(274, fresh.HashLevelSoul);
         Assert.Equal(0, fresh.Experience);
@@ -120,16 +128,18 @@ public sealed class LegacyNativeSpellStorageTests
     });
 
     [Fact]
-    public Task RebornPublicationIsRetainedIfItsSubsequentPacketWriteFails() => NativePacketTestThread.Run(() =>
+    public Task RebornWithMissingStoragePreservesTheOriginalSpellAndOutput() => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeSpellTestFixture();
-        var old = new LegacyNativeMsgSpell { ID = 1000, Level = 300, SoulLevel = 2 };
+        var old = new LegacyNativeMsgSpell { ID = 1000, Level = 9, SoulLevel = 2 };
         f.Storage.ClientSpells[1000] = old;
-        Assert.Throws<NullReferenceException>(() => f.Storage.RebornSpell(null!, 1000));
-        Assert.NotSame(old, f.Storage.ClientSpells[1000]);
-        Assert.Equal((byte)44, f.Storage.ClientSpells[1000].PreviousLevel);
-        Assert.Equal((ushort)0, f.Storage.ClientSpells[1000].Level);
+        var before = new LegacyNativeSpellMutationWitness(f.Storage);
+        var packet = new LegacyNativePacketMutationWitness(f.Packet);
+        var error = Record.Exception(() => f.Storage.RebornSpell(null!, 1000));
+        before.RequireUnchanged();
+        packet.RequireUnchanged();
         Assert.Empty(f.Queue);
+        Assert.IsType<InvalidOperationException>(error);
     });
 
     [Fact]

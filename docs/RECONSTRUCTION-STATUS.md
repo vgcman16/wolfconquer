@@ -1,5 +1,26 @@
 # Reconstruction status
 
+## Ninja and spell checkpoint (offline)
+
+Reviewed component code and tests are integrated. Public focused qualification
+passed1,082/1,082 (1,067 common Ninja/caller cases and15 local-tool cases); private
+passed1,067/1,067, zero failures/skips. All814 safe tests-only baseline names are
+retained; that baseline had279 failures/535 passes. FSB-147–153 and
+[the qualification guide](NINJA-SPELL-SAFETY.md) record the actual scope and limits.
+
+Full source4b9762cc Windows40537900359 finished FAILED: Core28,528 passed,
+164 existing exclusions and2 stale plan-argument failures; Updater434/434 passed.
+The15 focused local-tool checks now pass with exact serial-argument assertions.
+Actual failed receipt/TRXs/logs are retained locally; launcher/parser stages were
+not reached. This new source still needs its own full gate.
+
+Next is genuine saved-owner hydration and startup publication through the real
+Store/connection. Ordinary login does not yet bind the native Ninja/spell graph,
+physical equipment, metadata/rank lifecycle and sender. Component tests are not
+live adoption. Complete SQL, outer trade/event/gameplay flows, full English,
+client distribution and the forum post remain open. Running sessions, routes,
+original saves and restore ZIP are preserved; held Guild/Union paths are excluded.
+
 ## Current CI repair qualification
 
 Full71fd1df9 run40523086178 FAILED: Core28,527pass/164NotExecuted/3fail;

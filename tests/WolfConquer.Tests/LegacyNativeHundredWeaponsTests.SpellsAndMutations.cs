@@ -59,20 +59,49 @@ public sealed partial class LegacyNativeHundredWeaponsTests
     });
 
     [Fact]
-    public Task ValidateSpellsRemovesMappedArchiveWhenLockedButKeepsPhysicalKeyAliasesAndSparseRows() => NativePacketTestThread.Run(() =>
+    public Task ValidateSpellsRemovesMappedArchiveWhenLockedAndKeepsValidSparseRows() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); scope.Meta(Weapon.Blade, 1, 12000);
         scope.Magic(12000, 0); scope.Magic(12000, 1);
         scope.Spells.ClientSpells.TryAdd(12000, new LegacyNativeMsgSpell { ID = 12000, Level = 0 });
-        scope.Spells.ClientSpells.TryAdd(44, new LegacyNativeMsgSpell { ID = 12000, Level = 0 });
-        scope.Spells.ClientSpells.TryAdd(12001, new LegacyNativeMsgSpell { ID = 12001, Level = 5 });
+        var sparse = new LegacyNativeMsgSpell { ID = 12001, Level = 5, Experience = 91 };
+        scope.Spells.ClientSpells.TryAdd(12001, sparse);
         scope.Magic(12001, 0);
         Assert.False(scope.Owner.ValidateSpells());
-        Assert.False(scope.Spells.ClientSpells.ContainsKey(12000)); Assert.True(scope.Spells.ClientSpells.ContainsKey(44));
-        Assert.True(scope.Spells.ClientSpells.ContainsKey(12001));
+        Assert.False(scope.Spells.ClientSpells.ContainsKey(12000));
+        Assert.Same(sparse, Assert.Single(scope.Spells.ClientSpells).Value);
+        Assert.Equal((ushort)5, sparse.Level); Assert.Equal(91, sparse.Experience);
         Assert.Equal((ushort)2046, Opcode(Assert.Single(scope.Queue))); Assert.Equal("", scope.Log);
     });
 
+    [Fact]
+    public Task ValidateSpellsRefusesAliasedSpellKeysWithoutChangingAnyPriorState() => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope(); scope.Meta(Weapon.Blade, 1, 12000);
+        scope.Magic(12000, 0); scope.Magic(12000, 1); scope.Magic(12001, 0);
+        var weapon = scope.Item(Weapon.Club, 3); weapon.Progress = 77; weapon.BitVector.Add(2);
+        scope.Spells.Add(scope.Native.Packet, 21540, 3); // Genuine prior frame/state.
+        scope.Spells.ClientSpells[12000] = new() { ID = 12000, Level = 0, Experience = 17, SoulLevel = 2 };
+        scope.Spells.ClientSpells[44] = new() { ID = 12000, Level = 0, Experience = 31, PreviousLevel = 9 };
+        scope.Spells.ClientSpells[12001] = new() { ID = 12001, Level = 5, Experience = 91 };
+        var pool = Assert.IsType<System.Collections.Concurrent.ConcurrentQueue<WolfConquer.Core.Networking.LegacyNativePacket>>(
+            typeof(WolfConquer.Core.Networking.LegacyNativePacketRecycle).GetField("bin",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.GetValue(null));
+        Assert.True(pool.TryPeek(out var rental));
+        rental!.Seek(0); // Normal post-Reuse cursor, before the operation under test.
+        var rentedPacket = new LegacyNativePacketMutationWitness(rental);
+        var callerPacket = new LegacyNativePacketMutationWitness(scope.Native.Packet);
+        var spells = new LegacyNativeSpellMutationWitness(scope.Spells);
+        var prior = CaptureSlotState(scope, weapon);
+
+        var error = Record.Exception(() => scope.Owner.ValidateSpells());
+
+        spells.RequireUnchanged();
+        AssertSlotStateUnchanged(scope, prior);
+        callerPacket.RequireUnchanged(); rentedPacket.RequireUnchanged();
+        Assert.Equal("", scope.Log);
+        Assert.IsType<InvalidOperationException>(error);
+    });
     [Fact]
     public Task ValidateSpellsRetainsCountGateGapDiagnosticAndMissingMetadataFaultPrefix() => NativePacketTestThread.Run(() =>
     {

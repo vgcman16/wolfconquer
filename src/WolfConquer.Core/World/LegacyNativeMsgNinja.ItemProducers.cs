@@ -29,19 +29,18 @@ internal static partial class LegacyNativeMsgNinja
             user.Send(stream.CreateNinjaItem(msgNinjaItem));
         }
 
+        internal static MsgNinjaItem PrepareSingleItem(uint uid, LegacyNativeNinja.Item item, TypeID type) => new()
+        {
+            Type = type,
+            UID = uid,
+            // Preserve the actual single-item producer's required UK=0 omission.
+            Items = [new Item { ID = item.ItemID, Level = item.Level, Position = item.Position, Points = item.Exp }],
+        };
         public static void Create(LegacyNativeGameClientRuntime user, LegacyNativeNinja.Item Item, TypeID Type)
         {
             using LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket();
             LegacyNativePacket stream = recycledPacket.GetStream();
-            MsgNinjaItem msgNinjaItem = new MsgNinjaItem();
-            msgNinjaItem.Type = Type;
-            msgNinjaItem.UID = user.Player.UID;
-            msgNinjaItem.Items = new Item[1];
-            msgNinjaItem.Items[0] = new Item();
-            msgNinjaItem.Items[0].ID = Item.ItemID;
-            msgNinjaItem.Items[0].Level = Item.Level;
-            msgNinjaItem.Items[0].Position = Item.Position;
-            msgNinjaItem.Items[0].Points = Item.Exp;
+            MsgNinjaItem msgNinjaItem = PrepareSingleItem(user.Player.UID, Item, Type);
             user.Send(stream.CreateNinjaItem(msgNinjaItem));
         }
     }

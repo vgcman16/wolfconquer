@@ -135,9 +135,9 @@ public sealed class LegacyNativeMsgSpellTests
         using var f = new NativeSpellTestFixture();
         f.Owner.MySpells = null;
         f.Packet.SpellCreate(new LegacyNativeMsgSpell { ID = 1000 });
-        Assert.Throws<NullReferenceException>(() => LegacyNativeMsgSpell.HandlerSpell(f.Owner, f.Packet));
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeMsgSpell.HandlerSpell(f.Owner, f.Packet));
         Assert.Null(f.Owner.MySpells);
         Assert.Empty(f.Queue);
-        Assert.Equal(25, f.Packet.Position);
+        Assert.Equal(4, f.Packet.Position);
     });
 }

@@ -55,19 +55,27 @@ public sealed class LocalDevelopmentToolsTests : IDisposable
         Assert.Contains("--no-restore", commands[4].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()));
         Assert.Contains("--no-build", commands[5].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()));
         foreach (var index in new[] { 1, 2, 4, 5 })
-            Assert.Equal("Release", commands[index].GetProperty("arguments")[3].GetString());
+        {
+            var arguments = commands[index].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()).ToArray();
+            var configurationOffset = index == 2 ? 4 : 2;
+            Assert.Equal(new[] { "--configuration", "Release" }, arguments.Skip(configurationOffset).Take(2));
+        }
         foreach (var index in new[] { 2, 5 })
         {
             var arguments = commands[index].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()).ToArray();
             Assert.Contains("--no-restore", arguments);
-            Assert.Equal(new[] { "--logger", "trx" }, arguments.Skip(7).Take(2));
+            var loggerOffset = index == 2 ? 9 : 7;
+            Assert.Equal(new[] { "--logger", "trx" }, arguments.Skip(loggerOffset).Take(2));
         }
         var solutionArguments = commands[2].GetProperty("arguments").EnumerateArray().Select(value => value.GetString()).ToArray();
-        Assert.Equal(10, solutionArguments.Length);
+        Assert.Equal(12, solutionArguments.Length);
+        Assert.Equal(new[] { "test", Path.Combine(_root, "WolfConquer.sln"), "-m:1", "-p:TestTfmsInParallel=false",
+            "--configuration", "Release", "--no-build", "--no-restore", "--nologo", "--logger", "trx" },
+            solutionArguments.Take(11));
         Assert.DoesNotContain("--results-directory", solutionArguments);
         const string isolationProperty = "-p:WolfConquerLocalResultsId=";
-        Assert.StartsWith(isolationProperty, solutionArguments[9]!, StringComparison.Ordinal);
-        var runId = solutionArguments[9]![isolationProperty.Length..];
+        Assert.StartsWith(isolationProperty, solutionArguments[11]!, StringComparison.Ordinal);
+        var runId = solutionArguments[11]![isolationProperty.Length..];
         Assert.Matches("^[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$", runId);
         Assert.Equal(Path.Combine(_root, ".artifacts", "local-dev", runId + "-solution-results"),
             plan.GetProperty("updaterSmokeSource").GetString());

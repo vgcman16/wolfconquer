@@ -27,6 +27,16 @@ public sealed class LegacyNativeMsgNinjaUserContractTests
         {
             using var fixture = new NativeSpellTestFixture();
             Fill(fixture.Packet);
+            if (name == "null")
+            {
+                var before = NativeSpellTestFixture.Bytes(fixture.Packet);
+                Assert.Throws<ArgumentNullException>(() => fixture.Packet.CreateNinjaUser(null!));
+                Assert.Equal(before, NativeSpellTestFixture.Bytes(fixture.Packet));
+                Assert.Equal(321, fixture.Packet.Size);
+                Assert.Equal(237, fixture.Packet.Position);
+                Assert.Empty(fixture.Queue);
+                return;
+            }
             Assert.Same(fixture.Packet, fixture.Packet.CreateNinjaUser(Value(name)!));
             byte[] payload = Convert.FromHexString(hex);
             var expected = new byte[payload.Length + 4];

@@ -7,12 +7,12 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeNinjaLoadingTests
 {
     [Fact]
-    public Task UpdateRankPreservesAsymmetricThresholdsWindTypeAndIndependentNativeCopies() =>
+    public Task UpdateRankKeepsAsymmetricThresholdsAndMatchingIndependentCategoryRows() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             scope.Client.Player.Name = "Ninja";
-            scope.SetLevel(300);
+            scope.SetLevel(140);
             scope.SetPlayerField("_hair", 123u);
             scope.Client.Player.SpecialWingID = 456;
             scope.Client.Equipment!.HeadID = 789;
@@ -33,11 +33,11 @@ public sealed partial class LegacyNativeNinjaLoadingTests
                 .Select(type => scope.Rank(type).RankingList[17]).ToArray();
             Assert.Equal(6, entries.Distinct(ReferenceEqualityComparer.Instance).Count());
             Assert.Equal(new[] { RankType.Overall, RankType.Fire, RankType.Water, RankType.Earth,
-                RankType.Overall, RankType.Lightning }, entries.Select(entry => entry.Type));
+                RankType.Wind, RankType.Lightning }, entries.Select(entry => entry.Type));
             Assert.All(entries, entry =>
             {
                 Assert.Equal(17u, entry.UID); Assert.Equal("Ninja", entry.Name);
-                Assert.Equal(5000u, entry.Class); Assert.Equal((byte)44, entry.Level);
+                Assert.Equal(5000u, entry.Class); Assert.Equal((byte)140, entry.Level);
                 Assert.Equal(123u, entry.HairStyle); Assert.Equal(456u, entry.Wing); Assert.Equal(789u, entry.Head);
             });
             entries[4].Name = "only wind";
@@ -45,55 +45,57 @@ public sealed partial class LegacyNativeNinjaLoadingTests
             Assert.Equal("Ninja", entries[1].Name);
             scope.Client.Player.Name = "changed owner";
             Assert.Equal("Ninja", overall.Name);
-            Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available); scope.Untaken(0);
+            AssertNoRankingPackets(scope);
         });
 
     [Fact]
-    public Task LowScoreNinjaKeepsStaleEntriesButChangingOutOfNinjaRemovesOnlyThatUidFromEveryRank() =>
+    public Task LowScoreAndKnownNonNinjaRefreshRemoveOnlyTheActiveUidFromEveryRank() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
-            foreach (RankType type in Enum.GetValues<RankType>().Where(type => type != RankType.Count))
-            {
-                scope.Rank(type).UpdateItem(new LegacyNativeNinjaRank.Entry { UID = 17, Type = type, TotalPoints = 2000 });
-                scope.Rank(type).UpdateItem(new LegacyNativeNinjaRank.Entry { UID = 18, Type = type, TotalPoints = 3000 });
-            }
-            var stale = scope.Rank(RankType.Overall).RankingList[17];
+            SeedRankingRows(scope);
             scope.Ninja.FireMastery = 999;
             scope.Ninja.UpdateRank();
-            Assert.Same(stale, scope.Rank(RankType.Overall).RankingList[17]);
-            Assert.All(LegacyNativeNinjaRank.Ranks.Values, rank => Assert.Equal(2, rank.RankingList.Count));
-            scope.SetClass(4999);
-            scope.Ninja.Items = null!; // Non-Ninja branch never attempts Score/Items.
+            Assert.All(LegacyNativeNinjaRank.Ranks.Values,
+                rank => Assert.Equal(18u, Assert.Single(rank.RankingList).Key));
+            SeedRankingRows(scope);
+            scope.SetClass(4000);
+            scope.Ninja.Items = null!;
+            scope.Client.Equipment = null;
+            scope.Client.MySpells = null;
+            LegacyNativeNinjaFile.gouyu_type = null!;
             scope.Ninja.UpdateRank();
-            Assert.All(LegacyNativeNinjaRank.Ranks.Values, rank => Assert.Equal(18u, Assert.Single(rank.RankingList).Key));
-            Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available);
+            Assert.All(LegacyNativeNinjaRank.Ranks.Values,
+                rank => Assert.Equal(18u, Assert.Single(rank.RankingList).Key));
+            AssertNoRankingPackets(scope);
         });
 
     [Fact]
-    public Task UpdateRankScoresItsReceiverRatherThanClientMyNinjaAndDoesNotTakePackets() =>
+    public Task DetachedReceiverRefusesWithoutUsingForeignClientMyNinjaAuthority() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
+            SeedRankingRows(scope);
             scope.Ninja.FireMastery = 1000;
             scope.Client.MyNinja = new LegacyNativeNinja(scope.Client) { FireMastery = 9 };
-            scope.Ninja.UpdateRank();
-            Assert.Equal(1000u, scope.Rank(RankType.Overall).RankingList[17].TotalPoints);
-            Assert.Equal(1000u, scope.Rank(RankType.Fire).RankingList[17].TotalPoints);
+            var before = new RankingGraphWitness();
+            Assert.Throws<InvalidOperationException>(() => scope.Ninja.UpdateRank());
+            before.RequireUnchanged();
             Assert.Equal(9u, scope.Client.MyNinja.FireMastery);
-            Assert.Equal(12, scope.Available); scope.Untaken(0); Assert.Empty(scope.Queue);
+            AssertNoRankingPackets(scope);
         });
 
     [Fact]
-    public Task MissingElementRankFaultsAfterOverallPublicationWithoutRollingItBack() =>
+    public Task MissingElementRankRefusesBeforeAnyOverallOrOtherRankPublication() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
+            SeedRankingRows(scope);
             scope.Ninja.FireMastery = 1000;
             LegacyNativeNinjaRank.Ranks.Remove(RankType.Fire);
-            Assert.Throws<NullReferenceException>(() => scope.Ninja.UpdateRank());
-            Assert.Equal(1000u, scope.Rank(RankType.Overall).RankingList[17].TotalPoints);
-            Assert.False(LegacyNativeNinjaRank.Ranks.ContainsKey(RankType.Fire));
-            Assert.Equal(12, scope.Available); scope.Untaken(0); Assert.Empty(scope.Queue);
+            var before = new RankingGraphWitness();
+            Assert.Throws<InvalidOperationException>(() => scope.Ninja.UpdateRank());
+            before.RequireUnchanged();
+            AssertNoRankingPackets(scope);
         });
 }

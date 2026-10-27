@@ -2,8 +2,8 @@ using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
 
-// Full native SpellPacket primitive GetSpell/SpellCreate contract.
-internal static class LegacyNativeSpellPacket
+// Source-shaped GetSpell and managed preparation before bounded SpellCreate storage.
+internal static partial class LegacyNativeSpellPacket
 {
     public static void GetSpell(this LegacyNativePacket stream, out LegacyNativeMsgSpell spell)
     {
@@ -20,16 +20,10 @@ internal static class LegacyNativeSpellPacket
 
     public static LegacyNativePacket SpellCreate(this LegacyNativePacket stream, LegacyNativeMsgSpell spell)
     {
-        stream.InitWriter();
-        stream.Write(spell.Experience);
-        stream.Write(spell.ID);
-        stream.Write(spell.UnKnow);
-        stream.Write(spell.Level);
-        stream.Write(spell.Type);
-        stream.Write((uint)spell.UseSoul);
-        stream.Write(spell.Soul);
-        stream.Write(spell.HashLevelSoul);
-        stream.Finalize(2101);
+        LegacyNativePreparedPacketStorage.Validate(stream, 4);
+        var seal = LegacyNativePreparedPacketFrames.CaptureSeal();
+        var frame = PrepareSpellFrame(spell, seal);
+        LegacyNativePreparedPacketStorage.Write(stream, frame);
         return stream;
     }
 }

@@ -209,7 +209,7 @@ public sealed partial class LegacyNativeNinjaMutationTests
             Assert.Empty(scope.Queue);
             Assert.Equal(0u, message.Type);
             Assert.Equal(0ul, message.Flag);
-            Assert.Throws<NullReferenceException>(() => LegacyNativeMsgNinja.CreateNinjaUser(null!, null!));
+            Assert.Throws<InvalidOperationException>(() => LegacyNativeMsgNinja.CreateNinjaUser(null!, null!));
             Assert.Equal(4, scope.Available);
         });
 }
