@@ -2,6 +2,7 @@
 
 Effective 2026-10-23: **Sanitized Parity** replaces strict copying of emulator behavior.
 Read [the engineering policy](docs/engineering/SANITIZED-PARITY.md) before changes.
+Read [the protocol workflow](docs/engineering/PROTOCOL-WORKFLOW.md) for feature, packet and catalog work.
 
 - Preserve client-confirmed packet IDs, layouts, schemas, encoding and successful
   protocol sequences. Record the target client/profile and evidence. Decompiled

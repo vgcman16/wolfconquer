@@ -3,6 +3,7 @@
 Effective 2026-10-23 by explicit user instruction. This policy supersedes older
 instructions to preserve every decompiled behavior, exception or mutation order.
 The full English client/server objective remains active; existing work is retained.
+New feature, packet and catalog work also follows the [protocol workflow](PROTOCOL-WORKFLOW.md).
 
 ## Compatibility and authority
 
