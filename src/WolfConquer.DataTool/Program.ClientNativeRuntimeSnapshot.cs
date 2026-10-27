@@ -53,6 +53,7 @@ internal static partial class Program
             }
             else
             {
+                _ = process.SafeHandle; // Preserve the actual Process.Start identity before observing descendants.
                 startSucceeded = true;
                 processId = process.Id;
                 observedProcessIds.Add(process.Id);
@@ -433,50 +434,36 @@ internal static partial class Program
         killed = false;
         exitCode = null;
         var errors = new List<string>();
-        var rootProcessId = rootProcess.Id;
-
+        ClientNativeCleanupCapture? capture = null;
         try
         {
-            if (!ClientNativeRuntimeHasExited(rootProcess))
+            capture = ClientNativeCleanupCapture.Prepare(rootProcess);
+            errors.AddRange(capture.Errors);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception or PlatformNotSupportedException)
+        {
+            errors.Add("Cleanup identity capture refused: " + FormatClientNativeLaunchProbeException(ex));
+        }
+        using (capture)
+        {
+            // Historical integer observations confer no termination authority.
+            // All handles were captured and attributed before the first kill.
+            if (capture is not null)
             {
-                rootProcess.Kill(entireProcessTree: true);
-                rootProcess.WaitForExit(3000);
-                killed = true;
-            }
-        }
-        catch (InvalidOperationException)
-        {
-            // The root may have exited between the bounded wait and the kill attempt.
-        }
-        catch (Win32Exception ex)
-        {
-            errors.Add(FormatClientNativeLaunchProbeException(ex));
-        }
-
-        foreach (var processId in EnumerateClientNativeRuntimeProcessTreeIds(rootProcessId, observedProcessIds)
-            .Where(processId => processId != rootProcessId)
-            .Reverse())
-        {
-            try
-            {
-                using var child = Process.GetProcessById(processId);
-                if (ClientNativeRuntimeHasExited(child))
+                foreach (var processId in observedProcessIds.Where(id => !capture.ProcessIds.Contains(id)))
+                    errors.Add($"Unproven historical descendant pid={processId}; not terminated.");
+                foreach (var owned in capture.Processes.Reverse())
                 {
-                    continue;
-                }
-
-                child.Kill(entireProcessTree: true);
-                child.WaitForExit(1000);
-                killed = true;
-            }
-            catch (Exception ex) when (
-                ex is ArgumentException or
-                    InvalidOperationException or
-                    Win32Exception)
-            {
-                if (ex is not ArgumentException)
-                {
-                    errors.Add($"pid={processId} {FormatClientNativeLaunchProbeException(ex)}");
+                    try
+                    {
+                        if (ClientNativeRuntimeHasExited(owned)) continue;
+                        owned.Kill(entireProcessTree: false);
+                        if (!owned.WaitForExit(owned.Id == rootProcess.Id ? 3000 : 1000))
+                            errors.Add($"Owned cleanup did not observe exit pid={owned.Id}.");
+                        killed = true;
+                    }
+                    catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
+                    { errors.Add($"pid={owned.Id} {FormatClientNativeLaunchProbeException(ex)}"); }
                 }
             }
         }

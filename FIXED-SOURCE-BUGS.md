@@ -298,6 +298,29 @@ No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
 
+### FSB-126: Native-probe cleanup requires retained process identity
+
+The diagnostic probe previously reopened historical observed PIDs and terminated
+them, even after the original descendant could have exited and its ID been reused.
+Cleanup now pins the actual spawned root handle, captures a fresh OS parent graph,
+and retains every proved descendant handle before terminating anything. Child
+birth must fall within the exact retained parent's lifetime and snapshot boundary.
+Only those handles are terminated individually; old integers never grant authority.
+Missing intermediate-parent witnesses and post-snapshot descendants remain explicit
+cleanup uncertainty. This does not prove complete descendant drain or all snapshot
+attribution, and it does not establish the cause of a game-client exit or freeze.
+
+A public-derived candidate passes11/11 including the unchanged direct-orphan
+positive control. A fresh private committed-source copy then passes the final
+11 cleanup cases within17/17 total, zero failures/skips. Both actual sibling
+regressions require real stdin/stdout READY and immediate liveness before cleanup;
+the intentional exited-root case retains its real exit0 witness. Eight lifetime
+guards also pass. Primary assertions and all independent actor-cleanup failures
+are preserved. Original RED2 and nominal GREEN9/11 remain recorded; the latter
+used an older binary because a copied source timestamp predated its output. An
+explicit rebuild corrected that integration artifact; fresh-source17 is the final
+focused evidence. Exact new public full Windows acceptance remains pending.
+
 ### FSB-125: Select a supported D13 body for new synthetic fixtures
 
 The offline creator inherited Body1003 from an older loot fixture. Exact

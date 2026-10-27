@@ -1,5 +1,21 @@
 # Publication validation
 
+## Retained-process cleanup correction - full public check pending
+
+Native-probe cleanup no longer terminates a historical PID without a fresh,
+lifetime-bounded parent graph and retained kernel process handle. The reviewed
+public-derived selection passes11/11. A fresh private-source build also passes
+the final READY-actor cleanup11 plus six private client-text controls,17/17 total.
+The six text cases are not public-catalog acceptance; that catalog stays private.
+The direct-orphan positive and preservation of unrelated owned siblings both pass.
+Missing intermediate witnesses/post-snapshot children remain explicit uncertainty.
+
+The earlier nominal GREEN9/11 reused an older tool binary due copied source mtime;
+recompiled11/11 and clean-source17/17 are the accepted focused results. This does
+not establish a game exit/freeze cause. Windows40420961276 remains canceled;
+the corrected published source needs a new exact full check. Last accepted full
+Windows source remains f21e2a11. The user-confirmed client freeze stays open.
+
 ## Current appearance correction and process-safety hold
 
 Future synthetic D13 fixtures now use supported Body1008, retaining Face154,

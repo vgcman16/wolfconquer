@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Last accepted full sourcef21e2a11 passed Windows40383185044. ef868fa8/c15dd464 failed compilation only; missing dependencies are restored and250 focused checks pass. Root canceled6df87b72 Windows40420961276 after finding unsafe native-probe PID cleanup; its fix and a new full gate are pending. Tracker40421451578 passed. Local rendering is separate evidence."
+      "detail": "Last accepted full sourcef21e2a11 passed Windows40383185044. Earlier ef868fa8/c15dd464 failed compilation only. Windows40420961276 was canceled for unsafe native-probe PID cleanup. Its retained-handle correction now has11 public-derived focused passes; final READY actors also pass in a clean private17-case selection. A new exact-public full gate is pending. Client freezes, English, SQL and distribution remain open."
     },
     {
       "id": "english",

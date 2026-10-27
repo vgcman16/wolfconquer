@@ -55,8 +55,8 @@ Windows40420961276; there is no established causal link to either client inciden
 
 ## Ordered work
 
-1. Correct and verify native-probe cleanup with retained process identities before
-   another full CI run. Preserve the real orphan-child cleanup positive control.
+1. Native-probe retained-identity cleanup has focused11/11 plus clean-source17/17
+   proof including READY actors and the orphan positive; finish its exact public full CI.
 2. Recover the client and correlate one action at a time with fresh log boundaries;
    investigate the ranking hang without changing successful packet sequences.
 3. Decode RandomDailyTask2419 and QuestList mode7 from the exact target; join real
@@ -71,3 +71,12 @@ Windows40420961276; there is no established causal link to either client inciden
 Detailed source-line triage is retained locally in
 `.artifacts/helper-live-ui-audit-next/README.md`. Logs, sampler output and lifecycle
 metadata remain local. Original saves/assets/routes and the restore ZIP are retained.
+
+Further correlation: World stdout remained at957 lines across the Welfare and
+Auction markers54.58seconds apart; its last ping write was8.56seconds before
+Welfare. A final timeout can detect an already-frozen client. Neither ranking,
+Auction nor bar restoration is established as the triggering callback.
+
+The private subclass patch source now passes3 file-pipeline cases in the clean17/17
+selection, covering all140 fields without changing mechanics. It has not been
+applied to the running client and is not a demonstrated freeze fix.
