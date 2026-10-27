@@ -4,6 +4,16 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## CI regression-control follow-up
+
+FSB-145's1057 full-suite test still required the old missing-grant bug; it now
+expects the exact1110 level0 record and retains all stat/save/repeat assertions.
+The poisoned-runtime fixture's wall-clock/log race and unjoined worker cleanup
+are replaced by real timer/rearm and joined-worker controls. Public focused47Core
+and3Updater cases pass. No production expiry defect or full-suite pass is claimed.
+See [CI qualification](docs/CI-QUALIFICATION-20261027.md) for actual failed counts,
+retained process/updater diagnostic limits and pending full scheduling verification.
+
 ## Current opt-in world diagnostics
 
 ### FSB-146: Default world frame diagnostics exposed raw payload prefixes

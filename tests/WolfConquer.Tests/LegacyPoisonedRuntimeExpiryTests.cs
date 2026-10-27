@@ -9,7 +9,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyPoisonedRuntimeExpiryTests
+public sealed partial class LegacyPoisonedRuntimeExpiryTests
 {
     private const int PoisonedFlag = 1;
     private const string PoisonLevelAttribute = "PoisonLevel";
@@ -28,38 +28,44 @@ public sealed class LegacyPoisonedRuntimeExpiryTests
     [InlineData("LegacyToxicFogPoisonExpiresAtUtc")]
     public async Task RuntimeLoopExpiresPoisonedFlagAndClearsPoisonAttributes(string expiresAtAttribute)
     {
-        using var log = new StringWriter();
-        using var cancel = new CancellationTokenSource();
+        var log = new StringWriter();
+        var cancel = new CancellationTokenSource();
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
-        var now = DateTimeOffset.UtcNow;
+        var now = new DateTimeOffset(2026, 10, 27, 12, 0, 0, TimeSpan.Zero);
+        var clock = new PoisonExpiryTimeProvider(now.AddSeconds(10));
         var handler = new WorldServerFrameHandler(
             snapshotLoader: null,
             handoffService: null,
             worldData: null,
             runtimeUpdateLoop: new LegacyRuntimeUpdateLoopOptions(
                 Enabled: true,
-                TimeSpan.FromMilliseconds(10),
-                new AnchoredRuntimeTimeProvider(now.AddSeconds(10))),
+                RuntimeTickInterval,
+                clock),
             log: log);
         var session = CreatePoisonedSession(now.AddSeconds(-1), expiresAtAttribute);
         SetHandlerSession(handler, connection, session);
+        Task[] workers = [];
+        Exception? failure = null;
 
         try
         {
             StartHandlerRuntimeUpdateLoop(handler, connection, session, cancel.Token);
+            workers = handler.CaptureLegacyRuntimeWorkerTasks();
+            Assert.Equal(2, workers.Length);
+            Assert.All(workers, worker => Assert.False(worker.IsCompleted));
+            await clock.WaitForTimerCountAsync(2).WaitAsync(WorkerBound);
+            Assert.Equal(2, clock.TimerCount);
+            Assert.Same(session, AssertHandlerSession(handler, connection));
+            Assert.True(HasLegacyStatusFlag(session.Character.Attributes, PoisonedFlag));
+            Assert.False(HasPoisonClearedStatusUpdate(sent));
 
-            await WaitUntilAsync(
-                () =>
-                {
-                    var current = AssertHandlerSession(handler, connection);
-                    return !HasLegacyStatusFlag(current.Character.Attributes, PoisonedFlag) &&
-                        !current.Character.Attributes.ContainsKey(PoisonLevelAttribute) &&
-                        PoisonedExpiresAtUtcAttributes.All(attribute =>
-                            !current.Character.Attributes.ContainsKey(attribute)) &&
-                        HasPoisonClearedStatusUpdate(sent);
-                },
-                TimeSpan.FromSeconds(1));
+            // Start registers the real player delay first and global delay second.
+            // Fire only the global delay; its next registration joins the whole tick,
+            // including expiry publication and logging, without wall-clock polling.
+            clock.FireGlobalTick();
+            await clock.WaitForTimerCountAsync(3).WaitAsync(WorkerBound);
+            Assert.Equal(3, clock.TimerCount);
 
             var expiredSession = AssertHandlerSession(handler, connection);
             Assert.False(HasLegacyStatusFlag(expiredSession.Character.Attributes, PoisonedFlag));
@@ -75,10 +81,12 @@ public sealed class LegacyPoisonedRuntimeExpiryTests
 
             Assert.Contains("WorldServer expired legacy Poisoned flags", log.ToString());
         }
-        finally
+        catch (Exception exception)
         {
-            await cancel.CancelAsync();
+            failure = exception;
         }
+
+        await FinishPoisonRuntimeAsync(handler, cancel, log, clock, workers, failure);
     }
 
     private static WorldSession CreatePoisonedSession(DateTimeOffset expiresAt, string expiresAtAttribute)
@@ -255,17 +263,4 @@ public sealed class LegacyPoisonedRuntimeExpiryTests
         return string.Join('/', words) + "/";
     }
 
-    private static async Task WaitUntilAsync(Func<bool> predicate, TimeSpan timeout)
-    {
-        var deadline = DateTimeOffset.UtcNow + timeout;
-        while (!predicate())
-        {
-            if (DateTimeOffset.UtcNow >= deadline)
-            {
-                throw new TimeoutException("Condition was not met before the timeout expired.");
-            }
-
-            await Task.Delay(10);
-        }
-    }
 }

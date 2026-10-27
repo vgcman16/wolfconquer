@@ -1,5 +1,19 @@
 # Reconstruction status
 
+## Current CI repair qualification
+
+Full71fd1df9 run40523086178 FAILED: Core28,527pass/164NotExecuted/3fail;
+Updater432pass/2fail. Restore/build passed; launcher/parsers not reached. Actual
+receipt+TRXs+logs are retained in root-world-wire-next/full-71fd1df9.
+The stale1057 spell-absence assertion is corrected; poison timing now uses real
+manual delay/rearm +worker join. Native/updater failures retain stronger actual
+diagnostics without relaxing guards/deadlines. Owned public focused47Core+3Updater
+pass, zero skips/failures; actual8-step plan preserves receipt criteria and adds
+serial project/framework scheduling. Next full gate will verify actual intervals.
+Workflow75-minute budget accommodates serial suites plus remaining stages.
+See docs/CI-QUALIFICATION-20261027.md. No Ninja source is integrated or qualified.
+Larger goal ACTIVE; private NO PUSH; preserve held59 and live stack/data/restore.
+
 ## Current source qualification
 
 The opt-in world-wire observer and metadata-only default frame formatters pass

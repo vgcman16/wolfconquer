@@ -16,7 +16,7 @@ public sealed partial class UpdaterPipelineTests
         string config = WriteLayoutConfig(f, key, optIn ? LayoutPreset : null);
         byte[] originalConfig = File.ReadAllBytes(config);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(45));
-        var result = await LauncherWorkflow.RunClientAsync(config, fresh: true, cancellationToken: deadline.Token);
+        var result = await RunLayoutWithPhaseDiagnostics(config, fresh: true, cancellation: deadline.Token);
         Assert.Equal("updated", result.Status);
         Assert.Equal(12, result.Installation!.InstalledFiles);
         Assert.Null(result.LaunchedProcessId);
@@ -92,13 +92,13 @@ public sealed partial class UpdaterPipelineTests
         PublishLayout(f, key);
         string config = WriteLayoutConfig(f, key);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(45));
-        await LauncherWorkflow.RunClientAsync(config, fresh: true, cancellationToken: deadline.Token);
+        await RunLayoutWithPhaseDiagnostics(config, fresh: true, cancellation: deadline.Token);
         string alias = LayoutAliasPath(f, "c3");
         ClientDirectoryJunction.DeleteExact(alias, LayoutTargetPath(f, "c3"));
         byte[] state = File.ReadAllBytes(f.ClientFile(".wolfconquer-updates/state.json"));
         Assert.False(Directory.Exists(alias));
 
-        var unchanged = await LauncherWorkflow.RunClientAsync(config, cancellationToken: deadline.Token);
+        var unchanged = await RunLayoutWithPhaseDiagnostics(config, cancellation: deadline.Token);
 
         Assert.Equal("unchanged", unchanged.Status);
         Assert.True(unchanged.MetadataOnly);
@@ -107,7 +107,7 @@ public sealed partial class UpdaterPipelineTests
         Assert.False(Directory.Exists(alias));
         Assert.Equal(state, File.ReadAllBytes(f.ClientFile(".wolfconquer-updates/state.json")));
 
-        var repaired = await LauncherWorkflow.RunClientAsync(config, repair: true, cancellationToken: deadline.Token);
+        var repaired = await RunLayoutWithPhaseDiagnostics(config, repair: true, cancellation: deadline.Token);
 
         Assert.Equal("verified", repaired.Status);
         Assert.False(repaired.MetadataOnly);

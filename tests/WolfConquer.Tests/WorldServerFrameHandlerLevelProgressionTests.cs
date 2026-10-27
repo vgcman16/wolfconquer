@@ -93,7 +93,9 @@ public sealed partial class WorldServerFrameHandlerTests
         Assert.Equal(0, session.Character.Spirit);
         Assert.Equal(0, session.Character.AttributePoints);
         Assert.Equal(1, session.Character.MinHitPoints);
-        Assert.Empty(session.PlayerSpells.Spells); //1057 is outside source Trojan1000..1051 login grant.
+        // Confirmed target stage1057 receives the same missing-only lineage spell.
+        Assert.Equal(new PlayerSpellSnapshotEntry(1110, 0, 0, 0, 0, 0),
+            Assert.Single(session.PlayerSpells.Spells));
         await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent);
     }
 

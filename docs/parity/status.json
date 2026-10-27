@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Accepted source252bb950 passed Windows40501867920: core27,926 passed/164 existing exclusions, updater434, launcher57; all8 stages0. Class repairs pass2,006 focused cases per checkout; wire diagnostics229 per checkout. Newer exact-source full CI is pending. D13 prestige activation, crash resolution, complete English, SQL and full-client distribution remain open."
+      "detail": "Source71fd1df9 Windows40523086178 built but failed5 tests: core28,527 passed/164 existing exclusions/3failed; updater432/2. CI repairs pass47Core+3Updater focused; serial8-step plan is validated, new full gate pending. Class2,006 and wire229 focused controls per checkout remain scoped evidence. Prestige activation, crash resolution, complete English, SQL and full-client distribution stay open."
     },
     {
       "id": "english",

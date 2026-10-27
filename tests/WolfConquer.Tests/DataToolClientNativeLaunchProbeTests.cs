@@ -453,6 +453,10 @@ public sealed partial class DataToolClientNativeLaunchProbeTests
                 scriptPath,
                 childPidPath);
 
+            Assert.True(File.Exists(childPidPath),
+                $"The launcher did not publish its child PID. DataToolExitCode: {result.ExitCode}" +
+                $"{Environment.NewLine}stdout:{Environment.NewLine}{result.StandardOutput}" +
+                $"{Environment.NewLine}stderr:{Environment.NewLine}{result.StandardError}");
             var childPidText = await File.ReadAllTextAsync(childPidPath);
             var childPid = int.Parse(childPidText.Trim(), CultureInfo.InvariantCulture);
 

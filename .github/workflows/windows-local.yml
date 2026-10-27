@@ -14,7 +14,7 @@ jobs:
   build-test:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.actor == github.repository_owner
     runs-on: [self-hosted, Windows, X64, wolfconquer-trusted]
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       - name: Check out trusted main
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5

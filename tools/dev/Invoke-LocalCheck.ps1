@@ -79,7 +79,7 @@ try {
     $commands = @(
         [ordered]@{ name = 'restore'; executable = $dotnet; arguments = @('restore', $solution, '--nologo') },
         [ordered]@{ name = 'build'; executable = $dotnet; arguments = @('build', $solution, '--configuration', $Configuration, '--no-restore', '--nologo') },
-        [ordered]@{ name = 'test'; executable = $dotnet; arguments = @('test', $solution, '--configuration', $Configuration, '--no-build', '--no-restore', '--nologo', '--logger', 'trx', "-p:WolfConquerLocalResultsId=$runId") },
+        [ordered]@{ name = 'test'; executable = $dotnet; arguments = @('test', $solution, '-m:1', '-p:TestTfmsInParallel=false', '--configuration', $Configuration, '--no-build', '--no-restore', '--nologo', '--logger', 'trx', "-p:WolfConquerLocalResultsId=$runId") },
         [ordered]@{ name = 'launcher-restore'; executable = $dotnet; arguments = @('restore', $launcher, '--nologo') },
         [ordered]@{ name = 'launcher-build'; executable = $dotnet; arguments = @('build', $launcher, '--configuration', $Configuration, '--no-restore', '--nologo') },
         [ordered]@{ name = 'launcher-test'; executable = $dotnet; arguments = @('test', $launcher, '--configuration', $Configuration, '--no-build', '--no-restore', '--nologo', '--logger', 'trx', '--results-directory', $launcherResults) },
