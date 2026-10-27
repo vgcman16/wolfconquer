@@ -93,46 +93,14 @@ public sealed partial class LegacyNativePrestigeRankingTests
         });
 
     [Fact]
-    public void SaveWritesNullPointsAsZeroCountAndNarrowsEntryTypeWithoutChangingItsBucket()
-    {
-        using var state=new State();
-        using var files=new OwnedRankFile();
-        var row=Entry();
-        row.type=(Ranking.Type)260;
-        row.Points=null!;
-        Place(row);
-        Ranking.Save();
-        files.Expect(Text(FullRow[..FullRow.IndexOf("2/201/202/",StringComparison.Ordinal)]+"0/"));
-        Assert.Equal((Ranking.Type)260,row.type);
-    }
-
-    [Fact]
-    public void SaveUsesStaleSafeDictionaryArrayUntilNativeAddInvalidatesIt()
-    {
-        using var state=new State();
-        using var files=new OwnedRankFile();
-        var old=Place(Entry());
-        var cached=Ranking.Ranks.GetValues();
-        var replacement=new Ranking.Rank(Ranking.Type.Ninja){MaxItems=30};
-        Ranking.Ranks[Ranking.Type.Ninja]=replacement;
-        Assert.Same(cached,Ranking.Ranks.GetValues());
-        Ranking.Save();
-        files.Expect(Text(FullRow));
-        Ranking.Ranks.Add(Ranking.Type.Ninja,replacement);
-        Ranking.Save();
-        files.Expect(Text());
-        Assert.Single(old.Items);
-    }
-
-    [Fact]
-    public void SaveNullStringFaultDoesNotExecuteAlreadyQueuedRowsOrOverwritePreviousBytes()
+    public void SaveNullStringRefusalDoesNotExecuteAlreadyQueuedRowsOrOverwritePreviousBytes()
     {
         using var state=new State();
         using var files=new OwnedRankFile();
         files.Seed("previous owned bytes");
         var rank=Place(Entry());
         rank.Items.Add(19,new Ranking.Entry{UID=19,Name=null!});
-        Assert.Throws<NullReferenceException>(()=>Ranking.Save());
+        Assert.Throws<InvalidOperationException>(()=>Ranking.Save());
         files.Expect("previous owned bytes");
         Assert.Equal(2,rank.Items.Count);
     }

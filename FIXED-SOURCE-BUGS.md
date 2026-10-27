@@ -4,10 +4,11 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Current loader qualification and accepted prior full source
+## Current prestige file qualification and accepted prior full source
 
-The loader/publication/numeric batch passes 1,295 public-derived cases with 129
-existing exclusions, and 698/698 private cases. Exact prior source adcae028 passed
+The loader/publication/numeric batch passed1,295 public-derived cases with129
+existing exclusions and698/698 private cases. The Save successor now passes765/765
+public-derived and770/770 private cases, zero failures/skips. Exact prior adcae028 passed
 Windows40456938513: core27,168/164 existing exclusions, updater434, launcher57,
 synthetic parsers20+13; all eight stages exit0. That full run predates this batch.
 Earlier status sections below are retained history.
@@ -322,6 +323,41 @@ superseded by this exact accepted run, not silently reclassified as passes.
 No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
+
+### FSB-134: Validate prestige saves before replacing complete file images
+
+**Source:** PrestigeRanking.Save and the truncate-before-append DbWrite.Open port.
+
+**Defect:** Save could persist stale cached owners, silently narrow a category,
+substitute zero components for missing Points, or serialize malformed identities
+and delimiter-bearing text. The generic writer truncated the destination before
+appending the prepared rows.
+
+**Correction:** capture complete valid current class rows under SynRoot, using real
+owners and matching unique UID keys/categories. Reject missing Points and invalid
+text/Unicode; preserve valid sparse graphs, World exclusion, full UInt32 values,
+variable component arrays, literal path prefixes and exact valid output format.
+Prepare strict UTF8 bytes before filesystem mutation. Write/flush/close an exclusive
+same-directory stage, then use real Replace with an owned backup or create-only
+Move. Verify outcomes; retain still-owned artifacts and fence uncertain paths.
+Known failures retain their primary exception. Verified commitment cannot become
+a reported rejection solely because cleanup failed.
+
+**Verification:** old Save produced15 failing/seven passing checks (22 total).
+A review regression used actual File.Replace and real file handles, exposing the
+prior-first observer's identical-image classification error: one failed/two passed.
+The corrected observer checks consumed-stage commitment before prior equality.
+Final public765/765 and private770/770 pass, zero failures/skips; private includes
+five compact-English controls. Cases cover exact create/replacement bytes, Unicode,
+actual Windows sharing refusal, missing parent, directory targets, no ordinary
+sidecar residue, graph/cache/point preservation and retained loader/query controls.
+
+The observer tests select an unacknowledged state after a real successful Replace;
+they do not prove Replace itself threw. The recovery fence is process-local.
+Directory durability, power loss, automatic startup recovery, hostile namespace
+races, cross-process compare-and-swap, multi-file transactions and production
+adoption remain unproven. This does not fix the generic DbWrite for other systems.
+[Storage contract](docs/PRESTIGE-FILE-STORAGE.md).
 
 ### FSB-133: Reject control-bearing saved numeric fields
 

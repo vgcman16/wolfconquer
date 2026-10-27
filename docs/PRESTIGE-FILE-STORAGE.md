@@ -1,6 +1,7 @@
 # Managed prestige file storage
 
-The loader/publication/numeric batch passed 1,295 public-derived cases with 129
+The final Save successor passed765/765 public-derived and770/770 private cases,
+zero failures/skips. The loader/publication/numeric batch passed1,295 cases with129
 existing exclusions and 698/698 private cases. All 576 baseline cases now pass;
 the old implementation failed177/passed399. Full Windows40456938513 passed on
 prior source adcae028 and does not qualify this later batch. No live deployment
@@ -42,7 +43,24 @@ same gate before assignment. Excluded classes10000..10002 remain world-only;
 low-score publication remains the existing no-op. Queries/removal use the shared gate.
 
 Earlier client-field mutation windows, stale-low retention and other Rank API
-defects remain open. Save still has separate validation/cache/truncation defects;
-its follow-on proposal is unverified. No production caller of this managed Load
+defects remain open. Save now validates/serializes current class rows completely
+before creating a same-directory exclusive flushed stage. Existing files use
+Replace with an owned backup; missing destinations use create-only Move. Valid
+sparse graphs, fulluint, variable point arrays, UTF8 without BOM and the exact
+saved layout are retained. Malformed state rejects before destination mutation.
+Complete outcomes are checked; an uncertain operation retains remaining sidecars
+and fences that path in-process. Cleanup cannot turn a verified commitment into
+rejection or mask primary refusal.
+
+Five filesystem controls cover real create/replace, missing parent, Windows sharing
+and directory refusals with unchanged graph/old bytes and no ordinary residue.
+Three real-file observer cases distinguish consumed from retained stages, including
+identical images. The real Replace returns in these tests; the unacknowledged flag
+selects observer state rather than reproducing a thrown filesystem call.
+
+This is not a durable journal or automatic startup recovery. Consumed stages cannot
+be retained; cleanup failures may leave sidecars. No directory flush, power-loss
+durability, hostile namespace race or cross-process CAS proof is established.
+The generic DbWrite for other save families is unchanged. No production caller of this managed Load
 was found in the reviewed source. Runtime adoption, durable/crash recovery,
 dynamic refresh, live rendering and full persistence remain separate work.

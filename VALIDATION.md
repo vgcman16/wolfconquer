@@ -1,5 +1,14 @@
 # Publication validation
 
+## Latest Save successor — focused checks passed
+
+Prestige Save now prepares a complete validated image, stages and flushes it before
+real Replace/Move, and reconciles observed outcomes. Public-derived765/765 and
+private770/770 passed, zero failures/skips. Baseline Save checks were15failed/7passed;
+the additional observer baseline was1failed/2passed. FSB-134 and the storage contract
+describe the exact real-filesystem/observer scope. Crash/startup recovery and runtime
+adoption remain unproven. A new exact-public full Windows check is still required;
+last accepted full source remainsadcae028. Older sections below retain history.
 ## Latest focused successor and accepted prior full source
 
 The loader/publication/numeric successor passed 1,295 public-derived cases with
