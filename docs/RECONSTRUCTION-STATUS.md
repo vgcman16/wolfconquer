@@ -1,9 +1,21 @@
 # Reconstruction status
 
-Updated2026-10-26. Current target: Chinese client7899 / `VisibleDx8D13`.
+Updated2026-10-27. Current target: Chinese client7899 / `VisibleDx8D13`.
 This is a component checklist, not measured completion or a release claim.
 
-## Accepted prior full checkpoint; prestige focused checks passed
+## Latest qualified increment
+
+- [x] Prestige complete-file loading, paired rank publication and strict numeric
+  grammar qualified: public-derived1,295 passes/129 existing exclusions;
+  private698/698. All576 original baseline cases pass (FSB-131..133).
+- [x] Prior exact adcae028 passed Windows40456938513: core27,168/164 exclusions,
+  updater434, launcher57 and synthetic parsers20+13; all eight stages exit0.
+- [ ] Verify the loader successor in a new exact-public full check. Save validation,
+  crash recovery, runtime adoption and live-client acceptance remain separate work.
+
+Older status sections below remain historical; they do not override this snapshot.
+
+## Historical prestige query preparation
 
 Public source `46a501fc` is accepted by terminal SUCCESS
 [Windows 40450355220](https://github.com/vgcman16/wolfconquer/actions/runs/40450355220),

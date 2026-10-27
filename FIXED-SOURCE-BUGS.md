@@ -4,12 +4,13 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Latest prestige query qualification
+## Current loader qualification and accepted prior full source
 
-Focused public-derived437/437 passes with zero failures/skips. Prior full source
-46a501fc passed Windows40450355220 (core26,883/164existing exclusions,updater434,
-launcher57,syntheticparsers20+13;all8stages0). New prestige source needs its own
-exact-public full check. Earlier status headers below are retained history.
+The loader/publication/numeric batch passes 1,295 public-derived cases with 129
+existing exclusions, and 698/698 private cases. Exact prior source adcae028 passed
+Windows40456938513: core27,168/164 existing exclusions, updater434, launcher57,
+synthetic parsers20+13; all eight stages exit0. That full run predates this batch.
+Earlier status sections below are retained history.
 
 ## Session-root fix and D13 codec — focused acceptance, full CI pending
 
@@ -322,6 +323,62 @@ No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
 
+### FSB-133: Reject control-bearing saved numeric fields
+
+**Source:** managed prestige catalog projection and legacy file parser.
+
+**Defect:** numeric parsing alone can accept trailing NUL characters, allowing
+malformed saved fields to pass otherwise consistent metadata mirrors.
+
+**Correction:** require nonempty ASCII decimal digits before UInt32/Int32 parsing.
+Keep overflow, category, component-count and source-mirror checks. Valid wire bytes
+and numeric widths are unchanged.
+
+**Verification:** all 63 catalog NUL refusals and five loader NUL refusals pass in
+the qualified selections below. The prior projection failed all 63 catalog cases.
+This does not audit every numeric parser in the repository.
+
+### FSB-132: Prepare both prestige rank publications before assigning either
+
+**Source:** managed CreatePrestigePoints final class/world publication.
+
+**Defect:** the class rank could change before a missing or corrupt World owner
+failed. Separate per-rank locks could also straddle a loader graph replacement.
+
+**Correction:** under the shared gate, resolve real required owners, validate
+complete UID maps including capped tails, and prepare both sorted/capped maps and
+champions before reference assignment. Preserve excluded-class world-only behavior,
+valid ordering and entry identity. Shared-gate queries/removal observe one graph.
+
+**Verification:** nine publication cases plus retained formula/ranking/caller
+controls pass. Five new publication checks failed against prior production.
+Earlier client-field mutations, stale-low retention and other global Rank APIs
+remain open; this is not a whole CreatePrestigePoints or crash-safe transaction.
+
+### FSB-131: Validate complete prestige files before replacing the live graph
+
+**Source:** decompiled PrestigeRanking.Load and its managed port.
+
+**Defect:** Create ran before file admission, rows used tolerant numeric defaults,
+and incremental insertion could erase prior state or publish a valid prefix of a
+malformed file. Earlier tests explicitly required several of those defects.
+
+**Correction:** read, strictly decode and validate the complete counted file into
+private rows, then publish one fresh twelve-bucket graph under SynRoot. Missing
+input and actual I/O failures propagate; malformed data throws FormatException.
+Refusal preserves old graph/cache/row/point identities and file bytes. Variable
+point counts, full positive UInt32 UIDs, valid BOM formats, threshold 20,000,
+world 100/class 30 and deterministic saved-order ties are retained.
+
+**Verification:** baseline 576 cases executed: 177 failed / 399 passed, zero skips
+(109 loader-family, five publication and 63 projection failures). All 576 now pass.
+The broader public-derived selection passed 1,295 with 129 existing exclusions;
+private passed 698/698, including five English controls. Existing valid formats,
+literal path prefixes, Unicode, malformed tails, duplicates, caches and consumers
+are covered. Save remains a separate pending correction. No production Load caller,
+native execution, deployed refresh, power-loss recovery or live-client proof is
+established. [Storage contract](docs/PRESTIGE-FILE-STORAGE.md).
+
 ### FSB-130: Validate complete saved prestige query data before publication
 
 **Source:** ordinary `WorldPacketHandlers.RankMemberShow` and the plain managed
@@ -346,8 +403,9 @@ three failures were diagnostics and48 functional differences. Corrected public-
 derived437/437 passed,0fail/skip:52 handler,233 projection,152 retained packet/
 parser/dispatch cases. Full literal ASCII/UTF8 frames, same-count corrupt tails,
 duplicates, ownership refusals, oversized output, Unicode, cancellation and valid
-controls are covered. Accepted full46a501fc predates this change; new exact-public
-full verification remains pending. Source-schema goldens are not live D13 proof.
+controls are covered. Exact adcae028 passed full Windows40456938513: core27,168
+passed/164 existing exclusions, updater434, launcher57, parsers20+13 and all eight
+stages exit0. This full result predates FSB-131..133. Goldens are not live D13 proof.
 GenericRanking, Viewer, other families, dynamic refresh, rewards and full parity
 remain open. [Query contract](docs/PRESTIGE-QUERIES.md).
 

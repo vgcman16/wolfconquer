@@ -22,11 +22,15 @@ public sealed partial class PrestigeRankingSnapshotTests
     public static IEnumerable<object[]> NumericSnapshotFields()
     {
         // Every numeric column after UID is checked, including all 43 components.
+        var valid = PrestigeRankingQueryTestData.Row(99, 1);
         foreach (var index in Enumerable.Range(2, 63).Where(index => index != 20))
         {
             yield return new object[] { index, "-1" };
             yield return new object[] { index, "4294967296" };
             yield return new object[] { index, "NaN" };
+            // Keep the original in-range value, especially category and count43,
+            // so independent bounds/count checks cannot mask permissive parsing.
+            yield return new object[] { index, valid.Fields[index] + "\0" };
         }
     }
 
@@ -39,6 +43,22 @@ public sealed partial class PrestigeRankingSnapshotTests
             out var snapshot, out var rejection));
         Assert.Null(snapshot);
         Assert.False(string.IsNullOrWhiteSpace(rejection));
+    }
+
+    [Fact]
+    public void NulTerminatedUidCannotPassThroughConsistentMetadataMirrors()
+    {
+        var row = PrestigeRankingQueryTestData.Row(99, 1);
+        var fields = row.Fields.ToArray();
+        fields[0] = "99\0";
+        // ID99, the name and the RankingFields slice remain consistent with the
+        // numeric value; only the UID lexical grammar is malformed.
+        var tail = row with { Fields = fields, RawLine = string.Join('/', fields) };
+        Assert.False(PrestigeRankingSnapshot.TryCreate([PrestigeRankingQueryTestData.Row(), tail],
+            out var snapshot, out var rejection));
+        Assert.Null(snapshot);
+        Assert.False(string.IsNullOrWhiteSpace(rejection));
+        Assert.Throws<FormatException>(() => PrestigeRankingSnapshot.Create([PrestigeRankingQueryTestData.Row(), tail]));
     }
 
     [Fact]

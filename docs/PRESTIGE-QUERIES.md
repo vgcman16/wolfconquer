@@ -1,8 +1,11 @@
 # Prestige saved queries
 
-Focused public-derived qualification passed437/437, zero failures/skips (52 new handler cases,233 projection cases,152 retained controls). New exact-public full CI remains pending. The
-accepted full run for source `46a501fc` predates this change and does not validate
-the prestige candidate.
+Original focused qualification passed437/437 (52 handler,233 projection,152
+retained controls), zero failures/skips. Exact source `adcae028` passed Windows
+40456938513: core27,168 passed/164 existing exclusions, updater434, launcher57
+and both synthetic parser stages. The later numeric-grammar correction is covered
+by 1,295 public-derived passes/129 existing exclusions and 698 private passes;
+its new exact-public full check remains pending.
 
 `PrestigeRankingSnapshot.Create(IReadOnlyList<PrestigeRankEntry>)` validates the
 complete input before exposing immutable `PrestigeRankingEntry` values. `TryCreate` returns no snapshot
@@ -13,7 +16,7 @@ The 66-field slash schema maps fields 0–6 to UID, name, class category, class,
 byte level, mesh, and total points; 7–19 to saved appearance; 20 to guild; 21 to
 component count; 22–64 to 43 unsigned components; and 65 to the trailing empty
 field. The projection checks every
-numeric width, field count, source mirror, positive unique UID, and category
+ASCII decimal grammar, numeric width, field count, source mirror, positive unique UID, and category
 1–11. World category 0 is reconstructed. Names must be nonblank; name/guild text
 rejects delimiters, controls, and unpaired UTF-16 surrogates while preserving valid
 non-ASCII text. Catalog UIDs remain limited to positive Int32 values despite the

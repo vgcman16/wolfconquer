@@ -179,11 +179,8 @@ public sealed partial class LegacyNativeGameClientRuntime
 		}
 		if (LegacyNativeGroupServerList.MyServerInfo.ID == Player.ServerID)
 		{
-			if (Player.Class < 10000 || Player.Class > 10002)
-			{
-				LegacyNativePrestigeRanking.Ranks[PrestrigeEntry!.type].AddItem(PrestrigeEntry);
-			}
-			LegacyNativePrestigeRanking.Ranks[LegacyNativePrestigeRanking.Type.World].AddItem(PrestrigeEntry);
+			LegacyNativePrestigeRanking.PublishPrestigeEntry(
+				PrestrigeEntry!, Player.Class < 10000 || Player.Class > 10002);
 		}
 		PerfectionStatus.Update(unchecked((int)PrestigeLevel), this);
 		if (Player.MyGuild != null && Player.MyGuildMember != null)

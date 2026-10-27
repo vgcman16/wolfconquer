@@ -142,7 +142,9 @@ internal static class PrestigeRankingRowProjection
 
     private static uint ReadUInt32(PrestigeRankEntry row, IReadOnlyList<string> fields, int index)
     {
-        if (!uint.TryParse(fields[index], NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+        if (fields[index].Length == 0 ||
+            fields[index].Any(character => character is < '0' or > '9') ||
+            !uint.TryParse(fields[index], NumberStyles.None, CultureInfo.InvariantCulture, out var value))
         {
             throw Invalid(row, $"has invalid UInt32 field at index {index}");
         }

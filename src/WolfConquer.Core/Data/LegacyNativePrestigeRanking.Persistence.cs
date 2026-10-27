@@ -5,54 +5,6 @@ namespace WolfConquer.Core.Data;
 
 internal partial class LegacyNativePrestigeRanking
 {
-	public static void Load()
-	{
-		Create();
-		lock (SynRoot)
-		{
-			using LegacyNativeDbRead read = new LegacyNativeDbRead("PrestigeRanking.txt");
-			if (!read.Reader())
-			{
-				return;
-			}
-			int count = read.Count;
-			for (int i = 0; i < count; i++)
-			{
-				LegacyNativeDbReadLine readLine = new LegacyNativeDbReadLine(read.ReadString("/"), '/');
-				Entry entry = new Entry();
-				entry.UID = readLine.Read(0u);
-				entry.Name = readLine.Read("")!;
-				entry.type = (Type)readLine.Read((byte)0);
-				entry.Class = readLine.Read(0u);
-				entry.Level = readLine.Read((byte)0);
-				entry.Mesh = readLine.Read(0u);
-				entry.TotalPoints = readLine.Read(0u);
-				entry.HairStyle = readLine.Read(0u);
-				entry.Head = readLine.Read(0u);
-				entry.Garment = readLine.Read(0u);
-				entry.LeftWeapon = readLine.Read(0u);
-				entry.LefttWeaponAccessory = readLine.Read(0u);
-				entry.RightWeapon = readLine.Read(0u);
-				entry.RightWeaponAccessory = readLine.Read(0u);
-				entry.MountArmor = readLine.Read(0u);
-				entry.Armor = readLine.Read(0u);
-				entry.Wing = readLine.Read(0u);
-				entry.WingPlus = readLine.Read(0u);
-				entry.Title = readLine.Read(0u);
-				entry.Flag = readLine.Read(0u);
-				entry.GuildName = readLine.Read("")!;
-				int num = readLine.Read(0);
-				entry.Points = new uint[num];
-				for (int j = 0; j < entry.Points.Length; j++)
-				{
-					entry.Points[j] = readLine.Read(0u);
-				}
-				Ranks[entry.type].AddItem(entry);
-				Ranks[Type.World].AddItem(entry);
-			}
-		}
-	}
-
 	public static void Save()
 	{
 		lock (SynRoot)

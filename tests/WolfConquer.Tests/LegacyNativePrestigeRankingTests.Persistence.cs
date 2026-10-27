@@ -44,67 +44,53 @@ public sealed partial class LegacyNativePrestigeRankingTests
     }
 
     [Fact]
-    public void ZeroCountStillCreatesFreshStandardBucketsAndPreservesExtraBuckets()
-    {
-        using var state=new State();
-        using var files=new OwnedRankFile();
-        files.Seed(Text());
-        var old=Place(Entry());
-        var extra=Place(Entry(99),(Ranking.Type)99);
-        Ranking.Load();
-        Assert.Equal(13,Ranking.Ranks.Count);
-        Assert.NotSame(old,Ranking.Ranks[Ranking.Type.Ninja]);
-        Assert.Single(old.Items);
-        Assert.Same(extra,Ranking.Ranks[(Ranking.Type)99]);
-        Assert.All(Enumerable.Range(0,12),i=>Assert.Empty(Ranking.Ranks[(Ranking.Type)i].Items));
-    }
+    public void LoadSafetyCompleteZeroCountPublishesExactlyTwelveFreshStandardBucketsAndPreservesEscapedOwners() =>
+        RunOwnedPrestigeLoad(files =>
+        {
+            SeedPriorPrestigeGraph();
+            var prior = new PublishedPrestigeGraph();
+            var ranks = Ranking.Ranks;
+            files.Seed(Text());
+            Ranking.Load();
+            Assert.NotSame(ranks, Ranking.Ranks);
+            Assert.Equal(Enumerable.Range(0, 12).Select(index => (Ranking.Type)index), Ranking.Ranks.Keys);
+            foreach (var (type, bucket) in Ranking.Ranks)
+            {
+                Assert.NotSame(ranks[type], bucket);
+                Assert.Equal(type, bucket._Type);
+                Assert.Equal(type == Ranking.Type.World ? 100 : 30, bucket.MaxItems);
+                Assert.Empty(bucket.Items);
+                Assert.Null(bucket.BestOfClass);
+            }
+            Assert.Null(Ranking.BestOfTheWorld);
+            Assert.False(Ranking.Ranks.ContainsKey((Ranking.Type)99));
+            prior.RequireEscapedOwnersUnchanged();
+            files.Expect(Text());
+        });
 
     [Fact]
-    public void InvalidTypeFaultKeepsEarlierClassAndWorldRowsWithoutPublishingLaterRows()
-    {
-        using var state=new State();
-        using var files=new OwnedRankFile();
-        files.Seed(Text(FullRow,Row(19,type:"12"),Row(23)));
-        Assert.Throws<NullReferenceException>(()=>Ranking.Load());
-        var row=Assert.Single(Ranking.Ranks[Ranking.Type.Ninja].Items).Value;
-        Assert.Equal(41u,row.UID);
-        Assert.Same(row,Assert.Single(Ranking.Ranks[Ranking.Type.World].Items).Value);
-        Assert.Null(Ranking.Ranks[Ranking.Type.Count]);
-    }
+    public void LoadSafetyInvalidTypeAfterAValidPrefixRefusesWithoutPublishingAnyGraph() =>
+        RunOwnedPrestigeLoad(files => RequireRejectedPrestigeText(files,
+            Text(FullRow, Row(19, type: "12"), Row(23))));
 
     [Fact]
-    public void NegativePointArrayCountFaultRetainsEarlierRowsBeforeAddingFaultingRowToEitherRank()
-    {
-        using var state=new State();
-        using var files=new OwnedRankFile();
-        files.Seed(Text(FullRow,Row(19,count:-1),Row(23)));
-        Assert.Throws<OverflowException>(()=>Ranking.Load());
-        Assert.Equal(new uint[]{41},Ranking.Ranks[Ranking.Type.Ninja].Items.Keys);
-        Assert.Equal(new uint[]{41},Ranking.Ranks[Ranking.Type.World].Items.Keys);
-    }
+    public void LoadSafetyNegativePointArrayCountAfterAValidPrefixRefusesWithoutPublishingAnyGraph() =>
+        RunOwnedPrestigeLoad(files => RequireRejectedPrestigeText(files,
+            Text(FullRow, Row(19, count: -1), Row(23))));
 
     [Fact]
-    public void ShortMalformedAndLowPointRowsUseLiteralDefaultsAndThresholdWhileMissingPointsDefaultZero()
-    {
-        using var state=new State();
-        using var files=new OwnedRankFile();
-        var fields=FullRow.Split('/');
-        fields[0]="4294967296";
-        fields[2]="256"; // Byte parse default0 becomes World, not an UInt32 type256.
-        fields[4]="256";
-        fields[5]="-1";
-        fields[21]="3";
-        fields[22]="bad";
-        files.Seed(Text("17/Short/4/",Row(18,19999),string.Join('/',fields)));
-        Ranking.Load();
-        Assert.Empty(Ranking.Ranks[Ranking.Type.Ninja].Items);
-        var malformed=Assert.Single(Ranking.Ranks[Ranking.Type.World].Items).Value;
-        Assert.Equal(0u,malformed.UID);
-        Assert.Equal((byte)0,malformed.Level);
-        Assert.Equal(0u,malformed.Mesh);
-        Assert.Equal(30004u,malformed.TotalPoints);
-        Assert.Equal(new uint[]{0,202,0},malformed.Points);
-    }
+    public void LoadSafetyMalformedFieldsCannotDefaultToZeroUidOrPublishAnEarlierEligibleRow() =>
+        RunOwnedPrestigeLoad(files =>
+        {
+            var fields = FullRow.Split('/');
+            fields[0] = "4294967296";
+            fields[2] = "256";
+            fields[4] = "256";
+            fields[5] = "-1";
+            fields[21] = "3";
+            fields[22] = "bad";
+            RequireRejectedPrestigeText(files, Text(FullRow, Row(18, 19_999), string.Join('/', fields)));
+        });
 
     [Fact]
     public void SaveWritesNullPointsAsZeroCountAndNarrowsEntryTypeWithoutChangingItsBucket()

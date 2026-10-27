@@ -15,7 +15,10 @@ internal partial class LegacyNativePrestigeRanking
 		{
 			try
 			{
-				return Ranks[Type.World].BestOfClass;
+				lock (SynRoot)
+				{
+					return Ranks[Type.World].BestOfClass;
+				}
 			}
 			catch
 			{
@@ -76,9 +79,13 @@ internal partial class LegacyNativePrestigeRanking
 
 	public static void Remove(uint UID)
 	{
-		foreach (Rank value in Ranks.Values)
+		lock (SynRoot)
 		{
-			value.Remove(UID);
+			var ranks = Ranks;
+			foreach (Rank value in ranks.Values)
+			{
+				value.Remove(UID);
+			}
 		}
 	}
 

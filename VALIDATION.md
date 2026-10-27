@@ -1,6 +1,21 @@
 # Publication validation
 
-## Accepted prior full source and focused prestige qualification
+## Latest focused successor and accepted prior full source
+
+The loader/publication/numeric successor passed 1,295 public-derived cases with
+129 existing exclusions and 698/698 private cases. All576 original baseline cases
+now pass; prior production failed177/passed399. See FSB-131..133 and the
+[storage contract](docs/PRESTIGE-FILE-STORAGE.md).
+
+Exact prior source adcae028 passed [Windows40456938513](https://github.com/vgcman16/wolfconquer/actions/runs/40456938513),
+job122032354031. Its actual receipt20261027T054439010Z-e1af7588 finished
+2026-10-27T06:27:47.9257734Z; all eight stages exited0. Actual TRXs contain core
+27,168 passed/164 existing exclusions, updater434/434 and launcher57/57. Status
+parser20 and smoke parser13 cases are synthetic-only; no network proof follows.
+This full result predates the loader successor. A new exact-public full gate is
+required. Older sections below retain historical outcomes, including failures.
+
+## Historical prestige query preparation
 
 Source `46a501fc` passed
 [Windows 40450355220](https://github.com/vgcman16/wolfconquer/actions/runs/40450355220),
