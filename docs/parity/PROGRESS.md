@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-26**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `ae40c548d5cdd2d065b8e4ae3108859e5757039a` (short: `ae40c548d5cd`).
+Source commit: `e2c134d8ae197c7506593d32eed4b97938d28755` (short: `e2c134d8ae19`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -18,8 +18,8 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 
 | Milestone | Status | Detail |
 | --- | --- | --- |
-| Limited local live-client milestone | verified | An October26 local disposable D13 fixture completed manual authentication, world initialization and observed movement after canonical collection defaults. Its own model is missing (name/shadow visible), so visual acceptance is incomplete. Earlier local drop/pickup/save proof applies to an older build; no complete current public acceptance follows. |
-| Current public build live-client acceptance | planned | Last accepted full sourcef21e2a11 passed Windows40383185044. The ef868fa8/c15dd464 attempts failed compilation only; missing networking dependencies are restored. Clean source passes250 focused cases, and exact6df87b72 Windows40420961276 is pending. Local login/movement do not prove full native ownership, English, SQL or distribution. |
+| Limited local live-client milestone | verified | An October26 disposable D13 fixture completed manual authentication, world initialization and movement. Supported Body1008 passed41 focused checks; root and user confirmed its full body visible in Twin City. One local trial does not prove restart reliability or the whole public build. Earlier drop/pickup/save proof applies to an older build. |
+| Current public build live-client acceptance | planned | Last accepted full sourcef21e2a11 passed Windows40383185044. ef868fa8/c15dd464 failed compilation only; missing dependencies are restored and250 focused checks pass. Root canceled6df87b72 Windows40420961276 after finding unsafe native-probe PID cleanup; its fix and a new full gate are pending. Tracker40421451578 passed. Local rendering is separate evidence. |
 | Complete English client | in-progress | Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete. |
 | Newer-client-only parity | in-progress | Official patches through7935 are downloaded/extracted privately. Separate2132codec, Echo request/catalog transform/threshold selection and item2350reader/writer have focused proof. The102-case writer run includes37 existing-schema controls, not extra patch coverage. No default7935 activation, real state/cost/save join or actual7935 client acceptance. Not estimated. |
 | Public full-client download and updates | in-progress | Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet. |
