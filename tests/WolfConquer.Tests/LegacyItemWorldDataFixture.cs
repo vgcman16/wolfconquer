@@ -17,13 +17,15 @@ internal static class LegacyItemWorldDataFixture
         IReadOnlyList<SocialAssociationRecord>? socialAssociations = null,
         IReadOnlyList<ClassLevelStat>? classLevelStats = null,
         IReadOnlyList<MagicTypeOperationEntry>? magicTypeOperations = null,
-        IReadOnlyList<ClientConfigRecord>? clientConfigs = null)
+        IReadOnlyList<ClientConfigRecord>? clientConfigs = null,
+        IReadOnlyList<PrestigeRankEntry>? prestigeRanks = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
                 DateTimeOffset.UnixEpoch,
                 "fixture://item-catalog",
-                new Dictionary<string, int>()),
+                prestigeRanks is null ? new Dictionary<string, int>() :
+                    new Dictionary<string, int> { ["prestigeRanks"] = prestigeRanks.Count }),
             clientConfigs: clientConfigs ?? [],
             items: items,
             itemAddBonuses: [],
@@ -81,7 +83,7 @@ internal static class LegacyItemWorldDataFixture
             skillTeamPkRecords: [],
             classPkWarRecords: [],
             combatGearRanks: [],
-            prestigeRanks: [],
+            prestigeRanks: prestigeRanks ?? [],
             innerPowerRanks: [],
             runeRankings: [],
             staticStatues: [],

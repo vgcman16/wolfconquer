@@ -1,5 +1,26 @@
 # Publication validation
 
+## Accepted prior full source and focused prestige qualification
+
+Source `46a501fc` passed
+[Windows 40450355220](https://github.com/vgcman16/wolfconquer/actions/runs/40450355220),
+job `122011374992`, terminal SUCCESS. Receipt
+`20261027T043408020Z-84de1c42` finished `2026-10-27T05:14:13.3530869Z` with all
+eight stages exit 0: core 26,883 passed / 164 existing NotExecuted, updater 434
+passed, launcher 57 passed. Status parser: 20 synthetic receipt cases,
+`networkProbes=0`; HTTP/service probes were skipped. Smoke parser: 13 synthetic
+TRX fixture cases; it did not execute the represented tests or use the network.
+Both parser stages exited 0. Earlier failed runs remain failed.
+
+The new [prestige query](docs/PRESTIGE-QUERIES.md) passes437/437 focused cases,
+zero failures/skips:52 new handler,233 projection and152 retained packet/parser/
+dispatch controls. Prior handler baseline52 executed51 failed/one passed; three
+failures were diagnostic expectations and48 functional differences. Valid empty
+source, real ordinary admission, same-count corrupt tails, literal ASCII/UTF8
+frames, stale/foreign session refusal, Unicode and no partial send are covered.
+The new source requires its own exact-public full check. These results are not
+live D13 rendering, deployment, dynamic progression/reward authority or full parity.
+
 ## Session-root correction and D13 codec — final focused checks passed
 
 The owned public-derived selection 15047 is terminal/reaped **250/250 passed,

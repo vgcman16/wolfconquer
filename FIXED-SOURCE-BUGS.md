@@ -4,6 +4,13 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Latest prestige query qualification
+
+Focused public-derived437/437 passes with zero failures/skips. Prior full source
+46a501fc passed Windows40450355220 (core26,883/164existing exclusions,updater434,
+launcher57,syntheticparsers20+13;all8stages0). New prestige source needs its own
+exact-public full check. Earlier status headers below are retained history.
+
 ## Session-root fix and D13 codec — focused acceptance, full CI pending
 
 Owned public-derived selection 15047 passed 250/250, zero failures/skips, including
@@ -314,6 +321,35 @@ superseded by this exact accepted run, not silently reclassified as passes.
 No live,SQL,original-save,routing or deployment action.
 
 ## Verified fixes
+
+### FSB-130: Validate complete saved prestige query data before publication
+
+**Source:** ordinary `WorldPacketHandlers.RankMemberShow` and the plain managed
+`PrestigeRanking.Load/Save` / `MsgRankMemberShow.Process` reference.
+
+**Defect:** the ordinary Show 0 / first item type 1 path returns an empty result
+even when a genuine complete saved champion exists. Legacy source loader defaults
+and incremental rank publication are unsafe models for accepting malformed data;
+the candidate does not repair or activate that separate legacy loader.
+
+**Correction:** construct an immutable projection only after validating
+all rows, numeric widths, identities, mirrors, category and component counts,
+including ineligible/capped tails. Require the actual connection's same current
+session and explicit matching manifest count. Preserve saved appearance and the
+existing 2054 schema; serialize the complete response before sending. Corruption
+or serialization rejection produces no frame; valid empty/ineligible snapshots
+retain the known empty response. No fabricated owner, default row, live mutation,
+or reward/progression authority is introduced.
+
+**Verification:** prior handler baseline52 executed51 failures/one guard pass;
+three failures were diagnostics and48 functional differences. Corrected public-
+derived437/437 passed,0fail/skip:52 handler,233 projection,152 retained packet/
+parser/dispatch cases. Full literal ASCII/UTF8 frames, same-count corrupt tails,
+duplicates, ownership refusals, oversized output, Unicode, cancellation and valid
+controls are covered. Accepted full46a501fc predates this change; new exact-public
+full verification remains pending. Source-schema goldens are not live D13 proof.
+GenericRanking, Viewer, other families, dynamic refresh, rewards and full parity
+remain open. [Query contract](docs/PRESTIGE-QUERIES.md).
 
 ### FSB-129: Validate supplied session roots before fences and recovery binding
 

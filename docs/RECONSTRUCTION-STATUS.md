@@ -3,6 +3,24 @@
 Updated2026-10-26. Current target: Chinese client7899 / `VisibleDx8D13`.
 This is a component checklist, not measured completion or a release claim.
 
+## Accepted prior full checkpoint; prestige focused checks passed
+
+Public source `46a501fc` is accepted by terminal SUCCESS
+[Windows 40450355220](https://github.com/vgcman16/wolfconquer/actions/runs/40450355220),
+job `122011374992`: all eight stages exit 0; core 26,883 passed / 164 existing
+NotExecuted, updater 434 passed, launcher 57 passed. Status parser passed 20
+synthetic receipt cases with `networkProbes=0` and HTTP/service probes skipped;
+smoke parser passed 13 synthetic TRX fixture cases without executing represented
+tests or using the network. Both parser stages exited 0.
+
+- [x] [Prestige saved queries](PRESTIGE-QUERIES.md):437/437 focused cases passed,
+  including52 handler,233 projection and152 retained controls (FSB-130).
+- [ ] Verify the new prestige source in its own exact-public full check. The prior
+  full46a501fc result predates this addition. GenericRanking, Viewer, other families,
+  dynamic refresh, live D13 rendering and progression/reward authority remain open.
+
+Older status sections below remain history; failed checks retain their outcomes.
+
 ## Latest verified components — complete source check still pending
 
 The matching owned public-derived candidate passes **250/250 focused cases**,
