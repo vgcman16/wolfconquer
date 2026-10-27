@@ -97,6 +97,47 @@ tests within the authorized project scope. It must preserve unresolved or
 conflicting rows and continue independent work rather than inventing their
 contents. The template standardizes ingestion; it does not make missing client
 behavior self-describing or prove end-to-end correctness automatically.
+## Autonomous patch ingestion
+
+When new official patch packages or binary catalogs are downloaded and unpacked,
+agents are authorized and required to perform this intake independently within
+the project's permitted tooling and preserved-session boundaries:
+
+1. Record official provenance, patch/base versions, intake location and file
+   identities. Keep original packages and the working client/server untouched;
+   parse unpacked copies without running installers or patch executables.
+2. Compare unpacked files with the matching prior catalog/profile. Parse supported
+   binary catalogs, data tables, GBK/CP936 configuration and other known formats.
+   Identify changed layouts, item tables, new system references (for example Echo
+   resonance), packet-field evidence and opcode candidates. Distinguish display
+   changes from behavior; unexplained bytes remain unexplained.
+3. **Before changing implementation code**, write a plain-text engineering spec
+   using the standard structure under
+   `docs/specs/auto-generated/<client-build>/<feature>.md`. Record the before/after
+   inputs, decoder assumptions, findings, evidence links, unknowns and conflicts.
+   Label observed facts and deductions separately. Do not turn every numeric
+   constant or string match into a confirmed opcode or complete feature schema.
+4. Treat the versioned generated spec as the authoritative implementation
+   blueprint and trace each parser/handler/test to it. Its factual authority is
+   bounded by the cited evidence; a generated statement does not resolve a
+   contradictory catalog, wire capture or missing client behavior by itself.
+5. Immediately continue the spec-to-implementation loop: implement the applicable
+   C# catalog decoder, packet parser and handler, build isolated fixture tests,
+   cross-reference the decoded catalogs and bounded server wire logs, correct
+   failures, then follow the integration/live-wiring gates below. This workflow
+   does not require the user to rewrite an independently supported finding as a
+   new manual spec or repeatedly approve routine offline implementation.
+6. If required evidence or a real runtime owner is unavailable, record the exact
+   gap, keep the affected activation fenced, and continue independent work. Never
+   invent field meanings, accepting metadata/owners, gameplay costs or successful
+   responses to make an unfinished feature appear complete. Use bounded permitted
+   diagnostics or an exact evidence question to close the remaining gap.
+
+For patches 7930–7935 and later, retain separate build/profile evidence instead
+of silently changing the current client's wire contract. Refresh the generated
+spec when new evidence changes it, preserve the earlier findings and rerun the
+affected checks. A newly generated spec alone never deploys code, updates the
+active client or proves complete end-to-end feature support.
 ## Wire and table alignment
 
 Cross-reference each relevant requirement against available decoded catalogs
@@ -146,6 +187,52 @@ its wire/behavior contract is resolved; do not invent a success response.
    evidence gets an exact function/string/opcode question for a permitted export
    or later investigation; no guessed handler activation.
 
+## Autonomous director loop
+
+While the authorized reconstruction objective remains active, the leading agent
+owns milestone selection and continued execution. Finishing a test suite,
+implementation batch or checkpoint is the start of the next loop, not a request
+for the user to send another continuation prompt.
+
+1. Review the current issue tracker, parity checklist, handoff and relevant code
+   gaps. Reuse current evidence; avoid restarting an exhaustive source audit for
+   every small change. Select the next logical roadmap objective, prioritizing
+   concrete player behavior, missing real ownership/persistence and transaction
+   safety over cosmetic progress or test-count growth. Full SQL persistence and
+   complete trade safety are examples of valid end-to-end objectives.
+2. Record the milestone's intended behavior, real prerequisites, unresolved seams
+   and acceptance checks. Generate or update its engineering spec before code.
+   Choose a coherent implementation batch that advances the full objective;
+   do not redefine completion around the first passing micro-test.
+3. Automatically create the needed helper-agent swarm when independent work can
+   safely run in parallel. Give each helper an isolated scope and shared spec.
+   Coordinate dependent APIs before coding. The lead reviews and integrates;
+   only the lead stages, commits or pushes. Use the available agent capacity
+   proportionally rather than spawning redundant auditors or competing builds.
+4. Continue the spec, C# implementation, isolated-test and evidence-alignment loop.
+   Correct failures and inspect affected callers. Do not obtain passing results
+   through fabricated runtime owners, weakened tests or accepted emulator bugs.
+5. Run focused checks for each coherent change and full CI for the integration/
+   publication batch. Serialize host-sensitive native checks and avoid duplicate
+   live builds or CI jobs. Preserve actual receipts and concise verification
+   limits; avoid giant per-change hash proofs and redundant reviewer ceremonies.
+6. Commit reviewed code, tests and concise documentation using explicit path
+   scopes. Preserve unrelated changes and follow the existing private/public
+   publication rules. Record the actual commit/check outcome, remaining gaps and
+   next milestone, then immediately continue the director loop.
+
+Routine subsequent work within the existing objective does not require another
+user prompt or repeated permission. Preserve running sessions, original data,
+rollback copies and all explicit user constraints. A real missing dependency,
+required user decision or actual execution/approval restriction must be reported
+accurately; continue other independent authorized work where possible. Do not
+invent a blocker merely because another implementation seam remains.
+
+This is an active-work execution rule, not proof of completion, an automatic
+production deployment, or a new background scheduler. Respect host/budget/tool
+limits and explicit stop/pause requests. Keep the larger objective active until
+its intended acceptance criteria are actually met, and make progress updates
+here and locally as requested.
 ## Capture discipline
 
 Protocol diagnostics are opt-in, bounded and separate from gameplay decisions.

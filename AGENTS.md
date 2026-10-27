@@ -26,3 +26,18 @@ Read [the protocol workflow](docs/engineering/PROTOCOL-WORKFLOW.md) for feature,
   running sessions. Use owned temporary fixtures for offline testing.
 - Green tests/static grades are not live-client proof, deployment, full parity or
   proof that every bug is gone. Keep the current checklist honest.
+## Autonomous director loop
+
+- After a verified test suite or implementation batch, review current issues,
+  parity/checklists and relevant code gaps; select and record the next logical
+  roadmap milestone without waiting for another user continuation prompt.
+- Generate/update its spec, assign independent isolated helper-agent scopes,
+  implement C# behavior, run isolated tests and the appropriate full CI gate,
+  then commit reviewed code/tests/docs and immediately continue the loop.
+- Prioritize coherent end-to-end gameplay, real SQL/persistence ownership and
+  transaction safety. Do not substitute cosmetic work, test totals or proof
+  ceremony for unfinished behavior, or duplicate host-sensitive checks/jobs.
+- The lead alone reviews/integrates/stages/commits/pushes. Existing session/data,
+  private/public publication, tooling, budget and user stop/pause boundaries stay
+  in force; genuine required decisions are reported instead of guessed.
+- Follow the detailed [director and ingestion workflow](docs/engineering/PROTOCOL-WORKFLOW.md).
