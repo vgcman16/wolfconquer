@@ -4,7 +4,22 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Current retained-rank qualification; prior full CI accepted
+## Current class/reborn and D13 raw-codec qualification
+
+FSB-139..140 correct stale reborn cleanup and prestige class resolution through
+D13 suffix57. Public932/932 class/reborn/Map cases pass, including all843 baseline
+names (previously290 failed/553 passed). Rawcodec27/27 and private combined959/959
+pass, zero failures/skips. The actual D13 action6 row is113 bytes; its query stays
+inactive pending an authoritative extra field, text conversion and lifecycle.
+See [class/reborn](docs/PRESTIGE-CLASS-AND-REBORN.md) and
+[wire contract](docs/D13-PRESTIGE-WIRE-CONTRACT.md).
+
+Accepted prior source99447f89 passed Windows40489896224: core27,549 passed/
+164 existing exclusions, updater434 and launcher57; all8 steps exit0. Receipt
+20261027T103908463Z-08177f55 finished2026-10-27T11:24:44.8247513Z. The newer
+31-path C# batch needs its own full gate and has not been deployed.
+
+## Earlier retained-rank qualification and prior full source
 
 Prestige refresh and standalone/global rank mutations now retire obsolete same-UID
 memberships and prepare admitted dictionaries/champions before publication
@@ -27,6 +42,71 @@ The prior loader/Save source42a1116b passed Windows40466127994: core27,367 passe
 164 existing exclusions, updater434, launcher57 and synthetic parsers20+13; all
 eight stages exit0. This new source still needs its own exact-public full gate.
 Older status sections retain their historical outcomes.
+
+### FSB-140: Resolve prestige classes without granting Water fallback authority
+
+**Source:** `LegacyNativePrestigeRanking.Queries.cs` GetIndex,
+`ClassResolution.cs`, rebuild preparation/publication and the two Player.GetArray
+badge consumers.
+
+**Defects:** global family predicates stopped at suffix 51 although the selected
+D13 primary contains suffixes 52–57 for all eleven existing prestige families.
+Unrecognized classes defaulted to Water, giving unsupported IDs incorrect class
+publication, badge lookup and destructive historical-cleanup authority.
+
+**Correction:** a prestige-specific resolver covers the 634 confirmed IDs through
+57. Strict GetIndex refuses nonclass/unsupported inputs; TryGetIndex supplies no
+category. The 17 observed unmodeled IDs receive no invented prestige mapping.
+Only exact 10000–10002 retains World-only behavior; 10002 is an absent-table
+compatibility literal. Rebuild and publisher validate the real Class/category/
+includeClass disposition before outputs. Spawn class badges use rank zero when
+there is no class category. Unknown IDs cannot select Water for cleanup.
+
+**Verification:** shared tests-only baseline: 290 failed/553 passed/0 skipped,
+843 total. Root's corrected focused selection passed 932/932, zero failures/skips,
+including every baseline case. Coverage includes target 51/52/57 boundaries,
+unmodeled/current/prior refusals, genuine rebuild outputs, world-only controls
+and both actual-UID badge paths. This is shared batch evidence with FSB-139,
+not a separate 932-case result for each entry.
+
+The combined private selection passed959/959, zero failures/skips; it includes
+the same class/reborn coverage plus27 raw-codec cases. Source intake follows
+Root's review of all31 C# paths. A new exact-source full gate remains required.
+
+Global Atributes predicates, other class systems and loader/catalog admission
+are unchanged. No old saved-row repair, new class category, packet-layout change,
+live-client proof or exact-source full-CI acceptance is claimed.
+
+### FSB-139: Prepare obsolete reborn-rank cleanup and preserve the current family
+
+**Source:** `LegacyNativePrestigeRanking.Queries.cs` CheckReborn and the focused
+`Reborn.cs` helper. Reference RebornInfomations stores historical/new classes,
+refreshes equipment at 447 and calls CheckReborn at 448. Equipment's
+QueryEquipment → OnDequeue → UpdateStats → CreatePrestigePoints chain can
+publish a fresh current-family entry immediately before cleanup.
+
+**Defects:** raw removal could delete that freshly rebuilt same-family entry,
+mutate escaped Items before a later sort failed, retain a stale champion, and
+consume a foreign Player or malformed selected owner without complete admission.
+
+**Correction:** require the real physical Player and positive active UInt32 UID;
+preserve genuine non-reborn early no-ops. Select FirstClass/SecoundeClass using
+reborn 1/2. A prior World-only class has nothing to remove; known same-current-
+family membership is preserved. Required unsupported prior/current IDs refuse. Obsolete
+cleanup admits only the required selected owner and every matching positive
+unique raw UID row, then prepares a new map and next/null champion before stores.
+Recheck captured player/selection/owner identity under the cooperating gate.
+Preserve escaped maps/entries, valid shared Items, caps, stable ties and genuine
+absence; do not invent backfill or repair unrelated owners.
+
+**Verification:** the shared 843-case baseline and corrected 932/932 result above
+include genuine CreatePrestigePoints → CheckReborn preservation at class 1001 and
+1052, selected malformed tails, aliases, current/prior class admission, full
+UInt32 UID, cached-only target champions and unchanged client/rank outputs.
+
+Private combined qualification passed959/959 as recorded above. No managed production rebirth caller is added.
+The whole rebirth transaction, unrelated query/cache defects, arbitrary external
+writers, crash recovery and exact-source full CI remain open.
 
 ### FSB-138: Prepare standalone and global prestige rank mutations before stores
 

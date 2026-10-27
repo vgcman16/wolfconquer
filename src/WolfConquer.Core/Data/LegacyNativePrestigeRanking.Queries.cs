@@ -30,51 +30,9 @@ internal partial class LegacyNativePrestigeRanking
 
 	public static Type GetIndex(uint Class)
 	{
-		if (LegacyNativeAtributesStatus.IsTrojan(Class))
-		{
-			return Type.Trojan;
-		}
-		if (LegacyNativeAtributesStatus.IsWarrior(Class))
-		{
-			return Type.Warrior;
-		}
-		if (LegacyNativeAtributesStatus.IsArcher(Class))
-		{
-			return Type.Archer;
-		}
-		if (LegacyNativeAtributesStatus.IsNinja(Class))
-		{
-			return Type.Ninja;
-		}
-		if (LegacyNativeAtributesStatus.IsMonk(Class))
-		{
-			return Type.Monk;
-		}
-		if (LegacyNativeAtributesStatus.IsPirate(Class))
-		{
-			return Type.Pirate;
-		}
-		if (LegacyNativeAtributesStatus.IsLee(Class))
-		{
-			return Type.DragonWarrior;
-		}
-		if (LegacyNativeAtributesStatus.IsWater(Class))
-		{
-			return Type.WaterTao;
-		}
-		if (LegacyNativeAtributesStatus.IsFire(Class))
-		{
-			return Type.FireTao;
-		}
-		if (LegacyNativeAtributesStatus.IsWindWalker(Class))
-		{
-			return Type.WindWalker;
-		}
-		if (LegacyNativeAtributesStatus.IsThunderStriker(Class))
-		{
-			return Type.Thunderstriker;
-		}
-		return Type.WaterTao;
+		if (TryGetIndex(Class, out var category)) return category;
+		throw new ArgumentOutOfRangeException(nameof(Class), Class,
+			"The character class has no supported prestige class category.");
 	}
 
 	public static void Remove(uint UID)
@@ -112,21 +70,20 @@ internal partial class LegacyNativePrestigeRanking
 
 	public static void CheckReborn(LegacyNativeGameClientRuntime user)
 	{
-		lock (SynRoot)
+		ArgumentNullException.ThrowIfNull(user);
+		var input = CapturePrestigeRebornInput(user);
+		if (input is null) return;
+
+		var gate = SynRoot;
+		lock (gate)
 		{
-			if (user.Player.Reborn == 2)
-			{
-				if (Ranks[GetIndex(user.Player.SecoundeClass)].Items.ContainsKey(user.Player.UID))
-				{
-					Ranks[GetIndex(user.Player.SecoundeClass)].Items.Remove(user.Player.UID);
-					Ranks[GetIndex(user.Player.SecoundeClass)].Items = Ranks[GetIndex(user.Player.SecoundeClass)].Items.OrderByDescending((KeyValuePair<uint, Entry> p) => p.Value.TotalPoints).Take(Ranks[GetIndex(user.Player.SecoundeClass)].MaxItems).ToDictionary((KeyValuePair<uint, Entry> pair) => pair.Key, (KeyValuePair<uint, Entry> pair) => pair.Value);
-				}
-			}
-			else if (user.Player.Reborn == 1 && Ranks[GetIndex(user.Player.FirstClass)].Items.ContainsKey(user.Player.UID))
-			{
-				Ranks[GetIndex(user.Player.FirstClass)].Items.Remove(user.Player.UID);
-				Ranks[GetIndex(user.Player.FirstClass)].Items = Ranks[GetIndex(user.Player.FirstClass)].Items.OrderByDescending((KeyValuePair<uint, Entry> p) => p.Value.TotalPoints).Take(Ranks[GetIndex(user.Player.FirstClass)].MaxItems).ToDictionary((KeyValuePair<uint, Entry> pair) => pair.Key, (KeyValuePair<uint, Entry> pair) => pair.Value);
-			}
+			RequireCurrentPrestigeRebornInput(input, gate);
+			var ranks = Ranks ?? throw new InvalidOperationException("Prestige reborn cleanup requires a ranking graph.");
+			var source = CapturePrestigeRebornRank(ranks, input.PreviousCategory);
+			var prepared = PreparePrestigeRankChange(source, input.Uid, replacement: null);
+			RequireCurrentPrestigeRebornInput(input, gate);
+			RequireCurrentPrestigeRebornRank(ranks, source);
+			if (prepared is not null) PublishPrestigeRank(prepared);
 		}
 	}
 

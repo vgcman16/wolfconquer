@@ -8,13 +8,13 @@ public sealed partial class LegacyNativeCreatePrestigeTests
     public void PrestigeRefreshEligibleWorldOnlyEntryAcceptsARegistryContainingOnlyItsActualWorldOwner() =>
         RunPrestigeClientPreparation(fixture =>
         {
-            PublishPrestigeRefreshRow(41, 50_000, Ranking.Type.WaterTao, 10000, includeClass: false);
+            PublishPrestigeRefreshRow(41, 50_000, Ranking.Type.World, 10000, includeClass: false);
             foreach (var category in Ranking.Ranks.Keys.Where(category => category != Ranking.Type.World).ToArray())
                 Ranking.Ranks.Remove(category);
             _ = Ranking.Ranks.GetValues();
             var prior = new PrestigeRefreshGraphImage();
 
-            var current = PublishPrestigeRefreshRow(41, 60_000, Ranking.Type.WaterTao, 10000, includeClass: false);
+            var current = PublishPrestigeRefreshRow(41, 60_000, Ranking.Type.World, 10000, includeClass: false);
 
             Assert.Equal(new[] { Ranking.Type.World }, Ranking.Ranks.Keys);
             Assert.Same(current, Assert.Single(Ranking.Ranks[Ranking.Type.World].Items).Value);

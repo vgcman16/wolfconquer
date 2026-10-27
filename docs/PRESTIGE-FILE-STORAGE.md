@@ -45,8 +45,8 @@ rank mutations use the same preparation rules; see [rank refresh](PRESTIGE-RANK-
 
 Client-field preparation is covered by FSB-135 and the
 [calculation contract](PRESTIGE-CLIENT-CALCULATION.md); refresh/mutations are
-FSB-137..138. CheckReborn, remaining query/diagnostic behavior and complete
-leaderboard backfill remain open.
+FSB-137..138. Scoped CheckReborn cleanup has a later qualified successor;
+remaining query/diagnostic behavior and complete leaderboard backfill stay open.
 Save now validates/serializes current class rows completely
 before creating a same-directory exclusive flushed stage. Existing files use
 Replace with an owned backup; missing destinations use create-only Move. Valid
@@ -68,3 +68,8 @@ durability, hostile namespace race or cross-process CAS proof is established.
 The generic DbWrite for other save families is unchanged. No production caller of this managed Load
 was found in the reviewed source. Runtime adoption, durable/crash recovery,
 dynamic refresh, live rendering and full persistence remain separate work.
+
+Later qualification: [class resolution and reborn cleanup](PRESTIGE-CLASS-AND-REBORN.md)
+corrects supported stages52..57, removes default-Water authority and preserves a
+fresh same-family row. FSB-139..140 cover that scoped successor; global class
+rules, remaining queries, runtime adoption and full persistence remain open.

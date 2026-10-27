@@ -5,31 +5,19 @@ namespace WolfConquer.Tests;
 
 public sealed partial class LegacyNativePrestigeRankingTests
 {
-    public static IEnumerable<object[]> ClassBands()
-    {
-        foreach (var band in new (uint Min,uint Max,Ranking.Type Type)[]
-        {
-            (1000,1051,Ranking.Type.Trojan),(2000,2051,Ranking.Type.Warrior),
-            (4000,4051,Ranking.Type.Archer),(5000,5051,Ranking.Type.Ninja),
-            (6000,6051,Ranking.Type.Monk),(7000,7051,Ranking.Type.Pirate),
-            (8000,8051,Ranking.Type.DragonWarrior),(9000,9051,Ranking.Type.Thunderstriker),
-            (13002,13051,Ranking.Type.WaterTao),(14002,14051,Ranking.Type.FireTao),
-            (16000,16051,Ranking.Type.WindWalker),
-        })
-        {
-            yield return [band.Min, (uint)band.Type];
-            yield return [band.Max, (uint)band.Type];
-            yield return [band.Min-1, (uint)Ranking.Type.WaterTao];
-            yield return [band.Max+1, (uint)Ranking.Type.WaterTao];
-        }
-        yield return [0u,(uint)Ranking.Type.WaterTao];
-        yield return [uint.MaxValue,(uint)Ranking.Type.WaterTao];
-    }
+    public static IEnumerable<object[]> ClassBands() => PrestigeTargetClassFixture.FamilyEdges();
+
+    public static IEnumerable<object[]> NonPrestigeClasses() => PrestigeTargetClassFixture.StrictRefusals();
 
     [Theory]
     [MemberData(nameof(ClassBands))]
-    public void GetIndexRetainsAllElevenInclusiveJobRangesAndUnknownWaterFallback(uint job, uint expected) =>
+    public void GetIndexResolvesKnownD13FamilyEdgesThroughSuffix57(uint job, uint expected) =>
         Assert.Equal((Ranking.Type)expected, Ranking.GetIndex(job));
+
+    [Theory]
+    [MemberData(nameof(NonPrestigeClasses))]
+    public void GetIndexRefusesUnsupportedAndWorldOnlyInputsWithoutDefaultWaterAuthority(uint job) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => Ranking.GetIndex(job));
 
     [Fact]
     public void QueriesUsePhysicalUidAndInsertionOrderWithoutResortingOrUsingBestOfCache()
@@ -84,7 +72,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
     [InlineData((byte)1)]
     [InlineData((byte)2)]
     [InlineData((byte)3)]
-    public void CheckRebornRemovesOnlyPriorClassAndNeverWorldOrCurrentBestOf(byte reborn)
+    public void CheckRebornRemovesOnlyPriorClassAndRefreshesItsChampionWithoutChangingOtherOwners(byte reborn)
     {
         using var state = new State();
         Ranking.Create();
@@ -93,20 +81,29 @@ public sealed partial class LegacyNativePrestigeRankingTests
         user.Player.FirstClass = 1000;
         user.Player.SecoundeClass = 2000;
         user.Player.Reborn = reborn;
+        SetRebornCurrentClass(user, 5000);
         var same = Entry();
         foreach (var rank in Ranking.Ranks.Values) rank.AddItem(same);
+        var escaped = Ranking.Ranks.ToDictionary(pair => pair.Key, pair => pair.Value.Items);
+        var before = new PrestigeRebornGraphImage();
         Ranking.CheckReborn(user);
         foreach (var rank in Ranking.Ranks.Values)
         {
             bool removed = (reborn == 1 && rank._Type == Ranking.Type.Trojan) ||
                 (reborn == 2 && rank._Type == Ranking.Type.Warrior);
             Assert.Equal(!removed,rank.Items.ContainsKey(41));
-            Assert.Same(same,rank.BestOfClass);
+            Assert.Same(removed ? null : same,rank.BestOfClass);
+            Assert.Same(same,escaped[rank._Type][41]);
+            if (removed) Assert.NotSame(escaped[rank._Type],rank.Items);
+            else Assert.Same(escaped[rank._Type],rank.Items);
         }
+        if (reborn is 1 or 2)
+            before.RequireOnlySelectedChanged(Ranking.Ranks[reborn == 1 ? Ranking.Type.Trojan : Ranking.Type.Warrior]);
+        else before.RequireUnchanged();
     }
 
     [Fact]
-    public void CheckRebornSortFaultRetainsRemovalAndUnchangedDictionaryAndCache()
+    public void CheckRebornMalformedSelectedTailRefusesWithoutDeletionOrChampionMutation()
     {
         using var state = new State();
         Ranking.Create();
@@ -114,14 +111,18 @@ public sealed partial class LegacyNativePrestigeRankingTests
         user.Player.UID = 41;
         user.Player.FirstClass = 1000;
         user.Player.Reborn = 1;
+        SetRebornCurrentClass(user, 5000);
         var rank = Ranking.Ranks[Ranking.Type.Trojan];
         var best = Entry();
         rank.AddItem(best);
         rank.Items.Add(77,null!);
         var escaped = rank.Items;
-        Assert.Throws<NullReferenceException>(() => Ranking.CheckReborn(user));
+        var before = new PrestigeRebornGraphImage();
+        var error = Record.Exception(() => Ranking.CheckReborn(user));
+        before.RequireUnchanged();
         Assert.Same(escaped,rank.Items);
-        Assert.False(escaped.ContainsKey(41));
+        Assert.Same(best,escaped[41]);
         Assert.Same(best,rank.BestOfClass);
+        Assert.IsType<InvalidOperationException>(error);
     }
 }

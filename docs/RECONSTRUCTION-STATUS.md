@@ -3,7 +3,30 @@
 Updated2026-10-27. Current target: Chinese client7899 / `VisibleDx8D13`.
 This is a component checklist, not measured completion or a release claim.
 
-## Latest retained-rank refresh qualification
+## Latest class, reborn and D13 wire qualification
+
+The dedicated prestige resolver now retains stages52..57 in their confirmed
+families and prevents unsupported classes from acquiring a Water rank. Reborn
+cleanup preserves the fresh current family and prepares obsolete-class removal
+before stores. Public932/932 class/reborn/Map cases pass, all843 baseline names
+included; raw-codec27/27 and private combined959/959 also pass. See FSB-139..140,
+[class/reborn](PRESTIGE-CLASS-AND-REBORN.md) and
+[D13 wire contract](D13-PRESTIGE-WIRE-CONTRACT.md).
+
+Binary evidence confirms113-byte action6 rows, with explicit extra data missing
+from the109-byte legacy metadata writer. A bounded raw codec is qualified; the
+live query remains inactive until its extra field, text and lifecycle are known.
+The global attributes predicates and unmodeled new job families remain open.
+
+Accepted prior source99447f89 passed
+[Windows40489896224](https://github.com/vgcman16/wolfconquer/actions/runs/40489896224):
+core27,549 passed/164 existing exclusions, updater434, launcher57; all8 steps0.
+Receipt20261027T103908463Z-08177f55 finished2026-10-27T11:24:44.8247513Z.
+This31-path successor needs its own full gate and has not been deployed.
+Client crash diagnosis, complete English, native/SQL ownership, real distribution
+and final forum readiness remain unfinished; the planning estimate stays55%(40-70%).
+
+## Earlier retained-rank refresh qualification
 
 [Retained-rank refresh](PRESTIGE-RANK-REFRESH.md) now removes obsolete same-UID
 World/class memberships after score declines or class changes. Standalone/global

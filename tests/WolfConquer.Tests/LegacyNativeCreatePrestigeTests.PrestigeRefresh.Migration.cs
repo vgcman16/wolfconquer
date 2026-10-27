@@ -57,7 +57,7 @@ public sealed partial class LegacyNativeCreatePrestigeTests
             var oldPointValues = oldPoints.ToArray();
             var physicalEffects = client.PerfectionStatus;
             SavedField(client.Player, "_class", characterClass);
-            var targetCategory = Ranking.GetIndex(characterClass);
+            var targetCategory = Ranking.Type.WaterTao; // An unrelated owner need not exist for World-only.
             Ranking.Ranks.Remove(targetCategory);
             _ = Ranking.Ranks.GetValues();
             var prior = new PrestigeRefreshGraphImage();
@@ -68,6 +68,7 @@ public sealed partial class LegacyNativeCreatePrestigeTests
             AssertPrestigeRefreshClientCommitted(client, oldEntry, oldPoints, oldPointValues, physicalEffects, 40_000);
             Assert.False(Ranking.Ranks.ContainsKey(targetCategory));
             Assert.Equal(characterClass, client.PrestrigeEntry!.Class);
+            Assert.Equal(Ranking.Type.World, client.PrestrigeEntry.type);
             Assert.Same(client.PrestrigeEntry, Ranking.Ranks[Ranking.Type.World].Items[41]);
             Assert.Same(client.PrestrigeEntry, Ranking.BestOfTheWorld);
             Assert.Same(client.PrestrigeEntry, Ranking.GetInfo(41));

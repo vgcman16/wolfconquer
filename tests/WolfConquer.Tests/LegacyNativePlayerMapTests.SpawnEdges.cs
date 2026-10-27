@@ -18,9 +18,13 @@ public sealed partial class LegacyNativePlayerMapTests
     public Task PrestigeIconUsesActualRankingAndOnlyRanksOneThroughThree(bool effect, int position) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); scope.Player.SpawinEffect = effect;
+        Set(scope.Player, "_class", 13002u); // Genuine known class; rank badge is the subject of this control.
         var rank = Ranking.Ranks[Ranking.GetIndex(scope.Player.Class)];
         for (uint index = 1; index <= position; index++)
-            rank.Items.Add(index, new Ranking.Entry { UID = index == position ? scope.Player.UID : 100 + index });
+        {
+            uint uid = index == position ? scope.Player.UID : 100 + index;
+            rank.Items.Add(uid, new Ranking.Entry { UID = uid });
+        }
         scope.Player.GetArray(scope.Packet, false, false);
         Assert.Equal(position is >= 1 and <= 3 ? (byte)position : (byte)0, Read(scope.Packet).PrestigeRank);
     });

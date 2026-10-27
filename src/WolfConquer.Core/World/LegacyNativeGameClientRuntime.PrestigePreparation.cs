@@ -9,11 +9,18 @@ public sealed partial class LegacyNativeGameClientRuntime
         var owners = CapturePrestigeOwners();
         try
         {
+            var includeClass = LegacyNativePrestigeRanking.TryGetIndex(owners.CharacterClass, out var category);
+            if (!includeClass)
+            {
+                if (!LegacyNativePrestigeRanking.IsWorldOnlyClass(owners.CharacterClass))
+                    throw new InvalidOperationException("Prestige preparation requires a supported character class.");
+                category = LegacyNativePrestigeRanking.Type.World;
+            }
             var points = PreparePrestigeComponents(owners);
             var total = PreparePrestigeEquipmentAndTotal(points, owners.EquipmentPoints);
             var entry = new LegacyNativePrestigeRanking.Entry
             {
-                type = LegacyNativePrestigeRanking.GetIndex(owners.CharacterClass),
+                type = category,
                 UID = owners.Uid,
                 Name = owners.Player.Name,
                 Class = owners.CharacterClass,
@@ -30,7 +37,7 @@ public sealed partial class LegacyNativeGameClientRuntime
             RequireCurrentPrestigeOwners(owners);
             return new PreparedPrestigeRebuild(owners, points, total, entry, effects,
                 owners.ServerId == owners.PlayerServerId,
-                owners.CharacterClass < 10000 || owners.CharacterClass > 10002);
+                includeClass);
         }
         catch (OverflowException error)
         {

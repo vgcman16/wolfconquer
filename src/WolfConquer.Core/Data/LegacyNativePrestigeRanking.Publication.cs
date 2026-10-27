@@ -9,9 +9,13 @@ internal partial class LegacyNativePrestigeRanking
         {
             var uid = entry.UID;
             var category = entry.type;
-            if (uid == 0 || (uint)category is < 1 or > 11)
+            var hasClass = TryGetIndex(entry.Class, out var resolvedCategory);
+            var validCategory = hasClass
+                ? includeClass && category == resolvedCategory
+                : !includeClass && IsWorldOnlyClass(entry.Class) && category == Type.World;
+            if (uid == 0 || !validCategory)
             {
-                throw new InvalidOperationException("Prestige publication requires a valid entry identity and category.");
+                throw new InvalidOperationException("Prestige publication requires a valid identity and resolved class disposition.");
             }
 
             var sources = CapturePrestigeRefreshRegistry();

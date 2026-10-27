@@ -34,6 +34,7 @@ public sealed partial class LegacyNativeCreatePrestigeTests
             LegacyNativePoolRandom.GetRandom=new(71);
             Client=new();
             Client.Player.UID=41;Client.Player.ServerID=3;Client.Player.Name="Hero";
+            SavedField(Client.Player,"_class",13002u); // Actual supported Water class for positive calculations.
             Client.HundredWeapons=new(Client);
             Client.MyWardrobe=new(Client);
             Client.Rune=new(Client);

@@ -93,6 +93,11 @@ It establishes no authenticated runtime adoption, complete gameplay authority,
 whole concurrent snapshot, lock-free reader atomicity, crash/database transaction,
 restart recovery, deployment, rendered client behavior, or full client parity.
 Public mutable inputs do not all share the rank gate. Same-UID retained-rank
-refresh is now covered by [FSB-137..138](PRESTIGE-RANK-REFRESH.md); CheckReborn
-and remaining query APIs stay separate. Exact-source full checks and
+refresh is now covered by [FSB-137..138](PRESTIGE-RANK-REFRESH.md); the class/reborn successor is qualified
+separately, while remaining query APIs stay open. Exact-source full checks and
 live acceptance remain separate evidence; no running server/client was changed.
+
+Later qualification: [class resolution and reborn cleanup](PRESTIGE-CLASS-AND-REBORN.md)
+corrects supported stages52..57, removes default-Water authority and preserves a
+fresh same-family row. FSB-139..140 cover that scoped successor; global class
+rules, remaining queries, runtime adoption and full persistence remain open.

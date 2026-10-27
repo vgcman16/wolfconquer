@@ -8,9 +8,9 @@ public sealed partial class LegacyNativeCreatePrestigeTests
 {
     [Theory]
     [InlineData(1000u,true,1u)]
-    [InlineData(10000u,false,8u)]
-    [InlineData(10001u,false,8u)]
-    [InlineData(10002u,false,8u)]
+    [InlineData(10000u,false,0u)]
+    [InlineData(10001u,false,0u)]
+    [InlineData(10002u,false,0u)]
     [InlineData(13002u,true,8u)]
     [InlineData(14002u,true,9u)]
     public void ConfiguredServerIdentityAndLiteralClassExclusionsPublishSameRealEntryToExpectedRanks(uint job,bool classRank,uint rankType)
@@ -24,7 +24,7 @@ public sealed partial class LegacyNativeCreatePrestigeTests
         Assert.Equal((Ranking.Type)rankType,entry.type);
         Assert.Same(entry,Assert.Single(Ranking.Ranks[Ranking.Type.World].Items).Value);
         if(classRank)Assert.Same(entry,Assert.Single(Ranking.Ranks[(Ranking.Type)rankType].Items).Value);
-        else Assert.Empty(Ranking.Ranks[(Ranking.Type)rankType].Items);
+        else Assert.All(Ranking.Ranks.Where(pair=>pair.Key!=Ranking.Type.World),pair=>Assert.Empty(pair.Value.Items));
         Assert.Equal(classRank?2:1,Ranking.Ranks.Values.Count(rank=>rank.Items.Count!=0));
     }
 

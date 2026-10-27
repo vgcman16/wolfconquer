@@ -87,13 +87,14 @@ public sealed partial class LegacyNativeCreatePrestigeTests
     {
         using var fixture = new Fixture();
         ConfigureRankPublicationClient(fixture.Client, characterClass);
-        var category = Ranking.GetIndex(characterClass);
+        var category = Ranking.Type.WaterTao; // Deliberately unrelated to World-only publication.
         Ranking.Ranks.Remove(category);
 
         fixture.Client.CreatePrestigePoints();
 
         Assert.False(Ranking.Ranks.ContainsKey(category));
         var published = fixture.Client.PrestrigeEntry!;
+        Assert.Equal(Ranking.Type.World, published.type);
         Assert.Same(published, Assert.Single(Ranking.Ranks[Ranking.Type.World].Items).Value);
         Assert.Same(published, Ranking.BestOfTheWorld);
     }

@@ -45,13 +45,15 @@ public sealed partial class LegacyNativeCreatePrestigeTests
     public void PrestigeRefreshAbsentLowUidIsAnExactNoOpAfterValidFullOrSparseAdmission(uint total, bool worldOnly) =>
         RunPrestigeClientPreparation(fixture =>
         {
-            PublishPrestigeRefreshRow(17, 30_000, includeClass: !worldOnly);
+            PublishPrestigeRefreshRow(17, 30_000, worldOnly ? Ranking.Type.World : Ranking.Type.Trojan,
+                worldOnly ? 10000u : 1000u, includeClass: !worldOnly);
             if (worldOnly)
                 foreach (var category in Ranking.Ranks.Keys.Where(category => category != Ranking.Type.World).ToArray())
                     Ranking.Ranks.Remove(category);
             _ = Ranking.Ranks.GetValues();
             var prior = new PrestigeRefreshGraphImage();
             var incoming = RankPublicationRow(99, total);
+            if (worldOnly) { incoming.Class = 10000; incoming.type = Ranking.Type.World; }
             var incomingPoints = incoming.Points;
 
             Ranking.PublishPrestigeEntry(incoming, includeClass: !worldOnly);

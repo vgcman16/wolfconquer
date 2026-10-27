@@ -7,7 +7,7 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class LegacyNativePlayerRuntime
 {
-    // Whole native Player.GetArray4818..5066, both SpawinEffect branches and all fault order retained.
+    // Native Player.GetArray4818..5066 layout; both branches resolve supported prestige classes.
 	internal LegacyNativePacket GetArray(LegacyNativePacket stream, bool WindowsView, bool st)
 	{
 		SpawnPacketProto spawnPacketProto;
@@ -93,7 +93,8 @@ public sealed partial class LegacyNativePlayerRuntime
 				(!InUnion) ? string.Empty : MyUnion!.Name
 			};
 			SpawnPacketProto spawnPacketProto2 = spawnPacketProto;
-			int myRank = (int)LegacyNativePrestigeRanking.GetMyRank(LegacyNativePrestigeRanking.GetIndex(Class), UID);
+			int myRank = LegacyNativePrestigeRanking.TryGetIndex(Class, out var prestigeCategory)
+				? (int)LegacyNativePrestigeRanking.GetMyRank(prestigeCategory, UID) : 0;
 			if (myRank >= 1 && myRank <= 3)
 			{
 				spawnPacketProto2.PrestigeRank = (byte)myRank;
@@ -215,7 +216,8 @@ public sealed partial class LegacyNativePlayerRuntime
 			(!InUnion) ? string.Empty : MyUnion!.Name
 		};
 		SpawnPacketProto spawnPacketProto3 = spawnPacketProto;
-		int myRank2 = (int)LegacyNativePrestigeRanking.GetMyRank(LegacyNativePrestigeRanking.GetIndex(Class), UID);
+		int myRank2 = LegacyNativePrestigeRanking.TryGetIndex(Class, out var prestigeCategory2)
+			? (int)LegacyNativePrestigeRanking.GetMyRank(prestigeCategory2, UID) : 0;
 		if (myRank2 >= 1 && myRank2 <= 3)
 		{
 			spawnPacketProto3.PrestigeRank = (byte)myRank2;
