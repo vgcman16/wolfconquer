@@ -6,9 +6,9 @@ Scope: Sanitized legacy-server parity: client compatibility, corrected emulator 
 
 Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a measured completion score.
 
-Estimate date: **2026-10-19**. Status review date: **2026-10-26**. Reviewing the status does not refresh the estimate's age.
+Estimate date: **2026-10-19**. Status review date: **2026-10-27**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `e7d85b70063d698fad3ea15c77bbe441bf383850` (short: `e7d85b70063d`).
+Source commit: `d94bc0354e9c9f4a093bd348500412d5a9fdebb7` (short: `d94bc0354e9c`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -19,7 +19,7 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | Milestone | Status | Detail |
 | --- | --- | --- |
 | Limited local live-client milestone | verified | An October26 disposable D13 fixture completed manual authentication, world initialization and movement. Supported Body1008 passed41 focused checks; root and user confirmed its full body visible in Twin City. One local trial does not prove restart reliability or the whole public build. Earlier drop/pickup/save proof applies to an older build. |
-| Current public build live-client acceptance | planned | Last accepted full sourcef21e2a11 passed Windows40383185044. Earlier ef868fa8/c15dd464 failed compilation only. Windows40420961276 was canceled for unsafe native-probe PID cleanup. Its retained-handle correction now has11 public-derived focused passes; final READY actors also pass in a clean private17-case selection. A new exact-public full gate is pending. Client freezes, English, SQL and distribution remain open. |
+| Current public build live-client acceptance | planned | Accepted prior sourcee7d85b70 passed Windows40474236546: core27,404 passed/164 existing exclusions, updater434, launcher57, synthetic parsers20+13; all8 stages exit0. New rank refresh/mutation and welcome wording changes pass843/843 focused checks; their own full CI is pending. Current-public live acceptance, client-crash resolution, complete English, SQL and distribution remain open. |
 | Complete English client | in-progress | Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete. |
 | Newer-client-only parity | in-progress | Official patches through7935 are downloaded/extracted privately. Separate2132codec, Echo request/catalog transform/threshold selection and item2350reader/writer have focused proof. The102-case writer run includes37 existing-schema controls, not extra patch coverage. No default7935 activation, real state/cost/save join or actual7935 client acceptance. Not estimated. |
 | Public full-client download and updates | in-progress | Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet. |
