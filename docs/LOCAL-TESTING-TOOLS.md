@@ -84,3 +84,10 @@ Two additional actual child-PowerShell tests cover catalog output, genuine
 fixture capture/resume, retained evidence and refusing resume-plus-send. Only
 mailbox has executable saved-state assertions today; other actions remain guided.
 Full CI and actual game-client delivery/equip acceptance remain pending.
+
+The exact tools commit8e84946e failed full Windows40771334759 in one existing
+StarVolcano repeat/expiry timing test: Core29,334 passed/one failed/164 existing
+skips; Updater446 passed. Launcher/parsers were not reached. The FSB179 fixture
+successor has a zero-error build,15/15 affected/neighbors passes and three separate
+1/1 repaired-case repeats. Its full gate is still required; no failed build was
+deployed and no real game-client mail/claim/equip acceptance is implied.

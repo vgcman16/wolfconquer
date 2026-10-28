@@ -4,6 +4,32 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-28 StarVolcano fixture correction - focused verification
+
+### FSB-179: Drive repeat/expiry tests through real workers with controlled time
+
+Full public8e84946e / Windows40771334759 failed the single StarVolcano
+repeat/expiry case (Core29,334 passed, one failure,164 existing skips; Updater446
+passed). Launcher/parsers were not reached. The fixture used a real advancing
+600ms lifetime and80ms repeat; the actual consumer checks expiry before pulses,
+so delayed scheduling can remove before two hits. The specific full-run timeout
+cause remains unproven; no production timer defect is attributed.
+
+Only the failing test moved to a focused partial. Its existing manual
+TimeProvider dispatches real scheduled workers at virtual10,90 and600ms;
+assertions retain two damaging Hit pulses, no early removal, exactly one original
+RemoveEffect/item ID and removed floor state. All observations share the original
+three-second bound. Synchronized frames/logs and captured/current worker joins
+retain primary/cleanup errors, the existing five-second cleanup bound and drained
+timers/fault checks. No production source, packet, formula, timeout, exclusion,
+blanket serialization or neighboring test changed.
+
+Release build: zero errors. Affected/neighbors selection15/15 passed without
+failures/skips; three separate repeat runs of the repaired case each passed1/1.
+These overlap and are not additive coverage. Full successor CI and actual-client
+tools acceptance remain pending. Actual failed run evidence remains retained.
+
+
 ## 2026-10-28 latest full and local boundary
 
 Exact public `be2740aea8f3295b57901fcd64d58a5e9cfc11c8` passed Windows
