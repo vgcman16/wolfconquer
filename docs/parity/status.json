@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "Sanitized legacy-server parity: client compatibility, corrected emulator defects (project planning)",
-  "reviewedAt": "2026-10-27",
+  "reviewedAt": "2026-10-28",
   "estimate": {
     "percent": 55,
     "low": 40,
@@ -27,7 +27,7 @@
       "id": "persistence",
       "title": "Shared player, items and persistence",
       "status": "partial",
-      "implemented": "Managed storage, mailbox and selected trade closures use validated journal participants. Ordinary login preserves saved progress and physical class/level after commit. Ninja rank files and Performer learning prepare state while retaining opaque spell bytes. FullAccount class reset now uses current-session/file checks and a Character+Spells journal; 354 focused cases pass in each copy, new full gate pending. Native/session graph adoption and real SQL remain open.",
+      "implemented": "Managed storage, mailbox and selected trade closures use validated journal participants. Ordinary login preserves saved progress and physical class/level after commit. Ninja rank files and Performer learning prepare state while retaining opaque spell bytes. FullAccount class reset uses current-session/file checks and a Character+Spells journal; focused354 and exact-public full224f1eb5 checks pass. Native/session graph adoption and real SQL remain open.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Prior exact8e8ff83f passed full Windows40569779073: Core28,974/164 existing NotExecuted, Updater434, Launcher57, synthetic parsers20+13, all8steps0. New FullAccount Character+Spells batch passes354 focused cases in both copies plus2 final public staging controls; its new exact-public full gate and live-client acceptance remain pending."
+      "detail": "Exact public224f1eb5 passed full Windows40646084998: Core29,039 Passed/164 existing NotExecuted, Updater434, Launcher57, synthetic receipt parsers20+13, all8steps0. FullAccount focused354 per copy and2 final public staging controls also pass. Current-public live-client acceptance and full-client distribution remain unverified."
     },
     {
       "id": "english",

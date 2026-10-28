@@ -31,8 +31,9 @@ the private354 includes that final assertion. See
 **Boundary:** direct distinct-key fixtures use the actual full parser and preserve
 the ordinary loader's account=UID requirement. Fresh-owner journal fixtures do not
 prove OS crash/power-loss, multi-process or SQL safety. Physical native spell/
-equipment adoption, other producers and live acceptance remain open. A new full
-exact-public gate is pending; prior full8e success does not cover this new batch.
+equipment adoption, other producers and live acceptance remain open. Exact public `224f1eb5` passed full run `40646084998`: Core 29,039 Passed /
+164 existing NotExecuted, Updater 434, Launcher 57, synthetic parsers 20+13;
+all eight steps exited 0. This remains source evidence within the stated limits.
 
 ## Ordinary physical identity and persistence — focused qualification
 
@@ -41,7 +42,7 @@ independent runs. Public corrected: **524/524 passed, zero failures/skips**.
 Private corrected: **524/524 passed, zero failures/skips**. Exact-public full
 Windows40569779073 on source8e8ff83f completed SUCCESS: Core28,974 passed/164
 existing NotExecuted, Updater434, Launcher57, synthetic receipt parsers20+13;
-all eight steps exited0. This full result predates the focused-qualified FullAccount v8 batch; its full gate is pending.
+all eight steps exited0. This full result predates FullAccount v8, whose separate successful full gate is recorded in FSB-158 above.
 See [scope and limits](docs/ORDINARY-PLAYER-PERSISTENCE.md).
 
 The tests-only baseline was 508: 102 failed/406 passed/zero skipped. Three actual

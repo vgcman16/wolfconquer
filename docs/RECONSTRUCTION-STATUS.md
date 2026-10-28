@@ -1,29 +1,27 @@
 # Reconstruction status
 
-Updated 2026-10-27. Target: Chinese client 7899 / `VisibleDx8D13`.
+Updated 2026-10-28. Target: Chinese client 7899 / `VisibleDx8D13`.
 This is a current component checklist, not a release or measured-completion claim.
 Historical detail remains in Git at the referenced source checkpoints.
 
-## Current source and verification
+Qualified public gameplay checkpoint `224f1eb5` is pushed; its generated-only
+tracker child is `2da8a7c0`. Current-build live acceptance remains open.
 
-- Accepted public gameplay base `8e8ff83f` is pushed; tracker child `2f14139b`.
-- Completed full run `40555473262` on source `9e779d5d` failed on one stale
-  null-item success control after 28,861 Core and 434 Updater passes. Launcher
-  and parsers were not reached; the failure remains retained evidence.
-- Exact-public run `40569779073` / job `122420603994` on source
-  `8e8ff83f119cc9c65c0753ba025a164f1a402aa7` completed successfully.
-  Receipt `20261027T193258424Z-a66534bf` ran 19:32:58.5563157Z through
-  20:20:09.2926996Z. Restore/build and all eight steps exited 0: Core 28,974
-  Passed / 164 existing NotExecuted, Updater 434, Launcher 57, and synthetic
-  receipt parsers 20+13. Those parsers were not network or client probes.
-- Exact receipt, logs and three TRXs are retained at
-  `.artifacts/root-fullaccount-durable-next/full-8e8ff83f`.
-- Ordinary persistence passed 524/524 focused cases in each public/private copy.
-- Earlier Ninja/caller qualification covered 1,067 common cases plus 15 public
-  local-tool cases. Earlier class-family qualification covered 2,006 focused
-  cases in each copy.
-- These sets overlap. They do not add up to completion, live acceptance or a new
-  parity percentage.
+## Full CI boundary
+
+- [x] Exact public `224f1eb5dfc1ed148ccd53252f833339b5622f7c` passed
+  [run 40646084998](https://github.com/vgcman16/wolfconquer/actions/runs/40646084998),
+  job `122675116449`. Receipt `20261028T065007663Z-6d4fda5e` ran from
+  2026-10-28T06:50:07.8007529Z through 07:32:27.2033388Z.
+- [x] Restore/build and all eight steps exited 0: Core 29,039 Passed /
+  164 existing NotExecuted, Updater 434, Launcher 57, synthetic parsers 20+13.
+- [x] Actual terminal receipt, logs and three TRXs are retained in
+  `.artifacts/root-fullaccount-durable-next/full-224f1eb5`.
+- [x] Prior exact `8e8ff83f` run `40569779073` also passed. Historical `9e779d5d`
+  run `40555473262` remains failed evidence and is not retroactively repaired.
+
+The parsers did not perform network/client probes. Full CI does not establish
+current-build live-client acceptance, a real-client feed or full parity.
 
 ## Implemented source families
 
@@ -67,19 +65,21 @@ No 7935 feature is default-enabled, runtime-adopted or live-client accepted.
 The October 26 observation does not prove the current build, full gameplay,
 English coverage, distribution or 7935 compatibility.
 
-## FullAccount source qualification
+## FullAccount qualification
 
-- FullAccount class reset is integrated after354/354 focused cases in each
-  public/private snapshot, zero failures/skips; all52 baseline names remain.
-- A fixture-only baseline correction preserves the production account=UID loader
-  invariant. The meaningful old-source baseline was39passed/13failed; an earlier
-  37passed/15setup-failed result is retained separately.
-- The two final public staging cases passed2/2 after an equivalent assertion
-  cleanup. The private354 includes the final assertion. These totals overlap.
-- This is focused source qualification, not deployment, native graph adoption,
-  power-loss/SQL safety or live-client acceptance. A new exact-public full gate
-  must qualify this publication batch.
-- See `docs/FULLACCOUNT-CLASS-TRANSACTION.md` and FSB-158.
+- FullAccount class reset passed 354/354 focused cases in each public/private
+  snapshot, zero failures/skips; all 52 baseline names remain.
+- The corrected-fixture old-source baseline was 39 passed/13 failed. Earlier
+  37 passed/15 fixture-setup failures are retained separately as setup evidence.
+- Two final public staging controls passed 2/2 after an equivalent assertion
+  cleanup. The private 354 includes that final assertion; these sets overlap.
+- Exact public source `224f1eb5dfc1ed148ccd53252f833339b5622f7c` passed full
+  [Windows run 40646084998](https://github.com/vgcman16/wolfconquer/actions/runs/40646084998):
+  Core 29,039 Passed / 164 existing NotExecuted, Updater 434, Launcher 57,
+  synthetic receipt parsers 20+13. All eight steps exited 0.
+- This is source qualification, not deployment, native graph adoption, SQL,
+  power-loss/multi-process safety or live-client acceptance. See
+  `docs/FULLACCOUNT-CLASS-TRANSACTION.md` and FSB-158.
 
 ## Major unfinished work
 

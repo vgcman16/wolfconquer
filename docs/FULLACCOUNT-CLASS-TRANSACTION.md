@@ -43,11 +43,14 @@ before a recoverable two-file commit, then publishes the prepared session.
   late-cache proposal regression were corrected-only controls, not old-source
   defect proof. Real failures/logs/TRXs remain retained locally.
 
-The prior exact source8e8ff83f passed full Windows40569779073: Core28,974 passed/
-164 existing NotExecuted; Updater434; Launcher57; synthetic parsers20+13; all eight
-steps0. That result predates this class-reset batch. Its new exact-public full
-check is pending. Existing framework/analyzer warnings remain; no zero-warning
-or CodeFactor-completion claim follows.
+Exact public `224f1eb5dfc1ed148ccd53252f833339b5622f7c` passed full
+[Windows run 40646084998](https://github.com/vgcman16/wolfconquer/actions/runs/40646084998),
+job `122675116449`, with Core 29,039 Passed / 164 existing NotExecuted,
+Updater 434, Launcher 57 and synthetic receipt parsers 20+13. All eight steps
+exited 0. Actual receipt `20261028T065007663Z-6d4fda5e` finished
+2026-10-28T07:32:27.2033388Z; logs and three TRXs are retained locally.
+Prior exact `8e8ff83f` also passed its separate full gate. Existing framework/
+analyzer warnings remain; no zero-warning or CodeFactor-completion claim follows.
 
 ## Limits and next work
 

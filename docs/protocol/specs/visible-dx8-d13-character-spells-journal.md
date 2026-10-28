@@ -68,7 +68,9 @@ v8 controls and53 FullAccount controls. All52 old-source baseline names remain;
 the corrected-fixture baseline was39passed/13failed. The earlier15 setup failures
 are not business-defect evidence. Final public staging cleanup controls pass2/2.
 
-See [actual scope and limits](../../FULLACCOUNT-CLASS-TRANSACTION.md). A new
-exact-public full gate is pending. No deployment, live-client, SQL, native graph,
-power-loss or multi-process completion follows. The ordinary account=UID loader
+See [actual scope and limits](../../FULLACCOUNT-CLASS-TRANSACTION.md). Exact
+public `224f1eb5` passed full Windows `40646084998`: Core 29,039 Passed /
+164 existing NotExecuted, Updater 434, Launcher 57, synthetic parsers 20+13;
+all eight steps exited 0. No deployment, live-client, SQL, native graph, power-loss
+or multi-process completion follows. The ordinary account=UID loader
 invariant is unchanged; distinct-key fixtures exercise the direct file API only.
