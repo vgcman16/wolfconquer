@@ -178,4 +178,12 @@ Console.Out.WriteLine(ownedAdmission is null
     ? "Owned admission: unconfigured; no managed UID namespace is active."
     : "Owned admission: existing leased domain bound; ordinary saved-state admission enabled.");
 
-return await ConquerServerRunner.RunAsync(endpoint, args, handler.HandleFrameAsync);
+if (!listenRequested || Environment.GetEnvironmentVariable("WOLFCONQUER_OPERATOR_MAIL") != "1")
+    return await ConquerServerRunner.RunAsync(endpoint, args, handler.HandleFrameAsync);
+if (ownedAdmission is null || ownedAdmissionOptions is null)
+{
+    Console.Error.WriteLine("Operator mail requires the actual owned runtime configuration.");
+    return 1;
+}
+return await LocalOperatorMailHost.RunAsync(endpoint, args, handler, ownedAdmission,
+    ownedAdmissionOptions.ExpectedDomain);

@@ -95,4 +95,7 @@ The repository does not include a game client, game assets, account database, ca
 
 Direct NuGet dependencies and their declared licenses are listed in [DEPENDENCIES.md](DEPENDENCIES.md). Those dependency licenses apply to the named packages; this snapshot does not add a blanket license for the project source.
 
+For repeatable local gameplay checks, use the [testing tools](docs/LOCAL-TESTING-TOOLS.md),
+[acceptance runner](tools/testing/SCENARIOS.md) and [scenario matrix](docs/testing/GAME-ACCEPTANCE-MATRIX.md).
+
 See the [short progress checklist](docs/PROGRESS.md) and [contribution guidance](CONTRIBUTING.md).

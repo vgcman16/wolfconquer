@@ -31,6 +31,14 @@ internal static partial class Program
             return Usage();
         }
 
+        if (command == "send-operator-gear-mail")
+        {
+            return SendOperatorGearMail(args);
+        }
+
+        if (command == "create-operator-test-kit") return CreateOperatorTestKit(args);
+        if (command == "inspect-owned-player") return InspectOwnedPlayer(args);
+
         if (command == "patch-client")
         {
             return PatchClient(args);
@@ -581,6 +589,9 @@ internal static partial class Program
             string.Equals(value, "legacy-guard-shield-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "legacy-world-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "seed-owned-admission-fixture", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "send-operator-gear-mail", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "create-operator-test-kit", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "inspect-owned-player", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "seed-loot-roundtrip-fixture", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "legacy-loot-roundtrip-smoke", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "local-live-stack-smoke", StringComparison.OrdinalIgnoreCase) ||
@@ -791,6 +802,9 @@ internal static partial class Program
         Console.WriteLine("  WolfConquer.DataTool legacy-guard-shield-smoke <address> <port> [--command text] [--expect-response text] [--timeout-ms ms]");
         Console.WriteLine("  WolfConquer.DataTool legacy-world-smoke <address> <port> <accountKey> [--timeout-ms ms]");
         Console.WriteLine("  WolfConquer.DataTool seed-owned-admission-fixture <NEW-absolute-wolf-owned-admission-GUID-dir> <account-key> <character-uid> <item-uid> [--profile RootD11_7899|VisibleDx8D13]");
+        Console.WriteLine("  WolfConquer.DataTool send-operator-gear-mail <wolfconquer-operator-mail-domainN> <absolute-request.json>");
+        Console.WriteLine("  WolfConquer.DataTool create-operator-test-kit <NEW-absolute-request.json> <domainN> <accountId> <characterUid> <basic-trojan|socket-materials>");
+        Console.WriteLine("  WolfConquer.DataTool inspect-owned-player <absolute-owned-admission.json> <accountId>");
         Console.WriteLine("  WolfConquer.DataTool seed-loot-roundtrip-fixture <NEW-absolute-DBServer-dir> <account-key> <character-uid> <item-uid>");
         Console.WriteLine("  WolfConquer.DataTool legacy-loot-roundtrip-smoke <loopback-ip> <port> <account-key> <character-uid> <item-uid> [--timeout-ms ms] [--verify-only]");
         Console.WriteLine("  WolfConquer.DataTool local-live-stack-smoke <address> <gatewayPort> <accountPort> <username> <password> <serverName> [--login-web-base-url url] [--expect-world-ip ip] [--expect-world-port port] [--timeout-ms ms]");
