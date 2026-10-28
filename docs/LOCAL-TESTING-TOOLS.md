@@ -36,6 +36,50 @@ The pipe uses Windows CurrentUserOnly. It introduces no gameplay administrative
 packet. Bounded strict JSON carries domain and operation ID; no password or
 caller-selected item UID is accepted.
 
+## Mail, claim and equipment acceptance sequence
+
+Use the same disposable account, owned configuration, qualified matching DataTool
+and staged server throughout. Choose a fresh `wolf-game-acceptance-<guidN>`
+evidence folder for the `mailbox-gear` scenario. The initial runner invocation
+captures `before.json` and creates one retained kit request; only an explicit
+initial `-SendTestKit` dispatches it. A committed typed result identifies the
+mail IDs and item UIDs. Preserve the request, original receipt and delivery
+result; an uncertain result is not authority to issue another operation.
+
+For example, replace the placeholders with actual local paths and a new GUID:
+
+```powershell
+$mailArgs = @('-Scenario','mailbox-gear', '-DataToolDll','C:\ACTUAL-STAGE\WolfConquer.DataTool.dll', '-OwnedAdmissionConfig','C:\ACTUAL-OWNED-FIXTURE\owned-admission.json', '-AccountId','REPLACE-ACCOUNT', '-EvidenceRoot','C:\EXISTING-PARENT\wolf-game-acceptance-REPLACE-WITH-NEW-32-HEX-GUID')
+pwsh -NoProfile -File C:\PATH\tools\testing\Invoke-GameAcceptance.ps1 @mailArgs -SendTestKit
+# After an observed committed delivery and the real client claim:
+pwsh -NoProfile -File C:\PATH\tools\testing\Invoke-GameAcceptance.ps1 @mailArgs -Resume
+```
+
+Claim the attachments in the actual connected client, then invoke `mailbox-gear`
+with the same paths, account and evidence folder plus `-Resume`. Resume never
+sends. Its `ServerStateVerified` result checks the saved-file inventory and cleared
+mail references for those exact delivered UIDs; it still leaves client visuals,
+live Store synchronization and gameplay acceptance pending. Record the observed
+client result separately. See the [runner workflow](../tools/testing/SCENARIOS.md)
+for complete parameters and failure handling.
+
+The equip/unequip saved-state assertions are **available in this source;
+full Windows qualification and real-client acceptance remain pending**. The
+successor starts a
+separate fresh evidence folder with the exact claimed item UID, item type and
+equipment slot. After real client equip and save, the first resume retains an
+equipment snapshot and receipt; after real unequip and save, a second resume
+references that first receipt. It is intended to check both saved relocations,
+other reported items and gold/CP without sending another kit. Caller-supplied
+UID/type/slot are not themselves proof of delivery: retain the mailbox receipt to
+correlate provenance. Even a matching pair leaves client rendering, live memory,
+wire, eligibility, derived stats and unreported opaque bytes as separate evidence.
+
+The [scenario catalog](../tools/testing/SCENARIOS.md) and [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md)
+cover eleven families across login, inventory, equipment, combat, NPC/rewards,
+trade, recovery, events and updater. A guided or pending result is not an
+end-to-end pass; full-game, SQL and crash/power-loss acceptance remain open.
+
 ## Interpret the sender result
 
 | Status | Meaning |
@@ -48,7 +92,7 @@ caller-selected item UID is accepted.
 
 A timeout or lost response can occur after commitment. Keep the original file
 and operation ID. Do not regenerate it to retry an uncertain grant. The sender
-never retries automatically. Revision1 prevents duplicate materialization; it
+never retries automatically. Storage operation revision1 prevents duplicate materialization; it
 does not reconstruct a request interrupted after reservation automatically.
 
 ## Inspect saved state before and after a test
@@ -71,23 +115,26 @@ it. Counts are complete; item/mail detail shares a200-row cap with a truncation 
 
 ## Qualification
 
-The mail/pipe/kit/inspector candidate builds with zero errors. Its focused
-selection passed76/76; existing mailbox/UID/admission controls passed284/284.
-These are isolated server/tool checks, including a same-connected-test-session
-claim. They are not real game-client mail acceptance or a full gate for this batch.
+The current tooling candidate builds with zero errors; seven selected PowerShell
+files parse. The final focused selection passes60/60, with no failures/skips:
+real pipe/Frame delivery, actual DataTool first and same-operation commands,
+fragmented response reading, wrong receipts, shutdown join, kits, inspector,
+mail/equip runner and the actual status script. A first59/60 run exposed a blank
+table view; casting its dictionary rows to display objects fixed it without
+weakening the assertion. Earlier76/76 and284/284 selections are separate,
+overlapping historical evidence, not additional current passes.
 
-The broader [scenario runner](../tools/testing/SCENARIOS.md) covers eleven test
-families in the [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md). Its three
-PowerShell files parsed, catalog output listed11 scenarios, and an actual
-read-only capture/resume against the running fixture retained pending exit2.
-Two additional actual child-PowerShell tests cover catalog output, genuine
-fixture capture/resume, retained evidence and refusing resume-plus-send. Only
-mailbox has executable saved-state assertions today; other actions remain guided.
-Full CI and actual game-client delivery/equip acceptance remain pending.
+The [scenario runner](../tools/testing/SCENARIOS.md) covers eleven families in
+the [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md). Mailbox claim and
+equip/unequip have saved-state assertions; nine other families retain guided
+snapshots and actions. The read-only status overview lists all eleven families,
+pending/invalid records and narrow recorded saved observations. Neither a table
+row nor exit0 proves client rendering, gameplay or a full source gate.
 
-The exact tools commit8e84946e failed full Windows40771334759 in one existing
-StarVolcano repeat/expiry timing test: Core29,334 passed/one failed/164 existing
-skips; Updater446 passed. Launcher/parsers were not reached. The FSB179 fixture
-successor has a zero-error build,15/15 affected/neighbors passes and three separate
-1/1 repaired-case repeats. Its full gate is still required; no failed build was
-deployed and no real game-client mail/claim/equip acceptance is implied.
+Full Windows40781201208 on actual publica62bb717 failed one operator-pipe
+duplicate-response body read: Core29,334 passed/one failed/164 existing skips,
+Updater446 passed. Restore/build passed; launcher/parsers were not reached.
+FSB179 StarVolcano passed that run. Transport revision2 now retains the server
+connection until a matching response receipt within the same10s deadline; see
+FSB180 and the protocol spec. Its new full gate and actual game-client hot
+delivery/claim/equip acceptance remain pending. No failed build was deployed.

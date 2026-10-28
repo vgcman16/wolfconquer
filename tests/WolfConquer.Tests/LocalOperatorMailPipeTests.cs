@@ -9,7 +9,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LocalOperatorMailPipeTests
+public sealed partial class LocalOperatorMailPipeTests
 {
     private static readonly Guid Domain = Guid.Parse("5cf0cd5a-e727-4d35-a6f3-6406ce3a01cf");
     private static readonly JsonSerializerOptions RequestJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -80,10 +80,9 @@ public sealed class LocalOperatorMailPipeTests
             json.Replace("\"CommittedNotificationStopped\"", "3", StringComparison.Ordinal))));
     }
 
-    [Fact]
+    [WindowsOperatorPipeFact]
     public async Task ActualCurrentUserPipeDeliversThroughRealFrameAndJoinsWorker()
     {
-        if (!OperatingSystem.IsWindows()) return;
         await LegacyOperatorGearMailOwnerTests.WithOwnerAsync(async fixture =>
         {
             var previous = Environment.GetEnvironmentVariable("WOLFCONQUER_OPERATOR_MAIL");
@@ -138,6 +137,10 @@ public sealed class LocalOperatorMailPipeTests
         Assert.InRange(length, 1, LocalOperatorMailPipe.MaximumResponseBytes);
         var response = new byte[length];
         await peer.ReadExactlyAsync(response, deadline.Token);
-        return LocalOperatorMailPipe.ParseResult(response);
+        var parsed = LocalOperatorMailPipe.ParseResult(response);
+        Assert.Equal(request.OperationId, parsed.OperationId);
+        await peer.WriteAsync(LocalOperatorMailPipe.CreateResponseReceipt(parsed.OperationId), deadline.Token);
+        await peer.FlushAsync(deadline.Token);
+        return parsed;
     }
 }

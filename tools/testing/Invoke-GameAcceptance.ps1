@@ -8,6 +8,10 @@ param(
     [uint32]$AccountId,
     [string]$EvidenceRoot,
     [switch]$Resume,
+    [uint32]$ExpectedItemUid,
+    [uint32]$ExpectedItemId,
+    [uint16]$ExpectedEquipmentPosition,
+    [string]$EquippedReceipt,
     [switch]$SendTestKit,
     [ValidateSet('basic-trojan', 'socket-materials')][string]$Kit = 'basic-trojan',
     [string]$DotNetPath,
@@ -19,6 +23,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GameAcceptance.Common.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Mailbox.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Equip.ps1')
 
 function Get-GaScenarios {
     @(
@@ -52,6 +57,9 @@ try {
     }
     $selected = @($catalog | Where-Object { $_.id -ceq $Scenario })
     if ($selected.Count -ne 1) { throw 'Known scenario ID required.' }
+    if ($Scenario -ceq 'equip-unequip') {
+        if ($ExpectedItemUid -eq 0 -or $ExpectedItemId -eq 0 -or $ExpectedEquipmentPosition -eq 0 -or (-not $Resume -and $EquippedReceipt)) { throw 'Exact item UID, type and slot are required for equip evidence.' }
+    } elseif ($ExpectedItemUid -ne 0 -or $ExpectedItemId -ne 0 -or $ExpectedEquipmentPosition -ne 0 -or $EquippedReceipt) { throw 'Equip parameters require equip-unequip.' }
     $tool = Get-GaOrdinaryPath $DataToolDll
     if ([IO.Path]::GetFileName($tool) -cne 'WolfConquer.DataTool.dll') { throw 'Actual DataTool DLL required.' }
     foreach ($leaf in @('WolfConquer.Core.dll', 'WolfConquer.DataTool.deps.json', 'WolfConquer.DataTool.runtimeconfig.json')) {
@@ -67,10 +75,16 @@ try {
     $identity = @{ schemaVersion = 1; evidenceId = [IO.Path]::GetFileName($root); scenario = $Scenario;
         accountId = $AccountId; configPath = $config; configSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $config).Hash;
         dataToolPath = $tool; dataToolSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $tool).Hash }
+    if ($Scenario -ceq 'equip-unequip') {
+        $identity.expectedItemUid = $ExpectedItemUid; $identity.expectedItemId = $ExpectedItemId
+        $identity.expectedEquipmentPosition = $ExpectedEquipmentPosition
+    }
     $sourceChecks = @{ status = 'NotRequested'; bound = 'No full suite automatically runs for acceptance.' }
     if ($Resume) {
         $retained = Read-GaJson $context 'owner.json'
-        foreach ($key in @('schemaVersion', 'evidenceId', 'scenario', 'accountId', 'configPath', 'configSha256', 'dataToolPath', 'dataToolSha256')) {
+        $identityKeys = @('schemaVersion', 'evidenceId', 'scenario', 'accountId', 'configPath', 'configSha256', 'dataToolPath', 'dataToolSha256')
+        if ($Scenario -ceq 'equip-unequip') { $identityKeys += @('expectedItemUid', 'expectedItemId', 'expectedEquipmentPosition') }
+        foreach ($key in $identityKeys) {
             if ($retained[$key] -cne $identity[$key]) { throw 'Retained evidence owner/configuration/tool identity mismatch.' }
         }
     }
@@ -87,6 +101,7 @@ try {
         $initial = Read-GaJson $context 'receipt.json'
         $before = (Read-GaJson $context 'before.json').report
         if ($Scenario -ceq 'mailbox-gear') { $state = Resume-GaMailbox $context $initial $before $afterLeaf }
+        elseif ($Scenario -ceq 'equip-unequip') { $state = Resume-GaEquip $context $initial $before $afterLeaf $EquippedReceipt $ExpectedItemUid $ExpectedItemId $ExpectedEquipmentPosition }
         else {
             $null = Get-GaInspection $context $afterLeaf
             $state = @{ status = 'GuidedAssertionsPending'; reason = 'NoExecutableAssertionForThisScenarioYet';
@@ -101,6 +116,10 @@ try {
                 liveClientVisualStatus = 'LiveClientVisualPending' }
         }
         elseif ($Scenario -ceq 'mailbox-gear') { $state = Start-GaMailbox $context $before $Kit -SendTestKit:$SendTestKit }
+        elseif ($Scenario -ceq 'equip-unequip') {
+            $state = Start-GaEquip $before $ExpectedItemUid $ExpectedItemId $ExpectedEquipmentPosition
+            $state.beforeSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $context.evidenceRoot 'before.json')).Hash
+        }
         else {
             $state = @{ status = 'GuidedActionsPending'; reason = 'NoExecutableAssertionForThisScenarioYet';
                 guidedActions = $selected[0].actions; requiredEvidence = $selected[0].required;

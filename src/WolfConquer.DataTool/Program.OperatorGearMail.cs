@@ -44,6 +44,10 @@ internal static partial class Program
             await pipe.ReadExactlyAsync(response, deadline.Token).ConfigureAwait(false);
             var result = LocalOperatorMailPipe.ParseResult(response);
             if (result.OperationId != request.OperationId) throw new InvalidOperationException();
+            // Only a complete parsed response for this exact operation permits
+            // the server to disconnect. Never acknowledge an unproven body.
+            await pipe.WriteAsync(LocalOperatorMailPipe.CreateResponseReceipt(result.OperationId), deadline.Token).ConfigureAwait(false);
+            await pipe.FlushAsync(deadline.Token).ConfigureAwait(false);
             Console.WriteLine(LocalOperatorMailPipe.FormatResult(result));
             return result.Status switch
             {

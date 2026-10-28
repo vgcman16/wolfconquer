@@ -2,7 +2,7 @@
 
 ## Identity and scope
 
-- Revision 1, 2026-10-28; requested by the project owner for disposable gear tests.
+- Gameplay/storage revision 1; local transport revision 2, 2026-10-28; requested by the project owner for disposable gear tests.
 - Target Chinese client 7899, `VisibleDx8D13`; the staged DX8 D13 executable remains unchanged.
 - Send catalogued equipment/materials to an already admitted online test character's mailbox, then claim through the existing client mail flow without relogging.
 - A new server build/start is required to install the sender. Original saves, routes and restore archives are excluded.
@@ -48,6 +48,25 @@ disagreement refuse. The real worker is canceled and joined before its runtime
 is disposed. Client/per-connection IO has a ten-second total deadline; timeout
 is an unknown outcome, not rollback or completed-drain proof.
 
+Transport revision 2 prepares header and response JSON as one bounded write. The
+server then waits for an exact20-byte receipt before disconnecting: ASCII `WCM2`
+followed by the returned operation GUID in `Guid.TryWriteBytes`/`Guid.ToByteArray`
+layout (first4/2/2 GUID components little-endian, final8 bytes in stored order).
+The DataTool client sends it only after reading the entire declared body, strict
+result parsing and equality with its expected operation GUID. A malformed-request
+rejection can return the empty GUID; that receipt correlates only that rejection.
+The receipt is a cooperating client's statement of consumption, not a new grant,
+authentication, durable-delivery proof or permission to retry. The existing grant
+operation digest/reservation writer remains `local-gear-mail-v1` unchanged.
+
+The same existing ten-second cancellation deadline covers response write and
+receipt read; no fresh receipt timeout is added. Wrong/truncated/absent receipts,
+peer failure or shutdown stop that transport and retain the already committed
+mail/UID outcome. The CLI does not retry after any transport uncertainty. Update
+the DataTool and server together; revision1 peers that omit the receipt are not
+accepted as revision2 completion. Do not use synchronous `WaitForPipeDrain` or
+release worker ownership on elapsed time.
+
 - Valid path: operator submit -> durable unique item reservation -> journaled attachments and mail -> live mail notification -> list/detail -> claim -> inventory -> equip -> stat/model refresh.
 - Verify duplicates, unknown types, bounds, stale/disconnected target, stale files/cache, insufficient inventory on claim, journal failure and repeated request GUIDs.
 - Use genuine new owned temporary fixtures and the real registry, serializers, journal and session owners. Tests must not substitute accepting save callbacks or fake allocation queues.
@@ -69,4 +88,13 @@ is an unknown outcome, not rollback or completed-drain proof.
   plus284 existing mailbox/UID/admission cases. This is isolated server/tool
   evidence; no real game-client hot delivery or new deployment is claimed yet.
 - Keep notifications, focused tests, full CI, source publication and live-client acceptance recorded independently.
+- Transport revision2 receipt, fragmented-body, wrong-operation and shutdown-join
+  controls are authored but unqualified until the coordinating agent records
+  actual focused/full results. The prior full CI found EOF during the duplicate
+  response body; source inspection identifies a missing peer-consumption boundary,
+  without claiming a captured Windows trace proves its sole runtime cause.
+- The actual DataTool child-command control targets the genuine owned endpoint,
+  checks successful typed grant plus an explicit same-operation exit3 response,
+  observes both acknowledged transport boundaries and verifies no second item/UID
+  grant. It is authored source pending execution, not a replacement peer/client.
 - Known UI issue from the current inspection: subclass labels contain mojibake; numerous forge labels remain Chinese. This sender does not claim to repair localization or implement every forge handler.

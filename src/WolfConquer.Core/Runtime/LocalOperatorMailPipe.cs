@@ -8,7 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Core.Runtime;
 
-public sealed class LocalOperatorMailPipe : IAsyncDisposable
+public sealed partial class LocalOperatorMailPipe : IAsyncDisposable
 {
     public const int MaximumRequestBytes = 16 * 1024;
     public const int MaximumResponseBytes = 64 * 1024;
@@ -173,7 +173,7 @@ public sealed class LocalOperatorMailPipe : IAsyncDisposable
         // No delegate/saver/owner substitution: only the actual Frame entrypoint.
         var result = await handler.DeliverOperatorTestGearMailAsync(owner, request, cancellationToken).ConfigureAwait(false);
         await WriteAsync(result, cancellationToken).ConfigureAwait(false);
-        LastTransportStatus = "typedResponseWritten";
+        LastTransportStatus = "typedResponseAcknowledged";
     }
 
     private async Task<byte[]> ReadAsync(CancellationToken cancellationToken)
@@ -195,13 +195,24 @@ public sealed class LocalOperatorMailPipe : IAsyncDisposable
     {
         var body = Encoding.UTF8.GetBytes(FormatResult(result));
         if (body.Length is < 1 or > MaximumResponseBytes) throw new InvalidOperationException("Operator result exceeded its wire bound.");
-        var header = new byte[4];
-        BinaryPrimitives.WriteInt32LittleEndian(header, body.Length);
+        // Prepare a complete bounded response and its receipt storage before
+        // writing. Flush only writes to the device; it is not peer consumption.
+        var frame = new byte[4 + body.Length];
+        BinaryPrimitives.WriteInt32LittleEndian(frame, body.Length);
+        body.CopyTo(frame, 4);
+        var expectedReceipt = CreateResponseReceipt(result.OperationId);
+        var receivedReceipt = new byte[ResponseReceiptLength];
         try
         {
-            await pipe.WriteAsync(header, cancellationToken).ConfigureAwait(false);
-            await pipe.WriteAsync(body, cancellationToken).ConfigureAwait(false);
+            await pipe.WriteAsync(frame, cancellationToken).ConfigureAwait(false);
             await pipe.FlushAsync(cancellationToken).ConfigureAwait(false);
+            LastTransportStatus = "responseAwaitingReceipt";
+            // Keep this connection open until the peer has read/parsed the full
+            // result. The SAME total request deadline bounds this asynchronous
+            // read and shutdown cancellation joins it through the actual worker.
+            await pipe.ReadExactlyAsync(receivedReceipt, cancellationToken).ConfigureAwait(false);
+            if (!receivedReceipt.AsSpan().SequenceEqual(expectedReceipt))
+                throw new IOException("Operator response receipt did not match this operation.");
         }
         catch (IOException error) { throw new PipePeerException(error); }
     }

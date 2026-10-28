@@ -4,6 +4,36 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-28 operator transport and testing tools - focused verification
+
+### FSB-180: Keep an operator response open until a matching peer receipt
+
+Actual publica62bb717 / Windows40781201208 failed only the operator pipe's
+second, duplicate-operation response-body read with EndOfStreamException.
+Core29334passed/1failed/164existing skips; Updater446passed. Restore/build
+passed; launcher/parsers were not reached. The FSB179 StarVolcano case passed.
+
+The server wrote/flushed then disconnected without a peer-consumption boundary.
+That is a supported missing lifetime contract consistent with the EOF, not proof
+of the sole captured Windows cause. Transport revision2 prepares one bounded
+response, then reads exact WCM2+returned-operation-GUID receipt before normal
+disconnect under the SAME existing10s token. The actual DataTool acknowledges
+only a completely read, strictly parsed response matching its expected GUID.
+Storage reservation/journal revision1, gameplay packets and no-regrant behavior
+are unchanged; wrong/missing receipts retain unknown transport outcome without
+rollback, automatic retry or a new grant. No blocking WaitForPipeDrain is used.
+
+Root's isolated actuala62-based batch builds0errors, parses7 selected PS files,
+and passes60/60 focused cases with0fail/skip. Controls include actual DataTool
+first/same-operation commands against the real owned endpoint, delayed/fragmented
+body consumption, wrong-operation receipt, actual worker shutdown join and saved
+UID/mail conservation. The first59/60 run found a status-table dictionary display
+bug, corrected without weakening its assertion. Results are retained locally.
+The new full Windows gate and actual game-client hot mail/claim/equip acceptance
+remain pending. This is not SQL, power-loss, full English/parity or deployment
+proof; the older qualified live stack is preserved.
+
+
 ## 2026-10-28 StarVolcano fixture correction - focused verification
 
 ### FSB-179: Drive repeat/expiry tests through real workers with controlled time
