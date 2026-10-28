@@ -1,6 +1,22 @@
 # Publication validation
 
-## Latest observer follow-up - full successor CI pending
+## Latest CrackStar fixture follow-up - full successor gate required
+
+The exact [9769a9a8 run40732279561](https://github.com/vgcman16/wolfconquer/actions/runs/40732279561)
+FAILED: Core29,279 passed/1 failed/164 existing skips; Updater446 passed.
+Restore/build passed; launcher/parsers were not reached. All seven previous
+DragonSkin/Frame failures passed. The remaining CrackStar expiry wait timed out;
+one unchanged isolated rerun passed, so the original timeout cause is unproven.
+
+The revised test drives actual worker timers using the existing manual clock,
+waits for real post-send completion, snapshots frames under their lock, and joins
+actual workers before disposal. The one-second behavior bound remains unchanged.
+Release build passed with zero errors and existing warnings. All46 selected
+runtime-expiry, CrackStar and worker-lifetime cases passed, zero failures/skips.
+FSB-177 records this test-only correction; no gameplay/protocol code changed.
+This successor still requires its own exact-public full gate and live acceptance.
+
+## Historical observer follow-up - focused verification
 
 The revised DragonSkin, public observer and runtime retirement selection passed
 207/207, no failures/skips; Release build had zero errors. Six new actual

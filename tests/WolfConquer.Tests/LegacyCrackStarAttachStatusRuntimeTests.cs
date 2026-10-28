@@ -127,11 +127,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Fact]
     public async Task RuntimeLoopExpiresCrackStar15380Status()
     {
-        using var log = new StringWriter();
+        using var log = new CrackStarExpiryLog();
         using var cancel = new CancellationTokenSource();
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
         var now = DateTimeOffset.UtcNow;
+        var clock = new ManualRuntimeTimeProvider(now.AddSeconds(10));
         var handler = new WorldServerFrameHandler(
             snapshotLoader: null,
             handoffService: null,
@@ -139,7 +140,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             runtimeUpdateLoop: new LegacyRuntimeUpdateLoopOptions(
                 Enabled: true,
                 TimeSpan.FromMilliseconds(10),
-                new AnchoredRuntimeTimeProvider(now.AddSeconds(10))),
+                clock),
             log: log);
         var session = CreateCrackStarSession(
             classCode: 16_005,
@@ -153,31 +154,71 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             });
         SetHandlerSession(handler, connection, session);
 
+        Task[] workers = [];
+        Exception? primary = null;
         try
         {
             StartHandlerRuntimeUpdateLoop(handler, connection, session, cancel.Token);
-
-            await WaitUntilAsync(
-                () =>
-                {
-                    var current = AssertHandlerSession(handler, connection);
-                    return !HasLegacyStatusFlag(current.Character.Attributes, CrackStarStatusFlag) &&
-                        !current.Character.Attributes.ContainsKey("LegacyCrackStarExpiresAtUtc") &&
-                        !current.Character.Attributes.ContainsKey("LegacyCrackStarRemoveOnDead");
-                },
-                TimeSpan.FromSeconds(1));
+            workers = handler.CaptureLegacyRuntimeWorkerTasks();
+            Assert.NotEmpty(workers);
+            await WaitForScheduledManualTimerAsync(clock);
+            Assert.True(clock.ScheduledTimerCount >= 2);
+            var seeded = AssertHandlerSession(handler, connection);
+            Assert.Same(session, seeded);
+            Assert.True(HasLegacyStatusFlag(seeded.Character.Attributes, CrackStarStatusFlag));
+            Assert.True(seeded.Character.Attributes.ContainsKey("LegacyCrackStarExpiresAtUtc"));
+            Assert.True(seeded.Character.Attributes.ContainsKey("LegacyCrackStarRemoveOnDead"));
+            Assert.False(log.ExpiryWritten.IsCompleted);
+            clock.Advance(TimeSpan.FromMilliseconds(10));
+            // This marker is written only after the actual expiry send returns;
+            // holder publication alone precedes that send and is not completion.
+            try { await log.ExpiryWritten.WaitAsync(TimeSpan.FromSeconds(1)); }
+            catch (TimeoutException error)
+            { throw new TimeoutException("CrackStar expiry completion was not observed. Actual runtime log:\n" + log.Snapshot(), error); }
 
             var expiredSession = AssertHandlerSession(handler, connection);
             Assert.False(HasLegacyStatusFlag(expiredSession.Character.Attributes, CrackStarStatusFlag));
-            Assert.Contains(ParseMsgUpdates(sent), update => update.Updates.Any(entry =>
+            Assert.False(expiredSession.Character.Attributes.ContainsKey("LegacyCrackStarExpiresAtUtc"));
+            Assert.False(expiredSession.Character.Attributes.ContainsKey("LegacyCrackStarRemoveOnDead"));
+            Assert.Contains(ParseMsgUpdates(SnapshotFrames(sent)), update => update.Updates.Any(entry =>
                 entry.Type == LegacyMsgUpdateDataType.StatusFlag &&
                 entry.Values is not null &&
                 !IsLegacyStatusFlagSet(entry.Values, CrackStarStatusFlag)));
-            Assert.Contains("WorldServer expired legacy CrackStar flags", log.ToString());
+            Assert.Contains("WorldServer expired legacy CrackStar flags", log.Snapshot());
         }
+        catch (Exception error) { primary = error; throw; }
         finally
         {
-            await cancel.CancelAsync();
+            try
+            {
+                await cancel.CancelAsync();
+                await Task.WhenAll(workers.Concat(handler.CaptureLegacyRuntimeWorkerTasks()).Distinct())
+                    .WaitAsync(TimeSpan.FromSeconds(5));
+                Assert.Equal(0L, handler.LegacyRuntimeFaultedWorkerCount);
+                Assert.Equal(0, clock.ScheduledTimerCount);
+            }
+            catch (Exception cleanup) when (primary is not null) { throw new AggregateException(primary, cleanup); }
+        }
+    }
+
+    private sealed class CrackStarExpiryLog : StringWriter
+    {
+        private readonly object gate = new();
+        private readonly TaskCompletionSource<bool> expiry = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal Task ExpiryWritten => expiry.Task;
+        internal string Snapshot() { lock (gate) return base.ToString(); }
+
+        public override void WriteLine(string? value)
+        {
+            lock (gate) base.WriteLine(value);
+            if (value is not null && value.StartsWith("WorldServer expired legacy CrackStar flags ", StringComparison.Ordinal))
+                expiry.TrySetResult(true);
+        }
+
+        public override Task WriteLineAsync(string? value)
+        {
+            WriteLine(value);
+            return Task.CompletedTask;
         }
     }
 

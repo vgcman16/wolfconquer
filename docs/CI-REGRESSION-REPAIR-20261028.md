@@ -1,5 +1,21 @@
 # Integration regression repair - 2026-10-28
 
+## CrackStar fixture follow-up
+
+Exact public9769a9a8 full Windows40732279561 completed failure: Core29,279 passed,
+1 failed and164 existing skips; Updater446 passed. Restore/build passed;
+launcher/parsers were not reached. The seven previous DragonSkin/Frame cases
+passed. The sole remaining expiry wait timed out; one unchanged isolated rerun
+passed, so the original cause remains unproven.
+
+The corrected test uses actual manually advanced worker timers, a real post-send
+completion observation, locked packet snapshots and actual worker-task joins.
+Its one-second behavior deadline remains. Release build passed with zero errors;
+46 affected/surrounding runtime/lifetime tests passed with zero failures/skips.
+This is a test-only ordering/lifetime correction (FSB-177), not a gameplay patch.
+A successor exact-public full gate and fresh local login/body/walk/save remain
+required. No client/server/route/original-save change occurred.
+
 ## Observer follow-up
 
 Public2811f796 full Windows40718716578 finished with Core29,266 passing,

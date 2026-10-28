@@ -4,7 +4,33 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## 2026-10-28 observer follow-up - focused verification
+## 2026-10-28 CrackStar fixture follow-up - focused verification
+
+### FSB-177: Observe runtime expiry completion and drain the test workers
+
+This is a replacement test-fixture defect, not an attributed decompiled gameplay
+bug. LegacyCrackStarAttachStatusRuntimeTests.cs waited for holder mutation, which
+precedes the actual status send/log, then canceled without joining worker Tasks
+before disposing its writer. It also depended on a real timer's dispatch within
+a one-second polling deadline. Full public9769a9a8 failed that wait; the unchanged
+test passed one isolated rerun. The original full-run timeout cause is unproven.
+
+The test now uses the existing manual TimeProvider to observe both actual worker
+timer registrations, checks unchanged seeded state, and advances their real
+Task.Delay callbacks by10ms. Its synchronized log observer handles the actual
+sync/async writer path and signals after the real expiry send. Packet assertions
+use a locked snapshot. Cleanup cancels and joins the actual captured/current
+worker Tasks, retains primary and cleanup failures, and checks drained timers.
+The one-second behavior bound and status/wire assertions remain; no production
+handler, packet, owner, timeout, exclusion or suppression was changed.
+
+The first new fixture attempt exposed an async-only log-observer mistake despite
+the actual expiry line being written; it was corrected before qualification.
+Release build has zero errors; the final affected/surrounding selection passes
+46/46, no failures/skips. A successor full gate and fresh live acceptance remain
+required. This does not prove the original timeout cause or universal runtime safety.
+
+## Historical 2026-10-28 observer follow-up - focused verification
 
 ### FSB-176: Preserve DragonSkin's published observer failure
 

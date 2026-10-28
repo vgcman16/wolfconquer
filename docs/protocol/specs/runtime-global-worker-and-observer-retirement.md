@@ -1,5 +1,24 @@
 # Runtime global-worker join and postpublication retirement
 
+## Controlled CrackStar expiry fixture follow-up
+
+After exact public9769a9a8/full40732279561's sole one-second expiry wait timeout,
+the test uses the existing manual clock to observe both actual player/global
+Task.Delay registrations before advancing10ms. Seeded status/expiry fields and
+absence of completion must be observed before advance. No expiry method is
+invoked directly, and the one-second behavior deadline is unchanged.
+
+Holder publication precedes the actual status send. Wait for the real expiry
+log written after that send, supporting the synchronized writer's actual sync
+and async call paths, then check the exact cleared status vector from a locked
+frame snapshot. Cancel and join actual tracked workers before writer disposal;
+retain both primary/cleanup failures and require timers drained. These are
+test-fixture completion/lifetime controls, with no new protocol or product rule.
+
+Release build passed; all46 selected runtime-expiry/CrackStar/worker-lifetime
+cases passed without failures/skips. The original full-run timeout cause remains
+unproven; a successor full gate and live acceptance remain required.
+
 ## Identity and scope
 
 Source-derived test correction against exact public2811f796, 2026-10-28.
