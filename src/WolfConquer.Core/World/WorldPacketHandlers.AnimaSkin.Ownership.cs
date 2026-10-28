@@ -39,29 +39,28 @@ public static partial class WorldPacketHandlers
     }
 
     private static bool TryCommitDragonSkinPresentation(WorldPacketHandlerContext context, DragonSkinOwner owner,
-        WorldSession updated, out string reason)
+        WorldSession updated, out WorldSession finalSession, out string reason)
     {
+        finalSession = null!;
         reason = "dragonSkinCurrentOwnerChanged";
-        if (context.Sessions is not { } sessions || !owner.Book.IsCurrent(owner.Session.Character.Attributes)) return false;
+        if (context.Sessions is not { } sessions || !IsCurrentDragonSkinOwner(context, owner, owner.Session) ||
+            !owner.Book.IsCurrent(owner.Session.Character.Attributes)) return false;
         var changed = false;
+        WorldSession? committed = null;
         try
         {
-            sessions.WithCurrentNativeClientIdentity(context.Connection, owner.Session.Character.Uid, identity =>
-            {
-                if (ReferenceEquals(identity, owner.Identity) && IsCurrentDragonSkinOwner(context, owner, owner.Session) &&
-                    owner.Book.IsCurrent(owner.Session.Character.Attributes))
-                    changed = sessions.TryCompareAndSet(context.Connection, owner.Session, updated);
-            });
+            changed = sessions.TryCompareAndSetWithNativeIdentity(context.Connection, owner.Session,
+                owner.Identity, updated, out committed);
         }
         catch (Exception error) when (LegacyDragonSkinPersistence.IsPreparationFailure(error))
         {
             // Ordinary CAS may invoke the established autosave observer after
             // publication. Never relabel an already published value as rejected.
-            if (!IsCurrentDragonSkinOwner(context, owner, updated))
+            if (committed is null || !IsCurrentDragonSkinOwner(context, owner, committed))
             { reason = "dragonSkinPresentationPublicationUnproven:" + error.GetType().Name; return false; }
             changed = true;
         }
-        if (changed) reason = "committed";
+        if (changed) { finalSession = committed!; reason = "committed"; }
         return changed;
     }
 

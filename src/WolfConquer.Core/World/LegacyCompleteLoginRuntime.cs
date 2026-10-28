@@ -3,15 +3,14 @@ using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
 
-// Adapter provenance for the direct native CompleteLogin field. There is no saved
-// scalar fallback and no dependency on secondary-PIN verification or popup state.
 internal static class LegacyCompleteLoginRuntime
 {
     internal sealed record Owner(ConquerTcpConnection Connection, LegacyNativeGameClientRuntime Client,
         LegacyNativePlayerRuntime Player, long AccountId, uint Uid);
 
+    private sealed class CompletionSlot { internal Owner? Issued; }
     private static readonly object Gate = new();
-    private static readonly ConditionalWeakTable<LegacyNativePlayerRuntime, Owner> Issued = new();
+    private static readonly ConditionalWeakTable<LegacyNativePlayerRuntime, CompletionSlot> Slots = new();
 
     internal static bool TryCapture(ConquerTcpConnection connection, WorldSession session, out Owner? owner)
     {
@@ -23,30 +22,62 @@ internal static class LegacyCompleteLoginRuntime
         lock (Gate) return MatchesCore(owner, connection, currentSession);
     }
 
+    // Acquire the actual issuance cell before the Store's final map proof. No
+    // CWT insertion/allocation follows the first physical completion store.
+    internal static PreparedCompletion? PrepareComplete(Owner owner, ConquerTcpConnection connection, WorldSession currentSession) =>
+        PreparedCompletion.Capture(owner, connection, currentSession);
+
+    internal sealed class PreparedCompletion : IDisposable
+    {
+        private readonly Owner owner;
+        private readonly ConquerTcpConnection connection;
+        private readonly WorldSession session;
+        private readonly CompletionSlot slot;
+        private bool disposed;
+        private PreparedCompletion(Owner owner, ConquerTcpConnection connection, WorldSession session, CompletionSlot slot)
+        { this.owner = owner; this.connection = connection; this.session = session; this.slot = slot; }
+        internal static PreparedCompletion? Capture(Owner owner, ConquerTcpConnection connection, WorldSession session)
+        {
+            Monitor.Enter(Gate);
+            try
+            {
+                if (!MatchesCore(owner, connection, session)) { Monitor.Exit(Gate); return null; }
+                var slot = Slots.GetValue(owner.Player, static _ => new CompletionSlot());
+                return new(owner, connection, session, slot);
+            }
+            catch { Monitor.Exit(Gate); throw; }
+        }
+        internal bool IsCurrentPlain() => !disposed && Monitor.IsEntered(Gate) && MatchesCore(owner, connection, session);
+        internal void PublishPrepared()
+        {
+            owner.Player.CompleteLogin = true;
+            slot.Issued = owner;
+        }
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true; Monitor.Exit(Gate);
+        }
+    }
+
     internal static bool TryComplete(Owner owner, ConquerTcpConnection connection, WorldSession currentSession)
     {
-        lock (Gate)
-        {
-            if (!MatchesCore(owner, connection, currentSession)) return false;
-            owner.Player.CompleteLogin = true;
-            Issued.Remove(owner.Player);
-            Issued.Add(owner.Player, owner);
-            return true;
-        }
+        using var prepared = PrepareComplete(owner, connection, currentSession);
+        if (prepared is null || !prepared.IsCurrentPlain()) return false;
+        prepared.PublishPrepared(); return true;
     }
 
     internal static bool IsComplete(ConquerTcpConnection connection, WorldSession session)
     {
         lock (Gate)
         {
-            if (!TryCaptureCore(connection, session, out var current) || current is null ||
-                !Issued.TryGetValue(current.Player, out var issued)) return false;
-            if (!current.Player.CompleteLogin)
+            if (connection.NativeGameClient?.Player is not { } player ||
+                !Slots.TryGetValue(player, out var slot) || slot.Issued is not { } issued) return false;
+            if (!player.CompleteLogin)
             {
-                // Once observed false, a later raw true write cannot resurrect an
-                // issued completion; the real producer must complete again.
-                Issued.Remove(current.Player);
-                return false;
+                // An observed raw false retires issuance; a later raw true
+                // cannot resurrect it without this actual producer.
+                slot.Issued = null; return false;
             }
             return MatchesCore(issued, connection, session);
         }
@@ -55,7 +86,7 @@ internal static class LegacyCompleteLoginRuntime
     private static bool TryCaptureCore(ConquerTcpConnection connection, WorldSession session, out Owner? owner)
     {
         owner = null;
-        if (connection is null || session is null || session.AccountId <= 0 ||
+        if (connection is null || session is null || session.Character is null || session.AccountId <= 0 ||
             session.Character.Uid is <= 0 or > uint.MaxValue ||
             connection.NativeGameClient is not { } client || !ReferenceEquals(session.NativeGameClient, client) ||
             client.Player is not { } player || !ReferenceEquals(player.Owner, client) ||
@@ -65,8 +96,10 @@ internal static class LegacyCompleteLoginRuntime
     }
 
     private static bool MatchesCore(Owner owner, ConquerTcpConnection connection, WorldSession session) =>
-        owner is not null && ReferenceEquals(owner.Connection, connection) &&
-        TryCaptureCore(connection, session, out var current) && current is not null &&
-        ReferenceEquals(owner.Client, current.Client) && ReferenceEquals(owner.Player, current.Player) &&
-        owner.AccountId == current.AccountId && owner.Uid == current.Uid;
+        owner is not null && owner.Client is not null && owner.Player is not null &&
+        session is not null && session.Character is not null && session.AccountId > 0 &&
+        ReferenceEquals(owner.Connection, connection) && ReferenceEquals(connection.NativeGameClient, owner.Client) &&
+        ReferenceEquals(session.NativeGameClient, owner.Client) && ReferenceEquals(owner.Client.Player, owner.Player) &&
+        ReferenceEquals(owner.Player.Owner, owner.Client) && owner.Player.UID == owner.Uid &&
+        session.AccountId == owner.AccountId && session.Character.Uid == owner.Uid;
 }

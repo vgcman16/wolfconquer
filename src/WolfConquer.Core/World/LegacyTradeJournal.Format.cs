@@ -32,10 +32,11 @@ internal static partial class LegacyTradeJournal
             6 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "AdmissionDomain", "AdmissionInputs"),
             7 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "AdmissionDomain", "AdmissionInputs", "AdmissionPreparedAt"),
             8 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterSpellsDomain"),
+            9 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain"),
             _ => GetProperties(rootElement, "Version", "TransactionId", "Changes"),
         };
         if (root["Version"].ValueKind != JsonValueKind.Number ||
-            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8) ||
+            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9) ||
             root["TransactionId"].ValueKind != JsonValueKind.String)
             throw new JsonException("Unsupported journal version or identity.");
         var transactionId = root["TransactionId"].GetString();
@@ -59,6 +60,7 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(result, version);
         if (version == 5) RequireMailboxGearOrder(result);
         if (version == 8) RequireCharacterSpellsOrder(result);
+        if (version == 9) RequireCharacterItemsSpellsOrder(result);
         return new(version, transactionId!, result)
         {
             Domain = version == 3 ? ReadQuestDomain(root["Domain"]) : null,
@@ -68,6 +70,7 @@ internal static partial class LegacyTradeJournal
             AdmissionInputs = IsOrdinaryAdmissionVersion(version) ? ReadAdmissionInputs(root["AdmissionInputs"]) : null,
             AdmissionPreparedAt = version == 7 ? ReadAdmissionTime(root["AdmissionPreparedAt"]) : null,
             CharacterSpellsDomain = version == 8 ? ReadCharacterSpellsDomain(root["CharacterSpellsDomain"]) : null,
+            CharacterItemsSpellsDomain = version == 9 ? ReadCharacterItemsSpellsDomain(root["CharacterItemsSpellsDomain"]) : null,
         };
     }
 

@@ -42,7 +42,7 @@ public static partial class WorldPacketHandlers
                 // and the final holder/lifetime check. No callouts follow commit.
                 if (!Owner.IsCurrent(Owner.Expected, checkInputs: true) || !NativeMagicCurrent())
                 { failure = "fullAccountClassOwnerChanged"; return false; }
-                if (!LegacyTradeJournal.TryCommitCharacterSpells(Owner.UsersRoot, Owner.SpellsRoot, changes, out failure))
+                if (!spellWrite.TryCommitCharacterSpells(changes, out failure))
                 {
                     if (failure.StartsWith("tradeJournalWriteFailed:", StringComparison.Ordinal))
                         failure = "transaction-write-failed:" + failure["tradeJournalWriteFailed:".Length..];

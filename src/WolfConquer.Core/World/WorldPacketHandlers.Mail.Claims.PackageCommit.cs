@@ -36,7 +36,13 @@ public static partial class WorldPacketHandlers
                             rejection = PrepareMailboxPackageCapacityRejection(baseline);
                         return null;
                     }
-                    if (!MailboxPackagePreparationCurrent(prepared) || !MailboxPackagePreimagesCurrent(prepared)) return null;
+                    if (!MailboxPackagePreparationCurrent(prepared) || !MailboxPackagePreimagesCurrent(prepared) ||
+                        !ReferenceEquals(prepared.Updated.PlayerSpells, owner.Expected.PlayerSpells) ||
+                        !ReferenceEquals(prepared.Updated.PlayerProficiencies, owner.Expected.PlayerProficiencies) ||
+                        !string.Equals(prepared.Updated.UsersRoot, owner.Expected.UsersRoot, StringComparison.Ordinal) ||
+                        !ReferenceEquals(prepared.Updated.NativeGameClient, owner.Expected.NativeGameClient) ||
+                        prepared.Updated.AccountId != owner.Expected.AccountId ||
+                        prepared.Updated.Character.Uid != owner.Expected.Character.Uid) return null;
                     var recipe = LegacyMailboxPackageRecipe.CreateForStacks(producer.Domain, checked((uint)owner.Expected.AccountId),
                         checked((uint)owner.Expected.Character.Uid), packet, prepared.Selected, prepared.Grants,
                         prepared.Stacks,

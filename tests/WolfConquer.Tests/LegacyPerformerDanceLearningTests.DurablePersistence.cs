@@ -11,7 +11,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
         {
             var connection = fixture.Connection();
             var store = fixture.Store();
-            var original = DurableSession();
+            var original = fixture.Session();
             store.Set(connection, original);
             fixture.Seed(CharacterUid, original.PlayerSpells);
             var before = new DurableSessionImage(original);
@@ -30,8 +30,8 @@ public sealed partial class LegacyPerformerDanceLearningTests
             Assert.Empty(fixture.Sent);
             Assert.True(handled);
             Assert.Null(error);
-            Assert.Contains("Performer dance persistence", fixture.Log.ToString());
-            Assert.Contains("reason=IOException; no session mutation was committed", fixture.Log.ToString());
+            Assert.Contains("Performer dance learning", fixture.Log.ToString());
+            Assert.Contains("reason=ordinarySpellWriteFailed:IOException", fixture.Log.ToString());
         });
     }
 
@@ -42,7 +42,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
         {
             var connection = fixture.Connection();
             var store = fixture.Store();
-            var original = DurableSession();
+            var original = fixture.Session();
             store.Set(connection, original);
             fixture.Seed(CharacterUid, original.PlayerSpells);
             fixture.SeedOpaqueByte(CharacterUid, 0xA5);
@@ -78,7 +78,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
         {
             var connection = fixture.Connection();
             var store = fixture.Store();
-            var original = DurableSession();
+            var original = fixture.Session();
             store.Set(connection, original);
             fixture.Seed(CharacterUid, CreateSpells(CreateExistingSpell() with { Experience = 9999 }, original.PlayerSpells.Spells[1]));
             var before = new DurableSessionImage(original);
@@ -93,7 +93,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
             Assert.Empty(fixture.Sent);
             Assert.True(handled);
             Assert.Null(error);
-            Assert.Contains("reason=savedSpellsChanged", fixture.Log.ToString());
+            Assert.Contains("reason=InvalidOperationException; no session mutation was committed", fixture.Log.ToString());
         });
     }
 
@@ -104,7 +104,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
         {
             var connection = fixture.Connection();
             var store = fixture.Store();
-            var original = DurableSession();
+            var original = fixture.Session();
             store.Set(connection, original);
             fixture.Seed(CharacterUid, original.PlayerSpells);
             var originalImage = fixture.Bytes(CharacterUid);

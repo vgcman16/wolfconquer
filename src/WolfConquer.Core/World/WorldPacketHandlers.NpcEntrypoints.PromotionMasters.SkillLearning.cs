@@ -158,23 +158,12 @@ public static partial class WorldPacketHandlers
         string sourceRange,
         string learnedSpellIds)
     {
-        var updatedSession = session with { PlayerSpells = updatedSpells };
-        context.Sessions?.Set(context.Connection, updatedSession);
-
-        if (!string.IsNullOrWhiteSpace(context.PlayerSpellsRoot))
-        {
-            new PlayerSpellSnapshotLoader(context.PlayerSpellsRoot).SaveByCharacterUid(
-                updatedSession.Character.Uid,
-                updatedSpells);
-        }
-        else
-        {
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP LegacyNpc PromotionMaster skill missing PlayerSpellsRoot " +
-                    $"{FormatSession(context)} source={sourceMethod} sourceRange={sourceRange} " +
-                    $"option={optionId} spellIds={learnedSpellIds}; learned spell is session-only.")
-                .ConfigureAwait(false);
-        }
+        if (!TryCommitLegacyFreeSpells(context, session, updatedSpells, CancellationToken.None,
+                out var updatedSession, out var reason))
+            throw new LegacySpellMutationRefusalException(reason);
+        await context.Log.WriteLineAsync("WorldServer committed promotion spell learning " +
+                $"{FormatSession(context with { Session = updatedSession })} option={optionId} spellIds={learnedSpellIds}.")
+            .ConfigureAwait(false);
 
         return updatedSession;
     }

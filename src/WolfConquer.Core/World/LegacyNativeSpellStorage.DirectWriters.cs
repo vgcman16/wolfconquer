@@ -7,7 +7,10 @@ internal partial class LegacyNativeSpellStorage
     internal static void RequireDirectEntry(LegacyNativeGameClientRuntime client)
     {
         if (LegacyNativeNinja.HasActiveOwnedPreparation(client) ||
-            client.MySpells is { } storage && Monitor.IsEntered(storage.MutationGate))
+            client.MySpells is { } storage && Monitor.IsEntered(storage.MutationGate) ||
+            client.MyProfs is { } profs && Monitor.IsEntered(profs.MutationGate) ||
+            client.OrdinarySpellBinding is { } pin && (Monitor.IsEntered(pin.Storage.MutationGate) ||
+                Monitor.IsEntered(pin.Proficiencies.MutationGate)))
             throw UnavailableNinjaSpells();
     }
 

@@ -4,6 +4,64 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Native spell/proficiency integration — focused qualification
+
+2026-10-28: isolated clean-public-base candidate **2405 passed, zero failures,
+two existing skipped teleport cases**. Final opened-file refinement **81 passed,
+zero failures/skips**. These checks overlap; full CI and live acceptance remain
+required. See [scope](docs/NATIVE-SPELL-PROFICIENCY-INTEGRATION.md).
+
+### FSB-159: Managed/native spell owners diverged and retired storage regained writers
+
+**Source:** replacement WorldSessionStore and native Spell/Proficiency producers.
+**Correction:** actual ordinary-admission binding, immutable canonical snapshots,
+retained retirement pins, Store-first actor gates, original/candidate raw-map
+proofs and actual final records. Committed conflicts fence real Recovery. Genuine
+prefix UID0 is retained until journal commitment; canonical login frames are
+prepared before the writer and preserve their original bytes.
+**Verification:** shared selection includes58 ordinary native coherence cases.
+**Boundary:** not universal protection from uncooperative raw writes, SQL,
+complete native SaveClient, transport delivery or client rendering proof.
+
+### FSB-160: Spell costs and inventory changes used separate persistence phases
+
+**Source:** replacement paid learning, skill books/runes and other spell writers.
+**Defect:** funds/items and spells could commit independently; a native save could
+overwrite newer disk state or discard legitimate unsaved memory changes.
+**Correction:** real v8 Character+Spells and v9 Character+Items+Spells journals,
+validated complete inputs/images/frames, retained byte11, current ownership and
+a separate last-proven saved image advanced only by an actual successful writer.
+Generic post-memory save failure remains an honest unsaved state.
+**Verification:**9 paid-handler,19 admitted caller and49 direct v9/domain/path
+cases are included in the shared selection. **Boundary:** interruption fixtures
+do not prove power-loss/multiple-process/SQL atomicity; unsupported item images
+are refused. Whole cast and promotional transactions remain separate work.
+
+### FSB-161: Proficiency files admitted short records and dirtied rejected saves
+
+**Source:** native LoadClientProfs ignored read results/reused its row buffer;
+SaveClientProfs wrote a count before discovering a null row. Older tests enforced
+default/reused-row admission and partial dirty output.
+**Correction:** bounded exact-length20-byte records, nonzero unique IDs, genuine
+physical owners and prepared map merge. Rooted save prepares its complete image
+before real atomic replacement and revalidates its configured path. Opened save
+validates before writing, seeks0, writes the full image, sets length and flushes.
+**Verification:**81 final focused cases include real file/ABI/cursor/length,
+malformed-input, before-image and path controls. **Boundary:** opened I/O failures
+after writing starts have no rollback guarantee. Bound native proficiency file
+I/O remains unavailable without a real configured saved-image participant.
+
+### FSB-162: Proficiency arithmetic wrapped and compound updates had dirty prefixes
+
+**Source:** native proficiency/UpdateSpell unsigned gains and ordered mutations.
+**Correction:** widened arithmetic and complete spell/proficiency maps and frames
+prepared before either publication. Valid two-pass/message order remains.
+Null owners and malformed/negative inputs reject without dirty output; earlier
+bug-preserving tests now enforce safe invariants and positive numerical/goldens.
+**Verification:**2405 selection plus81 overlapping final focused cases, including
+independently calculated widened remainders. **Boundary:** every progression
+rule, wider cast transactions and live gameplay remain unproven.
+
 ## FullAccount class-reset transaction — focused qualification
 
 ### FSB-158: Class reset saved before current ownership and erased untouched spell bytes

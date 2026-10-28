@@ -31,7 +31,7 @@ public static partial class WorldPacketHandlers
         {
             fields[RuntimeAnimaSkinLoadedAttribute] = "1";
             expected = session with { Character = session.Character with { Attributes = fields } };
-            if (!TryCommitDragonSkinPresentation(context, owner, expected, out reason))
+            if (!TryCommitDragonSkinPresentation(context, owner, expected, out expected, out reason))
             { await LogDragonSkinRefusalAsync(context, reason).ConfigureAwait(false); return; }
         }
         try
@@ -58,7 +58,7 @@ public static partial class WorldPacketHandlers
         fields[LegacyAnimaSkinAttribute] = owner.Book.State.WithEquipped(packet.SkinType).ToSnapshotValue();
         var updated = session with { Character = session.Character with { Attributes = fields } };
         var frame = new LegacyDragonSkinPacket(LegacyDragonSkinType.MyShow, (uint)session.Character.Uid, packet.SkinType, false).ToFrameBytes();
-        if (!TryCommitDragonSkinPresentation(context, owner, updated, out reason))
+        if (!TryCommitDragonSkinPresentation(context, owner, updated, out updated, out reason))
         { await LogDragonSkinRefusalAsync(context, reason).ConfigureAwait(false); return; }
         try
         {
@@ -78,7 +78,7 @@ public static partial class WorldPacketHandlers
         var updated = session with { Character = session.Character with { Attributes = fields } };
         var frame = new LegacyDragonSkinPacket(LegacyDragonSkinType.Restore, (uint)session.Character.Uid, 0,
             owner.Book.State.OwnedSkins.Count > 0).ToFrameBytes();
-        if (!TryCommitDragonSkinPresentation(context, owner, updated, out reason))
+        if (!TryCommitDragonSkinPresentation(context, owner, updated, out updated, out reason))
         { await LogDragonSkinRefusalAsync(context, reason).ConfigureAwait(false); return; }
         try
         {

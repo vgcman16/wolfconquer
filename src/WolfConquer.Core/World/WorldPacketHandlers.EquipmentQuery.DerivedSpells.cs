@@ -45,25 +45,39 @@ public static partial class WorldPacketHandlers
 
         private async ValueTask<bool> SetNativeDerivedSpellAsync(ushort id, ushort level)
         {
+            if (!Refresh()) return false;
             var entry = new PlayerSpellSnapshotEntry(id, level, Experience: 0,
                 PreviousLevel: 0, SoulLevel: 0, UseSpellSoul: 0);
-            if (!Commit(session => session with
-                    { PlayerSpells = LegacySkillBookUse.AddOrUpdateSpell(session.PlayerSpells, entry) })) return false;
-            return await SendAsync(LegacySpellPacket.FromSnapshot(entry).ToFrameBytes(),
-                LegacyEquipmentQueryPublishedPhases.None).ConfigureAwait(false);
+            var frame = LegacySpellPacket.FromSnapshot(entry).ToFrameBytes();
+            if (!CommitDerivedSpellMembership(LegacySkillBookUse.AddOrUpdateSpell(Session.PlayerSpells, entry))) return false;
+            return await SendAsync(frame, LegacyEquipmentQueryPublishedPhases.None).ConfigureAwait(false);
         }
 
         private async ValueTask<bool> RemoveNativeDerivedSpellAsync(ushort id)
         {
             if (!Refresh()) return false;
             if (!Session.PlayerSpells.ContainsSpell(id)) return true;
-            if (!Commit(session => session with { PlayerSpells = new PlayerSpellSnapshot(
-                    session.PlayerSpells.Spells.Where(entry => entry.Id != id).ToArray()) })) return false;
-            return await SendAsync(new MsgActionPacket
-                {
-                    ObjId = CheckedUInt32(Request.Scope.OwnerUid, nameof(Request.Scope.OwnerUid)),
-                    DwParam = id, Type = (MsgActionType)109,
-                }.ToFrameBytes(), LegacyEquipmentQueryPublishedPhases.None).ConfigureAwait(false);
+            var frame = new MsgActionPacket
+            {
+                ObjId = CheckedUInt32(Request.Scope.OwnerUid, nameof(Request.Scope.OwnerUid)),
+                DwParam = id, Type = (MsgActionType)109,
+            }.ToFrameBytes();
+            var proposed = new PlayerSpellSnapshot(Session.PlayerSpells.Spells.Where(entry => entry.Id != id).ToArray());
+            if (!CommitDerivedSpellMembership(proposed)) return false;
+            return await SendAsync(frame, LegacyEquipmentQueryPublishedPhases.None).ConfigureAwait(false);
+        }
+
+        private bool CommitDerivedSpellMembership(PlayerSpellSnapshot proposed)
+        {
+            // Detached loading/component fixtures have no durable Store owner.
+            if (Context.Sessions is null) return Commit(current => current with { PlayerSpells = proposed });
+            if (!TryCommitLegacyFreeSpells(Context, Session, proposed, CancellationToken, out var final, out _))
+            {
+                Adopt(new(null, Current.RequiredParticipantSession, Current.Loss | LegacyEquipmentQueryPublicationLoss.OwnerLost));
+                return false;
+            }
+            Adopt(RefreshLegacyEquipmentQueryPublication(Context with { Session = final }, final, Request.Scope));
+            return Current.Completed;
         }
 
         private static uint NativePirateRank(IReadOnlyList<CombatGearRankEntry> rows, long uid, byte type)

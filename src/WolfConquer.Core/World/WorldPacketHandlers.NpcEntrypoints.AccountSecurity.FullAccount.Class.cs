@@ -46,11 +46,18 @@ public static partial class WorldPacketHandlers
                         var currentPlan = prepared;
                         reason = "fullAccountClassCurrentSessionChanged";
                         committed = sessions.TryCommitSession(context.Connection, session, currentPlan.Updated,
-                            () => currentPlan.TryPersist(cancellationToken, out reason));
+                            () => currentPlan.TryPersist(cancellationToken, out reason), out var final);
+                        if (committed) currentPlan.Updated = final!;
                         recoveryRequired = prepared.DurableCommitted || reason.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal);
                         if (!committed && recoveryRequired)
                             owner!.Recovery.Block(LegacyTradeJournal.RecoveryRequired + ":fullAccountClassPublicationUnproven:" + reason);
                     }
+                }
+                catch (LegacyCommittedSpellPublicationException)
+                {
+                    recoveryRequired = true;
+                    reason = "ordinarySpellRecoveryRequired:fullAccountClassPublicationUnproven";
+                    context.TradeRecovery?.Block(reason);
                 }
                 catch (Exception error) when (IsLegacyFullAccountClassPreparationFailure(error))
                 {

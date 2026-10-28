@@ -6,7 +6,7 @@ public sealed record LegacyRuneRankingEntry(long CharacterUid, string CharacterN
 
 // Handler-lifetime table. Offline rows persist; normalization deliberately drops evicted history.
 // Equal scores retain their current order. This is a managed policy, not native runtime tie proof.
-public sealed class LegacyRuneRankingState
+public sealed partial class LegacyRuneRankingState
 {
     public const uint MinimumScore = 10_000;
     public const int MaxRankedPlayers = 100;
@@ -39,23 +39,14 @@ public sealed class LegacyRuneRankingState
     {
         ArgumentNullException.ThrowIfNull(character);
         ArgumentNullException.ThrowIfNull(items);
-        var entry = new LegacyRuneRankingEntry(
-            character.Uid, character.Name, LegacyRuneStoragePacket.ComputeStorageScore(items));
-
-        lock (_gate)
+        if (IsCurrentThreadInsideLease || Monitor.IsEntered(_gate)) throw new InvalidOperationException("Rune rank update cannot reenter an active rank lease.");
+        _rankEntryDepth = 1;
+        try
         {
-            var index = _entries.FindIndex(candidate => candidate.CharacterUid == entry.CharacterUid);
-            if (index < 0)
-            {
-                _entries.Add(entry);
-            }
-            else
-            {
-                _entries[index] = entry;
-            }
-
-            _entries = Normalize(_entries);
+            var entry = new LegacyRuneRankingEntry(character.Uid, character.Name, LegacyRuneStoragePacket.ComputeStorageScore(items));
+            lock (_gate) _entries = PrepareCandidate(_entries, entry);
         }
+        finally { _rankEntryDepth = 0; }
     }
 
     public int? FindRank(long characterUid)

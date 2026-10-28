@@ -22,7 +22,8 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
     private readonly LegacySecondaryPasswordState pin;
     private readonly LegacyOrdinaryAdmissionUidOwner? uids;
     internal LegacyTradeRecoveryState Recovery { get; }
-    internal LegacySpellPublicationPlan LoginSpellPublication { get; }
+    internal LegacySpellPublicationPlan LoginSpellPublication { get; private set; }
+    private readonly IReadOnlySet<ushort> newLoginSpellIds;
     internal WorldSession Baseline { get; }
     internal WorldSession? Candidate { get; private set; }
     private readonly long account;
@@ -52,7 +53,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             .Where(id => !savedSpells.ContainsSpell(id)).ToHashSet();
         if (!LegacySpellPublicationPlan.TryPrepare(normalization.Spells, newLoginSpells, out var publication) || publication is null)
             throw new InvalidDataException("Ordinary admission spell publication is invalid.");
-        LoginSpellPublication = publication;
+        LoginSpellPublication = publication; newLoginSpellIds = newLoginSpells;
         native = connection.NativeGameClient; player = native?.Player; previousEquipment = native?.RawEquipmentObservation;
         characterAfter = LegacyOrdinaryAdmissionImages.Character(images[LegacyTradeJournalFileKind.Character]!, source, normalization.Character);
         spellAfter = LegacyOrdinaryAdmissionSpellImages.Project(source, images.GetValueOrDefault(LegacyTradeJournalFileKind.Spells));
@@ -109,12 +110,26 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
                 Path.GetFileName(roots.PathFor(LegacyTradeJournalFileKind.Character, account))) with { PlayerQuests = baseCharacter.PlayerQuests };
             Candidate = new(account, username, frame.ProjectOrdinaryStartupTitle(stored), items, normalization.Spells,
                 profs, CombatGear: gear, UsersRoot: roots.Users) { NativeGameClient = native };
+            if (frame.UsesOrdinarySpellBinding)
+            {
+                var savedSpellImage = changes.FirstOrDefault(change => change.Kind == LegacyTradeJournalFileKind.Spells)?.After ??
+                    images.GetValueOrDefault(LegacyTradeJournalFileKind.Spells);
+                Candidate = lease.PrepareSpellAdmission(Candidate, Recovery, roots.Spells, savedSpellImage, prefix);
+            }
+            if (!LegacySpellPublicationPlan.TryPrepare(Candidate.PlayerSpells, newLoginSpellIds, out var finalPublication) ||
+                finalPublication is null || finalPublication.Frames.Length != LoginSpellPublication.Frames.Length)
+                throw new InvalidDataException("Ordinary canonical spell publication is invalid.");
+            for (int index = 0; index < finalPublication.Frames.Length; index++)
+                if (!finalPublication.Frames[index].AsSpan().SequenceEqual(LoginSpellPublication.Frames[index]))
+                    throw new InvalidDataException("Ordinary canonical spell publication changed its prepared wire frames.");
+            LoginSpellPublication = finalPublication;
             if (!EntryCurrent() || !LegacyTradeJournal.AdmissionInputsAreCurrent(roots, account, images) ||
                 !lease.IsCurrentEmpty(connection))
             {
                 reason = "ordinaryAdmissionOwnerChanged";
                 return false;
             }
+            if (!lease.ArmPreparedSpellProof()) return false;
             preparedChanges = changes;
             using var permit = LegacyOrdinaryAdmissionMutationFence.EnterPreparedCommit(this);
             if (!LegacyTradeJournal.TryCommitOrdinaryAdmission(roots, changes, inputs, preparedAt, out reason, interruption))
@@ -138,7 +153,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
 
     internal void PublishCommittedNative()
     {
-        if (!committed || published || Candidate is null || storeLease is null || !storeLease.IsCurrentEmpty(connection))
+        if (!committed || published || Candidate is null || storeLease is null || !storeLease.HasCommittedPublicationProof())
             throw new InvalidOperationException("Ordinary admission has no current committed publication owner.");
         prefix?.PublishCommittedAdmission();
         if (native is not null && preparedEquipment is not null) native.RawEquipmentObservation = preparedEquipment;

@@ -6,6 +6,8 @@ internal enum LegacyTradeJournalFileKind { Character, Items, Quests, Mailbox, Co
 
 internal enum LegacyCharacterSpellsJournalInterruption { None, AfterPending, AfterCharacter, AfterSpells }
 
+internal enum LegacyCharacterItemsSpellsJournalInterruption { None, AfterPending, AfterCharacter, AfterItems, AfterSpells }
+
 internal sealed record LegacyTradeJournalChange(
     LegacyTradeJournalFileKind Kind, long FileId, byte[]? Before, byte[] After);
 
@@ -85,7 +87,7 @@ internal static partial class LegacyTradeJournal
             EnsureTargetsMatch(targets, allowAfter: false);
             EnsureAdmissionInputs(roots, record);
             LegacyMailboxPackageMutationFence.RequireJournalMutation(targets.Select(target => target.Path).ToArray(), record.Changes);
-            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version != 8) Directory.CreateDirectory(roots.Items);
+            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9)) Directory.CreateDirectory(roots.Items);
             Directory.CreateDirectory(roots.Journal);
             EnsureSafePath(roots.Journal);
             WriteFlushed(preparing, Serialize(record));
@@ -96,7 +98,8 @@ internal static partial class LegacyTradeJournal
                 reason = RecoveryRequired + ":interrupted";
                 return false;
             }
-            if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
+            if (record.Version == 9) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
+            else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
             else PrepareAdmissionDirectories(roots, record, targets);
             foreach (var target in targets)
                 if (!IsOrdinaryAdmissionVersion(record.Version) || !Matches(ReadTarget(target.Path), target.Change.After))

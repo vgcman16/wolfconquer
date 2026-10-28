@@ -14,17 +14,12 @@ internal sealed class LegacyTeleportOwner(
     internal bool TryCurrent(out WorldSession session) =>
         LegacyNativeClientPublication.TryCurrent(World, Connection, Uid, Identity, out session);
 
-    internal bool TryCompareAndSet(WorldSession expected, WorldSession destination)
+    internal bool TryCompareAndSet(WorldSession expected, WorldSession destination, out WorldSession? final)
     {
+        final = null;
         if (expected.Character.Uid != Uid || destination.Character.Uid != Uid)
             return false;
-        var committed = false;
-        World.WithCurrentNativeClientIdentity(Connection, Uid, current =>
-        {
-            if (ReferenceEquals(current, Identity))
-                committed = World.TryCompareAndSet(Connection, expected, destination);
-        });
-        return committed;
+        return World.TryCompareAndSetWithNativeIdentity(Connection, expected, Identity, destination, out final);
     }
 }
 
@@ -95,12 +90,13 @@ public static partial class WorldPacketHandlers
     }
 
     internal static bool TryCommitOwnedLegacyTeleport(
-        WorldPacketHandlerContext context, WorldSession expected, WorldSession destination)
+        WorldPacketHandlerContext context, WorldSession expected, WorldSession destination, out WorldSession? final)
     {
+        final = null;
         if (context.TeleportOwner is not { } owner)
-            return context.Sessions?.TryCompareAndSet(context.Connection, expected, destination) == true;
+            return context.Sessions?.TryCompareAndSet(context.Connection, expected, destination, out final) == true;
         return ReferenceEquals(context.Connection, owner.Connection) &&
-            ReferenceEquals(context.Sessions, owner.World) && owner.TryCompareAndSet(expected, destination);
+            ReferenceEquals(context.Sessions, owner.World) && owner.TryCompareAndSet(expected, destination, out final);
     }
 
     private sealed class LegacyTeleportOwnerRetiredException : Exception { }

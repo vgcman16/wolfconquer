@@ -78,11 +78,11 @@ public sealed class LegacyNativeClientProficiencyRecordTests
         Assert.Null(typeof(LegacyNativeGameClientRuntime).GetProperty("MyProfs", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance));
         Assert.Null(client.MyProfs);
         var first = new LegacyNativeProficiencyStorage(client);
-        var second = new LegacyNativeProficiencyStorage(null!);
+        Assert.Throws<ArgumentNullException>(() => new LegacyNativeProficiencyStorage(null!));
         var owner = typeof(LegacyNativeProficiencyStorage).GetField("Owner", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        Assert.Same(client, owner.GetValue(first)); Assert.Null(owner.GetValue(second));
-        Assert.NotSame(first.ClientProf, second.ClientProf);
-        Assert.Empty(first.ClientProf); Assert.Empty(second.ClientProf);
+        Assert.Same(client, owner.GetValue(first));
+
+        Assert.Empty(first.ClientProf);
         var replacement = new ConcurrentDictionary<uint, LegacyNativeMsgProficiency>();
         first.ClientProf = replacement;
         client.MyProfs = first;

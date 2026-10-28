@@ -91,66 +91,38 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        var updatedItems = session.PlayerItems;
-        var mutationFrames = new List<byte[]>();
-        var unequippedCount = 0;
-        if (TryUnequipFirstMatchingRune(
-            updatedItems,
-            item => item.ItemId == selectedRune.ItemId && item.Position != LegacyRuneBagPosition,
-            out updatedItems,
-            out var sameRuneFrame))
+        var requestEcho = CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame));
+        if (!TryCommitLegacyItemSpell(context, session, (stable, identity) =>
+            {
+                if (stable.Character.Reborn < 2 || stable.Character.Level < 15 || packet.DwParam > ushort.MaxValue ||
+                    !TryGetRuneItem(stable.PlayerItems, packet.Id, out var owned) || owned.ItemId != selectedRune.ItemId ||
+                    owned.Locked != 0 || owned.StackSize == 0 || owned.DepositedItems.Count != 0 ||
+                    !IsLegacyRuneEquipSlot(owned.ItemId, requestedPosition) ||
+                    !TryReadItemType(context.WorldData, owned.ItemId, out var metadata) ||
+                    !PassesLegacyItemClassRequirement(stable.Character, metadata) || !PassesLegacyItemLevelRequirement(stable.Character, metadata))
+                    throw InvalidSpellMutation();
+                if (stable.PlayerItems.RuneItems.Any(row => row.Locked != 0 && row.Position != LegacyRuneBagPosition &&
+                    (row.ItemId == owned.ItemId || row.Position == requestedPosition))) throw InvalidSpellMutation();
+                var items = stable.PlayerItems; var output = new List<byte[]>();
+                if (TryUnequipFirstMatchingRune(items, row => row.ItemId == owned.ItemId && row.Position != LegacyRuneBagPosition,
+                    out items, out var same)) output.Add(same);
+                if (TryUnequipFirstMatchingRune(items, row => row.Position == requestedPosition && row.Position != LegacyRuneBagPosition,
+                    out items, out var slot)) output.Add(slot);
+                var chosen = items.RuneItems.Single(row => row.Uid == owned.Uid);
+                items = ReplaceRuneItem(items, chosen, chosen.WithPosition(requestedPosition));
+                var changed = ClampLegacyEquipmentRuntimeHitpoints(stable with { PlayerItems = items }, context.WorldData);
+                changed = NormalizeItemSpellHitpoints(stable, changed);
+                var refresh = BuildItemSpellRefresh(context, changed, identity);
+                output.Add(requestEcho); output.AddRange(refresh);
+                return new ItemSpellProjection(changed, output.ToArray(), refresh);
+            }, cancellationToken, out var updatedSession, out var preparedFrames, out var publicationIdentity, out var reason))
         {
-            mutationFrames.Add(sameRuneFrame);
-            unequippedCount++;
+            await context.Log.WriteLineAsync($"WorldServer held MsgItemUsage equip rune reason={reason}; no success was published.").ConfigureAwait(false);
+            return;
         }
-
-        if (TryUnequipFirstMatchingRune(
-            updatedItems,
-            item => item.Position == requestedPosition && item.Position != LegacyRuneBagPosition,
-            out updatedItems,
-            out var slotRuneFrame))
-        {
-            mutationFrames.Add(slotRuneFrame);
-            unequippedCount++;
-        }
-
-        var latestSelected = updatedItems.RuneItems.First(item => item.Uid == selectedRune.Uid);
-        updatedItems = ReplaceRuneItem(updatedItems, latestSelected, latestSelected.WithPosition(requestedPosition));
-
-        var updatedSession = ClampLegacyEquipmentRuntimeHitpoints(
-            session with { PlayerItems = updatedItems },
-            context.WorldData);
-        context.Sessions?.Set(context.Connection, updatedSession);
-        var updatedContext = context with { Session = updatedSession };
-
-        await TryPersistLegacyItemUsageMutationAsync(
-                updatedContext,
-                updatedSession,
-                "equip rune",
-                characterValues: null,
-                persistItems: true)
-            .ConfigureAwait(false);
-
-        foreach (var mutationFrame in mutationFrames)
-        {
-            await context.Connection.SendAsync(mutationFrame, cancellationToken).ConfigureAwait(false);
-        }
-
-        await context.Connection.SendAsync(
-                CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame)),
-                cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacyEquipmentRuntimeRefreshAsync(updatedContext, updatedSession, cancellationToken)
-            .ConfigureAwait(false);
-
-        await context.Log.WriteLineAsync(
-                "WorldServer handled MsgItemUsage equip rune " +
-                $"{FormatSession(updatedContext)} source={LegacyRuneEquipmentSource} sourceLines={LegacyEquipRuneLines} " +
-                $"itemUid={selectedRune.Uid} itemId={selectedRune.ItemId} position={requestedPosition} " +
-                $"unequippedCount={unequippedCount}.")
-            .ConfigureAwait(false);
+        await PublishItemSpellFramesAsync(context, updatedSession, preparedFrames, publicationIdentity, cancellationToken).ConfigureAwait(false);
+        await context.Log.WriteLineAsync($"WorldServer committed MsgItemUsage equip rune {FormatSession(context with { Session = updatedSession })} itemUid={selectedRune.Uid}.").ConfigureAwait(false);
     }
-
     private static async ValueTask HandleLegacyUnequipRuneAsync(
         WorldPacketHandlerContext context,
         WorldSession session,
@@ -212,61 +184,38 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        // Ranking admission is read-only; retain the existing managed transfer even if native would reject.
-        var rankAdmissionSession = session;
-        var publishRuneRank = TryRefreshLegacyPlayerMagicResourceSession(
-                context, session.Character.Uid, ref rankAdmissionSession) &&
-            rankAdmissionSession.Character.Reborn >= 2 &&
-            rankAdmissionSession.Character.Level >= 15 &&
-            HasLegacyInventorySpace(rankAdmissionSession.PlayerItems, 1) &&
-            !TryReadLegacyVendorState(rankAdmissionSession.Character, out _) &&
-            TryGetRuneItem(rankAdmissionSession.PlayerItems, packet.Id, out _);
-
-        var updatedItems = ReplaceRuneItem(session.PlayerItems, rune, rune.WithPosition(LegacyRuneStoragePosition));
-        var updatedSpells = RemoveLegacyUnequippedRuneSpell(context, session.PlayerSpells, rune, out var removedSpellId);
-        var updatedSession = ClampLegacyEquipmentRuntimeHitpoints(
-            session with { PlayerItems = updatedItems, PlayerSpells = updatedSpells },
-            context.WorldData);
-        context.Sessions?.Set(context.Connection, updatedSession);
-        var updatedContext = context with { Session = updatedSession };
-
-        await TryPersistLegacyItemUsageMutationAsync(
-                updatedContext,
-                updatedSession,
-                "unequip rune",
-                characterValues: null,
-                persistItems: true)
-            .ConfigureAwait(false);
-
-        if (removedSpellId is { } spellId)
+        var requestEcho = CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame));
+        if (!TryCommitLegacyItemSpell(context, session, (stable, identity) =>
+            {
+                if (stable.Character.Reborn < 2 || stable.Character.Level < 15 || !HasLegacyInventorySpace(stable.PlayerItems, 1) ||
+                    TryReadLegacyVendorState(stable.Character, out _) || !TryGetRuneItem(stable.PlayerItems, packet.Id, out var owned) ||
+                    owned.ItemId != rune.ItemId || owned.Locked != 0 || owned.StackSize == 0 || owned.DepositedItems.Count != 0 ||
+                    !TryReadItemType(context.WorldData, owned.ItemId, out _))
+                    throw InvalidSpellMutation();
+                var currentRank = stable;
+                var updateRank = context.RuneRankings is not null &&
+                    TryRefreshLegacyPlayerMagicResourceSession(context, stable.Character.Uid, ref currentRank) &&
+                    currentRank.Character.Reborn >= 2 && currentRank.Character.Level >= 15 &&
+                    HasLegacyInventorySpace(currentRank.PlayerItems, 1) && !TryReadLegacyVendorState(currentRank.Character, out _) &&
+                    TryGetRuneItem(currentRank.PlayerItems, packet.Id, out _);
+                var items = ReplaceRuneItem(stable.PlayerItems, owned, owned.WithPosition(LegacyRuneStoragePosition));
+                var spells = RemoveLegacyUnequippedRuneSpell(context, stable.PlayerSpells, owned, out var removed);
+                var changed = ClampLegacyEquipmentRuntimeHitpoints(stable with { PlayerItems = items, PlayerSpells = spells }, context.WorldData);
+                var output = new List<byte[]>();
+                if (removed is { } id) output.Add(new MsgActionPacket { ObjId = CheckedUInt32(changed.Character.Uid, nameof(changed.Character.Uid)),
+                    DwParam = id, Type = (MsgActionType)109 }.ToFrameBytes());
+                changed = NormalizeItemSpellHitpoints(stable, changed);
+                var refresh = BuildItemSpellRefresh(context, changed, identity);
+                output.Add(requestEcho); output.AddRange(refresh);
+                return new ItemSpellProjection(changed, output.ToArray(), refresh, updateRank);
+            }, cancellationToken, out var updatedSession, out var preparedFrames, out var publicationIdentity, out var reason))
         {
-            await context.Connection.SendAsync(new MsgActionPacket
-                {
-                    ObjId = CheckedUInt32(updatedSession.Character.Uid, nameof(updatedSession.Character.Uid)),
-                    DwParam = spellId,
-                    Type = (MsgActionType)109,
-                }.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+            await context.Log.WriteLineAsync($"WorldServer held MsgItemUsage unequip rune reason={reason}; no success was published.").ConfigureAwait(false);
+            return;
         }
-
-        await context.Connection.SendAsync(
-                CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame)),
-                cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacyEquipmentRuntimeRefreshAsync(updatedContext, updatedSession, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (publishRuneRank)
-        {
-            UpdateLegacyRuneRanking(updatedContext, updatedSession);
-        }
-
-        await context.Log.WriteLineAsync(
-                "WorldServer handled MsgItemUsage unequip rune " +
-                $"{FormatSession(updatedContext)} source={LegacyRuneEquipmentSource} sourceLines={LegacyUnequipRuneLines} " +
-                $"itemUid={rune.Uid} itemId={rune.ItemId} position={LegacyRuneStoragePosition}.")
-            .ConfigureAwait(false);
+        await PublishItemSpellFramesAsync(context, updatedSession, preparedFrames, publicationIdentity, cancellationToken).ConfigureAwait(false);
+        await context.Log.WriteLineAsync($"WorldServer committed MsgItemUsage unequip rune {FormatSession(context with { Session = updatedSession })} itemUid={rune.Uid}.").ConfigureAwait(false);
     }
-
     private static bool TryUnequipFirstMatchingRune(
         PlayerItemSnapshot items,
         Func<PlayerItemSnapshotItem, bool> predicate,

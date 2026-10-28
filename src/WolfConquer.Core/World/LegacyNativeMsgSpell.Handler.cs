@@ -10,6 +10,8 @@ internal partial class LegacyNativeMsgSpell
         ArgumentNullException.ThrowIfNull(client);
         LegacyNativeSpellStorage.RequireDirectEntry(client);
         var request = ReadSoulRequest(stream);
+        var joined = LegacyNativeSpellStorage.GetJoinedBindingForClientEntry(client);
+        if (joined is not null) { HandleJoinedSoul(joined, stream, request); return; }
         var incoming = request.Value;
         LegacyNativePlayerRuntime player;
         LegacyNativeSpellStorage storage;
@@ -24,6 +26,8 @@ internal partial class LegacyNativeMsgSpell
             lock (player.SpellAdmissionSyncRoot)
             {
                 LegacyNativeSpellStorage.RequireDirectEntry(client);
+                if (LegacyNativeSpellStorage.GetJoinedBindingForClientEntry(client) is not null)
+                    throw new InvalidOperationException("Soul owner was admitted during unbound preparation.");
                 storage = client.MySpells ?? throw new InvalidOperationException("Soul request requires the actual spell owner.");
                 socket = client.Socket; fake = client.Fake;
                 lock (storage.MutationGate)

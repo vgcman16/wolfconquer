@@ -15,7 +15,7 @@ internal partial class LegacyNativeSpellStorage
         RequireNinjaSpellOwner(client, player, uid);
         if (choices is null || choices.Length > 16 || managedSkills is null || managedSkills.Length != 25)
             throw UnavailableNinjaSpells(); // Eight selected positions, two actual skill fields each.
-        return new(this, client, player, uid, choices, managedSkills);
+        return new(this, client, player, uid, new LegacyNativeSpellMutationIntent.NinjaRefresh(choices, managedSkills));
     }
 
     private void RequireNinjaSpellOwner(LegacyNativeGameClientRuntime client,

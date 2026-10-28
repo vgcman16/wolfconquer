@@ -1,298 +1,161 @@
-# visible-dx8-d13-ordinary-spell-coherence: Store and physical spell membership
+# VisibleDx8D13 ordinary spell and proficiency coherence
 
 ## Identity and scope
 
-Revision 1, 2026-10-27; Root-requested source-only P1 integration design. Source is
-the canonical public tree after Ninja checkpoint 9e779d5d. P0 class/level hydration
-is a separate frozen proposal. Full run 40555473262 does not qualify this design.
-No source implementation, execution, Git, runtime adoption or client action is
-part of this artifact. Held Guild/Union paths and rank persistence are excluded.
+Revision 3, 2026-10-28. This replaces the earlier read/mirror-only proposal.
+The target remains the actual VisibleDx8D13 ordinary managed session and its
+constructor-owned native client/Player, Spells and Proficiencies. The map lane
+postimage is source only and has not been compiled, tested, integrated, activated
+or published by its author. Root owns qualification and the actual Store join.
 
-Target is the existing `VisibleDx8D13` ordinary managed session. The immediate
-goal is a genuine constructor-bound MySpells whose persisted membership agrees
-with the current Store session after every cooperating publication. It is not a
-detached snapshot used as runtime authority. Ninja Loading, paid operations,
-native socket adoption and new request handlers remain separate.
+The implementation joins native spell Add/Remove/Reborn/Clear/Update, selected
+soul, XP, Ninja Loading/Alternate, rooted spell load/save and SendAll to the
+Store-issued binding. Native proficiency Add/CheckUpdate/SendAll use the same
+real owner and gates. This does not implement SQL, all casting/progression rules,
+full native SaveClient, or proficiency file durability.
 
 ## Packet contract
 
-No new packet/schema/order is proposed. Managed spell frames remain opcode 2101;
-removal remains the existing MsgAction 109. Ordinary admission sends AnswerOk after
-durable commitment and uses the real connection. Existing saved-spell publication
-belongs to Action 78; the startup slot sends only newly normalized login grants.
+No new opcode/schema is invented. Retain existing successful ordering and framing.
 
-| Field/path | Number/offset | Wire type/width | Meaning | Presence/repetition | Bounds/default | Evidence |
-| --- | --- | --- | --- | --- | --- | --- |
-| Managed spell | opcode2101 | Existing typed frame | Learned/progression/soul state | Existing producers | Existing codec bounds | `LegacySpellPacket.cs` |
-| Removal | MsgAction.Type109 | Existing action frame | Remove learned ID | Existing removals | Existing UID/ID fields | DerivedSpells, SkillEraser |
-| Ninja user/items |2393/2395 source constants | Component codecs | Native component output | Not added here | Placement/request authority unresolved | Frozen hydration spec |
-
-Membership preparation must not send. Caller-owned valid frames retain their
-existing order. A send failure after commitment is not an uncommitted rejection.
-
-## Catalog/table contract
-
-`Data/PlayerSpellSnapshot.cs` models complete 12-byte little-endian saved records:
-UInt16 ID, UInt16 Level, Int32 XP, byte PreviousLevel, byte SoulLevel, byte
-UseSpellSoul and one opaque padding byte. The snapshot models the first 11 bytes.
-`LegacyOrdinaryAdmissionSpellImages.Project` deliberately preserves old raw rows
-and padding when appending the actual 1110 grant. P1 must not re-encode unchanged
-saved membership merely to hydrate a runtime owner.
-
-| Column/offset | Name | Type/width/encoding | Validation | Packet/behavior relation | Evidence |
-| --- | --- | --- | --- | --- | --- |
-| Header0 | Count | Int32 LE | Exact complete count/length | Saved membership | PlayerSpellSnapshotLoader |
-| Row0 | ID | UInt16 LE | Positive, unique raw ID | Real native row.ID/key | Ordinary saved validation |
-| Row2/4/8 | Level/XP/PreviousLevel | UInt16/Int32/byte | Native width; XP nonnegative at ordinary admission | Persisted fields | Same loader/native MsgSpell |
-| Row9/10 | SoulLevel/UseSpellSoul | byte/byte | SoulLevel retains byte domain; selected soul must roundtrip0..4 | Native setters | LegacyNativeMsgSpell |
-| Row11 | Opaque | byte | Preserve unchanged raw bytes | Not invented as a field | OrdinaryAdmissionSpellImages |
-
-Native ClientSpells additionally stores cooldowns, packet fields, Soul,
-HashLevelSoul, StampSpell and other transient fields. Rebuilding all rows on each
-Store change would lose these values. Existing row-copy code in
-`LegacyNativeSpellStorage.DirectWriters.cs` and the complete SpellValues witness
-in `.Preparation.Rows.cs` establish the available physical fields. A changed
-persisted row needs a private copy retaining its other actual values; unchanged
-rows may retain physical identity. New rows use the genuine native row type and
-setters. Preserve the actual map comparer and validate both raw identities and
-comparer lookup/insertion results before the final plain fence.
-
-No spell metadata is fabricated. Unknown saved IDs are membership, not permission
-to cast. The current native selected-soul setter maps unsupported bytes to None;
-ordinary native adoption must refuse unrepresentable saved selection, not silently
-erase it. Missing saved files follow existing admission empty membership, without
-inventing a file or runtime cast authority.
-
-## Validation and transaction rules
-
-### Actual Store publication map
-
-All listed methods write SessionHolder; no central spell join currently exists.
-`SessionHolder.Publish` only changes holder identity on UID change and performs
-Volatile.Write. Lock-free TryGet/Snapshot are point-in-time reads. The existing
-Frame callback is **after** publication and cannot be a preflight participant.
-
-| Actual entrypoint/source | Existing eligibility and publication | Durable boundary | Required coherent join |
-| --- | --- | --- | --- |
-| `WorldSessionStore.cs` Set | Mailbox fence; actual connection gate; takes current holder; Publish then callback | Frame callback saves sidecars after memory; I/O gaps are logged | Prepare current/proposed spells before either store; plain native-map + final-session publication under ordered real gates; do not use callback to create owner |
-| Same, TryCompareAndSet | Exact expected record and mailbox fence under same gate; Publish then callback | Same post-publication auto-save | Same prepared participant; false on stale expected; no native change on failed CAS |
-| `LegacyNativeClientPublication.TryUpdate` | Holds current holder identity gate, reads current, executes synchronous update then calls Set reentrantly | Inherits Set callback | Real EquipmentQuery path; preserve necessary internal composition while refusing comparer/public mutation reentry |
-| `WorldSessionStore.PersistedTransactions.cs` TryCommitSession | Expected identity/mailbox fence; existing persist callback; then Publish | persist returns true before memory; no ordinary callback | Prepare spells before persist; final plain proof after callback; publish prepared membership only after actual success |
-| Same, TryCommitPair | Ordered two connection gates; both expected records; one persist callback; first/second Publish | Persist-before-both; no ordinary callback | Prepare both participants before persist; no allocation/comparer between first and second publication; retain shared connection order |
-| `WorldSessionStore.PreparedPersistence.cs` TryCommitPreparedSession | Genuine bound mailbox producer; expected record; callback returns final session; Publish; finish producer publication | Callback already owns durable intent/commit before it returns | Current mailbox plan does not change spells. Require returned spell membership to match the captured baseline; do not introduce a late allocating spell preparer after durable work |
-| `WorldSessionStore.OrdinaryAdmission.cs` TryCommitOrdinaryAdmission | Empty real holder lease, account/recovery/mailbox checks, actual actor/PIN gates; durable plan; native prefix; Publish | Actual joint journal before volatile publication; committed PIN failure retires/fences recovery | Prepare detached real SpellStorage and immutable membership as admission participant before writer; publish slot/binding with prepared native prefix and holder; no accepting constructor callback |
-| `WorldSessionStore.MailboxPackages.cs` TrySetMailboxRecoveryOwner | Empty holder plus genuine producer's read-only admission; Publish | Exact recovery load; no ordinary callback | Keep mailbox-only authority separate. No ordinary binding by adjacency; reject replacement of an existing ordinary holder |
-| `WorldSessionStore.CompleteLogin.cs` TryCompleteLegacyLogin | Actual current owner; copies current Character attributes; native CompleteLogin; Publish/callback | Callback for actual deltas; PlayerSpells is retained current | Carry the same prepared spell binding/map without rebuilding rows; prove no membership change before native CompleteLogin store |
-| `WorldSessionStore.cs` TryRemove/Clear | Actual connection gate; retire holder identity and remove | No spell save here | Retire ordinary binding with the holder. A late publisher cannot authorize itself with the same UID/new holder |
-
-The inspected Trade.Exchange and Mail.Claims.PackageCommit plans retain
-PlayerSpells. The transaction APIs nevertheless accept complete proposed sessions,
-so their publication contract can change spells even when current callers do not.
-They must still pass through the central participant: an unrelated stale full-record Set can overwrite newer spells without
-containing a `PlayerSpells =` assignment. Do not solve that by guessing or merging
-business intent. For a bound ordinary owner, changed membership requires an exact
-expected current record. Current-only transformations such as EquipmentQuery can
-continue under the real holder gate; stale copies refuse before durable/state work.
-
-### Actual spell-changing producers and durability
-
-This is the complete set of explicit managed PlayerSpells record assignments in
-tracked Core, plus actual initial construction. Each row identifies its consuming
-publication boundary, not merely a reference to the field.
-
-| Producer/method | Change and actual order | Durable/outer boundary needing treatment |
+| Output | Existing native authority | Prepared behavior |
 | --- | --- | --- |
-| `WorldPacketHandlers.EquipmentQuery.DerivedSpells.cs` SetNativeDerivedSpellAsync / RemoveNativeDerivedSpellAsync |21930 rank-derived and20000 venom membership; Commit -> TryUpdate -> Set; then managed spell/removal frame | Frame auto-save only; genuine startup mutation makes one-time login mirroring insufficient |
-| `WorldPacketHandlers.LegacySpell.cs` HandleLegacySpellAsync | Learned soul eligibility; replace selected row; Set; explicit spell Save; response | Both callback and explicit Save can write; no pre-memory durable guarantee |
-| `WorldPacketHandlers.PlayerMagic.SpellExperience.cs` TryApplyLegacyPlayerMagicSpellExperienceAsync | Real damage/metadata calculation; Set new XP/level; explicit Save; frame | Many attack callers already committed damage/resources earlier; membership coherence does not make whole cast atomic |
-| `WorldPacketHandlers.ItemUsage.SkillBooks.cs` HandleLegacySkillBookUseAsync | Real book/class/requirements; prepare learned row and consumed item; Set both; save spells then items; consume/spell/dialog frames | Cross-file item+spell cost requires actual joint transaction before calling a new fallible join; not repaired by mirrored maps |
-| `WorldPacketHandlers.ItemUsage.RuneEquipment.cs` HandleLegacyUnequipRuneAsync | Rebirth/level/capacity/vendor/item gates; prepare item move and removed rune spell; Set; item persistence; removal and equipment refresh | Item+spell membership changes together; callback currently saves spells; no single durable transaction shown |
-| `NpcEntrypoints.PromotionMasters.SkillLearning.cs` ApplyLegacyPromotionMasterSpellsAsync | Earlier class/level/learned checks; Set; explicit Save; caller spell/dialog publication | Use exact expected membership participant; preserve actual positive eligibility |
-| `NpcEntrypoints.PromotionMasters.Trojan.cs` ApplyLegacyPromotionSpellsAsync | Same Store-first/save-next spell update, including source grant batches | Character promotion helper is separate; do not claim whole promotion transaction |
-| `NpcEntrypoints.SkillEraser.cs` TryHandleLegacySkillEraserNpcAsync | Actual selected learned ID; Set removal; optional Save; action109/dialog | Safe missing-state refusal must precede membership/packet outputs |
-| `NpcEntrypoints.SubclassMasters.cs` HandleLegacyPerformerDanceAsync | Real performer/option prerequisites; requires Store/spell root; **Save first**, then Set; spell/effect/system frames | A new fallible join after Save would dirty durable state. Prepare/lease before actual file write; callback repeats save after Set |
-| `NpcEntrypoints.AccountSecurity.FullAccount.Class.cs` ApplyLegacyAccountSecurityFullAccountClassAsync | Real roots/gates/projection; custom Character+spell persistence first; Set; outputs | `.Class.Persistence.cs` replaces two files with in-process rollback attempts, not the ordinary journal. Join must be prepared before this persistence; whole class change remains separate |
-| Ordinary `LegacyOrdinaryAdmissionPlan` | Complete saved rows + actual missing lineage1110 normalization; Candidate constructor; joint journal; native prefix; holder | Best first owner-adoption participant: use normalized committed image and empty holder lease; retain opaque saved padding |
-| `WorldServerFrameHandler.SessionStartup.cs` StartWorldSessionAsync | Alternate internal handoff/new-role path runs starter/class sanitation/grants with saves, constructs full session, Set | Separate from ordinary existing-character plan. Must not receive ordinary authority automatically; initially remain unbound or receive its own proven preparation |
-| `WorldServerFrameHandler.MailboxRecoveryStartup.cs` | Exact read-only recovery candidate loads saved spells and enters recovery holder | Mailbox-only; no ordinary native spell adoption |
+| Spell2101 | LegacyNativeSpellPacket.PrepareSpellFrame | Full21-byte payload; source soul/hash fields |
+| Removal action109 | LegacyNativeActionPacket | Actual player UID and removed ID |
+| Proficiency2041 | Native ProficiencyCreate | ID, level, XP, actual threshold |
+| Proficiency XP2199 | Native UpdateProfExperienceCreate | XP, actual threshold, ID, eight zero bytes |
+| System2179 | Native MsgMessage.GetArray | Actual protobuf serializer, SYSTEM/ALL, red, TopLeftSystem |
+| Ninja2393/2395/badge | Existing Ninja sequence codecs | Preserve the source sequence after complete preparation |
 
-The two startup callers are the internal handoff path and completed new-role path
-in `WorldServerFrameHandler.cs`. The older starter/class-gate helpers are reached
-through that StartWorldSessionAsync chain, not through ordinary normalization.
+Frames are fully owned byte arrays before commitment. The progression system
+message uses a genuine recycled native packet only during preparation, copies the
+complete frame, and releases that rental before any send. It does not hand a
+pooled pointer to an outstanding transport task.
 
-### Proposed smallest complete ordinary join
+The spell-associated proficiency pass precedes the spell-level message/spell
+frame; a physical attack's proficiency pass follows it. Each pass handles right
+then left weapon. First-call proficiency initialization still creates level0/XP0;
+actual later training uses the real threshold table and violet-gem input.
+Widened arithmetic prevents the native unsigned award wrap. No absent gem owner
+is queried for Add, zero awards, missing-row initialization or level20 no-op.
 
-**Recommended activation boundary:** session-owned persisted membership plus a real
-physical mirror. It is a cooperating-writer guarantee, not a universal concurrent
-snapshot. A new native slot cannot become independently writable authority.
+## Catalog and persisted layouts
 
-1. Store alone issues an ordinary binding at committed empty-holder admission.
-   Bind exact Store, connection, holder NativeClientIdentity, account/UID, physical
-   client/Player, actual constructor-bound SpellStorage and current spell image.
-   Do not use callbacks, copied UID tokens or mailbox authority as issuance.
-2. Before durable work, prepare a frozen private canonical PlayerSpellSnapshot,
-   all required native row/map copies, and exact current-row/comparer witnesses.
-   Keep native transient fields for existing entries. Required raw counts/IDs,
-   representation and owner faults refuse before files, actor stores or frames.
-   The final session record must contain that stable snapshot rather than the
-   caller's mutable array/list. Return the actual final record to internal callers
-   that need CAS/identity; do not keep using a discarded proposed record.
-3. All real publication paths in the table consume that same participant. Ordered
-   locks are package/domain scopes -> connection gate(s) -> client -> Player ->
-   actual SpellGate. Prepare comparer-capable work before the final plain fence;
-   no new callouts/allocations after durable success or between paired stores.
-4. For Set/CAS's existing post-save behavior, call the outcome **memory committed,
-   durability unproven** until a real spell-file transaction is adopted. A failed
-   auto-save cannot roll back a committed map or allow duplicate grants. Durable
-   callers must prepare before their writer; do not move preflight after it.
-   If an actual durable writer succeeds but the final current-owner proof fails,
-   retain/fence committed recovery work; never report unchanged rejection or
-   discard the durable outcome as though no grant happened. The ordinary journal
-   already has that classification. A generic bool persist result by itself does
-   not prove crash recovery for every other producer.
-5. Do not silently permit native reverse writes. Existing Add/Remove/Reborn/Clear/
-   Update, Ninja prepared skill publication, native soul/XP commits and spell-file
-   loading can alter ClientSpells without Store. Their current actor->SpellGate
-   order cannot acquire Store afterward. For the first ordinary **read/mirror**
-   milestone, refuse these unjoined typed writes for this genuine binding before
-   actor locks; detached/unbound component fixtures retain their existing APIs.
-   Alternatively implement their reverse Store transaction in the same batch.
-   This is an explicit activation choice for Root, not an accepting fallback.
-6. Managed publishers pin current Store holder + physical mirror + exact prepared
-   membership before/after each await, reusing LegacySpellPublicationOwner's actual
-   lifetime pattern. Retire on Remove/UID/owner/slot change. No native Socket or
-   queue substitution is used. Preserve Action78/startup order.
+Saved Spells are complete12-byte little-endian rows: ID0/UInt16, Level2/UInt16,
+XP4/Int32, Previous8/byte, SoulLevel9/byte, selected soul10/byte and opaque byte11.
+IDs must be positive/unique, XP nonnegative, and selected soul must roundtrip0..4
+through the genuine native setter. SoulLevel retains its byte storage domain.
 
-Reverse-write sources requiring either refusal or integration are
-`LegacyNativeSpellStorage.Mutation{,.Plan}.cs`, `.Preparation.Change.cs` consumed by
-`LegacyNativeNinja.Loading.Operation.cs`, `.DirectWriters.cs` consumed by
-`LegacyNativeMsgSpell.Handler.cs`, `LegacyNativeUpdateSpell.DirectCommit.cs` and
-`Data/LegacyNativeServerDatabasePersistence.SpellLoad.cs`. Native file Save is a
-durable writer too; it cannot bypass an ordinary binding's actual disk authority.
-Public mutable ClientSpells/row fields and raw writers remain an explicit limit;
-subsequent consuming preflight must detect divergence, not silently heal it.
+Saved Proficiencies are the actual20-byte rows: ID0/UInt32, Level4/UInt32,
+Previous8/byte, opaque9..11, XP12/UInt32, Needed16/UInt32. The in-memory participant
+preserves the five modeled native fields; it does not claim to save opaque bytes
+or invent a profile file route.
 
-## Expected wire behavior and fixtures
+Existing native spell rows also contain cooldown/packet fields, Soul,
+HashLevelSoul and StampSpell. Equal persisted rows retain physical identity.
+Changed rows copy all actual transients. SoulLevel uses the real setter's OR
+behavior; changing only XP/level/selection preserves the existing hash mask.
+New rows use the real native row type. Unknown saved IDs remain opaque membership,
+never invented cast permission. Actual Magic/rune metadata controls file filtering.
 
-Root qualification must use real Store/connection/client/Player, constructor-bound
-SpellStorage, actual saved rows and actual packet capture. No accepting persistence
-or fake owner callbacks establish the join.
+## Ownership and preparation
 
-- Ordinary saved + normalized1110 membership agrees in canonical session and native
-  rows after real journal commit, preserving raw padding and physical owner identity.
-- Actual startup EquipmentQuery adds/replaces/removes21930/20000, then both graphs
-  and unchanged transient fields agree; valid frames/order retain existing goldens.
-- Every Store entrypoint's stale/malformed/foreign/throwing comparer preparation
-  fails unchanged before its actual durable writer; paired preparation failure
-  changes neither side. Prepared-mailbox returned membership change is refused
-  before intent via a required producer invariant, not late rollback fiction.
-- A stale unrelated record cannot restore an older spell list; equal modeled
-  membership is carried without resetting cooldowns or row identity.
-- Selected soul0..4 roundtrips; unsupported saved selection refuses ordinary
-  adoption without changing files/Store/owners. Test null/duplicate/ID0/negativeXP
-  and mutated caller lists through actual Store consumers.
-- Retire/remove/recreate same UID invalidates publication. Test wrong physical
-  Player/MySpells, pre-held inverse gates and genuine comparer reentry.
-- Explicit native-bound write refusal or a real reverse transaction is tested
-  through existing Add/Remove/Loading/soul/XP/file entrypoints; no dirty-prefix
-  assertions. Tiny native buffers remain corrected-only under existing policy.
-- Durable-before-Set dance/full-account paths and resource-consuming skill-book/
-  rune paths need their own real prepared transaction controls before activation.
+Only genuine ordinary admission may issue the binding. Its exact Store holder,
+connection/native identity, physical client/Player/UID, real Spells/Proficiencies,
+configured Recovery and canonical roots remain pinned. The client keeps the
+binding privately after retirement, even if MySpells becomes null or is replaced;
+the same client cannot regain unbound mutation or ordinary admission by that edit.
+A new physical client follows normal admission. No UID-only authority, fake owner,
+native Socket acceptance route or test-only comparer injection is introduced.
 
-## Evidence alignment
+Ordinary admission constructs default-comparer storages. There is no genuine
+pre-admission custom-comparer adoption seam. Detached/unbound map preparation
+preserves and validates the actual existing comparer; tests must not install a
+new comparer after admission and call it the original ordinary map.
 
-| Requirement | Spec clause | Decoded catalog reference | Bounded wire fixture | Status/conflict |
-| --- | --- | --- | --- | --- |
-| Saved physical membership | Table + admission join | Actual12-byte snapshot schema | Existing spell codec | Source-supported; no owner implementation yet |
-| Startup-derived coherence | Producer table | Actual equipment/rank rows | Existing managed frames | Concrete immediate one-time-hydration gap |
-| Central authority | Publication table | Not applicable | Not applicable | All holder publication methods traced |
-| Durable guarantees | Each publication/producer row | Real file/journal sources | Not applicable | Best-effort callback and custom earlier saves differ; do not conflate |
-| Native reverse mutation | Join step5 | Native metadata remains required | Component tests only | Real unresolved authority/lock-order boundary |
+All joined writers take Store/package/connection authority before client, Player,
+Spell, then Proficiency gates. Each Store publication prepares and freezes both
+snapshots before any durable writer. Native reverse writers also prepare/prove
+the unchanged counterpart, so profile changes cannot drift behind spell writes.
+Closed typed immutable intents carry Add/Remove/Reborn/Clear, Soul, Progress,
+loaded values and Ninja choices; no object bag or arbitrary accepting callback.
 
-## Implementation and qualification
+Private map/key/row-identity anchors reject raw dictionary replacement between
+operations. Complete witnesses additionally compare every captured scalar during
+an operation. For original AND candidate dictionaries, enumerators are allocated
+before callbacks and first advanced afterward. The prewriter and postwriter
+witnesses are distinct one-use proofs. Raw same-count key/row replacement and
+changes visible after resize are checked without comparer lookup or allocation.
+Candidate coverage includes genuinely exposed Ninja.Added native rows. A final
+proof never accepts count/generation alone. This is cooperating-owner coherence,
+not a universal snapshot claim against arbitrary concurrent field writes.
 
-No production postimages are authorized by this spec alone. Proposed first source
-assignment is **one consumed batch**, not an orphan converter:
+Ninja prepares spells, ranks, frames and storage before rank/Character badge/map
+stores. All fallible checks finish before the first store. Compound XP prepares
+real proficiency and spell projections and every frame before either map/holder
+changes. It does not invoke a fallible proficiency mutation after a spell commit.
 
-- New `World/LegacyNativeSpellStorage.SessionSnapshot.cs`: complete persisted-field
-  projection/preparation on genuine rows; no slot/packet/disk writes.
-- New `World/LegacyOrdinarySpellOwner.cs` and
-  `World/WorldSessionStore.SpellPublication.cs`: Store-issued binding, exact prepared
-  holder participant and ordered current-owner proof. No caller-supplied acceptance.
-- New `World/LegacyOrdinaryAdmissionPlan.Spells.cs` plus actual Prepare/Plan
-  integration: detached constructor/normalized rows prepared before journal and
-  plain owner publication afterward.
-- Existing Store core + its five publication partials in the table: consume the
-  prepared participant everywhere. Recovery/CompleteLogin preserve their exact
-  distinct lifecycles rather than issuing ordinary authority.
-- Existing native typed entry guards, only after Root chooses the step5 boundary.
-  Do not touch rank persistence or held Guild/Union sources.
+## Rooted file authority and recovery
 
-Concrete participant API for that batch, proposed before source edits:
+A genuine binding has a last-proven saved Spells image independent of current
+memory. Native Add/XP/Ninja may legitimately be unsaved. Rooted Load/Save consume
+LegacyPreparedSpellFileWrite captured from the actual Store lease, configured
+Recovery and pinned roots. They must match the exact saved-image anchor rather
+than rebasing to arbitrary newer disk bytes or requiring unsaved memory to equal
+disk. Public Load holds the actual file lock through safe image revalidation,
+metadata/map preparation, final raw proof and plain publication.
 
-```text
-WorldSessionStore (private nested types/methods)
-  PreparedSessionSpellPublication PrepareSessionSpellPublication(
-    connection, actual SessionHolder, expected current session, proposed session)
-  PreparedSessionSpellPublication.FinalSession : WorldSession
-  PreparedSessionSpellPublication.RequireCurrent() : void
-  PreparedSessionSpellPublication.PublishNative() : void // plain stores only
+Native Save prepares the final Spells image, preserving surviving row byte11,
+and a genuine unchanged Character identity participant read from the actual
+AccountId file. The real Character+Spells v8 journal commits both under its actual
+domain. The saved anchor advances only after that real writer succeeds. A failed
+postwriter proof blocks the actual Recovery and retires the attached binding;
+it is committed recovery work, never unchanged rejection or unbound fallback.
 
-LegacyNativeSpellStorage.SessionSnapshot.cs
-  PrepareDetachedSessionSnapshot(actual client, frozen snapshot) -> actual owner/image
-  PrepareCurrentSessionSnapshot(actual client/player, frozen snapshot) -> COW image
-  prepared image.RequireCurrent() / PublishPrepared() // no sends/files/callbacks
-```
+Arbitrary opened spell helpers cannot prove their source belongs to the pinned
+root. They close their owned handle and explicitly refuse a bound owner.
+Unbound opened compatibility remains separate. Native bound proficiency file
+Load/Save explicitly refuse before I/O: no configured profile saved-image domain
+exists in this batch. Opened refusals close their owned file. Source audit finds
+no actual SaveClient aggregator/caller of SaveClientProfs in the current core;
+a future aggregate must preflight all participants before any file write.
+Legacy unbound profile-file parsing/durability is not qualified by this join.
 
-The Store methods resolve actual holders themselves; a caller cannot supply or
-construct one. `RequireCurrent` performs the final plain identity/scalar/row check
-after all comparer-capable preparation. `PublishNative` has no independent commit
-authority: only the actual Store publication path calls it after its specified
-writer boundary. Fresh admission uses its real empty-holder lease and prepares
-the detached image before the journal; later current-image updates require the
-actual published binding. The canonical FinalSession is prepared before writer
-entry and is the record actually returned/published by internal transaction APIs.
+## Notification lifecycle
 
-Before adopting this in the two save-before-Set producers, add a concrete
-expected-session transaction entry under the same real Store gate so this
-participant is prepared **before** the existing file writer. Do not pass a new
-accepting callback as proof or leave those producers writing first. The existing
-mailbox prepared producer must establish its no-spell-change invariant before
-durable intent; a post-return mismatch is committed recovery work, not rollback.
+Joined output calls the actual ConquerTcpConnection.SendAsync outside all Store,
+client/Player/Spell/Proficiency mutation gates. Ordinary binding requires actual
+send and disconnect routes. One total ten-second batch deadline bounds writes;
+each receives its remaining-deadline cancellation token and an independent
+bounded observer. Failure invokes a real disconnect with a bounded five-second
+observer and a bounded five-second write drain. A route ignoring cancellation
+cannot hold the caller indefinitely after returning its asynchronous task.
 
-Tests should be split into genuine ordinary-admission construction, all Store
-publication methods with actual participants, startup EquipmentQuery, lifetime/
-comparer failures, and chosen native reverse-write behavior. A standalone detached
-converter with no consumed integration is not proposed as completed work.
+Outstanding write/close tasks remain observed until terminal completion. Their
+owned arrays/token lifetimes are retained; no pooled storage is released early.
+Skipped remaining transport after retirement or graph change is an explicit
+committed notification exception. Completed SendAsync is transport completion,
+not proof the client rendered or received the change. The bridge preserves each
+batch's source order; it is not a global interleaving queue or scalable async
+pipeline, and it does not bound an arbitrary delegate blocking synchronously
+before returning its ValueTask.
 
-Proposed isolated test postimages, under `tests/WolfConquer.Tests/`:
+## Qualification and limits
 
-- `WorldServerFrameHandlerTests.OrdinarySpellCoherence.Admission.cs`: use the
-  existing private OrdinaryLoginFixture partial; saved membership + actual1110,
-  strict malformed/soul conversion, real journal interruption and no native slot
-  publication before durable success.
-- `WorldServerFrameHandlerTests.OrdinarySpellCoherence.EquipmentQuery.cs`: same
-  genuine fixture/Store/managed handler;21930/20000 changes, persisted fields,
-  transient native values and existing independent valid spell/removal bytes.
-- `WorldSessionStoreSpellCoherenceTests.Publication.cs`: actual Store single/CAS/
-  pair/prepared/complete/retire paths; shared fixture uses real participants rather
-  than accepting savers. Verify both sides before diagnostic assertions.
-- `WorldSessionStoreSpellCoherenceTests.Ownership.cs`: current holder retirement,
-  stale full-record overwrites, mutable lists, actual comparer/reentry and no
-  post-durable preparation/callbacks.
-- `WorldServerFrameHandlerTests.OrdinarySpellCoherence.NativeBoundary.cs`: chosen
-  real native typed-entry contract under the issued ordinary binding, plus valid
-  unbound existing-component controls. No old undersized native-buffer runs.
+Required controls use actual ordinary admission, genuine loaded Spells and
+Proficiencies, real Store APIs/native entrypoints, and the actual connection
+capture route. Cover malformed/foreign owners, retirement/recreation, null and
+replaced slots, mutable snapshots, same-count raw row/key changes and resize,
+exposed candidate mutations, inverse gates/comparer reentry, complete frame
+preparation failures, compound XP, rooted load/save and real journal failure.
+Run source-independent packet goldens and positive success controls.
 
-The two pre-save producers need focused existing-handler regressions in their
-own test partials when included: actual failed native/map preflight must leave
-their owned Character/spell files unchanged. Skill-book/rune controls retain
-resource witnesses and must not certify their unmodified outer persistence.
+The map author ran no builds/tests, changed no main/public/Git/live files, and
+claims no passing count. Root must reconcile this postimage with the Store,
+test and v9 book/rune lanes, then run focused and full appropriate gates.
 
-Before source changes, Root must settle: read/mirror-only native guard versus real
-reverse transactions, and which managed persistence changes are included in the
-same activation batch. Canonical session return values must be consumed by their
-actual callers rather than treating void Set as returning the proposed object.
-These are finite integration decisions, not missing providers.
-No result here proves SQL, complete spells/casts, client acceptance, deployment,
-crash safety or whole cross-reader atomicity.
+Known limits remain explicit: proficiency file/SQL durability, full native
+aggregate saving, count-minus-one/contiguous spell-level metadata assumptions,
+the wider cast transaction, raw public fields/uncooperative external writers,
+global cross-batch notification ordering, client rendering and gameplay parity.
+Those are not completed by an in-memory join or static review.

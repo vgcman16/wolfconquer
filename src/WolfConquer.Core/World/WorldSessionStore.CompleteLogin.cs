@@ -14,6 +14,8 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(original);
         updated = null;
+        RefuseBoundSpellReentry(connection);
+        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection));
         if (!_connectionGates.TryGetValue(connection, out var gate)) return false;
         lock (gate)
         {
@@ -39,10 +41,20 @@ public sealed partial class WorldSessionStore
             {
                 Character = current.Character with { Attributes = new ReadOnlyDictionary<string, string>(attrs) },
             };
-            if (owner is not null && !LegacyCompleteLoginRuntime.TryComplete(owner, connection, current)) return false;
-            holder.Publish(next);
-            updated = next;
-            _sessionChanged?.Invoke(connection, current, next);
+            if (!LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, current, next)) return false;
+            using var publication = new PreparedSessionSpellPublication(this, connection, holder, current, next);
+            using var completion = owner is null ? null : LegacyCompleteLoginRuntime.PrepareComplete(owner, connection, current);
+            if (owner is not null && completion is null) return false;
+            publication.ArmFinalProof();
+            if (completion is not null && !completion.IsCurrentPlain()) return false;
+            if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
+            completion?.PublishPrepared();
+            publication.PublishNative();
+            publication.PublishHolder();
+            updated = publication.FinalSession;
+            completion?.Dispose();
+            publication.Dispose();
+            _sessionChanged?.Invoke(connection, current, updated);
             return true;
         }
     }

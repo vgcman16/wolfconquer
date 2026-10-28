@@ -14,7 +14,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
             var source = new[] { CreateExistingSpell(), new PlayerSpellSnapshotEntry(901, 6, 2345, 2, 3, 2) };
             var changed = new PlayerSpellSnapshotEntry(901, 7, 3456, 3, 2, 1);
             var comparer = new LatePerformerAttributeComparer(() => source[1] = changed);
-            var initial = DurableSession();
+            var initial = fixture.Session();
             var attributes = new Dictionary<string, string>(initial.Character.Attributes, comparer);
             var original = initial with
             {

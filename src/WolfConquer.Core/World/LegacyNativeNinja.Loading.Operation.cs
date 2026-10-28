@@ -7,20 +7,25 @@ internal partial class LegacyNativeNinja
     private void ExecuteNinjaOperation(NinjaOperation operation)
     {
         var client = user ?? throw UnavailableRanking();
-        RefuseNinjaPublicEntry(client); // Refuse before waiting on an inverted client/player lock.
+        RefuseNinjaPublicEntry(client);
+        var binding = operation == NinjaOperation.Badge ? null : LegacyNativeSpellStorage.GetJoinedBindingForClientEntry(client);
+        var lease = binding?.EnterMutation();
         PreparedNinjaSequence? sequence = null;
         LoadingInput? input = null;
         LegacyNativeSpellStorage.PreparedNinjaSpells? spells = null;
         try
         {
-            lock (client.SpellAdmissionSyncRoot)
+            try
             {
-                var player = client.Player ?? throw UnavailableRanking();
-                lock (player.SpellAdmissionSyncRoot)
+                lock (client.SpellAdmissionSyncRoot)
                 {
-                    RefuseNinjaPublicEntry(client);
+                    var player = client.Player ?? throw UnavailableRanking();
+                    lock (player.SpellAdmissionSyncRoot)
                     lock (persistenceLoadGate)
                     {
+                        if (operation != NinjaOperation.Badge &&
+                            !ReferenceEquals(LegacyNativeSpellStorage.GetJoinedBindingForClientEntry(client), binding))
+                            throw UnavailableRanking();
                         if (operation == NinjaOperation.Loading && !LegacyNativeAtributesStatus.IsNinja(player.Class))
                         { CommitNonNinjaLoading(client, player); return; }
                         LegacyNativeSpellStorage? storage = null;
@@ -32,21 +37,24 @@ internal partial class LegacyNativeNinja
                         input = new(this, client, player, operation != NinjaOperation.Badge,
                             operation != NinjaOperation.Alternate, operation == NinjaOperation.Loading);
                         if (storage is not null)
-                        {
                             lock (storage.MutationGate)
-                                spells = storage.PrepareNinjaRefresh(client, player, input.Uid, input.Skills, ManagedNinjaSkills);
-                        }
+                                spells = storage.PrepareNinjaRefresh(client, player, input.Uid,
+                                    input.Skills, ManagedNinjaSkills);
                         sequence = new(input, spells, operation == NinjaOperation.Loading);
                         switch (operation)
                         {
-                            case NinjaOperation.Loading: CommitFullLoading(client, player, storage!, input, spells!, sequence); break;
-                            case NinjaOperation.Alternate: CommitAlternate(storage!, input, spells!, sequence); break;
+                            case NinjaOperation.Loading:
+                                CommitFullLoading(client, player, storage!, input, spells!, sequence, binding, lease); break;
+                            case NinjaOperation.Alternate:
+                                CommitAlternate(storage!, input, spells!, sequence, binding, lease); break;
                             case NinjaOperation.Badge: CommitBadge(player, input, sequence); break;
                         }
                     }
                 }
             }
-            sequence!.Publish(input!, spells, operation != NinjaOperation.Alternate);
+            finally { lease?.Dispose(); }
+            if (binding is null) sequence!.Publish(input!, spells, operation != NinjaOperation.Alternate);
+            else sequence!.PublishJoined(binding, input!, spells, operation != NinjaOperation.Alternate);
         }
         finally { sequence?.Dispose(); }
     }

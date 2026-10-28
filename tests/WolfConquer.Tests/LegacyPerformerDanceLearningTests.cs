@@ -179,6 +179,7 @@ public sealed partial class LegacyPerformerDanceLearningTests : IDisposable
         var spellsRoot = Path.Combine(_root, "success-" + optionId);
         var sessions = new WorldSessionStore();
         var originalSpells = CreateSpells(CreateExistingSpell());
+        new PlayerSpellSnapshotLoader(spellsRoot).SaveByCharacterUid(CharacterUid, originalSpells);
         var result = await InvokeAsync(
             optionId,
             performerPhrase: requiredPhase,
@@ -345,9 +346,9 @@ public sealed partial class LegacyPerformerDanceLearningTests : IDisposable
         Assert.Same(result.OriginalSession.PlayerItems, stored.PlayerItems);
         Assert.Empty(result.Sent);
         Assert.Equal("not a directory", File.ReadAllText(blockedSpellsRoot));
-        Assert.Contains("PARITY-GAP LegacyNpc SubclassMasters Performer dance persistence", result.Log);
+        Assert.Contains("reason=sessionChanged", result.Log);
         Assert.Contains("option=7 dance=Triumph spellId=1416", result.Log);
-        Assert.Contains("reason=IOException; no session mutation was committed", result.Log);
+        Assert.Contains("no file or session mutation was committed", result.Log);
     }
 
     public void Dispose()
@@ -369,6 +370,15 @@ public sealed partial class LegacyPerformerDanceLearningTests : IDisposable
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
         var session = CreateSession(performerPhrase, playerSpells);
+        LegacyTradeRecoveryState? recovery = null;
+        if (playerSpellsRoot is not null)
+        {
+            var usersRoot = Path.Combine(Path.GetDirectoryName(playerSpellsRoot)!, "users-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(usersRoot);
+            session = session with { UsersRoot = usersRoot };
+            recovery = new LegacyTradeRecoveryState(usersRoot, null, null, null, null, playerSpellsRoot, null);
+            Assert.True(recovery.TryEnsureInitialized(out var recoveryReason), recoveryReason);
+        }
         sessions?.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacySubclassMastersNpcAsync(
@@ -377,7 +387,7 @@ public sealed partial class LegacyPerformerDanceLearningTests : IDisposable
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: playerSpellsRoot),
+                PlayerSpellsRoot: playerSpellsRoot) { TradeRecovery = recovery },
             session,
             PerformerNpcId,
             optionId,

@@ -7,6 +7,7 @@ internal partial class LegacyNativeBeastsRuntime
         private readonly Dictionary<byte, LegacyNativeBeastsAtrribute.Attribute> table;
         private readonly LegacyNativeBeastsAtrribute.Attribute[] rows;
         internal uint[] Required { get; }
+        private Dictionary<byte, LegacyNativeBeastsAtrribute.Attribute>.Enumerator? beforeWitness, finalWitness;
 
         private PrefixMetadata(Dictionary<byte, LegacyNativeBeastsAtrribute.Attribute> table,
             LegacyNativeBeastsAtrribute.Attribute[] rows, uint[] required)
@@ -43,6 +44,34 @@ internal partial class LegacyNativeBeastsRuntime
                 if (current[index].Key != index + 1 || !ReferenceEquals(current[index].Value, rows[index]) ||
                     rows[index].Level != index + 1 || rows[index].RequiredPoints != Required[index]) return false;
             return ReferenceEquals(table, LegacyNativeBeastsAtrribute.Attributes) && table.Count == rows.Length;
+        }
+
+        internal void ArmAdmissionProof()
+        {
+            if (beforeWitness is not null || finalWitness is not null || !IsCurrent())
+                throw new InvalidOperationException("Prepared beast metadata changed before admission.");
+            beforeWitness = table.GetEnumerator(); finalWitness = table.GetEnumerator();
+        }
+
+        internal bool ConsumeBeforeAdmissionPlain() => ConsumeAdmissionPlain(ref beforeWitness);
+        internal bool ConsumeFinalAdmissionPlain() => ConsumeAdmissionPlain(ref finalWitness);
+        private bool ConsumeAdmissionPlain(ref Dictionary<byte, LegacyNativeBeastsAtrribute.Attribute>.Enumerator? witness)
+        {
+            if (witness is null || !ReferenceEquals(table, LegacyNativeBeastsAtrribute.Attributes) || table.Count != rows.Length) return false;
+            var iterator = witness.Value; witness = null;
+            try
+            {
+                for (int index = 0; index < rows.Length; index++)
+                {
+                    if (!iterator.MoveNext()) return false;
+                    var pair = iterator.Current;
+                    if (pair.Key != index + 1 || !ReferenceEquals(pair.Value, rows[index]) ||
+                        rows[index].Level != index + 1 || rows[index].RequiredPoints != Required[index]) return false;
+                }
+                return !iterator.MoveNext() && ReferenceEquals(table, LegacyNativeBeastsAtrribute.Attributes) && table.Count == rows.Length;
+            }
+            catch (InvalidOperationException) { return false; }
+            finally { iterator.Dispose(); }
         }
 
         private static KeyValuePair<byte, LegacyNativeBeastsAtrribute.Attribute>[] ReadRows(

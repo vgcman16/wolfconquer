@@ -71,14 +71,16 @@ public static partial class WorldPacketHandlers
                 expected.PlayerSpells?.Spells is null || expected.PlayerItems is null) throw InvalidFullAccountClassState();
             this.expected = expected;
             var rawSpells = expected.PlayerSpells.Spells;
-            var spellRows = rawSpells is LegacyPerformerSpellRows frozen ? frozen.Values : FullAccountKnownRows(rawSpells, ushort.MaxValue);
+            try { spells = new(rawSpells); }
+            catch (LegacyDuplicatePlayerSpellIdException)
+            { throw new FullAccountClassRefusal("duplicate-player-spell-id"); }
+            var spellRows = spells.Rows;
             var spellIds = new HashSet<ushort>();
             foreach (var row in spellRows)
             {
                 if (row is null) throw InvalidFullAccountClassState();
                 if (!spellIds.Add(row.Id)) throw new FullAccountClassRefusal("duplicate-player-spell-id");
             }
-            spells = new(rawSpells);
             ValidateItemShape(expected.PlayerItems);
             if (!LegacyItemSaveGraph.TryCapture(expected.PlayerItems, out var capturedItems)) throw InvalidFullAccountClassState();
             itemGraph = capturedItems;

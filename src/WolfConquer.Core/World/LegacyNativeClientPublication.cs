@@ -31,20 +31,10 @@ internal static class LegacyNativeClientPublication
     internal static bool TryUpdate(WorldSessionStore world, ConquerTcpConnection connection,
         long uid, object identity, Func<WorldSession, WorldSession> update, out WorldSession session)
     {
-        WorldSession? written = null;
-        var changed = false;
-        world.WithCurrentNativeClientIdentity(connection, uid, currentIdentity =>
-        {
-            if (!ReferenceEquals(currentIdentity, identity) ||
-                !world.TryGet(connection, out var current) || current is null) return;
-            // Pure synchronous member mutation under the SAME Store gate; no awaited send here.
-            world.Set(connection, update(current));
-            changed = TryCurrent(world, connection, uid, identity, out written);
-        });
+        var changed = world.TryUpdateCurrentNativeSession(connection, uid, identity, update, out var written);
         session = written!;
         return changed;
     }
-
     internal static async ValueTask<WorldSession?> SendOwnerAndViewAsync(
         WorldSessionStore world, ConquerTcpConnection connection, long uid, object identity,
         ReadOnlyMemory<byte> capturedFrame, Func<CharacterSnapshot, CharacterSnapshot, bool> canSee,

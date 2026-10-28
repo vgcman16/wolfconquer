@@ -268,7 +268,7 @@ public sealed partial class WorldServerFrameHandler
     {
         PersistChangedSessionCharacterScalars(connection, previous, current);
         PersistChangedSessionPlayerItems(previous, current);
-        PersistChangedSessionPlayerSpells(previous, current);
+        PersistChangedSessionPlayerSpells(connection, previous, current);
         PersistChangedSessionPlayerProficiencies(previous, current);
         PersistChangedSessionCombatGear(previous, current);
         PersistChangedSessionPlayerQuests(previous, current);
@@ -336,9 +336,11 @@ public sealed partial class WorldServerFrameHandler
     }
 
     private void PersistChangedSessionPlayerSpells(
+        ConquerTcpConnection connection,
         WorldSession? previous,
         WorldSession current)
     {
+        if (TryPersistChangedOrdinarySpells(connection, previous, current)) return;
         if (previous is null ||
             ReferenceEquals(previous.PlayerSpells, current.PlayerSpells) ||
             PlayerSpellSnapshotsEqual(previous.PlayerSpells, current.PlayerSpells))

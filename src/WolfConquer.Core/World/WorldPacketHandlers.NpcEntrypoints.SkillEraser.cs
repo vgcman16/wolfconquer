@@ -207,25 +207,20 @@ public static partial class WorldPacketHandlers
         }
 
         var updatedSpells = new PlayerSpellSnapshot(remainingSpells);
-        var updatedSession = session with { PlayerSpells = updatedSpells };
-        context.Sessions?.Set(context.Connection, updatedSession);
-        var persisted = !string.IsNullOrWhiteSpace(context.PlayerSpellsRoot);
-        if (persisted)
+        var removalFrame = new MsgActionPacket
         {
-            new PlayerSpellSnapshotLoader(context.PlayerSpellsRoot!).SaveByCharacterUid(
-                session.Character.Uid,
-                updatedSpells);
+            ObjId = CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)),
+            DwParam = spell.SpellId,
+            Type = LegacySkillEraserRemoveSpellAction,
+        }.ToFrameBytes();
+        if (!TryCommitLegacyFreeSpells(context, session, updatedSpells, cancellationToken,
+                out var updatedSession, out var reason))
+        {
+            await context.Log.WriteLineAsync("WorldServer refused skill erasure before commitment; spell unchanged. reason=" + reason)
+                .ConfigureAwait(false);
+            return true;
         }
-
-        await context.Connection.SendAsync(
-                new MsgActionPacket
-                {
-                    ObjId = CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)),
-                    DwParam = spell.SpellId,
-                    Type = LegacySkillEraserRemoveSpellAction,
-                }.ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
+        await context.Connection.SendAsync(removalFrame, cancellationToken).ConfigureAwait(false);
 
         await SendLegacyNpcDialogAsync(
                 context with { Session = updatedSession },
@@ -239,7 +234,7 @@ public static partial class WorldPacketHandlers
                 "WorldServer removed LegacySkillEraser spell " +
                 $"{FormatSession(context with { Session = updatedSession })} npcId={npcId} option={optionId} " +
                 $"source={LegacySkillEraserSource} spellId={spell.SpellId} " +
-                $"persisted={(persisted ? "true" : "false")}.")
+                $"persisted=true.")
             .ConfigureAwait(false);
         return true;
     }

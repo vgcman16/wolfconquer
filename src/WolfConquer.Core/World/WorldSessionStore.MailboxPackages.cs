@@ -22,6 +22,7 @@ public sealed partial class WorldSessionStore
         LegacyMailboxPackageProducer producer, out WorldSession? admitted, out string reason)
     {
         admitted = null;
+        RefuseBoundSpellReentry(connection);
         reason = "mailboxClaimRecoveryRequired:packageReadOnlyAdmission";
         var users = candidate.UsersRoot;
         if (users is null || !LegacySessionStorageRoot.TryNormalize(users, out var normalizedUsers) || normalizedUsers is null ||
@@ -35,8 +36,10 @@ public sealed partial class WorldSessionStore
         {
             using var scope = EnterNativeConnectionGate();
             var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
-            if (holder.Read() is not null || !producer.TryAdmitReadOnlyOwner(candidate, out reason)) return false;
-            holder.Publish(candidate);
+            if (holder.Read() is not null || connection.NativeGameClient?.OrdinarySpellBinding is not null ||
+                candidate.NativeGameClient?.OrdinarySpellBinding is not null ||
+                !producer.TryAdmitReadOnlyOwner(candidate, out reason)) return false;
+            holder.PublishPrepared(candidate, new object());
             // Deliberately no ordinary persistence callback: this is exact
             // unmodified authenticated recovery loading, not a world mutation.
             admitted = candidate;

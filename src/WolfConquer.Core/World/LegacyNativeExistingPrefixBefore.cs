@@ -18,5 +18,5 @@ internal sealed class LegacyNativeExistingPrefixBefore
 
     internal bool IsCurrent() => ReferenceEquals(client.Player, player) && ReferenceEquals(player.Owner, client) &&
         !client.FullLoading && !client.Fake && player.Class == job && player.Level == level && player.TransformationID == transformation &&
-        LegacyNativePlayerRuntime.ExistingPrefixLoad.Read(player) == values;
+        LegacyNativePlayerRuntime.ExistingPrefixLoad.MatchesValuesPlain(player, values);
 }

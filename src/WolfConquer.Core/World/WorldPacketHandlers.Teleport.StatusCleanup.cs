@@ -139,7 +139,7 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
-        if (!TryCommitOwnedLegacyTeleport(context, session, cleanup.CleanedSession))
+        if (!TryCommitOwnedLegacyTeleport(context, session, cleanup.CleanedSession, out var committedSession))
         {
             sessions.TryGet(context.Connection, out var currentSession);
             var currentUid = currentSession?.Character.Uid.ToString() ?? "missing";
@@ -156,14 +156,14 @@ public static partial class WorldPacketHandlers
 
         await context.Log.WriteLineAsync(
                 "WorldServer applied legacy GameClient.Teleport RemoveBuffersMovements cleanup " +
-                $"{FormatSession(context with { Session = cleanup.CleanedSession })} " +
+                $"{FormatSession(context with { Session = committedSession })} " +
                 $"clearedInUseIntensify={cleanup.ClearedInUseIntensify} " +
                 $"removedFlags=[{string.Join(',', cleanup.Removals.Select(removal => $"0x{removal.Flag:X}"))}] " +
                 $"removedCastPrayBookkeeping={cleanup.RemovedCastPrayBookkeeping}; " +
                 "destination state was compare-and-set without resending source cleanup frames.")
             .ConfigureAwait(false);
 
-        return cleanup.CleanedSession;
+        return committedSession;
     }
 
     private static async ValueTask SendLegacyTeleportMagicDefenderResetAsync(

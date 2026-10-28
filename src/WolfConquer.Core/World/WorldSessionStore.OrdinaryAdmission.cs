@@ -11,7 +11,8 @@ public sealed partial class WorldSessionStore
         LegacyOrdinaryAdmissionInterruption interruption = LegacyOrdinaryAdmissionInterruption.None)
     {
         admitted = null; reason = "ordinaryAdmissionStoreUnavailable";
-        if (!plan.MatchesConnection(connection) || IsCurrentThreadInsideAnyConnectionGate) return false;
+        RefuseBoundSpellReentry(connection);
+        if (!plan.MatchesConnection(connection) || connection.NativeGameClient?.OrdinarySpellBinding is not null) return false;
         using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, plan.Baseline);
         var gate = _connectionGates.GetValue(connection, static _ => new object());
         lock (gate)
@@ -40,8 +41,15 @@ public sealed partial class WorldSessionStore
             using var lease = OrdinaryAdmissionLease.Capture(this, connection, plan.Baseline.AccountId);
             if (lease is null) { reason = "ordinaryAdmissionStoreLeaseUnavailable"; return false; }
             if (!plan.TryCommitDurable(lease, out reason, interruption) || plan.Candidate is not { } final) return false;
+            if (!lease.IsCurrentEmptyPlain())
+            {
+                plan.Recovery.Block("ordinarySpellRecoveryRequired:admissionPublicationUnproven");
+                holder.Clear();
+                throw new LegacyCommittedSpellPublicationException();
+            }
             plan.PublishCommittedNative();
-            holder.Publish(final);
+            lease.PublishPreparedSpells();
+            holder.PublishPrepared(final, holder.NativeClientIdentity);
             if (!plan.InitializeCommittedPin())
             {
                 // This is a COMMITTED publication failure, not a refund/rejection
@@ -66,6 +74,8 @@ public sealed partial class WorldSessionStore
         private readonly object gate;
         private readonly long account;
         private bool active = true;
+        private PreparedOrdinarySpellAdmission? spells;
+        private bool spellProofConsumed;
         private OrdinaryAdmissionLease(WorldSessionStore store, ConquerTcpConnection connection, SessionHolder holder, object gate, long account)
         { this.store = store; this.connection = connection; this.holder = holder; this.gate = gate; this.account = account; }
         internal static OrdinaryAdmissionLease? Capture(WorldSessionStore store, ConquerTcpConnection connection, long account) =>
@@ -76,6 +86,25 @@ public sealed partial class WorldSessionStore
             ReferenceEquals(expected, connection) && store._sessions.TryGetValue(connection, out var actual) &&
             ReferenceEquals(actual, holder) && holder.Read() is null &&
             store.Snapshot().All(row => row.Session.AccountId != account);
-        public void Dispose() => active = false;
+        internal WorldSession PrepareSpellAdmission(WorldSession proposed, LegacyTradeRecoveryState recovery, string? spellsRoot, byte[]? savedSpellImage, LegacyNativeExistingCharacterPrefix? prefix)
+        {
+            if (!IsCurrentEmpty(connection) || spells is not null) throw InvalidSpellPublication();
+            if (connection.NativeGameClient is null) return proposed;
+            spells = new(store, connection, holder, proposed, recovery, spellsRoot, savedSpellImage,
+                prefix ?? throw InvalidSpellPublication());
+            return spells.FinalSession;
+        }
+        private bool EmptyOwnerIsCurrentPlain() => active && Monitor.IsEntered(gate) &&
+            store._sessions.TryGetValue(connection, out var actual) && ReferenceEquals(actual, holder) && holder.Read() is null;
+        internal bool IsCurrentEmptyPlain()
+        {
+            if (spellProofConsumed || !EmptyOwnerIsCurrentPlain() || spells is not null && !spells.ConsumeCurrentPlain()) return false;
+            spellProofConsumed = true;
+            return true;
+        }
+        internal bool HasCommittedPublicationProof() => spellProofConsumed && EmptyOwnerIsCurrentPlain();
+        internal bool ArmPreparedSpellProof() => EmptyOwnerIsCurrentPlain() && (spells is null || spells.ArmPreparedProof());
+        internal void PublishPreparedSpells() => spells?.PublishPrepared();
+        public void Dispose() { active = false; spells?.Dispose(); }
     }
 }

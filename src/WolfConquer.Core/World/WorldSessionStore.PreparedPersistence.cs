@@ -12,7 +12,7 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(prepareAndPersist);
-        if (IsCurrentThreadInsideAnyConnectionGate) return false;
+        RefuseBoundSpellReentry(connection);
         if (!ReferenceEquals(MailboxPackages, producer)) return false;
         using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(producer, expected);
         var gate = _connectionGates.GetValue(connection, static _ => new object());
@@ -20,13 +20,34 @@ public sealed partial class WorldSessionStore
         {
             using var scope = EnterNativeConnectionGate();
             if (!_sessions.TryGetValue(connection, out var holder) || !ReferenceEquals(holder.Read(), expected)) return false;
-            var updated = prepareAndPersist();
+            // The sole package producer proves exact spell-reference retention
+            // before its real reservation/intent. No late map preparation occurs.
+            using var spells = new PreparedSessionSpellPublication(this, connection, holder, expected, expected);
+            spells.ArmFinalProof();
+            if (!spells.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
+            WorldSession? updated;
+            try { updated = prepareAndPersist(); }
+            catch (LegacyCommittedSpellPublicationException)
+            {
+                producer.Recovery.Block("mailboxClaimRecoveryRequired:packageSpellPublicationUnproven");
+                FailCommittedSpellPublication(holder, spells.Binding); throw;
+            }
             if (updated is null) return false;
-            holder.Publish(updated);
+            if (!ReferenceEquals(updated.PlayerSpells, expected.PlayerSpells) ||
+                !ReferenceEquals(updated.PlayerProficiencies, expected.PlayerProficiencies) ||
+                !string.Equals(updated.UsersRoot, expected.UsersRoot, StringComparison.Ordinal) ||
+                updated.AccountId != expected.AccountId || updated.Character.Uid != expected.Character.Uid ||
+                !ReferenceEquals(updated.NativeGameClient, expected.NativeGameClient) || !spells.IsCurrentPlain())
+            {
+                producer.Recovery.Block("mailboxClaimRecoveryRequired:packageSpellPublicationUnproven");
+                FailCommittedSpellPublication(holder, spells.Binding);
+            }
+            spells.PublishNative();
+            holder.PublishPrepared(updated, holder.NativeClientIdentity);
             if (!producer.TryFinishSessionPublication(this, connection, updated))
             {
                 producer.Recovery.Block("mailboxClaimRecoveryRequired:packageSessionPublicationUnproven");
-                throw new InvalidOperationException("mailboxClaimRecoveryRequired:packageSessionPublicationUnproven");
+                FailCommittedSpellPublication(holder, spells.Binding);
             }
             return true;
         }

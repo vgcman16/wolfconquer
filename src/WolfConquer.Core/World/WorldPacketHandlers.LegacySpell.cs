@@ -70,23 +70,17 @@ public static partial class WorldPacketHandlers
         spells[spellIndex] = updatedSpell;
         var updatedSpells = new PlayerSpellSnapshot(spells);
         var updatedSession = session with { PlayerSpells = updatedSpells };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        var responseFrame = response.ToFrameBytes();
 
-        if (!string.IsNullOrWhiteSpace(context.PlayerSpellsRoot))
+        if (!TryCommitLegacyFreeSpells(context, session, updatedSpells, cancellationToken,
+                out updatedSession, out var reason))
         {
-            new PlayerSpellSnapshotLoader(context.PlayerSpellsRoot).SaveByCharacterUid(
-                session.Character.Uid,
-                updatedSpells);
-        }
-        else
-        {
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP LegacySpell soul selection missing PlayerSpellsRoot " +
-                    $"{FormatSession(context)} spellId={packet.Id}; selected soul is session-only.")
+            await context.Log.WriteLineAsync("WorldServer refused soul selection before commitment; spell unchanged. reason=" + reason)
                 .ConfigureAwait(false);
+            return;
         }
 
-        await context.Connection.SendAsync(response.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+        await context.Connection.SendAsync(responseFrame, cancellationToken).ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer handled LegacySpell soul selection " +
                 $"{FormatSession(context with { Session = updatedSession })} spellId={packet.Id} " +

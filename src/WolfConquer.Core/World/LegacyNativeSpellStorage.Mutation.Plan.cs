@@ -1,3 +1,4 @@
+using WolfConquer.Core.Data;
 using System.Collections.Concurrent;
 
 namespace WolfConquer.Core.World;
@@ -17,16 +18,25 @@ internal partial class LegacyNativeSpellStorage
         private readonly Dictionary<ushort, LegacyNativeMsgSpell> indexed;
         private readonly SpellNotice[] notices;
         private readonly bool changed;
+        private readonly long generation;
+        private readonly PhysicalMapAnchor? originalAnchor;
+        private readonly PhysicalMapAnchor candidateAnchor;
+        private IEnumerator<KeyValuePair<ushort, LegacyNativeMsgSpell>>? beforeWriterWitness, finalWitness;
+        private IEnumerator<KeyValuePair<ushort, LegacyNativeMsgSpell>>? candidateBeforeWitness, candidateFinalWitness;
         internal bool RemovedExisting { get; }
+        internal PlayerSpellSnapshot FinalSnapshot { get; private set; } = PlayerSpellSnapshot.Empty;
 
         internal PreparedSpellMutation(LegacyNativeSpellStorage owner, LegacyNativeGameClientRuntime client,
-            LegacyNativePlayerRuntime player, SpellMutationKind kind, ushort id, LegacyNativeMsgSpell? row,
-            HashSet<ushort>? retained)
+            LegacyNativePlayerRuntime player, LegacyNativeSpellMutationIntent intent)
         {
+            var (kind, id, row, retained) = PrepareIntent(intent);
             this.owner = owner; this.client = client; this.player = player;
             uid = player.UID; socket = client.Socket; fake = client.Fake;
             owner.RequireTypedMutationOwner(client, player, uid);
+            owner.RequireOrdinaryAnchorCurrent();
             original = owner.ClientSpells;
+            originalAnchor = owner.ordinaryMapAnchor;
+            generation = owner.MutationGenerationPlain;
             beforeRows = CaptureNinjaSpellRows(original);
             indexed = beforeRows.ToDictionary(saved => saved.Key, saved => saved.Row);
             if (kind == SpellMutationKind.Clear)
@@ -68,8 +78,22 @@ internal partial class LegacyNativeSpellStorage
             candidate = changed ? next : original;
             afterRows = changed ? CaptureNinjaSpellRows(candidate) : beforeRows;
             notices = output.ToArray();
+            FinalSnapshot = SnapshotPhysicalRows(afterRows);
+            candidateAnchor = new(candidate, afterRows);
             RequireCurrent();
         }
+
+        private static (SpellMutationKind Kind, ushort Id, LegacyNativeMsgSpell? Row, HashSet<ushort>? Retained)
+            PrepareIntent(LegacyNativeSpellMutationIntent intent) => intent switch
+        {
+            LegacyNativeSpellMutationIntent.Add add when add.Id != 0 && add.Experience >= 0 =>
+                (SpellMutationKind.Add, add.Id, CreateTypedSpell(add.Id, add.Level, add.SoulLevel,
+                    add.PreviousLevel, add.ClearExperience ? 0 : add.Experience), null),
+            LegacyNativeSpellMutationIntent.Remove remove when remove.Id != 0 => (SpellMutationKind.Remove, remove.Id, null, null),
+            LegacyNativeSpellMutationIntent.Reborn reborn when reborn.Id != 0 => (SpellMutationKind.Reborn, reborn.Id, null, null),
+            LegacyNativeSpellMutationIntent.Clear clear => (SpellMutationKind.Clear, 0, null, clear.Retained.ToArray().ToHashSet()),
+            _ => throw UnavailableNinjaSpells(),
+        };
 
         private void CheckOriginalLookup(ushort id)
         {
@@ -91,6 +115,7 @@ internal partial class LegacyNativeSpellStorage
         {
             owner.RequireTypedMutationOwner(client, player, uid);
             if (!ReferenceEquals(owner.ClientSpells, original)) throw UnavailableNinjaSpells();
+            owner.RequireOrdinaryAnchorCurrent();
             RequireNinjaSpellRows(original, beforeRows);
         }
 
@@ -100,6 +125,48 @@ internal partial class LegacyNativeSpellStorage
             if (changed) RequireNinjaSpellRows(candidate, afterRows);
         }
 
-        internal void PublishMap() { if (changed) owner.ClientSpells = candidate; }
+        internal void ArmFinalProof()
+        {
+            if (beforeWriterWitness is not null || finalWitness is not null) throw UnavailableNinjaSpells();
+            RequireCurrent();
+            beforeWriterWitness = original.GetEnumerator();
+            finalWitness = original.GetEnumerator();
+            candidateBeforeWitness = candidate.GetEnumerator();
+            candidateFinalWitness = candidate.GetEnumerator();
+        }
+
+        internal bool ConsumeBeforeWriterPlain()
+        {
+            try
+            {
+                owner.RequireTypedMutationOwner(client, player, uid);
+                if (!ReferenceEquals(owner.ClientSpells, original) || owner.MutationGenerationPlain != generation ||
+                    !ReferenceEquals(owner.ordinaryMapAnchor, originalAnchor))
+                    return false;
+                return ConsumeFinalWitness(ref beforeWriterWitness, beforeRows) &&
+                    ConsumeFinalWitness(ref candidateBeforeWitness, afterRows);
+            }
+            catch (InvalidOperationException) { return false; }
+        }
+
+        internal bool ConsumeCurrentPlain()
+        {
+            try
+            {
+                owner.RequireTypedMutationOwner(client, player, uid);
+                if (!ReferenceEquals(owner.ClientSpells, original) || owner.MutationGenerationPlain != generation ||
+                    !ReferenceEquals(owner.ordinaryMapAnchor, originalAnchor))
+                    return false;
+                return ConsumeFinalWitness(ref finalWitness, beforeRows) &&
+                    ConsumeFinalWitness(ref candidateFinalWitness, afterRows);
+            }
+            catch (InvalidOperationException) { return false; }
+        }
+
+        internal void PublishMap()
+        {
+            if (changed) owner.PublishPreparedMapPlain(candidate);
+            owner.PublishOrdinaryAnchor(candidateAnchor);
+        }
     }
 }

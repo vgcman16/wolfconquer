@@ -82,11 +82,12 @@ public static partial class WorldPacketHandlers
         internal readonly LegacyFullAccountClassOwner Owner;
         private readonly LegacyFullAccountClassGrant grant;
         internal LegacyFullAccountClassProjection Projection { get; }
-        internal WorldSession Updated { get; }
+        internal WorldSession Updated { get; set; }
         private readonly FullAccountClassFrame[] frames;
         private readonly FullAccountClassPeer[] peers;
         private readonly LegacyNativeMagicQueryFields nativeMagic;
         private readonly LegacyTradeJournalChange[] changes;
+        private readonly LegacyPreparedSpellFileWrite spellWrite;
         private readonly string characterPath, spellsPath;
         internal bool DurableCommitted { get; private set; }
 
@@ -106,7 +107,10 @@ public static partial class WorldPacketHandlers
                 ? LegacyNativeMagicQueryClient.Read(owner.Context.Sessions, owner.Context.Connection,
                     owner.Expected.Character.Uid, owner.Identity) : default;
             peers = CaptureFullAccountClassPeers(owner, Projection);
-            (characterPath, spellsPath, changes) = PrepareFullAccountClassImages(owner, Updated, grant);
+            spellWrite = owner.Context.Sessions!.PrepareSpellFileWrite(owner.Context.Connection, owner.Expected,
+                owner.Recovery, owner.UsersRoot, owner.SpellsRoot);
+            spellWrite.PrepareImage(Updated.PlayerSpells);
+            (characterPath, spellsPath, changes) = PrepareFullAccountClassImages(owner, Updated, spellWrite);
             if (!owner.IsCurrent(owner.Expected, checkInputs: true)) throw InvalidFullAccountClassState();
         }
 

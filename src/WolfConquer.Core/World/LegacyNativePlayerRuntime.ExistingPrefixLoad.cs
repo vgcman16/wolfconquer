@@ -91,11 +91,25 @@ public sealed partial class LegacyNativePlayerRuntime
             value.Name,
             value.Spouse);
 
-        internal bool IsCurrent() => !published && ReferenceEquals(client.Player, player) && ReferenceEquals(player.Owner, client) &&
-            !client.FullLoading && !client.Fake && player._class == job && player._transformationid == transformation && Read(player) == before;
+        internal static bool MatchesValuesPlain(LegacyNativePlayerRuntime player, LegacyNativePrefixValues value) =>
+            player.UID == value.Uid && player._class == value.Class && player._level == value.Level &&
+            player.RelicSpirit == value.RelicSpirit && player.Online == value.Online &&
+            player.SpawinEffect == value.SpawinEffect && player.SpawinEffectSkills == value.SpawinEffectSkills &&
+            player.DeityLandLuckyPoints == value.DeityLandLuckyPoints && player.HeroPoints == value.HeroPoints &&
+            player._classexp == value.ClassExperience && player.SavePromote == value.SavePromote &&
+            player.SkinUnlock == value.SkinUnlock && player.DoomosaurSkin == value.DoomosaurSkin &&
+            player.PrayingElfSkin == value.PrayingElfSkin && player.PolarDragonSkin == value.PolarDragonSkin &&
+            player.ChargeChi == value.ChargeChi && player.ChargeGuildSkill == value.ChargeGuildSkill &&
+            player.body == value.Body && player.face == value.Face && player.Name == value.Name && player.Spouse == value.Spouse;
 
-        internal bool IsPublishedCurrent() => published && ReferenceEquals(client.Player, player) && ReferenceEquals(player.Owner, client) &&
-            !client.FullLoading && !client.Fake && player._transformationid == transformation && Read(player) == after;
+        internal uint PreparedUid => after.Uid;
+        internal bool IsCurrent() => IsCurrentPlain();
+        internal bool IsCurrentPlain() => !published && ReferenceEquals(client.Player, player) && ReferenceEquals(player.Owner, client) &&
+            !client.FullLoading && !client.Fake && player._class == job && player._transformationid == transformation && MatchesValuesPlain(player, before);
+
+        internal bool IsPublishedCurrent() => IsPublishedCurrentPlain();
+        internal bool IsPublishedCurrentPlain() => published && ReferenceEquals(client.Player, player) && ReferenceEquals(player.Owner, client) &&
+            !client.FullLoading && !client.Fake && player._transformationid == transformation && MatchesValuesPlain(player, after);
 
         internal void PublishPrepared()
         {

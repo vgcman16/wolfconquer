@@ -13808,6 +13808,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         using var cancel = new CancellationTokenSource();
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
+        var runtimeClock = new AnchoredRuntimeTimeProvider(DateTimeOffset.UtcNow.AddSeconds(5));
         var handler = new WorldServerFrameHandler(
             snapshotLoader: null,
             handoffService: null,
@@ -13815,7 +13816,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             new LegacyRuntimeUpdateLoopOptions(
                 Enabled: true,
                 TimeSpan.FromMilliseconds(10),
-                new AnchoredRuntimeTimeProvider(DateTimeOffset.UtcNow.AddSeconds(5))),
+                runtimeClock),
             log);
         var session = CreateSession(strength: 300, stamina: 100, spellEntries:
         [
@@ -13823,7 +13824,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         ]);
         SetHandlerSession(handler, connection, session);
 
-        var now = DateTimeOffset.UtcNow;
+        var now = runtimeClock.GetUtcNow();
         var floorPacket = new LegacyFloorItemPacket(
             FloorUid,
             StarVolcanoFloorItemId,
@@ -13857,10 +13858,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         try
         {
             await WaitUntilAsync(
-                () => ParseSpellAnimations(sent.ToArray()).Any(spell => spell.SpellId == StarVolcanoPassiveSpellId),
+                () => ParseSpellAnimations(sent).Any(spell => spell.SpellId == StarVolcanoPassiveSpellId),
                 TimeSpan.FromSeconds(1));
 
-            var sentSnapshot = sent.ToArray();
+            var sentSnapshot = SnapshotFrames(sent);
             var invoke = Assert.Single(
                 ParseSpellAnimations(sentSnapshot),
                 spell => spell.SpellId == StarVolcanoPassiveSpellId);

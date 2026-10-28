@@ -25,6 +25,7 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        context = CaptureLegacyRuneRankingPublicationOwner(context);
         if (context.Session is not { } session)
         {
             await context.Log.WriteLineAsync(

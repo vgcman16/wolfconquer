@@ -58,6 +58,9 @@ internal partial class LegacyNativeBeastsRuntime
         }
 
         internal bool IsCurrent() => metadata.IsCurrent() && IsOwnerCurrent();
+        internal void ArmAdmissionProof() => metadata.ArmAdmissionProof();
+        internal bool ConsumeBeforeAdmissionPlain() => IsOwnerCurrent() && metadata.ConsumeBeforeAdmissionPlain();
+        internal bool ConsumeFinalAdmissionPlain() => IsOwnerCurrent() && metadata.ConsumeFinalAdmissionPlain();
 
         internal bool IsOwnerCurrent() => ReferenceEquals(client.Beasts, previous) && ReferenceEquals(client.Player, player) &&
             ReferenceEquals(player.Owner, client) && !client.FullLoading && !client.Fake &&

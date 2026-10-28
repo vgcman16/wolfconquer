@@ -89,7 +89,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         f.Sessions.Set(f.Connection, f.Original);
         var destination = f.Original with { Character = f.Original.Character with { MapId = 700 } };
         Assert.False(WorldPacketHandlers.TryCommitOwnedLegacyTeleport(
-            f.Context with { TeleportOwner = f.Owner }, f.Original, destination));
+            f.Context with { TeleportOwner = f.Owner }, f.Original, destination, out var final));
+        Assert.Null(final);
         Assert.True(f.Sessions.TryGet(f.Connection, out var stored));
         Assert.Same(f.Original, stored);
         Assert.Empty(f.OwnerFrames);

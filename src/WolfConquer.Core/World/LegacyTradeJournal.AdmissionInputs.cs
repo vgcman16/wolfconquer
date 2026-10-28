@@ -6,11 +6,12 @@ internal static partial class LegacyTradeJournal
 {
     private static void EnsureAdmissionStagesCleared(JournalRecord record, JournalTarget[] targets)
     {
-        if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version != 8) return;
+        if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9)) return;
         foreach (var target in targets)
             if (!TryDelete(StagePath(target, record.TransactionId)))
-                throw new IOException(record.Version == 8
-                    ? "Character-and-spells staging cleanup is incomplete."
+                throw new IOException(record.Version == 9
+                    ? "Character-items-and-spells staging cleanup is incomplete."
+                    : record.Version == 8 ? "Character-and-spells staging cleanup is incomplete."
                     : "Ordinary-admission staging cleanup is incomplete.");
     }
 

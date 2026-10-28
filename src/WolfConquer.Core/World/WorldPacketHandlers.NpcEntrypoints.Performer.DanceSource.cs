@@ -20,6 +20,7 @@ public static partial class WorldPacketHandlers
     {
         private readonly PlayerSpellSnapshotEntry[]? array;
         private readonly List<PlayerSpellSnapshotEntry>? list;
+        private readonly LegacyNativeSpellStorage.CanonicalSessionSpellRows? canonical;
         internal readonly PlayerSpellSnapshotEntry[] Rows;
 
         internal LegacyPerformerSpellSource(IReadOnlyList<PlayerSpellSnapshotEntry> source)
@@ -30,6 +31,8 @@ public static partial class WorldPacketHandlers
                 case List<PlayerSpellSnapshotEntry> listRows when listRows.GetType() == typeof(List<PlayerSpellSnapshotEntry>):
                     list = listRows; break;
                 case LegacyPerformerSpellRows frozenRows: array = frozenRows.Values; break;
+                case LegacyNativeSpellStorage.CanonicalSessionSpellRows canonicalRows:
+                    canonical = canonicalRows; array = canonicalRows.CopyRows(); break;
                 default: throw InvalidPerformerDanceState();
             }
             var count = Count;
@@ -39,8 +42,9 @@ public static partial class WorldPacketHandlers
             for (var index = 0; index < count; index++)
             {
                 var row = Read(index);
-                if (row is null || row.Id == 0 || row.Experience < 0 || !ids.Add(row.Id))
+                if (row is null || row.Id == 0 || row.Experience < 0)
                     throw InvalidPerformerDanceState();
+                if (!ids.Add(row.Id)) throw new LegacyDuplicatePlayerSpellIdException();
                 Rows[index] = row;
             }
             if (!IsCurrent()) throw InvalidPerformerDanceState();
@@ -53,10 +57,13 @@ public static partial class WorldPacketHandlers
         // reach this check. There is no caller indexer, enumerator or comparer.
         internal bool IsCurrent()
         {
+            if (canonical is not null && !canonical.MatchesRowsPlain(Rows)) return false;
             if (Count != Rows.Length) return false;
             for (var index = 0; index < Rows.Length; index++)
                 if (!ReferenceEquals(Read(index), Rows[index])) return false;
             return true;
         }
     }
+
+    private sealed class LegacyDuplicatePlayerSpellIdException : InvalidOperationException { }
 }

@@ -47,24 +47,20 @@ public static partial class WorldPacketHandlers
             session = candidate; // No fabricated Store, saver or native generation.
             return true;
         }
-        var committed = false;
-        world.WithCurrentNativeClientIdentity(owner.Connection, owner.Expected.Character.Uid, identity =>
+        if (ReferenceEquals(candidate, owner.Expected))
         {
-            if (!ReferenceEquals(identity, owner.Identity) ||
-                !world.TryGet(owner.Connection, out var current) ||
-                !ReferenceEquals(current, owner.Expected)) return;
-            if (ReferenceEquals(candidate, owner.Expected))
-            {
-                committed = true; // A valid zero-change admission needs no Set callback.
-                return;
-            }
-            owner.CommitAttempted = true;
-            // This API publishes before invoking its ordinary observer. Any
-            // exception from that attempt is NOT caught as unchanged rejection.
-            committed = world.TryCompareAndSet(owner.Connection, owner.Expected, candidate);
-        });
+            owner.Committed = owner.Identity is { } identity &&
+                LegacyNativeClientPublication.TryCurrent(world, owner.Connection, owner.Expected.Character.Uid,
+                    identity, out var current) && ReferenceEquals(current, owner.Expected);
+            return owner.Committed; // A valid zero-change admission needs no Set callback.
+        }
+        owner.CommitAttempted = true;
+        // The issued identity and exact record are checked together under the
+        // real Store gate. This is not a nested writer inside an identity query.
+        var committed = world.TryCompareAndSetWithNativeIdentity(owner.Connection, owner.Expected,
+            owner.Identity!, candidate, out var published);
         owner.Committed = committed;
-        if (committed) session = candidate;
+        if (committed) session = published!;
         return committed;
     }
 

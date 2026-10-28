@@ -7,13 +7,18 @@ public static partial class WorldPacketHandlers
         LegacyPerformerDanceDefinition dance, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        LegacyPerformerDanceOwner? owner = null;
-        if (context.Sessions is not null && !LegacyPerformerDanceOwner.TryCapture(context, session, out owner))
+
+        if (context.Sessions is { } sessions &&
+            (session.Character.Uid is <= 0 or > uint.MaxValue ||
+             !LegacyNativeClientPublication.TryCaptureIdentity(sessions, context.Connection, session.Character.Uid, out var identity) ||
+             !LegacyNativeClientPublication.TryCurrent(sessions, context.Connection, session.Character.Uid, identity, out var current) ||
+             !ReferenceEquals(current, session) || !ReferenceEquals(context.Connection.NativeGameClient, session.NativeGameClient) ||
+             context.Connection.NativeGameClient is { } native &&
+                 (native.Player is not { } player || !ReferenceEquals(player.Owner, native) || player.UID != session.Character.Uid)))
         {
             await LogLegacyPerformerDanceRefusalAsync(context, dance, "sessionChanged").ConfigureAwait(false);
             return;
         }
-
         LegacyPerformerSpellSource source;
         try
         {
@@ -55,10 +60,10 @@ public static partial class WorldPacketHandlers
         }
 
         var playerSpellsRoot = context.PlayerSpellsRoot;
-        if (owner is null || string.IsNullOrWhiteSpace(playerSpellsRoot))
+        if (context.Sessions is null || string.IsNullOrWhiteSpace(playerSpellsRoot))
         {
-            var missing = owner is null && string.IsNullOrWhiteSpace(playerSpellsRoot)
-                ? "Sessions and PlayerSpellsRoot" : owner is null ? "Sessions" : "PlayerSpellsRoot";
+            var missing = context.Sessions is null && string.IsNullOrWhiteSpace(playerSpellsRoot)
+                ? "Sessions and PlayerSpellsRoot" : context.Sessions is null ? "Sessions" : "PlayerSpellsRoot";
             await SendLegacySubclassUnavailableAsync(context, LegacySubclassMasterPerformerNpcId,
                 LegacyPerformerSourceMethod, LegacyPerformerSourceRange, dance.OptionId,
                 $"Performer dance learning for {dance.DanceName} spellId={dance.SpellId} requires {missing} for durable live spell mutation",
@@ -67,6 +72,13 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        // Read-only phase and duplicate dialogs do not need persistence authority.
+        // Capture the real owner before preparing or committing any learning.
+        if (!LegacyPerformerDanceOwner.TryCapture(context, session, out var owner) || owner is null)
+        {
+            await LogLegacyPerformerDanceRefusalAsync(context, dance, "sessionChanged").ConfigureAwait(false);
+            return;
+        }
         LegacyPreparedPerformerDance? prepared = null;
         var committed = false;
         var reason = "sessionChanged";
@@ -74,6 +86,12 @@ public static partial class WorldPacketHandlers
         {
             prepared = new(owner, source, playerSpellsRoot, dance, phrase);
             committed = prepared.TryCommit(cancellationToken, out reason);
+        }
+        catch (LegacyCommittedSpellPublicationException)
+        {
+            await context.Log.WriteLineAsync("WorldServer Performer dance requires recovery after durable commitment; owner publication was retired.")
+                .ConfigureAwait(false);
+            return;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or
             ArgumentException or NotSupportedException or InvalidOperationException or FormatException or OverflowException)

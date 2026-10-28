@@ -7,10 +7,11 @@ internal partial class LegacyNativeSpellStorage
     private enum SpellMutationKind { Add, Remove, Reborn, Clear }
     private readonly record struct SpellNotice(LegacyNativeMsgSpell? Added, ushort Removed);
 
-    private bool ExecuteTypedMutation(LegacyNativePacket stream, SpellMutationKind kind, ushort id,
-        LegacyNativeMsgSpell? row, HashSet<ushort>? retained)
+    private bool ExecuteTypedMutation(LegacyNativePacket stream, LegacyNativeSpellMutationIntent intent)
     {
         if (Monitor.IsEntered(mutationGate)) throw UnavailableNinjaSpells();
+        var binding = GetJoinedBindingForEntry();
+        if (binding is not null) return ExecuteJoinedTypedMutation(binding, stream, intent);
         var client = Owner ?? throw UnavailableNinjaSpells();
         RefuseTypedMutationEntry(client);
         var player = client.Player ?? throw UnavailableNinjaSpells();
@@ -19,7 +20,8 @@ internal partial class LegacyNativeSpellStorage
         lock (player.SpellAdmissionSyncRoot)
         {
             RefuseTypedMutationEntry(client);
-            lock (mutationGate) prepared = new(this, client, player, kind, id, row, retained);
+            if (GetJoinedBindingForEntry() is not null) throw UnavailableNinjaSpells();
+            lock (mutationGate) prepared = new(this, client, player, intent);
             // Serializers and native storage checks are outside the spell gate.
             prepared.PrepareFrames(stream);
             lock (mutationGate)
@@ -34,9 +36,51 @@ internal partial class LegacyNativeSpellStorage
         return prepared.RemovedExisting;
     }
 
+    private bool ExecuteJoinedTypedMutation(LegacyOrdinarySpellBinding binding, LegacyNativePacket stream,
+        LegacyNativeSpellMutationIntent intent)
+    {
+        var lease = binding.EnterMutation(); // Store/package/connection gates precede all actor gates.
+        PreparedSpellMutation? prepared = null;
+        try
+        {
+            var client = binding.Client;
+            var player = binding.Player;
+            lock (client.SpellAdmissionSyncRoot)
+            lock (player.SpellAdmissionSyncRoot)
+            {
+                if (!ReferenceEquals(client.MySpells, this) || !ReferenceEquals(binding.Storage, this))
+                    throw UnavailableNinjaSpells();
+                lock (mutationGate) prepared = new(this, client, player, intent);
+                prepared.PrepareFrames(stream);
+                lock (mutationGate)
+                lock (binding.Proficiencies.MutationGate)
+                {
+                    prepared.RequireCurrent();
+                    prepared.RequireStorage(stream);
+                    var profs = LegacyNativeProficiencyStorage.PrepareSessionSnapshot(client, player,
+                        lease.ExpectedProficiencies, lease.ExpectedProficiencies);
+                    prepared.ArmFinalProof();
+                    profs.ArmFinalProof();
+                    lease.PreparePublication(prepared.FinalSnapshot, profs.FinalSnapshot);
+                    if (!prepared.ConsumeBeforeWriterPlain() || !profs.ConsumeBeforeWriterPlain() ||
+                        !prepared.ConsumeCurrentPlain() || !profs.ConsumeCurrentPlain() ||
+                        !lease.IsCurrentPlain()) throw UnavailableNinjaSpells();
+                    prepared.PublishMap();
+                    profs.PublishPreparedMap();
+                    lease.PublishPrepared();
+                }
+            }
+        }
+        finally { lease.Dispose(); }
+        prepared!.PublishJoined(binding.Connection);
+        return prepared.RemovedExisting;
+    }
+
     private void RefuseTypedMutationEntry(LegacyNativeGameClientRuntime client)
     {
-        if (Monitor.IsEntered(mutationGate) || LegacyNativeNinja.HasActiveOwnedPreparation(client))
+        if (Monitor.IsEntered(mutationGate) || LegacyNativeNinja.HasActiveOwnedPreparation(client) ||
+            client.MyProfs is { } profs && Monitor.IsEntered(profs.MutationGate) ||
+            client.OrdinarySpellBinding is { } pin && Monitor.IsEntered(pin.Proficiencies.MutationGate))
             throw UnavailableNinjaSpells();
     }
 

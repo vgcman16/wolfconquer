@@ -35,12 +35,16 @@ internal static partial class LegacyNativeServerDatabasePersistence
 
     private static void PublishLoadedSpellRows(SpellFileOwner owner, LegacyNativeMsgSpell[] rows)
     {
+        var binding = LegacyNativeSpellStorage.GetJoinedBindingForClientEntry(owner.Client);
+        if (binding is not null) throw new InvalidOperationException("Opened spell input cannot acquire an ordinary binding after parsing.");
         LegacyNativeSpellStorage.RequireDirectEntry(owner.Client);
         lock (owner.Client.SpellAdmissionSyncRoot)
         lock (owner.Player.SpellAdmissionSyncRoot)
         {
             owner.RequireCurrent();
             LegacyNativeSpellStorage.RequireDirectEntry(owner.Client);
+            if (LegacyNativeSpellStorage.GetJoinedBindingForClientEntry(owner.Client) is not null)
+                throw new InvalidOperationException("Spell owner was admitted during opened input preparation.");
             var storage = RequireFileSpellStorage(owner);
             lock (storage.MutationGate)
             {

@@ -24,9 +24,8 @@ internal partial class LegacyNativeUpdateSpell
         private int metadataCount;
         private uint threshold;
         private ushort needLevel;
-        private bool rune, committed, leveled;
+        private bool rune, leveled;
         private byte[]? frame;
-        private nint address;
         internal bool HasSpell => selected is not null;
         internal bool HasProgress => frame is not null;
 
@@ -109,7 +108,6 @@ internal partial class LegacyNativeUpdateSpell
             leveled = level > originalLevel;
             frame = LegacyNativeSpellPacket.PrepareSpellFrame(value, LegacyNativePreparedPacketFrames.CaptureSeal());
             LegacyNativePreparedPacketStorage.Validate(stream, frame.Length);
-            address = LegacyNativePreparedPacketStorage.Address(stream);
             return true;
         }
     }

@@ -27,6 +27,9 @@ public sealed partial class LegacyPerformerDanceLearningTests
     {
         internal string Root { get; } = Path.Combine(Path.GetTempPath(), "wolf-performer-dance-durable-" + Guid.NewGuid().ToString("N"));
         internal string SpellsRoot => Path.Combine(Root, "spells");
+        internal string UsersRoot => Path.Combine(Root, "users");
+        internal LegacyTradeRecoveryState Recovery { get; private set; } = null!;
+        internal WorldSession Session(long uid = CharacterUid) => DurableSession(uid) with { UsersRoot = UsersRoot };
         internal List<byte[]> Sent { get; } = [];
         internal StringWriter Log { get; } = new();
         private readonly List<ConquerTcpConnection> connections = [];
@@ -40,6 +43,9 @@ public sealed partial class LegacyPerformerDanceLearningTests
             Assert.False(Directory.Exists(Root) || File.Exists(Root));
             Directory.CreateDirectory(Root); ownsRoot = true;
             Directory.CreateDirectory(SpellsRoot);
+            Directory.CreateDirectory(UsersRoot);
+            Recovery = new LegacyTradeRecoveryState(UsersRoot, null, null, null, null, SpellsRoot, null);
+            Assert.True(Recovery.TryEnsureInitialized(out var reason), reason);
         }
 
         internal ConquerTcpConnection Connection()
@@ -100,7 +106,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
         internal ValueTask<bool> InvokeAsync(ConquerTcpConnection connection, WorldSessionStore store, WorldSession expectedSession,
             byte optionId = 7) =>
             WorldPacketHandlers.TryHandleLegacySubclassMastersNpcAsync(
-                new WorldPacketHandlerContext(connection, Log, Session: expectedSession, Sessions: store, PlayerSpellsRoot: SpellsRoot),
+                new WorldPacketHandlerContext(connection, Log, Session: expectedSession, Sessions: store, PlayerSpellsRoot: SpellsRoot) { TradeRecovery = Recovery },
                 expectedSession, PerformerNpcId, optionId, CancellationToken.None);
 
         public async ValueTask DisposeAsync()
@@ -123,9 +129,10 @@ public sealed partial class LegacyPerformerDanceLearningTests
             {
                 if (!ownsRoot) return;
                 RequireFilesUnchanged();
-                Assert.Equal(new[] { SpellsRoot }, Directory.GetFileSystemEntries(Root));
+                Assert.Equal(new[] { SpellsRoot, UsersRoot }.Order(StringComparer.Ordinal), Directory.GetFileSystemEntries(Root).Order(StringComparer.Ordinal));
                 foreach (var path in expected.Keys) File.Delete(path);
                 Directory.Delete(SpellsRoot, recursive: false);
+                Directory.Delete(UsersRoot, recursive: false);
                 Directory.Delete(Root, recursive: false);
             }
             finally { Log.Dispose(); }

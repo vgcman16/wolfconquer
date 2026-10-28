@@ -93,7 +93,7 @@ public static partial class WorldPacketHandlers
         {
             Character = ClearLegacyMountRideStatus(sourceSession.Character),
         };
-        if (!TryCommitOwnedLegacyTeleport(context, sourceSession, updatedSession))
+        if (!TryCommitOwnedLegacyTeleport(context, sourceSession, updatedSession, out var committedSession))
         {
             sessions.TryGet(context.Connection, out var currentSession);
             return new LegacyTeleportEntrySideEffectResult(
@@ -107,6 +107,7 @@ public static partial class WorldPacketHandlers
                 RemovedRide: false);
         }
 
+        updatedSession = committedSession!;
         var updatedContext = context with { Session = updatedSession };
         await SendPlayerStatusFlagVectorToVisibleAsync(
                 updatedContext,

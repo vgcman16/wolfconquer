@@ -43,16 +43,18 @@ public static partial class WorldPacketHandlers
             Character = reduction.FirstTransition.Character,
         };
 
-        if (!await TryPublishLegacyTeleportDestinationAsync(
+        var committedFirst = await TryPublishLegacyTeleportDestinationAsync(
                 context,
                 expectedSession,
                 firstSession,
                 "first",
                 cancellationToken)
-            .ConfigureAwait(false))
+            .ConfigureAwait(false);
+        if (committedFirst is null)
         {
             return null;
         }
+        firstSession = committedFirst;
 
         await SendLegacyTeleportLeaveToVisiblePeersAsync(context, sourceSession, cancellationToken)
             .ConfigureAwait(false);
@@ -78,16 +80,18 @@ public static partial class WorldPacketHandlers
             Character = correction.FirstTransition.Character,
         };
         var correctionContext = context with { Session = appliedSession };
-        if (!await TryPublishLegacyTeleportDestinationAsync(
+        var committedCorrection = await TryPublishLegacyTeleportDestinationAsync(
                 correctionContext,
                 appliedSession,
                 correctionSession,
                 "map-6000 correction",
                 cancellationToken)
-            .ConfigureAwait(false))
+            .ConfigureAwait(false);
+        if (committedCorrection is null)
         {
             return null;
         }
+        correctionSession = committedCorrection;
 
         await SendLegacyTeleportLeaveToVisiblePeersAsync(
                 correctionContext,
@@ -103,7 +107,7 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
     }
 
-    private static async ValueTask<bool> TryPublishLegacyTeleportDestinationAsync(
+    private static async ValueTask<WorldSession?> TryPublishLegacyTeleportDestinationAsync(
         WorldPacketHandlerContext context,
         WorldSession expectedSession,
         WorldSession destinationSession,
@@ -119,12 +123,12 @@ public static partial class WorldPacketHandlers
                     $"sourceMap={expectedSession.Character.MapId} destinationMap={destinationSession.Character.MapId}; " +
                     "WorldSessionStore is unavailable.")
                 .ConfigureAwait(false);
-            return false;
+            return null;
         }
 
-        if (TryCommitOwnedLegacyTeleport(context, expectedSession, destinationSession))
+        if (TryCommitOwnedLegacyTeleport(context, expectedSession, destinationSession, out var final))
         {
-            return true;
+            return final;
         }
 
         sessions.TryGet(context.Connection, out var currentSession);
@@ -137,7 +141,7 @@ public static partial class WorldPacketHandlers
                 $"currentUid={currentUid} currentMap={currentMap}; " +
                 "WorldSessionStore.TryCompareAndSet rejected the source session before leave or transition packets were sent.")
             .ConfigureAwait(false);
-        return false;
+        return null;
     }
 
     private static bool LegacyTeleportMapExists(

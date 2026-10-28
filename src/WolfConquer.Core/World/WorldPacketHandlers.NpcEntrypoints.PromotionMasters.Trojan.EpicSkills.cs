@@ -104,30 +104,17 @@ public static partial class WorldPacketHandlers
             return true;
         }
 
-        var debitedSession = await DebitLegacyPromotionConquerPointsAsync(
-                context,
-                session,
-                LegacyPromotionTrojanEpicSkillCost,
-                optionId,
-                sourceRange,
-                cancellationToken)
-            .ConfigureAwait(false);
         var learned = CreateLegacyPromotionSpellEntry(spellId);
-        var updatedSpells = LegacySkillBookUse.AddOrUpdateSpell(debitedSession.PlayerSpells, learned);
-        var updatedSession = await ApplyLegacyPromotionSpellsAsync(
-                context with { Session = debitedSession },
-                debitedSession,
-                updatedSpells,
-                optionId,
-                sourceRange,
-                spellId.ToString(System.Globalization.CultureInfo.InvariantCulture))
-            .ConfigureAwait(false);
-
+        if (!TryCommitLegacyPaidSpellLearning(context, session, learned, LegacySpellLearningCurrency.ConquerPoints,
+                LegacyPromotionTrojanEpicSkillCost, 0, requiresTrojanEpicWeapon: true, cancellationToken,
+                out var paid, out var reason))
+        {
+            await LogLegacyPaidSpellRefusalAsync(context, reason).ConfigureAwait(false);
+            return true;
+        }
+        var updatedSession = paid!.Updated;
         var updatedContext = context with { Session = updatedSession };
-        await updatedContext.Connection.SendAsync(
-                LegacySpellPacket.FromSnapshot(learned).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (!await paid.PublishGrantAsync(cancellationToken).ConfigureAwait(false)) return true;
         await SendLegacyNpcDialogAsync(
                 updatedContext,
                 LegacyPromotionTrojanSource,

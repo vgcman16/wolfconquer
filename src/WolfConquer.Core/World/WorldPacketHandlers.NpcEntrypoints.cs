@@ -112,7 +112,7 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        if (await TryHandleLegacyNpcActionAsync(
+        if (await TryHandleLegacyNpcActionWithSpellRefusalAsync(
                 context,
                 updatedSession,
                 packet.NpcId,

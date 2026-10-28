@@ -93,60 +93,31 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        var updatedSpells = LegacySkillBookUse.AddOrUpdateSpell(session.PlayerSpells, learnedSpell);
-        var updatedItems = ConsumeSingleLegacyInventoryItem(session.PlayerItems, item, out var consumeFrame);
-        var updated = session with
+        if (!TryCommitLegacyItemSpell(context, session, (stable, unusedIdentity) =>
+            {
+                var owned = stable.PlayerItems.InventoryItems.SingleOrDefault(row => row.Uid == item.Uid);
+                var currentBook = context.WorldData is { } catalog ? LegacySkillBookUse.Classify(item.ItemId, catalog) : LegacySkillBookUse.Classify(item.ItemId);
+                if (currentBook.Status != LegacySkillBookUseStatus.Recognized || currentBook.SpellEntry != learnedSpell ||
+                    owned is null || owned.ItemId != item.ItemId || owned.StackSize == 0 || owned.Locked != 0 ||
+                    owned.DepositedItems.Count != 0 || stable.PlayerSpells.Spells.Any(row => row.Id == learnedSpell.Id) ||
+                    !LegacyMagicClassGate.CanUsePlayerSpell(stable.Character, learnedSpell.Id,
+                        context.WorldData?.MagicTypeOperationsByReferencedMagicTypeId, out _) ||
+                    !CanUseLegacySkillBookForRequirements(stable, skillBook.ItemId, learnedSpell.Id, out _))
+                    throw InvalidSpellMutation();
+                var spells = LegacySkillBookUse.AddOrUpdateSpell(stable.PlayerSpells, learnedSpell);
+                var items = ConsumeSingleLegacyInventoryItem(stable.PlayerItems, owned, out var consume);
+                byte[][] frames = [consume, LegacySpellPacket.FromSnapshot(learnedSpell).ToFrameBytes(),
+                    LegacyNpcReplyPacket.ForDialog($"You~have~learned~{learnedSpell.Id}.").ToFrameBytes(),
+                    LegacyNpcReplyPacket.ForClosedOption("I~see.").ToFrameBytes(), LegacyNpcReplyPacket.ForFinish().ToFrameBytes()];
+                return new ItemSpellProjection(stable with { PlayerItems = items, PlayerSpells = spells }, frames);
+            }, cancellationToken, out var updated, out var frames, out var publicationIdentity, out var reason))
         {
-            PlayerItems = updatedItems,
-            PlayerSpells = updatedSpells,
-        };
-        context.Sessions?.Set(context.Connection, updated);
-
-        if (!string.IsNullOrWhiteSpace(context.PlayerSpellsRoot))
-        {
-            new PlayerSpellSnapshotLoader(context.PlayerSpellsRoot).SaveByCharacterUid(
-                updated.Character.Uid,
-                updatedSpells);
+            await context.Log.WriteLineAsync($"WorldServer held MsgItemUsage skill book reason={reason}; no success was published.").ConfigureAwait(false);
+            return;
         }
-        else
-        {
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP MsgItemUsage skill book missing PlayerSpellsRoot " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId} spellId={learnedSpell.Id}; " +
-                    "learned spell is session-only.")
-                .ConfigureAwait(false);
-        }
-
-        if (!string.IsNullOrWhiteSpace(context.PlayerItemsRoot))
-        {
-            new PlayerItemSnapshotLoader(context.PlayerItemsRoot).SaveByCharacterUid(
-                updated.Character.Uid,
-                updatedItems);
-        }
-        else
-        {
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP MsgItemUsage skill book missing PlayerItemsRoot " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId} spellId={learnedSpell.Id}; " +
-                    "consumed item is session-only.")
-                .ConfigureAwait(false);
-        }
-
-        await context.Connection.SendAsync(consumeFrame, cancellationToken).ConfigureAwait(false);
-        await context.Connection.SendAsync(LegacySpellPacket.FromSnapshot(learnedSpell).ToFrameBytes(), cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacySkillBookDialogAsync(
-                context with { Session = updated },
-                $"You~have~learned~{learnedSpell.Id}.",
-                cancellationToken)
-            .ConfigureAwait(false);
-        await context.Log.WriteLineAsync(
-                "WorldServer handled MsgItemUsage skill book " +
-                $"{FormatSession(context with { Session = updated })} itemUid={item.Uid} itemId={item.ItemId} " +
-                $"spellId={learnedSpell.Id}.")
-            .ConfigureAwait(false);
+        await PublishItemSpellFramesAsync(context, updated, frames, publicationIdentity, cancellationToken).ConfigureAwait(false);
+        await context.Log.WriteLineAsync($"WorldServer committed MsgItemUsage skill book {FormatSession(context with { Session = updated })} itemUid={item.Uid} spellId={learnedSpell.Id}.").ConfigureAwait(false);
     }
-
     private static async ValueTask SendLegacySkillBookDialogAsync(
         WorldPacketHandlerContext context,
         string text,

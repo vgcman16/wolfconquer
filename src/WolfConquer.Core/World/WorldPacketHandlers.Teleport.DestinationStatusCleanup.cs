@@ -28,7 +28,7 @@ public static partial class WorldPacketHandlers
             WithoutLegacyStatusFlag(session.Character, LegacyFatalStrikeFlag),
             RuntimeLegacyFatalStrikeExpiresAtUtcAttribute);
         var updatedSession = session with { Character = updatedCharacter };
-        if (!TryCommitOwnedLegacyTeleport(context, session, updatedSession))
+        if (!TryCommitOwnedLegacyTeleport(context, session, updatedSession, out var committedSession))
         {
             sessions.TryGet(context.Connection, out var currentSession);
             var currentUid = currentSession?.Character.Uid.ToString() ?? "missing";
@@ -41,6 +41,8 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
             return null;
         }
+
+        updatedSession = committedSession!;
 
         await SendPlayerStatusFlagVectorToVisibleAsync(
                 context with { Session = updatedSession },

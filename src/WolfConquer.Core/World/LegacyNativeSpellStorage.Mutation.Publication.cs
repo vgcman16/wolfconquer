@@ -37,6 +37,15 @@ internal partial class LegacyNativeSpellStorage
             catch (InvalidOperationException) { return false; }
         }
 
+        internal void PublishJoined(ConquerTcpConnection connection)
+        {
+            if (!HasCommittedOwner()) throw new LegacyCommittedSpellNotificationException(
+                new InvalidOperationException("Committed native spell notification graph changed."));
+            var binding = owner.GetJoinedBindingForEntry() ?? throw UnavailableNinjaSpells();
+            if (!ReferenceEquals(binding.Connection, connection)) throw UnavailableNinjaSpells();
+            LegacyOrdinarySpellNotificationPublisher.Publish(binding, frames);
+        }
+
         internal void Publish(LegacyNativePacket stream)
         {
             foreach (var frame in frames)

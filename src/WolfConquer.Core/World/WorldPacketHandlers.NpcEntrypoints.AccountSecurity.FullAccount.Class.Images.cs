@@ -6,7 +6,7 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private static (string Character, string Spells, LegacyTradeJournalChange[] Changes) PrepareFullAccountClassImages(
-        LegacyFullAccountClassOwner owner, WorldSession updated, LegacyFullAccountClassGrant grant)
+        LegacyFullAccountClassOwner owner, WorldSession updated, LegacyPreparedSpellFileWrite spellWrite)
     {
         var characterPath = Path.Combine(owner.UsersRoot, owner.Expected.AccountId.ToString(CultureInfo.InvariantCulture) + ".ini");
         var spellPath = Path.Combine(owner.SpellsRoot, owner.Expected.Character.Uid.ToString(CultureInfo.InvariantCulture) + ".bin");
@@ -29,9 +29,8 @@ public static partial class WorldPacketHandlers
             var parsedAfter = CharacterSnapshotParser.ParseText(afterText);
             if (!FullAccountCharacterScalarsEqual(parsedAfter, updated.Character))
                 throw new FullAccountClassRefusal("fullAccountClassAfterImageMismatch");
-            var spellBefore = ReadFullAccountClassSpells(spellPath);
-            var spellAfter = PrepareFullAccountClassSpellImage(owner.Inputs.SpellRows, updated.PlayerSpells,
-                spellBefore, grant.SpellIds);
+            var spellBefore = spellWrite.CopyBeforeImage();
+            var spellAfter = spellWrite.CopyAfterImage();
             changes = [new(LegacyTradeJournalFileKind.Character, owner.Expected.AccountId, baseline.Bytes, characterAfter),
                 new(LegacyTradeJournalFileKind.Spells, owner.Expected.Character.Uid, spellBefore, spellAfter)];
             return true;
@@ -53,26 +52,6 @@ public static partial class WorldPacketHandlers
         }
         catch (FileNotFoundException) { return null; }
         catch (DirectoryNotFoundException) { return null; }
-    }
-
-    private static byte[] PrepareFullAccountClassSpellImage(PlayerSpellSnapshotEntry[] expected, PlayerSpellSnapshot after,
-        byte[]? saved, IReadOnlyList<ushort> resetIds)
-    {
-        var result = PlayerSpellSnapshotLoader.ToLegacyBytes(after);
-        if (saved is null) return result;
-        var actual = PlayerSpellSnapshotLoader.Parse(saved);
-        if (actual.Spells.Count != expected.Length || !actual.Spells.SequenceEqual(expected))
-            throw new FullAccountClassRefusal("fullAccountClassSpellBaselineStale");
-        var reset = resetIds.ToHashSet();
-        var offsets = expected.Select((row, index) => (row.Id, Offset: sizeof(int) + index * PlayerSpellSnapshotLoader.LegacySpellSize))
-            .ToDictionary(row => row.Id, row => row.Offset);
-        for (var index = 0; index < after.Spells.Count; index++)
-        {
-            var row = after.Spells[index];
-            if (!reset.Contains(row.Id) && offsets.TryGetValue(row.Id, out var original))
-                result[sizeof(int) + index * PlayerSpellSnapshotLoader.LegacySpellSize + 11] = saved[original + 11];
-        }
-        return result;
     }
 
     private static bool FullAccountStoredFieldsMatch(IReadOnlyDictionary<string, string> saved, IReadOnlyDictionary<string, string> expected) =>

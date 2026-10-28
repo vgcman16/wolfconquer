@@ -16,7 +16,7 @@ public sealed class LegacyNativeSpellStorageTests
     public Task AddKeepsNativeExclusionsAndAdjacentAcceptedIds(ushort id, bool accepted) => NativePacketTestThread.Run(() =>
     {
         using var f = new NativeSpellTestFixture();
-        f.Storage.Add(f.Packet, id, 9, 2, 7, -13);
+        f.Storage.Add(f.Packet, id, 9, 2, 7, 13);
         Assert.Equal(accepted, f.Storage.ClientSpells.ContainsKey(id));
         Assert.Equal(accepted ? 1 : 0, f.Queue.Count);
         if (!accepted) return;
@@ -24,13 +24,25 @@ public sealed class LegacyNativeSpellStorageTests
         Assert.Equal((ushort)9, stored.Level);
         Assert.Equal((byte)7, stored.PreviousLevel);
         Assert.Equal((byte)2, stored.SoulLevel);
-        Assert.Equal(-13, stored.Experience);
+        Assert.Equal(13, stored.Experience);
         var sent = NativeSpellTestFixture.ReadSpell(f.Queue.Dequeue());
         Assert.Equal(id, sent.ID);
         Assert.Equal(18, sent.HashLevelSoul);
-        Assert.Equal(-13, sent.Experience);
+        Assert.Equal(13, sent.Experience);
     });
 
+    [Fact]
+    public Task NegativeExperienceIsRejectedBeforeMutationOrOutput() => NativePacketTestThread.Run(() =>
+    {
+        using var f = new NativeSpellTestFixture();
+        var before = new LegacyNativeSpellMutationWitness(f.Storage);
+        var packet = new LegacyNativePacketMutationWitness(f.Packet);
+        Assert.Throws<InvalidOperationException>(() => f.Storage.Add(f.Packet, 1000, 9, 2, 7, -13));
+        before.RequireUnchanged(); packet.RequireUnchanged(); Assert.Empty(f.Queue);
+        var input = new LegacyNativeMsgSpell { ID = 1000, Level = 8, Experience = -9 };
+        Assert.Throws<InvalidOperationException>(() => f.Storage.Update(f.Packet, input));
+        before.RequireUnchanged(); packet.RequireUnchanged(); Assert.Empty(f.Queue);
+    });
     [Fact]
     public Task RepeatedAddReplacesEachObjectAndSendsViaItsActualStorageOwner() => NativePacketTestThread.Run(() =>
     {
@@ -172,14 +184,14 @@ public sealed class LegacyNativeSpellStorageTests
     {
         using var f = new NativeSpellTestFixture();
         var input = new LegacyNativeMsgSpell { ID = 1000, Level = 8, SoulLevel = 3, PreviousLevel = 7,
-            Experience = -9, UseSpellSoul = 2, Type = 12, Soul = 11, IsSpellWithColdTime = true };
+            Experience = 9, UseSpellSoul = 2, Type = 12, Soul = 11, IsSpellWithColdTime = true };
         f.Storage.Update(f.Packet, input);
         var stored = f.Storage.ClientSpells[1000];
         Assert.NotSame(input, stored);
         Assert.Equal((ushort)8, stored.Level);
         Assert.Equal((byte)3, stored.SoulLevel);
         Assert.Equal((byte)7, stored.PreviousLevel);
-        Assert.Equal(-9, stored.Experience);
+        Assert.Equal(9, stored.Experience);
         Assert.Equal((ushort)0, stored.Type);
         Assert.Equal((byte)0, stored.Soul);
         Assert.False(stored.IsSpellWithColdTime);

@@ -284,24 +284,12 @@ public static partial class WorldPacketHandlers
         string sourceRange,
         string learnedSpellIds)
     {
-        var updatedSession = session with { PlayerSpells = updatedSpells };
-        context.Sessions?.Set(context.Connection, updatedSession);
-
-        if (!string.IsNullOrWhiteSpace(context.PlayerSpellsRoot))
-        {
-            new PlayerSpellSnapshotLoader(context.PlayerSpellsRoot).SaveByCharacterUid(
-                updatedSession.Character.Uid,
-                updatedSpells);
-        }
-        else
-        {
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP LegacyNpc PromotionTrojan skill missing PlayerSpellsRoot " +
-                    $"{FormatSession(context)} source={LegacyPromotionTrojanSource} " +
-                    $"sourceRange={sourceRange} option={optionId} spellIds={learnedSpellIds}; " +
-                    "learned spell is session-only.")
-                .ConfigureAwait(false);
-        }
+        if (!TryCommitLegacyFreeSpells(context, session, updatedSpells, CancellationToken.None,
+                out var updatedSession, out var reason))
+            throw new LegacySpellMutationRefusalException(reason);
+        await context.Log.WriteLineAsync("WorldServer committed promotion spell learning " +
+                $"{FormatSession(context with { Session = updatedSession })} option={optionId} spellIds={learnedSpellIds}.")
+            .ConfigureAwait(false);
 
         return updatedSession;
     }
@@ -347,36 +335,6 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
         }
 
-        return updatedSession;
-    }
-
-    private static async ValueTask<WorldSession> DebitLegacyPromotionConquerPointsAsync(
-        WorldPacketHandlerContext context,
-        WorldSession session,
-        long cost,
-        byte optionId,
-        string sourceRange,
-        CancellationToken cancellationToken)
-    {
-        var updatedCharacter = session.Character with
-        {
-            ConquerPoints = checked(session.Character.ConquerPoints - cost),
-        };
-        var updatedSession = await ApplyLegacyPromotionCharacterAsync(
-                context,
-                session,
-                updatedCharacter,
-                optionId,
-                sourceRange)
-            .ConfigureAwait(false);
-        var updatedContext = context with { Session = updatedSession };
-        await SendScalarUpdateAsync(
-                updatedContext,
-                updatedCharacter,
-                LegacyMsgUpdateDataType.ConquerPoints,
-                checked((ulong)updatedCharacter.ConquerPoints),
-                cancellationToken)
-            .ConfigureAwait(false);
         return updatedSession;
     }
 

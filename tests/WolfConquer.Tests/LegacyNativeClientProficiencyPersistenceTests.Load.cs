@@ -7,11 +7,10 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeClientProficiencyPersistenceTests
 {
     [Fact]
-    public void LoadPreservesExistingAliasesAndFirstDuplicateWhileHonoringTheDeclaredCount()
+    public void LoadPreservesExistingRowsAndMergesValidDistinctFileRows()
     {
         using var files = new OwnedProfs();
-        var image = Image(4, Row(21, 1), Row(uint.MaxValue, uint.MaxValue, byte.MaxValue, 0x80000000, uint.MaxValue),
-            Row(uint.MaxValue, 3), Row(21, 7), Row(99, 9));
+        var image = Image(2, Row(21, 1), Row(uint.MaxValue, uint.MaxValue, byte.MaxValue, 0x80000000, uint.MaxValue));
         files.Seed(image);
         var client = Client();
         var existing = new LegacyNativeMsgProficiency { ID = 21, Level = 55, Experience = 77 };
@@ -29,106 +28,105 @@ public sealed partial class LegacyNativeClientProficiencyPersistenceTests
     }
 
     [Fact]
-    public void EmptyZeroAndNegativeCountsCloseWithoutEverDereferencingTheMissingProficiencyOwner()
+    public void ZeroCountClosesWithTheActualProficiencyOwner()
     {
-        foreach (var image in new[] { Array.Empty<byte>(), Image(0), Image(-1), Image(int.MinValue) })
+        foreach (var image in new[] { Image(0) })
         {
             using var files = new OwnedProfs();
             files.Seed(image);
-            var client = Client(profs: false);
+            var client = Client();
             LegacyNativeServerDatabasePersistence.LoadClientProfs(client);
-            Assert.Null(client.MyProfs);
+            Assert.Empty(client.MyProfs!.ClientProf);
             Assert.Equal(image, File.ReadAllBytes(files.FilePath));
             AssertClosed(files.FilePath);
         }
     }
 
     [Fact]
-    public void OneByteCountAndMissingFirstRecordStillAdmitTheNativeDefaultRow()
+    public void MalformedImagesRefuseBeforePublishingAnyRowsAndCloseTheActualFile()
     {
-        using var files = new OwnedProfs();
-        files.Seed(new byte[] { 1 });
-        var client = Client();
-        LegacyNativeServerDatabasePersistence.LoadClientProfs(client);
-        var entry = Assert.Single(client.MyProfs!.ClientProf);
-        Assert.Equal(0u, entry.Key); Assert.Equal(0u, entry.Value.ID); Assert.Equal(0u, entry.Value.Level);
-        Assert.Equal((byte)0, entry.Value.PreviouseLevel);
-        Assert.Equal(0u, entry.Value.Experience); Assert.Equal(0u, entry.Value.NeededExperience);
-        AssertClosed(files.FilePath);
+        var images = new[]
+        {
+            Array.Empty<byte>(), new byte[] { 1 }, Image(-1), Image(int.MinValue), Image(int.MaxValue),
+            Image(1), Image(2, Row(11, 1), BitConverter.GetBytes(88u)),
+            Image(1, Row(0, 1)), Image(2, Row(11, 1), Row(11, 2)),
+            Image(1, Row(11, 1), Row(12, 2)),
+        };
+        foreach (var image in images)
+        {
+            using var files = new OwnedProfs();
+            files.Seed(image);
+            var client = Client();
+            var old = new LegacyNativeMsgProficiency { ID = 21, Level = 55, Experience = 77 };
+            client.MyProfs!.ClientProf.TryAdd(21, old);
+            var map = client.MyProfs.ClientProf;
+            var file = files.Open(FileMode.Open);
+            Assert.Throws<InvalidDataException>(() => LegacyNativeServerDatabasePersistence.LoadClientProfsOpenedFile(file, client));
+            Assert.Same(map, client.MyProfs.ClientProf);
+            Assert.Same(old, Assert.Single(map).Value);
+            Assert.Equal(55u, old.Level); Assert.Equal(77u, old.Experience);
+            Assert.Equal(image, File.ReadAllBytes(files.FilePath));
+            AssertClosed(files.FilePath);
+        }
     }
-
     [Fact]
-    public void TruncatedLaterRecordReusesEarlierFieldsAndRepeatedEofDoesNotReplaceTheFirstAdmission()
-    {
-        using var files = new OwnedProfs();
-        files.Seed(Image(3, Row(77, 0x12345678, 0xA9, uint.MaxValue, 0x87654321, 0xEE))
-            .Concat(BitConverter.GetBytes(88u)).ToArray());
-        var client = Client();
-        LegacyNativeServerDatabasePersistence.LoadClientProfs(client);
-        Assert.Equal(2, client.MyProfs!.ClientProf.Count);
-        var first = client.MyProfs.ClientProf[77];
-        var second = client.MyProfs.ClientProf[88];
-        Assert.NotSame(first, second);
-        Assert.Equal(88u, second.ID); Assert.Equal(0x12345678u, second.Level);
-        Assert.Equal((byte)0xA9, second.PreviouseLevel);
-        Assert.Equal(uint.MaxValue, second.Experience); Assert.Equal(0x87654321u, second.NeededExperience);
-        AssertClosed(files.FilePath);
-    }
-
-    [Fact]
-    public void MissingDirectoriesFilesAndExclusiveOpenFailuresReturnBeforeReadingTheOwner()
+    public void MissingFilesAndExclusiveOpenFailWithoutChangesForActualOwner()
     {
         using (var missing = new OwnedProfs(createDirectory: false))
         {
-            var client = Client(profs: false);
+            var client = Client();
             LegacyNativeServerDatabasePersistence.LoadClientProfs(client);
             LegacyNativeServerDatabasePersistence.SaveClientProfs(client);
-            Assert.Null(client.MyProfs);
+            Assert.Empty(client.MyProfs!.ClientProf);
             Assert.False(Directory.Exists(missing.DirectoryPath));
         }
         using var files = new OwnedProfs();
-        var noOwner = Client(profs: false);
-        LegacyNativeServerDatabasePersistence.LoadClientProfs(noOwner);
+        var owner = Client();
+        LegacyNativeServerDatabasePersistence.LoadClientProfs(owner);
         Assert.False(File.Exists(files.FilePath));
         var original = Image(1, Row(9, 4));
         files.Seed(original);
         using (var locked = new FileStream(files.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
         {
-            LegacyNativeServerDatabasePersistence.LoadClientProfs(noOwner);
-            LegacyNativeServerDatabasePersistence.SaveClientProfs(noOwner);
+            LegacyNativeServerDatabasePersistence.LoadClientProfs(owner);
+            Assert.Throws<IOException>(() => LegacyNativeServerDatabasePersistence.SaveClientProfs(owner));
         }
         Assert.Equal(original, File.ReadAllBytes(files.FilePath));
-        Assert.Null(noOwner.MyProfs);
+        Assert.Empty(owner.MyProfs!.ClientProf);
     }
 
     [Fact]
-    public void OpenedLoadPropagatesMissingOwnerAfterConsumingOneRowAndIntentionallySkipsClose()
+    public void MissingOwnerRefusesBeforeOpeningOrTruncatingAnExistingFile()
     {
         using var files = new OwnedProfs();
-        var secondBytes = Row(12, 3, 4, 5, 6, 0xAA);
-        files.Seed(Image(2, Row(11, 1), secondBytes));
+        var original = Image(1, Row(9, 4));
+        files.Seed(original);
         var client = Client(profs: false);
-        var file = files.Open(FileMode.Open);
-        try
-        {
-            Assert.Throws<NullReferenceException>(() => LegacyNativeServerDatabasePersistence.LoadClientProfsOpenedFile(file, client));
-            Assert.Null(client.MyProfs);
-            Assert.True(file.Success);
-            AssertStillOpen(files.FilePath);
-            var next = default(LegacyNativeClientProficiency.DBProf);
-            Assert.True(file.ReadProf(ref next));
-            Assert.Equal(secondBytes, Bytes(ref next));
-        }
-        finally { file.Close(); }
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeServerDatabasePersistence.LoadClientProfs(client));
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeServerDatabasePersistence.SaveClientProfs(client));
+        Assert.Null(client.MyProfs);
+        Assert.Equal(original, File.ReadAllBytes(files.FilePath));
         AssertClosed(files.FilePath);
     }
-
+    [Fact]
+    public void OpenedLoadMissingOwnerRefusesBeforeReadingAndClosesOwnedFile()
+    {
+        using var files = new OwnedProfs();
+        var original = Image(2, Row(11, 1), Row(12, 3, 4, 5, 6, 0xAA));
+        files.Seed(original);
+        var client = Client(profs: false);
+        var file = files.Open(FileMode.Open);
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeServerDatabasePersistence.LoadClientProfsOpenedFile(file, client));
+        Assert.Null(client.MyProfs);
+        Assert.Equal(original, File.ReadAllBytes(files.FilePath));
+        AssertClosed(files.FilePath);
+    }
     [Fact]
     public void NullClientInBothPublicMethodsPropagatesBeforeAnyFileCanBeOpened()
     {
         using var files = new OwnedProfs();
-        Assert.Throws<NullReferenceException>(() => LegacyNativeServerDatabasePersistence.LoadClientProfs(null!));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeServerDatabasePersistence.SaveClientProfs(null!));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeServerDatabasePersistence.LoadClientProfs(null!));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeServerDatabasePersistence.SaveClientProfs(null!));
         Assert.Empty(Directory.GetFileSystemEntries(files.DirectoryPath));
     }
 }

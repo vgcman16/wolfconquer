@@ -54,23 +54,17 @@ public static partial class WorldPacketHandlers
         }
 
         var updatedSession = session with { PlayerSpells = new PlayerSpellSnapshot(spells) };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        var responseFrame = result.Packet.ToFrameBytes();
 
-        if (!string.IsNullOrWhiteSpace(context.PlayerSpellsRoot))
+        if (!TryCommitLegacyFreeSpells(context, session, updatedSession.PlayerSpells, cancellationToken,
+                out updatedSession, out var reason))
         {
-            new PlayerSpellSnapshotLoader(context.PlayerSpellsRoot).SaveByCharacterUid(
-                updatedSession.Character.Uid,
-                updatedSession.PlayerSpells);
-        }
-        else
-        {
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP player magic spell experience missing PlayerSpellsRoot " +
-                    $"{FormatSession(context)} spellId={spell.Id}; spell experience is session-only.")
+            await context.Log.WriteLineAsync("WorldServer refused spell experience persistence before commitment; spell unchanged. reason=" + reason)
                 .ConfigureAwait(false);
+            return session;
         }
 
-        await context.Connection.SendAsync(result.Packet.ToFrameBytes(), cancellationToken)
+        await context.Connection.SendAsync(responseFrame, cancellationToken)
             .ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer updated legacy player magic spell " +

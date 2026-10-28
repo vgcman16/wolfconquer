@@ -26,12 +26,14 @@ public sealed partial class LegacyNativeNinjaLoadingTests
     {
         switch (operation)
         {
-            case "add": scope.Spells.Add(stream, 1000, 8, 2, 7, -13); break;
+            // Comparer/owner/frame controls need valid intent values so their
+            // named boundary is actually reached; negative XP has its own test.
+            case "add": scope.Spells.Add(stream, 1000, 8, 2, 7, 13); break;
             case "remove": scope.Spells.Remove(1000, stream); break;
             case "reborn": scope.Spells.RebornSpell(stream, 1000); break;
             case "clear": scope.Spells.ClearSpells([1000], stream); break;
             case "update": scope.Spells.Update(stream, new() { ID = 1000, Level = 8, SoulLevel = 2,
-                PreviousLevel = 7, Experience = -13, Type = 12, Soul = 11 }); break;
+                PreviousLevel = 7, Experience = 13, Type = 12, Soul = 11 }); break;
             default: throw new ArgumentOutOfRangeException(nameof(operation));
         }
     }

@@ -14,43 +14,52 @@ public sealed partial class WorldSessionStore
         TransactionGateOrders.GetValue(connection, static _ =>
             new TransactionGateOrder(Interlocked.Increment(ref _nextTransactionGateOrder))).Value;
 
-    // Only for callers whose persistence callback saves every changed field. Unlike Set/CAS,
-    // these commits deliberately do not invoke the ordinary auto-persistence callback again.
-    internal bool TryCommitSession(
-        ConquerTcpConnection connection,
-        WorldSession expected,
-        WorldSession updated,
-        Func<bool> persist)
+    // Persist callbacks save every changed field; the ordinary callback is not repeated.
+    internal bool TryCommitSession(ConquerTcpConnection connection, WorldSession expected,
+        WorldSession updated, Func<bool> persist) => TryCommitSession(connection, expected, updated, persist, out _);
+
+    internal bool TryCommitSession(ConquerTcpConnection connection, WorldSession expected,
+        WorldSession updated, Func<bool> persist, out WorldSession? final)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(updated);
         ArgumentNullException.ThrowIfNull(persist);
-        if (IsCurrentThreadInsideAnyConnectionGate) return false;
+        final = null;
+        RefuseBoundSpellReentry(connection);
         using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, expected, updated);
         var gate = _connectionGates.GetValue(connection, static _ => new object());
         lock (gate)
         {
             using var scope = EnterNativeConnectionGate();
-            if (!_sessions.TryGetValue(connection, out var holder) ||
-                !ReferenceEquals(holder.Read(), expected) ||
-                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expected, updated) || !persist()) return false;
-            holder.Publish(updated);
+            if (!_sessions.TryGetValue(connection, out var holder) || !ReferenceEquals(holder.Read(), expected) ||
+                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expected, updated)) return false;
+            using var publication = new PreparedSessionSpellPublication(this, connection, holder, expected, updated);
+            publication.ArmFinalProof();
+            if (!publication.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
+            bool persisted;
+            try { persisted = persist(); }
+            catch (LegacyCommittedSpellPublicationException) { FailCommittedSpellPublication(holder, publication.Binding); throw; }
+            if (!persisted) return false;
+            if (!publication.IsCurrentPlain())
+                FailCommittedSpellPublication(holder, publication.Binding);
+            publication.PublishNative();
+            publication.PublishHolder();
+            final = publication.FinalSession;
             return true;
         }
     }
 
-    // Serializes both participants against other session writers and checks both references
-    // before touching disk. Snapshot/TryGet remain point-in-time lock-free reads, not a
-    // multi-session snapshot transaction. Trade's own state gate protects trade readers.
-    internal bool TryCommitPair(
-        ConquerTcpConnection firstConnection,
-        WorldSession expectedFirst,
-        WorldSession updatedFirst,
-        ConquerTcpConnection secondConnection,
-        WorldSession expectedSecond,
-        WorldSession updatedSecond,
-        Func<bool> persist)
+    internal bool TryCommitPair(ConquerTcpConnection firstConnection, WorldSession expectedFirst, WorldSession updatedFirst,
+        ConquerTcpConnection secondConnection, WorldSession expectedSecond, WorldSession updatedSecond, Func<bool> persist) =>
+        TryCommitPair(firstConnection, expectedFirst, updatedFirst, secondConnection, expectedSecond, updatedSecond,
+            persist, out _, out _);
+
+    // Both complete plans precede the writer. No comparer, allocation or callout
+    // separates native/holder stores after its successful return.
+    internal bool TryCommitPair(ConquerTcpConnection firstConnection, WorldSession expectedFirst, WorldSession updatedFirst,
+        ConquerTcpConnection secondConnection, WorldSession expectedSecond, WorldSession updatedSecond, Func<bool> persist,
+        out WorldSession? finalFirst, out WorldSession? finalSecond)
     {
         ArgumentNullException.ThrowIfNull(firstConnection);
         ArgumentNullException.ThrowIfNull(secondConnection);
@@ -59,7 +68,10 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(updatedFirst);
         ArgumentNullException.ThrowIfNull(updatedSecond);
         ArgumentNullException.ThrowIfNull(persist);
-        if (ReferenceEquals(firstConnection, secondConnection) || IsCurrentThreadInsideAnyConnectionGate) return false;
+        finalFirst = finalSecond = null;
+        RefuseBoundSpellReentry(firstConnection);
+        RefuseBoundSpellReentry(secondConnection);
+        if (ReferenceEquals(firstConnection, secondConnection)) return false;
         using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages,
             expectedFirst, expectedSecond, updatedFirst, updatedSecond);
         var firstGate = _connectionGates.GetValue(firstConnection, static _ => new object());
@@ -74,14 +86,39 @@ public sealed partial class WorldSessionStore
             using var scope = EnterNativeConnectionGate();
             if (!_sessions.TryGetValue(firstConnection, out var firstHolder) ||
                 !_sessions.TryGetValue(secondConnection, out var secondHolder) ||
-                !ReferenceEquals(firstHolder.Read(), expectedFirst) ||
-                !ReferenceEquals(secondHolder.Read(), expectedSecond) ||
+                !ReferenceEquals(firstHolder.Read(), expectedFirst) || !ReferenceEquals(secondHolder.Read(), expectedSecond) ||
                 !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedFirst, updatedFirst) ||
-                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedSecond, updatedSecond) || !persist()) return false;
-            firstHolder.Publish(updatedFirst);
-            secondHolder.Publish(updatedSecond);
+                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedSecond, updatedSecond)) return false;
+            using var first = new PreparedSessionSpellPublication(this, firstConnection, firstHolder, expectedFirst, updatedFirst);
+            using var second = new PreparedSessionSpellPublication(this, secondConnection, secondHolder, expectedSecond, updatedSecond);
+            if (first.Binding is not null && second.Binding is not null &&
+                ReferenceEquals(first.Binding.Client, second.Binding.Client)) throw InvalidSpellPublication();
+            first.ArmFinalProof(); second.ArmFinalProof();
+            if (!first.ConsumeBeforeWriterPlain() || !second.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
+            bool persisted;
+            try { persisted = persist(); }
+            catch (LegacyCommittedSpellPublicationException)
+            {
+                FailCommittedPairPublication(firstHolder, first.Binding, secondHolder, second.Binding); throw;
+            }
+            if (!persisted) return false;
+            if (!first.IsCurrentPlain() || !second.IsCurrentPlain())
+            {
+                FailCommittedPairPublication(firstHolder, first.Binding, secondHolder, second.Binding);
+            }
+            first.PublishNative(); second.PublishNative();
+            first.PublishHolder(); second.PublishHolder();
+            finalFirst = first.FinalSession; finalSecond = second.FinalSession;
             return true;
         }
+    }
+    private static void FailCommittedPairPublication(SessionHolder firstHolder, LegacyOrdinarySpellBinding? first,
+        SessionHolder secondHolder, LegacyOrdinarySpellBinding? second)
+    {
+        first?.Recovery.Block("ordinarySpellRecoveryRequired:durablePairPublicationUnproven");
+        second?.Recovery.Block("ordinarySpellRecoveryRequired:durablePairPublicationUnproven");
+        firstHolder.Clear(); secondHolder.Clear();
+        throw new LegacyCommittedSpellPublicationException();
     }
 
     private sealed record TransactionGateOrder(long Value);

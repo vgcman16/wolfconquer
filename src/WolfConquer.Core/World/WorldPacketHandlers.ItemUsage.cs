@@ -55,6 +55,11 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (packet.Action is MsgItemUsageAction.DecomposeRelics or MsgItemUsageAction.DecomposeRune or
+            MsgItemUsageAction.DropRune or MsgItemUsageAction.ComposeRune or MsgItemUsageAction.ChanceRune or
+            MsgItemUsageAction.Rune)
+            context = CaptureLegacyRuneRankingPublicationOwner(context);
+
         // This stage has no native public item-mutation writers. Never expose its old raw image
         // as a current lookup after these public mutation intents (including rejected requests).
         if (packet.Action is not (MsgItemUsageAction.Ping or MsgItemUsageAction.ShowItem or

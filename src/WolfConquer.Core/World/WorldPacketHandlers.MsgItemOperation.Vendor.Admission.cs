@@ -56,20 +56,15 @@ public static partial class WorldPacketHandlers
         reason = "listing-rejected:" + result.Failure;
         if (!result.Added) return false;
         var candidate = current with { LegacyVendorListings = result.Book };
-        var committed = false;
-        // Actual Store/native-generation gate, no await. CAS observer faults remain post-publication faults.
-        sessions.WithCurrentNativeClientIdentity(context.Connection, current.Character.Uid, currentIdentity =>
-        {
-            if (!ReferenceEquals(identity, currentIdentity) ||
-                !IsLegacyVendorCurrentOwner(sessions, context.Connection, current, identity) ||
-                context.Trades?.HasConnectionEnded(context.Connection) == true ||
-                !IsLegacyVendorClosureTradable(incoming) || LegacyVendorClosureNeedsPin(current, incoming) ||
-                !TryReadLegacyVendorState(current.Character, out _) || !items.IsCurrent(current.PlayerItems)) return;
-            committed = sessions.TryCompareAndSet(context.Connection, current, candidate);
-        });
         reason = "listing-owner-or-item-changed";
-        if (!committed) return false;
-        updated = candidate;
+        if (!IsLegacyVendorCurrentOwner(sessions, context.Connection, current, identity) ||
+            context.Trades?.HasConnectionEnded(context.Connection) == true ||
+            !IsLegacyVendorClosureTradable(incoming) || LegacyVendorClosureNeedsPin(current, incoming) ||
+            !TryReadLegacyVendorState(current.Character, out _) || !items.IsCurrent(current.PlayerItems)) return false;
+        // The real typed Store entry proves both exact holder and issued native
+        // identity atomically. Never nest a Store writer under its read callback.
+        if (!sessions.TryCompareAndSetWithNativeIdentity(context.Connection, current, identity, candidate, out updated))
+            return false;
         added = result.Listing;
         reason = string.Empty;
         return true;

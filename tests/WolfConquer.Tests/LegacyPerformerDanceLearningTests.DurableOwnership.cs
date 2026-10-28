@@ -17,7 +17,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
             var connection = fixture.Connection();
             var owningStore = fixture.Store();
             var suppliedStore = owningStore;
-            var original = DurableSession();
+            var original = fixture.Session();
             owningStore.Set(connection, original);
             fixture.Seed(CharacterUid, original.PlayerSpells);
             WorldSession? winner = original;
@@ -37,7 +37,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
                     owningStore.Set(connection, winner);
                     break;
                 case "different-uid":
-                    winner = DurableSession(CharacterUid + 1) with { AccountId = 101, Username = "performer-current" };
+                    winner = fixture.Session(CharacterUid + 1) with { AccountId = 101, Username = "performer-current" };
                     owningStore.Set(connection, winner);
                     fixture.Seed(winner.Character.Uid, winner.PlayerSpells);
                     break;
@@ -49,7 +49,7 @@ public sealed partial class LegacyPerformerDanceLearningTests
                 case "different-store":
                     suppliedStore = fixture.Store();
                     otherConnection = fixture.Connection();
-                    otherSession = DurableSession(CharacterUid + 1) with { AccountId = 101, Username = "other-connection" };
+                    otherSession = fixture.Session(CharacterUid + 1) with { AccountId = 101, Username = "other-connection" };
                     suppliedStore.Set(otherConnection, otherSession);
                     fixture.Seed(otherSession.Character.Uid, otherSession.PlayerSpells);
                     break;

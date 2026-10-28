@@ -55,6 +55,20 @@ internal static partial class LegacyTradeJournal
                     return false;
                 }
             }
+            else if (record.Version == 9)
+            {
+                if (admissionRoots?.Items is not { } configuredItems || admissionRoots.Spells is not { } configuredSpells)
+                {
+                    reason = RecoveryRequired + ":characterItemsSpellsRootMissing";
+                    return false;
+                }
+                roots = GetCharacterItemsSpellsRoots(admissionRoots.Users, configuredItems, configuredSpells);
+                if (!SameQuestRoot(usersRoot, roots.Users) || !SameQuestRoot(itemsRoot, roots.Items))
+                {
+                    reason = RecoveryRequired + ":characterItemsSpellsRootsMismatch";
+                    return false;
+                }
+            }
             else roots = GetRoots(usersRoot, itemsRoot);
             if (record.Version == 3)
             {
@@ -119,8 +133,9 @@ internal static partial class LegacyTradeJournal
                 return true;
             }
             validated = true;
-            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version != 8) Directory.CreateDirectory(roots.Items);
-            if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
+            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9)) Directory.CreateDirectory(roots.Items);
+            if (record.Version == 9) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
+            else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
             else PrepareAdmissionDirectories(roots, record, targets);
             foreach (var target in targets)
             {
