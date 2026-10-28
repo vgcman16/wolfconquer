@@ -36,7 +36,9 @@ function Assert-CdNativeReviewRisk([object]$Review) {
         if (-not (Get-CdRisk $segment)) { continue }
         if ($prefix.Equals($Review.collisionPath, [StringComparison]::Ordinal) -and
             (($Review.category -ceq 'native-map-object-directory' -and $segment -ceq 'obj') -or
-             ($Review.category -ceq 'native-logs-bitmap' -and $prefix -ceq 'data/main/LogS.BMP'))) { continue }
+             ($Review.category -ceq 'native-logs-bitmap' -and $prefix -ceq 'data/main/LogS.BMP') -or
+             ($Review.category -ceq 'native-server-type-lua' -and $prefix -ceq 'ini/userdata.lua') -or
+             ($Review.category -ceq 'native-luacfg-userdata-catalog' -and $prefix -ceq 'ini/luacfg/userdata.dat'))) { continue }
         throw 'A native asset review cannot waive another quarantined segment.'
     }
 }
@@ -70,6 +72,12 @@ function Read-CdNativeAssetReviews([object]$Values) {
         } elseif ($row.category -ceq 'native-logs-bitmap') {
             if ($row.collisionNodeType -cne 'file' -or -not $row.path.Equals('data/main/LogS.BMP',[StringComparison]::Ordinal) -or
                 -not $row.collisionPath.Equals($row.path,[StringComparison]::Ordinal)) { throw 'Invalid exact native bitmap review.' }
+        } elseif ($row.category -ceq 'native-server-type-lua' -or $row.category -ceq 'native-luacfg-userdata-catalog') {
+            $expected = if ($row.category -ceq 'native-server-type-lua') { 'ini/userdata.lua' } else { 'ini/luacfg/userdata.dat' }
+            $maximum = if ($row.category -ceq 'native-server-type-lua') { 65536 } else { 1048576 }
+            if ($row.collisionNodeType -cne 'file' -or -not $row.path.Equals($expected,[StringComparison]::Ordinal) -or
+                -not $row.collisionPath.Equals($expected,[StringComparison]::Ordinal) -or
+                $row.length -lt 1 -or $row.length -gt $maximum) { throw 'Invalid exact native data review.' }
         } else { throw 'Unsupported native asset review category.' }
         Assert-CdNativeReviewRisk $row
         if ($nodes.ContainsKey($row.collisionPath)) {

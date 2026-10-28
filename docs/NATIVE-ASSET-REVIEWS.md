@@ -1,7 +1,7 @@
 # Exact native asset reviews
 
 Local distribution-policy and publication-plan schema 2 supports two narrowly
-defined native asset naming collisions. It does not approve any actual game
+defined native asset naming collisions and two exact native data-file collisions. It does not approve any actual game
 assets or create a full-client download. See
 [client/source update tools](CLIENT-UPDATES.md) for the surrounding workflow.
 
@@ -13,7 +13,7 @@ these seven fields; unknown fields, duplicate properties and case aliases refuse
 | `path` | Exact source-relative payload file path, using forward slashes. |
 | `collisionPath` | Exact node whose name collides with quarantine. |
 | `collisionNodeType` | `directory` or `file`, as required by the category. |
-| `category` | One of the two categories below. |
+| `category` | One of the four categories below. |
 | `length` | Integer byte length, 0–4,294,967,296. |
 | `expectedSourceSha256` | Exactly 64 hex characters identifying reviewed source bytes. |
 | `evidence` | 1–128 ASCII letters, digits, dots, underscores or hyphens identifying the review evidence. |
@@ -25,10 +25,21 @@ these seven fields; unknown fields, duplicate properties and case aliases refuse
 - `native-logs-bitmap`: the collision is an ordinary file, and both paths are
   exactly `data/main/LogS.BMP`.
 
+- `native-server-type-lua`: both paths are exactly `ini/userdata.lua`, the node
+  type is `file`, and the reviewed length is 1–65,536 bytes.
+- `native-luacfg-userdata-catalog`: both paths are exactly
+  `ini/luacfg/userdata.dat`, the node type is `file`, and the reviewed length is
+  1–1,048,576 bytes.
+
+The two data categories still require an operator content/provenance review,
+exact source digest and evidence identifier. They are not generic permissions for
+userdata files or a format/encoding validator. See
+[exact data review scope](EXACT-NATIVE-DATA-REVIEWS.md).
+
 Each review admits only its declared collision. Every other risky segment still
 refuses, including private/control names, AutoP, backups and another unreviewed
-`obj`. This is not a general filename exemption; token/userdata configuration
-receives no exception. An extension is not proof of a valid or safe image format.
+`obj`. This is not a general filename exemption. All other token/userdata paths,
+including `ini/token_type.dat`, remain quarantined. An extension is not proof of a valid or safe image format.
 
 Inside a reviewed `obj` root, inherited asset-directory approval is disabled.
 Every actual file must have its own exact review, and every intermediary directory
@@ -100,3 +111,15 @@ runs the C# suites and separate receipt-parser fixtures.
 
 These use owned synthetic inputs. Their results do not approve real asset
 contents, prove client compatibility, or establish a published full-client feed.
+
+The separate exact-data synthetic checks are:
+
+```powershell
+pwsh -NoProfile -File tools/updates/Test-ClientDistributionConfigAssetReviews.ps1
+pwsh -NoProfile -File tools/updates/Test-ClientDistributionConfigAssetPipeline.ps1 -UpdaterDllPath ./src/WolfConquer.Updater/bin/Release/net9.0/WolfConquer.Updater.dll
+```
+
+They use invented payloads and an ephemeral test signer. They do not approve or
+publish the actual client files. The immutable October28 tooling preview uses
+older source224f1eb5 and does not include these two new category declarations.
+Build the newer source for this source-level publishing capability.

@@ -7,6 +7,8 @@ internal sealed class NativeAssetReviewSet
     internal const int MaximumReviews = 4096;
     internal const string ObjectDirectory = "native-map-object-directory";
     internal const string LogsBitmap = "native-logs-bitmap";
+    internal const string ServerTypeLua = "native-server-type-lua";
+    internal const string LuaConfigCatalog = "native-luacfg-userdata-catalog";
     private readonly Dictionary<string, NativeAssetReview> reviews;
     internal PublishEntry[] Entries { get; }
     internal IReadOnlyCollection<NativeAssetReview> Reviews => reviews.Values;
@@ -79,9 +81,20 @@ internal sealed class NativeAssetReviewSet
                 !new[] { ".dds", ".bmp", ".png", ".tga", ".msk" }.Contains(extension, StringComparer.OrdinalIgnoreCase))
                 throw Invalid("Native object-directory review shape is invalid.");
         }
-        else if (row.Category != LogsBitmap || row.CollisionNodeType != "file" ||
-                 row.Path != "data/main/LogS.BMP" || row.CollisionPath != row.Path)
-            throw Invalid("Native bitmap review shape is invalid.");
+        else if (row.Category == LogsBitmap)
+        {
+            if (row.CollisionNodeType != "file" || row.Path != "data/main/LogS.BMP" || row.CollisionPath != row.Path)
+                throw Invalid("Native bitmap review shape is invalid.");
+        }
+        else if (row.Category == ServerTypeLua || row.Category == LuaConfigCatalog)
+        {
+            string expected = row.Category == ServerTypeLua ? "ini/userdata.lua" : "ini/luacfg/userdata.dat";
+            long maximum = row.Category == ServerTypeLua ? 65536 : 1048576;
+            if (row.CollisionNodeType != "file" || row.Path != expected || row.CollisionPath != expected ||
+                row.Length < 1 || row.Length > maximum)
+                throw Invalid("Native data review shape is invalid.");
+        }
+        else throw Invalid("Unsupported native asset review category.");
     }
 
     private static InvalidDataException Invalid(string message) => new(message);

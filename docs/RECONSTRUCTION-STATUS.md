@@ -81,6 +81,21 @@ English coverage, distribution or 7935 compatibility.
   power-loss/multi-process safety or live-client acceptance. See
   `docs/FULLACCOUNT-CLASS-TRANSACTION.md` and FSB-158.
 
+## Exact native data-file publishing reviews
+
+- Two exact schema2 categories now cover reviewed `ini/userdata.lua` and
+  `ini/luacfg/userdata.dat` bytes with closed path/type/size and source-digest rules.
+  The unresolved `ini/token_type.dat` remains quarantined; no general userdata
+  or private-path exemption was added.
+- Owned public qualification passed 446/446 updater cases and all seven standalone
+  distribution scripts. New review controls passed 9 groups/48 synthetic fixtures;
+  the joined actual planner/stager/signed-CLI pipeline passed all 5 cases.
+- A new exact-public full gate is pending. No actual game assets, feed, portable
+  configuration, login or deployment was accepted. See
+  `docs/EXACT-NATIVE-DATA-REVIEWS.md`.
+- The immutable launcher-preview-20261028 download remains at older source224;
+  these source changes require a newer build and do not overwrite that release.
+
 ## Major unfinished work
 
 - [ ] Authenticated native account-to-world handoff and protected login payload.

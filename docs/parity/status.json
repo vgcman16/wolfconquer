@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Exact public224f1eb5 passed full Windows40646084998: Core29,039 Passed/164 existing NotExecuted, Updater434, Launcher57, synthetic receipt parsers20+13, all8steps0. FullAccount focused354 per copy and2 final public staging controls also pass. Current-public live-client acceptance and full-client distribution remain unverified."
+      "detail": "Prior exact224f1eb5 passed full Windows40646084998: Core29,039 Passed/164 existing NotExecuted, Updater434, Launcher57, synthetic parsers20+13. New exact native-data publishing review source passes446 updater cases and7 standalone distribution scripts; its new exact-public full gate is pending. Current-public live-client acceptance remains unverified."
     },
     {
       "id": "english",
@@ -88,7 +88,7 @@
       "id": "distribution",
       "title": "Public full-client download and updates",
       "status": "in-progress",
-      "detail": "Windows x64 launcher/updater tooling preview launcher-preview-20261028 is published; anonymous HTTPS ZIP/checksum downloads match the locally checked nine-file package. No game assets, bootstrap configuration or real client feed is included. The sanitized full-client package, portable configuration and download/update/recovery acceptance remain open."
+      "detail": "Tooling preview launcher-preview-20261028 remains immutable at224f1eb5; anonymous HTTPS ZIP/checksum downloads match its checked nine-file package. New source adds two exact reviewed data paths (446 updater cases plus7 scripts); token_type.dat remains quarantined. No full game assets, portable configuration or real client feed are published. Fresh full-client install/update/recovery acceptance remains open."
     }
   ]
 }

@@ -15,9 +15,11 @@ backup, legacy AutoP or updater trust/control names. The entire plan is checked
 before source/output work; CLI checks precede signing-key reads. Existing signed
 manifest and repoint compatibility is retained. Filename checks do not inspect
 content. [Exact native asset reviews](NATIVE-ASSET-REVIEWS.md) provide local schema2
-admission for two closed naming collisions, with complete file membership and
+admission for four closed naming collisions, with complete file membership and
 source length/SHA checks through staging and publishing. This does not approve
-actual assets; portable configuration and the real client package remain unfinished.
+actual assets; portable configuration and the real client package remain unfinished. The immutable
+October28 tooling preview uses older source224f1eb5; build newer source to use
+the two added exact-data categories.
 
 ## Build and test
 
