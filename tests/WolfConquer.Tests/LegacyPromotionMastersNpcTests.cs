@@ -145,12 +145,12 @@ public sealed class LegacyPromotionMastersNpcTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             npcId: 10_022,
             optionId: 9,
@@ -186,21 +186,22 @@ public sealed class LegacyPromotionMastersNpcTests : IDisposable
         var spellsRoot = Path.Combine(_root, "TrojanAccuracyCycloneMissingCyclone");
         Directory.CreateDirectory(spellsRoot);
         var learned = new PlayerSpellSnapshot(
-        [
+        new[]
+        {
             PlayerSpellSnapshotLoaderTests.Entry(1_015, level: 0),
-        ]);
+        });
         new PlayerSpellSnapshotLoader(spellsRoot).SaveByCharacterUid(1_293_600, learned);
         var session = CreateSession(classCode: 1_002, level: 40, playerSpells: learned);
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             npcId: 10_022,
             optionId: 9,
@@ -245,12 +246,12 @@ public sealed class LegacyPromotionMastersNpcTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             npcId: 10_022,
             optionId: 9,
@@ -284,12 +285,12 @@ public sealed class LegacyPromotionMastersNpcTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             npcId: 10_022,
             optionId: 9,

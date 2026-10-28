@@ -50,12 +50,12 @@ public sealed class LegacyPromotionMastersWindWalkerChaserSkillTests : IDisposab
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             WindWalkerPromotionNpcId,
             optionId,
@@ -109,12 +109,12 @@ public sealed class LegacyPromotionMastersWindWalkerChaserSkillTests : IDisposab
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             WindWalkerPromotionNpcId,
             optionId,
@@ -157,12 +157,12 @@ public sealed class LegacyPromotionMastersWindWalkerChaserSkillTests : IDisposab
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             WindWalkerPromotionNpcId,
             optionId: 33,
@@ -199,12 +199,12 @@ public sealed class LegacyPromotionMastersWindWalkerChaserSkillTests : IDisposab
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             WindWalkerPromotionNpcId,
             optionId: 42,
@@ -237,12 +237,12 @@ public sealed class LegacyPromotionMastersWindWalkerChaserSkillTests : IDisposab
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             WindWalkerPromotionNpcId,
             optionId: 30,
@@ -279,12 +279,12 @@ public sealed class LegacyPromotionMastersWindWalkerChaserSkillTests : IDisposab
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             WindWalkerPromotionNpcId,
             optionId: 41,

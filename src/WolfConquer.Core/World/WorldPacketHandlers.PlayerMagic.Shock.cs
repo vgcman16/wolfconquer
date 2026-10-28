@@ -20,17 +20,20 @@ public static partial class WorldPacketHandlers
         {
             return false;
         }
+        if (!LegacyShockCasterOwner.TryCapture(context, session, out var casterOwner)) return true;
 
         var resourceSession = await TryPrepareLegacyPlayerMagicCastAsync(
                 context,
                 session,
                 spell,
-                cancellationToken)
+                cancellationToken,
+                expectedNativeClientIdentity: casterOwner.Identity)
             .ConfigureAwait(false);
         if (resourceSession is null)
         {
             return true;
         }
+        if (!casterOwner.IsCurrent(context, resourceSession)) return true;
 
         if (spell.Id != LegacyCrackingShockSpellId ||
             !IsLegacyThunderstrikerClass(resourceSession.Character.Class))
@@ -249,14 +252,14 @@ public static partial class WorldPacketHandlers
 
         if (firstRetaliationTarget is { } retaliationTarget)
         {
-            await TrySendLegacyMonsterRetaliationAsync(
-                    context,
-                    updatedSession,
-                    retaliationTarget.Monster,
-                    retaliationTarget.MonsterFamily,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            var retaliationSession = await TrySendLegacyShockRetaliationAsync(
+                    context, updatedSession, retaliationTarget, casterOwner, cancellationToken).ConfigureAwait(false);
+            if (retaliationSession is null) return true;
+            updatedSession = retaliationSession;
+            context = context with { Session = updatedSession };
         }
+        if (!casterOwner.TryCurrent(context, updatedSession, out updatedSession)) return true;
+        context = context with { Session = updatedSession };
 
         if (sobNpcStates is not null)
         {
@@ -299,8 +302,11 @@ public static partial class WorldPacketHandlers
                 playerSpell,
                 spell,
                 progressDamage,
-                cancellationToken)
+                cancellationToken,
+                casterOwner)
             .ConfigureAwait(false);
+        if (!casterOwner.TryCurrent(context, updatedSession, out updatedSession)) return true;
+        context = context with { Session = updatedSession };
         updatedSession = await TryApplyLegacyWeaponProficiencyExperienceAsync(
                 context,
                 updatedSession,
@@ -308,6 +314,8 @@ public static partial class WorldPacketHandlers
                 cancellationToken,
                 activity: "Shock magic weapon proficiency experience")
             .ConfigureAwait(false);
+        if (!casterOwner.TryCurrent(context, updatedSession, out updatedSession)) return true;
+        context = context with { Session = updatedSession };
 
         var animation = LegacySpellAnimationPacket.ForPlayerMagic(
             CheckedUInt32(updatedSession.Character.Uid, nameof(updatedSession.Character.Uid)),

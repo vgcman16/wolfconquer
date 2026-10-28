@@ -10,7 +10,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class WorldServerSkillBookUseTests : IDisposable
+public sealed partial class WorldServerSkillBookUseTests : IDisposable
 {
     private readonly string _dbRoot = Path.Combine(Path.GetTempPath(), "wolf-world-skill-book-" + Guid.NewGuid());
 
@@ -57,6 +57,7 @@ public sealed class WorldServerSkillBookUseTests : IDisposable
                 DwParam3: 0,
                 DwParam4: 0).ToFrameBytes()));
 
+        Assert.True(sent.Count == countBeforeRequest + 5, log.ToString());
         Assert.Equal(countBeforeRequest + 5, sent.Count);
         AssertItemUsage(
             sent[countBeforeRequest],
@@ -80,7 +81,7 @@ public sealed class WorldServerSkillBookUseTests : IDisposable
         Assert.Contains(persistedSpells.Spells, spell => spell.Id == 1360);
         var persistedItems = new PlayerItemSnapshotLoader(itemsRoot).LoadByCharacterUid(1_293_600);
         Assert.DoesNotContain(persistedItems.InventoryItems, item => item.Uid == 2001);
-        Assert.Contains("handled MsgItemUsage skill book", log.ToString());
+        Assert.Contains("committed MsgItemUsage skill book", log.ToString());
     }
 
     [Fact]
@@ -389,7 +390,7 @@ public sealed class WorldServerSkillBookUseTests : IDisposable
         Assert.Contains(persistedSpells.Spells, spell => spell.Id == 1_165);
         var persistedItems = new PlayerItemSnapshotLoader(itemsRoot).LoadByCharacterUid(1_293_600);
         Assert.DoesNotContain(persistedItems.InventoryItems, item => item.Uid == 2001);
-        Assert.Contains("handled MsgItemUsage skill book", log.ToString());
+        Assert.Contains("committed MsgItemUsage skill book", log.ToString());
     }
 
     [Theory]
@@ -674,7 +675,7 @@ public sealed class WorldServerSkillBookUseTests : IDisposable
         Assert.Contains(persistedSpells.Spells, spell => spell.Id == spellId);
         var persistedItems = new PlayerItemSnapshotLoader(itemsRoot).LoadByCharacterUid(1_293_600);
         Assert.DoesNotContain(persistedItems.InventoryItems, item => item.Uid == 2001);
-        Assert.Contains("handled MsgItemUsage skill book", log.ToString());
+        Assert.Contains("committed MsgItemUsage skill book", log.ToString());
     }
 
     public void Dispose()

@@ -11,7 +11,7 @@ public sealed class WorldSessionStoreConcurrencyTests
     private const int RaceUpdatesPerWriter = 20_000;
 
     [Fact]
-    public async Task ConcurrentSetCallbacksObserveOneOrderedPreviousCurrentChain()
+    public async Task ConcurrentSetCallbacksCanOverlapAfterOrderedPublication()
     {
         using var firstUpdateEntered = new ManualResetEventSlim();
         using var releaseFirstUpdate = new ManualResetEventSlim();
@@ -20,6 +20,7 @@ public sealed class WorldSessionStoreConcurrencyTests
         var callbacks = new ConcurrentQueue<(WorldSession? Previous, WorldSession Current)>();
         var store = new WorldSessionStore((_, previous, current) =>
         {
+            Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
             callbacks.Enqueue((previous, current));
             if (current.AccountId == 1)
             {
@@ -53,7 +54,7 @@ public sealed class WorldSessionStoreConcurrencyTests
         bool secondCallbackOverlappedFirst;
         try
         {
-            secondCallbackOverlappedFirst = secondCallbackEntered.Wait(TimeSpan.FromMilliseconds(500));
+            secondCallbackOverlappedFirst = secondCallbackEntered.Wait(TimeSpan.FromSeconds(5));
         }
         finally
         {
@@ -62,7 +63,7 @@ public sealed class WorldSessionStoreConcurrencyTests
 
         await Task.WhenAll(firstSet, secondSet);
 
-        Assert.False(secondCallbackOverlappedFirst);
+        Assert.True(secondCallbackOverlappedFirst);
         Assert.Collection(
             callbacks,
             callback =>
@@ -186,7 +187,7 @@ public sealed class WorldSessionStoreConcurrencyTests
     }
 
     [Fact]
-    public async Task TryRemoveSerializesBehindSetAndItsCallback()
+    public async Task TryRemoveCanFinishWhileThePostPublicationObserverWaits()
     {
         using var callbackEntered = new ManualResetEventSlim();
         using var releaseCallback = new ManualResetEventSlim();
@@ -218,11 +219,11 @@ public sealed class WorldSessionStoreConcurrencyTests
         });
         Assert.True(removeStarted.Wait(TimeSpan.FromSeconds(5)));
 
-        bool removeOverlappedCallback;
+        (bool Succeeded, WorldSession? Removed) result;
         try
         {
-            var completed = await Task.WhenAny(remove, Task.Delay(TimeSpan.FromMilliseconds(500)));
-            removeOverlappedCallback = ReferenceEquals(completed, remove);
+            result = await remove.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.False(set.IsCompleted); // Observer is still inside its controlled barrier.
         }
         finally
         {
@@ -230,8 +231,6 @@ public sealed class WorldSessionStoreConcurrencyTests
         }
 
         await set;
-        var result = await remove;
-        Assert.False(removeOverlappedCallback);
         Assert.True(result.Succeeded);
         Assert.Same(replacement, result.Removed);
         Assert.False(store.TryGet(connection, out _));

@@ -1,3 +1,5 @@
+using WolfConquer.Core.Data;
+
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
@@ -102,7 +104,22 @@ public static partial class WorldPacketHandlers
                         GetLegacyEquipmentRuntimeMaxHitpoints(owner, context.WorldData, previousHitpoints)),
                 };
             }
-            return owner with { Character = owner.Character with { MinHitPoints = value } };
+            if (owner.Character.MinHitPoints == value) return owner;
+            // The real Frame scalar callback persists the typed value. Its
+            // duplicated saved-field mirror must agree before publication too;
+            // retain every unrelated attribute, including opaque source fields.
+            var changed = owner.Character with { MinHitPoints = value };
+            var attributes = new Dictionary<string, string>(owner.Character.Attributes, StringComparer.OrdinalIgnoreCase);
+            // Mirror exactly the fields the real scalar saver will persist,
+            // including absent defaults/explicit storage aliases. Typed values
+            // and their saved-field mirror remain one prepared publication.
+            foreach (var pair in CharacterSnapshotScalarPersistence.BuildPersistedValues(changed))
+                attributes[pair.Key] = pair.Value;
+            // The scalar saver can materialize EpicTrojan's composite even
+            // when it was absent. The parser projects its modeled slots back
+            // into runtime attributes; prepare that same schema projection now.
+            CharacterSnapshotEpicTrojanSchema.ProjectRuntimeAttributes(attributes, attributes);
+            return owner with { Character = changed with { Attributes = attributes } };
         });
         if (!current.Completed) return current;
         session = current.Session!;

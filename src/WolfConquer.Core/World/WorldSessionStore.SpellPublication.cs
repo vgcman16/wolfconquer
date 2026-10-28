@@ -17,6 +17,7 @@ public sealed partial class WorldSessionStore
         private readonly LegacyNativeProficiencyStorage.PreparedSessionProficiencyMap? proficiencies;
         internal WorldSession FinalSession { get; }
         internal LegacyOrdinarySpellBinding? Binding => binding;
+        internal object PublishedIdentity => finalIdentity;
 
         internal PreparedSessionSpellPublication(WorldSessionStore store, ConquerTcpConnection connection,
             SessionHolder holder, WorldSession? expected, WorldSession proposed)

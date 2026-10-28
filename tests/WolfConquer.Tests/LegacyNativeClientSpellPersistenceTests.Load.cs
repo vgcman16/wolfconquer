@@ -185,11 +185,15 @@ public sealed partial class LegacyNativeClientSpellPersistenceTests
     public void NullClientEntryRefusesBeforeAnyFileAccessWithoutANullReferenceTrap()
     {
         using var files = new OwnedSpells();
+        byte[] before = Image(1, Row(21, 2, 77, padding: 0xA5));
+        files.Seed(before);
         using var output = new CapturedConsole();
-        Assert.Null(Record.Exception(() => LegacyNativeServerDatabasePersistence.LoadClientSpells(null!)));
-        Assert.DoesNotContain("NullReferenceException", output.Text, StringComparison.Ordinal);
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeServerDatabasePersistence.LoadClientSpells(null!));
         Assert.Throws<ArgumentNullException>(() => LegacyNativeServerDatabasePersistence.SaveClientSpells(null!));
-        Assert.Empty(Directory.GetFileSystemEntries(files.DirectoryPath));
+        Assert.Equal(string.Empty, output.Text);
+        Assert.Equal(before, File.ReadAllBytes(files.FilePath));
+        Assert.Equal(new[] { files.FilePath }, Directory.GetFileSystemEntries(files.DirectoryPath));
+        AssertClosed(files.FilePath);
     }
 
 }

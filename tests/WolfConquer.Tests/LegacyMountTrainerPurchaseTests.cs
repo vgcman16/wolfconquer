@@ -59,6 +59,91 @@ public sealed class LegacyMountTrainerPurchaseTests : IDisposable
     }
 
     [Fact]
+    public async Task MountTrainerPersistedCommitDoesNotRepeatOrdinaryObserver()
+    {
+        using var log = new StringWriter();
+        var sent = new List<byte[]>();
+        var connection = CreateSendingConnection(sent);
+        var usersRoot = Path.Combine(_root, "observer", "Users");
+        var spellsRoot = Path.Combine(_root, "observer", "Spells");
+        Directory.CreateDirectory(spellsRoot);
+        WriteCharacterSnapshot(usersRoot, 1, 70_000);
+        var emptySpells = new PlayerSpellSnapshot(Array.Empty<PlayerSpellSnapshotEntry>());
+        new PlayerSpellSnapshotLoader(spellsRoot).SaveByCharacterUid(CharacterUid, emptySpells);
+        var session = CreateSession(1, 70_000, emptySpells, usersRoot);
+        int notifications = 0; bool armed = false;
+        var sessions = new WorldSessionStore((_, _, _) =>
+        {
+            notifications++;
+            if (armed) throw new IOException("ordinary observer must not run during persisted commit");
+        });
+        sessions.Set(connection, session);
+        var context = LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
+            connection, log, Session: session, Sessions: sessions, PlayerSpellsRoot: spellsRoot), ref session);
+        int beforeNotifications = notifications; armed = true;
+        var handled = await WorldPacketHandlers.TryHandleLegacyJailGuildServicesNpcAsync(
+            context, session, MountTrainerNpcId, 2, CancellationToken.None);
+        Assert.True(handled);
+        Assert.Equal(beforeNotifications, notifications);
+        Assert.True(sessions.TryGet(connection, out var current));
+        Assert.NotSame(session, current);
+        Assert.Equal(20_000, current!.Character.Money);
+        Assert.Equal((ushort)7_001, Assert.Single(current.PlayerSpells.Spells).Id);
+        Assert.Equal(20_000, LoadPersistedCharacter(usersRoot).Money);
+        Assert.Equal((ushort)7_001, Assert.Single(new PlayerSpellSnapshotLoader(spellsRoot)
+            .LoadByCharacterUid(CharacterUid).Spells).Id);
+        Assert.False(context.TradeRecovery!.IsBlocked);
+        Assert.False(LegacyTradeJournal.HasPending(usersRoot));
+        Assert.Contains(ParseMsgUpdates(sent), packet => packet.Updates.Any(entry =>
+            entry.Type == LegacyMsgUpdateDataType.Money && entry.Value == 20_000));
+        Assert.Equal([(ushort)7_001], ParseSpellPackets(sent).Select(packet => packet.Id).ToArray());
+        Assert.Contains(ParseNpcReplies(sent), reply => reply.Text == "Congratulation! You just have learned the skill Riding");
+    }
+
+    [Fact]
+    public void FreeSpellPersistedCommitDoesNotRepeatOrdinaryObserver()
+    {
+        using var log = new StringWriter();
+        var sent = new List<byte[]>();
+        var connection = CreateSendingConnection(sent);
+        var usersRoot = Path.Combine(_root, "free-observer", "Users");
+        var spellsRoot = Path.Combine(_root, "free-observer", "Spells");
+        Directory.CreateDirectory(spellsRoot);
+        WriteCharacterSnapshot(usersRoot, 1, 70_000);
+        var before = new PlayerSpellSnapshot(new[] { Entry(7_001) with { SoulLevel = 4 } });
+        new PlayerSpellSnapshotLoader(spellsRoot).SaveByCharacterUid(CharacterUid, before);
+        var session = CreateSession(1, 70_000, before, usersRoot);
+        int notifications = 0; bool armed = false;
+        var sessions = new WorldSessionStore((_, _, _) =>
+        {
+            notifications++;
+            if (armed) throw new IOException("ordinary observer must not run during persisted commit");
+        });
+        sessions.Set(connection, session);
+        var context = LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
+            connection, log, Session: session, Sessions: sessions, PlayerSpellsRoot: spellsRoot), ref session);
+        var after = new PlayerSpellSnapshot(new[] { Entry(7_001) with { SoulLevel = 4, UseSpellSoul = 1 } });
+        var method = typeof(WorldPacketHandlers).GetMethod("TryCommitLegacyFreeSpells",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.NotNull(method);
+        var originalCharacter = File.ReadAllBytes(Path.Combine(usersRoot, CharacterUid.ToString(CultureInfo.InvariantCulture) + ".ini"));
+        int beforeNotifications = notifications; armed = true;
+        object?[] invocation = [context, session, after, CancellationToken.None, null, null];
+        Assert.True((bool)method!.Invoke(null, invocation)!, "reason=" + invocation[5]);
+        Assert.Equal(beforeNotifications, notifications);
+        var final = Assert.IsType<WorldSession>(invocation[4]);
+        Assert.True(sessions.TryGet(connection, out var current)); Assert.Same(final, current);
+        Assert.NotSame(session, final);
+        Assert.Equal(1, Assert.Single(final.PlayerSpells.Spells).UseSpellSoul);
+        Assert.Equal(1, Assert.Single(new PlayerSpellSnapshotLoader(spellsRoot)
+            .LoadByCharacterUid(CharacterUid).Spells).UseSpellSoul);
+        Assert.Equal(originalCharacter, File.ReadAllBytes(Path.Combine(usersRoot, CharacterUid.ToString(CultureInfo.InvariantCulture) + ".ini")));
+        Assert.False(context.TradeRecovery!.IsBlocked);
+        Assert.False(LegacyTradeJournal.HasPending(usersRoot));
+        Assert.Empty(sent);
+    }
+
+    [Fact]
     public async Task MountTrainerDuplicateSpellDoesNotDebitOrDuplicatePersistence()
     {
         var learned = new PlayerSpellSnapshot([Entry(7_002)]);
@@ -151,12 +236,12 @@ public sealed class LegacyMountTrainerPurchaseTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyJailGuildServicesNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             MountTrainerNpcId,
             optionId,
@@ -180,7 +265,7 @@ public sealed class LegacyMountTrainerPurchaseTests : IDisposable
         string usersRoot)
     {
         return new WorldSession(
-            AccountId: 100,
+            AccountId: CharacterUid,
             Username: "mount-trainer-test",
             Character: new CharacterSnapshot(
                 Uid: CharacterUid,

@@ -23,7 +23,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             return ValueTask.CompletedTask;
         });
         await fixture.QueryAsync();
-        Assert.Equal(1, entered);
+        Assert.True(entered == 1, "Expected exactly one Venom publication callback. Handler log:\n" + fixture.Output);
+        fixture.RequireSavedVenom();
         Assert.Equal(20L, fixture.Owner.Character.Spirit);
         Assert.True(LegacyEquipmentHitpointsStatus.TryGetForOwner(fixture.Owner, out var finalMaximum));
         Assert.Equal(5_060U, finalMaximum); // 5000 item + current Spirit20 * 3; NOT old Spirit10 * 3.

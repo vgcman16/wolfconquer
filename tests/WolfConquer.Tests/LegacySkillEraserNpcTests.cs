@@ -60,12 +60,12 @@ public sealed class LegacySkillEraserNpcTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacySkillEraserNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             npcId: 895,
             optionId: 12,
@@ -103,12 +103,12 @@ public sealed class LegacySkillEraserNpcTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacySkillEraserNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             npcId: 895,
             optionId: 12,
@@ -128,18 +128,19 @@ public sealed class LegacySkillEraserNpcTests : IDisposable
     }
 
     [Fact]
-    public async Task LearnedSkillRemovalWithoutPersistenceRootUpdatesRuntimeAndSendsSourcePacket()
+    public async Task LearnedSkillRemovalWithRequiredOwnerPersistsBeforeSourcePacket()
     {
         using var log = new StringWriter();
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
         var session = CreateSession(new PlayerSpellSnapshot(
-            [Entry(1_000, level: 2)]));
+            new[] { Entry(1_000, level: 2) }));
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacySkillEraserNpcAsync(
-            new WorldPacketHandlerContext(connection, log, Session: session, Sessions: sessions),
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(connection, log, Session: session,
+                Sessions: sessions, PlayerSpellsRoot: Path.Combine(_root, "OwnedSpells")), ref session),
             session,
             npcId: 895,
             optionId: 12,
@@ -153,8 +154,57 @@ public sealed class LegacySkillEraserNpcTests : IDisposable
         AssertSpellRemovalAction(sent[0], 1_293_600, 1_000);
         var text = AssertNpcReply(sent[1], LegacyNpcReplyInteractType.Dialog);
         Assert.Equal("All done, the skill is now removed.", text.Text);
-        Assert.Contains("persisted=false", log.ToString());
+        Assert.Contains("persisted=true", log.ToString());
+        Assert.Empty(new PlayerSpellSnapshotLoader(Path.Combine(_root, "OwnedSpells")).LoadByCharacterUid(1_293_600).Spells);
         Assert.DoesNotContain("PARITY-GAP", log.ToString());
+    }
+
+    [Fact]
+    public async Task MissingRequiredSpellPersistenceOwnerRetainsSkillAndPublishesNoSuccess()
+    {
+        using var log = new StringWriter(); var sent = new List<byte[]>();
+        var connection = CreateSendingConnection(sent);
+        var session = CreateSession(new(new[] { Entry(1_000, level: 2) }));
+        var sessions = new WorldSessionStore(); sessions.Set(connection, session);
+        Assert.True(await WorldPacketHandlers.TryHandleLegacySkillEraserNpcAsync(
+            new(connection, log, Session: session, Sessions: sessions), session, 895, 12, CancellationToken.None));
+        Assert.True(sessions.TryGet(connection, out var current)); Assert.Same(session, current);
+        Assert.True(current!.PlayerSpells.ContainsSpell(1_000)); Assert.Empty(sent);
+        Assert.Contains("spellMutationOwnerUnavailable", log.ToString());
+    }
+
+    [Theory]
+    [InlineData(true)] [InlineData(false)]
+    public async Task CurrentHolderReplacementOrExternalSavedDriftCannotAuthorizeOldEraser(bool stale)
+    {
+        using var log = new StringWriter(); var sent = new List<byte[]>();
+        var connection = CreateSendingConnection(sent);
+        var session = CreateSession(new(new[] { Entry(1_000, level: 2) }));
+        var sessions = new WorldSessionStore(); sessions.Set(connection, session);
+        var root = Path.Combine(_root, "eraser-owner-control-" + stale);
+        var context = LegacySpellProducerTestOwner.PrepareContext(
+            new(connection, log, Session: session, Sessions: sessions, PlayerSpellsRoot: root), ref session);
+        var spellPath = Path.Combine(root, "1293600.bin");
+        var characterPath = Path.Combine(session.UsersRoot!, session.AccountId + ".ini");
+        var characterBefore = File.ReadAllBytes(characterPath);
+        var saved = File.ReadAllBytes(spellPath);
+        var expected = session;
+        if (stale)
+        {
+            expected = session with { Character = session.Character with { Money = 1 } };
+            sessions.Set(connection, expected);
+        }
+        else
+        {
+            saved = saved.Concat(new byte[] { 0xA5 }).ToArray();
+            File.WriteAllBytes(spellPath, saved);
+        }
+        Assert.True(await WorldPacketHandlers.TryHandleLegacySkillEraserNpcAsync(context, session, 895, 12, CancellationToken.None));
+        Assert.True(sessions.TryGet(connection, out var actual)); Assert.Same(expected, actual);
+        Assert.True(actual!.PlayerSpells.ContainsSpell(1_000)); Assert.Empty(sent);
+        Assert.Equal(saved, File.ReadAllBytes(spellPath));
+        Assert.Equal(characterBefore, File.ReadAllBytes(characterPath));
+        Assert.Contains("refused skill erasure before commitment", log.ToString());
     }
 
     public void Dispose()

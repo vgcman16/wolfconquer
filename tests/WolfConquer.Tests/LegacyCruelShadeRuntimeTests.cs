@@ -56,6 +56,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 Sessions: sessions,
                 MonsterStates: monsterStates,
                 PlayerSpellsRoot: spellsRoot);
+            using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+            context = combatSpellOwner.Context;
 
             await PacketHandlers.HandleAsync(
                 context,

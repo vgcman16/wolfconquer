@@ -15,47 +15,56 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(original);
         updated = null;
         RefuseBoundSpellReentry(connection);
-        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection));
-        if (!_connectionGates.TryGetValue(connection, out var gate)) return false;
-        lock (gate)
+        WorldSession? previous;
+        object publishedIdentity;
+        LegacyOrdinarySpellBinding? publishedBinding;
         {
-            using var scope = EnterNativeConnectionGate();
-            if (!_sessions.TryGetValue(connection, out var holder) || holder.Read() is not { } current ||
-                current.AccountId != original.AccountId || current.Character.Uid != original.Character.Uid)
-                return false;
-            if (owner is null)
+            using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection));
+            if (!_connectionGates.TryGetValue(connection, out var gate)) return false;
+            lock (gate)
             {
-                // Compatibility for wholly unbound managed fixtures only. A
-                // physical owner can never be fabricated from the saved scalar.
-                if (connection.NativeGameClient is not null || current.NativeGameClient is not null ||
-                    original.NativeGameClient is not null) return false;
-            }
-            else if (!LegacyCompleteLoginRuntime.Matches(owner, connection, original) ||
-                !LegacyCompleteLoginRuntime.Matches(owner, connection, current)) return false;
+                using var scope = EnterNativeConnectionGate();
+                if (!_sessions.TryGetValue(connection, out var holder) || holder.Read() is not { } current ||
+                    current.AccountId != original.AccountId || current.Character.Uid != original.Character.Uid)
+                    return false;
+                if (owner is null)
+                {
+                    // Compatibility for wholly unbound managed fixtures only. A
+                    // physical owner can never be fabricated from the saved scalar.
+                    if (connection.NativeGameClient is not null || current.NativeGameClient is not null ||
+                        original.NativeGameClient is not null) return false;
+                }
+                else if (!LegacyCompleteLoginRuntime.Matches(owner, connection, original) ||
+                    !LegacyCompleteLoginRuntime.Matches(owner, connection, current)) return false;
 
-            var attrs = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var (key, value) in current.Character.Attributes)
-                if (!key.Equals("CompleteLogin", StringComparison.OrdinalIgnoreCase)) attrs.Add(key, value);
-            attrs.Add("CompleteLogin", "1");
-            var next = current with
-            {
-                Character = current.Character with { Attributes = new ReadOnlyDictionary<string, string>(attrs) },
-            };
-            if (!LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, current, next)) return false;
-            using var publication = new PreparedSessionSpellPublication(this, connection, holder, current, next);
-            using var completion = owner is null ? null : LegacyCompleteLoginRuntime.PrepareComplete(owner, connection, current);
-            if (owner is not null && completion is null) return false;
-            publication.ArmFinalProof();
-            if (completion is not null && !completion.IsCurrentPlain()) return false;
-            if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
-            completion?.PublishPrepared();
-            publication.PublishNative();
-            publication.PublishHolder();
-            updated = publication.FinalSession;
-            completion?.Dispose();
-            publication.Dispose();
-            _sessionChanged?.Invoke(connection, current, updated);
-            return true;
+                var attrs = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var (key, value) in current.Character.Attributes)
+                    if (!key.Equals("CompleteLogin", StringComparison.OrdinalIgnoreCase)) attrs.Add(key, value);
+                attrs.Add("CompleteLogin", "1");
+                var next = current with
+                {
+                    Character = current.Character with { Attributes = new ReadOnlyDictionary<string, string>(attrs) },
+                };
+                if (!LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, current, next)) return false;
+                using var publication = new PreparedSessionSpellPublication(this, connection, holder, current, next);
+                using var completion = owner is null ? null : LegacyCompleteLoginRuntime.PrepareComplete(owner, connection, current);
+                if (owner is not null && completion is null) return false;
+                publication.ArmFinalProof();
+                if (completion is not null && !completion.IsCurrentPlain()) return false;
+                if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
+                completion?.PublishPrepared();
+                publication.PublishNative();
+                publication.PublishHolder();
+                updated = publication.FinalSession;
+                publishedIdentity = publication.PublishedIdentity;
+                publishedBinding = publication.Binding;
+                completion?.Dispose();
+                publication.Dispose();
+                previous = current;
+                PersistFrameOwnedSessionChange(connection, current, updated, publishedIdentity, publishedBinding);
+            }
         }
+        NotifyPublishedSessionChange(connection, previous, updated, publishedIdentity, publishedBinding);
+        return true;
     }
 }

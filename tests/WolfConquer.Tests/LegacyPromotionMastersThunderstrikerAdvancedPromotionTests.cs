@@ -112,7 +112,6 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
         var usersRoot = Path.Combine(_root, "users-level-" + classCode.ToString(CultureInfo.InvariantCulture));
-        CreateMinimalCharacterSnapshot(usersRoot, classCode);
         var session = CreateSession(
             classCode,
             level,
@@ -121,6 +120,7 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
                 Item(uid: 2_000, itemId: EmeraldItemId),
                 Item(uid: 2_001, itemId: MeteorItemId),
                 Item(uid: 2_002, itemId: MoonBoxItemId)));
+        WriteCompleteCharacterSnapshot(session);
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
@@ -173,18 +173,18 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
         var connection = CreateSendingConnection(sent);
         var usersRoot = Path.Combine(_root, "users-spell-" + classCode.ToString(CultureInfo.InvariantCulture));
         var spellsRoot = Path.Combine(_root, "spells-" + classCode.ToString(CultureInfo.InvariantCulture));
-        CreateMinimalCharacterSnapshot(usersRoot, classCode);
         var session = CreateSession(classCode, level, usersRoot: usersRoot);
+        WriteCompleteCharacterSnapshot(session);
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             ThunderstrikerPromotionNpcId,
             PromotionOption,
@@ -236,12 +236,12 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
         var usersRoot = Path.Combine(_root, "users-missing-" + classCode.ToString(CultureInfo.InvariantCulture));
-        CreateMinimalCharacterSnapshot(usersRoot, classCode);
         var session = CreateSession(
             classCode,
             level,
             usersRoot: usersRoot,
             playerItems: Inventory(Item(uid: 2_000, itemId: 725_016)));
+        WriteCompleteCharacterSnapshot(session);
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
@@ -290,7 +290,6 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
         var connection = CreateSendingConnection(sent);
         var usersRoot = Path.Combine(_root, "users-item-" + classCode.ToString(CultureInfo.InvariantCulture));
         var itemsRoot = Path.Combine(_root, "items-" + classCode.ToString(CultureInfo.InvariantCulture));
-        CreateMinimalCharacterSnapshot(usersRoot, classCode);
         var requiredItem = Item(uid: 3_000, itemId: requiredItemId);
         var session = CreateSession(
             classCode,
@@ -299,16 +298,18 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
             playerItems: Inventory(
                 Item(uid: 2_000, itemId: 725_016),
                 requiredItem));
+        WriteCompleteCharacterSnapshot(session);
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerItemsRoot: itemsRoot),
+                PlayerItemsRoot: itemsRoot,
+                PlayerSpellsRoot: Path.Combine(_root, "spells-item-" + classCode)), ref session),
             session,
             ThunderstrikerPromotionNpcId,
             PromotionOption,
@@ -351,7 +352,6 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
         var connection = CreateSendingConnection(sent);
         var usersRoot = Path.Combine(_root, "users-moonbox");
         var itemsRoot = Path.Combine(_root, "items-moonbox");
-        CreateMinimalCharacterSnapshot(usersRoot, classCode: 9_004);
         var moonBox = Item(uid: 3_000, itemId: MoonBoxItemId);
         var session = CreateSession(
             classCode: 9_004,
@@ -360,17 +360,19 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
             playerItems: Inventory(
                 Item(uid: 2_000, itemId: 725_016),
                 moonBox));
+        WriteCompleteCharacterSnapshot(session);
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 WorldData: CreateWorldDataCatalog(CreateItemType(DragonBallItemId, "DragonBall", durability: 77)),
                 Sessions: sessions,
-                PlayerItemsRoot: itemsRoot),
+                PlayerItemsRoot: itemsRoot,
+                PlayerSpellsRoot: Path.Combine(_root, "spells-moonbox")), ref session),
             session,
             ThunderstrikerPromotionNpcId,
             PromotionOption,
@@ -432,7 +434,7 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
         PlayerSpellSnapshot? playerSpells = null)
     {
         return new WorldSession(
-            AccountId: 100,
+            AccountId: CharacterUid,
             Username: "thunderstriker-advanced-promotion-test",
             Character: new CharacterSnapshot(
                 Uid: CharacterUid,
@@ -495,14 +497,15 @@ public sealed class LegacyPromotionMastersThunderstrikerAdvancedPromotionTests :
         };
     }
 
-    private static void CreateMinimalCharacterSnapshot(string usersRoot, long classCode)
+    private static void WriteCompleteCharacterSnapshot(WorldSession session)
     {
+        var usersRoot = session.UsersRoot ?? throw new InvalidOperationException("Explicit saved fixture root is required.");
         Directory.CreateDirectory(usersRoot);
-        File.WriteAllText(
-            Path.Combine(usersRoot, CharacterUid + ".ini"),
-            "[Character]" + Environment.NewLine +
-            "UID=" + CharacterUid + Environment.NewLine +
-            "Class=" + classCode + Environment.NewLine);
+        var fields = new Dictionary<string, string>(session.Character.Attributes, StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in CharacterSnapshotScalarPersistence.BuildPersistedValues(session.Character)) fields[pair.Key] = pair.Value;
+        fields["Name"] = session.Character.Name;
+        File.WriteAllText(Path.Combine(usersRoot, session.AccountId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".ini"),
+            "[Character]" + Environment.NewLine + string.Join(Environment.NewLine, fields.Select(pair => pair.Key + "=" + pair.Value)) + Environment.NewLine);
     }
 
     private static ConquerTcpConnection CreateSendingConnection(List<byte[]> sent)

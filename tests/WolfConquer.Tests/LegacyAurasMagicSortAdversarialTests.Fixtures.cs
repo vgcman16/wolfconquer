@@ -257,6 +257,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             TeamStates: teamStates);
+        var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref initialCaster);
+        context = combatSpellOwner.Context;
         var beforeCast = DateTimeOffset.UtcNow;
         await PacketHandlers.HandleAsync(
             context,
@@ -274,7 +276,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             initialCaster,
             beforeCast,
             afterCast,
-            log);
+            log, combatSpellOwner);
     }
 
     private static async Task<AuraRepeatResult> RepeatAuraCastAsync(
@@ -777,7 +779,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         WorldSession InitialCaster,
         DateTimeOffset BeforeCast,
         DateTimeOffset AfterCast,
-        StringWriter Log);
+        StringWriter Log, LegacyCombatSpellTestOwner SpellOwner) : IDisposable
+    {
+        public void Dispose() => SpellOwner.Dispose();
+    }
 
     private sealed record AuraRepeatResult(
         WorldSession BeforeSession,

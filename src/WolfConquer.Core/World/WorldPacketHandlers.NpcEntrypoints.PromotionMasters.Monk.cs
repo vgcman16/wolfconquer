@@ -893,6 +893,13 @@ public static partial class WorldPacketHandlers
         if (session.Character.Level >= LegacyPromotionMonkStarterSkillLevelGate &&
             !session.PlayerSpells.ContainsSpell(LegacyPromotionMonkWhirlwindKickSpellId))
         {
+            if (TryReadItemType(context.WorldData, LegacyPromotionMonkWhirlwindKickItemId, out _) &&
+                (string.IsNullOrWhiteSpace(context.PlayerItemsRoot) || !Path.IsPathFullyQualified(context.PlayerItemsRoot)))
+            {
+                await context.Log.WriteLineAsync("WorldServer held PromotionMonk WhirlwindKick before grant: required PlayerItemsRoot unavailable.")
+                    .ConfigureAwait(false);
+                return true;
+            }
             session = await TryGrantLegacyMonkWhirlwindKickItemsAsync(context, session, cancellationToken)
                 .ConfigureAwait(false);
             context = context with { Session = session };
@@ -1018,122 +1025,11 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
     }
 
-    private static async ValueTask<bool> TryLearnLegacyMonkEpicSkillAsync(
-        WorldPacketHandlerContext context,
-        WorldSession session,
-        byte optionId,
-        ushort spellId,
-        string spellName,
-        string sourceRange,
-        CancellationToken cancellationToken)
-    {
-        if (session.Character.ConquerPoints < LegacyPromotionMonkEpicSkillCost)
-        {
-            await SendLegacyNpcDialogAsync(
-                    context,
-                    LegacyPromotionMonkSource,
-                    ["Come~on,~you~don`t~have~2,150~CPs~with~you."],
-                    [new LegacyNpcDialogOption("Sorry...", LegacyNpcClosedOption)],
-                    avatarId: 5,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped LegacyNpc PromotionMonk epic skill " +
-                    $"{FormatSession(context)} source={LegacyPromotionMonkSource} " +
-                    $"sourceRange={sourceRange} option={optionId} spellId={spellId} " +
-                    $"conquerPoints={session.Character.ConquerPoints} " +
-                    $"requiredConquerPoints={LegacyPromotionMonkEpicSkillCost}; insufficient CP.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var debitedSession = await DebitLegacyMonkEpicConquerPointsAsync(
-                context,
-                session,
-                optionId,
-                sourceRange,
-                cancellationToken)
-            .ConfigureAwait(false);
-        var debitedContext = context with { Session = debitedSession };
-
-        if (debitedSession.PlayerSpells.ContainsSpell(spellId))
-        {
-            await SendLegacyNpcDialogAsync(
-                    debitedContext,
-                    LegacyPromotionMonkSource,
-                    [$"You`ve learned {spellName}!"],
-                    [new LegacyNpcDialogOption("Okay.", LegacyNpcClosedOption)],
-                    LegacyPromotionMonkEpicAvatarId,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await context.Log.WriteLineAsync(
-                    "WorldServer handled LegacyNpc PromotionMonk epic skill " +
-                    $"{FormatSession(debitedContext)} source={LegacyPromotionMonkSource} " +
-                    $"sourceRange={sourceRange} option={optionId} spellId={spellId}; " +
-                    $"already learned costConquerPoints={LegacyPromotionMonkEpicSkillCost}.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var learned = CreateLegacyPromotionSpellEntry(spellId);
-        var updatedSpells = LegacySkillBookUse.AddOrUpdateSpell(debitedSession.PlayerSpells, learned);
-        var updatedSession = await ApplyLegacyPromotionMasterSpellsAsync(
-                debitedContext,
-                debitedSession,
-                updatedSpells,
-                optionId,
-                LegacyPromotionMonkSource,
-                sourceRange,
-                spellId.ToString(CultureInfo.InvariantCulture))
-            .ConfigureAwait(false);
-
-        var updatedContext = context with { Session = updatedSession };
-        await SendLegacyPromotionMasterLearnedSpellAsync(
-                updatedContext,
-                LegacyPromotionMonkSource,
-                LegacyPromotionMonkEpicAvatarId,
-                learned,
-                spellName,
-                cancellationToken)
-            .ConfigureAwait(false);
-        await context.Log.WriteLineAsync(
-                "WorldServer handled LegacyNpc PromotionMonk epic skill " +
-                $"{FormatSession(updatedContext)} source={LegacyPromotionMonkSource} " +
-                $"sourceRange={sourceRange} option={optionId} spellId={spellId} " +
-                $"costConquerPoints={LegacyPromotionMonkEpicSkillCost}.")
-            .ConfigureAwait(false);
-        return true;
-    }
-
-    private static async ValueTask<WorldSession> DebitLegacyMonkEpicConquerPointsAsync(
-        WorldPacketHandlerContext context,
-        WorldSession session,
-        byte optionId,
-        string sourceRange,
-        CancellationToken cancellationToken)
-    {
-        var updatedCharacter = session.Character with
-        {
-            ConquerPoints = checked(session.Character.ConquerPoints - LegacyPromotionMonkEpicSkillCost),
-        };
-        var updatedSession = await ApplyLegacyPromotionCharacterAsync(
-                context,
-                session,
-                updatedCharacter,
-                optionId,
-                LegacyPromotionMonkSource,
-                sourceRange)
-            .ConfigureAwait(false);
-        var updatedContext = context with { Session = updatedSession };
-        await SendScalarUpdateAsync(
-                updatedContext,
-                updatedCharacter,
-                LegacyMsgUpdateDataType.ConquerPoints,
-                checked((ulong)updatedCharacter.ConquerPoints),
-                cancellationToken)
-            .ConfigureAwait(false);
-        return updatedSession;
-    }
+    private static ValueTask<bool> TryLearnLegacyMonkEpicSkillAsync(
+        WorldPacketHandlerContext context, WorldSession session, byte optionId, ushort spellId,
+        string spellName, string sourceRange, CancellationToken cancellationToken) =>
+        TryLearnLegacyAtomicEpicSkillAsync(context, session, optionId, spellId, spellName, sourceRange,
+            LegacyPromotionMonkSource, "Monk", LegacyPromotionMonkEpicAvatarId, LegacyPromotionMonkEpicSkillCost, cancellationToken);
 
     private static ValueTask<bool> TryLearnLegacyMonkPromotionSkillAsync(
         WorldPacketHandlerContext context,

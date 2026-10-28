@@ -208,15 +208,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         sessions.Set(casterConnection, caster);
         sessions.Set(targetConnection, target);
         using var log = new StringWriter();
-        await PacketHandlers.HandleAsync(
-            new WorldPacketHandlerContext(
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(new WorldPacketHandlerContext(
                 casterConnection,
                 log,
                 caster,
                 WorldData: worldData,
                 Sessions: sessions,
                 MonsterStates: monsterStates,
-                ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13),
+                ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13), ref caster);
+        await PacketHandlers.HandleAsync(
+            combatSpellOwner.Context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
                 Uid: PlayerUid,
                 OpponentUid: TargetPlayerUid,
@@ -305,12 +306,20 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var targetAnimationIndex = SingleFrameIndex(targetSent, IsCastAnimation);
         Assert.True(playerHpIndices[1] < targetAnimationIndex);
         var casterAnimationIndex = SingleFrameIndex(casterSent, IsCastAnimation);
+        var progressFrames = casterSent.Select(ReadFrame).Where(frame =>
+            LegacySpellPacket.TryParse(frame, out var packet) && packet.Id == CrackingShockSpellId).ToArray();
+        Assert.True(progressFrames.Length == 1, "Expected exactly one CrackingShock progress frame. Handler log:\n" + log);
         var progressIndex = SingleFrameIndex(casterSent, frame =>
             LegacySpellPacket.TryParse(frame, out var packet) && packet.Id == CrackingShockSpellId);
         Assert.True(progressIndex < casterAnimationIndex);
         Assert.True(deliveryOrder.IndexOf(targetSent[playerHpIndices[1]]) < deliveryOrder.IndexOf(casterSent[casterAnimationIndex]));
         Assert.True(sessions.TryGet(casterConnection, out var finalCaster));
         Assert.NotNull(finalCaster);
+        Assert.Equal(4_999L, finalCaster.Character.MinHitPoints);
+        Assert.Equal(160L, finalCaster.Character.Experience);
         Assert.Equal(1, Assert.Single(finalCaster.PlayerSpells.Spells).Level);
+        var saved = new PlayerSpellSnapshotLoader(combatSpellOwner.Context.PlayerSpellsRoot!)
+            .LoadByCharacterUid(PlayerUid);
+        Assert.Equal(Assert.Single(finalCaster.PlayerSpells.Spells), Assert.Single(saved.Spells));
     }
 }

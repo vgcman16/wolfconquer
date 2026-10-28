@@ -127,6 +127,12 @@ public static partial class WorldPacketHandlers
                     itemPath,
                     characterPath));
         }
+        catch (WorldSessionPublicationException failure)
+        {
+            await LogLegacyPublishedNpcFailureAsync(context, failure, "Labyrinth")
+                .ConfigureAwait(false);
+            return true;
+        }
         catch (Exception exception) when (IsLegacyLabyrinthFloorAdvanceInfrastructureException(exception))
         {
             commit = LegacyLabyrinthFloorAdvanceCommit.Failed(
@@ -421,23 +427,13 @@ public static partial class WorldPacketHandlers
         {
             sessionCommitted = sessions.TryCompareAndSet(context.Connection, sourceSession, updatedSession);
         }
+        catch (WorldSessionPublicationException)
+        {
+            // Published outcomes never enter compensating rollback.
+            throw;
+        }
         catch (Exception exception) when (IsLegacyLabyrinthFloorAdvanceInfrastructureException(exception))
         {
-            if (sessions.TryGet(context.Connection, out var publishedSession) &&
-                ReferenceEquals(publishedSession, updatedSession))
-            {
-                return LegacyLabyrinthFloorAdvanceCommit.Succeeded(
-                    sourceSession,
-                    updatedSession,
-                    token.Uid,
-                    sourceStackSize,
-                    updatedStackSize,
-                    itemMutationFrame,
-                    itemMutationPacket,
-                    expectedItemPath,
-                    expectedCharacterPath);
-            }
-
             TryRollbackLegacyLabyrinthFloorAdvanceFiles(
                 expectedItemPath,
                 originalItemBytes,

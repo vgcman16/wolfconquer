@@ -9,7 +9,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyDisCityDarkHornParityTests : IDisposable
+public sealed partial class LegacyDisCityDarkHornParityTests : IDisposable
 {
     private const uint DicCityMap4NpcId = 4_026_316;
     private const uint TwinDisCityMainNpcId = 3_215;
@@ -631,6 +631,8 @@ public sealed class LegacyDisCityDarkHornParityTests : IDisposable
         private readonly ConquerTcpConnection _connection;
         private readonly ConquerTcpConnection? _observerConnection;
         private bool? _sessionCommittedBeforeFirstSend;
+        public bool FailObserver;
+        public WorldSession? PublishedAtFailure;
 
         public DarkHornHarness(
             uint npcId,
@@ -650,6 +652,11 @@ public sealed class LegacyDisCityDarkHornParityTests : IDisposable
                     return;
                 }
 
+                if (FailObserver && current.ActiveNpcId is null)
+                {
+                    FailObserver = false; PublishedAtFailure = current;
+                    throw new IOException("Actual Dark Horn observer failed after publication.");
+                }
                 CommitCount++;
                 try
                 {
@@ -722,6 +729,8 @@ public sealed class LegacyDisCityDarkHornParityTests : IDisposable
 
         public bool SessionCommittedBeforeFirstSend => _sessionCommittedBeforeFirstSend == true;
 
+        public bool HasCurrentSession => _sessions.TryGet(_connection, out _);
+
         public WorldSession CurrentSession
         {
             get
@@ -730,6 +739,8 @@ public sealed class LegacyDisCityDarkHornParityTests : IDisposable
                 return Assert.IsType<WorldSession>(current);
             }
         }
+
+        public void SetBeforeAction(WorldSession replacement) => _sessions.Set(_connection, replacement);
 
         public ValueTask<bool> InvokeAsync(WorldSession? suppliedSession = null)
         {

@@ -91,12 +91,15 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        // Native Inventory.ContainItemWithStack treats raw0 as one physical
+        // item for Count1. Keep that raw field; a stacked Rune needs a separate
+        // split transaction and cannot equip/unequip through this single slot.
         var requestEcho = CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame));
         if (!TryCommitLegacyItemSpell(context, session, (stable, identity) =>
             {
                 if (stable.Character.Reborn < 2 || stable.Character.Level < 15 || packet.DwParam > ushort.MaxValue ||
                     !TryGetRuneItem(stable.PlayerItems, packet.Id, out var owned) || owned.ItemId != selectedRune.ItemId ||
-                    owned.Locked != 0 || owned.StackSize == 0 || owned.DepositedItems.Count != 0 ||
+                    owned.Locked != 0 || owned.StackSize > 1 || owned.DepositedItems.Count != 0 ||
                     !IsLegacyRuneEquipSlot(owned.ItemId, requestedPosition) ||
                     !TryReadItemType(context.WorldData, owned.ItemId, out var metadata) ||
                     !PassesLegacyItemClassRequirement(stable.Character, metadata) || !PassesLegacyItemLevelRequirement(stable.Character, metadata))
@@ -184,12 +187,15 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        // Native Inventory.ContainItemWithStack treats raw0 as one physical
+        // item for Count1. Keep that raw field; a stacked Rune needs a separate
+        // split transaction and cannot equip/unequip through this single slot.
         var requestEcho = CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame));
         if (!TryCommitLegacyItemSpell(context, session, (stable, identity) =>
             {
                 if (stable.Character.Reborn < 2 || stable.Character.Level < 15 || !HasLegacyInventorySpace(stable.PlayerItems, 1) ||
                     TryReadLegacyVendorState(stable.Character, out _) || !TryGetRuneItem(stable.PlayerItems, packet.Id, out var owned) ||
-                    owned.ItemId != rune.ItemId || owned.Locked != 0 || owned.StackSize == 0 || owned.DepositedItems.Count != 0 ||
+                    owned.ItemId != rune.ItemId || owned.Locked != 0 || owned.StackSize > 1 || owned.DepositedItems.Count != 0 ||
                     !TryReadItemType(context.WorldData, owned.ItemId, out _))
                     throw InvalidSpellMutation();
                 var currentRank = stable;

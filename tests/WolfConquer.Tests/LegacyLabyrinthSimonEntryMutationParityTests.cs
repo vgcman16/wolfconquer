@@ -10,7 +10,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
+public sealed partial class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
 {
     private const long AccountId = 1_293_600;
     private const uint CharacterUid = 1_293_600;
@@ -103,27 +103,36 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
     }
 
     [Fact]
-    public async Task Option6SessionPublicationRaceRollsBackAndSendsNoPackets()
+    public async Task Option6ObserverFailureRetainsPublishedFilesAndSendsNoPackets()
     {
         using var harness = CreateHarness(
             optionId: 6,
             virtutePoints: 4_501,
             Items(InventoryItem(300, 410_004, stackSize: 2, seed: 6)));
 
-        var race = await harness.InvokeWithSessionCasChangeAsync();
+        var race = await harness.InvokeWithObserverFailureAsync();
 
         Assert.True(race.Handled);
-        Assert.Same(race.ReplacementSession, harness.CurrentSession);
-        Assert.Equal(SimonNpcId, harness.CurrentSession.ActiveNpcId);
-        Assert.Equal(harness.OriginalCharacterBytes, File.ReadAllBytes(harness.CharacterPath));
-        Assert.Equal(harness.OriginalItemBytes, File.ReadAllBytes(harness.ItemPath));
+        Assert.False(harness.HasCurrentSession);
+        Assert.True(harness.Context.TradeRecovery!.IsBlocked);
+        Assert.Null(race.PublishedSession.ActiveNpcId);
+        AssertItemsEqual(race.PublishedSession.PlayerItems, harness.ReloadItems());
         Assert.Empty(harness.ClientSent);
         Assert.Empty(harness.ObserverSent);
-        Assert.Contains(
-            "session-commit-InvalidOperationException",
-            harness.LogText,
-            StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("rollback=complete", harness.LogText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(race.PublishedSession.Character.MapId, harness.ReloadCharacter().MapId);
+        Assert.Equal(race.PublishedSession.Character.X, harness.ReloadCharacter().X);
+        Assert.Equal(race.PublishedSession.Character.Y, harness.ReloadCharacter().Y);
+        Assert.Equal(harness.OriginalItemBytes, File.ReadAllBytes(harness.ItemPath));
+        Assert.False(harness.OriginalCharacterBytes.AsSpan().SequenceEqual(File.ReadAllBytes(harness.CharacterPath)));
+        Assert.Equal(race.PublishedSession.Character.Attributes["VirtutePoints"],
+            harness.ReloadCharacter().Attributes["VirtutePoints"]);
+        Assert.Contains("publicationStage=Observer", harness.LogText, StringComparison.Ordinal);
+        Assert.Contains("compensationSuppressed=true", harness.LogText, StringComparison.Ordinal);
+        Assert.DoesNotContain("rollback=complete", harness.LogText, StringComparison.OrdinalIgnoreCase);
+        var retainedItems = File.ReadAllBytes(harness.ItemPath);
+        Assert.True(await harness.InvokeAsync(harness.OriginalSession));
+        Assert.Equal(retainedItems, File.ReadAllBytes(harness.ItemPath));
+        Assert.Empty(harness.ClientSent);
     }
 
     [Fact]
@@ -273,7 +282,7 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
     }
 
     [Fact]
-    public async Task Option7SessionPublicationRaceRollsBackBothFilesAndSendsNoPackets()
+    public async Task Option7ObserverFailureRetainsPublishedFilesAndSendsNoPackets()
     {
         using var harness = CreateHarness(
             optionId: 7,
@@ -282,21 +291,26 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
                 InventoryItem(10, MeteorItemId, stackSize: 3, bound: 1, seed: 21),
                 InventoryItem(20, MeteorScrollItemId, stackSize: 3, bound: 0, seed: 22)));
 
-        var race = await harness.InvokeWithSessionCasChangeAsync();
+        var race = await harness.InvokeWithObserverFailureAsync();
 
         Assert.True(race.Handled);
-        Assert.Same(race.ReplacementSession, harness.CurrentSession);
-        Assert.Equal(SimonNpcId, harness.CurrentSession.ActiveNpcId);
-        Assert.Equal(harness.OriginalCharacterBytes, File.ReadAllBytes(harness.CharacterPath));
-        Assert.Equal(harness.OriginalItemBytes, File.ReadAllBytes(harness.ItemPath));
-        AssertItemsEqual(harness.OriginalSession.PlayerItems, harness.ReloadItems());
+        Assert.False(harness.HasCurrentSession);
+        Assert.True(harness.Context.TradeRecovery!.IsBlocked);
+        Assert.Null(race.PublishedSession.ActiveNpcId);
+        AssertItemsEqual(race.PublishedSession.PlayerItems, harness.ReloadItems());
         Assert.Empty(harness.ClientSent);
         Assert.Empty(harness.ObserverSent);
-        Assert.Contains(
-            "session-commit-InvalidOperationException",
-            harness.LogText,
-            StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("rollback=complete", harness.LogText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(race.PublishedSession.Character.MapId, harness.ReloadCharacter().MapId);
+        Assert.Equal(race.PublishedSession.Character.X, harness.ReloadCharacter().X);
+        Assert.Equal(race.PublishedSession.Character.Y, harness.ReloadCharacter().Y);
+        Assert.False(harness.OriginalItemBytes.AsSpan().SequenceEqual(File.ReadAllBytes(harness.ItemPath)));
+        Assert.Contains("publicationStage=Observer", harness.LogText, StringComparison.Ordinal);
+        Assert.Contains("compensationSuppressed=true", harness.LogText, StringComparison.Ordinal);
+        Assert.DoesNotContain("rollback=complete", harness.LogText, StringComparison.OrdinalIgnoreCase);
+        var retainedItems = File.ReadAllBytes(harness.ItemPath);
+        Assert.True(await harness.InvokeAsync(harness.OriginalSession));
+        Assert.Equal(retainedItems, File.ReadAllBytes(harness.ItemPath));
+        Assert.Empty(harness.ClientSent);
     }
 
     [Fact]
@@ -696,6 +710,7 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
         private bool? _sessionCommittedBeforeFirstSend;
         private bool _replaceSessionDuringCommit;
         private WorldSession? _replacementSession;
+        private WorldSession? _publishedAtFailure;
 
         public EntryHarness(
             string caseRoot,
@@ -758,12 +773,13 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
                 if (_replaceSessionDuringCommit && current.ActiveNpcId is null)
                 {
                     _replaceSessionDuringCommit = false;
+                    _publishedAtFailure = current;
                     _replacementSession = OriginalSession with
                     {
                         Username = "labyrinth-simon-entry-cas-replacement",
                     };
                     Sessions!.Set(_connection, _replacementSession);
-                    throw new InvalidOperationException("Injected session publication race.");
+                    throw new InvalidOperationException("Injected observer failure after actual publication.");
                 }
 
                 SessionWriteCount++;
@@ -784,13 +800,15 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
                 });
             Sessions.Set(_observerConnection, CreateObserverSession(character));
 
+            var recovery = new LegacyTradeRecoveryState(UsersRoot, PlayerItemsRoot);
+            Assert.True(recovery.TryEnsureInitialized(out var recoveryReason), recoveryReason);
             Context = new WorldPacketHandlerContext(
                 _connection,
                 _log,
                 Session: OriginalSession,
                 Sessions: Sessions,
                 PlayerItemsRoot: PlayerItemsRoot,
-                ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
+                ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13) { TradeRecovery = recovery };
         }
 
         public string UsersRoot { get; }
@@ -827,6 +845,8 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
 
         public string LogText => _log.ToString();
 
+        public bool HasCurrentSession => Sessions.TryGet(_connection, out _);
+
         public WorldSession CurrentSession
         {
             get
@@ -835,6 +855,8 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
                 return Assert.IsType<WorldSession>(session);
             }
         }
+
+        public void SetBeforeAction(WorldSession replacement) => Sessions.Set(_connection, replacement);
 
         public ValueTask<bool> InvokeAsync(WorldSession? suppliedSession = null)
         {
@@ -847,11 +869,11 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
                 CancellationToken.None);
         }
 
-        public async Task<CasRaceResult> InvokeWithSessionCasChangeAsync()
+        public async Task<PublicationFailureResult> InvokeWithObserverFailureAsync()
         {
             _replaceSessionDuringCommit = true;
             var handled = await InvokeAsync().ConfigureAwait(false);
-            return new CasRaceResult(handled, Assert.IsType<WorldSession>(_replacementSession));
+            return new PublicationFailureResult(handled, Assert.IsType<WorldSession>(_publishedAtFailure), Assert.IsType<WorldSession>(_replacementSession));
         }
 
         public CharacterSnapshot ReloadCharacter()
@@ -945,7 +967,7 @@ public sealed class LegacyLabyrinthSimonEntryMutationParityTests : IDisposable
         }
     }
 
-    private sealed record CasRaceResult(bool Handled, WorldSession ReplacementSession);
+    private sealed record PublicationFailureResult(bool Handled, WorldSession PublishedSession, WorldSession ReplacementSession);
 
     private sealed record WireExposure(WireEndpoint Endpoint, byte[] Bytes);
 

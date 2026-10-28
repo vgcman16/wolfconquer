@@ -155,14 +155,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         sessions.Set(casterConnection, casterSession);
         sessions.Set(targetConnection, targetSession);
 
-        await PacketHandlers.HandleAsync(
-            new WorldPacketHandlerContext(
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(new WorldPacketHandlerContext(
                 casterConnection,
                 log,
                 casterSession,
                 WorldData: worldData,
                 Sessions: sessions,
-                MonsterStates: new MonsterRuntimeStateStore()),
+                MonsterStates: new MonsterRuntimeStateStore()), ref casterSession);
+        await PacketHandlers.HandleAsync(
+            combatSpellOwner.Context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
                 Uid: PlayerUid,
                 OpponentUid: TargetPlayerUid,

@@ -20252,10 +20252,13 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     [Fact]
     public async Task HandlerRespondsToLegacyPlayerStatusQueryAfterWorldEnter()
     {
-        Directory.CreateDirectory(_usersRoot);
-        WriteSnapshot(1293600, uid: 1293600, minHitPoints: 61_229);
+        var usersRoot = Path.Combine(_usersRoot, "Users");
+        Directory.CreateDirectory(usersRoot);
+        WriteSnapshot(usersRoot, 1293600, uid: 1293600, minHitPoints: 61_229);
         var itemsRoot = Path.Combine(_usersRoot, "PlayersItems");
+        var spellsRoot = Path.Combine(_usersRoot, "PlayersSpells");
         Directory.CreateDirectory(itemsRoot);
+        Directory.CreateDirectory(spellsRoot);
         File.WriteAllBytes(
             Path.Combine(itemsRoot, "1293600.bin"),
             PlayerItemSnapshotLoaderTests.BuildPlayerItems(
@@ -20265,7 +20268,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
         using var log = new StringWriter();
         var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(_usersRoot, itemsRoot), handoff,
+            new CharacterSnapshotLoader(usersRoot, itemsRoot, spellsRoot), handoff,
             CreateNativeStartupQueryInputCatalog(), log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
@@ -20282,7 +20285,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var responseBytes = Assert.Single(sent.Skip(queryStart));
         Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(responseBytes), out var status));
         Assert.Equal(1_293_600U, status.Uid);
-        Assert.Equal(61_512U, status.MaxHP);
+        Assert.True(status.MaxHP == 61_512U,
+            "Expected the original 61512 max-HP golden; actual=" + status.MaxHP + ". Handler log:\n" + log);
         Assert.Equal(5_000U, status.MaxMana);
         Assert.Equal(0U, status.PrestigeLevel);
         Assert.Equal(0U, status.ReservedZero);

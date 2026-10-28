@@ -82,8 +82,8 @@ internal partial class LegacyNativeNinja
         }
 
         // All caller-owned attributes/collection reads precede this final fence.
-        // Store removal is reentrant under the identity callback's gate, so the
-        // earlier holder check cannot stand in for this current identity check.
+        // Store mutation reentry during preparation is refused. The earlier
+        // holder check still cannot replace this callback-free final identity fence.
         private bool PublicationIdentityCurrent(WorldSessionStore sessions, ConquerTcpConnection connection, WorldSession admitted) =>
             sessions.TryGet(connection, out var current) && ReferenceEquals(current, admitted) &&
             ReferenceEquals(connection.NativeGameClient, client) && ReferenceEquals(admitted.NativeGameClient, client) &&

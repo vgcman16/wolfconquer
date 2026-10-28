@@ -94,7 +94,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task OrdinaryAuraSelfCastMapsFlagStatIconLifetimeAndAnimationBeforeProgress(ushort spellId)
     {
         var descriptor = GetAuraDescriptor(spellId);
-        var result = await RunAuraCastAsync(spellId, PlayerUid);
+        using var result = await RunAuraCastAsync(spellId, PlayerUid);
         var caster = GetAuraCaster(result);
 
         AssertActiveAura(
@@ -138,7 +138,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             MapId: 1_015,
             JoinTeam: false,
             Attributes: null);
-        var result = await RunAuraCastAsync(
+        using var result = await RunAuraCastAsync(
             AuraFireSpellId,
             TargetPlayerUid,
             peers: [target]);
@@ -174,7 +174,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Fact]
     public async Task InvalidPrimaryStillSendsEmptySelfAnimationWithoutAuraIconOrProgress()
     {
-        var result = await RunAuraCastAsync(AuraWaterSpellId, AuraUnknownTargetUid);
+        using var result = await RunAuraCastAsync(AuraWaterSpellId, AuraUnknownTargetUid);
         var caster = GetAuraCaster(result);
 
         AssertNoActiveAura(caster);
@@ -234,7 +234,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 JoinTeam: true,
                 Attributes: CreateActiveAuraAttributes(casting, sameExpiresAt)),
         };
-        var result = await RunAuraCastAsync(
+        using var result = await RunAuraCastAsync(
             AuraTyrantSpellId,
             AuraUnknownTargetUid,
             peers: peers,
@@ -290,7 +290,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             JoinTeam: true,
             Attributes: peerAttributes);
 
-        var result = await RunAuraCastAsync(
+        using var result = await RunAuraCastAsync(
             AuraMetalSpellId,
             TargetPlayerUid,
             peers: [peer],
@@ -331,7 +331,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task SamePrimaryAuraTogglesOffWithOnlyRemovalNoIconAndNoProgress()
     {
         var descriptor = GetAuraDescriptor(AuraMetalSpellId);
-        var result = await RunAuraCastAsync(AuraMetalSpellId, PlayerUid);
+        using var result = await RunAuraCastAsync(AuraMetalSpellId, PlayerUid);
         var baseline = result.InitialCaster;
         ClearAuraSent(result);
 
@@ -367,7 +367,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         var oldAura = GetAuraDescriptor(AuraTyrantSpellId);
         var newAura = GetAuraDescriptor(AuraFeandSpellId);
-        var result = await RunAuraCastAsync(
+        using var result = await RunAuraCastAsync(
             AuraTyrantSpellId,
             PlayerUid,
             learnedSpellIds: [AuraTyrantSpellId, AuraFeandSpellId]);
@@ -427,7 +427,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             MapId: 1_015,
             JoinTeam: false,
             Attributes: null);
-        var result = await RunAuraCastAsync(
+        using var result = await RunAuraCastAsync(
             AuraMagicDefenderSpellId,
             PlayerUid,
             casterAttributes: casterAttributes,
@@ -513,7 +513,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [InlineData(AuraMagicDefenderSpellId + 1)]
     public async Task DispatchRejectsAdjacentAurasRowsAfterPreparingResourcesAndCooldownWithoutAuraOutput(ushort spellId)
     {
-        var result = await RunAuraCastAsync(
+        using var result = await RunAuraCastAsync(
             spellId,
             PlayerUid,
             minMana: 500,
@@ -565,7 +565,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [InlineData(AuraMagicDefenderSpellId)]
     public async Task InsufficientAuraManaRejectsWithoutAnyMutation(ushort spellId)
     {
-        var result = await RunAuraCastAsync(
+        using var result = await RunAuraCastAsync(
             spellId,
             PlayerUid,
             minMana: 99,
@@ -583,7 +583,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [InlineData(AuraMagicDefenderSpellId)]
     public async Task InsufficientAuraStaminaRejectsWithoutAnyMutation(ushort spellId)
     {
-        var result = await RunAuraCastAsync(
+        using var result = await RunAuraCastAsync(
             spellId,
             PlayerUid,
             casterStamina: 9,
@@ -602,7 +602,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task ActiveAuraCooldownRejectsWithoutAnyMutation(ushort spellId)
     {
         var readyAt = DateTimeOffset.UtcNow.AddMinutes(1);
-        var result = await RunAuraCastAsync(
+        using var result = await RunAuraCastAsync(
             spellId,
             PlayerUid,
             useMana: 0,

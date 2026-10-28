@@ -4,71 +4,49 @@ namespace WolfConquer.Core.World;
 
 internal partial class LegacyNativeMyCombatGear
 {
-    // Native MyCombatGear154..223. This is NOT Loading/UseRune/attack dispatch.
+    // Native MyCombatGear154..223. Resolve the complete source list before any
+    // native spell writer or notification, including later Jade/table failures.
     public void IsPirate(byte x)
     {
+        var calls = PreparePirateSpellCalls(x);
         using LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket();
         LegacyNativePacket stream = recycledPacket.GetStream();
+        foreach (var call in calls)
+        {
+            if (x == 1) user.MySpells!.Add(stream, call.Id, call.Level, 0, 0);
+            else user.MySpells!.Remove(call.Id, stream);
+        }
+    }
+
+    private readonly record struct PirateSpellCall(ushort Id, ushort Level);
+
+    private PirateSpellCall[] PreparePirateSpellCalls(byte mode)
+    {
+        var calls = new List<PirateSpellCall>();
         foreach (Weapon value in user.CombatGear!.Items.Values)
         {
-            if (x == 1)
+            foreach (BlackJade jade in value.BlackJades)
             {
-                BlackJade[] blackJades = value.BlackJades;
-                foreach (BlackJade blackJade in blackJades)
-                {
-                    if (blackJade.DBItem.attr_type1 == 24)
-                    {
-                        ushort iD = (ushort)(blackJade.DBItem.attr_value1 / 1000);
-                        ushort level = (ushort)(blackJade.DBItem.attr_value1 % 100);
-                        user.MySpells!.Add(stream, iD, level, 0, 0);
-                    }
-                    if (blackJade.DBItem.attr_type2 == 24)
-                    {
-                        ushort iD2 = (ushort)(blackJade.DBItem.attr_value2 / 1000);
-                        ushort level2 = (ushort)(blackJade.DBItem.attr_value2 % 100);
-                        user.MySpells!.Add(stream, iD2, level2, 0, 0);
-                    }
-                }
-                if (value.ItemID >= TypeID.Pirate1 && value.ItemID <= TypeID.Pirate3)
-                {
-                    uint[] skills = value.DBItem.Skills;
-                    foreach (uint num in skills)
-                    {
-                        if (num != 0)
-                            user.MySpells!.Add(stream, (ushort)(num / 1000), (byte)(num % 100), 0, 0);
-                    }
-                }
-                user.MySpells!.Add(stream, 21540, 0, 0, 0);
-                user.MySpells!.Add(stream, 21920, 0, 0, 0);
-                continue;
-            }
-            BlackJade[] blackJades2 = value.BlackJades;
-            foreach (BlackJade blackJade2 in blackJades2)
-            {
-                if (blackJade2.DBItem.attr_type1 == 24)
-                {
-                    ushort iD3 = (ushort)(blackJade2.DBItem.attr_value1 / 1000);
-                    ushort num2 = (ushort)(blackJade2.DBItem.attr_value1 % 100);
-                    user.MySpells!.Remove(iD3, stream);
-                }
-                if (blackJade2.DBItem.attr_type2 == 24)
-                {
-                    ushort iD4 = (ushort)(blackJade2.DBItem.attr_value2 / 1000);
-                    ushort num3 = (ushort)(blackJade2.DBItem.attr_value2 % 100);
-                    user.MySpells!.Remove(iD4, stream);
-                }
+                var row = jade.DBItem;
+                if (row.attr_type1 == 24) AddEncoded(row.attr_value1);
+                if (row.attr_type2 == 24) AddEncoded(row.attr_value2);
             }
             if (value.ItemID >= TypeID.Pirate1 && value.ItemID <= TypeID.Pirate3)
-            {
-                uint[] skills2 = value.DBItem.Skills;
-                foreach (uint num4 in skills2)
-                {
-                    if (num4 != 0)
-                        user.MySpells!.Remove((ushort)(num4 / 1000), stream);
-                }
-            }
-            user.MySpells!.Remove(21540, stream);
-            user.MySpells!.Remove(21920, stream);
+                foreach (uint encoded in value.DBItem.Skills)
+                    if (encoded != 0) AddEncoded(encoded);
+            calls.Add(new(21540, 0));
+            calls.Add(new(21920, 0));
+        }
+        return calls.ToArray();
+
+        void AddEncoded(uint encoded)
+        {
+            ushort id = (ushort)(encoded / 1000);
+            if (id == 0)
+                throw new InvalidOperationException("Pirate spell metadata contains an invalid zero spell identity.");
+            // Preserve the source's width and level extraction for valid rows.
+            ushort level = mode == 1 ? (ushort)(encoded % 100) : (ushort)0;
+            calls.Add(new(id, level));
         }
     }
 }

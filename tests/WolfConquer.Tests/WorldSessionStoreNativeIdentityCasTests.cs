@@ -55,9 +55,12 @@ public sealed class WorldSessionStoreNativeIdentityCasTests
         var next = initial with { ActiveNpcId = 99 };
         WorldSession? final = null;
         fail = true;
-        Assert.Throws<IOException>(() => store.TryCompareAndSetWithNativeIdentity(connection, initial, identity, next, out final));
+        var failure = Assert.Throws<WorldSessionPublicationException>(() =>
+            store.TryCompareAndSetWithNativeIdentity(connection, initial, identity, next, out final));
+        Assert.IsType<IOException>(failure.InnerException);
+        Assert.Equal(WorldSessionPublicationStage.Observer, failure.Stage);
         Assert.Same(next, final);
-        Assert.True(store.TryGet(connection, out var current));
-        Assert.Same(final, current);
+        Assert.Same(final, failure.PublishedSession);
+        Assert.False(store.TryGet(connection, out _));
     }
 }

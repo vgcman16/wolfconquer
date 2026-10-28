@@ -83,7 +83,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             return ValueTask.CompletedTask;
         });
         await fixture.QueryAsync();
-        Assert.True(entered);
+        Assert.True(entered, fixture.Output);
+        fixture.RequireSavedVenom();
         Assert.Equal(20L, fixture.Owner.Character.Spirit);
         Assert.Equal(750U, LegacyPhysicalStatusOverlay.ForOwner(fixture.Owner).MaxMana);
         Assert.Equal(750U, (await fixture.ReadStatusAsync()).MaxMana);

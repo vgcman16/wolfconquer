@@ -571,7 +571,8 @@ public sealed class LegacyLayTrapDustSigilStunnRuntimeTests
                 PaidNobility: new Dictionary<string, string>()),
             PlayerItemSnapshot.Empty,
             new PlayerSpellSnapshot(
-            [
+            new PlayerSpellSnapshotEntry[]
+            {
                 new PlayerSpellSnapshotEntry(
                     DustDetachmentSpellId,
                     Level: 0,
@@ -579,7 +580,7 @@ public sealed class LegacyLayTrapDustSigilStunnRuntimeTests
                     PreviousLevel: 0,
                     SoulLevel: 0,
                     UseSpellSoul: 0),
-            ]),
+            }),
             PlayerProficiencySnapshot.Empty);
     }
 

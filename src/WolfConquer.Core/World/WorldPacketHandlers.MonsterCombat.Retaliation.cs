@@ -232,8 +232,10 @@ public static partial class WorldPacketHandlers
         LegacyMonsterInstance monster,
         Monster monsterFamily,
         ushort spellId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        LegacyShockCasterOwner? capturedOwner = null)
     {
+        if (capturedOwner is not null && !capturedOwner.IsCurrent(context, session)) return;
         var attackRange = ResolveLegacyAttackingTargetRange(monster, monsterFamily);
         if (attackRange == 0 ||
             LegacyGetDistance(session.Character.X, session.Character.Y, monster.X, monster.Y) > attackRange)
@@ -265,6 +267,7 @@ public static partial class WorldPacketHandlers
                 cancellationToken)
             .ConfigureAwait(false);
         session = responseDamage.Session;
+        if (capturedOwner is not null && !capturedOwner.IsCurrent(context, session)) return;
         if (responseDamage.InterruptsRetaliation)
         {
             return;
@@ -287,6 +290,7 @@ public static partial class WorldPacketHandlers
                 damageResult.ConsumesHawksAmbition,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (capturedOwner is not null && !capturedOwner.IsCurrent(context, session)) return;
 
         var applied = Math.Min(damage, currentHitpoints);
         var killedPlayer = applied >= currentHitpoints;
@@ -302,7 +306,8 @@ public static partial class WorldPacketHandlers
         }
 
         var updatedSession = session with { Character = updatedCharacter };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        if (capturedOwner is null) context.Sessions?.Set(context.Connection, updatedSession);
+        else if (!capturedOwner.TryPublish(context, session, updatedSession, out updatedSession)) return;
 
         var effect = LegacyMonsterMagicRetaliation.ResolveTailedBeastEffect(
             session.Character.Attributes,
@@ -321,8 +326,12 @@ public static partial class WorldPacketHandlers
             spellId,
             damage,
             effect);
-        await SendMonsterSpellAnimationToVisibleAsync(context, updatedSession, monster, spell, cancellationToken)
-            .ConfigureAwait(false);
+        if (capturedOwner is null)
+            await SendMonsterSpellAnimationToVisibleAsync(context, updatedSession, monster, spell, cancellationToken)
+                .ConfigureAwait(false);
+        else if (!await SendLegacyShockRetaliationAnimationAsync(context, updatedSession, monster, spell,
+                     capturedOwner, cancellationToken).ConfigureAwait(false)) return;
+        if (capturedOwner is not null && !capturedOwner.TryCurrent(context, updatedSession, out updatedSession)) return;
 
         updatedSession = await TryApplyLegacyMonsterHitActivePickRemovalAsync(
                 context,
@@ -330,6 +339,7 @@ public static partial class WorldPacketHandlers
                 damage,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (capturedOwner is not null && !capturedOwner.IsCurrent(context, updatedSession)) return;
         updatedCharacter = updatedSession.Character;
 
         updatedSession = await TryApplyLegacyMonsterHitSitInterruptionAsync(
@@ -339,6 +349,7 @@ public static partial class WorldPacketHandlers
                 killedPlayer,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (capturedOwner is not null && !capturedOwner.IsCurrent(context, updatedSession)) return;
         updatedCharacter = updatedSession.Character;
 
         if (applied > 0)
@@ -355,7 +366,9 @@ public static partial class WorldPacketHandlers
                 maxHitpoints,
                 currentHitpoints - applied))
             {
+                if (capturedOwner is not null && !capturedOwner.IsCurrent(context, updatedSession)) return;
                 await context.Connection.SendAsync(update.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+                if (capturedOwner is not null && !capturedOwner.TryCurrent(context, updatedSession, out updatedSession)) return;
             }
         }
 
@@ -366,6 +379,7 @@ public static partial class WorldPacketHandlers
                 monsterFamily,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (capturedOwner is not null && !capturedOwner.IsCurrent(context, updatedSession)) return;
 
         if (killedPlayer)
         {

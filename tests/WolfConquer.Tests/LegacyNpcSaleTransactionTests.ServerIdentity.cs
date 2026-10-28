@@ -132,6 +132,15 @@ public sealed partial class LegacyNpcSaleTransactionTests
         var original = Current(owner, player);
         var client = player.Connection.NativeGameClient!;
         var firstNative = client.Player;
+        var binding = Assert.IsType<LegacyOrdinarySpellBinding>(client.OrdinarySpellBinding);
+        var beforeCharacter = File.ReadAllBytes(UserPath(uid));
+        var beforeItems = File.ReadAllBytes(ItemPath(uid));
+        var spellPath = Path.Combine(root, "PlayersSpells", uid + ".bin");
+        var profPath = Path.Combine(root, "PlayersProfs", uid + ".bin");
+        byte[]? beforeSpells = File.Exists(spellPath) ? File.ReadAllBytes(spellPath) : null;
+        byte[]? beforeProfs = File.Exists(profPath) ? File.ReadAllBytes(profPath) : null;
+        var framesBefore = player.Sent.Count;
+        Assert.True(binding.PhysicalOwnerIsCurrentPlain());
         Assert.True(LegacyServerIdentityRuntime.IsOnOwnServer(player.Connection, original, identity));
         var replacement = new LegacyNativePlayerRuntime(client) { UID = uid };
         client.Player = replacement;
@@ -140,7 +149,16 @@ public sealed partial class LegacyNpcSaleTransactionTests
 
         replacement.ServerID = 42;
         var copy = original with { ActiveNpcId = NpcUid };
-        owner.Sessions.Set(player.Connection, copy);
+        var refusal = Assert.Throws<InvalidOperationException>(() => owner.Sessions.Set(player.Connection, copy));
+        Assert.Contains("ordinarySpellPublicationRequiresCurrentCompleteOwner", refusal.Message);
+        Assert.Same(original, Current(owner, player));
+        Assert.Same(binding, client.OrdinarySpellBinding);
+        Assert.False(binding.IsRetired);
+        Assert.Equal(beforeCharacter, File.ReadAllBytes(UserPath(uid)));
+        Assert.Equal(beforeItems, File.ReadAllBytes(ItemPath(uid)));
+        Assert.Equal(beforeSpells, File.Exists(spellPath) ? File.ReadAllBytes(spellPath) : null);
+        Assert.Equal(beforeProfs, File.Exists(profPath) ? File.ReadAllBytes(profPath) : null);
+        Assert.Equal(framesBefore, player.Sent.Count);
 
         Assert.NotSame(firstNative, replacement);
         Assert.Same(replacement, client.Player);
@@ -150,6 +168,19 @@ public sealed partial class LegacyNpcSaleTransactionTests
         Assert.False(LegacyServerIdentityRuntime.IsOnOwnServer(player.Connection, copy, identity));
         Assert.False(LegacyServerIdentityRuntime.IsOnOwnServer(player.Connection, copy, new LegacyLocalServerIdentity(42)));
         Assert.False(replacement.CompleteLogin);
+
+        // Restoring the actual original physical player restores only its
+        // previously issued authority; the rejected forged copy never became current.
+        client.Player = firstNative;
+        Assert.Same(original, Current(owner, player));
+        Assert.Same(binding, client.OrdinarySpellBinding);
+        Assert.True(binding.PhysicalOwnerIsCurrentPlain());
+        Assert.True(LegacyServerIdentityRuntime.IsOnOwnServer(player.Connection, original, identity));
+        Assert.Equal(beforeCharacter, File.ReadAllBytes(UserPath(uid)));
+        Assert.Equal(beforeItems, File.ReadAllBytes(ItemPath(uid)));
+        Assert.Equal(beforeSpells, File.Exists(spellPath) ? File.ReadAllBytes(spellPath) : null);
+        Assert.Equal(beforeProfs, File.Exists(profPath) ? File.ReadAllBytes(profPath) : null);
+        Assert.Equal(framesBefore, player.Sent.Count);
     }
 
     [Fact]

@@ -24,18 +24,18 @@ public sealed class LegacyPromotionMastersMonkStarterPromotionTests : IDisposabl
         var connection = CreateSendingConnection(sent);
         var usersRoot = Path.Combine(_root, "Users");
         var spellsRoot = Path.Combine(_root, "PlayersSpells");
-        CreateMinimalCharacterSnapshot(usersRoot, classCode: 6_000);
         var session = CreateSession(classCode: 6_000, level: 15, usersRoot: usersRoot);
+        WriteCompleteCharacterSnapshot(session);
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             MonkPromotionNpcId,
             optionId: 2,
@@ -69,18 +69,19 @@ public sealed class LegacyPromotionMastersMonkStarterPromotionTests : IDisposabl
         var connection = CreateSendingConnection(sent);
         var usersRoot = Path.Combine(_root, "Users-" + level + "-" + classCode);
         var spellsRoot = Path.Combine(_root, "PlayersSpells-" + level + "-" + classCode);
-        CreateMinimalCharacterSnapshot(usersRoot, classCode);
         var session = CreateSession(classCode: classCode, level: level, usersRoot: usersRoot);
+        WriteCompleteCharacterSnapshot(session);
+        var characterBefore = File.ReadAllBytes(Path.Combine(usersRoot, CharacterUid + ".ini"));
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             MonkPromotionNpcId,
             optionId: 2,
@@ -93,10 +94,12 @@ public sealed class LegacyPromotionMastersMonkStarterPromotionTests : IDisposabl
         Assert.NotNull(updated);
         Assert.Equal(classCode, updated.Character.Class);
         Assert.Empty(updated.PlayerSpells.SpellIds);
-        Assert.False(File.Exists(Path.Combine(spellsRoot, CharacterUid + ".bin")));
+        Assert.Equal(PlayerSpellSnapshotLoader.ToLegacyBytes(PlayerSpellSnapshot.Empty),
+            File.ReadAllBytes(Path.Combine(spellsRoot, CharacterUid + ".bin"))); // The genuine owner seeded this exact empty baseline.
 
         var persistedCharacter = File.ReadAllText(Path.Combine(usersRoot, CharacterUid + ".ini"));
         Assert.Contains("Class=" + classCode, persistedCharacter, StringComparison.Ordinal);
+        Assert.Equal(characterBefore, File.ReadAllBytes(Path.Combine(usersRoot, CharacterUid + ".ini")));
         Assert.Contains("WorldServer skipped LegacyNpc PromotionMonk starter promotion", log.ToString());
         Assert.DoesNotContain("PARITY-GAP", log.ToString());
     }
@@ -116,7 +119,7 @@ public sealed class LegacyPromotionMastersMonkStarterPromotionTests : IDisposabl
         PlayerSpellSnapshot? playerSpells = null)
     {
         return new WorldSession(
-            AccountId: 100,
+            AccountId: CharacterUid,
             Username: "monk-starter-promotion-test",
             Character: new CharacterSnapshot(
                 Uid: CharacterUid,
@@ -158,14 +161,15 @@ public sealed class LegacyPromotionMastersMonkStarterPromotionTests : IDisposabl
             UsersRoot: usersRoot);
     }
 
-    private static void CreateMinimalCharacterSnapshot(string usersRoot, long classCode)
+    private static void WriteCompleteCharacterSnapshot(WorldSession session)
     {
+        var usersRoot = session.UsersRoot ?? throw new InvalidOperationException("Explicit saved fixture root is required.");
         Directory.CreateDirectory(usersRoot);
-        File.WriteAllText(
-            Path.Combine(usersRoot, CharacterUid + ".ini"),
-            "[Character]" + Environment.NewLine +
-            "UID=" + CharacterUid + Environment.NewLine +
-            "Class=" + classCode + Environment.NewLine);
+        var fields = new Dictionary<string, string>(session.Character.Attributes, StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in CharacterSnapshotScalarPersistence.BuildPersistedValues(session.Character)) fields[pair.Key] = pair.Value;
+        fields["Name"] = session.Character.Name;
+        File.WriteAllText(Path.Combine(usersRoot, session.AccountId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".ini"),
+            "[Character]" + Environment.NewLine + string.Join(Environment.NewLine, fields.Select(pair => pair.Key + "=" + pair.Value)) + Environment.NewLine);
     }
 
     private static ConquerTcpConnection CreateSendingConnection(List<byte[]> sent)

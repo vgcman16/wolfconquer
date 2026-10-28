@@ -16,6 +16,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         private readonly ConquerTcpConnection connection;
         private readonly StringWriter log = new(CultureInfo.InvariantCulture);
         private readonly WorldPacketHandlerContext context;
+        private readonly LegacyCombatSpellTestOwner? spellOwner;
         private readonly ManualRuntimeTimeProvider clock = new(RootMagicEntryOrigin);
 
         public NativeEquipmentCacheFixture(int classCode = 14_005, long spirit = 10,
@@ -90,9 +91,17 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     if (onSend is not null) await onSend(this, bytes);
                 });
             sessions.Set(connection, owner);
-            context = new WorldPacketHandlerContext(connection, log, owner, WorldData: world, Sessions: sessions,
+            var preparedContext = new WorldPacketHandlerContext(connection, log, owner, WorldData: world, Sessions: sessions,
                 TimeProvider: clock, LegacyClock: LegacySignedMillisecondClock.FromTimeProvider(clock, 10_000),
                 ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
+            if (venom)
+            {
+                // This input actually learns20000. Give that producer genuine
+                // current files, Recovery/Trade ownership and a disposable root.
+                spellOwner = new LegacyCombatSpellTestOwner(preparedContext, ref owner);
+                preparedContext = spellOwner.Context;
+            }
+            context = preparedContext;
             Assert.Null(LegacyPhysicalStatusOverlay.ForOwner(Owner).MaxMana);
             Assert.Null(LegacyPhysicalStatusOverlay.ForOwner(Owner).RightWeaponItemEffect);
             Assert.Null(LegacyPhysicalStatusOverlay.ForOwner(Owner).RingItemEffect);
@@ -100,6 +109,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }
 
         public ConcurrentQueue<byte[]> Frames { get; } = new();
+        public string Output => log.ToString();
         public WorldSession Owner => Assert.IsType<WorldSession>(sessions.TryGet(connection, out var value) ? value : null);
         public Task QueryAsync() => PacketHandlers.HandleAsync(context with { Session = Owner },
             ReadFrame(new MsgActionPacket { ObjId = PlayerUid, Type = (MsgActionType)251 }.ToFrameBytes())).AsTask();
@@ -129,6 +139,17 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal(PlayerUid, owner.Character.Uid);
             sessions.Set(connection, owner with { Character = owner.Character with { Spirit = value } });
         }
-        public void Dispose() => log.Dispose();
+        public void RequireSavedVenom()
+        {
+            var current = Assert.Single(Owner.PlayerSpells.Spells, row => row.Id == 20_000);
+            var saved = new PlayerSpellSnapshotLoader(context.PlayerSpellsRoot!).LoadByCharacterUid(PlayerUid);
+            Assert.Equal((ushort)1, current.Level);
+            Assert.Equal(current, Assert.Single(saved.Spells, row => row.Id == 20_000));
+        }
+        public void Dispose()
+        {
+            try { spellOwner?.Dispose(); }
+            finally { log.Dispose(); }
+        }
     }
 }

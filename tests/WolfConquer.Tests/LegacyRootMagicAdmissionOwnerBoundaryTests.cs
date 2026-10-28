@@ -93,19 +93,22 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var earliestDeadline = TimeProvider.System.GetUtcNow().AddMilliseconds(spell.ColdTime);
         var operation = Assert.IsType<ValueTask<WorldSession?>>(InvokeRootOwnerBoundary(
             "TryPrepareLegacyRootFirstFamilyCanUseAsync", [context, before, spell, CancellationToken.None, null]));
-        var thrown = await Assert.ThrowsAsync<FormatException>(async () => { await operation; });
+        var thrown = await Assert.ThrowsAsync<WorldSessionPublicationException>(async () => { await operation; });
         var latestDeadline = TimeProvider.System.GetUtcNow().AddMilliseconds(spell.ColdTime);
         armed = false;
 
-        Assert.Same(fault, thrown);
-        Assert.NotEmpty(thrown.StackTrace!);
+        Assert.Same(fault, thrown.InnerException);
+        Assert.Equal(WorldSessionPublicationStage.Observer, thrown.Stage);
+        Assert.Null(thrown.FencingFailure);
+        Assert.NotEmpty(fault.StackTrace!);
         Assert.Equal(1, calls);
         Assert.True(publishedWasCurrent);
         Assert.Same(before, observedPrevious);
         var committed = Assert.IsType<WorldSession>(observedPublished);
         Assert.NotSame(before, committed);
-        Assert.True(LegacyNativeClientPublication.TryCurrent(sessions, connection, PlayerUid, identity, out var current));
-        Assert.Same(committed, current);
+        Assert.Same(committed, thrown.PublishedSession);
+        Assert.False(sessions.TryGet(connection, out _));
+        Assert.False(LegacyNativeClientPublication.TryCurrent(sessions, connection, PlayerUid, identity, out _));
         Assert.Equal(463L, committed.Character.MinMana);
         var expectedAttributes = new Dictionary<string, string>(before.Character.Attributes) { ["Stamina"] = "89" };
         Assert.Equal(expectedAttributes.OrderBy(pair => pair.Key), committed.Character.Attributes.OrderBy(pair => pair.Key));
@@ -116,7 +119,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal(spell.Id, cooldown.Key);
         Assert.InRange(cooldown.Value, earliestDeadline, latestDeadline);
         Assert.Equal(beforeImage, JsonSerializer.SerializeToUtf8Bytes(before));
-        Assert.Empty(sent); // The observer fault precedes publication, NOT the accepted resource commit.
+        Assert.Empty(sent); // No success packet follows the observer fault; the resource commit remains.
         Assert.Contains("root magic admission commit-publication-unproven", log.ToString());
         Assert.Contains("no rollback or refund attempted", log.ToString());
         Assert.DoesNotContain("WorldServer skipped legacy player magic", log.ToString());

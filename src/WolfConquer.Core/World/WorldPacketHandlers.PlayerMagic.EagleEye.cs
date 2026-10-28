@@ -95,6 +95,14 @@ public static partial class WorldPacketHandlers
         Func<double, bool>? family8418Rate = null,
         Func<int, int, int>? family8418Next = null)
     {
+        LegacyEagleEyeReceiveOwner? receiveOwner = null;
+        if (!target.Monster.IsFloor && target.MonsterFamily.Id == 8_418 && session.Character.MapId == 10_342 &&
+            !LegacyEagleEyeReceiveOwner.TryCapture(context, session, out receiveOwner))
+        {
+            await context.Log.WriteLineAsync("WorldServer held 8418 EagleEye continuation; original publication owner unavailable.")
+                .ConfigureAwait(false);
+            return;
+        }
         if (!CanLegacyPlayerAttackMonster(session.Character, target.Monster, target.MonsterFamily, out _))
         {
             return;
@@ -137,6 +145,12 @@ public static partial class WorldPacketHandlers
         {
             return;
         }
+        if (receive.NativeDeadHandled && (receiveOwner is null || !receiveOwner.IsCurrent(context, session)))
+        {
+            await context.Log.WriteLineAsync("WorldServer held 8418 EagleEye continuation; original publication owner changed after native receive.")
+                .ConfigureAwait(false);
+            return;
+        }
 
         if (receive.NativeDeadHandled && result.Killed)
         {
@@ -152,16 +166,29 @@ public static partial class WorldPacketHandlers
         }
         else
         {
-            session = SetLegacyEagleEyeCountdown(session, active: true);
+            var countdown = SetLegacyEagleEyeCountdown(session, active: true);
+            if (receive.NativeDeadHandled)
+            {
+                if (!receiveOwner!.TryPublishPrepared(context, session, countdown, out var published))
+                {
+                    await context.Log.WriteLineAsync("WorldServer held 8418 EagleEye continuation; countdown publication lost its original owner.")
+                        .ConfigureAwait(false);
+                    return;
+                }
+                session = published;
+            }
+            else session = countdown;
         }
 
         if (receive.NativeDeadHandled)
         {
+            context = context with { Session = session };
             // Native UpdateSpell precedes this converted path's animation (Attack.cs496..498).
             session = await TryApplyLegacyPlayerMagicSpellExperienceAsync(
                 context, session, playerSpell, spell, result.DamageApplied, cancellationToken)
                 .ConfigureAwait(false);
             context = context with { Session = session };
+            if (!receiveOwner!.IsCurrent(context, session)) return;
         }
 
         await SendLegacyEagleEyeAnimationAsync(
@@ -176,6 +203,7 @@ public static partial class WorldPacketHandlers
                 useCountdownTargetSelection: true,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (receive.NativeDeadHandled && !receiveOwner!.IsCurrent(context, session)) return;
 
         var updatedSession = session;
         if (result.Killed)
@@ -247,7 +275,17 @@ public static partial class WorldPacketHandlers
                     cancellationToken)
                 .ConfigureAwait(false);
         }
-        context.Sessions?.Set(context.Connection, updatedSession);
+        if (receive.NativeDeadHandled)
+        {
+            // A resumed continuation must not revive an issuance lost during
+            // its notifications. Preserve an already-published actual result;
+            // otherwise publish only against its exact original current record.
+            if (!receiveOwner!.IsCurrent(context, updatedSession) &&
+                !receiveOwner.TryPublishPrepared(context, session, updatedSession, out _))
+                await context.Log.WriteLineAsync("WorldServer held 8418 EagleEye final publication; original owner changed.")
+                    .ConfigureAwait(false);
+        }
+        else context.Sessions?.Set(context.Connection, updatedSession);
     }
 
     private static async ValueTask HandleLegacyEagleEyePlayerAsync(

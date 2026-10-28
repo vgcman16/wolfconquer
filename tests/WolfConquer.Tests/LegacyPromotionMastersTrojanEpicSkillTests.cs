@@ -47,18 +47,19 @@ public sealed class LegacyPromotionMastersTrojanEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             TrojanPromotionNpcId,
             optionId,
             CancellationToken.None);
 
         Assert.True(handled);
+        Assert.DoesNotContain("WorldServer refused paid spell learning before commitment", log.ToString(), StringComparison.Ordinal);
         Assert.True(sessions.TryGet(connection, out var updated));
         Assert.NotNull(updated);
         Assert.Equal(850, updated.Character.ConquerPoints);
@@ -113,12 +114,12 @@ public sealed class LegacyPromotionMastersTrojanEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             TrojanPromotionNpcId,
             optionId,
@@ -167,12 +168,12 @@ public sealed class LegacyPromotionMastersTrojanEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             TrojanPromotionNpcId,
             optionId,
@@ -212,7 +213,7 @@ public sealed class LegacyPromotionMastersTrojanEpicSkillTests : IDisposable
         var spellsRoot = Path.Combine(_root, "SpellsAlreadyLearned" + optionId);
         Directory.CreateDirectory(spellsRoot);
         WriteCharacterSnapshot(usersRoot, conquerPoints: 3_000);
-        var learned = new PlayerSpellSnapshot([CreateSpellEntry(spellId)]);
+        var learned = new PlayerSpellSnapshot(new[] { CreateSpellEntry(spellId) });
         new PlayerSpellSnapshotLoader(spellsRoot).SaveByCharacterUid(CharacterUid, learned);
         var session = CreateSession(
             conquerPoints: 3_000,
@@ -223,12 +224,12 @@ public sealed class LegacyPromotionMastersTrojanEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             TrojanPromotionNpcId,
             optionId,
@@ -266,7 +267,7 @@ public sealed class LegacyPromotionMastersTrojanEpicSkillTests : IDisposable
         string? usersRoot = null)
     {
         return new WorldSession(
-            AccountId: 100,
+            AccountId: CharacterUid,
             Username: "trojan-epic-skill-test",
             Character: new CharacterSnapshot(
                 Uid: CharacterUid,
@@ -312,8 +313,8 @@ public sealed class LegacyPromotionMastersTrojanEpicSkillTests : IDisposable
     {
         return PlayerItemSnapshot.Empty with
         {
-            EquipmentItems =
-            [
+            EquipmentItems = new[]
+            {
                 new PlayerItemSnapshotItem
                 {
                     Uid = 10_000U + position,
@@ -322,7 +323,7 @@ public sealed class LegacyPromotionMastersTrojanEpicSkillTests : IDisposable
                     Durability = 50,
                     MaximumDurability = 50,
                 },
-            ],
+            },
         };
     }
 

@@ -202,12 +202,12 @@ public sealed class LegacyPromotionMastersTaoistEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             TaoistPromotionNpcId,
             optionId,
@@ -230,7 +230,7 @@ public sealed class LegacyPromotionMastersTaoistEpicSkillTests : IDisposable
         string usersRoot)
     {
         return new WorldSession(
-            AccountId: 100,
+            AccountId: CharacterUid,
             Username: "taoist-epic-skill-test",
             Character: new CharacterSnapshot(
                 Uid: CharacterUid,

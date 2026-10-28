@@ -119,6 +119,12 @@ public static partial class WorldPacketHandlers
                     npcId,
                     itemPath));
         }
+        catch (WorldSessionPublicationException failure)
+        {
+            await LogLegacyPublishedNpcFailureAsync(context, failure, "DisCityDarkHorn")
+                .ConfigureAwait(false);
+            return;
+        }
         catch (Exception exception) when (LegacyDisCityBattlefieldServicesIsDarkHornInfrastructureException(exception))
         {
             commit = LegacyDisCityDarkHornCommit.Failure(
@@ -282,18 +288,12 @@ public static partial class WorldPacketHandlers
         {
             sessionCommitted = sessions.TryCompareAndSet(context.Connection, sourceSession, updatedSession);
         }
+        catch (WorldSessionPublicationException)
+        {
+            throw; // Actual publication never enters compensating rollback.
+        }
         catch (Exception exception) when (LegacyDisCityBattlefieldServicesIsDarkHornInfrastructureException(exception))
         {
-            if (sessions.TryGet(context.Connection, out var publishedSession) &&
-                ReferenceEquals(publishedSession, updatedSession))
-            {
-                return LegacyDisCityDarkHornCommit.Success(
-                    updatedSession,
-                    removalFrame,
-                    rewardItems,
-                    itemPath);
-            }
-
             var rollback = LegacyDisCityBattlefieldServicesTryRollbackDarkHornItems(
                 itemPath,
                 originalBytes,

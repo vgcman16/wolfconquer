@@ -121,7 +121,7 @@ public sealed partial class LegacyNativeMyCombatGearPirateTests
     [InlineData("missing-row", (byte)0)]
     [InlineData("null-skills", (byte)0)]
     [InlineData("null-table", (byte)0)]
-    public Task PirateMetadataFaultRetainsEarlierJadePublicationAndPreventsTheFixedSpellTail(string missing, byte mode) => NativePacketTestThread.Run(() =>
+    public Task PirateMetadataFaultRefusesBeforeTheJadePrefixAndFixedSpellTail(string missing, byte mode) => NativePacketTestThread.Run(() =>
     {
         using var tables = new NativeCombatGearQueryScope();
         using var fixture = new NativeSpellTestFixture();
@@ -134,22 +134,15 @@ public sealed partial class LegacyNativeMyCombatGearPirateTests
         var fixedSecond = Seed(fixture.Storage, 21920);
         if (missing == "null-skills") Skills(weapon, null);
         if (missing == "null-table") LegacyNativeCombatGearTable.Info = null!;
+        var spells = new LegacyNativeSpellMutationWitness(fixture.Storage);
+        var packet = new LegacyNativePacketMutationWitness(fixture.Packet);
 
         Assert.Throws<NullReferenceException>(() => caller.IsPirate(mode));
 
-        if (mode == 1)
-        {
-            Added(fixture.Queue, (17001, 7));
-            Assert.NotSame(oldJade, fixture.Storage.ClientSpells[17001]);
-            Assert.Equal((ushort)7, fixture.Storage.ClientSpells[17001].Level);
-            Assert.Equal(3, fixture.Storage.ClientSpells.Count);
-        }
-        else
-        {
-            Assert.Equal((ushort)17001, Removed(Assert.Single(fixture.Queue), fixture.Owner.Player.UID));
-            Assert.False(fixture.Storage.ClientSpells.ContainsKey(17001));
-            Assert.Equal(2, fixture.Storage.ClientSpells.Count);
-        }
+        spells.RequireUnchanged(); packet.RequireUnchanged(); Assert.Empty(fixture.Queue);
+        Assert.Same(oldJade, fixture.Storage.ClientSpells[17001]);
+        Assert.Equal((ushort)5, oldJade.Level); Assert.Equal(88, oldJade.Experience);
+        Assert.Equal(3, fixture.Storage.ClientSpells.Count);
         Assert.Same(fixedFirst, fixture.Storage.ClientSpells[21540]);
         Assert.Same(fixedSecond, fixture.Storage.ClientSpells[21920]);
         Assert.Equal((ushort)5, fixedFirst.Level);

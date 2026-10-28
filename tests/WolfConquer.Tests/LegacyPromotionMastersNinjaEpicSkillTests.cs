@@ -44,12 +44,12 @@ public sealed class LegacyPromotionMastersNinjaEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             NinjaPromotionNpcId,
             optionId,
@@ -102,12 +102,12 @@ public sealed class LegacyPromotionMastersNinjaEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             NinjaPromotionNpcId,
             optionId,
@@ -138,7 +138,7 @@ public sealed class LegacyPromotionMastersNinjaEpicSkillTests : IDisposable
 
     [Theory]
     [MemberData(nameof(EpicSkills))]
-    public async Task NinjaEpicSkillOptionAlreadyLearnedStillDebitsWithoutDuplicatingSpell(
+    public async Task NinjaEpicSkillOptionAlreadyLearnedDoesNotDebitOrDuplicate(
         byte optionId,
         ushort spellId,
         string spellName,
@@ -161,12 +161,12 @@ public sealed class LegacyPromotionMastersNinjaEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             NinjaPromotionNpcId,
             optionId,
@@ -175,13 +175,13 @@ public sealed class LegacyPromotionMastersNinjaEpicSkillTests : IDisposable
         Assert.True(handled);
         Assert.True(sessions.TryGet(connection, out var updated));
         Assert.NotNull(updated);
-        Assert.Equal(850, updated.Character.ConquerPoints);
+        Assert.Equal(3_000, updated.Character.ConquerPoints);
+        Assert.Same(session, updated);
         Assert.Equal([(uint)spellId], updated.PlayerSpells.SpellIds.ToArray());
         Assert.Equal([(uint)spellId], LoadPersistedSpells(spellsRoot).SpellIds.ToArray());
-        Assert.Equal(850, LoadPersistedCharacter(usersRoot).ConquerPoints);
+        Assert.Equal(3_000, LoadPersistedCharacter(usersRoot).ConquerPoints);
 
-        Assert.Contains(ParseMsgUpdates(sent), packet => packet.Updates.Any(
-            entry => entry.Type == LegacyMsgUpdateDataType.ConquerPoints && entry.Value == 850));
+        Assert.Empty(ParseMsgUpdates(sent));
         Assert.Empty(ParseSpellPackets(sent));
         AssertDialog(ParseNpcReplies(sent), $"You`ve learned {spellName}!", "Okay.", NinjaAvatarId);
 
@@ -206,7 +206,7 @@ public sealed class LegacyPromotionMastersNinjaEpicSkillTests : IDisposable
         string? usersRoot = null)
     {
         return new WorldSession(
-            AccountId: 100,
+            AccountId: CharacterUid,
             Username: "ninja-epic-skill-test",
             Character: new CharacterSnapshot(
                 Uid: CharacterUid,

@@ -18,25 +18,34 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(update);
         final = null;
         RefuseBoundSpellReentry(connection);
-        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection));
-        if (!_connectionGates.TryGetValue(connection, out var gate)) return false;
-        lock (gate)
+        WorldSession? previous;
+        object publishedIdentity;
+        LegacyOrdinarySpellBinding? publishedBinding;
         {
-            using var scope = EnterNativeConnectionGate();
-            if (!_sessions.TryGetValue(connection, out var holder) || holder.Read() is not { } current ||
-                current.Character.Uid != uid || !ReferenceEquals(holder.NativeClientIdentity, identity)) return false;
-            var proposed = update(current);
-            if (!ReferenceEquals(holder.Read(), current) || !ReferenceEquals(holder.NativeClientIdentity, identity) ||
-                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, current, proposed)) return false;
-            using var publication = new PreparedSessionSpellPublication(this, connection, holder, current, proposed);
-            publication.ArmFinalProof();
-            if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
-            publication.PublishNative();
-            publication.PublishHolder();
-            final = publication.FinalSession;
-            publication.Dispose();
-            _sessionChanged?.Invoke(connection, current, final);
-            return true;
+            using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection));
+            if (!_connectionGates.TryGetValue(connection, out var gate)) return false;
+            lock (gate)
+            {
+                using var scope = EnterNativeConnectionGate();
+                if (!_sessions.TryGetValue(connection, out var holder) || holder.Read() is not { } current ||
+                    current.Character.Uid != uid || !ReferenceEquals(holder.NativeClientIdentity, identity)) return false;
+                var proposed = update(current);
+                if (!ReferenceEquals(holder.Read(), current) || !ReferenceEquals(holder.NativeClientIdentity, identity) ||
+                    !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, current, proposed)) return false;
+                using var publication = new PreparedSessionSpellPublication(this, connection, holder, current, proposed);
+                publication.ArmFinalProof();
+                if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
+                publication.PublishNative();
+                publication.PublishHolder();
+                final = publication.FinalSession;
+                publishedIdentity = publication.PublishedIdentity;
+                publishedBinding = publication.Binding;
+                publication.Dispose();
+                previous = current;
+                PersistFrameOwnedSessionChange(connection, current, final, publishedIdentity, publishedBinding);
+            }
         }
+        NotifyPublishedSessionChange(connection, previous, final, publishedIdentity, publishedBinding);
+        return true;
     }
 }

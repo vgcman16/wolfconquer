@@ -15,11 +15,13 @@ public static partial class WorldPacketHandlers
         committed = null; reason = "paidSpellOwnerUnavailable";
         if (context.Trades is not { } trades || context.Sessions is not { } sessions) return false;
         LegacyPaidSpellLearning? plan = null;
+        LegacySpellFileOwner? capturedOwner = null;
         lock (trades.SyncRoot)
         {
             try
             {
                 if (!LegacySpellFileOwner.TryCapture(context, expected, paid: true, out var owner, out reason)) return false;
+                capturedOwner = owner;
                 plan = new(owner!, learned, currency, cost, minimumLevel, requiresTrojanEpicWeapon);
                 var current = plan;
                 var failure = "paidSpellSessionChanged";
@@ -37,6 +39,11 @@ public static partial class WorldPacketHandlers
                     owner!.Recovery.Block(reason);
                 }
                 return false;
+            }
+            catch (WorldSessionPublicationException published)
+            {
+                FenceSpellPublishedOutcome(capturedOwner, published);
+                throw;
             }
             catch (LegacyCommittedSpellPublicationException)
             {

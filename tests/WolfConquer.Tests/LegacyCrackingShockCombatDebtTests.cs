@@ -205,6 +205,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             MonsterStates: new MonsterRuntimeStateStore(),
             SobNpcStates: sobNpcStates,
             ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref caster);
+        context = combatSpellOwner.Context;
         var query = new MsgAttackQuery(
             Uid: PlayerUid,
             OpponentUid: targets.Count == 0 ? 0 : targets[0].Uid,

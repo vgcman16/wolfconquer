@@ -92,6 +92,8 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
 
         var originalSessionA = GetSession(handler, connectionA);
         var originalSessionB = GetSession(handler, connectionB);
+        var originalCharacterPath = Path.Combine(originalSessionA.UsersRoot!, originalSessionA.AccountId + ".ini");
+        var originalCharacterBytes = File.ReadAllBytes(originalCharacterPath);
         var originalA = originalSessionA.PlayerItems;
         var originalB = originalSessionB.PlayerItems;
         var selected = Assert.Single(originalA.RuneItems, item => item.Uid == RuneRankTargetUid);
@@ -124,6 +126,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(beforeA + (vendorBlocked ? 1 : missingUid ? 0 : 5), sentA.Count);
         Assert.Equal(beforeB, sentB.Count);
         var afterSessionA = GetSession(handler, connectionA);
+        Assert.Equal(originalCharacterBytes, File.ReadAllBytes(originalCharacterPath));
         if (missingUid || vendorBlocked)
         {
             Assert.Same(originalSessionA, afterSessionA);
@@ -139,7 +142,9 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
             AssertRuneUnequipManagedRefresh(sentA, beforeA + 1, afterSessionA);
             Assert.Equal((ushort)212,
                 Assert.Single(afterSessionA.PlayerItems.RuneItems, item => item.Uid == RuneRankTargetUid).Position);
-            Assert.Equal(originalSessionA with { PlayerItems = afterSessionA.PlayerItems }, afterSessionA);
+            AssertRuneUntouchedSessionFields(originalSessionA, afterSessionA);
+            Assert.Equal(PlayerSpellSnapshotLoader.ToLegacyBytes(originalSessionA.PlayerSpells),
+                PlayerSpellSnapshotLoader.ToLegacyBytes(afterSessionA.PlayerSpells));
             Assert.False(originalABytes.SequenceEqual(expectedABytes));
         }
 
@@ -179,12 +184,12 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         var output = log.ToString();
         Assert.Contains(missingUid || vendorBlocked
             ? "skipped MsgItemUsage unequip rune"
-            : "handled MsgItemUsage unequip rune", output);
+            : "committed MsgItemUsage unequip rune", output);
         if (vendorBlocked)
         {
             Assert.Contains("source rejects active vending.", output);
             Assert.DoesNotContain("rune item was not found.", output);
-            Assert.DoesNotContain("handled MsgItemUsage unequip rune", output);
+            Assert.DoesNotContain("committed MsgItemUsage unequip rune", output);
             Assert.DoesNotContain("persisted MsgItemUsage unequip rune", output);
         }
         Assert.DoesNotContain("PARITY-GAP MsgItemUsage unequip rune", output);

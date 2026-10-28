@@ -50,6 +50,9 @@ public sealed partial class LegacyInventorySashUpgradeTests
             Assert.True(sessions.TrySetMailboxRecoveryOwner(connection, candidate, producer, out var admitted, out reason), reason);
             Assert.Same(candidate, admitted);
             Assert.True(scalars!.TryPublish(sessions, connection, candidate));
+            var issuedPlayer = client.Player;
+            var issuedPin = client.OrdinarySpellBinding;
+            var preparationStoreReentryDenied = false;
             switch (fault)
             {
                 case "unadmitted": Assert.True(sessions.TryRemove(connection, out _)); break;
@@ -62,7 +65,15 @@ public sealed partial class LegacyInventorySashUpgradeTests
                         producer, out _, out reason), reason);
                     break;
                 case "callback-store":
-                    attributes.OnExperienceRead = () => Assert.True(sessions.TryRemove(connection, out _));
+                    // This dictionary read occurs under the actual Store preparation
+                    // gate. It is not the public, after-publication observer phase.
+                    attributes.OnExperienceRead = () =>
+                    {
+                        var denied = Assert.Throws<InvalidOperationException>(() => sessions.TryRemove(connection, out _));
+                        Assert.Equal("ordinarySpellPublicationRequiresCurrentCompleteOwner", denied.Message);
+                        preparationStoreReentryDenied = true;
+                        ExceptionDispatchInfo.Capture(denied).Throw();
+                    };
                     break;
                 case "callback-exp": attributes.OnExperienceRead = () => client.Player.ClassExperience = 32; break;
             }
@@ -95,7 +106,20 @@ public sealed partial class LegacyInventorySashUpgradeTests
             else Assert.Equal(nativeBefore, JsonSerializer.Serialize(new
             { client.Player.UID, client.Player.Class, client.Player.ClassExperience, client.FullLoading }));
             if (fault.StartsWith("callback-", StringComparison.Ordinal)) Assert.True(attributes.Fired);
-            if (fault == "callback-store") Assert.False(sessions.TryGet(connection, out _));
+            if (fault == "callback-store")
+            {
+                Assert.True(preparationStoreReentryDenied);
+                Assert.True(sessions.TryGet(connection, out var retained));
+                Assert.Same(candidate, retained);
+                Assert.Same(client, connection.NativeGameClient);
+                Assert.Same(client, retained!.NativeGameClient);
+                Assert.Same(issuedPlayer, client.Player);
+                Assert.Same(client, issuedPlayer.Owner);
+                Assert.Same(issuedPin, client.OrdinarySpellBinding);
+                Assert.Same(previousSlot, client.CombatGear);
+                Assert.True(prepared.IsDetachedCurrent());
+                Assert.False(prepared.IsPublishedCurrent());
+            }
             Assert.Equal(first, fixture.Sent.Count);
             AssertPackageJoinFiles(fixture, files);
             AssertNinjaRecoveryIntentRetained(join, intent);

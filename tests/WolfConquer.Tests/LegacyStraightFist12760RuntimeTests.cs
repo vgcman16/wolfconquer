@@ -216,6 +216,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates,
             SobNpcStates: sobNpcStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
         var query = CreateStraightFistQuery(
             StraightFistSpellId,
             opponentUid: monster.Uid,
@@ -344,6 +346,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             SobNpcStates: sobNpcStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         var query = CreateStraightFistQuery(
             StraightFistSpellId,
             opponentUid: checked((uint)sobNpc.Id),

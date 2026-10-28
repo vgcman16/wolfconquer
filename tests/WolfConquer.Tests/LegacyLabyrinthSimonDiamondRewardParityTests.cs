@@ -237,24 +237,28 @@ public sealed partial class LegacyLabyrinthSimonDiamondRewardParityTests : IDisp
     }
 
     [Fact]
-    public async Task SessionCasChangeAfterDurableWriteRollsBackWithoutSuccessPackets()
+    public async Task ObserverFailureRetainsPublishedFilesWithoutSuccessPackets()
     {
         var originalItems = Items(
             InventoryItem(10, MoonDiamondItemId, stackSize: 17, seed: 15),
             InventoryItem(30, 410_006, stackSize: 2, seed: 16));
         using var harness = CreateHarness(optionId: 13, originalItems);
 
-        var race = await harness.InvokeWithSessionCasChangeAsync();
+        var race = await harness.InvokeWithObserverFailureAsync();
 
         Assert.True(race.Handled);
-        Assert.Same(race.ReplacementSession, harness.CurrentSession);
-        Assert.Equal(SimonNpcId, harness.CurrentSession.ActiveNpcId);
-        Assert.Equal(harness.OriginalItemBytes, File.ReadAllBytes(harness.ItemPath));
-        AssertItemsEqual(harness.OriginalSession.PlayerItems, harness.ReloadItems());
-        AssertNoSuccessPackets(harness.ClientSent);
-        Assert.Contains("session-commit-InvalidOperationException", harness.Log.ToString(), StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("rollback=complete", harness.Log.ToString(), StringComparison.OrdinalIgnoreCase);
-        AssertNoTransactionArtifacts(harness.PlayerItemsRoot);
+        Assert.False(harness.HasCurrentSession);
+        Assert.Null(race.PublishedSession.ActiveNpcId);
+        AssertItemsEqual(race.PublishedSession.PlayerItems, harness.ReloadItems());
+        Assert.Empty(harness.ClientSent);
+        Assert.False(harness.OriginalItemBytes.AsSpan().SequenceEqual(File.ReadAllBytes(harness.ItemPath)));
+        Assert.Contains("publicationStage=Observer", harness.Log.ToString(), StringComparison.Ordinal);
+        Assert.Contains("compensationSuppressed=true", harness.Log.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("rollback=complete", harness.Log.ToString(), StringComparison.OrdinalIgnoreCase);
+        var retainedItems = File.ReadAllBytes(harness.ItemPath);
+        Assert.True(await harness.InvokeAsync(harness.OriginalSession));
+        Assert.Equal(retainedItems, File.ReadAllBytes(harness.ItemPath));
+        Assert.Empty(harness.ClientSent);
     }
 
     [Fact]
@@ -738,6 +742,7 @@ public sealed partial class LegacyLabyrinthSimonDiamondRewardParityTests : IDisp
         private bool? _sessionCommittedBeforeFirstSend;
         private bool _replaceSessionDuringCommit;
         private WorldSession? _replacementSession;
+        private WorldSession? _publishedAtFailure;
 
         public SimonHarness(string caseRoot, byte optionId, PlayerItemSnapshot originalItems)
         {
@@ -777,12 +782,13 @@ public sealed partial class LegacyLabyrinthSimonDiamondRewardParityTests : IDisp
                 if (_replaceSessionDuringCommit && current.ActiveNpcId is null)
                 {
                     _replaceSessionDuringCommit = false;
+                    _publishedAtFailure = current;
                     _replacementSession = OriginalSession with
                     {
                         Username = "labyrinth-simon-cas-replacement",
                     };
                     Sessions!.Set(_connection, _replacementSession);
-                    throw new InvalidOperationException("Injected session publication race.");
+                    throw new InvalidOperationException("Injected observer failure after actual publication.");
                 }
 
                 CommitCount++;
@@ -832,6 +838,8 @@ public sealed partial class LegacyLabyrinthSimonDiamondRewardParityTests : IDisp
 
         public StringWriter Log => _log;
 
+        public bool HasCurrentSession => Sessions.TryGet(_connection, out _);
+
         public WorldSession CurrentSession
         {
             get
@@ -840,6 +848,8 @@ public sealed partial class LegacyLabyrinthSimonDiamondRewardParityTests : IDisp
                 return Assert.IsType<WorldSession>(session);
             }
         }
+
+        public void SetBeforeAction(WorldSession replacement) => Sessions.Set(_connection, replacement);
 
         public ValueTask<bool> InvokeAsync(WorldSession? suppliedSession = null)
         {
@@ -852,11 +862,11 @@ public sealed partial class LegacyLabyrinthSimonDiamondRewardParityTests : IDisp
                 CancellationToken.None);
         }
 
-        public async Task<CasRaceResult> InvokeWithSessionCasChangeAsync()
+        public async Task<PublicationFailureResult> InvokeWithObserverFailureAsync()
         {
             _replaceSessionDuringCommit = true;
             var handled = await InvokeAsync().ConfigureAwait(false);
-            return new CasRaceResult(handled, Assert.IsType<WorldSession>(_replacementSession));
+            return new PublicationFailureResult(handled, Assert.IsType<WorldSession>(_publishedAtFailure), Assert.IsType<WorldSession>(_replacementSession));
         }
 
         public PlayerItemSnapshot ReloadItems()
@@ -877,5 +887,5 @@ public sealed partial class LegacyLabyrinthSimonDiamondRewardParityTests : IDisp
         uint? FixedRewardItemId,
         int RewardCount);
 
-    private sealed record CasRaceResult(bool Handled, WorldSession ReplacementSession);
+    private sealed record PublicationFailureResult(bool Handled, WorldSession PublishedSession, WorldSession ReplacementSession);
 }

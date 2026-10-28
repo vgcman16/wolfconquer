@@ -99,15 +99,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var expectedSobNpcProgress = 0UL;
         var expectedProgress = (ulong)expectedMonsterDamage + expectedSobNpcProgress;
 
-        await PacketHandlers.HandleAsync(
-            new WorldPacketHandlerContext(
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(new WorldPacketHandlerContext(
                 casterConnection,
                 log,
                 casterSession,
                 WorldData: worldData,
                 Sessions: sessions,
                 MonsterStates: monsterStates,
-                SobNpcStates: sobNpcStates),
+                SobNpcStates: sobNpcStates), ref casterSession);
+        await PacketHandlers.HandleAsync(
+            combatSpellOwner.Context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
                 Uid: PlayerUid,
                 OpponentUid: TargetPlayerUid,
@@ -259,15 +260,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var expectedSobNpcProgress = 0UL;
         var expectedProgress = (ulong)expectedMonsterDamage + expectedSobNpcProgress;
 
-        await PacketHandlers.HandleAsync(
-            new WorldPacketHandlerContext(
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(new WorldPacketHandlerContext(
                 casterConnection,
                 log,
                 casterSession,
                 WorldData: worldData,
                 Sessions: sessions,
                 MonsterStates: monsterStates,
-                SobNpcStates: sobNpcStates),
+                SobNpcStates: sobNpcStates), ref casterSession);
+        await PacketHandlers.HandleAsync(
+            combatSpellOwner.Context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
                 Uid: PlayerUid,
                 OpponentUid: TargetPlayerUid,
@@ -418,15 +420,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var expectedSobNpcProgress = 0UL;
         var expectedProgress = (ulong)expectedMonsterDamage + expectedSobNpcProgress;
 
-        await PacketHandlers.HandleAsync(
-            new WorldPacketHandlerContext(
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(new WorldPacketHandlerContext(
                 casterConnection,
                 log,
                 casterSession,
                 WorldData: worldData,
                 Sessions: sessions,
                 MonsterStates: monsterStates,
-                SobNpcStates: sobNpcStates),
+                SobNpcStates: sobNpcStates), ref casterSession);
+        await PacketHandlers.HandleAsync(
+            combatSpellOwner.Context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
                 Uid: PlayerUid,
                 OpponentUid: TargetPlayerUid,
@@ -609,15 +612,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var expectedSobNpcProgress = 0UL;
         var expectedProgress = (ulong)expectedMonsterDamage + expectedSobNpcProgress;
 
-        await PacketHandlers.HandleAsync(
-            new WorldPacketHandlerContext(
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(new WorldPacketHandlerContext(
                 casterConnection,
                 log,
                 casterSession,
                 WorldData: worldData,
                 Sessions: sessions,
                 MonsterStates: monsterStates,
-                SobNpcStates: sobNpcStates),
+                SobNpcStates: sobNpcStates), ref casterSession);
+        await PacketHandlers.HandleAsync(
+            combatSpellOwner.Context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
                 Uid: PlayerUid,
                 OpponentUid: TargetPlayerUid,
@@ -845,15 +849,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var expectedSobNpcProgress = 0UL;
         var expectedProgress = (ulong)expectedMonsterDamage + expectedSobNpcProgress;
 
-        await PacketHandlers.HandleAsync(
-            new WorldPacketHandlerContext(
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(new WorldPacketHandlerContext(
                 casterConnection,
                 log,
                 casterSession,
                 WorldData: worldData,
                 Sessions: sessions,
                 MonsterStates: monsterStates,
-                SobNpcStates: sobNpcStates),
+                SobNpcStates: sobNpcStates), ref casterSession);
+        await PacketHandlers.HandleAsync(
+            combatSpellOwner.Context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
                 Uid: PlayerUid,
                 OpponentUid: TargetPlayerUid,

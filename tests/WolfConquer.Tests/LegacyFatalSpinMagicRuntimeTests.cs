@@ -196,6 +196,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             sessions,
             monsterStates,
             sobNpcStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
         var (playerSpell, spell) = ResolveFatalSpinRuntimeSpell(
             casterSession,
             worldData,
@@ -532,6 +534,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             sessions,
             monsterStates,
             new SobNpcRuntimeStateStore());
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         var (playerSpell, spell) = ResolveFatalSpinRuntimeSpell(session, worldData, DragonPunchRuntimeSpellId);
         var (_, shadowFistSpell) = ResolveFatalSpinRuntimeSpell(session, worldData, ShadowFistRuntimeSpellId);
         var expectedPrimaryDamage = InvokePrivateUInt32(

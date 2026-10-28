@@ -10,13 +10,15 @@ public static partial class WorldPacketHandlers
         PlayerSpellSnapshotEntry playerSpell,
         LegacyMagicRuntimeSpell spell,
         ulong totalDamage,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        LegacyShockCasterOwner? capturedOwner = null)
     {
         if (totalDamage == 0 ||
             context.WorldData is not { } worldData)
         {
             return session;
         }
+        if (capturedOwner is not null && !capturedOwner.IsCurrent(context, session)) return session;
 
         var availableLevelCount = worldData.MagicByTypeId.TryGetValue(spell.Id, out var rows)
             ? rows.Count
@@ -35,6 +37,7 @@ public static partial class WorldPacketHandlers
         }
 
         var spells = session.PlayerSpells.Spells.ToArray();
+        if (capturedOwner is not null && !spells.Any(row => row == playerSpell)) return session;
         var updated = false;
         for (var index = 0; index < spells.Length; index++)
         {
@@ -56,16 +59,19 @@ public static partial class WorldPacketHandlers
         var updatedSession = session with { PlayerSpells = new PlayerSpellSnapshot(spells) };
         var responseFrame = result.Packet.ToFrameBytes();
 
-        if (!TryCommitLegacyFreeSpells(context, session, updatedSession.PlayerSpells, cancellationToken,
+        if (!TryCommitLegacyFreeSpellsCore(context, session, updatedSession.PlayerSpells,
+                capturedOwner?.Identity, capturedOwner, cancellationToken,
                 out updatedSession, out var reason))
         {
             await context.Log.WriteLineAsync("WorldServer refused spell experience persistence before commitment; spell unchanged. reason=" + reason)
                 .ConfigureAwait(false);
             return session;
         }
+        if (capturedOwner is not null && !capturedOwner.IsCurrent(context, updatedSession)) return updatedSession;
 
         await context.Connection.SendAsync(responseFrame, cancellationToken)
             .ConfigureAwait(false);
+        if (capturedOwner is not null && !capturedOwner.IsCurrent(context, updatedSession)) return updatedSession;
         await context.Log.WriteLineAsync(
                 "WorldServer updated legacy player magic spell " +
                 $"{FormatSession(context)} spellId={spell.Id} appliedExperience={result.AppliedExperience} " +

@@ -120,6 +120,12 @@ public static partial class WorldPacketHandlers
                     spec,
                     itemPath));
         }
+        catch (WorldSessionPublicationException failure)
+        {
+            await LogLegacyPublishedNpcFailureAsync(context, failure, "Labyrinth")
+                .ConfigureAwait(false);
+            return true;
+        }
         catch (Exception exception) when (IsLegacySimonDiamondRewardInfrastructureException(exception))
         {
             commit = LegacySimonDiamondRewardCommit.Failed(
@@ -338,21 +344,13 @@ public static partial class WorldPacketHandlers
                 sourceSession,
                 updatedSession);
         }
+        catch (WorldSessionPublicationException)
+        {
+            // Published outcomes never enter compensating rollback.
+            throw;
+        }
         catch (Exception exception) when (IsLegacySimonDiamondRewardInfrastructureException(exception))
         {
-            if (sessions.TryGet(context.Connection, out var publishedSession) &&
-                ReferenceEquals(publishedSession, updatedSession))
-            {
-                return LegacySimonDiamondRewardCommit.Succeeded(
-                    sourceSession,
-                    updatedSession,
-                    consumptionFrames,
-                    rewardItems,
-                    consumedItemUids,
-                    resolvedReward,
-                    expectedItemPath);
-            }
-
             TryRollbackLegacySimonDiamondRewardItems(
                 expectedItemPath,
                 originalBytes,

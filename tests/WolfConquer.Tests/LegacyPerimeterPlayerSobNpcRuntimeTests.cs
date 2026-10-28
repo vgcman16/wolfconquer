@@ -331,6 +331,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates,
             SobNpcStates: sobNpcStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref caster);
+        context = combatSpellOwner.Context;
         var (_, spell) = ResolveSpecialPerimeterSpell(caster, worldData, GaleBombardmentPerimeterSpellId);
         var expectedMonsterDamage = InvokePrivateUInt32(
             "CalculateLegacyPlayerMonsterPhysicalSpellDamage",
@@ -515,6 +517,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates,
             SobNpcStates: sobNpcStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref caster);
+        context = combatSpellOwner.Context;
         var (_, spell) = ResolveSpecialPerimeterSpell(caster, worldData, spellId);
         var expectedMonsterDamage = InvokePrivateUInt32(
             "CalculateLegacyPlayerMonsterPhysicalSpellDamage",

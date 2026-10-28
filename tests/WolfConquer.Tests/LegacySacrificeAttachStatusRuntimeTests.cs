@@ -42,6 +42,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             session,
             WorldData: worldData,
             Sessions: sessions);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         var beforeCast = DateTimeOffset.UtcNow;
 
         await PacketHandlers.HandleAsync(

@@ -256,16 +256,20 @@ public sealed partial class WorldServerFrameHandler
                 $"reason={_voteStates.LoadResult.FailureReason ?? "unknown"}");
         }
 
-        _sessions = new WorldSessionStore(PersistChangedSessionState);
+        _sessions = WorldSessionStore.CreateForFrame(this);
         _tournamentWatcherHolders = new(_sessions);
         _teamStates = new(_sessions, _tournamentWatcherHolders);
     }
 
-    private void PersistChangedSessionState(
+    internal void PersistChangedSessionState(
+        WorldSessionStore issuingStore,
         ConquerTcpConnection connection,
         WorldSession? previous,
         WorldSession current)
     {
+        if (!ReferenceEquals(_sessions, issuingStore) ||
+            !issuingStore.IsFramePersistenceCurrent(this, connection, current))
+            throw new InvalidOperationException("Frame persistence requires its current issued Store owner.");
         PersistChangedSessionCharacterScalars(connection, previous, current);
         PersistChangedSessionPlayerItems(previous, current);
         PersistChangedSessionPlayerSpells(connection, previous, current);

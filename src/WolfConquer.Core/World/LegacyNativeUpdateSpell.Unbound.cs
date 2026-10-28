@@ -1,5 +1,3 @@
-using WolfConquer.Core.Data;
-
 namespace WolfConquer.Core.World;
 
 internal partial class LegacyNativeUpdateSpell
@@ -8,8 +6,10 @@ internal partial class LegacyNativeUpdateSpell
     {
         internal void CommitUnbound(bool physical)
         {
-            LegacyNativeSpellStorage.PreparedSessionSpellMap? spells = null;
-            LegacyNativeProficiencyStorage.PreparedSessionProficiencyMap? profMap = null;
+            LegacyNativeProficiencyStorage.PreparedUnboundTraining? profMap = null;
+            // No weapon pass consumes the optional proficiency slot. Do not
+            // inspect or lock an absent/foreign owner for unrelated spell XP.
+            var usedProfs = (HasSpell || physical) && (right != 0 || left != 0) ? profs : null;
             byte[][] frames; nint preparedAddress;
             lock (client.SpellAdmissionSyncRoot)
             lock (player.SpellAdmissionSyncRoot)
@@ -18,34 +18,25 @@ internal partial class LegacyNativeUpdateSpell
                 if (LegacyNativeSpellStorage.GetJoinedBindingForClientEntry(client) is not null)
                     throw new InvalidOperationException("Training owner was admitted during unbound preparation.");
                 lock (storage?.MutationGate ?? player.SpellAdmissionSyncRoot)
-                lock (profs?.MutationGate ?? player.SpellAdmissionSyncRoot)
+                lock (usedProfs?.MutationGate ?? player.SpellAdmissionSyncRoot)
                 {
                     if (!HasBinding() || !HasMetadata() || LegacyNativeServerConfig.ExpRateSpell != spellRate) return;
                     selected?.RequireCurrent();
+                    selected?.ArmUnboundProgressProof();
                     uint rate = LegacyNativeServerConfig.ExpRateProf;
                     var seal = LegacyNativePreparedPacketFrames.CaptureSeal();
-                    var currentProfs = profs?.SnapshotCurrentRows();
+                    var currentProfs = usedProfs?.SnapshotCurrentRows();
                     var projection = currentProfs is null ? null : new LegacyNativeProficiencyStorage.ProgressProjection(
                         client, currentProfs, seal);
                     var output = new List<byte[]>();
                     if (HasSpell && projection is not null) ApplyWeaponProgression(projection, rate);
                     if (projection is not null) output.AddRange(projection.Frames);
                     int priorFrames = output.Count;
-                    if (storage is not null)
+                    if (HasProgress)
                     {
-                        var current = storage.CaptureSessionSnapshot(client, player);
-                        var proposed = current;
-                        if (HasProgress)
-                        {
-                            var value = selected!.Value;
-                            var intent = new LegacyNativeSpellMutationIntent.SetProgress(spellId, value.Experience, value.Level);
-                            proposed = new(current.Spells.Select(row => row.Id == intent.Id ? row with
-                                { Experience = intent.Experience, Level = intent.Level } : row).ToArray());
-                            if (leveled) output.Add(LegacyNativeProgressionFrames.SystemMessage(
-                                "You increased the spell level!", seal));
-                            output.Add(frame!);
-                        }
-                        spells = LegacyNativeSpellStorage.PrepareSessionSnapshot(client, player, current, proposed);
+                        if (leveled) output.Add(LegacyNativeProgressionFrames.SystemMessage(
+                            "You increased the spell level!", seal));
+                        output.Add(frame!);
                     }
                     if (physical && projection is not null)
                     {
@@ -53,16 +44,16 @@ internal partial class LegacyNativeUpdateSpell
                         output.AddRange(projection.Frames.Skip(priorFrames));
                     }
                     if (projection is not null)
-                        profMap = LegacyNativeProficiencyStorage.PrepareSessionSnapshot(client, player,
+                        profMap = new(usedProfs!, client, player,
                             currentProfs!, projection.FinalSnapshot);
                     frames = output.ToArray(); preparedAddress = ValidateTrainingFrames(frames);
-                    spells?.ArmFinalProof(); profMap?.ArmFinalProof();
                     ValidateTrainingFrames(frames, preparedAddress);
                     if (!HasBinding() || !HasMetadata() || LegacyNativeServerConfig.ExpRateSpell != spellRate ||
                         LegacyNativeServerConfig.ExpRateProf != rate || projection is not null && !projection.InputsAreCurrentPlain() ||
-                        spells is not null && !spells.ConsumeBeforeWriterPlain() || profMap is not null && !profMap.ConsumeBeforeWriterPlain() ||
-                        spells is not null && !spells.ConsumeCurrentPlain() || profMap is not null && !profMap.ConsumeCurrentPlain()) return;
-                    spells?.PublishPreparedMap(); profMap?.PublishPreparedMap();
+                        selected is not null && !selected.ConsumeUnboundProgressProof() ||
+                        profMap is not null && !profMap.ConsumeCurrentPlain()) return;
+                    if (HasProgress) selected!.PublishPreparedUnboundProgress();
+                    profMap?.PublishPrepared();
                 }
             }
             foreach (var output in frames)
@@ -70,8 +61,8 @@ internal partial class LegacyNativeUpdateSpell
                 lock (client.SpellAdmissionSyncRoot)
                 lock (player.SpellAdmissionSyncRoot)
                 lock (storage?.MutationGate ?? player.SpellAdmissionSyncRoot)
-                lock (profs?.MutationGate ?? player.SpellAdmissionSyncRoot)
-                    if (!HasBinding() || spells is not null && !spells.HasCurrentCommittedGraph() ||
+                lock (usedProfs?.MutationGate ?? player.SpellAdmissionSyncRoot)
+                    if (!HasBinding() || selected is not null && !selected.MatchesAfter() ||
                         profMap is not null && !profMap.HasCurrentCommittedGraph()) return;
                 ValidateTrainingFrames([output], preparedAddress);
                 LegacyNativePreparedPacketStorage.Write(stream, output);

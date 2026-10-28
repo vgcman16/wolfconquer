@@ -302,6 +302,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             MonsterStates: monsterStates,
             SobNpcStates: sobNpcStates,
             ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
         var (playerSpell, spell) = ResolveWhirlwindKickRuntimeSpell(casterSession, worldData, spellId);
         var expectedMonsterDamage = InvokePrivateUInt32(
             "CalculateLegacyPlayerMonsterPhysicalSpellDamage",

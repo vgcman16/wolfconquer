@@ -4,10 +4,16 @@ internal partial class LegacyNativeProficiencyStorage
 {
     public bool CheckProf(ushort ID, byte level)
     {
-        if (ClientProf.TryGetValue(ID, out var value))
+        lock (mutationGate)
         {
-            return value.Level >= level;
+            var map = ClientProf ?? throw UnavailableProficiencies();
+            RequireOrdinaryAnchorCurrent();
+            var rows = CaptureRows(map);
+            RequireRows(map, rows);
+            if (!ReferenceEquals(map, ClientProf)) throw UnavailableProficiencies();
+            foreach (var row in rows)
+                if (row.Key == ID) return row.Value.Level >= level;
+            return false;
         }
-        return false;
     }
 }

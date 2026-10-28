@@ -40,25 +40,35 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(session);
 
         RefuseBoundSpellReentry(connection);
-        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection), session);
-        var gate = _connectionGates.GetValue(connection, static _ => new object());
-        lock (gate)
+        WorldSession? previous;
+        WorldSession final;
+        object publishedIdentity;
+        LegacyOrdinarySpellBinding? publishedBinding;
         {
-            using var nativeGateScope = EnterNativeConnectionGate();
-            var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
-            var previous = holder.Read();
-            if (!LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, previous, session))
-                throw new InvalidOperationException("mailboxClaimRecoveryRequired:pendingPackageSessionWrite");
-            if (holder.SpellBinding is not null && (previous is null || !ReferenceEquals(previous.PlayerSpells, session.PlayerSpells)))
-                throw InvalidSpellPublication();
-            using var publication = new PreparedSessionSpellPublication(this, connection, holder, previous, session);
-            publication.ArmFinalProof();
-            if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
-            publication.PublishNative();
-            publication.PublishHolder();
-            publication.Dispose();
-            _sessionChanged?.Invoke(connection, previous, publication.FinalSession);
+            using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, PeekMailboxSession(connection), session);
+            var gate = _connectionGates.GetValue(connection, static _ => new object());
+            lock (gate)
+            {
+                using var nativeGateScope = EnterNativeConnectionGate();
+                var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
+                previous = holder.Read();
+                if (!LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, previous, session))
+                    throw new InvalidOperationException("mailboxClaimRecoveryRequired:pendingPackageSessionWrite");
+                if (holder.SpellBinding is not null && (previous is null || !ReferenceEquals(previous.PlayerSpells, session.PlayerSpells)))
+                    throw InvalidSpellPublication();
+                using var publication = new PreparedSessionSpellPublication(this, connection, holder, previous, session);
+                publication.ArmFinalProof();
+                if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
+                publication.PublishNative();
+                publication.PublishHolder();
+                final = publication.FinalSession;
+                publishedIdentity = publication.PublishedIdentity;
+                publishedBinding = publication.Binding;
+                publication.Dispose();
+                PersistFrameOwnedSessionChange(connection, previous, final, publishedIdentity, publishedBinding);
+            }
         }
+        NotifyPublishedSessionChange(connection, previous, final, publishedIdentity, publishedBinding);
     }
 
     public bool TryCompareAndSet(ConquerTcpConnection connection, WorldSession expectedSession, WorldSession session) =>
@@ -82,26 +92,33 @@ public sealed partial class WorldSessionStore
         ArgumentNullException.ThrowIfNull(expectedSession);
         ArgumentNullException.ThrowIfNull(session);
         final = null;
+        object publishedIdentity;
+        LegacyOrdinarySpellBinding? publishedBinding;
         RefuseBoundSpellReentry(connection);
-        using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, expectedSession, session);
-        var gate = _connectionGates.GetValue(connection, static _ => new object());
-        lock (gate)
         {
-            using var nativeGateScope = EnterNativeConnectionGate();
-            var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
-            if (!ReferenceEquals(holder.Read(), expectedSession) ||
-                expectedNativeIdentity is not null && !ReferenceEquals(holder.NativeClientIdentity, expectedNativeIdentity) ||
-                !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedSession, session)) return false;
-            using var publication = new PreparedSessionSpellPublication(this, connection, holder, expectedSession, session);
-            publication.ArmFinalProof();
-            if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
-            publication.PublishNative();
-            publication.PublishHolder();
-            final = publication.FinalSession;
-            publication.Dispose();
-            _sessionChanged?.Invoke(connection, expectedSession, final);
-            return true;
+            using var packageScope = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, expectedSession, session);
+            var gate = _connectionGates.GetValue(connection, static _ => new object());
+            lock (gate)
+            {
+                using var nativeGateScope = EnterNativeConnectionGate();
+                var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
+                if (!ReferenceEquals(holder.Read(), expectedSession) ||
+                    expectedNativeIdentity is not null && !ReferenceEquals(holder.NativeClientIdentity, expectedNativeIdentity) ||
+                    !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedSession, session)) return false;
+                using var publication = new PreparedSessionSpellPublication(this, connection, holder, expectedSession, session);
+                publication.ArmFinalProof();
+                if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
+                publication.PublishNative();
+                publication.PublishHolder();
+                final = publication.FinalSession;
+                publishedIdentity = publication.PublishedIdentity;
+                publishedBinding = publication.Binding;
+                publication.Dispose();
+                PersistFrameOwnedSessionChange(connection, expectedSession, final, publishedIdentity, publishedBinding);
+            }
         }
+        NotifyPublishedSessionChange(connection, expectedSession, final, publishedIdentity, publishedBinding);
+        return true;
     }
     public bool TryRemove(ConquerTcpConnection connection, out WorldSession? session)
     {

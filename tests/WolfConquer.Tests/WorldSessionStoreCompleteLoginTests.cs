@@ -20,7 +20,7 @@ public sealed class WorldSessionStoreCompleteLoginTests
             callbacks.Add((before, after));
             if (!observeCompletion) return;
             Assert.Same(connection, seenConnection);
-            Assert.True(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
+            Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
             Assert.True(native.Player.CompleteLogin);
             Assert.True(LegacyCompleteLoginRuntime.IsComplete(connection, after));
             Assert.True(store!.TryGet(connection, out var published));
@@ -207,12 +207,15 @@ public sealed class WorldSessionStoreCompleteLoginTests
         store.Set(connection, original);
         var owner = Capture(connection, original);
         WorldSession? attempted = null;
-        Assert.Throws<IOException>(() => store.TryCompleteLegacyLogin(connection, original, owner, out attempted));
-        Assert.True(store.TryGet(connection, out var current));
-        Assert.Same(attempted, current);
-        Assert.Equal("1", current!.Character.Attributes["CompleteLogin"]);
+        var failure = Assert.Throws<WorldSessionPublicationException>(() =>
+            store.TryCompleteLegacyLogin(connection, original, owner, out attempted));
+        Assert.IsType<IOException>(failure.InnerException);
+        Assert.Equal(WorldSessionPublicationStage.Observer, failure.Stage);
+        Assert.Same(attempted, failure.PublishedSession);
+        Assert.False(store.TryGet(connection, out _));
+        Assert.Equal("1", failure.PublishedSession.Character.Attributes["CompleteLogin"]);
         Assert.True(native.Player.CompleteLogin);
-        Assert.True(LegacyCompleteLoginRuntime.IsComplete(connection, current));
+        Assert.True(LegacyCompleteLoginRuntime.IsComplete(connection, failure.PublishedSession));
         Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
     }
 

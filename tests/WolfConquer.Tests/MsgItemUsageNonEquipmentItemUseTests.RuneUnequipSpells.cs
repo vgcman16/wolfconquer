@@ -147,6 +147,8 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
 
         var originalSessionA = GetSession(handler, connectionA);
         var originalSessionB = GetSession(handler, connectionB);
+        var originalCharacterPath = Path.Combine(originalSessionA.UsersRoot!, originalSessionA.AccountId + ".ini");
+        var originalCharacterBytes = File.ReadAllBytes(originalCharacterPath);
         Assert.Equal(6_000L, originalSessionA.Character.Class);
         Assert.Equal(6_000L, originalSessionB.Character.Class);
         Assert.Equal(2L, originalSessionA.Character.Reborn);
@@ -203,6 +205,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(beforeA + expectedFrames, sentA.Count);
         Assert.Equal(beforeB, sentB.Count);
         var afterSessionA = GetSession(handler, connectionA);
+        Assert.Equal(originalCharacterBytes, File.ReadAllBytes(originalCharacterPath));
         if (succeeds)
         {
             var echoIndex = beforeA;
@@ -214,10 +217,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
             AssertRuneUnequipManagedRefresh(sentA, echoIndex + 1, afterSessionA);
             Assert.Equal((ushort)212,
                 Assert.Single(afterSessionA.PlayerItems.RuneItems, item => item.Uid == RuneRankTargetUid).Position);
-            Assert.Equal(originalSessionA with
-            {
-                PlayerItems = afterSessionA.PlayerItems, PlayerSpells = afterSessionA.PlayerSpells,
-            }, afterSessionA);
+            AssertRuneUntouchedSessionFields(originalSessionA, afterSessionA);
         }
         else
         {
@@ -238,8 +238,10 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
             Assert.NotSame(originalSpellsA, afterSessionA.PlayerSpells);
             Assert.DoesNotContain(afterSessionA.PlayerSpells.Spells, entry => entry.Id == RuneUnequipSpellId);
         }
-        else
+        else if (!succeeds)
             Assert.Same(originalSpellsA, afterSessionA.PlayerSpells);
+        else
+            Assert.Equal(initialSpellBytesA, PlayerSpellSnapshotLoader.ToLegacyBytes(afterSessionA.PlayerSpells));
         Assert.Equal(unrelated, Assert.Single(afterSessionA.PlayerSpells.Spells, entry => entry.Id == unrelated.Id));
         Assert.Equal(expectedItemBytesA, PlayerItemSnapshotLoader.ToLegacyBytes(afterSessionA.PlayerItems));
         Assert.Equal(expectedSpellBytesA, PlayerSpellSnapshotLoader.ToLegacyBytes(afterSessionA.PlayerSpells));
@@ -262,7 +264,8 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
             Assert.Equal(beforeB, sentB.Count);
             Assert.Equal(request, sentA[repeatA]);
             AssertRuneUnequipManagedRefresh(sentA, repeatA + 1, GetSession(handler, connectionA));
-            Assert.Same(afterFirstSpells, GetSession(handler, connectionA).PlayerSpells);
+            Assert.Equal(PlayerSpellSnapshotLoader.ToLegacyBytes(afterFirstSpells),
+                PlayerSpellSnapshotLoader.ToLegacyBytes(GetSession(handler, connectionA).PlayerSpells));
             Assert.Equal(expectedItemBytesA, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerA)));
             Assert.Equal(expectedSpellBytesA, File.ReadAllBytes(RuneUnequipSpellFile(RuneRankPlayerA)));
         }
@@ -284,7 +287,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
             new PlayerSpellSnapshotLoader(spellsRoot).LoadByCharacterUid(RuneRankPlayerB)));
         Assert.Equal(originalItemBytesB, PlayerItemSnapshotLoader.ToLegacyBytes(
             new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerB)));
-        Assert.Contains(succeeds ? "handled MsgItemUsage unequip rune" : "skipped MsgItemUsage unequip rune",
+        Assert.Contains(succeeds ? "committed MsgItemUsage unequip rune" : "skipped MsgItemUsage unequip rune",
             log.ToString());
     }
 

@@ -8,6 +8,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 // Existing fixture helpers and the actual PacketHandlerRegistry are reused; no synthetic route.
+[Collection("NativeItemCounterSourcePrerequisite")]
 public sealed partial class LegacyBossHarmRankMailRewardTests
 {
     private static readonly double[] Receive8418ExpectedAllFalseRates =
@@ -258,7 +259,8 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
         Assert.True(scene.Sessions.TryGet(scene.Connection, out var final));
         Assert.Equal("7", final!.Character.Attributes["DailySpiritBeadCount"]);
         Assert.Equal("1", final.Character.Attributes["LegacyEagleEyeCountDown"]);
-        Assert.True(final.PlayerSpells.Spells.Single(spell => spell.Id == 11_030).Experience > 0);
+        Assert.True(final.PlayerSpells.Spells.Single(spell => spell.Id == 11_030).Experience > 0, scene.Log.ToString());
+        scene.Owner.AssertSavedSpells(final);
         Assert.DoesNotContain(scene.Sent, IsReceive8418DeathFrame);
         Assert.DoesNotContain(ParseReceive8418Animations(scene.Sent), packet => packet.SpellId == 11_130);
         Assert.Single(ParseReceive8418Animations(scene.Sent), packet => packet.SpellId == 11_030);
@@ -632,36 +634,36 @@ public sealed partial class LegacyBossHarmRankMailRewardTests
             NativeGameClient = new LegacyNativeGameClientRuntime(),
             PlayerSpells = new PlayerSpellSnapshot([new(11_030, 0, 0, 0, 0, 0), new(11_130, 0, 0, 0, 0, 0)]),
         };
-        session.NativePlayer!.Kills = 7;
         var states = new MonsterRuntimeStateStore();
         var now = DateTimeOffset.UtcNow;
         Assert.True(states.TryMarkBlackSpotUntil(monster, now, now.AddMinutes(1)));
         Assert.True(states.ApplyTimedStatusFlag(monster, 4, TimeSpan.FromMinutes(1), now).Applied);
         var sent = new List<byte[]>();
         var sendNumber = 0;
-        var connection = failPrefixSendNumber != 0 || observePrefixSend is not null
-            ? new ConquerTcpConnection(null, null, (bytes, _) =>
+        var owner = Receive8418SavedOwner.Create(session, world, (bytes, _) =>
+        {
+            if (failPrefixSendNumber != 0 || observePrefixSend is not null)
             {
                 ++sendNumber;
                 observePrefixSend?.Invoke(sendNumber, states, monster);
                 if (sendNumber == failPrefixSendNumber) throw new IOException("prefix send fault");
-                sent.Add(bytes.ToArray());
-                return ValueTask.CompletedTask;
-            })
-            : CreateConnection(sent);
-        var sessions = new WorldSessionStore();
-        sessions.Set(connection, session);
-        var log = new StringWriter();
-        var context = new WorldPacketHandlerContext(connection, log, session,
-            WorldData: world, Sessions: sessions, MonsterStates: states);
-        return new(context, connection, session, sessions, monster, family, states, sent, log);
+            }
+            sent.Add(bytes.ToArray());
+            return ValueTask.CompletedTask;
+        });
+        // Kills is the scenario's native input, after the actual saved prefix
+        // established the UID and physical constructor owner through admission.
+        session = owner.Session;
+        session.NativePlayer!.Kills = 7;
+        var context = owner.CreateContext(world, states);
+        return new(context, owner.Connection, session, owner.Sessions, monster, family, states, sent, owner.Log, owner);
     }
 
     private sealed record Receive8418ContinuationScene(
         WorldPacketHandlerContext Context, ConquerTcpConnection Connection, WorldSession Session,
         WorldSessionStore Sessions, LegacyMonsterInstance Monster, Monster Family,
-        MonsterRuntimeStateStore States, List<byte[]> Sent, StringWriter Log) : IDisposable
+        MonsterRuntimeStateStore States, List<byte[]> Sent, StringWriter Log, Receive8418SavedOwner Owner) : IDisposable
     {
-        public void Dispose() => Log.Dispose();
+        public void Dispose() => Owner.Dispose();
     }
 }

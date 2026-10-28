@@ -62,6 +62,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             TeamStates: teamStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -200,6 +202,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates,
             SobNpcStates: sobNpcStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
         var (_, spell) = ResolveAttackStatus15880Spell(casterSession, worldData);
         var expectedPlayerDamage = InvokePrivateUInt32(
             "CalculateLegacyPlayerPlayerPhysicalSpellDamage",

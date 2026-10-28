@@ -261,6 +261,8 @@ public sealed class LegacyLayTrapSourceCaseRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             FloorItems: floorItems);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         var before = DateTimeOffset.UtcNow;
 
         await PacketHandlers.HandleAsync(
@@ -386,6 +388,8 @@ public sealed class LegacyLayTrapSourceCaseRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             FloorItems: floorItems);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         var before = DateTimeOffset.UtcNow;
         var beforeTimer = DateTime.Now;
 
@@ -1764,6 +1768,8 @@ public sealed class LegacyLayTrapSourceCaseRuntimeTests
             Sessions: sessions,
             TeamStates: teamStates,
             FloorItems: floorItems);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         var before = DateTimeOffset.UtcNow;
 
         await PacketHandlers.HandleAsync(
@@ -2080,7 +2086,8 @@ public sealed class LegacyLayTrapSourceCaseRuntimeTests
         long minHitPoints = 50_000)
     {
         spellIds ??= [InfernalEchoSpellId];
-        var spells = spellEntries ??
+        // Positive component fixtures use the actual loader's closed array representation.
+        var spells = spellEntries?.ToArray() ??
             spellIds
                 .Select(spellId => new PlayerSpellSnapshotEntry(
                     spellId,

@@ -10,7 +10,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyLabyrinthFloorAdvanceParityTests : IDisposable
+public sealed partial class LegacyLabyrinthFloorAdvanceParityTests : IDisposable
 {
     private const long AccountId = 1_293_600;
     private const uint CharacterUid = 1_293_600;
@@ -705,6 +705,8 @@ public sealed class LegacyLabyrinthFloorAdvanceParityTests : IDisposable
         private readonly ConquerTcpConnection? _observerConnection;
         private readonly StringWriter _log = new();
         private bool? _sessionCommittedBeforeFirstSend;
+        public bool FailObserver;
+        public WorldSession? PublishedAtFailure;
 
         public AdvanceHarness(
             string caseRoot,
@@ -746,6 +748,11 @@ public sealed class LegacyLabyrinthFloorAdvanceParityTests : IDisposable
                     return;
                 }
 
+                if (FailObserver && current.ActiveNpcId is null)
+                {
+                    FailObserver = false; PublishedAtFailure = current;
+                    throw new IOException("Actual floor observer failed after publication.");
+                }
                 SessionWriteCount++;
                 ItemsAtCommit = ReloadItems();
                 CharacterAtCommit = ReloadCharacter();
@@ -782,13 +789,15 @@ public sealed class LegacyLabyrinthFloorAdvanceParityTests : IDisposable
                 Sessions.Set(observerConnection, CreateObserverSession(character, route));
             }
 
+            var recovery = new LegacyTradeRecoveryState(UsersRoot, PlayerItemsRoot);
+            Assert.True(recovery.TryEnsureInitialized(out var recoveryReason), recoveryReason);
             Context = new WorldPacketHandlerContext(
                 _connection,
                 _log,
                 Session: OriginalSession,
                 Sessions: Sessions,
                 PlayerItemsRoot: PlayerItemsRoot,
-                ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
+                ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13) { TradeRecovery = recovery };
         }
 
         public string UsersRoot { get; }
@@ -825,6 +834,8 @@ public sealed class LegacyLabyrinthFloorAdvanceParityTests : IDisposable
 
         public string LogText => _log.ToString();
 
+        public bool HasCurrentSession => Sessions.TryGet(_connection, out _);
+
         public WorldSession CurrentSession
         {
             get
@@ -833,6 +844,8 @@ public sealed class LegacyLabyrinthFloorAdvanceParityTests : IDisposable
                 return Assert.IsType<WorldSession>(session);
             }
         }
+
+        public void SetBeforeAction(WorldSession replacement) => Sessions.Set(_connection, replacement);
 
         public ValueTask<bool> InvokeAsync(WorldSession? suppliedSession = null)
         {

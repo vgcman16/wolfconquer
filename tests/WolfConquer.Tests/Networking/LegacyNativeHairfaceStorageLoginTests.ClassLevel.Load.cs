@@ -45,6 +45,8 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.Equal(checked((ushort)level), player.Level);
             Assert.Null(client.MyNinja);
             Assert.Null(client.MySpells);
+            Assert.Null(client.MyProfs);
+            Assert.Null(client.OrdinarySpellBinding);
             Assert.Null(client.Equipment);
             Assert.False(client.FullLoading);
             Assert.Null(handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
@@ -75,7 +77,15 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.Equal(1U, player.Online);
             Assert.False(client.FullLoading);
             Assert.Null(client.MyNinja);
-            Assert.Null(client.MySpells);
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(client.OrdinarySpellBinding);
+            Assert.False(binding.IsRetired);
+            Assert.Same(client, binding.Client);
+            Assert.Same(player, binding.Player);
+            Assert.Same(client.MySpells, binding.Storage);
+            Assert.Same(client.MyProfs, binding.Proficiencies);
+            Assert.Same(accepted.PlayerSpells, binding.Snapshot);
+            Assert.Same(accepted.PlayerProficiencies, binding.ProficiencySnapshot);
+            Assert.True(binding.PhysicalOwnerIsCurrentPlain());
             Assert.Same(accepted, handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
             Assert.Contains("legacy MsgLoginGame Success", log.Text);
             Assert.Same(accepted, (await SendLoginAsync(fixture, wire)).After);

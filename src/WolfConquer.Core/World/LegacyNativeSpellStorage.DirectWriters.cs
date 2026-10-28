@@ -111,6 +111,7 @@ internal partial class LegacyNativeSpellStorage
             private readonly DirectSpellSnapshot source;
             private readonly int index;
             private readonly SpellRow[] after;
+            private IEnumerator<KeyValuePair<ushort, LegacyNativeMsgSpell>>? trainingBefore, trainingFinal;
             internal LegacyNativeMsgSpell Value { get; }
             internal DirectSpellChange(DirectSpellSnapshot source, int index)
             {
@@ -124,6 +125,33 @@ internal partial class LegacyNativeSpellStorage
             internal void PrepareProgress(int experience, ushort level) =>
                 after[index] = after[index] with { Values = after[index].Values with { Experience = experience, Level = level } };
             internal void RequireCurrent() => source.RequireCurrent();
+            internal void ArmUnboundProgressProof()
+            {
+                RequireCurrent();
+                if (source.client.OrdinarySpellBinding is not null || trainingBefore is not null || trainingFinal is not null)
+                    throw UnavailableNinjaSpells();
+                trainingBefore = source.map.GetEnumerator();
+                trainingFinal = source.map.GetEnumerator();
+            }
+            internal bool ConsumeUnboundProgressProof()
+            {
+                try
+                {
+                    source.storage.RequireNinjaSpellOwner(source.client, source.player, source.uid);
+                    return source.client.OrdinarySpellBinding is null &&
+                        ReferenceEquals(source.storage.ClientSpells, source.map) &&
+                        ConsumeFinalWitness(ref trainingBefore, source.rows) &&
+                        ConsumeFinalWitness(ref trainingFinal, source.rows);
+                }
+                catch (InvalidOperationException) { return false; }
+            }
+            // Only the compound unbound training owner consumes the two raw
+            // proofs for ALL participants before entering these plain stores.
+            internal void PublishPreparedUnboundProgress()
+            {
+                source.rows[index].Row.Experience = after[index].Values.Experience;
+                source.rows[index].Row.Level = after[index].Values.Level;
+            }
             internal void CommitSoul()
             {
                 RequireCurrent();

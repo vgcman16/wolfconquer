@@ -220,19 +220,23 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }
         if (differentWorld)
         {
-            var nested = new WorldSessionStore((_, _, _) => Attempt());
-            var outer = new WorldSessionStore((_, _, _) =>
+            var third = f.Owner(2);
+            var nested = new WorldSessionStore();
+            var outer = new WorldSessionStore();
+            nested.Set(f.Connections[2], third);
+            outer.Set(f.Connections[2], third);
+            Assert.True(outer.WithCurrentNativeClientIdentity(f.Connections[2], third.Character.Uid, outerIdentity =>
             {
                 Assert.True(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
-                nested.Set(f.Connections[2], f.Owner(2));
+                Assert.True(nested.WithCurrentNativeClientIdentity(f.Connections[2], third.Character.Uid, nestedIdentity => Attempt()));
                 Assert.True(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate); // Outer still owns C.
-            });
-            outer.Set(f.Connections[2], f.Owner(2));
+            }));
         }
         else
         {
-            f.OnStorePublished = (_, _, _) => Attempt();
-            f.World.Set(f.Connections[2], f.Owner(2)); // C is neither actor A nor member B.
+            // C is neither actor A nor member B. Hold its actual preparation
+            // gate; public observers now execute after their own gates end.
+            Assert.True(f.World.WithCurrentNativeClientIdentity(f.Connections[2], f.Owner(2).Character.Uid, _ => Attempt()));
         }
         Assert.Equal(1, callbacks);
         Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
@@ -250,20 +254,19 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task NativeTeamPublicAcceptRejectsStoreCallbackBeforeAnyNewClientCapture(bool leaderAccepts)
+    public async Task NativeTeamPublicAcceptRejectsPreheldWorldGateBeforeAnyNewClientCapture(bool leaderAccepts)
     {
         using var f = new NativeTeamMemberFixture();
         await f.CreateAsync();
         var team = f.Team(0);
         Task? entered = null;
         f.ClearFrames();
-        f.OnStorePublished = (_, _, _) =>
+        Assert.True(f.World.WithCurrentNativeClientIdentity(f.Connections[2], f.Owner(2).Character.Uid, _ =>
         {
             Assert.True(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
             entered = f.JoinAsync(leaderAccepts);
             Assert.True(entered.IsCompleted); // Synchronous fail-closed; no attempted pair wait.
-        };
-        f.World.Set(f.Connections[2], f.Owner(2));
+        }));
         Assert.NotNull(entered);
         await entered!.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
@@ -273,27 +276,67 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         f.AssertNoFrames();
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NativeTeamPublicAcceptRunsAfterPublicationScopesEnd(bool leaderAccepts)
+    {
+        using var f = new NativeTeamMemberFixture();
+        await f.CreateAsync();
+        var team = f.Team(0);
+        Task? entered = null;
+        f.ClearFrames();
+        var armed = true;
+        f.OnStorePublished = (_, _, _) =>
+        {
+            if (!armed) return;
+            armed = false;
+            Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
+            entered = f.JoinAsync(leaderAccepts);
+        };
+        f.World.Set(f.Connections[2], f.Owner(2));
+        Assert.NotNull(entered);
+        await entered!.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
+        Assert.True(f.Teams.TryReadTournamentTeam(team, out var state));
+        Assert.Equal(2, state!.Members.Count);
+        Assert.True(f.Teams.TryCaptureTournamentTeam(f.Client(1), out _));
+        f.AssertSingleMemberInfo(0, 2);
+        f.AssertJoinedFrames(1, 2);
+        Assert.Empty(f.Frames[2]);
+    }
+
     [Fact]
     public async Task NativeTeamWorldGateDepthUnwindsAfterNestedCallbackException()
     {
         using var f = new NativeTeamMemberFixture();
+        var nestedOwner = f.Owner(1);
+        var outerOwner = f.Owner(2);
         var nested = new WorldSessionStore((_, _, _) =>
         {
-            Assert.True(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
+            Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
             throw new InvalidOperationException("expected nested callback failure");
         });
         f.OnStorePublished = (_, _, _) =>
         {
-            Assert.True(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
-            var error = Assert.Throws<InvalidOperationException>(() =>
-                nested.Set(f.Connections[1], f.Owner(1)));
-            Assert.Equal("expected nested callback failure", error.Message);
-            Assert.True(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
+            Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
+            var error = Assert.Throws<WorldSessionPublicationException>(() =>
+                nested.Set(f.Connections[1], nestedOwner));
+            Assert.Equal("expected nested callback failure", Assert.IsType<InvalidOperationException>(error.InnerException).Message);
+            Assert.Equal(WorldSessionPublicationStage.Observer, error.Stage);
+            Assert.Same(nestedOwner, error.PublishedSession);
+            Assert.Null(error.FencingFailure);
+            Assert.False(nested.TryGet(f.Connections[1], out _));
+            Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
             throw new InvalidOperationException("expected outer callback failure");
         };
-        var outerError = Assert.Throws<InvalidOperationException>(() =>
-            f.World.Set(f.Connections[2], f.Owner(2)));
-        Assert.Equal("expected outer callback failure", outerError.Message);
+        var outerError = Assert.Throws<WorldSessionPublicationException>(() =>
+            f.World.Set(f.Connections[2], outerOwner));
+        Assert.Equal("expected outer callback failure", Assert.IsType<InvalidOperationException>(outerError.InnerException).Message);
+        Assert.Equal(WorldSessionPublicationStage.Observer, outerError.Stage);
+        Assert.Same(outerOwner, outerError.PublishedSession);
+        Assert.Null(outerError.FencingFailure);
+        Assert.False(f.World.TryGet(f.Connections[2], out _));
         Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
         await f.CreateAsync(); // Legal ordinary entry must not be poisoned by either throw.
         f.AssertCreateFrames(0);

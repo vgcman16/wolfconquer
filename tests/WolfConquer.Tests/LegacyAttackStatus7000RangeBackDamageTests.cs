@@ -572,6 +572,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: monsterStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref attackerSession);
+        context = combatSpellOwner.Context;
         Assert.True(LegacyMagicRuntime.TryResolveLearnedSpell(
             attackerSession.PlayerSpells,
             worldData,

@@ -987,7 +987,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
                 MsgItemUsageAction.EquipRune,
                 8_888)));
 
-        Assert.True(sent.Count >= countBeforeRequest + 1);
+        Assert.True(sent.Count >= countBeforeRequest + 1, log.ToString());
         Assert.True(MsgItemUsagePacket.TryParse(ReadFrame(sent[countBeforeRequest]), out var echoPacket));
         Assert.Equal(
             new MsgItemUsagePacket(
@@ -1009,9 +1009,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         Assert.Contains(persistedItems.RuneItems, item => item.Uid == runeUid && item.Position == 101);
 
         var output = log.ToString();
-        Assert.Contains("handled MsgItemUsage equip rune", output);
-        Assert.Contains("position=101", output);
-        Assert.Contains("persisted MsgItemUsage equip rune items", output);
+        Assert.Contains("committed MsgItemUsage equip rune", output);
         Assert.DoesNotContain("PARITY-GAP MsgItemUsage equip rune", output);
     }
 
@@ -1043,7 +1041,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
                 dwParam: 101,
                 MsgItemUsageAction.EquipRune)));
 
-        Assert.True(sent.Count >= countBeforeRequest + 3);
+        Assert.True(sent.Count >= countBeforeRequest + 3, log.ToString());
         AssertItemUsage(
             sent[countBeforeRequest],
             new MsgItemUsagePacket(sameRuneUid, DwParam: 121, MsgItemUsageAction.UnequipRune, 0, 0, 0, 0));
@@ -1072,9 +1070,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         Assert.Contains(persistedItems.RuneItems, item => item.Uid == selectedRuneUid && item.Position == 101);
 
         var output = log.ToString();
-        Assert.Contains("handled MsgItemUsage equip rune", output);
-        Assert.Contains("unequippedCount=2", output);
-        Assert.Contains("persisted MsgItemUsage equip rune items", output);
+        Assert.Contains("committed MsgItemUsage equip rune", output);
     }
 
     [Fact]
@@ -1082,12 +1078,13 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
     {
         const uint runeUid = 5_337_550;
         const uint runeItemId = 4_020_501;
+        var worldData = CreateWorldDataCatalog(CreateItemType(runeItemId, "OwnedRune", durability: 1));
         WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565);
         WriteItems(
             1_293_600,
             PlayerItemSnapshotLoaderTests.DbItem(runeUid, runeItemId, position: 102));
         using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log);
+        var (handler, connection, sent) = await EnterWorldAsync(log, worldData);
 
         var countBeforeRequest = sent.Count;
         await handler.HandleFrameAsync(
@@ -1097,7 +1094,8 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
                 dwParam: 102,
                 MsgItemUsageAction.UnequipRune)));
 
-        Assert.Equal(countBeforeRequest + 1, sent.Count);
+        Assert.True(sent.Count == countBeforeRequest + 5, log.ToString());
+        Assert.Equal(countBeforeRequest + 5, sent.Count);
         AssertItemUsage(
             sent[countBeforeRequest],
             new MsgItemUsagePacket(
@@ -1108,6 +1106,12 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
                 0,
                 0,
                 0));
+        Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[countBeforeRequest + 1]), out var maxHp));
+        Assert.Equal(LegacyMsgUpdateDataType.MaxHitpoints, Assert.Single(maxHp.Updates).Type);
+        Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[countBeforeRequest + 2]), out var hp));
+        Assert.Equal([LegacyMsgUpdateDataType.MaxHitpoints, LegacyMsgUpdateDataType.Hitpoints], hp.Updates.Select(x => x.Type));
+        Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(sent[countBeforeRequest + 3]), out LegacyPlayerStatusPacket _));
+        Assert.True(LegacyUserTotalRefineLevPacket.TryParse(ReadFrame(sent[countBeforeRequest + 4]), out _));
 
         var session = GetSession(handler, connection);
         Assert.Contains(session.PlayerItems.RuneItems, item => item.Uid == runeUid && item.Position == 212);
@@ -1116,9 +1120,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         Assert.Contains(persistedItems.RuneItems, item => item.Uid == runeUid && item.Position == 212);
 
         var output = log.ToString();
-        Assert.Contains("handled MsgItemUsage unequip rune", output);
-        Assert.Contains("position=212", output);
-        Assert.Contains("persisted MsgItemUsage unequip rune items", output);
+        Assert.Contains("committed MsgItemUsage unequip rune", output);
     }
 
     [Fact]

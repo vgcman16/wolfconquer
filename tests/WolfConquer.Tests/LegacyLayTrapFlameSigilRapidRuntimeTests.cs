@@ -248,7 +248,7 @@ public sealed class LegacyLayTrapFlameSigilRapidRuntimeTests
                 Attributes: new Dictionary<string, string>(attributes),
                 PaidNobility: new Dictionary<string, string>()),
             PlayerItemSnapshot.Empty,
-            new PlayerSpellSnapshot(spellEntries),
+            new PlayerSpellSnapshot(spellEntries.ToArray()),
             PlayerProficiencySnapshot.Empty);
     }
 

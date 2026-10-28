@@ -118,8 +118,37 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         else
         {
             attempted = CreateConnection(uid, verified.NativeClient);
-            owner.Sessions.Set(attempted.Connection, Current(owner, verified) with { });
+            var original = Current(owner, verified);
+            byte[] character = File.ReadAllBytes(UserPath(uid));
+            byte[] items = File.ReadAllBytes(ItemPath(uid));
+            var refusal = Assert.Throws<InvalidOperationException>(() => owner.Sessions.Set(attempted.Connection, original with { }));
+            Assert.Contains("ordinarySpellPublicationRequiresCurrentCompleteOwner", refusal.Message);
+            Assert.False(owner.Sessions.TryGet(attempted.Connection, out _));
             Assert.Same(priorPlayer, attempted.NativeClient.Player);
+            Assert.Same(original, Current(owner, verified));
+            Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(verified.Connection, original));
+            Assert.True(priorPlayer.IsCheckedPass);
+            int first = attempted.Sent.Count;
+            await SellPinFixtureItem(owner, attempted);
+            Assert.DoesNotContain(attempted.Sent.Skip(first), bytes =>
+                MsgItemUsagePacket.TryParse(ReadFrame(bytes), out var packet) && packet.Action == MsgItemUsageAction.RemoveInventory ||
+                LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out var update) && update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.Money));
+            AssertNoSuccess(await Password(owner, attempted, 1, newPin: 111));
+            Assert.False(owner.Sessions.TryGet(attempted.Connection, out _));
+            Assert.Equal(character, File.ReadAllBytes(UserPath(uid)));
+            Assert.Equal(items, File.ReadAllBytes(ItemPath(uid)));
+            Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(verified.Connection, Current(owner, verified)));
+
+            var freshOwner = NewOwner(worldData: CreatePinSaleWorldData());
+            var fresh = await Login(freshOwner, uid);
+            Assert.NotSame(verified.NativeClient, fresh.NativeClient);
+            Assert.NotSame(priorPlayer, fresh.NativeClient.Player);
+            Assert.False(fresh.NativeClient.Player.IsCheckedPass);
+            await AssertPinSaleDenied(freshOwner, fresh);
+            AssertNoSuccess(await Password(freshOwner, fresh, 1, newPin: 222));
+            AssertReply(await Password(freshOwner, fresh, 1, newPin: 111), 5, 257);
+            await AssertPinSaleSucceeded(freshOwner, fresh);
+            return;
         }
 
         Assert.False(LegacySecondaryPasswordRuntime.IsAdmitted(attempted.Connection, Current(owner, attempted)));

@@ -144,7 +144,37 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         if (foreignCopy)
         {
             attempted = CreateConnection(leftUid, left.NativeClient);
-            owner.Sessions.Set(attempted.Connection, Current(owner, left) with { });
+            var original = Current(owner, left);
+            var beforeCharacter = File.ReadAllBytes(UserPath(leftUid));
+            var beforeItems = File.ReadAllBytes(ItemPath(leftUid));
+            var refusal = Assert.Throws<InvalidOperationException>(() => owner.Sessions.Set(attempted.Connection, original with { }));
+            Assert.Contains("ordinarySpellPublicationRequiresCurrentCompleteOwner", refusal.Message);
+            Assert.False(owner.Sessions.TryGet(attempted.Connection, out _));
+            Assert.Same(original, Current(owner, left));
+            Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(left.Connection, original));
+            Assert.True(left.NativeClient.Player.IsCheckedPass);
+            await Trade(owner, attempted, new(0) { UID = rightUid });
+            AssertNoSuccess(await Password(owner, attempted, 1, newPin: 111));
+            Assert.False(owner.Sessions.TryGet(attempted.Connection, out _));
+            Assert.False(Current(owner, right).LegacyTradeActive);
+            Assert.Equal(beforeCharacter, File.ReadAllBytes(UserPath(leftUid)));
+            Assert.Equal(beforeItems, File.ReadAllBytes(ItemPath(leftUid)));
+            Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(left.Connection, Current(owner, left)));
+
+            // A separately born, genuinely admitted owner starts unchecked and
+            // gains authority only by completing its own PIN verification.
+            var freshOwner = NewOwner();
+            var fresh = await Login(freshOwner, leftUid);
+            var freshRight = await Login(freshOwner, rightUid);
+            Assert.NotSame(left.NativeClient, fresh.NativeClient);
+            Assert.NotSame(left.NativeClient.Player, fresh.NativeClient.Player);
+            Assert.False(fresh.NativeClient.Player.IsCheckedPass);
+            await AssertTradeDenied(freshOwner, fresh, freshRight);
+            AssertNoSuccess(await Password(freshOwner, fresh, 1, newPin: 222));
+            AssertReply(await Password(freshOwner, fresh, 1, newPin: 111), 5, 257);
+            await OpenTrade(freshOwner, fresh, freshRight);
+            await Trade(freshOwner, fresh, new(2));
+            return;
         }
         else
         {

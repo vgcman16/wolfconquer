@@ -12,7 +12,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed partial class LegacySecondaryPasswordRuntimeTests : IDisposable
+public sealed partial class LegacySecondaryPasswordRuntimeTests : IAsyncLifetime
 {
     private static readonly DateTimeOffset TestNow = new(2026, 10, 22, 12, 30, 0, TimeSpan.Zero);
     private readonly string root = Path.Combine(Path.GetTempPath(), "wolf-secondary-runtime-" + Guid.NewGuid().ToString("N"));
@@ -28,11 +28,25 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests : IDisposable
         beastMetadata = new NativeLoginBeastMetadataScope(1000);
     }
 
-    public void Dispose()
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public async Task DisposeAsync()
     {
+        var errors = new List<Exception>();
         try
         {
-            foreach (var player in players) player.Lifetime.Dispose();
+            foreach (var player in players)
+            {
+                try
+                {
+                    await player.Connection.DisconnectAsync(CancellationToken.None);
+                    await player.Connection.CompleteTransportCloseAsync();
+                }
+                catch (Exception error) { errors.Add(error); }
+                finally { player.Lifetime.Dispose(); }
+            }
+            if (errors.Count != 0)
+                throw new AggregateException($"PIN fixture transport cleanup failed; retained {root}.", errors);
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
         finally
@@ -106,16 +120,25 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests : IDisposable
     private Player CreateConnection(uint uid, LegacyNativeGameClientRuntime? nativeClient = null, Action<byte[]>? beforeSend = null)
     {
         var sent = new ConcurrentQueue<byte[]>();
+        var lifetime = new CancellationTokenSource();
         var connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
-            (bytes, _) =>
+            (bytes, cancellationToken) =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                lifetime.Token.ThrowIfCancellationRequested();
                 var copy = bytes.ToArray();
                 beforeSend?.Invoke(copy);
                 sent.Enqueue(copy);
                 return ValueTask.CompletedTask;
             },
+            disconnectAsync: cancellationToken =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                lifetime.Cancel();
+                return ValueTask.CompletedTask;
+            },
             nativeGameClient: nativeClient ?? new LegacyNativeGameClientRuntime());
-        var player = new Player(uid, connection, new CancellationTokenSource(), sent);
+        var player = new Player(uid, connection, lifetime, sent);
         players.Add(player);
         return player;
     }

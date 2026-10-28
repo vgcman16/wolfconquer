@@ -421,6 +421,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates,
             PlayerSpellsRoot: spellsRoot);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         try
         {
@@ -7248,6 +7250,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: monsterStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -7274,6 +7278,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal(0, updatedSpell.Experience);
         Assert.Equal(2, updatedSpell.SoulLevel);
         Assert.Equal(1, updatedSpell.UseSpellSoul);
+        var persistedSpell = Assert.Single(new PlayerSpellSnapshotLoader(context.PlayerSpellsRoot!)
+            .LoadByCharacterUid(updatedSession.Character.Uid).Spells);
+        Assert.Equal(updatedSpell, persistedSpell);
+        Assert.True(context.TradeRecovery!.TryRequireLiveJournalClear(out var journalReason), journalReason);
         Assert.Contains("WorldServer updated legacy player magic spell", log.ToString());
         Assert.Contains("levelChanged=True", log.ToString());
     }
@@ -7612,6 +7620,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: monsterStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -8219,6 +8229,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: monsterStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -8297,6 +8309,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: new MonsterRuntimeStateStore());
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -8409,6 +8423,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: new MonsterRuntimeStateStore());
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -9603,6 +9619,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 Sessions: sessions,
                 MonsterStates: monsterStates,
                 PlayerSpellsRoot: spellsRoot);
+            using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+            context = combatSpellOwner.Context;
 
             await PacketHandlers.HandleAsync(
                 context,
@@ -11096,6 +11114,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates,
             SobNpcStates: sobNpcStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -11133,6 +11153,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal(10_000 - (int)expectedDamage, visibleSobNpc.Life);
         Assert.Equal(10_000, visibleSobNpc.MaxLife);
 
+        Assert.True(sent.Count(bytes => LegacySpellPacket.TryParse(ReadFrame(bytes), out _)) == 1,
+            "Expected exactly one real spell progress frame. Actual handler log:\n" + log);
         var spellUpdate = Assert.Single(
             sent
                 .Select(bytes => LegacySpellPacket.TryParse(ReadFrame(bytes), out var packet)
@@ -11812,6 +11834,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates,
             SobNpcStates: sobNpcStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         const ushort attackX = 79;
         const ushort attackY = 70;
         Assert.True(Math.Abs(sobNpc.X - attackX) <= 6);
@@ -14936,6 +14960,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: monsterStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -19416,7 +19442,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         ushort legacyRandomSpell = 0)
     {
         spellIds ??= [ThunderSpellId];
-        var spells = spellEntries ??
+        // Positive component fixtures use the actual loader's closed array representation.
+        var spells = spellEntries?.ToArray() ??
             spellIds
                 .Select(spellId => new PlayerSpellSnapshotEntry(
                     spellId,

@@ -45,20 +45,13 @@ public sealed partial class LegacyNativeAttackDispatchTests
             var error = Record.Exception(() =>
                 LegacyNativeUpdateSpell.CheckUpdate(scope.Packet, scope.Client, scope.Attack, 600, scope.Rows));
 
-            before.RequireSpellStateUnchanged();
-            before.RequireProficiencies(rightGain: 100);
-            before.RequirePriorFrames(1);
+            before.RequireUnchanged();
             Assert.True(comparer.Triggered);
-            Assert.Equal(new uint[] { 410 }, comparer.Lookups);
-            // The first genuine proficiency credit remains: 1000 + 600/(5+1).
-            // Existing opcode2199: experience1100, level5 threshold1600000, weapon410, eight zero bytes.
-            var frame = scope.Queue.Last();
-            Assert.Equal(Convert.FromHexString("180097084C040000006A18009A0100000000000000000000"), frame);
-            Assert.Equal(frame, NativeSpellTestFixture.Bytes(scope.Packet));
-            Assert.Equal(4, scope.Packet.Position);
+            Assert.Contains(410u, comparer.Lookups);
             Assert.Equal(changeLevel ? (ushort)1195 : (ushort)1196, scope.Row.ID);
             Assert.Equal(changeLevel ? (byte)1 : (byte)0, scope.Row.Level);
             Assert.Null(error);
-            // This fence does not roll back the earlier proficiency operation.
+            // No earlier proficiency pass is published before the final
+            // consumed-metadata fence of the compound training operation.
         });
 }

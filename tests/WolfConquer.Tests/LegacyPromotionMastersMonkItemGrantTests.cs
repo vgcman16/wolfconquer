@@ -34,14 +34,14 @@ public sealed class LegacyPromotionMastersMonkItemGrantTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 WorldData: CreateWorldDataCatalog(CreateItemType(WhirlwindKickRewardItemId, durability: 123)),
                 Sessions: sessions,
                 PlayerSpellsRoot: spellsRoot,
-                PlayerItemsRoot: itemsRoot),
+                PlayerItemsRoot: itemsRoot), ref session),
             session,
             MonkPromotionNpcId,
             WhirlwindKickOption,
@@ -114,7 +114,7 @@ public sealed class LegacyPromotionMastersMonkItemGrantTests : IDisposable
     }
 
     [Fact]
-    public async Task WhirlwindKickOptionWithoutPlayerItemsRootLogsSessionOnlyGrantAndStillLearnsSpell()
+    public async Task WhirlwindKickOptionWithoutRequiredItemsRootLeavesWholeGrantUnchanged()
     {
         using var log = new StringWriter();
         var sent = new List<byte[]>();
@@ -126,13 +126,13 @@ public sealed class LegacyPromotionMastersMonkItemGrantTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 WorldData: CreateWorldDataCatalog(CreateItemType(WhirlwindKickRewardItemId, durability: 87)),
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             MonkPromotionNpcId,
             WhirlwindKickOption,
@@ -141,26 +141,14 @@ public sealed class LegacyPromotionMastersMonkItemGrantTests : IDisposable
         Assert.True(handled);
         Assert.True(sessions.TryGet(connection, out var updated));
         Assert.NotNull(updated);
-        Assert.Equal([WhirlwindKickSpellId], updated.PlayerSpells.SpellIds.Select(id => (ushort)id).ToArray());
-        Assert.True(updated.PlayerItems.InventoryItems.Count == 2, log.ToString());
-        Assert.Equal(
-            [WhirlwindKickRewardItemId, WhirlwindKickRewardItemId],
-            updated.PlayerItems.InventoryItems.Select(item => item.ItemId).ToArray());
-        Assert.Equal([WhirlwindKickSpellId], new PlayerSpellSnapshotLoader(spellsRoot)
-            .LoadByCharacterUid(CharacterUid)
-            .SpellIds
-            .Select(id => (ushort)id)
-            .ToArray());
-        Assert.Equal(2, ParseGameItemPackets(sent).Count);
-        Assert.Equal([WhirlwindKickSpellId], ParseSpellPackets(sent).Select(packet => packet.Id).ToArray());
-
-        var logText = log.ToString();
-        Assert.Contains(
-            "PARITY-GAP LegacyNpc PromotionMonk WhirlwindKick item grant missing PlayerItemsRoot",
-            logText);
-        Assert.Contains("granted items are session-only", logText);
-        Assert.Contains("WorldServer handled LegacyNpc PromotionMaster skill", logText);
-        Assert.Contains("spellId=10415", logText);
+        Assert.Same(session, updated);
+        Assert.Empty(updated.PlayerSpells.Spells);
+        Assert.Empty(updated.PlayerItems.InventoryItems);
+        Assert.Empty(new PlayerSpellSnapshotLoader(spellsRoot).LoadByCharacterUid(CharacterUid).Spells);
+        Assert.Empty(ParseGameItemPackets(sent));
+        Assert.Empty(ParseSpellPackets(sent));
+        Assert.Empty(sent);
+        Assert.Contains("required PlayerItemsRoot unavailable", log.ToString());
     }
 
     [Fact]
@@ -180,14 +168,14 @@ public sealed class LegacyPromotionMastersMonkItemGrantTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 WorldData: CreateWorldDataCatalog(CreateItemType(WhirlwindKickRewardItemId, durability: 87)),
                 Sessions: sessions,
                 PlayerSpellsRoot: spellsRoot,
-                PlayerItemsRoot: itemsRoot),
+                PlayerItemsRoot: itemsRoot), ref session),
             session,
             MonkPromotionNpcId,
             WhirlwindKickOption,

@@ -69,6 +69,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             MonsterStates: monsterStates,
             SobNpcStates: sobNpcStates,
             FloorItems: floorItems);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
         var query = CreateMagicQuery(
             onLineMonster,
             legacyEncodedQuery: false,

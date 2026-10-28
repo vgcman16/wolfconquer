@@ -125,6 +125,12 @@ public static partial class WorldPacketHandlers
                     initialSession.Character.Uid,
                     itemPath));
         }
+        catch (WorldSessionPublicationException failure)
+        {
+            await LogLegacyPublishedNpcFailureAsync(context, failure, "Labyrinth")
+                .ConfigureAwait(false);
+            return true;
+        }
         catch (Exception exception) when (IsLegacyFrozenGrottoMutationInfrastructureException(exception))
         {
             commit = LegacyFrozenGrottoShadowJadeCommit.Failed(
@@ -301,6 +307,12 @@ public static partial class WorldPacketHandlers
                     initialSession.Character.Uid,
                     itemPath,
                     characterPath));
+        }
+        catch (WorldSessionPublicationException failure)
+        {
+            await LogLegacyPublishedNpcFailureAsync(context, failure, "Labyrinth")
+                .ConfigureAwait(false);
+            return true;
         }
         catch (Exception exception) when (IsLegacyFrozenGrottoMutationInfrastructureException(exception))
         {
@@ -520,18 +532,13 @@ public static partial class WorldPacketHandlers
         {
             sessionCommitted = sessions.TryCompareAndSet(context.Connection, sourceSession, updatedSession);
         }
+        catch (WorldSessionPublicationException)
+        {
+            // Published outcomes never enter compensating rollback.
+            throw;
+        }
         catch (Exception exception) when (IsLegacyFrozenGrottoMutationInfrastructureException(exception))
         {
-            if (sessions.TryGet(context.Connection, out var publishedSession) &&
-                ReferenceEquals(publishedSession, updatedSession))
-            {
-                return LegacyFrozenGrottoShadowJadeCommit.Succeeded(
-                    sourceSession,
-                    updatedSession,
-                    grantedItem,
-                    expectedItemPath);
-            }
-
             TryRollbackLegacyFrozenGrottoItems(expectedItemPath, originalItemBytes, out var rollbackReason);
             return LegacyFrozenGrottoShadowJadeCommit.Failed(
                 sourceSession,
@@ -778,23 +785,13 @@ public static partial class WorldPacketHandlers
         {
             sessionCommitted = sessions.TryCompareAndSet(context.Connection, sourceSession, updatedSession);
         }
+        catch (WorldSessionPublicationException)
+        {
+            // Published outcomes never enter compensating rollback.
+            throw;
+        }
         catch (Exception exception) when (IsLegacyFrozenGrottoMutationInfrastructureException(exception))
         {
-            if (sessions.TryGet(context.Connection, out var publishedSession) &&
-                ReferenceEquals(publishedSession, updatedSession))
-            {
-                return LegacyFrozenGrottoKeyEntryCommit.Succeeded(
-                    sourceSession,
-                    updatedSession,
-                    key.Uid,
-                    sourceStackSize,
-                    updatedStackSize,
-                    itemMutationFrame,
-                    itemMutationPacket,
-                    expectedItemPath,
-                    expectedCharacterPath);
-            }
-
             TryRollbackLegacyFrozenGrottoFiles(
                 expectedItemPath,
                 originalItemBytes,

@@ -130,6 +130,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates,
             SobNpcStates: new SobNpcRuntimeStateStore());
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         var (playerSpell, spell) = ResolveStarArrowRuntimeSpell(session, worldData, StarArrowRuntimeSpellId);
         var (expectedDamage, expectedEffect) = InvokeStarArrowMonsterRangeDamage(
             session,

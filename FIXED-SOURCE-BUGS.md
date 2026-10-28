@@ -4,6 +4,95 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-28 integration regression repairs - focused verification
+
+The isolated exact-public4d9280fe repair candidate built with zero errors. Its
+final regression selection passed520/520; the wider combat, native dispatch,
+trap, Labyrinth, DarkHorn and boss-reward selection passed3557/3557. Both ended0
+with no skipped cases; the selections overlap and are not additive coverage.
+The full public4d9280fe run failed444 core tests. This successor still requires
+its own full Windows CI and staged live acceptance. Scope and limits are in
+[the repair checkpoint](docs/CI-REGRESSION-REPAIR-20261028.md).
+
+### FSB-165: Validate the complete proficiency map before CheckProf
+Reject null/foreign/malformed rows explicitly under the real owner gate instead
+of treating corrupt state as a missing key. Preserve full-width native levels.
+Null-client spell tests now require the existing explicit ArgumentNullException.
+No live-client or SQL claim.
+
+### FSB-166: Retain legitimate unbound training rows and skip unused owners
+Preflight complete spell/proficiency inputs and output frames before scalar
+publication, retain existing producer-held rows/maps when membership is unchanged,
+and avoid inspecting an unused proficiency owner. Bound canonical publication
+remains separate. This proves no new proficiency-file or full cast transaction.
+
+### FSB-167: Preflight Pirate children before the first spell mutation
+Read the whole required child list/table and reject zero IDs before any Jade
+spell prefix. Valid ordering and repeated additions remain. Later sequential
+native writer/transport failures are not a globally atomic batch.
+
+### FSB-168: Reject duplicate paid learning before debit
+Ninja/Monk epic learning uses the actual Character+Spells journal and validates
+duplicates before the2150CP debit. A missing required Monk item route refuses
+before grants. Real-root WhirlwindKick UID reservation/joint item+spell creation
+remains OPEN; the missing-route guard does not close that reward transaction.
+
+### FSB-169: Preserve published outcomes across notification failures
+Concrete Frame persistence retains its actual current Store gate; external
+observers run after their publication scopes. Typed stage/cause/issued identity
+separates historical publication from preparation rejection. Seven NPC rollback
+sites and free/paid/item spell writers suppress compensation/success and fence
+actual recovery after a published failure. Secondary fencing errors remain
+inspectable. A new holder may share a blocked world Recovery. Historical memory
+publication does not prove every sidecar save or global crash-safe atomicity.
+
+### FSB-170: Keep HP and its saved-field projection coherent
+On actual HP changes, prepare the scalar saver's complete field map and apply
+the existing EpicTrojan composite-to-runtime projection. Preserve opaque fields,
+existing composite slots and no-change semantics; keep strict file comparison.
+Other scalar producers and their save-failure semantics remain separate work.
+
+### FSB-171: Preserve valid physical Rune single-unit encodings
+A physical Rune slot accepts native raw StackSize0 or1 without rewriting that
+field and refuses larger stacks pending a separate split transaction. Ownership,
+UID/slot/class/level/lock and journal guards remain. No general zero-stack rule.
+
+### FSB-172: Retain actual recovery owners in runtime equipment queries
+Propagate the Frame's real Trade/Recovery objects into its runtime context so
+rank/Venom spell persistence can complete before later stats/startup output.
+Missing/blocked owners still refuse with diagnostics. This is source/runtime
+context alignment, not a new client-binary or full login acceptance claim.
+
+Fixture-only corrections are not additional source-bug claims: complete saved
+Character fixtures, real loader array representations, nonoverlapping saved
+roots, correct mutation options and correct preparation/observer phase controls.
+
+### FSB-173: Accept valid raw item ordering without weakening the journal
+The loader sorts Rune/child data in memory while ordinary admission retains the
+original raw saved image. Compare the validated parsed projection and complete
+physical item/deposit/perfection records by identity and parent, permitting only
+representable order differences. Preserve exact original bytes for the journal
+and its final before-image check. Unsupported opaque representations still refuse;
+a direct checker test is not a live concurrent-writer interposition.
+
+### FSB-174: Publish converted8418 EagleEye countdown before spell progression
+The countdown produced a new record that had not entered the Store, so the exact
+current-owner spell writer refused legitimate XP. Capture the genuine original
+issuance before callbacks, publish countdown through exact identity+record CAS,
+and use its actual final record. Stale/reissued owners suppress continuation.
+This is scoped to the converted Monster8418 path, not every retaliation/XP caller.
+
+### FSB-175: Carry the actual Shock caster through retaliation and spell saving
+Retain the original issued identity and physical owner before admission awaits.
+The extra-boss magic retaliation path publishes HP by exact CAS and returns the
+actual canonical record to spell progression. The real free writer validates
+that original issuer and physical pins at capture and retains them through its
+existing commit checks. Preserve committed progress on later delivery loss.
+Verified controls cover actual HP4999/EXP160/saved level1, same-UID and same-record
+reissue, a legitimate same-issuance change and postcommit sender loss. Other
+retaliation branches, nested helpers, proficiency/final-animation internals,
+whole-cast atomicity, SQL and live client acceptance remain OPEN.
+
 ## Native spell/proficiency integration — focused qualification
 
 2026-10-28: isolated clean-public-base candidate **2405 passed, zero failures,

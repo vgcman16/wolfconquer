@@ -99,6 +99,8 @@ public sealed class LegacyLayTrap12990RuntimeTests
             Sessions: sessions,
             MonsterStates: monsterStates,
             FloorItems: floorItems);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
         var before = DateTimeOffset.UtcNow;
 
         await PacketHandlers.HandleAsync(
@@ -194,6 +196,8 @@ public sealed class LegacyLayTrap12990RuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             FloorItems: floorItems);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -260,7 +264,8 @@ public sealed class LegacyLayTrap12990RuntimeTests
         IReadOnlyDictionary<string, string>? attributes = null)
     {
         spellIds ??= [LayTrap12990SpellId];
-        var spells = spellEntries ??
+        // Positive component fixtures use the actual loader's closed array representation.
+        var spells = spellEntries?.ToArray() ??
             spellIds
                 .Select(spellId => new PlayerSpellSnapshotEntry(
                     spellId,

@@ -53,6 +53,8 @@ public static partial class WorldPacketHandlers
             return DeliveryIsCurrent(Expected);
         }
 
+        internal bool MatchesIdentity(object expectedIdentity) => ReferenceEquals(identity, expectedIdentity);
+
         internal bool DeliveryIsCurrent(WorldSession expected) => !Recovery.IsBlocked &&
             ReferenceEquals(Context.Connection.NativeGameClient, Native) && ReferenceEquals(expected.NativeGameClient, Native) &&
             (Native is null || Player is not null && ReferenceEquals(Native.Player, Player) &&

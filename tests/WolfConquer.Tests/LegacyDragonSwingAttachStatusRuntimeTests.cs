@@ -28,6 +28,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             session,
             WorldData: worldData,
             Sessions: sessions);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         var beforeCast = DateTimeOffset.UtcNow;
 
         await PacketHandlers.HandleAsync(
@@ -222,6 +224,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,

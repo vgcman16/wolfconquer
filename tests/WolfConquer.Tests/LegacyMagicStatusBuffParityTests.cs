@@ -351,6 +351,8 @@ public sealed class LegacyMagicStatusBuffParityTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: new MonsterRuntimeStateStore());
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,
@@ -595,6 +597,8 @@ public sealed class LegacyMagicStatusBuffParityTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: new MonsterRuntimeStateStore());
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
 
         await PacketHandlers.HandleAsync(
             context,

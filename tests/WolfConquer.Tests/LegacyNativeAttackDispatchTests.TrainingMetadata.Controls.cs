@@ -17,7 +17,7 @@ public sealed partial class LegacyNativeAttackDispatchTests
 
             before.RequireProficiencies(200, 200);
             before.RequirePriorFrames(5);
-            Assert.Equal(new uint[] { 410, 420, 410, 420 }, comparer.Lookups);
+            Assert.Equal(new uint[] { 410, 420 }, comparer.Lookups.OrderBy(id => id));
             Assert.Same(scope.ClientSpell, scope.Native.Storage.ClientSpells[1195]);
             Assert.Equal(600, scope.ClientSpell.Experience);
             Assert.Equal((ushort)0, scope.ClientSpell.Level);
@@ -47,7 +47,7 @@ public sealed partial class LegacyNativeAttackDispatchTests
             before.RequireSpellStateUnchanged();
             before.RequireProficiencies(200, 200);
             before.RequirePriorFrames(4);
-            Assert.Equal(new uint[] { 410, 420, 410, 420 }, comparer.Lookups);
+            Assert.Equal(new uint[] { 410, 420 }, comparer.Lookups.OrderBy(id => id));
             Assert.All(scope.Queue.Skip(before.PriorFrameCount), frame => Assert.Equal((ushort)2199, Opcode(frame)));
             Assert.Null(error);
         });

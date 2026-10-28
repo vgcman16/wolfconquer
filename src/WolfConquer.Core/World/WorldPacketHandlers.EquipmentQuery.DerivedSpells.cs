@@ -71,9 +71,11 @@ public static partial class WorldPacketHandlers
         {
             // Detached loading/component fixtures have no durable Store owner.
             if (Context.Sessions is null) return Commit(current => current with { PlayerSpells = proposed });
-            if (!TryCommitLegacyFreeSpells(Context, Session, proposed, CancellationToken, out var final, out _))
+            if (!TryCommitLegacyFreeSpells(Context, Session, proposed, CancellationToken, out var final, out var reason))
             {
                 Adopt(new(null, Current.RequiredParticipantSession, Current.Loss | LegacyEquipmentQueryPublicationLoss.OwnerLost));
+                Context.Log.WriteLine("WorldServer held native-derived spell membership " +
+                    $"{FormatSession(Context)} reason={reason}.");
                 return false;
             }
             Adopt(RefreshLegacyEquipmentQueryPublication(Context with { Session = final }, final, Request.Scope));

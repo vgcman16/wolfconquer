@@ -17,6 +17,7 @@ public static partial class WorldPacketHandlers
             string.IsNullOrWhiteSpace(context.PlayerItemsRoot) || string.IsNullOrWhiteSpace(context.PlayerSpellsRoot) ||
             !Path.IsPathFullyQualified(context.PlayerItemsRoot) || !Path.IsPathFullyQualified(context.PlayerSpellsRoot)) return false;
         var result = expected; byte[][] output = []; object issuedIdentity = null!; var failure = reason; var durable = false;
+        LegacySpellFileOwner? capturedOwner = null;
         LegacyRuneRankingState.PreparedRuneRankLease? rankLease = null;
         try
         {
@@ -25,6 +26,7 @@ public static partial class WorldPacketHandlers
                 if (!LegacySpellFileOwner.TryCapture(context, expected, paid: true, out var owner, out failure) || owner is null ||
                     !owner.Recovery.IsReadyForCharacterItemsSpells(owner.UsersRoot, context.PlayerItemsRoot, owner.SpellsRoot))
                 { reason = failure; return false; }
+                capturedOwner = owner;
                 if (owner.Native is { } physical && physical.OrdinarySpellBinding is null)
                 { reason = "itemSpellNativeBindingUnavailable"; return false; }
                 var inputs = new LegacySpellMutationInputs(expected, captureItems: true);
@@ -94,6 +96,11 @@ public static partial class WorldPacketHandlers
                 result = published; output = prepared.Frames; issuedIdentity = identity;
             }
             final = result; frames = output; publicationIdentity = issuedIdentity; reason = string.Empty; return true;
+        }
+        catch (WorldSessionPublicationException published)
+        {
+            FenceSpellPublishedOutcome(capturedOwner, published);
+            throw;
         }
         catch (LegacyCommittedSpellPublicationException)
         {

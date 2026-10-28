@@ -31,7 +31,7 @@ public sealed partial class LegacyNativeAttackDispatchTests
     });
 
     [Fact]
-    public Task ProficiencyReentryCannotMakeXpMutateAPreCowSpellRow() => NativePacketTestThread.Run(() =>
+    public Task ProficiencyReentryRefusesTheWholeTrainingBeforeAnyRowOrOutput() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         scope.Attack.AtkType = 0;
@@ -42,18 +42,26 @@ public sealed partial class LegacyNativeAttackDispatchTests
             scope.Native.Storage.Add(scope.Packet, old.ID, Experience: 77));
         scope.Client.MyProfs!.ClientProf = new ConcurrentDictionary<uint, LegacyNativeMsgProficiency>(comparer);
         Assert.True(scope.Client.MyProfs.ClientProf.TryAdd(410, new() { ID = 410, Level = 5 }));
+
+
+        var spell = new LegacyNativeSpellMutationWitness(scope.Native.Storage);
+        var packet = new LegacyNativePacketMutationWitness(scope.Packet);
+        var prof = scope.Client.MyProfs.ClientProf[410];
+        // Arm only after every fixture lookup: the subject must trigger reentry.
         comparer.Arm();
 
-        LegacyNativeUpdateSpell.CheckUpdate(scope.Packet, scope.Client, scope.Attack, 6, scope.Rows);
+        Assert.Throws<InvalidOperationException>(() =>
+            LegacyNativeUpdateSpell.CheckUpdate(scope.Packet, scope.Client, scope.Attack, 6, scope.Rows));
 
         Assert.Equal(0, old.Experience);
         Assert.Equal((ushort)0, old.Level);
         var current = scope.Native.Storage.ClientSpells[old.ID];
-        Assert.NotSame(old, current);
-        Assert.Equal(77, current.Experience);
-        Assert.DoesNotContain(scope.Queue, bytes => Opcode(bytes) == 2101 && NativeSpellTestFixture.ReadSpell(bytes).Experience == 6);
-        // The earlier real proficiency operation is not rolled back or
-        // relabeled a complete transaction by this current-spell-row control.
+        Assert.Same(old, current);
+        Assert.Equal(0, current.Experience);
+        Assert.True(comparer.Triggered);
+        Assert.Equal(0u, prof.Experience);
+        Assert.Same(prof, scope.Client.MyProfs.ClientProf[410]);
+        spell.RequireUnchanged(); packet.RequireUnchanged(); Assert.Empty(scope.Queue);
     });
 
     private sealed class DirectWriterProbeComparer<T> : IEqualityComparer<T> where T : notnull
@@ -61,11 +69,12 @@ public sealed partial class LegacyNativeAttackDispatchTests
         private readonly Action action;
         private bool armed;
         internal DirectWriterProbeComparer(Action action) => this.action = action;
+        internal bool Triggered { get; private set; }
         internal void Arm() => armed = true;
         public bool Equals(T? left, T? right) => EqualityComparer<T>.Default.Equals(left!, right!);
         public int GetHashCode(T value)
         {
-            if (armed) { armed = false; action(); }
+            if (armed) { armed = false; Triggered = true; action(); }
             return EqualityComparer<T>.Default.GetHashCode(value);
         }
     }

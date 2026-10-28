@@ -30,13 +30,15 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 return ValueTask.CompletedTask;
             }, nativeGameClient: client);
             WorldSession? admitted = null;
+            InvalidOperationException? deniedReentry = null;
             var attributes = new NinjaPublicationAttributes(saved.Attributes, trigger, () =>
             {
                 if (!retire) return;
-                // Actual Store API under the real reentrant identity gate, not
-                // reflection, holder replacement, or an accepting publication hook.
-                Assert.True(sessions.TryRemove(connection, out var removed));
-                Assert.Same(admitted, removed);
+                // Actual Store mutation from an input read during preparation is
+                // refused. This is not an after-publication observer callback.
+                deniedReentry = Assert.Throws<InvalidOperationException>(() => sessions.TryRemove(connection, out _));
+                Assert.Equal("ordinarySpellPublicationRequiresCurrentCompleteOwner", deniedReentry.Message);
+                ExceptionDispatchInfo.Capture(deniedReentry).Throw();
             });
             var files = fixture.Files();
             var first = fixture.Sent.Count;
@@ -55,11 +57,21 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 Assert.True(scalars!.TryPublish(sessions, connection, admitted));
                 Assert.Equal(0, attributes.Callbacks);
                 Assert.True(prepared.IsDetachedCurrent());
+                var originalPin = client.OrdinarySpellBinding;
+                var originalNinja = client.MyNinja;
+                var originalSpells = client.MySpells;
+                var originalProficiencies = client.MyProfs;
+                var originalGear = client.CombatGear;
                 var native = JsonSerializer.Serialize(new
                 { player.UID, player.Class, player.ClassExperience, client.FullLoading, client.Fake });
                 attributes.Armed = true;
 
-                Assert.Equal(!retire, prepared.TryPublish(sessions, connection, admitted));
+                if (retire)
+                {
+                    var propagated = Assert.Throws<InvalidOperationException>(() => prepared.TryPublish(sessions, connection, admitted));
+                    Assert.Same(deniedReentry, propagated);
+                }
+                else Assert.True(prepared.TryPublish(sessions, connection, admitted));
 
                 Assert.Equal(1, attributes.Callbacks);
                 Assert.Equal(native, JsonSerializer.Serialize(new
@@ -67,8 +79,16 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 Assert.Same(client, connection.NativeGameClient);
                 if (retire)
                 {
-                    Assert.False(sessions.TryGet(connection, out _));
-                    Assert.Null(client.MyNinja);
+                    Assert.True(sessions.TryGet(connection, out var retained));
+                    Assert.Same(admitted, retained);
+                    Assert.Same(client, retained!.NativeGameClient);
+                    Assert.Same(player, client.Player);
+                    Assert.Same(client, player.Owner);
+                    Assert.Same(originalPin, client.OrdinarySpellBinding);
+                    Assert.Same(originalNinja, client.MyNinja);
+                    Assert.Same(originalSpells, client.MySpells);
+                    Assert.Same(originalProficiencies, client.MyProfs);
+                    Assert.Same(originalGear, client.CombatGear);
                     Assert.True(prepared.IsDetachedCurrent());
                     Assert.False(prepared.IsPublishedCurrent());
                 }

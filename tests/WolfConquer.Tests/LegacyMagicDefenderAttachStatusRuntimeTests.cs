@@ -26,6 +26,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             session,
             WorldData: worldData,
             Sessions: sessions);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref session);
+        context = combatSpellOwner.Context;
         var beforeCast = DateTimeOffset.UtcNow;
 
         await PacketHandlers.HandleAsync(
@@ -73,7 +75,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.True(target.Hit);
         Assert.Equal(MsgAttackEffect.None, target.Effect);
 
-        var spellUpdate = Assert.Single(ParseLegacySpellPackets(sent));
+        var progressFrames = ParseLegacySpellPackets(sent);
+        Assert.True(progressFrames.Count == 1, "Expected exactly one real spell progress frame. Actual handler log:\n" + log);
+        var spellUpdate = Assert.Single(progressFrames);
         Assert.Equal(MagicDefenderAttachStatusSpellId, spellUpdate.Id);
         Assert.Equal(3, spellUpdate.Level);
 
@@ -109,6 +113,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterSession,
             WorldData: worldData,
             Sessions: sessions);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
         var beforeCast = DateTimeOffset.UtcNow;
 
         await PacketHandlers.HandleAsync(

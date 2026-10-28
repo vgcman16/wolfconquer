@@ -41,7 +41,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         ushort spellId,
         int statusFlag)
     {
-        var result = await RunClassicAttachStatusCastAsync(
+        using var result = await RunClassicAttachStatusCastAsync(
             spellId,
             ClassicAttachStatusTargetKind.Monster);
 
@@ -87,7 +87,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         var seededAt = DateTimeOffset.UtcNow;
         var seededStatus = default(LegacyMonsterTimedStatusState);
-        var result = await RunClassicAttachStatusCastAsync(
+        using var result = await RunClassicAttachStatusCastAsync(
             MagicShieldSpellId,
             ClassicAttachStatusTargetKind.Monster,
             arrangeMonster: (states, monster) =>
@@ -135,7 +135,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         ushort spellId,
         int statusFlag)
     {
-        var result = await RunClassicAttachStatusCastAsync(
+        using var result = await RunClassicAttachStatusCastAsync(
             spellId,
             ClassicAttachStatusTargetKind.Unknown);
 
@@ -176,7 +176,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         string removeOnDeadAttribute,
         bool selfTarget)
     {
-        var result = await RunClassicAttachStatusCastAsync(
+        using var result = await RunClassicAttachStatusCastAsync(
             spellId,
             selfTarget
                 ? ClassicAttachStatusTargetKind.Self
@@ -233,7 +233,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public async Task HandlerRequestEntityReplaysActiveClassicMonsterStatusInSpawnVector()
     {
         using var requestLog = new StringWriter();
-        var result = await RunClassicAttachStatusCastAsync(
+        using var result = await RunClassicAttachStatusCastAsync(
             ClassicAttachStatusStigmaSpellId,
             ClassicAttachStatusTargetKind.Monster);
         result.CasterSent.Clear();
@@ -514,6 +514,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             MonsterStates: monsterStates);
+        var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
 
         var (opponentUid, x, y) = targetKind switch
         {
@@ -553,7 +555,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             targetSent,
             beforeCast,
             afterCast,
-            log.ToString());
+            log.ToString(), combatSpellOwner);
     }
 
     private static WorldDataCatalog CreateClassicAttachStatusCatalog(
@@ -694,5 +696,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         List<byte[]> TargetSent,
         DateTimeOffset BeforeCast,
         DateTimeOffset AfterCast,
-        string Log);
+        string Log, LegacyCombatSpellTestOwner SpellOwner) : IDisposable
+    {
+        public void Dispose() => SpellOwner.Dispose();
+    }
 }

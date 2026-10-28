@@ -120,6 +120,12 @@ public static partial class WorldPacketHandlers
                     initialSession.Character.Uid,
                     characterPath));
         }
+        catch (WorldSessionPublicationException failure)
+        {
+            await LogLegacyPublishedNpcFailureAsync(context, failure, "Labyrinth")
+                .ConfigureAwait(false);
+            return true;
+        }
         catch (Exception exception) when (IsLegacySimonEntryInfrastructureException(exception))
         {
             commit = LegacySimonVirtueEntryCommit.Failed(
@@ -299,6 +305,12 @@ public static partial class WorldPacketHandlers
                     initialSession.Character.Uid,
                     itemPath,
                     characterPath));
+        }
+        catch (WorldSessionPublicationException failure)
+        {
+            await LogLegacyPublishedNpcFailureAsync(context, failure, "Labyrinth")
+                .ConfigureAwait(false);
+            return true;
         }
         catch (Exception exception) when (IsLegacySimonEntryInfrastructureException(exception))
         {
@@ -510,19 +522,13 @@ public static partial class WorldPacketHandlers
         {
             sessionCommitted = sessions.TryCompareAndSet(context.Connection, sourceSession, updatedSession);
         }
+        catch (WorldSessionPublicationException)
+        {
+            // Published outcomes never enter compensating rollback.
+            throw;
+        }
         catch (Exception exception) when (IsLegacySimonEntryInfrastructureException(exception))
         {
-            if (sessions.TryGet(context.Connection, out var publishedSession) &&
-                ReferenceEquals(publishedSession, updatedSession))
-            {
-                return LegacySimonVirtueEntryCommit.Succeeded(
-                    sourceSession,
-                    updatedSession,
-                    sourceVirtutePoints,
-                    updatedVirtutePoints,
-                    expectedCharacterPath);
-            }
-
             TryRollbackLegacySimonEntryCharacter(
                 expectedCharacterPath,
                 originalCharacterBytes,
@@ -761,20 +767,13 @@ public static partial class WorldPacketHandlers
         {
             sessionCommitted = sessions.TryCompareAndSet(context.Connection, sourceSession, updatedSession);
         }
+        catch (WorldSessionPublicationException)
+        {
+            // Published outcomes never enter compensating rollback.
+            throw;
+        }
         catch (Exception exception) when (IsLegacySimonEntryInfrastructureException(exception))
         {
-            if (sessions.TryGet(context.Connection, out var publishedSession) &&
-                ReferenceEquals(publishedSession, updatedSession))
-            {
-                return LegacySimonMeteorEntryCommit.Succeeded(
-                    sourceSession,
-                    updatedSession,
-                    itemMutationFrames,
-                    itemOperations,
-                    expectedItemPath,
-                    expectedCharacterPath);
-            }
-
             TryRollbackLegacySimonEntryFiles(
                 expectedItemPath,
                 originalItemBytes,

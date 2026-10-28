@@ -36,7 +36,11 @@ public sealed partial class WorldServerFrameHandler
             TeleportTerrain: _teleportTerrain,
             TimeProvider: _runtimeUpdateLoop.TimeProvider ?? TimeProvider.System,
             LegacyClock: _runtimeUpdateLoop.LegacyClock ?? LegacySignedMillisecondClock.System,
-                TournamentWatcherHolders: _tournamentWatcherHolders);
+            TournamentWatcherHolders: _tournamentWatcherHolders)
+        {
+            Trades = _tradeStates,
+            TradeRecovery = _tradeRecovery,
+        };
     }
 
     private async ValueTask SendDueFloorSpellEffectsAsync(

@@ -44,3 +44,9 @@ differences must not be represented as exact original-runtime behavior.
 Existing compatibility cipher constants remain part of the published wire codec;
 they are not account credentials or a security boundary. Clearing the new native
 configuration fields does not remove those pre-existing protocol constants.
+
+The2026-10-28 integration regression repair imports reviewed replacement C# code,
+synthetic/owned test fixtures and concise public verification notes only. It adds
+no game assets, original saved characters, patch packages, capture bodies, account
+credentials, deployment configuration or private operational handoffs. Focused
+local passes and pending exact-public CI remain distinct from live acceptance.

@@ -45,12 +45,12 @@ public sealed class LegacyPromotionMastersMonkEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             MonkPromotionNpcId,
             optionId,
@@ -105,12 +105,12 @@ public sealed class LegacyPromotionMastersMonkEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             MonkPromotionNpcId,
             optionId,
@@ -141,7 +141,7 @@ public sealed class LegacyPromotionMastersMonkEpicSkillTests : IDisposable
 
     [Theory]
     [MemberData(nameof(EpicSkills))]
-    public async Task EpicSkillOptionAlreadyLearnedStillDebitsConquerPointsWithoutDuplicatingSpell(
+    public async Task EpicSkillOptionAlreadyLearnedDoesNotDebitConquerPointsOrDuplicate(
         byte optionId,
         ushort spellId,
         string spellName,
@@ -164,12 +164,12 @@ public sealed class LegacyPromotionMastersMonkEpicSkillTests : IDisposable
         sessions.Set(connection, session);
 
         var handled = await WorldPacketHandlers.TryHandleLegacyPromotionMastersNpcAsync(
-            new WorldPacketHandlerContext(
+            LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection,
                 log,
                 Session: session,
                 Sessions: sessions,
-                PlayerSpellsRoot: spellsRoot),
+                PlayerSpellsRoot: spellsRoot), ref session),
             session,
             MonkPromotionNpcId,
             optionId,
@@ -178,15 +178,15 @@ public sealed class LegacyPromotionMastersMonkEpicSkillTests : IDisposable
         Assert.True(handled);
         Assert.True(sessions.TryGet(connection, out var updated));
         Assert.NotNull(updated);
-        Assert.Equal(850, updated.Character.ConquerPoints);
+        Assert.Equal(3_000, updated.Character.ConquerPoints);
+        Assert.Same(session, updated);
         Assert.Equal([(uint)spellId], updated.PlayerSpells.SpellIds.ToArray());
-        Assert.Equal(850, LoadPersistedCharacter(usersRoot).ConquerPoints);
+        Assert.Equal(3_000, LoadPersistedCharacter(usersRoot).ConquerPoints);
         Assert.Equal([(uint)spellId], new PlayerSpellSnapshotLoader(spellsRoot)
             .LoadByCharacterUid(CharacterUid)
             .SpellIds
             .ToArray());
-        Assert.Contains(ParseMsgUpdates(sent), packet => packet.Updates.Any(
-            entry => entry.Type == LegacyMsgUpdateDataType.ConquerPoints && entry.Value == 850));
+        Assert.Empty(ParseMsgUpdates(sent));
         Assert.Empty(ParseSpellPackets(sent));
         var replies = ParseNpcReplies(sent);
         AssertReply(replies, $"You`ve learned {spellName}!");
@@ -198,7 +198,7 @@ public sealed class LegacyPromotionMastersMonkEpicSkillTests : IDisposable
         Assert.Contains("sourceRange=" + sourceRange, logText);
         Assert.Contains("option=" + optionId, logText);
         Assert.Contains("spellId=" + spellId, logText);
-        Assert.Contains("already learned costConquerPoints=" + EpicSkillCost, logText);
+        Assert.Contains("already learned costConquerPoints=0", logText);
         Assert.DoesNotContain("PARITY-GAP", logText);
     }
 
@@ -216,7 +216,7 @@ public sealed class LegacyPromotionMastersMonkEpicSkillTests : IDisposable
         string? usersRoot = null)
     {
         return new WorldSession(
-            AccountId: 100,
+            AccountId: CharacterUid,
             Username: "monk-epic-skill-test",
             Character: new CharacterSnapshot(
                 Uid: CharacterUid,

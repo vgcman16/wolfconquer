@@ -1,5 +1,16 @@
 # Publication validation
 
+## Latest integration regression repair - full successor CI pending
+
+The exact-public4d9280fe-derived repair candidate built with zero errors, passed
+520/520 focused regressions and3557/3557 wider combat/reward cases, no failures
+or skips. Selections overlap; see [scope and limits](docs/CI-REGRESSION-REPAIR-20261028.md).
+The preceding full [4d9280fe run40683372742](https://github.com/vgcman16/wolfconquer/actions/runs/40683372742)
+FAILED: Core28755 passed/444 failed; Updater446 passed; launcher/parsers not reached.
+This imported successor requires its own exact-public full gate and live acceptance.
+The sections below retain prior bounded/historical outcomes.
+
+
 ## Latest prestige calculation and wardrobe ownership qualification
 
 Character prestige/effect rebuilds now prepare valid results before client/rank

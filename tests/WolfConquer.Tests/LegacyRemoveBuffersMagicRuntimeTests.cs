@@ -350,6 +350,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             WorldData: worldData,
             Sessions: sessions,
             TeamStates: teamStates);
+        using var combatSpellOwner = new LegacyCombatSpellTestOwner(context, ref casterSession);
+        context = combatSpellOwner.Context;
         var frame = ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
             Uid: PlayerUid,
             OpponentUid: opponentUid,

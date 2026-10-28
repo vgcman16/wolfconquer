@@ -55,13 +55,19 @@ public sealed partial class LegacyInventorySashUpgradeTests
             var native = new LegacyNativeGameClientRuntime(); // Actual constructor owner before transport, no queue injection.
             Assert.Same(native, native.Player.Owner);
             Assert.Equal(0U, native.Player.UID);
-            Connection = new(null, new IPEndPoint(IPAddress.Loopback, 9958), (frame, _) =>
+            ConquerTcpConnection? actualConnection = null;
+            actualConnection = new(null, new IPEndPoint(IPAddress.Loopback, 9958), (frame, _) =>
             {
                 var bytes = frame.ToArray();
                 fixture.Sent.Add(bytes);
                 SendObserver?.Invoke(bytes);
                 return ValueTask.CompletedTask;
+            }, disconnectAsync: token =>
+            {
+                token.ThrowIfCancellationRequested();
+                return new ValueTask(actualConnection!.CompleteTransportCloseAsync());
             }, nativeGameClient: native);
+            Connection = actualConnection;
             await FrameAsync(new LegacyMsgLoginGamePacket(checked((uint)fixture.Account)).ToFrameBytes());
             return native;
         }

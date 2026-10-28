@@ -45,22 +45,55 @@ public sealed partial class LegacyNativeMyCombatGearPirateTests
         var weapon = PirateWeapon();
         weapon.BlackJades = [new Gear.BlackJade(71, 0), new Gear.BlackJade(72, 0)];
         Jade(24, 17001007, 24, 17002009);
-        LegacyNativeDaoqiDictTypeTable.Info[72] = new() { attr_type1 = 1, attr_value1 = 19001005, attr_type2 = 24, attr_value2 = 0 };
+        LegacyNativeDaoqiDictTypeTable.Info[72] = new() { attr_type1 = 1, attr_value1 = 19001005, attr_type2 = 24, attr_value2 = 17003000 };
         Skills(weapon, [0, 18001003, 18002099, 0]);
         current.Items[Gear.TypeID.Dragonhowl] = weapon; // Pirate value, non-Pirate dictionary key.
 
         caller.IsPirate(1);
 
-        Added(fixture.Queue, (17001, 7), (17002, 9), (0, 0), (18001, 3), (18002, 99), (21540, 0), (21920, 0));
+        Added(fixture.Queue, (17001, 7), (17002, 9), (17003, 0), (18001, 3), (18002, 99), (21540, 0), (21920, 0));
         Assert.Equal(7, fixture.Storage.ClientSpells.Count);
         Assert.False(fixture.Storage.ClientSpells.ContainsKey(19001));
-        Assert.Equal((ushort)0, fixture.Storage.ClientSpells[0].ID); // Type24/value0 is NOT a native skip.
+        Assert.Equal((ushort)17003, fixture.Storage.ClientSpells[17003].ID);
+        Assert.False(fixture.Storage.ClientSpells.ContainsKey(0));
         Assert.All(fixture.Storage.ClientSpells.Values, spell =>
         {
             Assert.Equal(0, spell.Experience);
             Assert.Equal((byte)0, spell.SoulLevel);
             Assert.Equal((byte)0, spell.PreviousLevel);
         });
+    });
+
+    [Theory]
+    [InlineData((byte)1)]
+    [InlineData((byte)0)]
+    public Task LaterZeroJadeSpellRefusesBeforeTheValidPrefixOrAnyNativeOutput(byte mode) => NativePacketTestThread.Run(() =>
+    {
+        using var tables = new NativeCombatGearQueryScope();
+        using var fixture = new NativeSpellTestFixture();
+        fixture.Storage.Add(fixture.Packet, 12345, 7);
+        Seed(fixture.Storage, 17001); Seed(fixture.Storage, 17002);
+        var (caller, current) = GearOwners(fixture);
+        var weapon = PirateWeapon();
+        weapon.BlackJades = [new Gear.BlackJade(71, 0), new Gear.BlackJade(72, 0)];
+        Jade(24, 17001007, 24, 17002009);
+        LegacyNativeDaoqiDictTypeTable.Info[72] = new() { attr_type1 = 24, attr_value1 = 0 };
+        Skills(weapon, [18001003]);
+        current.Items[Gear.TypeID.Pirate2] = weapon;
+        var spell = new LegacyNativeSpellMutationWitness(fixture.Storage);
+        var packet = new LegacyNativePacketMutationWitness(fixture.Packet);
+        var frames = fixture.Queue.ToArray();
+        var bytes = frames.Select(frame => frame.ToArray()).ToArray();
+
+        Assert.Throws<InvalidOperationException>(() => caller.IsPirate(mode));
+
+        spell.RequireUnchanged(); packet.RequireUnchanged();
+        Assert.Equal(frames.Length, fixture.Queue.Count);
+        for (int index = 0; index < frames.Length; index++)
+        {
+            Assert.Same(frames[index], fixture.Queue.ElementAt(index));
+            Assert.Equal(bytes[index], fixture.Queue.ElementAt(index));
+        }
     });
 
     [Fact]
