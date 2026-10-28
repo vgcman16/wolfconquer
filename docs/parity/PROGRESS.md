@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-28**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `639dff2391827f7af74cc94565456d178cde5822` (short: `639dff239182`).
+Source commit: `357cbad959416efbda8d7a9f5e763a8c52d76aaa` (short: `357cbad95941`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -22,7 +22,7 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | Current public build live-client acceptance | planned | Exact public224f1eb5 passed full Windows40646084998: Core29,039 Passed/164 existing NotExecuted, Updater434, Launcher57, synthetic receipt parsers20+13, all8steps0. FullAccount focused354 per copy and2 final public staging controls also pass. Current-public live-client acceptance and full-client distribution remain unverified. |
 | Complete English client | in-progress | Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete. |
 | Newer-client-only parity | in-progress | Official patches through7935 are downloaded/extracted privately. Separate2132codec, Echo request/catalog transform/threshold selection and item2350reader/writer have focused proof. The102-case writer run includes37 existing-schema controls, not extra patch coverage. No default7935 activation, real state/cost/save join or actual7935 client acceptance. Not estimated. |
-| Public full-client download and updates | in-progress | Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet. |
+| Public full-client download and updates | in-progress | Windows x64 launcher/updater tooling preview launcher-preview-20261028 is published; anonymous HTTPS ZIP/checksum downloads match the locally checked nine-file package. No game assets, bootstrap configuration or real client feed is included. The sanitized full-client package, portable configuration and download/update/recovery acceptance remain open. |
 
 ## Legacy-server domains
 
