@@ -99,6 +99,10 @@ English coverage, distribution or 7935 compatibility.
 - [ ] Curated full-client package, signed real feed, fresh download/patch/recovery,
   verified links and final forum post.
 
+A [launcher/updater tooling preview](LAUNCHER-PREVIEW-20261028.md) is now published
+and its anonymous HTTPS ZIP/checksum downloads match the tested local package.
+It includes no game client or feed.
+
 Distribution and forum publication remain **HELD**. Original saves, routes,
 restore material and live sessions remain preserved.
 

@@ -88,7 +88,7 @@
       "id": "distribution",
       "title": "Public full-client download and updates",
       "status": "in-progress",
-      "detail": "Signed updater and original-art launcher tooling are published. No official full-client package/feed is published yet."
+      "detail": "Windows x64 launcher/updater tooling preview launcher-preview-20261028 is published; anonymous HTTPS ZIP/checksum downloads match the locally checked nine-file package. No game assets, bootstrap configuration or real client feed is included. The sanitized full-client package, portable configuration and download/update/recovery acceptance remain open."
     }
   ]
 }

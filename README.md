@@ -30,6 +30,10 @@ The current target is Chinese client7899 / cached DX8 D13. English resource
 tools and [configuration-decoding prerequisites](docs/CLIENT-RESOURCE-TOOLS.md)
 remain separate from complete English or portable-client acceptance.
 
+A downloadable [Windows launcher/updater tooling preview](https://github.com/vgcman16/wolfconquer/releases/tag/launcher-preview-20261028) is available.
+It contains no game client, configuration or feed. See
+[package contents and actual checks](docs/LAUNCHER-PREVIEW-20261028.md).
+
 [Explicit saved-state startup and disposable fixture CLI](docs/OWNED-ADMISSION.md)
 opens only a configured existing UID domain; it does not register an account or
 complete native login.

@@ -2,6 +2,11 @@
 
 Status: experimental Windows tooling. There is **no official full-client download feed published yet**. The game assets, account data, private configuration, saves and signing keys are not included in this repository. Chinese client7899 / cached DX8 D13 is the current investigation target; this does not establish compatibility with every7899 executable or a finished English client.
 
+[Download the Windows x64 tooling preview](https://github.com/vgcman16/wolfconquer/releases/tag/launcher-preview-20261028).
+The [package guide](LAUNCHER-PREVIEW-20261028.md) records its exact contents,
+checksum, runtime requirement and public-download check. It is not a game-client
+package and includes no bootstrap configuration or feed.
+
 The standalone `WolfConquer.Updater` does not depend on or start the game servers. Its automated tests exercise synthetic clients and real temporary Git repositories. They are not real-client login proof.
 
 Future publishing also enforces the planner/stager filename quarantine at the
