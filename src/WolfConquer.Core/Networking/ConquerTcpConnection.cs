@@ -26,6 +26,9 @@ public sealed class ConquerTcpConnection
 
     public EndPoint? RemoteEndPoint { get; }
 
+    internal bool HasSendRoute => _sendAsync is not null;
+    internal bool HasDisconnectRoute => _disconnectAsync is not null;
+
     // Only the actual native-game birth producer supplies this. No lazy transport/session inference.
     public WolfConquer.Core.World.LegacyNativeGameClientRuntime? NativeGameClient { get; }
 

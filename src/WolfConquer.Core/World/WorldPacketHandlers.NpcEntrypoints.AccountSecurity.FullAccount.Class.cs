@@ -9,234 +9,98 @@ public static partial class WorldPacketHandlers
     private const string LegacyFullAccountClassError = "Error..!";
 
     private static async ValueTask ApplyLegacyAccountSecurityFullAccountClassAsync(
-        WorldPacketHandlerContext context,
-        WorldSession session,
-        byte optionId,
-        CancellationToken cancellationToken)
+        WorldPacketHandlerContext context, WorldSession session, byte optionId, CancellationToken cancellationToken)
     {
-        if (!LegacyFullAccountClassGrants.TryGetValue(optionId, out var grant))
-        {
-            return;
-        }
-
-        if (session.Character.Class is < 0 or > uint.MaxValue ||
-            session.Character.Reborn is < 0 or > byte.MaxValue ||
-            session.Character.Level is < 0 or > ushort.MaxValue)
-        {
-            await LogLegacyFullAccountClassFenceAsync(context, optionId, grant, "class-gate-scalar-out-of-range")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if ((session.Character.Reborn != 0 && session.Character.Level != 1) ||
-            IsLegacyFullAccountClassFamily(session.Character.Class, grant))
-        {
-            await context.Connection.SendAsync(
-                    LegacyNpcReplyPacket.ForMessageBox(LegacyFullAccountClassError).ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped LegacyNpc AccountSecurity FullAccount class reset " +
-                    $"{FormatSession(context)} source={LegacyAccountSecurityFullAccountSource} " +
-                    $"sourceLines={LegacyAccountSecurityFullAccountSourceLines} optionId={optionId} " +
-                    $"target={grant.Name} reason=source-gate error={LegacyFullAccountClassError}.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (context.Sessions is not { } sessions)
-        {
-            await LogLegacyFullAccountClassFenceAsync(context, optionId, grant, "session-store-missing")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(session.UsersRoot))
-        {
-            await LogLegacyFullAccountClassFenceAsync(context, optionId, grant, "users-root-missing")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(context.PlayerSpellsRoot))
-        {
-            await LogLegacyFullAccountClassFenceAsync(context, optionId, grant, "player-spells-root-missing")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (session.Character.Level != LegacyFullAccountClassTargetLevel && context.WorldData is null)
-        {
-            await LogLegacyFullAccountClassFenceAsync(context, optionId, grant, "world-data-missing-for-update-level")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (!TryCreateLegacyFullAccountClassProjection(
-                context,
-                session,
-                grant,
-                out var projection,
-                out var projectionReason))
-        {
-            await LogLegacyFullAccountClassFenceAsync(context, optionId, grant, projectionReason)
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var updatedSession = session with
-        {
-            Character = projection.UpdatedCharacter,
-            PlayerSpells = projection.UpdatedSpells,
-        };
-        var characterValues = CreateLegacyFullAccountClassPersistenceValues(projection.UpdatedCharacter);
-
+        if (!LegacyFullAccountClassGrants.TryGetValue(optionId, out var grant)) return;
         cancellationToken.ThrowIfCancellationRequested();
-        if (!TryPersistLegacyFullAccountClassMutation(
-                context,
-                updatedSession,
-                characterValues,
-                out var persistenceReason))
+        if (session.Character is null)
+        { await context.Log.WriteLineAsync("WorldServer refused FullAccount class reset: character state is missing.").ConfigureAwait(false); return; }
+        if (session.Character.Class is < 0 or > uint.MaxValue || session.Character.Reborn is < 0 or > byte.MaxValue ||
+            session.Character.Level is < 0 or > ushort.MaxValue)
+        { await LogLegacyFullAccountClassFenceAsync(context, optionId, grant, "class-gate-scalar-out-of-range").ConfigureAwait(false); return; }
+        if ((session.Character.Reborn != 0 && session.Character.Level != 1) || IsLegacyFullAccountClassFamily(session.Character.Class, grant))
         {
-            await LogLegacyFullAccountClassFenceAsync(context, optionId, grant, persistenceReason)
+            await context.Connection.SendAsync(LegacyNpcReplyPacket.ForMessageBox(LegacyFullAccountClassError).ToFrameBytes(), cancellationToken)
                 .ConfigureAwait(false);
+            await context.Log.WriteLineAsync("WorldServer skipped LegacyNpc AccountSecurity FullAccount class reset " +
+                $"{FormatSession(context)} source={LegacyAccountSecurityFullAccountSource} sourceLines={LegacyAccountSecurityFullAccountSourceLines} " +
+                $"optionId={optionId} target={grant.Name} reason=source-gate error={LegacyFullAccountClassError}.").ConfigureAwait(false);
             return;
         }
 
-        sessions.Set(context.Connection, updatedSession);
-        var updatedContext = context with { Session = updatedSession };
-        var uid = CheckedUInt32(projection.UpdatedCharacter.Uid, nameof(projection.UpdatedCharacter.Uid));
-
-        foreach (var update in CreateLegacyFullAccountInitialStatUpdates(uid, projection.InitialCharacter))
+        LegacyFullAccountClassPrepared? prepared = null;
+        var committed = false;
+        var recoveryRequired = false;
+        var reason = "fullAccountClassOwnerUnavailable";
+        if (context.Trades is { } trades && context.Sessions is { } sessions)
         {
-            await context.Connection.SendAsync(update.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-        }
-
-        foreach (var spellId in projection.RemovedSpellIds)
-        {
-            await context.Connection.SendAsync(
-                    new MsgActionPacket
-                    {
-                        ObjId = uid,
-                        DwParam = spellId,
-                        Type = LegacyFullAccountClassRemoveSpellAction,
-                    }.ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        if (projection.LevelChanged)
-        {
-            await context.Connection.SendAsync(
-                    LegacyMsgUpdatePacket
-                        .CreateLegacyRuntimeLevelUpdate(uid, checked((ulong)LegacyFullAccountClassTargetLevel))
-                        .ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            await SendFrameToPlayerAndVisiblePeersAsync(
-                    updatedContext,
-                    context.Connection,
-                    updatedSession,
-                    new MsgActionPacket
-                    {
-                        ObjId = uid,
-                        Type = LegacyFullAccountClassLevelAction,
-                        PositionX = checked((uint)LegacyFullAccountClassTargetLevel),
-                    }.ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            if (projection.SendLevelSourceStats)
+            // Frame owns its world-operation lease. Follow the actual trade
+            // writer order: party -> Store -> actual actor/PIN -> file paths.
+            lock (trades.SyncRoot)
             {
-                foreach (var update in CreateLegacyFullAccountLevelSourceStatUpdates(uid, projection.LeveledCharacter))
+                try
                 {
-                    await context.Connection.SendAsync(update.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+                    if (LegacyFullAccountClassOwner.TryCapture(context, session, out var owner, out reason))
+                    {
+                        prepared = new(owner!, grant);
+                        var currentPlan = prepared;
+                        reason = "fullAccountClassCurrentSessionChanged";
+                        committed = sessions.TryCommitSession(context.Connection, session, currentPlan.Updated,
+                            () => currentPlan.TryPersist(cancellationToken, out reason));
+                        recoveryRequired = prepared.DurableCommitted || reason.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal);
+                        if (!committed && recoveryRequired)
+                            owner!.Recovery.Block(LegacyTradeJournal.RecoveryRequired + ":fullAccountClassPublicationUnproven:" + reason);
+                    }
+                }
+                catch (Exception error) when (IsLegacyFullAccountClassPreparationFailure(error))
+                {
+                    recoveryRequired = prepared?.DurableCommitted == true ||
+                        reason.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal);
+                    reason = !recoveryRequired && error is FullAccountClassRefusal refusal ? refusal.Message :
+                        (recoveryRequired ? LegacyTradeJournal.RecoveryRequired + ":fullAccountClass:" : "fullAccountClassPreparation:") + error.GetType().Name;
+                    if (recoveryRequired) context.TradeRecovery?.Block(reason);
                 }
             }
-            else if (projection.LevelAttributePointsAdded != 0)
-            {
-                await context.Connection.SendAsync(
-                        LegacyMsgUpdatePacket
-                            .CreateLegacyRuntimeAttributePointsUpdate(
-                                uid,
-                                CheckedUInt64(
-                                    projection.LeveledCharacter.AttributePoints,
-                                    nameof(projection.LeveledCharacter.AttributePoints)))
-                            .ToFrameBytes(),
-                        cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            var preHealHitpoints = Math.Min(
-                session.Character.MinHitPoints,
-                projection.LeveledCharacter.MinHitPoints);
-            var preHealSession = session with
-            {
-                Character = WithLegacyFullAccountClassAttributes(
-                    projection.LeveledCharacter with { MinHitPoints = preHealHitpoints }),
-            };
-            await SendLegacyEquipmentRuntimeRefreshAsync(
-                    context with { Session = preHealSession },
-                    preHealSession,
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            var maxHitpoints = CheckedUInt32(
-                projection.LeveledCharacter.MinHitPoints,
-                nameof(projection.LeveledCharacter.MinHitPoints));
-            foreach (var update in LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(
-                         uid,
-                         maxHitpoints,
-                         maxHitpoints))
-            {
-                await context.Connection.SendAsync(update.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-            }
         }
+        else if (context.Sessions is null) reason = "session-store-missing";
 
-        await context.Connection.SendAsync(
-                new LegacyMsgUpdatePacket(
-                    uid,
-                    [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Class, grant.TargetClass)]).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        foreach (var spell in projection.AddedSpellPackets)
+        if (!committed || prepared is null)
         {
-            await context.Connection.SendAsync(
-                    LegacySpellPacket.FromSnapshot(spell).ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            if (recoveryRequired)
+                await context.Log.WriteLineAsync("WorldServer held LegacyNpc AccountSecurity FullAccount class reset for recovery " +
+                    $"{FormatSession(context)} optionId={optionId} target={grant.Name} reason={reason}; durable outcome is not an unchanged rejection.")
+                    .ConfigureAwait(false);
+            else await LogLegacyFullAccountClassFenceAsync(context, optionId, grant, reason).ConfigureAwait(false);
+            return;
         }
 
-        await context.Connection.DisconnectAsync(cancellationToken).ConfigureAwait(false);
-        await context.Log.WriteLineAsync(
-                "WorldServer applied LegacyNpc AccountSecurity FullAccount class reset " +
-                $"{FormatSession(updatedContext)} source={LegacyAccountSecurityFullAccountSource} " +
-                $"sourceLines={LegacyAccountSecurityFullAccountSourceLines} optionId={optionId} " +
-                $"target={grant.Name} class={session.Character.Class}->{grant.TargetClass} " +
-                $"level={session.Character.Level}->{LegacyFullAccountClassTargetLevel} " +
-                $"reborn={session.Character.Reborn}->2 attributes={session.Character.AttributePoints}->" +
-                $"{projection.UpdatedCharacter.AttributePoints} explicitBonus={LegacyFullAccountClassAttributeBonus} " +
-                $"levelBonus={projection.LevelAttributePointsAdded} clearSpells={grant.ClearExistingSpells} " +
-                $"removed={projection.RemovedSpellIds.Count} addPackets={projection.AddedSpellPackets.Count} " +
-                $"persistedSpells={projection.UpdatedSpells.Spells.Count} disconnected=true " +
-                "wire=7899 packetOrder=Stats,RemoveSpell*,Level,Action92,LevelStatsOrAttributes," +
-                "Equipment,Hitpoints,Class,Spell*,Disconnect.")
+        // No precommit catch covers transport/close/log work. A failure here
+        // retains the committed files and current session.
+        if (!await prepared.PublishAsync(cancellationToken).ConfigureAwait(false))
+        {
+            await context.Log.WriteLineAsync($"WorldServer committed FullAccount class reset; publication retired optionId={optionId} disconnected=false.")
+                .ConfigureAwait(false);
+            return;
+        }
+        await context.Log.WriteLineAsync("WorldServer applied LegacyNpc AccountSecurity FullAccount class reset " +
+            $"{FormatSession(context with { Session = prepared.Updated })} source={LegacyAccountSecurityFullAccountSource} " +
+            $"sourceLines={LegacyAccountSecurityFullAccountSourceLines} optionId={optionId} target={grant.Name} " +
+            $"class={session.Character.Class}->{grant.TargetClass} level={session.Character.Level}->{LegacyFullAccountClassTargetLevel} " +
+            $"reborn={session.Character.Reborn}->2 attributes={session.Character.AttributePoints}->{prepared.Projection.UpdatedCharacter.AttributePoints} " +
+            $"explicitBonus={LegacyFullAccountClassAttributeBonus} levelBonus={prepared.Projection.LevelAttributePointsAdded} " +
+            $"clearSpells={grant.ClearExistingSpells} removed={prepared.Projection.RemovedSpellIds.Count} " +
+            $"addPackets={prepared.Projection.AddedSpellPackets.Count} persistedSpells={prepared.Projection.UpdatedSpells.Spells.Count} " +
+            "disconnected=true wire=7899 packetOrder=Stats,RemoveSpell*,Level,Action92,LevelStatsOrAttributes,Equipment,Hitpoints,Class,Spell*,Disconnect.")
             .ConfigureAwait(false);
     }
 
-    private static Task LogLegacyFullAccountClassFenceAsync(
-        WorldPacketHandlerContext context,
-        byte optionId,
-        LegacyFullAccountClassGrant grant,
-        string reason)
-    {
-        return context.Log.WriteLineAsync(
-            "PARITY-GAP LegacyNpc AccountSecurity FullAccount class reset " +
-            $"{FormatSession(context)} source={LegacyAccountSecurityFullAccountSource} " +
-            $"sourceLines={LegacyAccountSecurityFullAccountSourceLines} optionId={optionId} " +
-            $"target={grant.Name} reason={reason}; no character, spell, session, packet, or disconnect mutation was committed.");
-    }
+    private static bool IsLegacyFullAccountClassPreparationFailure(Exception error) => error is IOException or
+        UnauthorizedAccessException or ArgumentException or NotSupportedException or InvalidOperationException or
+        FormatException or OverflowException or System.Security.SecurityException;
 
+    private static Task LogLegacyFullAccountClassFenceAsync(WorldPacketHandlerContext context, byte optionId,
+        LegacyFullAccountClassGrant grant, string reason) => context.Log.WriteLineAsync(
+            "PARITY-GAP LegacyNpc AccountSecurity FullAccount class reset " +
+            $"{FormatSession(context)} source={LegacyAccountSecurityFullAccountSource} sourceLines={LegacyAccountSecurityFullAccountSourceLines} " +
+            $"optionId={optionId} target={grant.Name} reason={reason}; no character, spell, session, packet, or disconnect mutation was committed.");
 }

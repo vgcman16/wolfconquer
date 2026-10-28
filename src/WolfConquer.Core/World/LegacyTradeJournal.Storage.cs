@@ -9,6 +9,7 @@ internal static partial class LegacyTradeJournal
         internal string? Quests { get; init; }
         internal string? Mailbox { get; init; }
         internal string? CombatGear { get; init; }
+        internal string? Spells { get; init; }
         internal LegacyOrdinaryAdmissionRoots? Admission { get; init; }
     }
 
@@ -27,6 +28,8 @@ internal static partial class LegacyTradeJournal
         public LegacyOrdinaryAdmissionInput[]? AdmissionInputs { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public long? AdmissionPreparedAt { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public CharacterSpellsJournalDomain? CharacterSpellsDomain { get; init; }
     }
 
     private sealed record JournalTarget(string Path, LegacyTradeJournalChange Change);
@@ -65,7 +68,7 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(copied, version);
         // The single-owner API's failpoint contract is character first, then items.
         // Do not reorder v1: its established four-target contract remains unchanged.
-        if (version is 2 or 3 or 4 or 5 or 6 or 7) copied = copied.OrderBy(change => change.Kind).ToArray();
+        if (version is 2 or 3 or 4 or 5 or 6 or 7 or 8) copied = copied.OrderBy(change => change.Kind).ToArray();
         return new(version, Guid.NewGuid().ToString("N"), copied);
     }
 
@@ -77,12 +80,14 @@ internal static partial class LegacyTradeJournal
         4 => 3,
         5 => 4,
         6 or 7 => 4, // Variable1..4; admission validates its exact configured membership.
+        8 => 2,
         _ => throw new ArgumentException("Unsupported journal version."),
     };
 
     private static void ValidateChanges(LegacyTradeJournalChange[] changes, int version)
     {
         if (IsOrdinaryAdmissionVersion(version)) { ValidateAdmissionChanges(changes); return; }
+        if (version == 8) { ValidateCharacterSpellsChanges(changes); return; }
         if (version == 5)
         {
             ValidateMailboxGearChanges(changes);
@@ -119,6 +124,7 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 4) return GetMailboxTargets(roots, record);
         if (record.Version == 5) return GetMailboxGearTargets(roots, record);
         if (IsOrdinaryAdmissionVersion(record.Version)) return GetAdmissionTargets(roots, record);
+        if (record.Version == 8) return GetCharacterSpellsTargets(roots, record);
         var targets = record.Changes.Select(change => new JournalTarget(Path.Combine(
             change.Kind == LegacyTradeJournalFileKind.Character ? roots.Users : roots.Items,
             change.FileId.ToString(CultureInfo.InvariantCulture) +

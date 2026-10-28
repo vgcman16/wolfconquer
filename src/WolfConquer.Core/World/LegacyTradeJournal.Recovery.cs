@@ -38,9 +38,24 @@ internal static partial class LegacyTradeJournal
                 return false;
             }
             var record = ReadRecord(pending);
-            var roots = IsOrdinaryAdmissionVersion(record.Version)
-                ? GetAdmissionRoots(admissionRoots ?? throw new ArgumentException("Explicit ordinary-admission roots are required."))
-                : GetRoots(usersRoot, itemsRoot);
+            JournalRoots roots;
+            if (IsOrdinaryAdmissionVersion(record.Version))
+                roots = GetAdmissionRoots(admissionRoots ?? throw new ArgumentException("Explicit ordinary-admission roots are required."));
+            else if (record.Version == 8)
+            {
+                if (admissionRoots?.Spells is not { } configuredSpells)
+                {
+                    reason = RecoveryRequired + ":characterSpellsRootMissing";
+                    return false;
+                }
+                roots = GetCharacterSpellsRoots(admissionRoots.Users, configuredSpells);
+                if (!SameQuestRoot(usersRoot, roots.Users))
+                {
+                    reason = RecoveryRequired + ":characterSpellsUsersMismatch";
+                    return false;
+                }
+            }
+            else roots = GetRoots(usersRoot, itemsRoot);
             if (record.Version == 3)
             {
                 if (string.IsNullOrWhiteSpace(questsRoot))
@@ -104,8 +119,9 @@ internal static partial class LegacyTradeJournal
                 return true;
             }
             validated = true;
-            if (!IsOrdinaryAdmissionVersion(record.Version)) Directory.CreateDirectory(roots.Items);
-            PrepareAdmissionDirectories(roots, record, targets);
+            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version != 8) Directory.CreateDirectory(roots.Items);
+            if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
+            else PrepareAdmissionDirectories(roots, record, targets);
             foreach (var target in targets)
             {
                 if (Matches(ReadTarget(target.Path), target.Change.After)) continue;

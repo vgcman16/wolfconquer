@@ -4,11 +4,44 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## FullAccount class-reset transaction — focused qualification
+
+### FSB-158: Class reset saved before current ownership and erased untouched spell bytes
+
+**Source:** the managed replacement's AccountSecurity.FullAccount.Class.cs and
+.Class.Persistence.cs. These are not automatically original Rayzo defect claims.
+
+**Defect:** two files were replaced before unconditional Store.Set, allowing a
+stale caller to replace a newer holder. Saved spell progress was not reconciled;
+unknown byte11 of retained rows was zeroed. Sender/serialization faults could
+follow disk changes, and in-process rollback had no persistent restart plan.
+
+**Correction:** real expected-session/trade/PIN/file ownership; complete prepared
+inputs, frames and images; unchanged padding; strict distinct v8 Users+Spells
+journal/recovery; current metadata and final cache proof; truthful committed/
+recovery-required outcomes. The existing11 grants/positive wire order remain.
+
+**Verification:**354/354 public and354/354 private, same exact names, zero failures/
+skips; all52 baseline names retained. Old source with corrected fixture:39passed/
+13failed. Earlier37passed/15fixture-setup failures are retained and do not count
+as defects. The two final equivalent assertion-cleanup cases pass2/2 publicly;
+the private354 includes that final assertion. See
+[scope and limits](docs/FULLACCOUNT-CLASS-TRANSACTION.md).
+
+**Boundary:** direct distinct-key fixtures use the actual full parser and preserve
+the ordinary loader's account=UID requirement. Fresh-owner journal fixtures do not
+prove OS crash/power-loss, multi-process or SQL safety. Physical native spell/
+equipment adoption, other producers and live acceptance remain open. A new full
+exact-public gate is pending; prior full8e success does not cover this new batch.
+
 ## Ordinary physical identity and persistence — focused qualification
 
 FSB-154–157 share the same focused batch qualification; these are not four
 independent runs. Public corrected: **524/524 passed, zero failures/skips**.
-Private corrected: **524/524 passed, zero failures/skips**. New full check: **Pending for this composed source**.
+Private corrected: **524/524 passed, zero failures/skips**. Exact-public full
+Windows40569779073 on source8e8ff83f completed SUCCESS: Core28,974 passed/164
+existing NotExecuted, Updater434, Launcher57, synthetic receipt parsers20+13;
+all eight steps exited0. This full result predates the focused-qualified FullAccount v8 batch; its full gate is pending.
 See [scope and limits](docs/ORDINARY-PLAYER-PERSISTENCE.md).
 
 The tests-only baseline was 508: 102 failed/406 passed/zero skipped. Three actual

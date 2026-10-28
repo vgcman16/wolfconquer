@@ -9,7 +9,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyFullAccountClassMutationTests : IDisposable
+public sealed partial class LegacyFullAccountClassMutationTests : IDisposable
 {
     private const long AccountId = 1_293_870;
     private const uint CharacterUid = 1_293_870;
@@ -425,11 +425,24 @@ public sealed class LegacyFullAccountClassMutationTests : IDisposable
         var observerSent = new List<IReadOnlyList<byte[]>>();
         var exposureOrder = new List<string>();
         var disconnected = false;
-        var claimant = new ConquerTcpConnection(
+        PersistedState? persistedAtCommit = null;
+        var sessions = new WorldSessionStore();
+        ConquerTcpConnection claimant = null!;
+        claimant = new ConquerTcpConnection(
             null,
             new IPEndPoint(IPAddress.Loopback, 9_958),
             (frame, _) =>
             {
+                // Observe the actual committed Store and both files at first
+                // exposure. TryCommitSession does not fire Set's observer.
+                if (persistedAtCommit is null && sessions.TryGet(claimant, out var current) &&
+                    !ReferenceEquals(current, session))
+                {
+                    persistedAtCommit = new PersistedState(
+                        Assert.IsType<CharacterSnapshot>(characterLoader.LoadByAccountId(AccountId)),
+                        spellLoader.LoadByCharacterUid(CharacterUid));
+                    exposureOrder.Add("commit");
+                }
                 var bytes = frame.ToArray();
                 claimantSent.Add(bytes);
                 exposureOrder.Add("send:" + ReadFrame(bytes).Header.Opcode.ToString(CultureInfo.InvariantCulture));
@@ -441,20 +454,11 @@ public sealed class LegacyFullAccountClassMutationTests : IDisposable
                 exposureOrder.Add("disconnect");
                 return ValueTask.CompletedTask;
             });
-        PersistedState? persistedAtCommit = null;
-        var sessions = new WorldSessionStore((connection, previous, _) =>
-        {
-            if (!ReferenceEquals(connection, claimant) || previous is null)
-            {
-                return;
-            }
-
-            persistedAtCommit = new PersistedState(
-                Assert.IsType<CharacterSnapshot>(characterLoader.LoadByAccountId(AccountId)),
-                spellLoader.LoadByCharacterUid(CharacterUid));
-            exposureOrder.Add("commit");
-        });
         sessions.Set(claimant, session);
+        var recovery = new LegacyTradeRecoveryState(usersRoot, null, null, null, null, playerSpellsRoot, null);
+        Assert.True(recovery.TryEnsureInitialized(out var recoveryReason), recoveryReason);
+        var trades = new LegacyTradeStateStore();
+        var operations = new WorldOperationBarrier();
 
         for (var index = 0; index < observerCount; index++)
         {
@@ -493,6 +497,7 @@ public sealed class LegacyFullAccountClassMutationTests : IDisposable
         using var log = new StringWriter();
         try
         {
+            using var operation = await operations.EnterSharedAsync(CancellationToken.None);
             handled = await WorldPacketHandlers.TryHandleLegacyAccountSecurityNpcAsync(
                 new WorldPacketHandlerContext(
                     claimant,
@@ -500,7 +505,8 @@ public sealed class LegacyFullAccountClassMutationTests : IDisposable
                     Session: session,
                     WorldData: includeWorldData ? LegacyItemWorldDataFixture.Create() : null,
                     Sessions: includeSessions ? sessions : null,
-                    PlayerSpellsRoot: includePlayerSpellsRoot ? playerSpellsRoot : null),
+                    PlayerSpellsRoot: includePlayerSpellsRoot ? playerSpellsRoot : null)
+                { Trades = trades, TradeOperations = operations, TradeRecovery = recovery },
                 session,
                 NpcId,
                 optionId,

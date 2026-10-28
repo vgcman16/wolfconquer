@@ -1,5 +1,39 @@
 # CI qualification: 2026-10-27
 
+## Current exact-public full success
+
+[Windows 40569779073](https://github.com/vgcman16/wolfconquer/actions/runs/40569779073),
+job `122420603994`, tested exact source
+`8e8ff83f119cc9c65c0753ba025a164f1a402aa7` and completed **SUCCESS**.
+Receipt `20261027T193258424Z-a66534bf` started
+2026-10-27T19:32:58.5563157Z and finished 2026-10-27T20:20:09.2926996Z.
+Restore/build and all eight steps exited 0. Actual results: Core 28,974 Passed /
+164 existing NotExecuted, Updater 434 Passed and Launcher 57 Passed. The receipt
+parsers passed 20+13 synthetic cases; they did not perform network or client probes.
+
+The exact terminal receipt, logs and three TRXs are retained in
+`.artifacts/root-fullaccount-durable-next/full-8e8ff83f`. This supersedes the
+pending full-gate statement for the accepted public source. It does not repair the
+historical `9e779d5d` failure, prove deployment or establish live-client acceptance.
+
+## FullAccount successor: focused-qualified, new full gate pending
+
+- FullAccount class reset is integrated after354/354 focused cases in each
+  public/private snapshot, zero failures/skips; all52 baseline names remain.
+- A fixture-only baseline correction preserves the production account=UID loader
+  invariant. The meaningful old-source baseline was39passed/13failed; an earlier
+  37passed/15setup-failed result is retained separately.
+- The two final public staging cases passed2/2 after an equivalent assertion
+  cleanup. The private354 includes the final assertion. These totals overlap.
+- This is focused source qualification, not deployment, native graph adoption,
+  power-loss/SQL safety or live-client acceptance. A new exact-public full gate
+  must qualify this publication batch.
+- See `docs/FULLACCOUNT-CLASS-TRANSACTION.md` and FSB-158.
+
+## Historical qualification entries
+
+The dated evidence and earlier pending language below are superseded by the current exact-public result above.
+
 ## Ordinary player persistence checkpoint
 
 Full Windows run [40555473262](https://github.com/vgcman16/wolfconquer/actions/runs/40555473262)
