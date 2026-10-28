@@ -1,6 +1,23 @@
 # Integration regression repair - 2026-10-28
 
-## CrackStar fixture follow-up
+## Successor full gate and local checkpoint
+
+Exact public `be2740aea8f3295b57901fcd64d58a5e9cfc11c8` passed
+[Windows 40742984664](https://github.com/vgcman16/wolfconquer/actions/runs/40742984664),
+all eight steps, 2026-10-28 18:13:39.1971730–19:03:23.7027898 UTC: Core
+29,280 passed/164 existing skips; Updater 446, Launcher 57; synthetic parsers
+20+13, with zero network probes. The exact runner Release files were staged
+without rebuilding for the bounded owned local login, walk, file save and
+restart observation documented in [the live checkpoint](LIVE-CLIENT-VALIDATION-20261028.md).
+The client exit code was 18; World stopped with code 0 and its port was released.
+A subsequent private one-file branding trial displayed native title
+`WolfConquer` and reached Twin City after login. It does not establish complete
+branding, a distributed asset update, SQL or crash durability, all menus,
+complete English or full gameplay parity. Equipment/inventory and ten top-level
+forge category views were observed; no real gear transaction was performed.
+Subclass mojibake and Chinese menu labels remain.
+
+## Historical CrackStar fixture follow-up
 
 Exact public9769a9a8 full Windows40732279561 completed failure: Core29,279 passed,
 1 failed and164 existing skips; Updater446 passed. Restore/build passed;
@@ -13,8 +30,8 @@ completion observation, locked packet snapshots and actual worker-task joins.
 Its one-second behavior deadline remains. Release build passed with zero errors;
 46 affected/surrounding runtime/lifetime tests passed with zero failures/skips.
 This is a test-only ordering/lifetime correction (FSB-177), not a gameplay patch.
-A successor exact-public full gate and fresh local login/body/walk/save remain
-required. No client/server/route/original-save change occurred.
+The successor full gate and bounded local observation are recorded above.
+No client/server/route/original-save change occurred in that focused fixture.
 
 ## Observer follow-up
 
@@ -71,14 +88,13 @@ packet goldens remain; this is not activation of every decoded7935 feature.
   retaliation HP and saved spell progress. Copied UID or same-record reissue
   cannot acquire the prior action. Committed images survive later delivery loss.
 
-## Required next gate and limits
+## Earlier gate and continuing limits
 
 The preceding public4d9280fe full Windows run failed (Core28755 passed/444 failed,
-Updater446 passed; launcher/parsers not reached). The commit containing this
-repair needs its own exact-public full Windows run; the earlier failed result
-and these focused passes do not establish that gate.
+Updater446 passed; launcher/parsers not reached). The later exact-public gate is
+recorded above; the earlier failed result remains part of the history.
 
-No new build was deployed or logged into the live client for this checkpoint.
+The earlier focused checkpoint did not deploy a build or log into a client.
 No SQL transaction, universal native SaveClient, every combat/helper race,
 crash/power-loss durability, full English localization or complete game parity
 is claimed. Unsupported unrepresentable opaque item records still refuse.

@@ -4,7 +4,25 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## 2026-10-28 CrackStar fixture follow-up - focused verification
+## 2026-10-28 latest full and local boundary
+
+Exact public `be2740aea8f3295b57901fcd64d58a5e9cfc11c8` passed Windows
+[40742984664](https://github.com/vgcman16/wolfconquer/actions/runs/40742984664),
+all eight steps: Core 29,280 passes/164 existing skips, Updater 446, Launcher 57,
+and synthetic parser cases 20+13 with no network probes. The unrebuilt runner
+Release build also received the bounded owned local file-backed login, movement,
+graceful World restart and fresh-login observation described in
+[the live checkpoint](docs/LIVE-CLIENT-VALIDATION-20261028.md). The copied
+client exited with code 18; this is not a clean-exit or crash-free claim.
+SQL, crash durability, complete parity and full English remain unproven. A
+subsequent private one-file resource trial displayed the native title
+`WolfConquer` and entered Twin City after login; it is not a complete client
+rebrand or a distributed asset update. Equipment/inventory presentation and ten
+top-level forge categories were observed; real gear transactions remain unproven.
+Subclass mojibake and Chinese labels remain. A requested local operator mail
+sender is under development, outside this qualified build.
+
+## Historical 2026-10-28 CrackStar fixture follow-up
 
 ### FSB-177: Observe runtime expiry completion and drain the test workers
 
@@ -27,8 +45,9 @@ handler, packet, owner, timeout, exclusion or suppression was changed.
 The first new fixture attempt exposed an async-only log-observer mistake despite
 the actual expiry line being written; it was corrected before qualification.
 Release build has zero errors; the final affected/surrounding selection passes
-46/46, no failures/skips. A successor full gate and fresh live acceptance remain
-required. This does not prove the original timeout cause or universal runtime safety.
+46/46, no failures/skips. Its successor full gate and bounded local observation
+are recorded above. This does not prove the original timeout cause or universal
+runtime safety.
 
 ## Historical 2026-10-28 observer follow-up - focused verification
 

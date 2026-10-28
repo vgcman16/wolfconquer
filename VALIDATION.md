@@ -1,6 +1,38 @@
 # Publication validation
 
-## Latest CrackStar fixture follow-up - full successor gate required
+## Latest full Windows and local client checkpoint
+
+Exact public source `be2740aea8f3295b57901fcd64d58a5e9cfc11c8` passed
+[Windows run 40742984664](https://github.com/vgcman16/wolfconquer/actions/runs/40742984664):
+all eight steps succeeded between 2026-10-28 18:13:39.1971730 UTC and
+19:03:23.7027898 UTC. Core had 29,280 passes and 164 existing skips; Updater
+446 and Launcher 57 passed. The 20 and 13 parser cases were synthetic; they
+performed no network probes.
+
+The exact runner Release files were staged without rebuilding into a genuine
+owned local fixture. A Chinese 7899 / VisibleDx8D13 client logged in and showed
+the full character and scene, then six movement messages changed the saved
+position from map 1002 (410,354) to (416,357); money and CP remained 100 and
+50. After an ExitGame close, the client process returned 18. A graceful World
+stop returned 0 and released its port. Restarting the same fixture/domain on
+the same binaries without reseeding, followed by a fresh client login, showed
+the saved position and full scene again; selected saved fields stayed unchanged.
+Original saves were not touched. Details and limits are in
+[the live checkpoint](docs/LIVE-CLIENT-VALIDATION-20261028.md).
+
+This is bounded local file-backed evidence, not SQL, crash recovery, full parity
+or complete English coverage. GUI text remains partly Chinese, and three
+unsupported opcode 2307 startup requests were observed per login. A subsequent
+private, one-file English resource trial produced the native window title
+`WolfConquer`, followed by a successful local login and Twin City entry. This
+does not establish complete branding or translation, or a distributed client
+update. Equipment/stats and the potion-only inventory rendered, and ten
+top-level forge categories opened. Subclass labels contain mojibake; many forge
+labels remain Chinese. No equip, upgrade or crafting transaction was performed.
+The requested live operator gear-mail sender is under development and is not
+part of this qualified build.
+
+## Historical CrackStar fixture follow-up
 
 The exact [9769a9a8 run40732279561](https://github.com/vgcman16/wolfconquer/actions/runs/40732279561)
 FAILED: Core29,279 passed/1 failed/164 existing skips; Updater446 passed.
@@ -14,7 +46,7 @@ actual workers before disposal. The one-second behavior bound remains unchanged.
 Release build passed with zero errors and existing warnings. All46 selected
 runtime-expiry, CrackStar and worker-lifetime cases passed, zero failures/skips.
 FSB-177 records this test-only correction; no gameplay/protocol code changed.
-This successor still requires its own exact-public full gate and live acceptance.
+The successor full gate and bounded local observation are recorded above.
 
 ## Historical observer follow-up - focused verification
 
