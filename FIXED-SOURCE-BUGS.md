@@ -4,7 +4,32 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## 2026-10-28 integration regression repairs - focused verification
+## 2026-10-28 observer follow-up - focused verification
+
+### FSB-176: Preserve DragonSkin's published observer failure
+
+The replacement implementation's DragonSkin presentation path caught the typed
+`WorldSessionPublicationException` as a preparation `InvalidOperationException`,
+then used mutable current ownership to return an unproven/refused outcome after
+publication. This is an implementation regression after FSB-169, not a newly
+attributed defect in the decompiled reference.
+
+The handler now retains the original typed stage/cause/historical session, blocks
+only its captured real Recovery when present and matching the Store/connection,
+and rethrows the same exception. Secondary fencing failures remain inspectable;
+an unexpected untyped assigned-final failure preserves both errors if fencing
+also fails. No owner is fabricated, newer issuance erased, entitlement refunded,
+or post-fault success output sent. Ordinary observers remain outside Store gates.
+
+All six new fault cases failed against unchanged public2811f796 because the
+typed outcome was swallowed. The repaired selection passed207/207 with zero
+failures/skips, including the full DragonSkin family, real worker-task joins,
+observer retirement, Store/Frame publication and owned-runtime lifetime controls.
+The last full2811f796 run failed7 cases; this successor still needs its own full
+gate. No SQL, crash durability, bound-native/live-client or full-parity claim.
+See [the contract](docs/engineering/DRAGON-SKIN-PUBLICATION-OUTCOMES.md).
+
+## Historical 2026-10-28 integration regression repairs - focused verification
 
 The isolated exact-public4d9280fe repair candidate built with zero errors. Its
 final regression selection passed520/520; the wider combat, native dispatch,

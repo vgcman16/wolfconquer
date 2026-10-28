@@ -91,7 +91,7 @@ internal static partial class LegacyDragonSkinPersistence
     private static bool SameBytes(byte[]? first, byte[]? second) => first is null
         ? second is null : second is not null && first.AsSpan().SequenceEqual(second);
 
-    internal static bool IsPreparationFailure(Exception error) => error is IOException or UnauthorizedAccessException or
-        ArgumentException or NotSupportedException or OverflowException or FormatException or InvalidOperationException or
-        System.Security.SecurityException;
+    internal static bool IsPreparationFailure(Exception error) => error is not WorldSessionPublicationException &&
+        error is (IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or OverflowException or
+            FormatException or InvalidOperationException or System.Security.SecurityException);
 }

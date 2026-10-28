@@ -44,6 +44,7 @@ public sealed partial class LegacyDragonSkinTransactionTests
         internal string CharacterTextBefore { get; private set; } = "";
         internal Encoding CharacterEncoding { get; private set; } = Encoding.UTF8;
         private readonly List<Task> tasks = [];
+        private readonly Dictionary<Task, WorldSessionPublicationException> observedPublicationFaults = [];
         private readonly List<ConquerTcpConnection> connections = [];
         private readonly List<CancellationTokenSource> budgets = [];
         private readonly List<IDisposable> leases = [];
@@ -145,6 +146,27 @@ public sealed partial class LegacyDragonSkinTransactionTests
             finally { if (actual.IsCompleted) budget.CancelAfter(Timeout.InfiniteTimeSpan); }
         }
 
+        internal async Task<WorldSessionPublicationException> InvokeExpectPublishedFailureAsync(LegacyDragonSkinType type)
+        {
+            var budget = new CancellationTokenSource(Bound); budgets.Add(budget);
+            var context = new WorldPacketHandlerContext(Connection, new TraceWriter(Log, Trace), Current,
+                WorldData: Catalog, Sessions: Sessions, PlayerItemsRoot: Items)
+            { TradeOperations = Barrier, TradeRecovery = Recovery, Trades = Trades };
+            var actual = Registry.HandleAsync(context,
+                Frame(new LegacyDragonSkinPacket(type, Uid, 1, false).ToFrameBytes()), budget.Token).AsTask();
+            tasks.Add(actual);
+            try { await actual.WaitAsync(Bound + Bound); }
+            catch (WorldSessionPublicationException error)
+            {
+                // Cleanup must not report an already asserted actual task fault
+                // twice. Only this precise terminal exception is exempted.
+                observedPublicationFaults.Add(actual, error);
+                if (actual.IsCompleted) budget.CancelAfter(Timeout.InfiniteTimeSpan);
+                return error;
+            }
+            throw new InvalidOperationException("Expected real published-outcome exception was not thrown.");
+        }
+
         internal void KeepLease(IDisposable lease) => leases.Add(lease);
 
         internal async Task CloseTransportAsync()
@@ -173,7 +195,12 @@ public sealed partial class LegacyDragonSkinTransactionTests
             foreach (var actual in tasks)
             {
                 try { await actual.WaitAsync(Bound); }
-                catch (Exception error) { failures.Add(error); if (!actual.IsCompleted) quiescent = false; }
+                catch (Exception error)
+                {
+                    if (!observedPublicationFaults.TryGetValue(actual, out var expected) || !ReferenceEquals(error, expected))
+                        failures.Add(error);
+                    if (!actual.IsCompleted) quiescent = false;
+                }
             }
             if (quiescent && FrameOwner is not null)
             {

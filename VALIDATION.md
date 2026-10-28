@@ -1,6 +1,21 @@
 # Publication validation
 
-## Latest integration regression repair - full successor CI pending
+## Latest observer follow-up - full successor CI pending
+
+The revised DragonSkin, public observer and runtime retirement selection passed
+207/207, no failures/skips; Release build had zero errors. Six new actual
+observer-fault cases first failed against unchanged2811f796 because the typed
+publication outcome was swallowed. Existing transaction/wire controls remain.
+
+The full [2811f796 run40718716578](https://github.com/vgcman16/wolfconquer/actions/runs/40718716578)
+FAILED: Core29,266 passed/7 failed/164 existing skips; Updater446 passed.
+Restore/build passed; launcher/parsers were not reached. Six failures were old
+DragonSkin lock-held-observer assumptions; one was the same obsolete assumption
+appended after the real runtime-join test. Corrected tests preserve real task
+joins, retirement and valid output. FSB-176 records the distinct production fix.
+This successor requires its own exact-public full gate and staged live acceptance.
+
+## Historical integration regression repair - prior pending state
 
 The exact-public4d9280fe-derived repair candidate built with zero errors, passed
 520/520 focused regressions and3557/3557 wider combat/reward cases, no failures

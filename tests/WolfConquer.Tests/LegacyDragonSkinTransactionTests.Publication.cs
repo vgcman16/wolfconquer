@@ -58,25 +58,18 @@ public sealed partial class LegacyDragonSkinTransactionTests
     });
 
     [Theory]
-    [InlineData(0, false)]
-    [InlineData(4, false)]
-    [InlineData(5, false)]
-    [InlineData(0, true)]
-    [InlineData(4, true)]
-    [InlineData(5, true)]
-    public Task PresentationObserverCannotReplaceTheCommittedFinalAndObserverFaultDoesNotUndoSuccess(
-        int type, bool throwIoAfterRefusedReentry) => RunAsync(async f =>
+    [InlineData(0)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public Task PresentationObserverSeesPublishedFinalOutsideStoreGateAndWireFollows(int type) => RunAsync(async f =>
     {
         var armed = false;
         WorldSession? observed = null;
         WorldSession? observedPrevious = null;
-        WorldSession? replacement = null;
-        InvalidOperationException? reentryRefusal = null;
         var observerCalls = 0;
         var framesAtObserver = -1;
         var observedGate = false;
-        var ioReached = false;
-        f.Sessions = new((connection, previous, current) =>
+        f.Sessions = new((_, previous, current) =>
         {
             if (!armed || previous is null) return;
             armed = false;
@@ -85,38 +78,24 @@ public sealed partial class LegacyDragonSkinTransactionTests
             observedPrevious = previous;
             observedGate = WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate;
             framesAtObserver = f.Sent.Count;
-            reentryRefusal = Assert.Throws<InvalidOperationException>(() => f.Sessions.Set(connection, replacement!));
             Assert.Same(current, f.Current);
-            if (throwIoAfterRefusedReentry)
-            {
-                ioReached = true;
-                throw new IOException("owned observer fault after refused nested replacement");
-            }
-            throw reentryRefusal;
         });
         f.Seed(type == 5 ? "1/1/1/" : "0/1/1/");
         var original = Capture(f.Original);
-        replacement = f.Original with { Character = f.Original.Character with { Money = 77 },
-            PlayerItems = f.Original.PlayerItems with { InventoryItems = [Item(77, 720_002)] } };
-        var replacementImage = Capture(replacement);
         armed = true;
         await f.InvokeAsync((LegacyDragonSkinType)type);
         Assert.Equal(1, observerCalls);
-        Assert.True(observedGate);
-        Assert.IsType<InvalidOperationException>(reentryRefusal);
-        Assert.Equal(throwIoAfterRefusedReentry, ioReached);
+        Assert.False(observedGate);
         Assert.Same(f.Original, observedPrevious);
         Assert.NotNull(observed);
         Assert.NotSame(f.Original, observed);
         Assert.Same(observed, f.Current);
-        Assert.NotSame(replacement, f.Current);
         Assert.Equal(f.Original with { Character = f.Current.Character }, f.Current);
         Assert.Same(f.Original.PlayerItems, f.Current.PlayerItems);
         Assert.Same(f.Original.PlayerSpells, f.Current.PlayerSpells);
         Assert.Same(f.Original.PlayerProficiencies, f.Current.PlayerProficiencies);
         Assert.Equal(f.Original.Character.Money, f.Current.Character.Money);
         AssertModelUnchanged(original);
-        AssertModelUnchanged(replacementImage);
         AssertFilesUnchanged(f);
         Assert.False(f.Recovery.IsBlocked);
         Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
@@ -125,6 +104,93 @@ public sealed partial class LegacyDragonSkinTransactionTests
         Assert.DoesNotContain("rejected without commit", f.Log.ToString());
         Assert.DoesNotContain("WorldServer persisted LegacyDragonSkin", f.Log.ToString());
         AssertPresentationObserverWireAndFields(f, type, framesAtObserver);
+    });
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public Task PresentationObserverCanReplaceHolderAndSuppressesOldOwnerOutput(int type) => RunAsync(async f =>
+    {
+        bool armed = false; int calls = 0; bool underGate = true;
+        WorldSession? historical = null; WorldSession? previousSeen = null;
+        WorldSession? replacement = null;
+        f.Sessions = new((connection, previous, current) =>
+        {
+            if (!armed || previous is null) return;
+            armed = false; calls++; underGate = WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate;
+            historical = current; previousSeen = previous;
+            f.Sessions.Set(connection, replacement!);
+        });
+        f.Seed(type == 5 ? "1/1/1/" : "0/1/1/");
+        var original = Capture(f.Original);
+        replacement = f.Original with { Character = f.Original.Character with { Money = 77 },
+            PlayerItems = f.Original.PlayerItems with { InventoryItems = new[] { Item(77, 720_002) } } };
+        var replacementImage = Capture(replacement);
+        armed = true;
+        await f.InvokeAsync((LegacyDragonSkinType)type);
+        Assert.Equal(1, calls); Assert.False(underGate);
+        Assert.Same(f.Original, previousSeen); Assert.NotNull(historical); Assert.NotSame(f.Original, historical);
+        Assert.Same(replacement, f.Current); Assert.NotSame(historical, f.Current);
+        AssertModelUnchanged(original); AssertModelUnchanged(replacementImage); AssertFilesUnchanged(f);
+        Assert.False(f.Recovery.IsBlocked); Assert.False(LegacyTradeJournal.HasPending(f.Users));
+        if (type == 0)
+            Assert.Equal(SkinGolden(LegacyDragonSkinType.Unlock, 1, true), Assert.Single(f.Sent));
+        else Assert.Empty(f.Sent);
+        Assert.DoesNotContain("WorldServer selected LegacyDragonSkin", f.Log.ToString());
+        Assert.DoesNotContain("WorldServer restored LegacyDragonSkin", f.Log.ToString());
+        Assert.DoesNotContain("WorldServer sent LegacyDragonSkin MyShow", f.Log.ToString());
+    });
+
+    [Theory]
+    [InlineData(0, false)] [InlineData(4, false)] [InlineData(5, false)]
+    [InlineData(0, true)] [InlineData(4, true)] [InlineData(5, true)]
+    public Task PresentationObserverFaultPreservesTypedOutcomeAndFencesActualRecovery(int type, bool reissue) => RunAsync(async f =>
+    {
+        bool armed = false; int calls = 0; bool underGate = true;
+        WorldSession? historical = null; WorldSession? seenPrevious = null; WorldSession? replacement = null;
+        var cause = new IOException("owned observer failed after publication");
+        f.Sessions = new((connection, previous, current) =>
+        {
+            if (!armed || previous is null) return;
+            armed = false; calls++; underGate = WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate;
+            historical = current; seenPrevious = previous;
+            if (reissue)
+            {
+                Assert.True(f.Sessions.TryRemove(connection, out var removed));
+                Assert.Same(current, removed);
+                f.Sessions.Set(connection, replacement!);
+            }
+            throw cause;
+        });
+        f.Seed(type == 5 ? "1/1/1/" : "0/1/1/");
+        var original = Capture(f.Original);
+        replacement = f.Original with { Character = f.Original.Character with { Money = 77 },
+            PlayerItems = f.Original.PlayerItems with { InventoryItems = new[] { Item(77, 720_002) } } };
+        var replacementImage = Capture(replacement); armed = true;
+
+        var failure = await f.InvokeExpectPublishedFailureAsync((LegacyDragonSkinType)type);
+        Assert.Equal(1, calls); Assert.False(underGate); Assert.Same(f.Original, seenPrevious);
+        Assert.Same(cause, failure.InnerException);
+        Assert.Equal(WorldSessionPublicationStage.Observer, failure.Stage);
+        Assert.NotNull(historical); Assert.NotSame(f.Original, historical);
+        Assert.Same(historical, failure.PublishedSession);
+        Assert.True(f.Recovery.IsBlocked);
+        if (reissue)
+        {
+            Assert.True(f.Sessions.TryGet(f.Connection, out var surviving));
+            Assert.Same(replacement, surviving);
+        }
+        else Assert.False(f.Sessions.TryGet(f.Connection, out _));
+        AssertModelUnchanged(original); AssertModelUnchanged(replacementImage); AssertFilesUnchanged(f);
+        Assert.False(LegacyTradeJournal.HasPending(f.Users));
+        if (type == 0)
+            Assert.Equal(SkinGolden(LegacyDragonSkinType.Unlock, 1, true), Assert.Single(f.Sent));
+        else Assert.Empty(f.Sent);
+        Assert.DoesNotContain("rejected without commit", f.Log.ToString());
+        Assert.DoesNotContain("WorldServer sent LegacyDragonSkin MyShow", f.Log.ToString());
+        Assert.DoesNotContain("WorldServer selected LegacyDragonSkin", f.Log.ToString());
+        Assert.DoesNotContain("WorldServer restored LegacyDragonSkin", f.Log.ToString());
     });
 
     private static void AssertPresentationObserverWireAndFields(Fixture f, int type, int framesAtObserver)

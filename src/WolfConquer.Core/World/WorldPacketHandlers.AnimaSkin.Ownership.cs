@@ -4,7 +4,8 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    private sealed record DragonSkinOwner(WorldSession Session, object Identity, LegacyDragonSkinBook Book);
+    private sealed record DragonSkinOwner(WorldSession Session, object Identity, LegacyDragonSkinBook Book,
+        LegacyTradeRecoveryState? Recovery);
 
     private static bool TryCaptureDragonSkinOwner(WorldPacketHandlerContext context, WorldSession supplied,
         out DragonSkinOwner owner, out string reason)
@@ -17,7 +18,7 @@ public static partial class WorldPacketHandlers
             !ReferenceEquals(current, supplied) || !DragonSkinPhysicalOwnerMatches(context, supplied) ||
             !LegacyNativeClientPublication.TryCaptureIdentity(sessions, context.Connection, supplied.Character.Uid, out var identity)) return false;
         if (!LegacyDragonSkinBook.TryCapture(supplied.Character.Attributes, out var book, out reason)) return false;
-        var captured = new DragonSkinOwner(supplied, identity, book);
+        var captured = new DragonSkinOwner(supplied, identity, book, context.TradeRecovery);
         if (!IsCurrentDragonSkinOwner(context, captured, supplied))
         { reason = "dragonSkinCurrentOwnerChanged"; return false; }
         owner = captured;
@@ -52,13 +53,31 @@ public static partial class WorldPacketHandlers
             changed = sessions.TryCompareAndSetWithNativeIdentity(context.Connection, owner.Session,
                 owner.Identity, updated, out committed);
         }
+        catch (WorldSessionPublicationException published)
+        {
+            // The actual Store published and attempted identity-scoped fencing.
+            // Preserve its stage/cause/historical record even if an observer
+            // replaced or reissued the current holder. Never recapture recovery.
+            if (published.BelongsTo(sessions, context.Connection))
+            {
+                try { owner.Recovery?.Block("dragonSkinRecoveryRequired:presentationPostPublication"); }
+                catch (Exception failure) { published.RecordFencingFailure(failure); }
+            }
+            throw;
+        }
         catch (Exception error) when (LegacyDragonSkinPersistence.IsPreparationFailure(error))
         {
-            // Ordinary CAS may invoke the established autosave observer after
-            // publication. Never relabel an already published value as rejected.
-            if (committed is null || !IsCurrentDragonSkinOwner(context, owner, committed))
-            { reason = "dragonSkinPresentationPublicationUnproven:" + error.GetType().Name; return false; }
-            changed = true;
+            if (committed is not null)
+            {
+                // Unexpected untyped failure after the actual out-final was
+                // assigned is also not an unchanged preparation rejection.
+                try { owner.Recovery?.Block("dragonSkinRecoveryRequired:presentationPostPublicationUntyped"); }
+                catch (Exception failure)
+                { throw new AggregateException("DragonSkin postpublication failure and recovery fencing both failed.", error, failure); }
+                throw;
+            }
+            reason = "dragonSkinPresentationPreparation:" + error.GetType().Name;
+            return false;
         }
         if (changed) { finalSession = committed!; reason = "committed"; }
         return changed;
@@ -68,7 +87,5 @@ public static partial class WorldPacketHandlers
         context.Log.WriteLineAsync("WorldServer LegacyDragonSkin outcome=" +
             (reason.StartsWith(LegacyDragonSkinPersistence.RecoveryRequired, StringComparison.Ordinal)
                 ? "indeterminate; recovery fenced"
-                : reason.StartsWith("dragonSkinPresentationPublicationUnproven:", StringComparison.Ordinal)
-                    ? "indeterminate; presentation publication unproven"
-                    : "rejected without commit") + " reason=" + reason + ".");
+                : "rejected without commit") + " reason=" + reason + ".");
 }

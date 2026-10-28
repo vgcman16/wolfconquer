@@ -1,5 +1,23 @@
 # Integration regression repair - 2026-10-28
 
+## Observer follow-up
+
+Public2811f796 full Windows40718716578 finished with Core29,266 passing,
+7 failing and164 existing skips; Updater446 passed. Launcher/parsers were not
+reached. The seven failures exposed old test assumptions that public observers
+held Store locks; those assumptions are now replaced by actual worker-task join,
+publication, retirement and old-owner output checks.
+
+A distinct DragonSkin production miss swallowed typed postpublication failures.
+The corrected path preserves the original outcome/cause and captured real
+Recovery fence, while allowing normal observer replacement outside gates.
+All six new fault controls failed against old source for the missing typed
+outcome; the repaired affected/surrounding selection passed207/207, no skips.
+See FSB-176 and [the detailed contract](engineering/DRAGON-SKIN-PUBLICATION-OUTCOMES.md).
+No client or server was restarted/deployed. The successor full gate remains required.
+
+## Earlier integration batch
+
 The replacement server repairs startup, saved spell/item state and postpublication
 failure handling against the existing VisibleDx8D13/Chinese7899 contract. Existing
 packet goldens remain; this is not activation of every decoded7935 feature.

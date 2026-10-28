@@ -6,7 +6,7 @@ namespace WolfConquer.Tests;
 
 public sealed partial class WorldServerFrameHandlerTests
 {
-    // CancelAsync joins cancellation callbacks, not the discarded runtime Tasks.
+    // CancelAsync joins cancellation callbacks, not the actual runtime Tasks.
     // This specific fixture's persisted monster HP/position writes belong to the GLOBAL task.
     private static Task WaitForTargetLockRuntimeGlobalStopAsync(WorldServerFrameHandler handler) =>
         WaitUntilAsync(() => TargetLockRuntimeGlobalStopped(handler), TimeSpan.FromSeconds(5));
@@ -31,39 +31,56 @@ public sealed partial class WorldServerFrameHandlerTests
             BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(start);
         Task? joined = null;
+        Task[] enteredWorkers = [];
+        Exception? primary = null;
         clock.Arm();
         try
         {
             start.Invoke(handler, [cancel.Token]); // Actual global owner; no seeded runtime counter.
             await clock.Entered.WaitAsync(TimeSpan.FromSeconds(5));
+            enteredWorkers = handler.CaptureLegacyRuntimeWorkerTasks();
+            Assert.NotEmpty(enteredWorkers);
+            Assert.Contains(enteredWorkers, task => !task.IsCompleted);
             await cancel.CancelAsync();
             Assert.True(cancel.IsCancellationRequested);
             Assert.False(TargetLockRuntimeGlobalStopped(handler));
-            joined = WaitForTargetLockRuntimeGlobalStopAsync(handler);
+            joined = Task.WhenAll(enteredWorkers); // Join the real returned tasks, not only a counter.
             Assert.False(joined.IsCompleted); // The entered tick is deterministically held, not a sleep race.
         }
+        catch (Exception error) { primary = error; throw; }
         finally
         {
             clock.Release();
-            await cancel.CancelAsync();
-            await WaitForTargetLockRuntimeGlobalStopAsync(handler);
+            try
+            {
+                await cancel.CancelAsync();
+                await Task.WhenAll(enteredWorkers.Concat(handler.CaptureLegacyRuntimeWorkerTasks()).Distinct())
+                    .WaitAsync(TimeSpan.FromSeconds(5));
+                await WaitForTargetLockRuntimeGlobalStopAsync(handler);
+            }
+            catch (Exception cleanup) when (primary is not null) { throw new AggregateException(primary, cleanup); }
         }
         Assert.NotNull(joined);
         await joined!;
+        Assert.All(enteredWorkers, task => Assert.True(task.IsCompleted));
+        Assert.Equal(0L, handler.LegacyRuntimeFaultedWorkerCount);
         Assert.True(TargetLockRuntimeGlobalStopped(handler));
-        await VerifyTargetLockSessionRetirementGateAsync();
     }
 
-    private static async Task VerifyTargetLockSessionRetirementGateAsync()
+    [Fact]
+    public async Task HandlerSessionRetirementCompletesWhilePostPublicationObserverWaits()
     {
         var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var release = new ManualResetEventSlim(false);
-        var sessions = new WorldSessionStore((_, previous, _) =>
+        WorldSession? observed = null;
+        var sessions = new WorldSessionStore((_, previous, current) =>
         {
             if (previous is null) return;
-            entered.TrySetResult(true); // Same callback boundary as the handler's synchronous INI persistence.
+            Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
+            observed = current;
+            entered.TrySetResult(true); // External observer: actual memory publication and gates already completed.
             if (!release.Wait(TimeSpan.FromSeconds(10)))
-                throw new TimeoutException("Controlled persistence callback release was not supplied.");
+                throw new TimeoutException("Controlled postpublication observer release was not supplied.");
         });
         var connection = CreateSendingConnection(new List<byte[]>());
         var original = new WorldSession(1_293_601, "target-lock-peer",
@@ -104,27 +121,45 @@ public sealed partial class WorldServerFrameHandlerTests
             PlayerItemSnapshot.Empty, PlayerSpellSnapshot.Empty, PlayerProficiencySnapshot.Empty);
         sessions.Set(connection, original);
         var updated = original with { Character = original.Character with { MinHitPoints = 999 } };
-        var pendingWrite = Task.Run(() => sessions.TryCompareAndSet(connection, original, updated));
+        WorldSession? committed = null;
+        var pendingWrite = Task.Run(() => sessions.TryCompareAndSet(connection, original, updated, out committed));
         Task<bool>? retiring = null;
+        WorldSession? removed = null;
+        Exception? primary = null;
         try
         {
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Same(updated, observed);
+            Assert.Same(updated, Volatile.Read(ref committed));
+            Assert.True(sessions.TryGet(connection, out var current));
+            Assert.Same(updated, current);
+            Assert.False(pendingWrite.IsCompleted);
             var attempted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             retiring = Task.Run(() =>
             {
                 attempted.TrySetResult(true);
-                return sessions.TryRemove(connection, out _);
+                return sessions.TryRemove(connection, out removed);
             });
             await attempted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.False(retiring.IsCompleted); // Callback still owns the SAME per-connection lock.
+            Assert.True(await retiring.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.Same(updated, removed);
+            Assert.False(release.IsSet); // The observer is still held while removal has actually completed.
+            Assert.False(pendingWrite.IsCompleted);
+            Assert.False(sessions.TryGet(connection, out _));
         }
+        catch (Exception error) { primary = error; throw; }
         finally
         {
             release.Set();
-            await pendingWrite.WaitAsync(TimeSpan.FromSeconds(5));
-            if (retiring is not null) await retiring.WaitAsync(TimeSpan.FromSeconds(5));
+            try
+            {
+                var cleanupTasks = retiring is null ? new Task[] { pendingWrite } : [pendingWrite, retiring];
+                await Task.WhenAll(cleanupTasks).WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (Exception cleanup) when (primary is not null) { throw new AggregateException(primary, cleanup); }
         }
         Assert.True(await pendingWrite);
+        Assert.Same(updated, committed); // Historical committed result survives retirement before observer return.
         Assert.NotNull(retiring);
         Assert.True(await retiring!);
         Assert.False(sessions.TryGet(connection, out _));
