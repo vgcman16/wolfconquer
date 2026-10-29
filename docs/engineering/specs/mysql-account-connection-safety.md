@@ -56,15 +56,21 @@ CI gate follows focused verification; serialize the next full job after focused 
 
 ## Implementation and qualification
 
+Current full source gate: [Windows40826474342](https://github.com/vgcman16/wolfconquer/actions/runs/40826474342)
+completed successfully on exact tracker child82882bd6 of source dda332e6.
+All eight stages passed: core29,545 passed/156 existing skips, Updates446 passed
+and Launcher57 passed, zero failures. Actual receipts, logs and all three TRXs
+were retained. Managed World/DataTool binaries were copied outside the runner;
+no server/client was deployed or launched. Native hydration, live acceptance,
+SQL/power loss and complete gameplay parity remain open.
+
 Account config class, modern package reference and isolated connection-safety
 tests are the implementation scope. Root alone
 reviews/integrates/builds/tests/publishes. Release restore resolved 2.6.1 and
 build08 has zero errors; all 18 pure connection-safety cases passed in the
-104-case selection. No new warning originated in changed code. Broader and
-full checks remain separate gates.
+104-case selection. No new warning originated in changed code. The neighboring selection and full CI above also passed.
 No credentials, production database connection, live deployment or source fix
 acceptance is claimed by this specification.
 
 Root neighboring account/mail/save/tool selection also passed 194/194, zero
-skips, in 3m31s. It overlaps the 104-case selection. Full successor CI and live
-acceptance remain separate pending gates.
+skips, in 3m31s. It overlaps the 104-case selection. The full successor CI above passed; live acceptance remains open.

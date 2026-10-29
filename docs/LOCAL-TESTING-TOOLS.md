@@ -148,11 +148,20 @@ deposited rows, and refuses truncated summaries. Status rechecks the same pure
 saved transition; editable receipts remain comparison evidence only.
 
 Both waiting and matching saved results return exit2. Client rendering, actual
-movement/wire, live Store and the full source gate remain pending. The runner now
+movement/wire and live Store remain separate; this saved receipt does not
+establish a full source gate. The runner now
 has saved-state assertions for mail, equip/unequip and walking; eight other
 families retain guided snapshots/actions. See the scenario catalog for examples.
 
 ## Qualification
+
+Current full source gate: [Windows40826474342](https://github.com/vgcman16/wolfconquer/actions/runs/40826474342)
+completed successfully on exact tracker child82882bd6 of source dda332e6.
+All eight stages passed: core29,545 passed/156 existing skips, Updates446 passed
+and Launcher57 passed, zero failures. Actual receipts, logs and all three TRXs
+were retained. Managed World/DataTool binaries were copied outside the runner;
+no server/client was deployed or launched. Native hydration, live acceptance,
+SQL/power loss and complete gameplay parity remain open.
 
 The published8d4bdabb source passed all eight Windows stages in
 [run40818321676](https://github.com/vgcman16/wolfconquer/actions/runs/40818321676):
@@ -162,8 +171,10 @@ these selections overlap. Earlier failure receipts remain in local evidence and
 Git history. Source qualification does not prove complete gameplay, SQL,
 power-loss recovery or real-client claim/equipment acceptance.
 
-The next runtime-diagnostic/source-safety batch is being qualified separately;
-no changed server has been deployed just to enable this diagnostic.
+The runtime-diagnostic/source-safety selection passed 104/104 and the neighboring
+account/mail/save/tool selection passed 194/194, zero skips (overlap). The full
+successor gate above also passed. No changed server has been deployed just to
+enable this diagnostic.
 
 ## Check saved health-potion consumption
 

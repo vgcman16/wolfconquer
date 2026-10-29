@@ -119,6 +119,14 @@ for legitimate Mana/raw-item writers before stronger atomicity can be claimed.
 
 ## Implementation and qualification
 
+Current full source gate: [Windows40826474342](https://github.com/vgcman16/wolfconquer/actions/runs/40826474342)
+completed successfully on exact tracker child82882bd6 of source dda332e6.
+All eight stages passed: core29,545 passed/156 existing skips, Updates446 passed
+and Launcher57 passed, zero failures. Actual receipts, logs and all three TRXs
+were retained. Managed World/DataTool binaries were copied outside the runner;
+no server/client was deployed or launched. Native hydration, live acceptance,
+SQL/power loss and complete gameplay parity remain open.
+
 Runtime/LocalRuntimeInspectionPipe*.cs and LocalRuntimeInspectionProtocol*.cs;
 World/LegacyRuntimeInspection*.cs, Frame/Store RuntimeInspection partials;
 DataTool inspect-runtime-player and WorldServer local endpoint host. Isolated
@@ -135,8 +143,7 @@ No original client executable or live service is started by those cases.
 Root Release build08 completed with zero errors and no new changed-code
 warnings. The combined runtime/SQL/mail selection passed 104/104 with zero
 skips in 36 seconds. Earlier prerequisite and transport failures are retained;
-source corrections do not erase them. Broader neighbors and full CI remain
-separate gates until their actual outcomes are recorded.
+source corrections do not erase them. The neighboring 194-case selection and full CI above also passed.
 Current checklist/handoff keep live deployment and client acceptance separate;
 no whole-server completion, file/runtime equality or host cleanliness is implied.
 
@@ -151,5 +158,4 @@ rows are retained as internal witnesses even when the incomplete public native
 projection remains null. Real half-graph negatives cover this refusal boundary.
 
 Root neighboring account/mail/save/tool selection also passed 194/194, zero
-skips, in 3m31s. It overlaps the 104-case selection. Full successor CI and live
-acceptance remain separate pending gates.
+skips, in 3m31s. It overlaps the 104-case selection. The full successor CI above passed; live acceptance remains open.

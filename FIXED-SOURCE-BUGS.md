@@ -4,7 +4,7 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## 2026-10-29 connection safety and runtime diagnostics - focused source qualified
+## 2026-10-29 connection safety and runtime diagnostics - full source qualified
 
 ### FSB-184: Construct account connections without option injection or secret text
 
@@ -25,7 +25,7 @@ The separately pinned native MySql.Data 6.3.6 arrangement is unchanged per branc
 Actual restore resolves 2.6.1; build08 has zero errors and the advisory warning
 is absent. All 18 synthetic builder/redaction cases pass in the 104-case focused
 selection. No live database, remote TLS, credential use, config or route change
-was performed. Full SQL persistence and the full successor gate remain open.
+was performed. Full SQL persistence remains open; the source gate is recorded below.
 
 ### FSB-185: Keep interrupted diagnostics isolated and missing runtime state explicit
 
@@ -57,11 +57,19 @@ EOF/replay controls already passed before that hardening and still pass; no
 reproduced mail regression is claimed. Receipt format and operation idempotency
 are unchanged. Direct host completion/startup-collision and actual DataTool pipe
 cases pass. Combined focused selection: 104/104, zero skips, 36 seconds; build08
-zero errors. Broader/full gate, actual deployment and live acceptance remain open.
+zero errors. The broader/full gate is recorded below; actual deployment and live acceptance remain open.
 
 Neighboring account, mail, save and tool selection passed 194/194 with zero
 skips in 3m31s. It overlaps the 104-case focused selection; no additive total
 or live/full-CI claim follows.
+
+Full successor Windows40826474342 on exact82882bd6 completed/success. All
+8stages passed: core29,545pass/156existing skips, Updates446pass and Launcher57pass,
+zero failures. Actual local interval05:59:16.2781576Z..06:36:03.4716881Z on29Oct2026.
+Raw workflow/local receipts, complete job log and all3TRXs retained; matching
+managed binaries copied outside runner. This closes the full source gate for
+FSB184/185; native hydration/tuple ownership, live client, SQL and power-loss
+limits remain OPEN. No game/World process was started by binary preservation.
 
 ## 2026-10-28 incoming D13 mailbox requests - offline repair
 
