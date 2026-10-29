@@ -1,442 +1,108 @@
-#nullable disable
-
-// Genuine native network-capable owner; this prerequisite installs no caller or loading route.
-using System;
-using System.Text;
 using MySql.Data.MySqlClient;
+using System.Text;
 
 namespace WolfConquer.Core.Data;
 
-internal class LegacyNativeMySqlCommand : IDisposable
+// This builder owns SQL structure and values; execution owns a fresh provider snapshot.
+internal partial class LegacyNativeMySqlCommand : IDisposable
 {
-	private LegacyNativeMySqlCommandType _type;
+    private LegacyNativeMySqlCommandType _type;
+    protected StringBuilder _command = new();
+    private readonly List<BoundValue> _values = new();
+    private readonly List<string> _insertFields = new();
+    private bool _hasSet;
+    private bool _hasWhere;
+    private bool _hasOrder;
+    private bool _rawSql;
+    private bool _disposed;
 
-	protected StringBuilder _command;
+    public LegacyNativeMySqlCommand(LegacyNativeMySqlCommandType type) => Reset(type);
 
-	private bool firstPart = true;
+    public LegacyNativeMySqlCommandType Type
+    {
+        get => _type;
+        set { ThrowIfDisposed(); Reset(value); }
+    }
 
-	private LegacyNativeDbSafeDictionary<byte, string> insertFields;
+    // Raw SQL is an explicit operator-owned API. Resetting it discards all bindings.
+    public string Command
+    {
+        get { ThrowIfDisposed(); return RenderCommand(); }
+        set
+        {
+            ThrowIfDisposed();
+            ArgumentNullException.ThrowIfNull(value);
+            ClearState();
+            _command = new StringBuilder(value);
+            _rawSql = true;
+        }
+    }
 
-	private LegacyNativeDbSafeDictionary<byte, string> insertValues;
+    public LegacyNativeMySqlCommand Select(string table) => Table(table, LegacyNativeMySqlCommandType.SELECT);
+    public LegacyNativeMySqlCommand Count(string table) => Table(table, LegacyNativeMySqlCommandType.COUNT);
+    public LegacyNativeMySqlCommand Update(string table) => Table(table, LegacyNativeMySqlCommandType.UPDATE);
+    public LegacyNativeMySqlCommand Insert(string table) => Table(table, LegacyNativeMySqlCommandType.INSERT);
 
-	private byte lastpair;
+    public LegacyNativeMySqlCommand Delete(string table, string column, string value) => DeleteValue(table, column, value);
+    public LegacyNativeMySqlCommand Delete(string table, string column, long value) => DeleteValue(table, column, value);
+    public LegacyNativeMySqlCommand Delete(string table, string column, ulong value) => DeleteValue(table, column, value);
+    public LegacyNativeMySqlCommand Delete(string table, string column, bool value) => DeleteValue(table, column, value);
 
-	public LegacyNativeMySqlCommandType Type
-	{
-		get
-		{
-			return _type;
-		}
-		set
-		{
-			_type = value;
-		}
-	}
+    public LegacyNativeMySqlCommand Set(string column, long value) => SetValue(column, value);
+    public LegacyNativeMySqlCommand Set(string column, double value) => SetValue(column, value);
+    public LegacyNativeMySqlCommand Set(string column, ulong value) => SetValue(column, value);
+    public LegacyNativeMySqlCommand Set(string column, string value) => SetValue(column, value);
+    public LegacyNativeMySqlCommand Set(string column, bool value) => SetValue(column, value);
+    public LegacyNativeMySqlCommand Set(string column, object value) => SetValue(column, value);
 
-	public string Command
-	{
-		get
-		{
-			return _command.ToString();
-		}
-		set
-		{
-			_command = new StringBuilder(value);
-		}
-	}
+    public LegacyNativeMySqlCommand Insert(string field, long value) => InsertValue(field, value);
+    public LegacyNativeMySqlCommand Insert(string field, ulong value) => InsertValue(field, value);
+    public LegacyNativeMySqlCommand Insert(string field, bool value) => InsertValue(field, value);
+    public LegacyNativeMySqlCommand Insert(string field, string value) => InsertValue(field, value);
 
-	public LegacyNativeMySqlCommand(LegacyNativeMySqlCommandType Type)
-	{
-		this.Type = Type;
-		switch (Type)
-		{
-		case LegacyNativeMySqlCommandType.SELECT:
-			_command = new StringBuilder("SELECT * FROM <R>");
-			break;
-		case LegacyNativeMySqlCommandType.UPDATE:
-			_command = new StringBuilder("UPDATE <R> SET ");
-			break;
-		case LegacyNativeMySqlCommandType.INSERT:
-			insertFields = new LegacyNativeDbSafeDictionary<byte, string>();
-			insertValues = new LegacyNativeDbSafeDictionary<byte, string>();
-			lastpair = 0;
-			_command = new StringBuilder("INSERT INTO <R> (<F>) VALUES (<V>)");
-			break;
-		case LegacyNativeMySqlCommandType.DELETE:
-			_command = new StringBuilder("DELETE FROM <R> WHERE <C> = <V>");
-			break;
-		case LegacyNativeMySqlCommandType.COUNT:
-			_command = new StringBuilder("SELECT count(<V>) FROM <R>");
-			break;
-		}
-	}
+    public LegacyNativeMySqlCommand Where(string column, long value) => Predicate("WHERE", column, value);
+    public LegacyNativeMySqlCommand Where(string column, ulong value) => Predicate("WHERE", column, value);
+    public LegacyNativeMySqlCommand Where(string column, string value) => Predicate("WHERE", column, value);
+    public LegacyNativeMySqlCommand Where(string column, bool value) => Predicate("WHERE", column, value);
+    public LegacyNativeMySqlCommand Where(string column, long value, bool greater) => Predicate("WHERE", column, value, greater ? ">" : "<");
 
-	public int Execute2()
-	{
-		if (Type == LegacyNativeMySqlCommandType.INSERT)
-		{
-			string text = "";
-			string text2 = "";
-			for (byte b = 0; b < lastpair; b++)
-			{
-				bool flag = ((b + 1 != lastpair) ? true : false);
-				text = ((!flag) ? (text + "`" + insertFields[b] + "`") : (text + "`" + insertFields[b] + "`,"));
-				text2 = ((!flag) ? (text2 + "'" + insertValues[b] + "'") : (text2 + "'" + insertValues[b] + "',"));
-			}
-			_command = _command.Replace("<F>", text);
-			_command = _command.Replace("<V>", text2);
-		}
-		// Publication change: never override explicit configuration with original deployment credentials.
-		if (string.IsNullOrWhiteSpace(LegacyNativeDataHolder.ConnectionString))
-		{
-			throw new InvalidOperationException("Execute2 requires an explicitly configured database connection string.");
-		}
-		using MySqlConnection mySqlConnection = LegacyNativeDataHolder.MySqlConnection;
-		mySqlConnection.Open();
-		MySql.Data.MySqlClient.MySqlCommand mySqlCommand = new MySql.Data.MySqlClient.MySqlCommand(Command + ";", mySqlConnection);
-		return mySqlCommand.ExecuteNonQuery();
-	}
+    public LegacyNativeMySqlCommand And(string column, long value) => Predicate("AND", column, value);
+    public LegacyNativeMySqlCommand And(string column, ulong value) => Predicate("AND", column, value);
+    public LegacyNativeMySqlCommand And(string column, string value) => Predicate("AND", column, value);
+    public LegacyNativeMySqlCommand And(string column, bool value) => Predicate("AND", column, value);
+    public LegacyNativeMySqlCommand And(string column, long value, bool greater) => Predicate("AND", column, value, greater ? ">" : "<");
 
-	private bool Comma()
-	{
-		if (firstPart)
-		{
-			firstPart = false;
-			return false;
-		}
-		string text = _command.ToString();
-		if (text[text.Length - 1] == ',' || text[text.Length - 2] == ',' || text[text.Length - 3] == ',')
-		{
-			return false;
-		}
-		return true;
-	}
+    public LegacyNativeMySqlCommand Or(string column, long value) => Predicate("OR", column, value);
+    public LegacyNativeMySqlCommand Or(string column, ulong value) => Predicate("OR", column, value);
+    public LegacyNativeMySqlCommand Or(string column, string value) => Predicate("OR", column, value);
+    public LegacyNativeMySqlCommand Or(string column, bool value) => Predicate("OR", column, value);
 
-	public LegacyNativeMySqlCommand Select(string table)
-	{
-		_command = _command.Replace("<R>", "`" + table + "`");
-		return this;
-	}
+    public LegacyNativeMySqlCommand Order(string column)
+    {
+        RequireKind(LegacyNativeMySqlCommandType.SELECT, LegacyNativeMySqlCommandType.COUNT);
+        if (_hasOrder) throw new InvalidOperationException("ORDER BY is already specified.");
+        ArgumentNullException.ThrowIfNull(column);
+        string[] parts = column.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length is < 1 or > 2 || (parts.Length == 2 &&
+            !parts[1].Equals("ASC", StringComparison.OrdinalIgnoreCase) &&
+            !parts[1].Equals("DESC", StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("Order requires a column and optional ASC or DESC.", nameof(column));
+        string name = QuoteIdentifier(parts[0]);
+        AppendClause("ORDER BY " + name + (parts.Length == 2 ? " " + parts[1].ToUpperInvariant() : ""));
+        _hasOrder = true;
+        return this;
+    }
 
-	public LegacyNativeMySqlCommand Count(string table)
-	{
-		_command = _command.Replace("<R>", "`" + table + "`");
-		return this;
-	}
+    public LegacyNativeMySqlReader CreateReader() => new(this);
 
-	public LegacyNativeMySqlCommand Delete(string table, string column, string value)
-	{
-		_command = _command.Replace("<R>", "`" + table + "`");
-		_command = _command.Replace("<C>", "`" + column + "`");
-		_command = _command.Replace("<V>", "'" + value.MySqlEscape() + "'");
-		return this;
-	}
+    public void Dispose()
+    {
+        if (_disposed) return;
+        ClearState();
+        _command.Clear();
+        _disposed = true;
+    }
 
-	public LegacyNativeMySqlCommand Delete(string table, string column, long value)
-	{
-		_command = _command.Replace("<R>", "`" + table + "`");
-		_command = _command.Replace("<C>", "`" + column + "`");
-		_command = _command.Replace("<V>", value.ToString());
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Delete(string table, string column, ulong value)
-	{
-		_command = _command.Replace("<R>", "`" + table + "`");
-		_command = _command.Replace("<C>", "`" + column + "`");
-		_command = _command.Replace("<V>", value.ToString());
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Delete(string table, string column, bool value)
-	{
-		_command = _command.Replace("<R>", "`" + table + "`");
-		_command = _command.Replace("<C>", "`" + column + "`");
-		_command = _command.Replace("<V>", value ? "1" : "0");
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Update(string table)
-	{
-		_command = _command.Replace("<R>", "`" + table + "`");
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Set(string column, long value)
-	{
-		if (Type == LegacyNativeMySqlCommandType.UPDATE)
-		{
-			if (Comma())
-			{
-				_command = _command.Append(",`" + column + "` = " + value + " ");
-			}
-			else
-			{
-				_command = _command.Append("`" + column + "` = " + value + " ");
-			}
-		}
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Set(string column, double value)
-	{
-		if (Type == LegacyNativeMySqlCommandType.UPDATE)
-		{
-			if (Comma())
-			{
-				_command = _command.Append(",`" + column + "` = " + value + " ");
-			}
-			else
-			{
-				_command = _command.Append("`" + column + "` = " + value + " ");
-			}
-		}
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Set(string column, ulong value)
-	{
-		if (Type == LegacyNativeMySqlCommandType.UPDATE)
-		{
-			if (Comma())
-			{
-				_command = _command.Append(",`" + column + "` = " + value + " ");
-			}
-			else
-			{
-				_command = _command.Append("`" + column + "` = " + value + " ");
-			}
-		}
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Set(string column, string value)
-	{
-		if (Type == LegacyNativeMySqlCommandType.UPDATE)
-		{
-			if (Comma())
-			{
-				_command = _command.Append(",`" + column + "` = '" + value + "' ");
-			}
-			else
-			{
-				_command = _command.Append("`" + column + "` = '" + value.MySqlEscape() + "' ");
-			}
-		}
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Set(string column, bool value)
-	{
-		if (Type == LegacyNativeMySqlCommandType.UPDATE)
-		{
-			if (Comma())
-			{
-				_command = _command.Append(",`" + column + "` = " + (value ? "1" : "0") + " ");
-			}
-			else
-			{
-				_command = _command.Append("`" + column + "` = " + (value ? "1" : "0") + " ");
-			}
-		}
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Set(string column, object value)
-	{
-		if (value is bool)
-		{
-			Set(column, (bool)value);
-		}
-		else
-		{
-			Set(column, value.ToString());
-		}
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Insert(string table)
-	{
-		_command = _command.Replace("<R>", "`" + table + "`");
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Insert(string field, long value)
-	{
-		insertFields.Add(lastpair, field);
-		insertValues.Add(lastpair, value.ToString());
-		lastpair++;
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Insert(string field, ulong value)
-	{
-		insertFields.Add(lastpair, field);
-		insertValues.Add(lastpair, value.ToString());
-		lastpair++;
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Insert(string field, bool value)
-	{
-		insertFields.Add(lastpair, field);
-		insertValues.Add(lastpair, (value ? 1 : 0).ToString());
-		lastpair++;
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Insert(string field, string value)
-	{
-		char[] array = value.ToCharArray();
-		string text = Encoding.Default.GetString(Encoding.Unicode.GetBytes(array, 0, array.Length));
-		insertFields.Add(lastpair, field);
-		insertValues.Add(lastpair, value.MySqlEscape());
-		lastpair++;
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Where(string column, long value)
-	{
-		_command = _command.Append("WHERE `" + column + "` = " + value);
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Where(string column, long value, bool greater)
-	{
-		if (greater)
-		{
-			_command = _command.Append("WHERE `" + column + "` > " + value);
-		}
-		else
-		{
-			_command = _command.Append("WHERE `" + column + "` < " + value);
-		}
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Where(string column, ulong value)
-	{
-		_command = _command.Append("WHERE `" + column + "` = " + value);
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Where(string column, string value)
-	{
-		_command = _command.Append("WHERE `" + column + "` = '" + value.MySqlEscape() + "'");
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Where(string column, bool value)
-	{
-		_command = _command.Append("WHERE `" + column + "` = " + (value ? "1" : "0"));
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand And(string column, long value)
-	{
-		_command = _command.Append(" AND `" + column + "` = " + value);
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand And(string column, ulong value)
-	{
-		_command = _command.Append(" AND `" + column + "` = " + value);
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand And(string column, string value)
-	{
-		_command = _command.Append(" AND `" + column + "` = '" + value.MySqlEscape() + "'");
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand And(string column, bool value)
-	{
-		_command = _command.Append(" AND `" + column + "` = " + (value ? "1" : "0"));
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand And(string column, long value, bool greater)
-	{
-		if (greater)
-		{
-			_command = _command.Append(" AND `" + column + "` > " + value);
-		}
-		else
-		{
-			_command = _command.Append(" AND `" + column + "` < " + value);
-		}
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Or(string column, long value)
-	{
-		_command = _command.Append(" Or `" + column + "` = " + value);
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Or(string column, ulong value)
-	{
-		_command = _command.Append(" Or `" + column + "` = " + value);
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Or(string column, string value)
-	{
-		_command = _command.Append(" Or `" + column + "` = '" + value.MySqlEscape() + "'");
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Or(string column, bool value)
-	{
-		_command = _command.Append(" Or `" + column + "` = " + (value ? "1" : "0"));
-		return this;
-	}
-
-	public LegacyNativeMySqlCommand Order(string column)
-	{
-		_command = _command.Append("ORDER BY " + column);
-		return this;
-	}
-
-	public int Execute()
-	{
-		using MySqlConnection mySqlConnection = LegacyNativeDataHolder.MySqlConnection;
-		mySqlConnection.Open();
-		return Execute(mySqlConnection);
-	}
-
-	public int Execute(MySqlConnection conn)
-	{
-		if (Type == LegacyNativeMySqlCommandType.INSERT)
-		{
-			string text = "";
-			string text2 = "";
-			for (byte b = 0; b < lastpair; b++)
-			{
-				bool flag = ((b + 1 != lastpair) ? true : false);
-				text = ((!flag) ? (text + "`" + insertFields[b] + "`") : (text + "`" + insertFields[b] + "`,"));
-				text2 = ((!flag) ? (text2 + "'" + insertValues[b] + "'") : (text2 + "'" + insertValues[b] + "',"));
-			}
-			_command = _command.Replace("<F>", text);
-			_command = _command.Replace("<V>", text2);
-		}
-		MySql.Data.MySqlClient.MySqlCommand mySqlCommand = new MySql.Data.MySqlClient.MySqlCommand(Command, conn);
-		return mySqlCommand.ExecuteNonQuery();
-	}
-
-	public LegacyNativeMySqlReader CreateReader()
-	{
-		return new LegacyNativeMySqlReader(this);
-	}
-
-	void IDisposable.Dispose()
-	{
-		if (insertValues != null)
-		{
-			insertValues.Clear();
-			insertFields.Clear();
-		}
-		_command = null;
-	}
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+    private sealed record BoundValue(MySqlDbType Type, object Value);
 }

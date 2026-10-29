@@ -38,7 +38,10 @@ public static partial class ChineseFullClientCatalogIntake
         output.Append("\nKnown item results retain complete immutable byte documents; no server field mapping or encoding is inferred.\n")
             .Append("ParsedChinese7937ItemEnvelope means exact67-field/CRLF data only; unknown columns are opaque and historical65 text roles are not assumed.\n")
             .Append("Opaque Echo/configuration bytes are not decoded by item transforms.\n");
-        if (snapshot.DecodedEchoEvidence is not null)
+        if (snapshot.DecodedEchoEvidence is { } echo && snapshot.EchoEvidenceSource == ChineseFullClientEchoEvidenceSource.ExplicitKeyTransform)
+            output.Append("Explicit-key Echo transform, captured encoded identity, decoded pin and complete schema verified: ")
+                .Append(echo.Count.ToString(CultureInfo.InvariantCulture)).Append(" rows. Native key/cache ownership and activation remain unproved.\n");
+        else if (snapshot.DecodedEchoEvidence is not null)
             output.Append("An explicitly pinned decoded Echo supplement parsed under its declared schema; raw derivation and native binding remain unproved.\n");
         output.Append("\nThese are selected saved-file observations. File/row counts and hashes are not gameplay completion, publisher attestation or runtime authority.\n")
             .Append("Open: current runtime/catalog ownership, Echo contributions/items/cost meanings/operations13-14, durable activation/save, profile startup, English rendering and actual client acceptance.\n")

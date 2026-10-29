@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function New-GasPendingRow([string]$Scenario, $Account) {
-    return [ordered]@{ scenario = $Scenario; accountId = $Account; evidenceId = $null; receipt = $null;
+    return [ordered]@{ scenario = $Scenario; accountId = $Account; counterpartyAccountId = $null; evidenceId = $null; receipt = $null;
         receiptObservedUtc = $null; savedStateResult = $null; evidenceStatus = 'Pending'; reason = 'noMatchingEvidence';
         visualStatus = 'LiveClientVisualPending'; liveGameplayProven = $false }
 }
@@ -39,6 +39,7 @@ function Get-GasEvidence([string]$Root, [int]$MaximumReceipts) {
     $base = @{ scenario = $owner.scenario; accountId = [uint32]$owner.accountId; evidenceId = $owner.evidenceId;
         receipt = $null; receiptObservedUtc = $null; savedStateResult = $null; evidenceStatus = 'Pending';
         reason = 'receiptMissing'; visualStatus = 'LiveClientVisualPending'; liveGameplayProven = $false; ticks = 0L }
+    if ($owner.Contains('counterpartyAccountId')) { $base.counterpartyAccountId=[uint32]$owner.counterpartyAccountId }
     if ($files.Count -eq 0) { $base.ticks = (Get-Item -LiteralPath $Root -Force).LastWriteTimeUtc.Ticks; return $base }
     $ordered = @($files | Sort-Object -Property @{ Expression = 'ticks'; Descending = $true })
     $latest = $ordered[0]; $base.ticks = $latest.ticks; $base.receipt = $latest.leaf
@@ -70,7 +71,8 @@ function Get-GasSummary([string]$Parent, [uint32]$Account, [int]$MaximumFolders,
                 [guid]::ParseExact($leaf.Substring(21), 'N') -eq [guid]::Empty) { throw 'invalidEvidenceFolderName' }
             $folder = Get-GaOrdinaryPath $path -Directory
             $record = Get-GasEvidence $folder $MaximumReceipts
-            if ($Account -ne 0 -and $record.accountId -ne $Account) { continue }
+            if ($Account -ne 0 -and $record.accountId -ne $Account -and
+                (-not $record.ContainsKey('counterpartyAccountId') -or $record.counterpartyAccountId -ne $Account)) { continue }
             $records.Add($record)
         } catch { $issues.Add(@{ evidenceId = $(if ($leaf -cmatch '^wolf-game-acceptance-[0-9a-f]{32}$') { $leaf } else { $null }); reason = Get-GasReason $_ }) }
     }
@@ -78,7 +80,8 @@ function Get-GasSummary([string]$Parent, [uint32]$Account, [int]$MaximumFolders,
     foreach ($scenario in Get-GasScenarioIds) {
         $matching = @($records | Where-Object { $_.scenario -ceq $scenario })
         if ($matching.Count -eq 0) { $rows.Add((New-GasPendingRow $scenario $(if ($Account) { $Account } else { $null }))); continue }
-        foreach ($group in @($matching | Group-Object accountId)) {
+        foreach ($group in @($matching | Group-Object -Property { [string]$_.accountId + ':' +
+            $(if ($_.ContainsKey('counterpartyAccountId')) { [string]$_.counterpartyAccountId } else { '' }) })) {
             $ordered = @($group.Group | Sort-Object -Property @{ Expression = 'ticks'; Descending = $true })
             $selected = $ordered[0]
             if ($ordered.Count -gt 1 -and $ordered[1].ticks -eq $selected.ticks) {
@@ -92,6 +95,6 @@ function Get-GasSummary([string]$Parent, [uint32]$Account, [int]$MaximumFolders,
     return @{ schemaVersion = 1; readOnly = $true; sourceGateAccepted = $false; liveGameplayProven = $false;
         status = $(if ($issues.Count -or @($rows | Where-Object { $_.evidenceStatus -ceq 'Invalid' }).Count) { 'InvalidEvidence' } else { 'EvidenceSummary' });
         rows = @($rows.ToArray()); diagnostics = @($issues.ToArray());
-        selectionBound = 'Latest local receipt-file mtime per scenario/account; editable metadata, ties invalid; not authenticated event chronology.';
-        trustBound = 'Recorded saved-schema/identity references; saved walk/resource consistency is rechecked from retained JSON only. No opaque selected-item/Character, source checks, inspector, live Store, client or process proof. Local JSON is editable, not an attestation.' }
+        selectionBound = 'Latest local receipt-file mtime per scenario/account or ordered trade pair; editable metadata, ties invalid; not authenticated event chronology.';
+        trustBound = 'Recorded saved-schema/identity references; saved walk/resource/trade consistency is rechecked from retained JSON only. No opaque selected-item/Character, source checks, inspector, live Store, client, process or atomicity proof. Local JSON is editable, not an attestation.' }
 }

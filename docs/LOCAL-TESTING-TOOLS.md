@@ -22,8 +22,9 @@ No original-save/route edit, legacy client relaunch or retained gear resend foll
 ## List tests and view progress
 
 The current source runner covers fourteen test areas. Saved movement, health/Mana/FullRestore consumption,
-mail claims and equip/unequip have specific state assertions. Eight other areas
-provide guided steps and retained snapshots. The [scenario catalog](../tools/testing/SCENARIOS.md)
+mail claims and equip/unequip have specific state assertions. Trade adds optional
+two-player saved comparisons; seven other areas remain guided-only. Trade still
+supports its existing guided invocation. The [scenario catalog](../tools/testing/SCENARIOS.md)
 and [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md) show the remaining work.
 
 ```powershell

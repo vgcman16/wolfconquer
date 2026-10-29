@@ -5,8 +5,7 @@ namespace WolfConquer.Core.World;
 internal partial class LegacyNativeDialog
 {
     // Whole genuine network-capable native method. No caller or SQL execution is installed.
-    // The native builder's identity "escape" is unsafe for untrusted input; do not
-    // expose this through a host until a separate parameterized boundary exists.
+    // Username is bound by the parameterized builder; host activation remains separate.
     public static bool Exists(string username)
     {
         try

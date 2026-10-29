@@ -17,6 +17,8 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GameAcceptance.Health.Assertions.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Health.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Status.Health.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Trade.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Status.Trade.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Status.Saved.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Status.Records.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Status.Summary.ps1')
@@ -31,7 +33,7 @@ try {
 if ($Format -ceq 'Json') { $result | ConvertTo-Json -Depth 8 }
 else {
     $result.rows | ForEach-Object { [pscustomobject]$_ } |
-        Select-Object scenario,accountId,evidenceId,savedStateResult,evidenceStatus,visualStatus |
+        Select-Object scenario,accountId,counterpartyAccountId,evidenceId,savedStateResult,evidenceStatus,visualStatus |
         Format-Table -AutoSize | Out-String -Width 240
     Write-Output ('Evidence summary: ' + $result.status + '. Saved observations are local editable records; live gameplay remains unproven.')
     foreach ($issue in $result.diagnostics) { Write-Output ('Invalid evidence: ' + $issue.reason) }

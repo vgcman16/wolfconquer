@@ -23,12 +23,17 @@ public sealed partial class LegacyNativeLoginWireTests
     public void GenuineAccountCommandsKeepTheExactSelectAndStateUpdateShapeWithoutExecution(uint id)
     {
         using var select = new LegacyNativeMySqlCommand(LegacyNativeMySqlCommandType.SELECT).Select("accounts").Where("ID", id);
-        Assert.Equal("SELECT * FROM `accounts`WHERE `ID` = " + id, select.Command);
+        using var selectSql = select.CreateProviderCommand();
+        Assert.Equal("SELECT * FROM `accounts` WHERE `ID` = @p0", selectSql.CommandText);
+        Assert.Equal(id, Convert.ToUInt32(selectSql.Parameters[0].Value));
         foreach (long state in new long[] { 0, 1 })
         {
             using var update = new LegacyNativeMySqlCommand(LegacyNativeMySqlCommandType.UPDATE);
             update.Update("accounts").Set("State", state).Where("ID", id);
-            Assert.Equal("UPDATE `accounts` SET `State` = " + state + " WHERE `ID` = " + id, update.Command);
+            using var updateSql = update.CreateProviderCommand();
+            Assert.Equal("UPDATE `accounts` SET `State` = @p0 WHERE `ID` = @p1", updateSql.CommandText);
+            Assert.Equal(state, updateSql.Parameters[0].Value);
+            Assert.Equal(id, Convert.ToUInt32(updateSql.Parameters[1].Value));
         }
         // No reader constructor, Execute, connection getter or Banned12 call occurs here.
     }

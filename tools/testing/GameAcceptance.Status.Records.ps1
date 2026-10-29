@@ -34,6 +34,7 @@ function Read-GasOwner([string]$Root) {
             if (-not (Test-GawInteger $owner[$key] 0 ([long]::MaxValue))) { throw 'invalidSavedResourceIntent' }
         }
     }
+    if ($owner.Contains('counterpartyAccountId') -or $owner.Contains('tradePlanPath') -or $owner.Contains('tradePlanSha256')) { Assert-GatOwner $owner }
     return $owner # Paths identify retained context only; never open tool/config or run them.
 }
 
@@ -80,7 +81,8 @@ function Read-GasReceipt([string]$Root, [string]$Leaf, $Owner) {
         'OperationOutcomeUnproven','OperationRejected','RecoveryRequired','WaitingForClientAction','WaitingForEquip',
         'ClientActionPendingOrStateMismatch','ServerStateVerified','SavedEquipObserved','SavedEquipUnequipObserved',
         'WaitingForSavedWalk','SavedWalkObserved','WaitingForSavedHealthConsumption','SavedHealthConsumptionObserved',
-        'WaitingForSavedManaConsumption','SavedManaConsumptionObserved','WaitingForSavedFullRestoreConsumption','SavedFullRestoreConsumptionObserved')
+        'WaitingForSavedManaConsumption','SavedManaConsumptionObserved','WaitingForSavedFullRestoreConsumption','SavedFullRestoreConsumptionObserved',
+        'WaitingForSavedTrade','SavedTradeObserved')
     $status = $receipt.state.status
     if ($status -cnotin $allowed) { throw 'unknownSavedStateResult' }
     if ($receipt.visualAcceptance -cne 'LiveClientVisualPending' -or
@@ -100,7 +102,13 @@ function Read-GasReceipt([string]$Root, [string]$Leaf, $Owner) {
         if ($status -cin @($profile.waiting,$profile.observed) -and $Owner.scenario -cne $resource) { throw 'savedStatusUnsupportedForScenario' }
     }
     $saved = $status -cin @('ServerStateVerified','SavedEquipObserved','SavedEquipUnequipObserved','SavedWalkObserved','SavedHealthConsumptionObserved',
-        'SavedManaConsumptionObserved','SavedFullRestoreConsumptionObserved')
+        'SavedManaConsumptionObserved','SavedFullRestoreConsumptionObserved','SavedTradeObserved')
+    if ($status -cin @('WaitingForSavedTrade','SavedTradeObserved') -and
+        ($Owner.scenario -cne 'trade-two-clients' -or -not $Owner.Contains('counterpartyAccountId'))) { throw 'savedStatusUnsupportedForScenario' }
+    if ($Owner.Contains('counterpartyAccountId') -and -not $saved -and $status -cne 'GuidedActionsPending' -and $status -cne 'GuidedAssertionsPending') {
+        Assert-GasTradeReferences $Root $Owner $receipt $before $after
+    }
+    if ($Owner.Contains('counterpartyAccountId') -and $status -cin @('GuidedActionsPending','GuidedAssertionsPending')) { throw 'tradePairEvidenceDowngraded' }
     if ($saved -and ($null -eq $after -or $receipt.state.assertions -isnot [array] -or $receipt.state.assertions.Count -ne 0)) {
         throw 'savedObservationEvidenceIncomplete'
     }

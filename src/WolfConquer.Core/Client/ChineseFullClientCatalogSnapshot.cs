@@ -10,6 +10,13 @@ public enum ChineseFullClientCatalogState
     ParsedChinese7937ItemEnvelope,
 }
 
+public enum ChineseFullClientEchoEvidenceSource
+{
+    None,
+    UnlinkedDecodedSupplement,
+    ExplicitKeyTransform,
+}
+
 /// <summary>Captured data observations; neither a runtime binding nor a publisher attestation.</summary>
 public sealed class ChineseFullClientCatalogFinding
 {
@@ -36,18 +43,23 @@ public sealed class ChineseFullClientCatalogSnapshot
 
     internal ChineseFullClientCatalogSnapshot(int clientVersion, string versionSha256,
         IEnumerable<ChineseFullClientCatalogFinding> findings,
-        Chinese7935EchoCatalogSnapshot? decodedEchoEvidence = null)
+        Chinese7935EchoCatalogSnapshot? decodedEchoEvidence = null,
+        ChineseFullClientEchoEvidenceSource echoEvidenceSource = ChineseFullClientEchoEvidenceSource.None)
     {
         ClientVersion = clientVersion; VersionSha256 = versionSha256;
         this.findings = Array.AsReadOnly(findings.ToArray());
         DecodedEchoEvidence = decodedEchoEvidence;
+        EchoEvidenceSource = decodedEchoEvidence is null ? ChineseFullClientEchoEvidenceSource.None :
+            echoEvidenceSource == ChineseFullClientEchoEvidenceSource.None ?
+                ChineseFullClientEchoEvidenceSource.UnlinkedDecodedSupplement : echoEvidenceSource;
     }
 
     public int ClientVersion { get; }
     public string VersionSha256 { get; }
     public IReadOnlyList<ChineseFullClientCatalogFinding> Findings => findings;
 
-    /// <summary>Explicit decoded supplement; its derivation from the raw Echo file is not proven by hashes.</summary>
+    /// <summary>Complete decoded data. Consult EchoEvidenceSource; a supplied supplement alone has no raw derivation proof.</summary>
     public Chinese7935EchoCatalogSnapshot? DecodedEchoEvidence { get; }
+    public ChineseFullClientEchoEvidenceSource EchoEvidenceSource { get; }
     public bool HasUnsupportedItems => findings.Any(row => row.State == ChineseFullClientCatalogState.UnsupportedItemSchema);
 }

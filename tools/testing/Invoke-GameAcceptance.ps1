@@ -6,6 +6,8 @@ param(
     [string]$DataToolDll,
     [string]$OwnedAdmissionConfig,
     [uint32]$AccountId,
+    [uint32]$CounterpartyAccountId,
+    [string]$TradePlan,
     [string]$EvidenceRoot,
     [switch]$Resume,
     [uint32]$ExpectedItemUid,
@@ -33,6 +35,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GameAcceptance.Walk.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Health.Assertions.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Health.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Trade.ps1')
 
 function Get-GaScenarios {
     @(
@@ -46,7 +49,7 @@ function Get-GaScenarios {
         @{ id = 'upgrade-socket'; mode = 'guided'; actions = @('Record disposable gear and materials.', 'Use the actual forge/socket UI for valid and rejected operations; inspect resources and gear afterward.'); required = 'Catalog-backed costs/results, no rejected debit, socket/gem bytes and real durable transaction.' },
         @{ id = 'combat'; mode = 'guided'; actions = @('Record health/resources, weapon and learned skills.', 'Use controlled valid/rejected attacks against known targets; observe damage/status/XP and saves.'); required = 'Real target authority, formulas, ordering, resource admission, progression and client effects.' },
         @{ id = 'npc-shop-rewards'; mode = 'guided'; actions = @('Record balances, items and quest/reward prerequisites.', 'Use real NPC/shop/reward UI for success, rejection and duplicate submission.'); required = 'Actual catalog/script branch, price/capacity, one reward and durable item/currency closure.' },
-        @{ id = 'trade-two-clients'; mode = 'guided'; actions = @('Use two independently logged disposable clients and snapshot both.', 'Trade exact items/currency; test cancellation and disconnect before final acceptance.'); required = 'Both owner identities, atomic swap, duplicate/disconnect safety, both clients and durable files.' },
+        @{ id = 'trade-two-clients'; mode = 'guided-or-saved-pair'; actions = @('Select an explicit pair and whole-row/currency plan for retained saved comparison, or use guided snapshots.', 'Trade in the actual clients, save both, then Resume read-only.'); required = 'Selected saved comparison only; real owners, wire, cancellation/disconnect, Store and atomic swap remain pending.' },
         @{ id = 'persistence-restart'; mode = 'guided'; actions = @('Record exact saved test state and recovery readiness.', 'Root performs an explicitly owned graceful lifecycle transition, reconnects and compares state.'); required = 'Actual worker/lease drain, correct new owner, recovery, no duplicate/lost items or currency.' },
         @{ id = 'events-social'; mode = 'guided'; actions = @('Select one explicitly implemented social/event lifecycle and document prerequisites.', 'Exercise join/actions/leave/end and rejection paths with required real participants.'); required = 'Specific implemented lifecycle and persistence evidence; unimplemented systems remain pending.' },
         @{ id = 'updater'; mode = 'guided'; actions = @('Use existing tools/dev status and updater test tooling.', 'Test a real isolated feed update, interrupted/invalid update and preservation of local edits.'); required = 'Actual download/hash/apply/restart behavior and real distribution links; service health alone is insufficient.' }
@@ -69,6 +72,11 @@ try {
     }
     $selected = @($catalog | Where-Object { $_.id -ceq $Scenario })
     if ($selected.Count -ne 1) { throw 'Known scenario ID required.' }
+    $tradePair=$PSBoundParameters.ContainsKey('CounterpartyAccountId') -or $PSBoundParameters.ContainsKey('TradePlan')
+    if ($tradePair -and ($Scenario -cne 'trade-two-clients' -or $CounterpartyAccountId -eq 0 -or
+        $CounterpartyAccountId -eq $AccountId -or -not $TradePlan -or $RunSourceChecks -or $SendTestKit)) {
+        throw 'Saved trade requires a distinct explicit pair and retained plan; inspectors only.'
+    }
     $resourceScenario=$Scenario -cin @('consume-health','consume-mana','consume-full-restore')
     $resourceExpected=@{}
     if ($Scenario -ceq 'equip-unequip') {
@@ -109,6 +117,7 @@ try {
     $identity = @{ schemaVersion = 1; evidenceId = [IO.Path]::GetFileName($root); scenario = $Scenario;
         accountId = $AccountId; configPath = $config; configSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $config).Hash;
         dataToolPath = $tool; dataToolSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $tool).Hash }
+    if ($tradePair) { Set-GaTradeIdentity $context $identity $CounterpartyAccountId $TradePlan -Resume:$Resume }
     if ($Scenario -ceq 'equip-unequip') {
         $identity.expectedItemUid = $ExpectedItemUid; $identity.expectedItemId = $ExpectedItemId
         $identity.expectedEquipmentPosition = $ExpectedEquipmentPosition
@@ -122,11 +131,14 @@ try {
     }
     $sourceChecks = @{ status = 'NotRequested'; bound = 'No full suite automatically runs for acceptance.' }
     if ($Resume) {
-        $retained = Read-GaJson $context 'owner.json'
+        $retained = $(if ($tradePair) { (Read-GasJson $root 'owner.json').value } else { Read-GaJson $context 'owner.json' })
+        if ($tradePair) { Assert-GatOwner $retained }
+        if ($retained.Contains('counterpartyAccountId') -and -not $tradePair) { throw 'Retained pair mode requires its explicit original arguments.' }
         $identityKeys = @('schemaVersion', 'evidenceId', 'scenario', 'accountId', 'configPath', 'configSha256', 'dataToolPath', 'dataToolSha256')
         if ($Scenario -ceq 'equip-unequip') { $identityKeys += @('expectedItemUid', 'expectedItemId', 'expectedEquipmentPosition') }
         if ($Scenario -ceq 'login-walk-save') { $identityKeys += @('expectedMap','expectedX','expectedY') }
         if ($resourceScenario) { $identityKeys += @('expectedItemUid','expectedItemId') + (Get-GarProfile $Scenario).expectedKeys }
+        if ($tradePair) { $identityKeys += @('counterpartyAccountId','tradePlanPath','tradePlanSha256') }
         foreach ($key in $identityKeys) {
             if ($retained[$key] -cne $identity[$key]) { throw 'Retained evidence owner/configuration/tool identity mismatch.' }
         }
@@ -143,7 +155,8 @@ try {
     if ($Resume) {
         $initial = Read-GaJson $context 'receipt.json'
         $before = (Read-GaJson $context 'before.json').report
-        if ($Scenario -ceq 'mailbox-gear') { $state = Resume-GaMailbox $context $initial $before $afterLeaf }
+        if ($tradePair) { $state = Resume-GaTrade $context $identity $afterLeaf }
+        elseif ($Scenario -ceq 'mailbox-gear') { $state = Resume-GaMailbox $context $initial $before $afterLeaf }
         elseif ($Scenario -ceq 'equip-unequip') { $state = Resume-GaEquip $context $initial $before $afterLeaf $EquippedReceipt $ExpectedItemUid $ExpectedItemId $ExpectedEquipmentPosition }
         elseif ($Scenario -ceq 'login-walk-save') { $state = Resume-GaWalk $context $initial $before $afterLeaf $ExpectedMap $ExpectedX $ExpectedY }
         elseif ($resourceScenario) { $state = Resume-GaResource $context $initial $before $afterLeaf $Scenario $ExpectedItemUid $ExpectedItemId $resourceExpected }
@@ -160,6 +173,7 @@ try {
             $state = @{ status = 'PrerequisiteMissing'; reason = 'requestedSourceGateNotVerifiedNoGrantDispatched';
                 liveClientVisualStatus = 'LiveClientVisualPending' }
         }
+        elseif ($tradePair) { $state = Start-GaTrade $context $identity }
         elseif ($Scenario -ceq 'mailbox-gear') { $state = Start-GaMailbox $context $before $Kit -SendTestKit:$SendTestKit }
         elseif ($Scenario -ceq 'equip-unequip') {
             $state = Start-GaEquip $before $ExpectedItemUid $ExpectedItemId $ExpectedEquipmentPosition

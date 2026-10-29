@@ -21,11 +21,12 @@ internal class LegacyNativeMySqlReader : IDisposable
 	{
 		get
 		{
+			ThrowIfDisposed();
 			if (_dataset == null)
 			{
 				return 0;
 			}
-			if (_dataset.Tables.Count == 0)
+			if (!_dataset.Tables.Contains(Table))
 			{
 				return 0;
 			}
@@ -34,200 +35,229 @@ internal class LegacyNativeMySqlReader : IDisposable
 	}
 
 	public LegacyNativeMySqlReader(LegacyNativeMySqlCommand command)
-	{
-		if (command.Type != LegacyNativeMySqlCommandType.SELECT)
-		{
-			return;
-		}
-		_dataset = new DataSet();
-		_row = 0;
-		using MySqlConnection mySqlConnection = LegacyNativeDataHolder.MySqlConnection;
-		mySqlConnection.Open();
-		using (MySqlDataAdapter mySqlDataAdapter = new MySqlDataAdapter(command.Command, mySqlConnection))
-		{
-			mySqlDataAdapter.SelectCommand.CommandTimeout = 0;
-			mySqlDataAdapter.Fill(_dataset, "table");
-		}
-		((IDisposable)command).Dispose();
-	}
+        : this(Load(command))
+    {
+    }
 
-	void IDisposable.Dispose()
-	{
-		if (_dataset != null)
-		{
-			_dataset.Dispose();
-		}
-	}
+    // Ownership transfers to this buffered reader; the caller must not reuse/dispose the DataSet.
+    internal LegacyNativeMySqlReader(DataSet dataset)
+    {
+        ArgumentNullException.ThrowIfNull(dataset);
+        _dataset = dataset;
+    }
 
-	public bool Read()
-	{
-		if (_dataset == null)
-		{
-			return false;
-		}
-		if (_dataset.Tables.Count == 0)
-		{
-			return false;
-		}
-		if (_dataset.Tables["table"].Rows.Count > _row)
-		{
-			_datarow = _dataset.Tables["table"].Rows[_row];
-			_row++;
-			return true;
-		}
-		_row++;
-		return false;
-	}
+    internal static MySqlCommand PrepareSelect(LegacyNativeMySqlCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.Type != LegacyNativeMySqlCommandType.SELECT)
+            throw new ArgumentException("A SELECT command is required.", nameof(command));
+        MySqlCommand select = command.CreateProviderCommand();
+        select.CommandTimeout = 0;
+        return select;
+    }
 
-	public void Dispose()
-	{
-	}
+    private static DataSet Load(LegacyNativeMySqlCommand command)
+    {
+        using MySqlCommand select = PrepareSelect(command);
+        LegacyNativeMySqlCommand.RequireConfiguredConnection("Reader");
+        using MySqlConnection connection = LegacyNativeDataHolder.MySqlConnection;
+        select.Connection = connection;
+        using MySqlDataAdapter adapter = new(select);
+        var dataset = new DataSet();
+        try
+        {
+            connection.Open();
+            adapter.Fill(dataset, Table);
+            return dataset;
+        }
+        catch
+        {
+            dataset.Dispose();
+            throw;
+        }
+    }
 
-	public void Close()
-	{
-	}
+    private bool _disposed;
+    private DataRow CurrentRow
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _datarow ?? throw new InvalidOperationException("Read must select a current row.");
+        }
+    }
 
-	public sbyte ReadSByte(string columnName)
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+
+    public bool Read()
+    {
+        ThrowIfDisposed();
+        _datarow = null;
+        if (!_dataset.Tables.Contains(Table)) return false;
+        DataTable table = _dataset.Tables[Table];
+        if (_row < table.Rows.Count)
+        {
+            _datarow = table.Rows[_row++];
+            return true;
+        }
+        _datarow = null;
+        return false;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        DataSet dataset = _dataset;
+        _dataset = null;
+        _datarow = null;
+        _row = 0;
+        _disposed = true;
+        dataset?.Dispose();
+    }
+
+    public void Close() => Dispose();
+
+    public sbyte ReadSByte(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0;
 		}
 		sbyte result = 0;
-		sbyte.TryParse(_datarow[columnName].ToString(), out result);
+		sbyte.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public byte ReadByte(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0;
 		}
 		byte result = 0;
-		byte.TryParse(_datarow[columnName].ToString(), out result);
+		byte.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public short ReadInt16(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0;
 		}
 		short result = 0;
-		short.TryParse(_datarow[columnName].ToString(), out result);
+		short.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public ushort ReadUInt16(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0;
 		}
 		ushort result = 0;
-		ushort.TryParse(_datarow[columnName].ToString(), out result);
+		ushort.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public int ReadInt32(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0;
 		}
 		int result = 0;
-		int.TryParse(_datarow[columnName].ToString(), out result);
+		int.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public uint ReadUInt32(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0u;
 		}
 		uint result = 0u;
-		uint.TryParse(_datarow[columnName].ToString(), out result);
+		uint.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public long ReadInt64(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0L;
 		}
 		long result = 0L;
-		long.TryParse(_datarow[columnName].ToString(), out result);
+		long.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public ulong ReadUInt64(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0uL;
 		}
 		ulong result = 0uL;
-		ulong.TryParse(_datarow[columnName].ToString(), out result);
+		ulong.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public double ReadDouble(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0.0;
 		}
 		double result = 0.0;
-		double.TryParse(_datarow[columnName].ToString(), out result);
+		double.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public ulong ReadUInt128(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return 0uL;
 		}
 		ulong result = 0uL;
-		ulong.TryParse(_datarow[columnName].ToString(), out result);
+		ulong.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public string ReadString(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return "";
 		}
-		return _datarow[columnName].ToString();
+		return CurrentRow[columnName].ToString();
 	}
 
 	public uint method_6(string columnName)
 	{
 		uint result = 0u;
-		uint.TryParse(_datarow[columnName].ToString(), out result);
+		uint.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public long method_7(string columnName)
 	{
 		long result = 0L;
-		long.TryParse(_datarow[columnName].ToString(), out result);
+		long.TryParse(CurrentRow[columnName].ToString(), out result);
 		return result;
 	}
 
 	public bool ReadBoolean(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return false;
 		}
 		bool result = false;
-		string text = _datarow[columnName].ToString();
+		string text = CurrentRow[columnName].ToString();
 		if (text == "")
 		{
 			return false;
@@ -246,20 +276,20 @@ internal class LegacyNativeMySqlReader : IDisposable
 
 	public byte[] ReadBlob(string columnName)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return new byte[0];
 		}
-		return (byte[])_datarow[columnName];
+		return (byte[])CurrentRow[columnName];
 	}
 
 	public uint[] ReadUIntArray(string columnName, string[] separator)
 	{
-		if (_datarow.IsNull(columnName))
+		if (CurrentRow.IsNull(columnName))
 		{
 			return new uint[0];
 		}
-		string[] array = _datarow[columnName].ToString().Split(separator, StringSplitOptions.RemoveEmptyEntries);
+		string[] array = CurrentRow[columnName].ToString().Split(separator, StringSplitOptions.RemoveEmptyEntries);
 		uint[] array2 = new uint[array.Length];
 		for (int i = 0; i < array.Length; i++)
 		{

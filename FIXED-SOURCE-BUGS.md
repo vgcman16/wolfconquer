@@ -4,6 +4,50 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## FSB-199: Native SQL value isolation and buffered resource ownership
+
+**Implemented and focused offline qualified; combined full gate pending.** The archived public baseline
+`e026be7f221847cccd8c3b3b0a8a69a85becdf82` native command builder interpolated
+string and numeric values into SQL. Its identity `MySqlEscape` did not quote text,
+the second string SET path did not even call that identity helper, INSERT used a
+wrapping byte index, and reset/type changes retained stale state. The reader built
+its adapter from command text alone, consumed the caller's builder, and exposed
+public Dispose/Close no-ops while only interface disposal released the DataSet.
+
+The candidate binds actual provider parameters for all fluent values and sends the
+same real provider command through Execute, Execute2 and SELECT preparation.
+Identifiers/order tokens are validated separately; incomplete commands and invalid
+inputs reject before connection access without partial logical state changes.
+Type/raw-text reset clears bindings; INSERT preparation is repeatable and no longer
+wraps at 256 fields. Raw Command remains an explicit operator-owned SQL boundary.
+Execute/Execute2/reader require explicit configuration before the connection getter;
+the explicit-connection overload retains caller ownership without consulting global
+settings. Public Execute2's configured guard is shared without an override;
+private integration must replace its old deployment assignment with that safe path,
+never copy or embed actual settings.
+
+The buffered reader owns the actual DataSet obtained by its SQL loader or transferred
+by an internal buffered-result constructor. The loader disposes provider command,
+adapter, connection and failed dataset; Dispose, Close and interface Dispose share
+idempotent cleanup. The caller retains its builder. Access before Read, after EOF or
+after disposal fails explicitly instead of retaining a stale row or null trap.
+
+Offline tests inspect actual MySql.Data command text/parameter types and values for
+apostrophes, backslashes, controls, Unicode, signed/unsigned/culture boundaries;
+SELECT/INSERT/UPDATE/DELETE/COUNT; reset/reuse; invalid-state preservation; real adapter
+selection; successful typed reads and owned-DataSet cleanup. Historical assertions
+requiring injection, byte wrap, invalid concatenation or cleanup no-ops were replaced;
+account state and online-configuration caller semantics remain covered.
+
+Root released the serialized host slot. Local-cache-only restore01 succeeded;
+final isolated Release build02 passed with 0 errors/157 warnings, and focused01
+passed 48/48 with 0 failures/skips. Actual JSON/log/TRX receipts are retained under
+helper-mysql-command-safety-next. SQL constructor failure cleanup is source-reviewed;
+owned buffered cleanup is exercised. No connection was opened. Command inspection does not
+prove SQL execution, transaction/idempotency safety, full persistence, deployment or
+client/gameplay parity. Existing activation and live execution holds remain in force.
+Spec: [server-native-mysql-parameters](docs/protocol/specs/server-native-mysql-parameters.md).
+
 ## 2026-10-29 Caprice, shared journal and status preflight - full source qualification
 
 Full Windows [40886558198](https://github.com/vgcman16/wolfconquer/actions/runs/40886558198)

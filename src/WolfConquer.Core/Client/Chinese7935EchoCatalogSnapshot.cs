@@ -43,5 +43,5 @@ public enum Chinese7935EchoCatalogFailure
 {
     None, UnsupportedVersion, InputBounds, InvalidUtf8, UnsupportedSyntax, LiteralBounds,
     DuplicateRow, DuplicateField, RowSchema, NumericWidth, PathRequired, UnsafePath,
-    FileRead, SourceChanged, PinRequired, PinMismatch,
+    FileRead, SourceChanged, PinRequired, PinMismatch, KeyRequired,
 }

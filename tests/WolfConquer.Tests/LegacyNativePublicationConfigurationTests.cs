@@ -34,14 +34,56 @@ public sealed class LegacyNativePublicationConfigurationTests
         Assert.Equal(LegacyNativeMySqlCommandType.SELECT, command.Type);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("\t")]
+    [InlineData("\r\n")]
+    public void ExecuteAndReaderRejectMissingConfigurationBeforeTheirConnectionGetter(string? missing)
+    {
+        using var restore = new RestoreString();
+        Holder.ConnectionString = missing;
+        using var command = new LegacyNativeMySqlCommand(LegacyNativeMySqlCommandType.SELECT);
+        command.Select("synthetic_publication_probe").Where("Value", "preserved'");
+        string text = command.Command;
+
+        var execute = Assert.Throws<InvalidOperationException>(() => command.Execute());
+        Assert.Equal("Execute requires an explicitly configured database connection string.", execute.Message);
+        var reader = Assert.Throws<InvalidOperationException>(() => command.CreateReader());
+        Assert.Equal("Reader requires an explicitly configured database connection string.", reader.Message);
+        Assert.Same(missing, Holder.ConnectionString);
+        Assert.Equal(text, command.Command);
+        using var provider = command.CreateProviderCommand();
+        Assert.Equal("preserved'", provider.Parameters[0].Value);
+    }
+
+    [Fact]
+    public void ExplicitConnectionExecutionDoesNotConsultUnrelatedSharedConfiguration()
+    {
+        // A real caller-owned closed connection must be refused by the provider, never opened here.
+        using var restore = new RestoreString();
+        Holder.ConnectionString = null;
+        using var command = new LegacyNativeMySqlCommand(LegacyNativeMySqlCommandType.UPDATE);
+        command.Update("synthetic_publication_probe").Set("Value", 1L);
+        using var connection = new MySql.Data.MySqlClient.MySqlConnection();
+        bool disposed = false;
+        connection.Disposed += (_, _) => disposed = true;
+        var error = Assert.Throws<InvalidOperationException>(() => command.Execute(connection));
+        Assert.DoesNotContain("configured database connection string", error.Message, StringComparison.Ordinal);
+        Assert.Equal(System.Data.ConnectionState.Closed, connection.State);
+        Assert.False(disposed);
+    }
+
     [Fact]
     public void Execute2GuardsRawConfigurationThenUsesTheHolderGetterWithoutAnOverride()
     {
-        // Structural, non-network proof for this owner, not successful DB-I/O proof.
-        // There is no callback seam that can safely run its configured Open path here.
-        var instructions = ReadExecute2();
-        int check = Array.FindIndex(instructions, instruction => instruction.Member is MethodInfo method &&
-            method.DeclaringType == typeof(string) && method.Name == nameof(string.IsNullOrWhiteSpace));
+        // Structural, non-network proof for the actual shared guard and Execute2 call route.
+        MethodInfo execute = typeof(LegacyNativeMySqlCommand).GetMethod(nameof(LegacyNativeMySqlCommand.Execute2))!;
+        MethodInfo guard = typeof(LegacyNativeMySqlCommand).GetMethod(nameof(LegacyNativeMySqlCommand.RequireConfiguredConnection), BindingFlags.Static | BindingFlags.NonPublic)!;
+        var instructions = ReadMethod(execute);
+        var validation = ReadMethod(guard);
+        int check = Array.FindIndex(instructions, instruction => Equals(instruction.Member, guard));
         int getter = Array.FindIndex(instructions, instruction => instruction.Member is MethodInfo method &&
             method.DeclaringType == typeof(Holder) && method.Name == "get_MySqlConnection");
         var openContract = typeof(DbConnection).GetMethod(nameof(DbConnection.Open), Type.EmptyTypes)!;
@@ -50,26 +92,26 @@ public sealed class LegacyNativePublicationConfigurationTests
         Assert.InRange(check, 1, instructions.Length - 1);
         Assert.InRange(getter, check + 1, instructions.Length - 1);
         Assert.InRange(open, getter + 1, instructions.Length - 1);
-        var prior = instructions.Take(check).Last(instruction => instruction.Code != OpCodes.Nop);
+        int whitespace = Array.FindIndex(validation, instruction => instruction.Member is MethodInfo method &&
+            method.DeclaringType == typeof(string) && method.Name == nameof(string.IsNullOrWhiteSpace));
+        Assert.InRange(whitespace, 1, validation.Length - 1);
+        var prior = validation.Take(whitespace).Last(instruction => instruction.Code != OpCodes.Nop);
         Assert.Equal(OpCodes.Ldsfld, prior.Code);
         Assert.Equal(typeof(Holder).GetField(nameof(Holder.ConnectionString)), prior.Member);
-        Assert.Contains(instructions[(check + 1)..getter], instruction => instruction.Code == OpCodes.Throw);
-        Assert.Contains(instructions[(check + 1)..getter], instruction => instruction.Member is ConstructorInfo ctor &&
+        Assert.Contains(validation[(whitespace + 1)..], instruction => instruction.Code == OpCodes.Throw);
+        Assert.Contains(validation[(whitespace + 1)..], instruction => instruction.Member is ConstructorInfo ctor &&
             ctor.DeclaringType == typeof(InvalidOperationException));
         Assert.Single(instructions, instruction => instruction.Member is MethodInfo method &&
             method.DeclaringType == typeof(Holder) && method.Name == "get_MySqlConnection");
-        Assert.DoesNotContain(instructions, instruction => instruction.Member is MethodInfo method &&
-            method.Name == "set_ConnectionString");
-        Assert.DoesNotContain(instructions, instruction => instruction.Code == OpCodes.Stsfld &&
+        var all = instructions.Concat(validation).ToArray();
+        Assert.DoesNotContain(all, instruction => instruction.Member is MethodInfo method && method.Name == "set_ConnectionString");
+        Assert.DoesNotContain(all, instruction => instruction.Code == OpCodes.Stsfld &&
             Equals(instruction.Member, typeof(Holder).GetField(nameof(Holder.ConnectionString))));
-        Assert.DoesNotContain(instructions, instruction => instruction.Text is string text &&
-            (text.Contains("Server=", StringComparison.OrdinalIgnoreCase) ||
-             text.Contains("Password=", StringComparison.OrdinalIgnoreCase)));
+        Assert.DoesNotContain(all, instruction => instruction.Text is string text &&
+            (text.Contains("Server=", StringComparison.OrdinalIgnoreCase) || text.Contains("Password=", StringComparison.OrdinalIgnoreCase)));
     }
-
-    private static Instruction[] ReadExecute2()
+    private static Instruction[] ReadMethod(MethodInfo method)
     {
-        var method = typeof(LegacyNativeMySqlCommand).GetMethod(nameof(LegacyNativeMySqlCommand.Execute2))!;
         byte[] bytes = method.GetMethodBody()!.GetILAsByteArray()!;
         Assert.InRange(bytes.Length, 1, 8192);
         var codes = typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static)

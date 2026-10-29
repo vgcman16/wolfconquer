@@ -1,23 +1,37 @@
 # Reconstruction status
 
-Updated2026-10-29. Target: Chinese client7899 / VisibleDx8D13.
-Full English/gameplay reconstruction remains active. Source30e793f0 and generated
-tracker50cf80fa are pushed; current-main live acceptance remains open.
+Updated 2026-10-29. The proven live target remains Chinese client7899 /
+VisibleDx8D13. The separate official reference and complete staged copy are 7937.
+Full English/gameplay reconstruction remains active.
 
 ## Full CI boundary
 
-Full Windows [40886558198](https://github.com/vgcman16/wolfconquer/actions/runs/40886558198)
-passed on exact50cf80fa8c5d1c334d7ee6bfea0715040c66fc56, containing source30e793f0
-and the preceding decoded-Echo loader dd976947. Core29,929 passed/152 existing
-NotExecuted, Updates446/446, Launcher57/57; all eight stages passed with0failures.
-Actual local20261029T135633667Z-e23c3f08 finished2026-10-29T14:44:06.9964313Z.
-All51 new combined focused outcomes and46 decoded-Echo catalog outcomes are
-present as Passed in the full core TRX. Actual logs/receipts/all3TRXs and matching
-complete World/DataTool runtime files are preserved outside the runner.
-This qualifies the Caprice pair, shared journal, XP/Fly preflight and Echo loader
-source. Whole-cast/SQL/native physical Stamina, power-loss/multiprocess safety,
-deployment, newer-client/English/full gameplay and live acceptance remain open.
-No original-save/route edit, legacy client relaunch or retained gear resend followed.
+Source `37dde47a6326fb8458cf7f6f005c261696f9892d`, with generated tracker head
+`de49bdf34ce2402721ae02ed44ff1f3d1018db50`, passed
+[Windows run 40922160524](https://github.com/vgcman16/wolfconquer/actions/runs/40922160524).
+All eight stages passed: Core 29,999 Passed / 152 existing NotExecuted, Updates
+446, Launcher 57, zero failures. The local run finished 2026-10-29 at 18:16:37Z.
+Actual logs, all three TRXs and matching complete World/DataTool runtime closures
+are retained. This qualifies source, including Classic buff target validation and
+explicit 7937 item envelopes; deployment and current-source live acceptance remain open.
+
+## Current integrated batch
+
+- Encoded Echo intake: 135/135 focused C# tests passed. An actual 7937 API probe
+  decoded 85 rows, retained explicit transform provenance, refused the different
+  catalog and preserved selected inputs. No key or catalog payload is published.
+- Saved two-player trade tools: 117/117 focused tests passed, including 62 new
+  cases. Optional retained plans compare the pair's item/wallet/saved-state changes.
+  SavedTradeObserved remains exit 2; it is not live trade or atomicity acceptance.
+- Native SQL values use real typed provider parameters. Builder state resets,
+  required configuration and reader cleanup passed 48/48 offline tests. No database
+  connection was opened; SQL execution and transactional persistence remain unproven.
+- Portable named-resource proposal tools passed 14 synthetic Python tests. Operators
+  supply their own ignored inputs and reviewed plans. No actual resources, plans,
+  game assets or private configuration are included or applied.
+
+These changes are integrated and await the combined full Windows gate. Focused
+checks do not establish new-client login, rendering, English or gameplay parity.
 
 ## Implemented source families
 
@@ -40,16 +54,16 @@ No original-save/route edit, legacy client relaunch or retained gear resend foll
   components exist; neither is a complete lifecycle/distribution claim.
 - [x] World-wire diagnostics are opt-in and metadata-only by default.
 
-## Newer 7935 client research
+## Newer 7937 client research
 
-- [x] Official patches through 7935 are retained privately for research.
+- [x] Official full-client reference used its own updater through 7937; a separate complete stage is retained.
 - [x] Packet 2132 codec, Echo request/catalog transform/threshold selection and
   item 2350 read/write support have focused offline evidence.
 - [ ] Bind them to genuine runtime state, ownership, costs, permissions and
   durable saves.
 - [ ] Add explicit profile/startup activation and verify a separate copied client.
 
-No 7935 feature is default-enabled, runtime-adopted or live-client accepted.
+No newer feature is default-enabled, runtime-adopted or live-client accepted.
 
 ## Live-client boundary
 
@@ -60,7 +74,7 @@ No 7935 feature is default-enabled, runtime-adopted or live-client accepted.
 - [ ] Verify native graph adoption, multiplayer gameplay and complete save/reload.
 
 The October28 observation does not prove the current build, full gameplay,
-English coverage, distribution or 7935 compatibility.
+English coverage, distribution or 7937 compatibility.
 
 ## FullAccount qualification
 

@@ -35,6 +35,40 @@ the independent expected resource exactly, and repetition changes nothing. One
 contradictory VIP help value and one registry/config value remain held; Chinese
 comments remain. Neither file was installed into a running/original client.
 
+## Named UTF8 UI proposals
+
+The portable [named UI proposal tools](../tools/client-localization/named-ui/README.md)
+prepare explicitly reviewed selections for named assignment resources such as
+`Cn_Res.ini`. Record the actual client/build and wording evidence for each review.
+The package contains generic Python source and synthetic tests only.
+
+Operators supply three authorized ordinary files: original language, English
+reference and current target, plus a reviewed plan beside the tool. Keep resource
+inputs private, for example under its ignored `inputs/` directory. Its three
+curated plan filenames are also ignored:
+
+| Family | Plan filename |
+| --- | --- |
+| `character-stat-ui` | `stat-ui-family.json` |
+| `equipment-ui` | `gear-ui-family.json` |
+| `character-equipment-ui` | `combined-ui-family.json` |
+
+Plans pin the SHA256 of all three inputs and select at most 200 distinct exact-case
+keys. A combined proposal requires an explicitly reviewed union of the maps.
+Strict UTF8 parsing preserves BOM state, exact keys/order/occurrences, unselected
+raw bytes, selected prefixes and individual line endings. Selected groups require
+equal occurrence counts, uniform values, identical original/current wording and
+the same ordered formatting/escape/markup/control tokens. Mismatches remain held
+unchanged; malformed required input refuses. See the linked README for the schema
+and commands.
+
+Default output is a JSON summary. Explicit `--write-proposal` creates a fresh GUID
+child under ignored `proposals/`; input resources stay read only. The report
+describes caller-supplied English requiring independent wording and rendering
+review. A family name does not establish official wording or authorship. There
+is no apply operation, and proposal/test success does not establish rendered
+English, layout/hover acceptance, deployment or client/protocol/gameplay parity.
+
 ## Configuration primitives
 
 `ClientConfigWordRecipe` implements the inspected64-word adjacent-XOR/rotation17

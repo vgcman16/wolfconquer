@@ -96,6 +96,8 @@ public sealed partial class LegacyNativeCharacterReadTests
     {
         using var command = new LegacyNativeMySqlCommand(LegacyNativeMySqlCommandType.UPDATE);
         Assert.Same(command, command.Update("configuration").Set("PlayersOnline", 41u));
-        Assert.Equal("UPDATE `configuration` SET `PlayersOnline` = 41 ", command.Command);
+        using var sql = command.CreateProviderCommand();
+        Assert.Equal("UPDATE `configuration` SET `PlayersOnline` = @p0", sql.CommandText);
+        Assert.Equal(41u, Convert.ToUInt32(sql.Parameters[0].Value));
     }
 }

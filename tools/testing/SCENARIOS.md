@@ -1,13 +1,15 @@
 # Game acceptance runner
 
 This framework records bounded saved-state evidence and guides real-client tests.
-Build the matching DataTool before use. Fourteen families are listed. Eight scenarios currently guide actions
-and retain snapshots; saved walk, health/Mana/FullRestore consumption, mailbox delivery/claim and equip/unequip have saved-state assertions.
+Use the qualified matching DataTool. Fourteen families are listed. Seven scenarios
+remain guided-only; trade also offers an explicit saved-pair comparison while
+preserving its guided fallback. Saved walk, health/Mana/FullRestore consumption,
+mailbox delivery/claim and equip/unequip have saved-state assertions.
 Rendering, usability and complete gameplay remain separate acceptance work.
 
 The earlier twelve-family source qualifications remain historical records.
-Mana/FullRestore are newly implemented read-only source scenarios awaiting Root's
-qualification; adding catalog entries is not new execution or live acceptance.
+Adding saved-pair trade comparison is a source increment awaiting Root's own
+qualification; it does not add a family or establish live acceptance.
 
 | ID | Initial execution | Required acceptance beyond snapshots |
 | --- | --- | --- |
@@ -21,7 +23,7 @@ qualification; adding catalog entries is not new execution or live acceptance.
 | upgrade-socket | Guided snapshots | Real costs, resource rejection, socket/gem fields and durable closure |
 | combat | Guided snapshots | Targets, damage/status/XP, admission costs and ordering |
 | npc-shop-rewards | Guided snapshots | Real branch/catalog, prices/capacity and one durable reward |
-| trade-two-clients | Guided snapshots | Both real owners, atomic swap and cancellation/disconnect controls |
+| trade-two-clients | Optional explicit pair/plan and saved whole-row/currency transition; guided fallback | Both real owners, wire, Store, atomic swap and cancellation/disconnect controls |
 | persistence-restart | Guided snapshots | Root-owned graceful worker/lease drain, restart/recovery and rehydration |
 | events-social | Guided snapshots | One implemented lifecycle with real required participants |
 | updater | Guided snapshots | Existing updater tooling plus actual isolated update/rollback/local-edit behavior |
@@ -277,3 +279,44 @@ it never means gameplay passed. Exit1 means InvalidEvidence. Limits default to
 128 evidence folders, 128 receipts per folder and 2 MiB per JSON file. Ordinary
 path and per-file metadata checks bound reading; cross-process replacement/ABA
 or edits after reading are not excluded. No receipt is runtime authority.
+
+## Retained two-player trade comparison
+
+Select `trade-two-clients` with both `-CounterpartyAccountId <secondNumericKey>`
+and `-TradePlan C:\TESTS\trade-plan.json`, along with the same explicit DataTool,
+owned configuration, primary AccountId and fresh evidence directory. Omitting
+both new parameters preserves guided snapshots. Selecting only one refuses.
+Saved pair mode rejects sending and source checks.
+
+The strict plan contains exactly these keys. Substitute real disposable account,
+item UID/type and full raw stack values; this illustrative selection is not a
+command or a grant:
+
+```json
+{"schemaVersion":1,"participants":[{"accountId":2,"goldDelta":-7,"conquerPointsDelta":3},{"accountId":3,"goldDelta":7,"conquerPointsDelta":-3}],"items":[{"uid":8000001,"itemId":1001000,"stackSize":0,"fromAccountId":2,"toAccountId":3}]}
+```
+
+Participants are ordered primary then counterparty. Currency changes must sum
+zero. At least one selected row or currency changes; up to forty complete rows
+can move in either direction. Stack0 is the inspector's real stored value, not
+an inferred empty stack. Splits, merges, new UIDs and unknown plan keys refuse.
+
+Initial execution runs two actual read-only inspector commands, retains
+before.json and before-counterparty.json, the exact trade-plan.json bytes, and
+one trade-intent.json with actual domain/character identities and both hashes.
+It returns WaitingForSavedTrade, exit2. Perform the actual client trade and save
+both players separately, then repeat the same arguments with -Resume. Resume
+uses the retained plan only (the original input file need not remain present),
+requires the same original plan-path string and explicit identities/tool/config,
+and creates unique after envelopes and a receipt. It runs only the two saved
+inspectors; it never sends or retries a trade, logs in, saves, repairs or grants.
+
+SavedTradeObserved remains exit2 with client, wire, source, live Store and
+atomicity pending. It checks exact saved expected wallet changes, full selected
+UID rows and every other reported row, unchanged selected character/location
+fields and untouched sidecar image evidence. Status repeats both retained
+comparisons without opening any recorded external tool/config/plan paths.
+These sequential file snapshots cannot prove a simultaneous atomic trade,
+active ownership, authenticated runtime equality, or preservation of opaque
+bytes inside changed Character/Items files. Both clients and transaction
+rejection/disconnect/recovery acceptance still require separate evidence.
