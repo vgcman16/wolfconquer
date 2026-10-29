@@ -4,6 +4,65 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-29 connection safety and runtime diagnostics - focused source qualified
+
+### FSB-184: Construct account connections without option injection or secret text
+
+LegacyGuardShieldAccountConfig concatenated host/database/user/password into a
+connection string, forced unvalidated local-development options for every host,
+and exposed its password through generated record text. The conversion helper
+has no discovered production caller; existing parser tests call it.
+
+Use the actual MySqlConnectionStringBuilder with literal credential fields,
+required host/user/database and explicit nonnull password. Only literal localhost
+or IP loopback keeps the existing development options; other hosts use VerifyFull
+without public-key fallback. Record text omits endpoint and credential fields.
+This does not claim arbitrary serializers cannot read its public properties.
+
+Modern MySqlConnector is pinned from 2.5.0 to 2.6.1, the upstream fix for
+[GHSA-473q-m89c-ghf8](https://github.com/advisories/GHSA-473q-m89c-ghf8).
+The separately pinned native MySql.Data 6.3.6 arrangement is unchanged per branch.
+Actual restore resolves 2.6.1; build08 has zero errors and the advisory warning
+is absent. All 18 synthetic builder/redaction cases pass in the 104-case focused
+selection. No live database, remote TLS, credential use, config or route change
+was performed. Full SQL persistence and the full successor gate remain open.
+
+### FSB-185: Keep interrupted diagnostics isolated and missing runtime state explicit
+
+The new, not-yet-deployed inspector initially skipped Disconnect when a genuine
+peer EOF marked its pipe broken. A subsequent connection wait faulted the worker,
+which could stop the opted-in host. Actual partial-header and partial-body tests
+reproduced that failure. The initial partial-receipt case instead failed the
+separate native-owner prerequisite; it is not claimed as an EOF reproduction.
+Reset every accepted connected/broken instance while preserving cleanup failures.
+All three actual interrupted exchanges now reconnect and preserve saved state,
+queued output, current binding and UID high-water.
+
+Review also found that ordinary Frame login creates a genuine Player/binding and
+raw equipment observation, but not full native item owners or hydrated Mana.
+The diagnostic reports actual scalar values and managed roots; absent native
+roots and their selected comparison are null with an explicit reason. No missing
+owner is fabricated or treated as an empty inventory. Each present container is
+still validated and repeatedly witnessed even if the other owner is absent;
+three real malformed half-graph controls refuse without writes.
+
+Initialized-native positives explicitly invoke genuine member phases and the
+implemented item loader on valid owned files while preserving ordinary binding,
+Player, Spells, Profs, inputs and counters. They do not establish Frame wiring.
+Both atomicNativeTupleProven and liveStoreSynchronized remain false. Tests no
+longer require the old Mana setter to produce a disagreement as correct behavior.
+
+The existing WCM2 sender also resets every accepted instance. Its three new real
+EOF/replay controls already passed before that hardening and still pass; no
+reproduced mail regression is claimed. Receipt format and operation idempotency
+are unchanged. Direct host completion/startup-collision and actual DataTool pipe
+cases pass. Combined focused selection: 104/104, zero skips, 36 seconds; build08
+zero errors. Broader/full gate, actual deployment and live acceptance remain open.
+
+Neighboring account, mail, save and tool selection passed 194/194 with zero
+skips in 3m31s. It overlaps the 104-case focused selection; no additive total
+or live/full-CI claim follows.
+
 ## 2026-10-28 incoming D13 mailbox requests - offline repair
 
 ### FSB-183: Read D13 mail trailers through the selected recovery profile
@@ -32,8 +91,9 @@ runner/status/inspector selection passed223/223, zero skips,6m1s (overlap).
 Evidence: `.artifacts/root-mailbox-wire-next`. The new fixture exporter also has
 direct PS controls and source tests; export success is not handler acceptance.
 
-This is an offline source repair. Its full successor gate, live Content/claim
-acknowledgement, inventory/rendering and saved/runtime acceptance remain OPEN.
+This is an offline source repair. Full Windows40818321676 on8d4bdabb passed
+all eight stages: core29462pass/156skip, Updates446 and Launcher57. Live
+Content/claim acknowledgement, rendering and saved/runtime acceptance remain OPEN.
 No full parity, SQL or power-loss safety claim follows. Separate local test
 environment details remain in the private handoff rather than this source log.
 

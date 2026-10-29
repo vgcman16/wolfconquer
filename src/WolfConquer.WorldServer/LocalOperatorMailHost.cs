@@ -8,20 +8,30 @@ internal static class LocalOperatorMailHost
         WorldServerFrameHandler handler, LegacyOwnedAdmissionRuntime owner, Guid configuredDomain)
     {
         using var stop = new CancellationTokenSource();
-        var pipe = LocalOperatorMailPipe.StartIfEnabled(handler, owner, configuredDomain, stop.Token);
-        if (pipe is null)
-            return await ConquerServerRunner.RunAsync(endpoint, args, handler.HandleFrameAsync);
-        Console.Out.WriteLine("Local operator mail enabled: " + pipe.PipeName + "; current OS user only.");
+        var endpoints = new List<IAsyncDisposable>();
+        var workers = new List<Task>();
         Task<int>? server = null;
         var failures = new List<Exception>();
         var result = 1;
         try
         {
-            server = ConquerServerRunner.RunAsync(endpoint, args, handler.HandleFrameAsync, stop.Token);
-            var first = await Task.WhenAny(server, pipe.Completion);
-            if (ReferenceEquals(first, pipe.Completion) && !server.IsCompleted)
+            var mail = LocalOperatorMailPipe.StartIfEnabled(handler, owner, configuredDomain, stop.Token);
+            if (mail is not null)
             {
-                await pipe.Completion;
+                endpoints.Add(mail); workers.Add(mail.Completion);
+                Console.Out.WriteLine("Local operator mail enabled: " + mail.PipeName + "; current OS user only.");
+            }
+            var inspection = LocalRuntimeInspectionPipe.StartIfEnabled(handler, owner, configuredDomain, stop.Token);
+            if (inspection is not null)
+            {
+                endpoints.Add(inspection); workers.Add(inspection.Completion);
+                Console.Out.WriteLine("Local runtime diagnostic enabled: " + inspection.PipeName + "; no atomic native tuple or file/runtime equality proof.");
+            }
+            server = ConquerServerRunner.RunAsync(endpoint, args, handler.HandleFrameAsync, stop.Token);
+            var first = await Task.WhenAny(workers.Append(server));
+            if (!ReferenceEquals(first, server) && !server.IsCompleted)
+            {
+                await first;
                 throw new InvalidOperationException("Operator endpoint stopped before the actual server.");
             }
             result = await server;
@@ -35,8 +45,9 @@ internal static class LocalOperatorMailHost
             try { await server; }
             catch (Exception error) { AddFailure(failures, error); }
         }
-        try { await pipe.DisposeAsync(); }
-        catch (Exception error) { AddFailure(failures, error); }
+        foreach (var local in endpoints.AsEnumerable().Reverse())
+            try { await local.DisposeAsync(); }
+            catch (Exception error) { AddFailure(failures, error); }
         if (failures.Count == 1) ExceptionDispatchInfo.Capture(failures[0]).Throw();
         if (failures.Count > 1) throw new AggregateException("World/operator shutdown failed.", failures);
         return result;

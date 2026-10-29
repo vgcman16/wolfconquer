@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MySqlConnector" Version="2.5.0" />
+    <PackageReference Include="MySqlConnector" Version="2.6.1" />
     <!-- Pin the native-compatible desktop asset, not the distinct netcore45 DLL. -->
     <PackageReference Include="protobuf-net" Version="2.0.0.668" GeneratePathProperty="true" ExcludeAssets="all" />
     <PackageReference Include="MySql.Data" Version="6.3.6" />

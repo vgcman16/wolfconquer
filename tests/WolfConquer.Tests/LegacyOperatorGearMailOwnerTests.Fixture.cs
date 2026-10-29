@@ -55,14 +55,15 @@ internal sealed class OperatorGearMailFixture : IAsyncDisposable
         internal WorldSessionStore Store => Field<WorldSessionStore>(Handler, "_sessions");
         internal WorldSession Current => Assert.IsType<WorldSession>(Store.TryGet(Connection, out var current) ? current : null);
 
-        internal void Initialize()
+        internal void Initialize(IReadOnlyList<ItemType>? additionalCatalogItems = null)
         {
             // v4 requires an existing complete mailbox image; this is a separate no-reward fixture initialization.
             new LegacyMailboxStore(Fixture.Root).Save(Uid);
             Fixture.Bootstrap();
             Assert.True(LegacyOwnedAdmissionRuntime.TryOpen(Fixture.Loader, Fixture.Options(), out var opened, out var reason), reason);
             Runtime = Assert.IsType<LegacyOwnedAdmissionRuntime>(opened);
-            var catalog = LegacyItemWorldDataFixture.Create(new[] { Item(1_000_000), Item(GearId) }, []);
+            var catalog = LegacyItemWorldDataFixture.Create(new[] { Item(1_000_000), Item(GearId) }
+                .Concat(additionalCatalogItems ?? []).ToArray(), []);
             Handler = new WorldServerFrameHandler(Fixture.Loader, null, catalog, LegacyRuntimeUpdateLoopOptions.Disabled,
                 Log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime);
             Connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),

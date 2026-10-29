@@ -145,7 +145,8 @@ public sealed partial class LocalOperatorMailPipe : IAsyncDisposable
             catch (Exception error) { primary = error; throw; }
             finally
             {
-                try { if (pipe.IsConnected) pipe.Disconnect(); }
+                // Reset every accepted instance, including a broken peer.
+                try { pipe.Disconnect(); }
                 catch (Exception cleanup) when (primary is not null)
                 { throw new AggregateException("Operator endpoint and disconnect both failed.", primary, cleanup); }
             }

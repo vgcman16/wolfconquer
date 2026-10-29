@@ -4,6 +4,23 @@ These tools support disposable Windows test fixtures using Chinese7899 and
 VisibleDx8D13. The operator sender is disabled by default and requires the
 server's actual configured owned-admission runtime.
 
+## List tests and view progress
+
+The runner covers twelve test areas. Saved movement, health consumption,
+mail claims and equip/unequip have specific state assertions. Eight other areas
+provide guided steps and retained snapshots. The [scenario catalog](../tools/testing/SCENARIOS.md)
+and [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md) show the remaining work.
+
+```powershell
+pwsh -NoProfile -File C:\PATH\tools\testing\Invoke-GameAcceptance.ps1 -List
+pwsh -NoProfile -File C:\PATH\tools\testing\Get-GameAcceptanceStatus.ps1 -EvidenceParent C:\TESTS\acceptance -Format Table
+```
+
+Listing tests performs no fixture or host probe. The progress view reads existing
+evidence folders, so it can run while the server is stopped. Pending and invalid
+evidence remain visible; a status row cannot establish client rendering or full
+gameplay acceptance. Use a disposable owned fixture for actions below.
+
 ## Give a connected test character gear
 
 Start a qualified World build with its existing owned-admission configuration
@@ -63,8 +80,8 @@ live Store synchronization and gameplay acceptance pending. Record the observed
 client result separately. See the [runner workflow](../tools/testing/SCENARIOS.md)
 for complete parameters and failure handling.
 
-The published equip/unequip and saved-health tooling passed full Windows
-run40812655135 on014c3263: core29,440pass/156skip, Updates446/446 and
+The published tools and D13 mailbox parser passed full Windows
+run40818321676 on8d4bdabb: core29,462pass/156skip, Updates446/446 and
 Launcher57/57; all eight stages passed. **Real-client claim/equipment acceptance
 remains pending.** The tool uses a separate fresh evidence folder with the exact
 claimed item UID, item type and
@@ -137,41 +154,16 @@ families retain guided snapshots/actions. See the scenario catalog for examples.
 
 ## Qualification
 
-Current walking/tooling selection on the public99503716 equipment behavior plus
-this source batch: Release build0errors,7selected PSparses, actual70/70passed,
-0fail/skip in59s. This includes the earlier mail/equip/status/pipe families and
-new walking/digest regressions; selections overlap and are not additive. Full
-successor CI and real-client acceptance remain pending. No NativeHP change is
-included in this tooling batch.
+The published8d4bdabb source passed all eight Windows stages in
+[run40818321676](https://github.com/vgcman16/wolfconquer/actions/runs/40818321676):
+core29,462pass/156existing skips, Updates446pass and Launcher57pass, zero
+failures. The D13 mailbox/wire exporter selections passed196/196 and223/223;
+these selections overlap. Earlier failure receipts remain in local evidence and
+Git history. Source qualification does not prove complete gameplay, SQL,
+power-loss recovery or real-client claim/equipment acceptance.
 
-Earlier public80fa53c9 tooling built with zero errors; seven selected PowerShell
-files parsed. Its final focused selection passed60/60, with no failures/skips:
-real pipe/Frame delivery, actual DataTool first and same-operation commands,
-fragmented response reading, wrong receipts, shutdown join, kits, inspector,
-mail/equip runner and the actual status script. A first59/60 run exposed a blank
-table view; casting its dictionary rows to display objects fixed it without
-weakening the assertion. Earlier76/76 and284/284 selections are separate,
-overlapping historical evidence, not additional current passes.
-
-The [scenario runner](../tools/testing/SCENARIOS.md) covers eleven families in
-the [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md). Mailbox claim and
-equip/unequip have saved-state assertions; eight other families retain guided
-snapshots and actions. The read-only status overview lists all eleven families,
-pending/invalid records and narrow recorded saved observations. Neither a table
-row nor exit0 proves client rendering, gameplay or a full source gate.
-
-Full Windows40781201208 on actual publica62bb717 failed one operator-pipe
-duplicate-response body read: Core29,334 passed/one failed/164 existing skips,
-Updater446 passed. Restore/build passed; launcher/parsers were not reached.
-FSB179 StarVolcano passed that run. Transport revision2 now retains the server
-connection until a matching response receipt within the same10s deadline; see
-FSB180 and the protocol spec. Actual full80fa53c9 run40790881796 was interrupted when its worker disappeared
-and ended cancelled; its incomplete output is unqualified. The trusted runner
-was restarted once. Successors6f668 and014c3263 now passed their actual full
-gates. Hot delivery of nine retained gear mails was observed; the current D13
-claim format exposed a separate parser gap. Claim/equip acceptance and the new
-wire-export/parser successor gate remain pending. No failed build was deployed.
-
+The next runtime-diagnostic/source-safety batch is being qualified separately;
+no changed server has been deployed just to enable this diagnostic.
 
 ## Check saved health-potion consumption
 
@@ -191,7 +183,7 @@ binaries; earlier inspector builds do not supply the required saved vitals.
 
 ## Save a reproducible protocol fixture
 
-This new exporter is being qualified separately from the published014c toolset.
+This exporter is included in the qualified8d4bdabb source batch above.
 
 `Export-GameWireFixture.ps1` reads an existing local game-wire log and exports
 only selected complete packet frames into a new JSON file. It leaves the log
@@ -210,3 +202,35 @@ The default input limit is16MiB and32frames, with explicit maximum bounds.
 `-AfterLine` selects a later observation. Existing outputs cannot be overwritten;
 keep fixtures local and review their contents before any public publication.
 An export proves recorded bytes were retained, not a correct schema or gameplay.
+
+## Inspect a connected test character without changing it
+
+The runtime inspector is disabled by default. A matching qualified World
+build must opt in with `WOLFCONQUER_RUNTIME_INSPECTOR=1` and use its genuine
+owned-admission configuration. It has a separate Windows current-user pipe from
+the mail sender. Once enabled, repeated queries need no client relog:
+
+```powershell
+dotnet .\src\WolfConquer.DataTool\bin\Release\net9.0\WolfConquer.DataTool.dll inspect-runtime-player wolfconquer-runtime-inspect-<domainN> <domainN> <accountKey> <characterUid>
+```
+
+The numeric account key and character UID must come from that same disposable
+fixture; the domain uses32hex digits without dashes. No login password is used.
+The response reports managed and native HP/Mana separately, plus at most200
+inventory/equipment roots from the managed projection. Native item roots are
+reported only when their actual owners exist. Ordinary login currently leaves
+those native owners uninitialized: nativeItems and selectedValuesEqual are null
+with an explicit reason. Actual native Mana may be unhydrated too; its observed
+value is reported separately. Foreign, retired, malformed or detected-changing
+required owners refuse. Other containers and
+derived native maxima remain outside coverage; an equipped wardrobe alias is
+checked against its actual owner but the whole wardrobe is not reported.
+
+Exit0 means an observed diagnostic, exit2 a typed refusal, exit1 an invalid or
+incomplete exchange. None is gameplay acceptance. `selectedValuesEqual`
+compares only complete reported values when native roots are available; it is
+null when they are unavailable. `atomicNativeTupleProven` and
+`liveStoreSynchronized` are always false: raw native writers, rewrite-and-restore
+and changes after capture remain possible. The endpoint never grants, repairs,
+saves or changes the character; a saved-file inspection is still a separate
+observation. A transport failure never retries an action automatically.
