@@ -18,6 +18,7 @@ internal static partial class LegacyTradeJournal
         LegacyOrdinaryAdmissionInterruption interruption = LegacyOrdinaryAdmissionInterruption.None)
     {
         reason = "ordinaryAdmissionJournalInvalid";
+        if (RefuseJournalReentry(ref reason)) return false;
         if (!Enum.IsDefined(interruption)) return false;
         try
         {
@@ -33,18 +34,19 @@ internal static partial class LegacyTradeJournal
             };
             var targets = GetAdmissionTargets(roots, record);
             var failure = string.Empty;
-            bool Stop(int count) => interruption != LegacyOrdinaryAdmissionInterruption.None &&
-                (count == 0 ? interruption == LegacyOrdinaryAdmissionInterruption.AfterPending :
-                    interruption == (targets[count - 1].Change.Kind switch
-                    {
-                        LegacyTradeJournalFileKind.Character => LegacyOrdinaryAdmissionInterruption.AfterCharacter,
-                        LegacyTradeJournalFileKind.Items => LegacyOrdinaryAdmissionInterruption.AfterItems,
-                        LegacyTradeJournalFileKind.Spells => LegacyOrdinaryAdmissionInterruption.AfterSpells,
-                        LegacyTradeJournalFileKind.Proficiencies => LegacyOrdinaryAdmissionInterruption.AfterProficiencies,
-                        _ => LegacyOrdinaryAdmissionInterruption.None,
-                    }));
+            var stopIndex = interruption == LegacyOrdinaryAdmissionInterruption.AfterPending ? 0 :
+                Array.FindIndex(targets, target => interruption == (target.Change.Kind switch
+                {
+                    LegacyTradeJournalFileKind.Character => LegacyOrdinaryAdmissionInterruption.AfterCharacter,
+                    LegacyTradeJournalFileKind.Items => LegacyOrdinaryAdmissionInterruption.AfterItems,
+                    LegacyTradeJournalFileKind.Spells => LegacyOrdinaryAdmissionInterruption.AfterSpells,
+                    LegacyTradeJournalFileKind.Proficiencies => LegacyOrdinaryAdmissionInterruption.AfterProficiencies,
+                    _ => LegacyOrdinaryAdmissionInterruption.None,
+                })) + 1;
+            var stop = interruption == LegacyOrdinaryAdmissionInterruption.AfterPending || stopIndex > 0
+                ? LegacyJournalInterruption.StopAfter(stopIndex) : null;
             var committed = SnapshotFileLockCoordinator.ExecuteLocked(AdmissionLockPaths(roots, record, targets),
-                () => CommitLocked(roots, record, targets, Stop, out failure));
+                () => CommitLocked(roots, record, targets, stop, out failure));
             reason = failure;
             return committed;
         }

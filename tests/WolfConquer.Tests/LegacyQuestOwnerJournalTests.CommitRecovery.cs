@@ -14,14 +14,10 @@ public sealed partial class LegacyQuestOwnerJournalTests
     public void EveryV3InterruptionRecoversTheActualThreeImagesExactlyOnce(int replacements)
     {
         var changes = Seed();
-        var trace = new List<int>();
-        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes.Reverse().ToArray(), count =>
-        {
-            trace.Add(count);
-            return count == replacements;
-        }, out var reason));
+        using var interruption = LegacyJournalInterruption.StopAfter(replacements);
+        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes.Reverse().ToArray(), interruption, out var reason));
         Assert.StartsWith("tradeJournalRecoveryRequired:", reason);
-        Assert.Equal(Enumerable.Range(0, replacements + 1), trace);
+        Assert.Equal(Enumerable.Range(0, replacements + 1), interruption.Visited);
         for (var index = 0; index < changes.Length; index++)
             Assert.Equal(replacements > index ? changes[index].After : changes[index].Before, File.ReadAllBytes(Target(changes[index])));
         var record = JsonNode.Parse(File.ReadAllText(Pending))!;
@@ -58,7 +54,7 @@ public sealed partial class LegacyQuestOwnerJournalTests
     public void PairOnlyRecoveryFencesV3WithoutTouchingEvidenceThenFreshTripleRecovers()
     {
         var changes = Seed();
-        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var files = CaptureFiles();
         Assert.False(LegacyTradeJournal.TryRecover(Users, Items, out var recovered, out var reason));
         Assert.Equal(0, recovered);
@@ -78,7 +74,7 @@ public sealed partial class LegacyQuestOwnerJournalTests
     public void UnknownCurrentQuestImagePreventsEveryRecoveryWrite()
     {
         var changes = Seed();
-        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, LegacyJournalInterruption.StopAfter(0), out _));
         File.WriteAllBytes(Target(changes[2]), [3, 2, 1]);
         var files = CaptureFiles();
         Assert.False(LegacyTradeJournal.TryRecover(Users, Items, Quests, out var recovered, out var reason));
@@ -92,7 +88,7 @@ public sealed partial class LegacyQuestOwnerJournalTests
     {
         var changes = Seed();
         var second = Seed(302, CharacterUid + 1);
-        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var files = CaptureFiles();
         var legacyOwner = changes.Take(2).ToArray();
         Assert.False(LegacyTradeJournal.TryCommitSingleOwner(Users, Items, legacyOwner, out var reason));
@@ -115,8 +111,8 @@ public sealed partial class LegacyQuestOwnerJournalTests
         var supplied = version == 1 ? changes.Take(2).Concat(second.Take(2)).Reverse().ToArray()
             : changes.Take(2).Reverse().ToArray();
         Assert.False(version == 1
-            ? LegacyTradeJournal.TryCommit(Users, Items, supplied, count => count == 0, out _)
-            : LegacyTradeJournal.TryCommitSingleOwner(Users, Items, supplied, count => count == 0, out _));
+            ? LegacyTradeJournal.TryCommit(Users, Items, supplied, LegacyJournalInterruption.StopAfter(0), out _)
+            : LegacyTradeJournal.TryCommitSingleOwner(Users, Items, supplied, LegacyJournalInterruption.StopAfter(0), out _));
         var record = JsonNode.Parse(File.ReadAllText(Pending))!.AsObject();
         Assert.Equal(new[] { "Version", "TransactionId", "Changes" }, record.Select(property => property.Key));
         var expectedOrder = version == 1 ? supplied : supplied.OrderBy(change => change.Kind).ToArray();

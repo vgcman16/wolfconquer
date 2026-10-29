@@ -427,16 +427,30 @@ public static partial class WorldPacketHandlers
         WorldSession? attackerRuntimeSession = attackerSession;
         var infiniteMistResult = early.InfiniteMistResult;
         var damage = early.Damage;
+        var capricePair = CaptureLegacyCapricePair(context, attackerRuntimeSession, target);
         // Earlier mutable damage/status phases and their publications completed
         // once. Tournament/lethality/XY selection now sees their callback state.
         var modifierResult = ApplyLegacyPlayerReceiveDamageModifiers(
             attacker, attackerRuntimeSession, targetSession, early, context.WorldData);
         damage = modifierResult.Damage;
+        if (modifierResult.CapriceStaminaTransferred)
+        {
+            // Both real full Character images commit before either transfer
+            // half publishes. A later target-damage phase is independent.
+            var receipt = CommitLegacyCapricePair(capricePair, modifierResult);
+            updatedAttackerSession = receipt.Attacker;
+            attackerRuntimeSession = receipt.Attacker;
+            targetSession = receipt.Target;
+            target = target with { Session = targetSession };
+            modifierResult = modifierResult with { Attacker = receipt.Attacker.Character,
+                Target = receipt.Target.Character, CapriceReceipt = receipt };
+        }
         if (attackerRuntimeSession is not null && !modifierResult.Attacker.Equals(attackerRuntimeSession.Character))
         {
-            updatedAttackerSession = attackerRuntimeSession with { Character = modifierResult.Attacker };
+            updatedAttackerSession = PublishLegacyReceiveAttackerContinuation(context,
+                attackerRuntimeSession with { Character = modifierResult.Attacker }, modifierResult.CapriceReceipt);
             attackerRuntimeSession = updatedAttackerSession;
-            context.Sessions?.Set(context.Connection, updatedAttackerSession);
+            modifierResult = modifierResult with { Attacker = updatedAttackerSession.Character };
         }
 
         targetSession = targetSession with { Character = modifierResult.Target };
@@ -464,9 +478,10 @@ public static partial class WorldPacketHandlers
             modifierResult = modifierResult with { Attacker = mirrorOfSinAttacker };
             if (attackerRuntimeSession is not null)
             {
-                updatedAttackerSession = attackerRuntimeSession with { Character = mirrorOfSinAttacker };
+                updatedAttackerSession = PublishLegacyReceiveAttackerContinuation(context,
+                    attackerRuntimeSession with { Character = mirrorOfSinAttacker }, modifierResult.CapriceReceipt);
                 attackerRuntimeSession = updatedAttackerSession;
-                context.Sessions?.Set(context.Connection, updatedAttackerSession);
+                modifierResult = modifierResult with { Attacker = updatedAttackerSession.Character };
             }
         }
 
@@ -480,9 +495,11 @@ public static partial class WorldPacketHandlers
             modifierResult = modifierResult with { Attacker = lightOfStaminaAttacker };
             if (attackerRuntimeSession is not null)
             {
-                updatedAttackerSession = attackerRuntimeSession with { Character = lightOfStaminaAttacker };
+                updatedAttackerSession = PublishLegacyReceiveAttackerContinuation(context,
+                    attackerRuntimeSession with { Character = lightOfStaminaAttacker }, modifierResult.CapriceReceipt,
+                    lightOfStamina: lightOfStaminaResult.StaminaRestored);
                 attackerRuntimeSession = updatedAttackerSession;
-                context.Sessions?.Set(context.Connection, updatedAttackerSession);
+                modifierResult = modifierResult with { Attacker = updatedAttackerSession.Character };
             }
         }
 
@@ -498,9 +515,10 @@ public static partial class WorldPacketHandlers
             modifierResult = modifierResult with { Attacker = divineGuardAttacker };
             if (attackerRuntimeSession is not null)
             {
-                updatedAttackerSession = attackerRuntimeSession with { Character = divineGuardAttacker };
+                updatedAttackerSession = PublishLegacyReceiveAttackerContinuation(context,
+                    attackerRuntimeSession with { Character = divineGuardAttacker }, modifierResult.CapriceReceipt);
                 attackerRuntimeSession = updatedAttackerSession;
-                context.Sessions?.Set(context.Connection, updatedAttackerSession);
+                modifierResult = modifierResult with { Attacker = updatedAttackerSession.Character };
             }
         }
 
@@ -513,9 +531,10 @@ public static partial class WorldPacketHandlers
             modifierResult = modifierResult with { Attacker = killingFlashAttacker };
             if (attackerRuntimeSession is not null)
             {
-                updatedAttackerSession = attackerRuntimeSession with { Character = killingFlashAttacker };
+                updatedAttackerSession = PublishLegacyReceiveAttackerContinuation(context,
+                    attackerRuntimeSession with { Character = killingFlashAttacker }, modifierResult.CapriceReceipt);
                 attackerRuntimeSession = updatedAttackerSession;
-                context.Sessions?.Set(context.Connection, updatedAttackerSession);
+                modifierResult = modifierResult with { Attacker = updatedAttackerSession.Character };
             }
         }
 
@@ -529,9 +548,10 @@ public static partial class WorldPacketHandlers
             modifierResult = modifierResult with { Attacker = drainingTouchAttacker };
             if (attackerRuntimeSession is not null)
             {
-                updatedAttackerSession = attackerRuntimeSession with { Character = drainingTouchAttacker };
+                updatedAttackerSession = PublishLegacyReceiveAttackerContinuation(context,
+                    attackerRuntimeSession with { Character = drainingTouchAttacker }, modifierResult.CapriceReceipt);
                 attackerRuntimeSession = updatedAttackerSession;
-                context.Sessions?.Set(context.Connection, updatedAttackerSession);
+                modifierResult = modifierResult with { Attacker = updatedAttackerSession.Character };
             }
         }
 
@@ -541,15 +561,16 @@ public static partial class WorldPacketHandlers
             out var bloodSpawnTarget);
         if (bloodSpawnResult.IsActive)
         {
-            targetSession = targetSession with { Character = bloodSpawnTarget };
-            context.Sessions?.Set(target.Connection, targetSession);
+            targetSession = PublishLegacyReceiveTargetContinuation(context, target.Connection,
+                targetSession with { Character = bloodSpawnTarget }, modifierResult.CapriceReceipt);
         }
 
         currentHitpoints = CheckedUInt32(targetSession.Character.MinHitPoints, nameof(targetSession.Character.MinHitPoints));
 
         if (currentHitpoints == 0 || damage == 0)
         {
-            context.Sessions?.Set(target.Connection, targetSession);
+            targetSession = PublishLegacyReceiveTargetContinuation(context, target.Connection,
+                targetSession, modifierResult.CapriceReceipt);
             return new(CreateLegacyPlayerMagicDamageResult(
                 target with { Session = targetSession },
                 targetSession,
@@ -1134,14 +1155,13 @@ public static partial class WorldPacketHandlers
             var attackerUid = CheckedUInt32(
                 lightOfStaminaSession.Character.Uid,
                 nameof(lightOfStaminaSession.Character.Uid));
-            await context.Connection.SendAsync(
-                    LegacyMsgUpdatePacket
-                        .CreateLegacyRuntimeStaminaTickUpdate(
-                            attackerUid,
-                            restoredStamina)
-                        .ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            if (result.CapriceReceipt is { } lightReceipt)
+                await lightReceipt.SendLightOfStaminaAsync(cancellationToken).ConfigureAwait(false);
+            else
+                await context.Connection.SendAsync(
+                        LegacyMsgUpdatePacket.CreateLegacyRuntimeStaminaTickUpdate(attackerUid, restoredStamina).ToFrameBytes(),
+                        cancellationToken)
+                    .ConfigureAwait(false);
             await context.Log.WriteLineAsync(
                     "WorldServer applied legacy LightOfStamina player-hit stamina restore " +
                     $"{FormatSession(context with { Session = lightOfStaminaSession })} stamina=100; " +
@@ -1171,31 +1191,13 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
         }
 
-        if (result.CapriceStaminaTransferred && result.UpdatedAttackerSession is { } capriceStaminaSession &&
-            TryReadLegacyRuntimeStamina(capriceStaminaSession.Character, out var capriceAttackerStamina) &&
-            TryReadLegacyRuntimeStamina(targetSession.Character, out var capriceTargetStamina))
+        if (result.CapriceStaminaTransferred && result.UpdatedAttackerSession is { } capriceStaminaSession)
         {
-            var attackerUid = CheckedUInt32(
-                capriceStaminaSession.Character.Uid,
-                nameof(capriceStaminaSession.Character.Uid));
-            await context.Connection.SendAsync(
-                    LegacyMsgUpdatePacket
-                        .CreateLegacyRuntimeStaminaTickUpdate(
-                            attackerUid,
-                            capriceAttackerStamina)
-                        .ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await result.ActiveSession.Connection.SendAsync(
-                    LegacyMsgUpdatePacket
-                        .CreateLegacyRuntimeStaminaTickUpdate(
-                            targetUid,
-                            capriceTargetStamina)
-                        .ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            var receipt = result.CapriceReceipt ?? throw new InvalidOperationException("capricePairCommittedReceiptMissing");
+            var delivered = await receipt.SendAsync(cancellationToken).ConfigureAwait(false);
             await context.Log.WriteLineAsync(
-                    "WorldServer applied legacy Caprice player-hit stamina transfer " +
+                    (delivered ? "WorldServer applied legacy Caprice player-hit stamina transfer " :
+                        "WorldServer committed Caprice transfer; stale pending stamina notifications skipped independently ") +
                     $"{FormatSession(context with { Session = capriceStaminaSession })} " +
                     $"targetUid={targetUid}; source=ReceiveAttack.Player.Execute Caprice branch 1.")
                 .ConfigureAwait(false);

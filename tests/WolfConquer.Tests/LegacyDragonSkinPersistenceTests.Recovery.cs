@@ -17,16 +17,12 @@ public sealed partial class LegacyDragonSkinPersistenceTests
         var text = CharacterSnapshotFileEncoding.Decode(before.Character, out var encoding);
         var afterCharacter = Encode(text.Replace("AnimaSkin=1/2/1/2/\n", "AnimaSkin=0/1/2/\n", StringComparison.Ordinal), encoding);
         var afterItems = PlayerItemSnapshotLoader.ToLegacyBytes(updated.PlayerItems);
-        var phases = new List<int>();
+        using var interruption = LegacyJournalInterruption.StopAfter(stopAfter);
 
-        Assert.False(LegacyDragonSkinPersistence.TryPersist(source, updated, fixture.Items, phase =>
-        {
-            phases.Add(phase);
-            return phase == stopAfter;
-        }, out var reason));
+        Assert.False(LegacyDragonSkinPersistence.TryPersist(source, updated, fixture.Items, interruption, out var reason));
 
         Assert.StartsWith(LegacyDragonSkinPersistence.RecoveryRequired + ":", reason);
-        Assert.Equal(Enumerable.Range(0, stopAfter + 1), phases);
+        Assert.Equal(Enumerable.Range(0, stopAfter + 1), interruption.Visited);
         Assert.True(LegacyTradeJournal.HasPending(fixture.Users));
         Assert.Equal(stopAfter >= 1 ? afterCharacter : before.Character, File.ReadAllBytes(fixture.CharacterPath));
         Assert.Equal(stopAfter >= 2 ? afterItems : before.Items, File.ReadAllBytes(fixture.ItemPath));
@@ -54,9 +50,8 @@ public sealed partial class LegacyDragonSkinPersistenceTests
     {
         var source = fixture.Seed("1/2/1/2/");
         var updated = Fixture.Retrieve(source);
-        Assert.False(LegacyDragonSkinPersistence.TryPersist(source, updated, fixture.Items,
-            phase => phase == throwAfter ? throw new InvalidOperationException("owned journal interruption") : false,
-            out var reason));
+        using var interruption = LegacyJournalInterruption.ThrowAfter(throwAfter, LegacyJournalFault.ThrowInvalidOperation);
+        Assert.False(LegacyDragonSkinPersistence.TryPersist(source, updated, fixture.Items, interruption, out var reason));
 
         Assert.Equal("dragonSkinRecoveryRequired:writeFault:InvalidOperationException", reason);
         Assert.True(LegacyTradeJournal.HasPending(fixture.Users));
@@ -70,7 +65,7 @@ public sealed partial class LegacyDragonSkinPersistenceTests
     {
         var source = fixture.Seed();
         var updated = Fixture.Unlock(source);
-        Assert.False(LegacyDragonSkinPersistence.TryPersist(source, updated, fixture.Items, phase => phase == 0, out _));
+        Assert.False(LegacyDragonSkinPersistence.TryPersist(source, updated, fixture.Items, LegacyJournalInterruption.StopAfter(0), out _));
         var images = fixture.Capture();
         var pending = File.ReadAllBytes(fixture.PendingPath);
 
@@ -86,7 +81,7 @@ public sealed partial class LegacyDragonSkinPersistenceTests
     {
         var source = fixture.Seed("1/2/1/2/");
         var updated = Fixture.Retrieve(source);
-        Assert.False(LegacyDragonSkinPersistence.TryPersist(source, updated, fixture.Items, phase => phase == 1, out _));
+        Assert.False(LegacyDragonSkinPersistence.TryPersist(source, updated, fixture.Items, LegacyJournalInterruption.StopAfter(1), out _));
         File.WriteAllBytes(fixture.ItemPath, [1, 2, 3, 4, 5]);
         var images = fixture.Capture();
         var pending = File.ReadAllBytes(fixture.PendingPath);

@@ -24,86 +24,12 @@ internal static partial class LegacyTradeJournal
     {
         recovered = 0;
         reason = string.Empty;
+        if (RefuseJournalReentry(ref reason)) return false;
         try
         {
-            // A fresh configuration without a journal needs no snapshot directories yet.
-            if (!HasPending(usersRoot)) return true;
-            var journal = Path.Combine(Path.GetFullPath(usersRoot), JournalDirectoryName);
-            EnsureSafePath(journal);
-            var pending = Path.Combine(journal, PendingName);
-            var children = Directory.GetFileSystemEntries(journal);
-            if (children.Length != 1 || !StringComparer.Ordinal.Equals(children[0], pending))
-            {
-                reason = RecoveryRequired + ":unexpectedJournalEntry";
-                return false;
-            }
-            var record = ReadRecord(pending);
-            JournalRoots roots;
-            if (IsOrdinaryAdmissionVersion(record.Version))
-                roots = GetAdmissionRoots(admissionRoots ?? throw new ArgumentException("Explicit ordinary-admission roots are required."));
-            else if (record.Version == 8)
-            {
-                if (admissionRoots?.Spells is not { } configuredSpells)
-                {
-                    reason = RecoveryRequired + ":characterSpellsRootMissing";
-                    return false;
-                }
-                roots = GetCharacterSpellsRoots(admissionRoots.Users, configuredSpells);
-                if (!SameQuestRoot(usersRoot, roots.Users))
-                {
-                    reason = RecoveryRequired + ":characterSpellsUsersMismatch";
-                    return false;
-                }
-            }
-            else if (record.Version == 9)
-            {
-                if (admissionRoots?.Items is not { } configuredItems || admissionRoots.Spells is not { } configuredSpells)
-                {
-                    reason = RecoveryRequired + ":characterItemsSpellsRootMissing";
-                    return false;
-                }
-                roots = GetCharacterItemsSpellsRoots(admissionRoots.Users, configuredItems, configuredSpells);
-                if (!SameQuestRoot(usersRoot, roots.Users) || !SameQuestRoot(itemsRoot, roots.Items))
-                {
-                    reason = RecoveryRequired + ":characterItemsSpellsRootsMismatch";
-                    return false;
-                }
-            }
-            else roots = GetRoots(usersRoot, itemsRoot);
-            if (record.Version == 3)
-            {
-                if (string.IsNullOrWhiteSpace(questsRoot))
-                {
-                    reason = RecoveryRequired + ":questsRootMissing";
-                    return false;
-                }
-                roots = GetQuestRoots(usersRoot, itemsRoot, questsRoot);
-            }
-            if (record.Version == 4)
-            {
-                if (string.IsNullOrWhiteSpace(mailboxRoot))
-                {
-                    reason = RecoveryRequired + ":mailboxRootMissing";
-                    return false;
-                }
-                roots = GetMailboxRoots(usersRoot, itemsRoot, mailboxRoot);
-            }
-            if (record.Version == 5)
-            {
-                if (string.IsNullOrWhiteSpace(mailboxRoot) || string.IsNullOrWhiteSpace(combatGearRoot))
-                {
-                    reason = RecoveryRequired + ":mailboxOrCombatGearRootMissing";
-                    return false;
-                }
-                roots = GetMailboxGearRoots(usersRoot, itemsRoot, mailboxRoot, combatGearRoot);
-            }
-            var targets = GetTargets(roots, record);
-            var lockedReason = string.Empty;
-            var result = SnapshotFileLockCoordinator.ExecuteLocked(AdmissionLockPaths(roots, record, targets),
-                () => RecoverLocked(roots, record, targets, pending, out lockedReason));
-            reason = lockedReason;
-            recovered = result ? 1 : 0;
-            return result;
+            if (!TryCaptureRecovery(usersRoot, itemsRoot, questsRoot, mailboxRoot, combatGearRoot, admissionRoots,
+                    out var capture, out reason)) return false;
+            return capture is null || RecoverCaptured(capture, out recovered, out reason);
         }
         catch (Exception ex) when (IsJournalException(ex))
         {
@@ -133,7 +59,7 @@ internal static partial class LegacyTradeJournal
                 return true;
             }
             validated = true;
-            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9)) Directory.CreateDirectory(roots.Items);
+            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11)) Directory.CreateDirectory(roots.Items);
             if (record.Version == 9) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
             else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
             else PrepareAdmissionDirectories(roots, record, targets);

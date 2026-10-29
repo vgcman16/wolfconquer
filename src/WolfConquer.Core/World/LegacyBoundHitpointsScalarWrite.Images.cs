@@ -6,7 +6,8 @@ namespace WolfConquer.Core.World;
 internal sealed partial class LegacyBoundHitpointsScalarWrite
 {
     private static (string Path, byte[] Before, byte[] After) PrepareImages(LegacyOrdinarySpellBinding binding,
-        WorldSession expected, WorldPacketHandlers.BoundHitpointsInputs inputs)
+        WorldSession expected, WorldPacketHandlers.BoundHitpointsInputs inputs,
+        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null)
     {
         var path = Path.Combine(binding.UsersRoot, expected.AccountId.ToString(CultureInfo.InvariantCulture) + ".ini");
         return SnapshotFileLockCoordinator.ExecuteLocked(path, () =>
@@ -24,13 +25,14 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
                 !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(disk, inputs.Before) ||
                 !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(inputs.Before, inputs.After))
                 throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsCharacterBaselineStale");
-            var bytes = ProjectAfterImage(baseline.Bytes, inputs.After);
+            var bytes = ProjectAfterImage(baseline.Bytes, inputs.After, caprice);
             return (path, baseline.Bytes, bytes);
         });
     }
     // Shared pure serializer for genuine external journal producers/tests. It
     // grants no owner, persistence result, callback or publication permission.
-    internal static byte[] ProjectAfterImage(byte[] before, CharacterSnapshot target)
+    internal static byte[] ProjectAfterImage(byte[] before, CharacterSnapshot target,
+        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null)
     {
         if (before.Length is 0 or > CharacterSnapshotFileBaseline.MaximumBytes)
             throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsImageBoundsInvalid");
@@ -38,11 +40,13 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
         var text = CharacterSnapshotFileEncoding.Decode(before, out var encoding);
         if (!encoding.GetPreamble().Concat(encoding.GetBytes(text)).SequenceEqual(before))
             throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsEncodingUnproven");
-        var projected = LegacyOrdinaryAdmissionCharacterText.Project(text,
-            CharacterSnapshotScalarPersistence.BuildPersistedValues(stable), paid: null);
+        var values = new Dictionary<string, string>(CharacterSnapshotScalarPersistence.BuildPersistedValues(stable), StringComparer.OrdinalIgnoreCase);
+        caprice?.AddTo(values);
+        var projected = LegacyOrdinaryAdmissionCharacterText.Project(text, values, paid: null);
         var parsed = CharacterSnapshotParser.ParseText(projected);
         if (!WorldPacketHandlers.BoundHitpointsInputs.ScalarsEqual(parsed, stable) ||
-            CharacterSnapshotScalarPersistence.HasPersistedScalarChanges(parsed, stable))
+            CharacterSnapshotScalarPersistence.HasPersistedScalarChanges(parsed, stable) ||
+            caprice is not null && !caprice.MatchesImage(parsed))
             throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsScalarProjectionIncomplete");
         var bytes = encoding.GetPreamble().Concat(encoding.GetBytes(projected)).ToArray();
         if (bytes.Length > CharacterSnapshotFileBaseline.MaximumBytes)

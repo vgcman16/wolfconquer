@@ -4,6 +4,110 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-29 Caprice, shared journal and status preflight - local qualification
+
+The combined 108-path candidate passed Root build04 (0 errors/114 historical
+warnings), focused02 = 51/51 and neighbors01 = 3614/3614, with 0 failures/skips in both
+selections. No new full Windows gate has run yet. The prior exact531 full success
+(Core 29,833 passed / 152 existing fixture skips, Updates 446, Launcher 57) qualifies the
+preceding published source, not this candidate. Local checks do not prove live
+client acceptance, deployment, SQL or whole-cast/power-loss/multiprocess safety.
+
+### FSB-195: Commit Caprice's real two-Character stamina transfer before publication
+
+Caprice previously published the actor's stamina gain before the target-file
+replacement could refuse. A genuine old-API baseline retained 1 failure / 1 pass:
+the refusing transfer left attacker 60 instead of 40; target-retirement control
+already passed. The actual captured actor/target issuances and exact records now
+prepare complete Character images and use the real Users-only version 11 journal
+before paired native/Store publication. Existing owned HP/Mana publication proves
+its complete prepared afterimages. Definite refusal preserves both sides;
+pending/uncertain or committed publication faults fence actual recovery/owners
+without pretending rollback or granting compensation. Both valid balances are
+required before any transfer; runtime UInt64 values are not narrowed to physical
+ushort Stamina.
+
+A retained pair receipt now tracks actual accepted same-receive continuations.
+It consumes original identity plus exact record through CAS, so a genuine newer
+target70 cannot be overwritten by historical paired60 during later damage.
+Dedicated committed-continuation refusal passes through both enclosing proc
+wrappers without quarantining legitimate newer state. Caprice+Light remains
+valid: Light100, Caprice100, target60; independently stale pending fields do not
+suppress still-current peer output. No obsolete actor60 reply is manufactured.
+
+Root focused02 includes real saved/owned positive/refusal/retirement, send/fence,
+returned-stage newer-record, full Frame Light coexistence, nested proc and v11
+prefix/restart controls. Initial 3 recovery assertion failures came from resolving
+fixture-relative unrelated paths under the test bin after successful recovery;
+the test now uses its actual owned root. Real domain, prefix and exact both-image
+assertions remain intact.
+
+Limits: later target HP damage is an independent commitment. Light100 remains
+transient while pair saved60/60 stays historical; no permanent saved-stamina
+anchor or physical-stamina participant is claimed. Pending-field checks do not
+globally order a mutation inside its own in-flight Send. Whole-cast, SQL, latest-
+client/English/live parity and power-loss/multiprocess safety remain OPEN.
+
+### FSB-196: Serialize the shared Users journal slot across actual engine writers
+
+Disjoint target-file transactions could concurrently use the same pending.json
+slot when no optional Trades/package owner serialized them. No-overwrite refusal
+could make a healthy in-flight sibling appear globally pending and force recovery.
+All actual commit variants now enter the canonical Users monitor J AFTER their
+complete ordered target/input snapshot gates, retaining it through the engine's
+pending/staging/replacement/rollback/cleanup lifecycle. Permission checks stay
+before J. Stable HasPending probes use the same leaf monitor. Mutation/recovery
+reentry refuses before snapshot acquisition; cross-domain probes cannot wait for
+a second J from a mutation.
+
+Recovery captures exact pending bytes/membership under J, releases it before
+complete file-gate acquisition, then rechecks the exact captured slot under J
+before replay/delete. A replacement record remains untouched. Already completed
+recovery returns recovered0 only with the required all-after/input and clear-slot
+proof. Existing startup-only recovery authority is unchanged.
+
+Exposed arbitrary journal interruption delegates are replaced with a sealed,
+closed engine plan (validated boundary/declared target ordinal/fixed action).
+Actual read-share/exclusive file leases and original synthetic exception controls
+retain their meaningful rollback/delete distinctions; no saver/path/result callback
+executes under J. Root's focused/neighbor selections pass the migrated actual
+file and concurrency controls, including the final Victory forwarding overlay.
+
+Limits: canonical-path process-local ordering does not collapse physical aliases,
+prove cross-process/power-loss atomicity or authorize replay against a live World.
+Held version 10 is unchanged; version 11 remains the distinct real two-Character
+Users domain. No network packet/schema or successful cost sequence is changed.
+
+### FSB-197: Validate current Accuracy/Shield/XP-Fly entitlement and ordinary Fly blocks before costs
+
+XP1015/1020/8002 previously reached the generic cost boundary before checking
+XPList. Ordinary8003 could debit before its existing transform/Ride/PathOfShadow
+refusal. Their exact existing predicates now run on actual owner.Expected before
+plan/shortcut/writer, protected by the same existing CAS. XP entitlement is still
+required on map1039 cost bypass; these buffs do not gain an unrelated restoration
+Stamina requirement. Ordinary Fly preserves the original failure text and valid
+wire behavior. Later independently accepted callbacks retain existing executor
+rechecks and accepted-cost semantics, including Shield's actual awaited callback
+that preserves a newly present Shield timer.
+
+Corrected old-product status-baseline03:15 failed / 11 passed. Twelve negatives
+failed resource/state preservation. Three map1039 negatives already preserved
+state and failed only the new preflight diagnostic, so they are not debit-defect
+reds. All 11 valid controls passed. The earlier 26 fixture setup failures (duplicate
+physical item UIDs) and 4 incorrect zero-valued XPList protobuf literals are retained
+as test defects, not product evidence. Only genuine disjoint saved fixture UIDs
+and the independent existing removal golden were corrected. All 26 status cases
+pass in focused02; exact record/peer/files/native resources, real writer refusal/
+retry, retained caller/current owner, paid/map behavior and valid output remain
+covered.
+
+Limits: Classic 1075/1085/1090/1095 target admission is a separate frozen draft,
+not part of this 108-path candidate. Other executor eligibility, complete status/
+progress/save atomicity, physical Stamina, SQL and live client acceptance remain
+OPEN. This local qualification does not supersede the required new full gate.
+
+
+
 ## 2026-10-29 pending cost output and XP eligibility - full source qualification
 
 Full Windows [40867334704](https://github.com/vgcman16/wolfconquer/actions/runs/40867334704)

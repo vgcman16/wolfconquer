@@ -15,11 +15,11 @@ public sealed partial class LegacyMailboxOwnerJournalTests
     public void V5EveryPrefixRecoversCompleteCharacterItemsMailboxGearExactlyOnce(int replacements) => Run(fixture =>
     {
         var changes = SeedGearJournal(fixture);
-        var trace = new List<int>();
+        using var interruption = LegacyJournalInterruption.StopAfter(replacements);
         Assert.False(LegacyTradeJournal.TryCommitMailboxGearOwner(fixture.Users, fixture.Items, fixture.Mailbox,
-            GearRoot(fixture), changes.Reverse().ToArray(), count => { trace.Add(count); return count == replacements; }, out var reason));
+            GearRoot(fixture), changes.Reverse().ToArray(), interruption, out var reason));
         Assert.Equal("tradeJournalRecoveryRequired:interrupted", reason);
-        Assert.Equal(Enumerable.Range(0, replacements + 1), trace);
+        Assert.Equal(Enumerable.Range(0, replacements + 1), interruption.Visited);
         for (var index = 0; index < changes.Length; index++)
             Assert.Equal(replacements > index ? changes[index].After : changes[index].Before,
                 File.ReadAllBytes(GearTarget(fixture, changes[index])));
@@ -48,7 +48,7 @@ public sealed partial class LegacyMailboxOwnerJournalTests
     {
         var changes = SeedGearJournal(fixture);
         Assert.False(LegacyTradeJournal.TryCommitMailboxGearOwner(fixture.Users, fixture.Items, fixture.Mailbox,
-            GearRoot(fixture), changes, count => count == 0, out _));
+            GearRoot(fixture), changes, LegacyJournalInterruption.StopAfter(0), out _));
         string? configured = null;
         if (foreign)
         {
@@ -73,7 +73,7 @@ public sealed partial class LegacyMailboxOwnerJournalTests
     {
         var changes = SeedGearJournal(fixture);
         Assert.False(LegacyTradeJournal.TryCommitMailboxGearOwner(fixture.Users, fixture.Items, fixture.Mailbox,
-            GearRoot(fixture), changes, count => count == 2, out _));
+            GearRoot(fixture), changes, LegacyJournalInterruption.StopAfter(2), out _));
         var unknown = GearBytes(GearSnapshot() with { PirateExp = 999 });
         File.WriteAllBytes(GearTarget(fixture, changes[3]), unknown); // Owned full-image fault, not a replacement writer.
         var files = fixture.CaptureFiles();

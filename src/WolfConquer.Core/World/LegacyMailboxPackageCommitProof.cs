@@ -34,7 +34,7 @@ internal sealed class LegacyMailboxPackageCommitProof
         => TryCommit(users, items, mailbox, gear, changes, null, out proof, out reason);
 
     internal static bool TryCommit(string users, string items, string mailbox, string gear,
-        IReadOnlyList<LegacyTradeJournalChange> changes, Func<int, bool>? interruption,
+        IReadOnlyList<LegacyTradeJournalChange> changes, LegacyJournalInterruption? interruption,
         out LegacyMailboxPackageCommitProof? proof, out string reason)
     {
         proof = null;

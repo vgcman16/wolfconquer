@@ -200,7 +200,7 @@ public sealed partial class LegacyTradeRestartRecoveryTests : IDisposable
                 before[ItemPath(uid)], after[ItemPath(uid)]),
         }).ToArray();
         Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes,
-            count => count == replacements, out _));
+            LegacyJournalInterruption.StopAfter(replacements), out _));
         Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
 
         var restarted = NewOwner();
@@ -341,7 +341,7 @@ public sealed partial class LegacyTradeRestartRecoveryTests : IDisposable
                 new LegacyTradeJournalChange(LegacyTradeJournalFileKind.Items, uid,
                     beforeSettlement[ItemPath(uid)], beforeSettlement[ItemPath(uid)]),
             }).ToArray();
-            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
         }
         else
         {
@@ -484,7 +484,7 @@ public sealed partial class LegacyTradeRestartRecoveryTests : IDisposable
                 new LegacyTradeJournalChange(LegacyTradeJournalFileKind.Items, uid,
                     File.ReadAllBytes(ItemPath(uid)), File.ReadAllBytes(ItemPath(uid)).Concat(new byte[] { 0 }).ToArray()),
             }).ToArray();
-            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
             File.AppendAllText(UserPath(rightUid), "UnrelatedOwnerWrite=1\n");
         }
         else

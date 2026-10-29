@@ -28,11 +28,11 @@ public sealed partial class LegacyDeitylandChestCapacitySafetyTests
         internal void AssertChestJournalRecovery(bool cp, int boundary)
         {
             var plan = PrepareChestJournal(cp);
-            var boundaries = new List<int>();
+            using var interruption = LegacyJournalInterruption.StopAfter(boundary);
             Assert.False(LegacyDeityChestPersistence.TryPersist(plan.Prepared, plan.Updated, plan.After,
-                index => { boundaries.Add(index); return index == boundary; }, out var reason));
+                interruption, out var reason));
             Assert.StartsWith(LegacyDeityChestPersistence.RecoveryRequired, reason);
-            Assert.Equal(Enumerable.Range(0, boundary + 1), boundaries);
+            Assert.Equal(Enumerable.Range(0, boundary + 1), interruption.Visited);
             Assert.True(LegacyTradeJournal.HasPending(Users));
             // The direct persistence component never publishes a session or sends.
             Assert.Same(Session, Current);

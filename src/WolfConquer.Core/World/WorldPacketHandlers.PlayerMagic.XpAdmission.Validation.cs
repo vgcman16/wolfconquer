@@ -8,6 +8,18 @@ public static partial class WorldPacketHandlers
         WorldSession expected, LegacyMagicRuntimeSpell spell, out string reason)
     {
         reason = string.Empty;
+        if (spell.Sort == LegacyMagicSort.AttachStatus &&
+            TryGetLegacyAttachStatusXpBuff(spell.Id, out var buff))
+        {
+            if (!HasLegacyStatusFlag(expected.Character, LegacyRuntimeUpdateTicker.XpListFlag))
+            {
+                reason = $"{buff.Name}: XPList status flag is not active";
+                return false;
+            }
+            // These buffs consume entitlement but do not restore Stamina.
+            // Keep unused/zero-priced balance semantics separate.
+            return true;
+        }
         bool restoreStamina;
         if (spell.Sort == LegacyMagicSort.AttachStatus && TryGetLegacyAttachStatusOpenXpSkill(
                 spell.Id, out _, out _, out _, out var name, out restoreStamina))

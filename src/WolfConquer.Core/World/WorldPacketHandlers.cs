@@ -120,7 +120,8 @@ public static partial class WorldPacketHandlers
         LegacyPlayerReceiveInfiniteMistResult InfiniteMistResult = default,
         uint? ReceiveDamage = null,
         bool NormalDeathPhasesPublished = false,
-        bool EarlyModifierPhasesPublished = false);
+        bool EarlyModifierPhasesPublished = false,
+        WorldSessionStore.CapricePairReceipt? CapriceReceipt = null);
     private readonly record struct LegacyBossPlayerDamageResult(
         WorldActiveSession ActiveSession,
         WorldSession UpdatedSession,

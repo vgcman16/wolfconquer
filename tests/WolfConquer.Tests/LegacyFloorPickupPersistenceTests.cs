@@ -281,7 +281,7 @@ public sealed class LegacyFloorPickupPersistenceTests : IDisposable
         var original = WriteSession(cps: 2_000_000_000);
         var plan = Prepare(original, FloorItemRuntimePickupKind.ConquerPoints, amount: 30);
         Assert.False(LegacyNpcSalePersistence.TryPersistFloorPickup(original, plan.Updated, Items, plan.Entry,
-            plan.Item, count => count == replacementCount, out var reason));
+            plan.Item, LegacyJournalInterruption.StopAfter(replacementCount), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason);
         Assert.True(LegacyTradeJournal.TryRecover(Users, Items, out var recovered, out reason), reason);
         Assert.Equal(1, recovered);

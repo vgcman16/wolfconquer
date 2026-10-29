@@ -9,10 +9,10 @@ internal static partial class LegacyTradeJournal
         IReadOnlyList<LegacyTradeJournalChange> changes, out string reason) =>
         TryCommitSingleOwner(usersRoot, itemsRoot, changes, null, out reason);
 
-    // Hook counts: 0 = durable publication; 1 = Character; 2 = Items replacement.
-    // A true result deliberately retains the journal to simulate abrupt interruption.
+    // Closed boundaries: 0 = durable publication; 1 = Character; 2 = Items.
+    // StopAfter retains that real prefix for managed restart-recovery controls.
     internal static bool TryCommitSingleOwner(string usersRoot, string itemsRoot,
         IReadOnlyList<LegacyTradeJournalChange> changes,
-        Func<int, bool>? interruptAfterReplacement, out string reason) =>
+        LegacyJournalInterruption? interruptAfterReplacement, out string reason) =>
         TryCommitVersion(usersRoot, itemsRoot, changes, version: 2, interruptAfterReplacement, out reason);
 }

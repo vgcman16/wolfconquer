@@ -23,7 +23,8 @@ public sealed partial class WorldSessionStore
         internal object PublishedIdentity => finalIdentity;
 
         internal PreparedSessionSpellPublication(WorldSessionStore store, ConquerTcpConnection connection,
-            SessionHolder holder, WorldSession? expected, WorldSession proposed)
+            SessionHolder holder, WorldSession? expected, WorldSession proposed,
+            WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null)
         {
             this.store = store; this.connection = connection; this.holder = holder; this.expected = expected;
             binding = holder.SpellBinding;
@@ -55,9 +56,9 @@ public sealed partial class WorldSessionStore
                     proposed with { PlayerSpells = map.FinalSnapshot, PlayerProficiencies = proficiencies.FinalSnapshot };
                 hitpoints = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareBound(binding, expected, final);
                 if (expected.Character.MinHitPoints != final.Character.MinHitPoints ||
-                    expected.Character.MinMana != final.Character.MinMana)
+                    expected.Character.MinMana != final.Character.MinMana || caprice is not null)
                     HitpointsWrite = (store.framePersistenceOwner ?? throw InvalidSpellPublication())
-                        .PrepareNativeHitpointsWrite(store, connection, binding, expected, final);
+                        .PrepareNativeHitpointsWrite(store, connection, binding, expected, final, caprice);
                 FinalSession = HitpointsWrite?.Proposed ?? final;
                 RequireCurrentBeforeWriter();
             }

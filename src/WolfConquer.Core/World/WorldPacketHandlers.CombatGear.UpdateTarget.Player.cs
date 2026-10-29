@@ -308,6 +308,7 @@ public static partial class WorldPacketHandlers
         };
         }
         catch (WorldSessionPublicationException) { throw; }
+        catch (LegacyCapricePairContinuationRefusalException) { throw; }
         catch (Exception error) when (admission.Receipt is not null) { throw admission.Receipt.Failure(error); }
     }
 

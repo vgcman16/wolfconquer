@@ -15,11 +15,11 @@ internal static partial class LegacyNpcSalePersistence
         out string reason) => TryPersist(original, updated, playerItemsRoot, null, out reason);
 
     internal static bool TryPersist(WorldSession original, WorldSession updated, string? playerItemsRoot,
-        Func<int, bool>? interruptAfterReplacement, out string reason) =>
+        LegacyJournalInterruption? interruptAfterReplacement, out string reason) =>
         TryPersistCore(original, updated, playerItemsRoot, PersistenceMode.Sale, interruptAfterReplacement, out reason);
 
     private static bool TryPersistCore(WorldSession original, WorldSession updated, string? playerItemsRoot,
-        PersistenceMode mode, Func<int, bool>? interruptAfterReplacement, out string reason,
+        PersistenceMode mode, LegacyJournalInterruption? interruptAfterReplacement, out string reason,
         FloorItemRuntimeEntry? pickupEntry = null, PlayerItemSnapshotItem? pickupItem = null,
         LegacyFloorPickupInventoryChange? pickupInventory = null)
     {

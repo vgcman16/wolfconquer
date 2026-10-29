@@ -9,7 +9,7 @@ internal static partial class LegacyNpcSalePersistence
         TryPersistFloorPickup(original, updated, playerItemsRoot, entry, pickupItem, null, out reason);
 
     internal static bool TryPersistFloorPickup(WorldSession original, WorldSession updated, string? playerItemsRoot,
-        FloorItemRuntimeEntry entry, PlayerItemSnapshotItem? pickupItem, Func<int, bool>? interruptAfterReplacement,
+        FloorItemRuntimeEntry entry, PlayerItemSnapshotItem? pickupItem, LegacyJournalInterruption? interruptAfterReplacement,
         out string reason) => TryPersistCore(original, updated, playerItemsRoot, PersistenceMode.FloorPickup,
         interruptAfterReplacement, out reason, entry, pickupItem);
 

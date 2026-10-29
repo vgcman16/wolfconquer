@@ -96,7 +96,7 @@ internal sealed class LegacyOwnedAdmissionRuntimeFixture : IDisposable
         var items = File.ReadAllBytes(Path.Combine(Items, Uid.ToString(CultureInfo.InvariantCulture) + ".bin"));
         Assert.False(LegacyTradeJournal.TryCommitSingleOwner(Users, Items,
             [new(LegacyTradeJournalFileKind.Character, Uid, before, after),
-             new(LegacyTradeJournalFileKind.Items, Uid, items, items)], count => count == 0, out var reason));
+             new(LegacyTradeJournalFileKind.Items, Uid, items, items)], LegacyJournalInterruption.StopAfter(0), out var reason));
         Assert.Contains(LegacyTradeJournal.RecoveryRequired, reason, StringComparison.Ordinal);
         Assert.True(LegacyTradeJournal.HasPending(Users));
         Assert.Equal(before, File.ReadAllBytes(UserPath));

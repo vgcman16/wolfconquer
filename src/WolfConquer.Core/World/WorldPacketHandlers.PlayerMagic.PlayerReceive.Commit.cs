@@ -14,7 +14,8 @@ public static partial class WorldPacketHandlers
         {
             Character = targetSession.Character with { MinHitPoints = prior.PreviousHitpoints - prior.DamageApplied },
         };
-        context.Sessions?.Set(prior.ActiveSession.Connection, updated);
+        updated = PublishLegacyReceiveTargetContinuation(context, prior.ActiveSession.Connection,
+            updated, prior.CapriceReceipt);
         return prior with
         {
             ActiveSession = prior.ActiveSession with { Session = updated },

@@ -73,7 +73,7 @@ public sealed partial class LegacyQuestOwnerJournalTests
     public void ForeignConfiguredRootWithIdenticalImagesCannotReplayTheRecordedDomain(string kind)
     {
         var changes = Seed();
-        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var foreign = Path.Combine(root, "Foreign" + kind);
         Directory.CreateDirectory(foreign);
         var index = kind == "users" ? 0 : kind == "items" ? 1 : 2;
@@ -122,7 +122,7 @@ public sealed partial class LegacyQuestOwnerJournalTests
     public void MalformedPublishedV3RetainsEveryTargetAndPendingEvidence(string fault)
     {
         var changes = Seed();
-        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var record = JsonNode.Parse(File.ReadAllText(Pending))!.AsObject();
         var entries = record["Changes"]!.AsArray();
         switch (fault)

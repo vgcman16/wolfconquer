@@ -78,7 +78,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerFly8003BlockedByRideSpendsResourcesAndSendsSourceMessageOnly()
+    public async Task HandlerFly8003BlockedByRidePreservesResourcesAndSendsSourceMessageOnly()
     {
         var worldData = CreateFlyCatalog();
         var sessions = new WorldSessionStore();
@@ -105,8 +105,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Equal(493, updatedSession.Character.MinMana);
-        Assert.Equal("96", updatedSession.Character.Attributes["Stamina"]);
+        Assert.Equal(500, updatedSession.Character.MinMana);
+        Assert.Equal("100", updatedSession.Character.Attributes["Stamina"]);
         Assert.False(HasLegacyStatusFlag(updatedSession.Character.Attributes, FlyStatusFlag));
         Assert.True(HasLegacyStatusFlag(updatedSession.Character.Attributes, FlyRideBlockFlag));
         Assert.False(updatedSession.Character.Attributes.ContainsKey(WorldPacketHandlers.RuntimeLegacyFlyExpiresAtUtcAttribute));

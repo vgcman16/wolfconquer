@@ -100,14 +100,14 @@ public sealed partial class WorldServerFrameHandlerTests
             var afterQuests = quests.WithQuest(claim with { Status = PlayerQuestStatus.Finished });
             var images = new RecoveryImages(PlayerItemSnapshotLoader.ToLegacyBytes(afterItems),
                 PlayerQuestSnapshotLoader.Serialize(afterQuests), reward);
-            var observedPrefixes = new List<int>();
+            using var interruption = LegacyJournalInterruption.StopAfter(2);
             Assert.False(LegacyTradeJournal.TryCommitQuestOwner(Users, Items, Quests,
             [
                 new(LegacyTradeJournalFileKind.Character, Uid, characterSeed, characterSeed),
                 new(LegacyTradeJournalFileKind.Items, Uid, itemSeed, images.ItemsAfter),
                 new(LegacyTradeJournalFileKind.Quests, Uid, questSeed, images.QuestsAfter),
-            ], prefix => { observedPrefixes.Add(prefix); return prefix == 2; }, out var reason));
-            Assert.Equal(new[] { 0, 1, 2 }, observedPrefixes);
+            ], interruption, out var reason));
+            Assert.Equal(new[] { 0, 1, 2 }, interruption.Visited);
             Assert.Equal("tradeJournalRecoveryRequired:interrupted", reason);
             Assert.True(LegacyTradeJournal.HasPending(Users));
             Assert.Equal(characterSeed, File.ReadAllBytes(CharacterPath));

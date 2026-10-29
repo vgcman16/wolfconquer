@@ -18,18 +18,24 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
     internal WorldSession Proposed { get; }
     internal bool IsCommitted { get; private set; }
     private LegacyBoundHitpointsScalarWrite(WorldServerFrameHandler owner, WorldSessionStore store,
-        ConquerTcpConnection connection, LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed)
+        ConquerTcpConnection connection, LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed,
+        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice)
     {
         this.owner = owner; this.store = store; this.connection = connection; this.binding = binding; this.expected = expected;
+        if (caprice is not null && !caprice.Matches(expected.Character, proposed.Character))
+            throw new LegacyNativeHitpointsRefusalException("capricePreparedResourcesInvalid");
         if (!OwnerIsCurrent()) throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsOwnerUnavailable");
         Inputs = new(expected.Character, proposed.Character);
         Proposed = proposed with { Character = Inputs.After };
-        (path, before, after) = PrepareImages(binding, expected, Inputs);
+        (path, before, after) = PrepareImages(binding, expected, Inputs, caprice);
         if (!OwnerIsCurrent()) throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsOwnerChanged");
     }
     internal static LegacyBoundHitpointsScalarWrite Prepare(WorldServerFrameHandler owner, WorldSessionStore store,
-        ConquerTcpConnection connection, LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed) =>
-        new(owner, store, connection, binding, expected, proposed);
+        ConquerTcpConnection connection, LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed,
+        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null) =>
+        new(owner, store, connection, binding, expected, proposed, caprice);
+    internal byte[] CopyBeforeImage() => before.ToArray();
+    internal byte[] CopyAfterImage() => after.ToArray();
     private bool OwnerIsCurrent() => store.IsFramePersistenceCurrent(owner, connection, expected) &&
         ReferenceEquals(binding.Store, store) && ReferenceEquals(binding.Connection, connection) &&
         binding.PhysicalOwnerIsCurrentPlain() && binding.Recovery.IsReadyForUsers(binding.UsersRoot);

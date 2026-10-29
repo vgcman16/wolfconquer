@@ -13,15 +13,11 @@ public sealed partial class LegacyMailboxOwnerJournalTests
     public void EveryV4InterruptionRecoversExactCharacterItemsAndMailboxImagesOnce(int replacements) => Run(fixture =>
     {
         var changes = fixture.Seed();
-        var trace = new List<int>();
+        using var interruption = LegacyJournalInterruption.StopAfter(replacements);
         Assert.False(LegacyTradeJournal.TryCommitMailboxOwner(fixture.Users, fixture.Items, fixture.Mailbox,
-            changes.Reverse().ToArray(), count =>
-            {
-                trace.Add(count);
-                return count == replacements;
-            }, out var reason));
+            changes.Reverse().ToArray(), interruption, out var reason));
         Assert.Equal("tradeJournalRecoveryRequired:interrupted", reason);
-        Assert.Equal(Enumerable.Range(0, replacements + 1), trace);
+        Assert.Equal(Enumerable.Range(0, replacements + 1), interruption.Visited);
         for (var index = 0; index < changes.Length; index++)
             Assert.Equal(replacements > index ? changes[index].After : changes[index].Before,
                 File.ReadAllBytes(fixture.Target(changes[index])));
@@ -51,7 +47,7 @@ public sealed partial class LegacyMailboxOwnerJournalTests
     {
         var changes = fixture.Seed();
         Assert.False(LegacyTradeJournal.TryCommitMailboxOwner(fixture.Users, fixture.Items, fixture.Mailbox,
-            changes, count => count == 1, out _));
+            changes, LegacyJournalInterruption.StopAfter(1), out _));
         var unknown = changes[2].Before!.ToArray();
         unknown[4] ^= 1; // Different title byte; still a complete managed mailbox image.
         File.WriteAllBytes(fixture.Target(changes[2]), unknown);
@@ -81,7 +77,7 @@ public sealed partial class LegacyMailboxOwnerJournalTests
     {
         var changes = fixture.Seed();
         Assert.False(LegacyTradeJournal.TryCommitMailboxOwner(fixture.Users, fixture.Items, fixture.Mailbox,
-            changes, count => count == 0, out _));
+            changes, LegacyJournalInterruption.StopAfter(0), out _));
         string? configured = null;
         if (foreign)
         {

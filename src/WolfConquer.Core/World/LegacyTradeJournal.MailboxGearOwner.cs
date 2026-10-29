@@ -11,9 +11,10 @@ internal static partial class LegacyTradeJournal
 
     // Failure-only boundaries: 0 pending published, then Character, Items, Mailbox, CombatGear.
     internal static bool TryCommitMailboxGearOwner(string usersRoot, string itemsRoot, string mailboxRoot,
-        string combatGearRoot, IReadOnlyList<LegacyTradeJournalChange> changes, Func<int, bool>? interrupt, out string reason)
+        string combatGearRoot, IReadOnlyList<LegacyTradeJournalChange> changes, LegacyJournalInterruption? interrupt, out string reason)
     {
         reason = string.Empty;
+        if (RefuseJournalReentry(ref reason)) return false;
         try
         {
             var roots = GetMailboxGearRoots(usersRoot, itemsRoot, mailboxRoot, combatGearRoot);

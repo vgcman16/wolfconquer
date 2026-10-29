@@ -67,8 +67,8 @@ internal static partial class LegacyEquipmentMovePersistence
         {
             // The only optional seam interrupts a real journal after an existing
             // durable boundary; it cannot grant a write or fabricate a saved image.
-            Func<int, bool>? stop = interruption == LegacyEquipmentMoveJournalInterruption.None ? null :
-                count => count == (int)interruption - 1;
+            LegacyJournalInterruption? stop = interruption == LegacyEquipmentMoveJournalInterruption.None ? null :
+                LegacyJournalInterruption.StopAfter((int)interruption - 1);
             committed = LegacyTradeJournal.TryCommitSingleOwner(users, items, changes, stop, out reason);
         }
         catch (Exception error) when (IsPreparationFailure(error))

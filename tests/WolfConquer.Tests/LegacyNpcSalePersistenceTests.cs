@@ -225,7 +225,7 @@ public sealed partial class LegacyNpcSalePersistenceTests : IDisposable
         var original = WriteSession();
         var updated = Updated(original);
         Assert.False(LegacyNpcSalePersistence.TryPersist(original, updated, Items,
-            count => count == replacementCount, out var reason));
+            LegacyJournalInterruption.StopAfter(replacementCount), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason);
         Assert.True(LegacyTradeJournal.TryRecover(Users, Items, out var recovered, out reason), reason);
         Assert.Equal(1, recovered);
@@ -241,7 +241,7 @@ public sealed partial class LegacyNpcSalePersistenceTests : IDisposable
     public void PendingTransactionRejectsAnotherSaleWithRecoveryPrefix()
     {
         var original = WriteSession();
-        Assert.False(LegacyNpcSalePersistence.TryPersist(original, Updated(original), Items, count => count == 0, out _));
+        Assert.False(LegacyNpcSalePersistence.TryPersist(original, Updated(original), Items, LegacyJournalInterruption.StopAfter(0), out _));
         var beforeCharacter = File.ReadAllBytes(CharacterPath);
         var beforeItems = File.ReadAllBytes(ItemPath);
         Assert.False(LegacyNpcSalePersistence.TryPersist(original, Updated(original), Items, out var reason));
@@ -274,19 +274,13 @@ public sealed partial class LegacyNpcSalePersistenceTests : IDisposable
     {
         if (!OperatingSystem.IsWindows()) return;
         var original = WriteSession();
-        FileStream? blockRollback = null;
-        try
+        JournalInterruptionTestScope.Run(LegacyJournalInterruption.LeaseTargetAfter(1, 0), interruption =>
         {
             using var itemLease = new FileStream(ItemPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            Assert.False(LegacyNpcSalePersistence.TryPersist(original, Updated(original), Items, count =>
-            {
-                if (count == 1) blockRollback = new FileStream(CharacterPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return false;
-            }, out var reason));
+            Assert.False(LegacyNpcSalePersistence.TryPersist(original, Updated(original), Items, interruption, out var reason));
             Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason);
             Assert.True(LegacyTradeJournal.HasPending(Users));
-        }
-        finally { blockRollback?.Dispose(); }
+        });
         Assert.True(LegacyTradeJournal.TryRecover(Users, Items, out var recovered, out var recoveryReason), recoveryReason);
         Assert.Equal(1, recovered);
         Assert.Equal(1_030, CharacterSnapshotParser.ParseText(File.ReadAllText(CharacterPath)).Money);

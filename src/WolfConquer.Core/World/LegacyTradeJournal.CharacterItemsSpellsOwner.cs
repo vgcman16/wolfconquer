@@ -14,6 +14,7 @@ internal static partial class LegacyTradeJournal
         out string reason)
     {
         reason = "characterItemsSpellsJournalInvalid";
+        if (RefuseJournalReentry(ref reason)) return false;
         if (!Enum.IsDefined(interruption)) return false;
         try
         {
@@ -22,16 +23,10 @@ internal static partial class LegacyTradeJournal
             { CharacterItemsSpellsDomain = new(roots.Users, roots.Items, roots.Spells!) };
             var targets = GetTargets(roots, record);
             var failure = string.Empty;
-            bool Stop(int count) => interruption switch
-            {
-                LegacyCharacterItemsSpellsJournalInterruption.AfterPending => count == 0,
-                LegacyCharacterItemsSpellsJournalInterruption.AfterCharacter => count == 1,
-                LegacyCharacterItemsSpellsJournalInterruption.AfterItems => count == 2,
-                LegacyCharacterItemsSpellsJournalInterruption.AfterSpells => count == 3,
-                _ => false,
-            };
+            var stop = interruption == LegacyCharacterItemsSpellsJournalInterruption.None ? null :
+                LegacyJournalInterruption.StopAfter((int)interruption - 1);
             var committed = SnapshotFileLockCoordinator.ExecuteLocked(targets.Select(target => target.Path).ToArray(),
-                () => CommitLocked(roots, record, targets, Stop, out failure));
+                () => CommitLocked(roots, record, targets, stop, out failure));
             reason = failure;
             return committed;
         }

@@ -75,8 +75,8 @@ internal sealed class LegacyFullRestoreConsumableWrite
                 if (LegacyTradeJournal.HasPending(users))
                 { failure = LegacyTradeJournal.RecoveryRequired + ":pending"; return LegacyFullRestoreConsumableOutcome.RecoveryRequired; }
                 if (!ImagesMatch(after: false)) return LegacyFullRestoreConsumableOutcome.Rejected;
-                Func<int, bool>? stop = interruption == LegacyFullRestoreConsumableInterruption.None ? null :
-                    count => count == (int)interruption - 1;
+                LegacyJournalInterruption? stop = interruption == LegacyFullRestoreConsumableInterruption.None ? null :
+                    LegacyJournalInterruption.StopAfter((int)interruption - 1);
                 enteredWriter = true;
                 var saved = LegacyTradeJournal.TryCommitSingleOwner(users, items, changes, stop, out failure);
                 if (saved && !LegacyTradeJournal.HasPending(users) && ImagesMatch(after: true)) return LegacyFullRestoreConsumableOutcome.Committed;

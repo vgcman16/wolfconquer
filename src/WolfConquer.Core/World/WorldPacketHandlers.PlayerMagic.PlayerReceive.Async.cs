@@ -106,7 +106,8 @@ public static partial class WorldPacketHandlers
 
         // Source modifiers have already run once. Preserve them before the new
         // await, but target HP/death remains untouched until FinishTransform returns.
-        context.Sessions?.Set(acceptedTarget.Connection, prepared.Result.UpdatedSession);
+        acceptedTarget = acceptedTarget with { Session = PublishLegacyReceiveTargetContinuation(
+            context, acceptedTarget.Connection, prepared.Result.UpdatedSession, prepared.Result.CapriceReceipt) };
         participants = RefreshLegacyTransformFinishParticipants(context, ownerUid, acceptedTarget);
         if (participants.Owner is not { } currentAttacker)
         {
@@ -121,9 +122,10 @@ public static partial class WorldPacketHandlers
             TryPrepareLegacyPlayerTransformFinish(currentAttacker, context.WorldData,
                 context.LegacyClock ?? LegacySignedMillisecondClock.System, out var query))
         {
-            context.Sessions?.Set(context.Connection, query.Session);
+            var publishedTransform = PublishLegacyReceiveAttackerContinuation(context,
+                query.Session, prepared.Result.CapriceReceipt);
             var finish = await PublishLegacyPlayerTransformFinishAsync(
-                    context with { Session = query.Session }, query, cancellationToken, acceptedTarget)
+                    context with { Session = publishedTransform }, query, cancellationToken, acceptedTarget)
                 .ConfigureAwait(false);
             if (finish.Session is null)
             {
@@ -133,7 +135,8 @@ public static partial class WorldPacketHandlers
             {
                 return new(null, finish.Session, LegacyPlayerMagicReceiveAbortReason.TargetLost);
             }
-            context = context with { Session = finish.Session };
+            var completed = prepared.Result.CapriceReceipt?.ObserveCompletedAttackerContinuation(finish.Session) ?? finish.Session;
+            context = context with { Session = completed };
         }
 
         participants = RefreshLegacyTransformFinishParticipants(context, ownerUid, acceptedTarget);
@@ -151,15 +154,16 @@ public static partial class WorldPacketHandlers
         if (TryPrepareLegacyPlayerTransformFinish(currentTarget.Session, context.WorldData,
                 context.LegacyClock ?? LegacySignedMillisecondClock.System, out var targetQuery))
         {
-            context.Sessions?.Set(currentTarget.Connection, targetQuery.Session);
+            var publishedTransform = PublishLegacyReceiveTargetContinuation(context, currentTarget.Connection,
+                targetQuery.Session, prepared.Result.CapriceReceipt);
             var targetFinish = await PublishLegacyPlayerTransformFinishAsync(
-                    context with { Connection = currentTarget.Connection, Session = targetQuery.Session },
+                    context with { Connection = currentTarget.Connection, Session = publishedTransform },
                     targetQuery, cancellationToken,
                     new WorldActiveSession(context.Connection, completedAttacker))
                 .ConfigureAwait(false);
             if (targetFinish.Session is { } localTarget)
             {
-                acceptedTarget = acceptedTarget with { Session = localTarget };
+                acceptedTarget = acceptedTarget with { Session = prepared.Result.CapriceReceipt?.ObserveCompletedTargetContinuation(localTarget) ?? localTarget };
             }
         }
 

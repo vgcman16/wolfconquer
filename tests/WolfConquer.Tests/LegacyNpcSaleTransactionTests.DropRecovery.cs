@@ -23,7 +23,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
         // This component seam deliberately retains a real v2 WAL. It is not a
         // runtime fault-injection setting or a process/power-loss simulation.
         Assert.False(LegacyNpcSalePersistence.TryPersistItemRemoval(original, updated, ItemsRoot,
-            count => count == replacements, out var reason));
+            LegacyJournalInterruption.StopAfter(replacements), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason, StringComparison.Ordinal);
         Assert.Equal(characterBytes, File.ReadAllBytes(UserPath(uid)));
         Assert.Equal(replacements == 0 ? beforeItems : afterItems, File.ReadAllBytes(ItemPath(uid)));
@@ -74,7 +74,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
         var original = Current(owner, player);
         Assert.False(LegacyNpcSalePersistence.TryPersistItemRemoval(original,
             original with { PlayerItems = PersistenceDropItems(original) }, ItemsRoot,
-            count => count == 0, out var reason));
+            LegacyJournalInterruption.StopAfter(0), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason, StringComparison.Ordinal);
         File.WriteAllText(PendingPath, "{\"Version\":2,\"Changes\":[");
         var journalBytes = File.ReadAllBytes(PendingPath);

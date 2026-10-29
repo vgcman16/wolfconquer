@@ -10,7 +10,7 @@ public sealed partial class LegacySingleOwnerJournalTests
     public void ItemsRootCannotBeThePendingJournalDirectoryOrItsDescendant(bool descendant)
     {
         var changes = SeedOwner(1_299_201);
-        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var evidence = File.ReadAllBytes(PendingPath);
         var journalRoot = Path.GetDirectoryName(PendingPath)!;
         var overlappingItemsRoot = descendant ? Path.Combine(journalRoot, "items") : journalRoot;
@@ -32,7 +32,7 @@ public sealed partial class LegacySingleOwnerJournalTests
     public void MissingOrNonmatchingConfiguredItemsRootCannotPartiallyReplayTheCharacter(bool existingForeignTarget)
     {
         var changes = SeedOwner(1_299_211);
-        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var evidence = File.ReadAllBytes(PendingPath);
         var foreignItemsRoot = Path.Combine(root, "another-configured-items-root");
         var foreignItemPath = Path.Combine(foreignItemsRoot, Path.GetFileName(Target(changes[1])));

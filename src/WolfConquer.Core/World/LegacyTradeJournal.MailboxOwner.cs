@@ -11,9 +11,10 @@ internal static partial class LegacyTradeJournal
     // v4 uses the same pending slot/replacement/rollback/recovery engine.
     // Genuine failure-only prefixes: 0 published, 1 Character, 2 Items, 3 Mailbox.
     internal static bool TryCommitMailboxOwner(string usersRoot, string itemsRoot, string mailboxRoot,
-        IReadOnlyList<LegacyTradeJournalChange> changes, Func<int, bool>? interrupt, out string reason)
+        IReadOnlyList<LegacyTradeJournalChange> changes, LegacyJournalInterruption? interrupt, out string reason)
     {
         reason = string.Empty;
+        if (RefuseJournalReentry(ref reason)) return false;
         try
         {
             var roots = GetMailboxRoots(usersRoot, itemsRoot, mailboxRoot);

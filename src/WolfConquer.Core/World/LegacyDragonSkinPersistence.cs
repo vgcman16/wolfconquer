@@ -13,7 +13,7 @@ internal static partial class LegacyDragonSkinPersistence
     // Only the existing journal's failure-only interruption seam. It never
     // supplies an accepted save; live callers always use the no-hook overload.
     internal static bool TryPersist(WorldSession expected, WorldSession updated, string? itemsRoot,
-        Func<int, bool>? interrupt, out string reason)
+        LegacyJournalInterruption? interrupt, out string reason)
     {
         reason = string.Empty;
         try
@@ -31,7 +31,7 @@ internal static partial class LegacyDragonSkinPersistence
     }
 
     private static bool PersistLocked(Paths paths, WorldSession expected, WorldSession updated, Change change,
-        Func<int, bool>? interrupt, out string reason)
+        LegacyJournalInterruption? interrupt, out string reason)
     {
         reason = string.Empty;
         if (LegacyTradeJournal.HasPending(paths.UsersRoot))

@@ -85,7 +85,7 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
                 File.WriteAllBytes(Path.Combine(Root, relative), bytes);
             AssertFiles(images.Before.Files);
             Assert.False(LegacyTradeJournal.TryCommit(Harness.UsersRoot, Harness.PlayerItemsRoot,
-                images.Changes, replacements => replacements == prefix, out var reason));
+                images.Changes, LegacyJournalInterruption.StopAfter(prefix), out var reason));
             Assert.StartsWith("tradeJournalRecoveryRequired", reason, StringComparison.Ordinal);
             Assert.True(LegacyTradeJournal.HasPending(Harness.UsersRoot));
             for (var index = 0; index < images.Changes.Length; index++)

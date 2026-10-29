@@ -52,7 +52,7 @@ internal static partial class LegacyVictoryChestPersistence
 
     // Only the real journal's failure-only interruption seam; never an accepting saver.
     internal static bool TryPersist(Prepared before, WorldSession updated, LegacyDragonSkinInventory items,
-        LegacyVictoryQuestCapture quests, Func<int, bool>? interrupt, out string reason)
+        LegacyVictoryQuestCapture quests, LegacyJournalInterruption? interrupt, out string reason)
     {
         reason = string.Empty;
         try
@@ -70,7 +70,7 @@ internal static partial class LegacyVictoryChestPersistence
     }
 
     private static bool PersistLocked(Prepared before, WorldSession updated, LegacyDragonSkinInventory items,
-        LegacyVictoryQuestCapture quests, Func<int, bool>? interrupt, out string reason)
+        LegacyVictoryQuestCapture quests, LegacyJournalInterruption? interrupt, out string reason)
     {
         reason = string.Empty;
         var paths = before.Paths;

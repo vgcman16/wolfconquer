@@ -275,7 +275,7 @@ public sealed partial class LegacyFloorPickupInventoryPersistenceTests
 
         Assert.False(LegacyNpcSalePersistence.TryPersistFloorPickupInventory(original,
             original with { PlayerItems = inventory.UpdatedItems }, Items, entry, inventory,
-            count => count == replacementCount, out var reason));
+            LegacyJournalInterruption.StopAfter(replacementCount), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason);
         Assert.True(LegacyTradeJournal.TryRecover(Users, Items, out var recovered, out reason), reason);
         Assert.Equal(1, recovered);

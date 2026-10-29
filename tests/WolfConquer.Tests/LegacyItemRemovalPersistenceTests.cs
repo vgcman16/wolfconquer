@@ -243,7 +243,7 @@ public sealed class LegacyItemRemovalPersistenceTests : IDisposable
         var updated = Removed(original);
         var afterItems = PlayerItemSnapshotLoader.ToLegacyBytes(updated.PlayerItems);
         Assert.False(LegacyNpcSalePersistence.TryPersistItemRemoval(original, updated, Items,
-            count => count == replacementCount, out var reason));
+            LegacyJournalInterruption.StopAfter(replacementCount), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason);
         Assert.True(LegacyTradeJournal.HasPending(Users));
         Assert.Equal(character, File.ReadAllBytes(CharacterPath));
@@ -264,7 +264,7 @@ public sealed class LegacyItemRemovalPersistenceTests : IDisposable
     {
         var original = WriteSession();
         var updated = Removed(original);
-        Assert.False(LegacyNpcSalePersistence.TryPersistItemRemoval(original, updated, Items, count => count == 0, out _));
+        Assert.False(LegacyNpcSalePersistence.TryPersistItemRemoval(original, updated, Items, LegacyJournalInterruption.StopAfter(0), out _));
         var character = File.ReadAllBytes(CharacterPath);
         var items = File.ReadAllBytes(ItemPath);
         Assert.False(LegacyNpcSalePersistence.TryPersistItemRemoval(original, updated, Items, out var reason));

@@ -92,8 +92,8 @@ internal sealed partial class LegacyMailboxPackageProducer
                     if (current is null || current.Completed || !LegacyMailboxPackageWorkStore.Same(current, row) || !IsCurrentPrepared() ||
                         !owner.workStore.ImagesMatch(row, after: false)) return false;
                     using var permission = LegacyMailboxPackageMutationFence.EnterPreparedCommit(this);
-                    Func<int, bool>? boundary = (int)interruption is >= 1 and <= 5
-                        ? count => count == (int)interruption - 1 : null;
+                    LegacyJournalInterruption? boundary = (int)interruption is >= 1 and <= 5
+                        ? LegacyJournalInterruption.StopAfter((int)interruption - 1) : null;
                     if (!LegacyMailboxPackageCommitProof.TryCommit(owner.UsersRoot, owner.ItemsRoot, owner.MailboxRoot,
                         owner.CombatGearRoot, changes, boundary, out completedProof, out failure)) return false;
                     committed = true;

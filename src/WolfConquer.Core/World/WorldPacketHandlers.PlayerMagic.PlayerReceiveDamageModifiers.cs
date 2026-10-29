@@ -31,7 +31,10 @@ public static partial class WorldPacketHandlers
         byte QuenchValue,
         bool AttackHitApplied,
         bool TargetNeptuneCurseBlocked,
-        bool AttackerNeptuneCurseCapped);
+        bool AttackerNeptuneCurseCapped)
+    {
+        internal WorldSessionStore.CapricePairReceipt? CapriceReceipt { get; init; }
+    }
 
     private static LegacyPlayerReceiveDamageModifierResult ApplyLegacyPlayerReceiveDamageModifiers(
         CharacterSnapshot attacker,

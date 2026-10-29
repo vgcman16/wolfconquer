@@ -60,7 +60,7 @@ public sealed partial class LegacyMailboxOwnerJournalTests
     {
         var changes = SeedGearJournal(fixture);
         Assert.False(LegacyTradeJournal.TryCommitMailboxGearOwner(fixture.Users, fixture.Items, fixture.Mailbox,
-            GearRoot(fixture), changes, count => count == 0, out _));
+            GearRoot(fixture), changes, LegacyJournalInterruption.StopAfter(0), out _));
         var record = JsonNode.Parse(File.ReadAllText(fixture.Pending))!;
         switch (fault)
         {
@@ -153,7 +153,7 @@ public sealed partial class LegacyMailboxOwnerJournalTests
     {
         var changes = SeedGearJournal(fixture);
         Assert.False(LegacyTradeJournal.TryCommitMailboxOwner(fixture.Users, fixture.Items, fixture.Mailbox,
-            changes.Take(3).ToArray(), count => count == 0, out _));
+            changes.Take(3).ToArray(), LegacyJournalInterruption.StopAfter(0), out _));
         var record = JsonNode.Parse(File.ReadAllText(fixture.Pending))!.AsObject();
         Assert.Equal(new[] { "Version", "TransactionId", "Changes", "MailboxDomain" }, record.Select(pair => pair.Key));
         Assert.Equal(4, record["Version"]!.GetValue<int>());

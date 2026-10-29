@@ -13,6 +13,12 @@ public static partial class WorldPacketHandlers
         if (!TryCaptureLegacyRootAdmissionOwner(
                 context, session, expectedNativeClientIdentity, out var owner)) return null;
         session = owner.Expected;
+        if (spell.Sort == LegacyMagicSort.AttachStatus && spell.Id == LegacyFlyAttachStatusSpellId &&
+            IsLegacyFlyBlocked(session))
+        {
+            await RejectLegacyFlyAdmissionAsync(context, owner, spell, cancellationToken).ConfigureAwait(false);
+            return null;
+        }
         if (!TryValidateLegacyXpAdmissionPrerequisites(session, spell, out var xpReason))
         {
             await context.Log.WriteLineAsync(

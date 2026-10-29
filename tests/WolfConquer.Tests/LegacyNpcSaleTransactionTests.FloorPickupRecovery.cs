@@ -30,7 +30,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
         // This is the real v2 writer's managed interruption seam, not a killed
         // process, runtime injection option, power loss, or durable floor proof.
         Assert.False(LegacyNpcSalePersistence.TryPersistFloorPickup(original, updated, ItemsRoot,
-            entry, entry.Item, count => count == replacements, out var reason));
+            entry, entry.Item, LegacyJournalInterruption.StopAfter(replacements), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason, StringComparison.Ordinal);
         Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
         Assert.Equal(replacements == 0 ? beforeCharacter : afterCharacter, File.ReadAllBytes(UserPath(uid)));
@@ -77,7 +77,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
         var wallet = NormalPersistencePickupWallet(original, disposition: 0, amount: PersistencePickupAmount);
         var updated = RecoveryPickupResult(original, entry, wallet);
         Assert.False(LegacyNpcSalePersistence.TryPersistFloorPickup(original, updated, ItemsRoot,
-            entry, entry.Item, count => count == 0, out var reason));
+            entry, entry.Item, LegacyJournalInterruption.StopAfter(0), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason, StringComparison.Ordinal);
         File.WriteAllText(PendingPath, "{\"Version\":2,\"Changes\":[");
         var journalBytes = File.ReadAllBytes(PendingPath);

@@ -32,6 +32,8 @@ internal static partial class LegacyTradeJournal
         public CharacterSpellsJournalDomain? CharacterSpellsDomain { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public CharacterItemsSpellsJournalDomain? CharacterItemsSpellsDomain { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public CharacterResourcesJournalDomain? CharacterResourcesDomain { get; init; }
     }
 
     private sealed record JournalTarget(string Path, LegacyTradeJournalChange Change);
@@ -71,6 +73,7 @@ internal static partial class LegacyTradeJournal
         // The single-owner API's failpoint contract is character first, then items.
         // Do not reorder v1: its established four-target contract remains unchanged.
         if (version is 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9) copied = copied.OrderBy(change => change.Kind).ToArray();
+        if (version == 11) copied = copied.OrderBy(change => change.FileId).ToArray();
         return new(version, Guid.NewGuid().ToString("N"), copied);
     }
 
@@ -84,6 +87,7 @@ internal static partial class LegacyTradeJournal
         6 or 7 => 4, // Variable1..4; admission validates its exact configured membership.
         8 => 2,
         9 => 3,
+        11 => 2,
         _ => throw new ArgumentException("Unsupported journal version."),
     };
 
@@ -92,6 +96,7 @@ internal static partial class LegacyTradeJournal
         if (IsOrdinaryAdmissionVersion(version)) { ValidateAdmissionChanges(changes); return; }
         if (version == 8) { ValidateCharacterSpellsChanges(changes); return; }
         if (version == 9) { ValidateCharacterItemsSpellsChanges(changes); return; }
+        if (version == 11) { ValidateCharacterResourcesChanges(changes); return; }
         if (version == 5)
         {
             ValidateMailboxGearChanges(changes);
@@ -130,6 +135,7 @@ internal static partial class LegacyTradeJournal
         if (IsOrdinaryAdmissionVersion(record.Version)) return GetAdmissionTargets(roots, record);
         if (record.Version == 8) return GetCharacterSpellsTargets(roots, record);
         if (record.Version == 9) return GetCharacterItemsSpellsTargets(roots, record);
+        if (record.Version == 11) return GetCharacterResourcesTargets(roots, record);
         var targets = record.Changes.Select(change => new JournalTarget(Path.Combine(
             change.Kind == LegacyTradeJournalFileKind.Character ? roots.Users : roots.Items,
             change.FileId.ToString(CultureInfo.InvariantCulture) +

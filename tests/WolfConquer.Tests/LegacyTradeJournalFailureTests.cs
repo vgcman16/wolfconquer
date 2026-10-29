@@ -27,27 +27,19 @@ public sealed class LegacyTradeJournalFailureTests : IDisposable
     public void FailedSecondReplacementRestoresExactPreimagesAndAllowsFreshCommit()
     {
         var changes = SeedChanges();
-        var visited = new List<int>();
-        FileStream? lease = null;
-        try
+        JournalInterruptionTestScope.Run(LegacyJournalInterruption.LeaseTargetAfter(1, 1), interruption =>
         {
-            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count =>
-            {
-                visited.Add(count);
-                if (count != 1) return false;
-                Assert.True(File.Exists(PendingPath));
-                Assert.Equal(changes[0].After, File.ReadAllBytes(Target(changes[0])));
-                // Reading remains possible for rollback validation, but ReplaceFile is denied.
-                lease = new FileStream(Target(changes[1]), FileMode.Open, FileAccess.Read, FileShare.Read);
-                return false;
-            }, out var reason));
+            // The closed plan opens the actual declared target1 read handle
+            // after replacement1, permitting reads but denying ReplaceFile.
+            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, interruption, out var reason));
+            Assert.True(interruption.PendingObserved);
+            Assert.Equal(changes[0].After, interruption.BoundaryImages[0]);
 
             Assert.StartsWith("tradeJournalWriteFailed:", reason);
-            Assert.Equal(new[] { 0, 1 }, visited);
+            Assert.Equal(new[] { 0, 1 }, interruption.Visited);
             Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
             AssertAllBefore(changes);
-        }
-        finally { lease?.Dispose(); }
+        });
 
         Assert.True(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, out var retryReason), retryReason);
         AssertAfterAndRecoveryNoop(changes);
@@ -57,16 +49,10 @@ public sealed class LegacyTradeJournalFailureTests : IDisposable
     public void UnreadableRollbackRetainsJournalAndRecoveryCanRetryAfterLockRelease()
     {
         var changes = SeedChanges();
-        FileStream? lease = null;
-        try
+        JournalInterruptionTestScope.Run(LegacyJournalInterruption.LeaseTargetAfter(1, 1, exclusive: true), interruption =>
         {
-            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count =>
-            {
-                if (count != 1) return false;
-                Assert.Equal(changes[0].After, File.ReadAllBytes(Target(changes[0])));
-                lease = new FileStream(Target(changes[1]), FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-                return false;
-            }, out var reason));
+            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, interruption, out var reason));
+            Assert.Equal(changes[0].After, interruption.BoundaryImages[0]);
 
             Assert.StartsWith("tradeJournalRecoveryRequired:rollbackOrDeleteFailed:", reason);
             Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
@@ -76,8 +62,7 @@ public sealed class LegacyTradeJournalFailureTests : IDisposable
             Assert.StartsWith("tradeJournalRecoveryRequired:", reason);
             Assert.Equal(journal, File.ReadAllBytes(PendingPath));
             Assert.Equal(changes[0].After, File.ReadAllBytes(Target(changes[0])));
-        }
-        finally { lease?.Dispose(); }
+        });
 
         AssertPrefix(changes, 1);
         Assert.True(LegacyTradeJournal.TryRecover(UsersRoot, ItemsRoot, out var countRecovered, out var retryReason), retryReason);
@@ -89,16 +74,10 @@ public sealed class LegacyTradeJournalFailureTests : IDisposable
     public void CommittedJournalDeleteFailureKeepsAfterImagesUntilRecoveryClearsRecord()
     {
         var changes = SeedChanges();
-        FileStream? journalLease = null;
-        try
+        JournalInterruptionTestScope.Run(LegacyJournalInterruption.LeasePendingAfter(4), interruption =>
         {
-            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count =>
-            {
-                if (count != 4) return false;
-                AssertAllAfter(changes);
-                journalLease = new FileStream(PendingPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return false;
-            }, out var reason));
+            Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, interruption, out var reason));
+            for (var index = 0; index < changes.Length; index++) Assert.Equal(changes[index].After, interruption.BoundaryImages[index]);
 
             Assert.StartsWith("tradeJournalRecoveryRequired:committedRecordDeleteFailed:", reason);
             Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
@@ -109,8 +88,7 @@ public sealed class LegacyTradeJournalFailureTests : IDisposable
             Assert.StartsWith("tradeJournalRecoveryRequired:", reason);
             Assert.Equal(journal, File.ReadAllBytes(PendingPath));
             AssertAllAfter(changes);
-        }
-        finally { journalLease?.Dispose(); }
+        });
 
         Assert.True(LegacyTradeJournal.TryRecover(UsersRoot, ItemsRoot, out var countRecovered, out var retryReason), retryReason);
         Assert.Equal(1, countRecovered);
@@ -121,7 +99,7 @@ public sealed class LegacyTradeJournalFailureTests : IDisposable
     public void PartiallyAppliedRecoveryRetainsRecordAndResumesWithoutDoubleCredit()
     {
         var changes = SeedChanges();
-        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var journal = File.ReadAllBytes(PendingPath);
         using (new FileStream(Target(changes[1]), FileMode.Open, FileAccess.Read, FileShare.Read))
         {

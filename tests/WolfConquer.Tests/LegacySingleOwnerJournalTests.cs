@@ -25,7 +25,7 @@ public sealed partial class LegacySingleOwnerJournalTests : IDisposable
         var changes = SeedOwner(1_299_001);
         // Reverse caller order deliberately: API hook1 must still mean Character.
         Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes.Reverse().ToArray(),
-            count => count == replacements, out var reason));
+            LegacyJournalInterruption.StopAfter(replacements), out var reason));
         Assert.StartsWith("tradeJournalRecoveryRequired:", reason);
         Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
         Assert.Equal(replacements >= 1 ? changes[0].After : changes[0].Before, Read(changes[0]));
@@ -97,7 +97,7 @@ public sealed partial class LegacySingleOwnerJournalTests : IDisposable
     public void InvalidPublishedV2RecordRetainsEvidenceAndEveryCurrentTarget(string mutation)
     {
         var changes = SeedOwner(1_299_031);
-        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var record = JsonNode.Parse(File.ReadAllText(PendingPath))!.AsObject();
         var entries = record["Changes"]!.AsArray();
         switch (mutation)
@@ -134,8 +134,8 @@ public sealed partial class LegacySingleOwnerJournalTests : IDisposable
         var first = SeedOwner(1_299_041);
         var pair = first.Concat(SeedOwner(1_299_042)).ToArray();
         Assert.False(pendingSingleOwner
-            ? LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, first, count => count == 0, out _)
-            : LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, pair, count => count == 0, out _));
+            ? LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, first, LegacyJournalInterruption.StopAfter(0), out _)
+            : LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, pair, LegacyJournalInterruption.StopAfter(0), out _));
         var evidence = File.ReadAllBytes(PendingPath);
         string reason;
         Assert.False(pendingSingleOwner
@@ -153,7 +153,7 @@ public sealed partial class LegacySingleOwnerJournalTests : IDisposable
     {
         var first = SeedOwner(1_299_051);
         var pair = first.Concat(SeedOwner(1_299_052)).ToArray();
-        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, pair, count => count == 1, out _));
+        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, pair, LegacyJournalInterruption.StopAfter(1), out _));
         var record = JsonNode.Parse(File.ReadAllText(PendingPath))!;
         Assert.Equal(1, record["Version"]!.GetValue<int>());
         Assert.Equal(4, record["Changes"]!.AsArray().Count);
@@ -168,7 +168,7 @@ public sealed partial class LegacySingleOwnerJournalTests : IDisposable
     public void UnknownCurrentItemBytesPreventAnySingleOwnerRecoveryMutation()
     {
         var changes = SeedOwner(1_299_061);
-        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var unknown = new byte[] { 200, 201, 202 };
         File.WriteAllBytes(Target(changes[1]), unknown);
         var evidence = File.ReadAllBytes(PendingPath);
@@ -185,7 +185,7 @@ public sealed partial class LegacySingleOwnerJournalTests : IDisposable
         var changes = SeedOwner(1_299_071);
         File.Delete(Target(changes[1]));
         changes[1] = changes[1] with { Before = null };
-        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, count => count == 1, out _));
+        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(1), out _));
         RecoverOnceAndAssertAfter(changes);
         Assert.Single(Directory.GetFiles(UsersRoot, "*.ini"));
         Assert.Single(Directory.GetFiles(ItemsRoot, "*.bin"));

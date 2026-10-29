@@ -12,12 +12,21 @@ internal static partial class LegacyTradeJournal
     }
 
     private static JournalRecord ReadRecord(string path)
+        => ParseRecord(ReadRecordImage(path));
+
+    private static byte[] ReadRecordImage(string path)
     {
         EnsureSafePath(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (stream.Length is <= 0 or > MaxJournalBytes) throw new JsonException("Invalid journal size.");
         var bytes = new byte[checked((int)stream.Length)];
         stream.ReadExactly(bytes);
+        return bytes;
+    }
+
+    private static JournalRecord ParseRecord(byte[] bytes)
+    {
+        if (bytes.Length is <= 0 or > MaxJournalBytes) throw new JsonException("Invalid journal size.");
         using var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 8 });
         var rootElement = document.RootElement;
         var candidateVersion = 0;
@@ -33,10 +42,11 @@ internal static partial class LegacyTradeJournal
             7 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "AdmissionDomain", "AdmissionInputs", "AdmissionPreparedAt"),
             8 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterSpellsDomain"),
             9 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain"),
+            11 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterResourcesDomain"),
             _ => GetProperties(rootElement, "Version", "TransactionId", "Changes"),
         };
         if (root["Version"].ValueKind != JsonValueKind.Number ||
-            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9) ||
+            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 11) ||
             root["TransactionId"].ValueKind != JsonValueKind.String)
             throw new JsonException("Unsupported journal version or identity.");
         var transactionId = root["TransactionId"].GetString();
@@ -71,6 +81,7 @@ internal static partial class LegacyTradeJournal
             AdmissionPreparedAt = version == 7 ? ReadAdmissionTime(root["AdmissionPreparedAt"]) : null,
             CharacterSpellsDomain = version == 8 ? ReadCharacterSpellsDomain(root["CharacterSpellsDomain"]) : null,
             CharacterItemsSpellsDomain = version == 9 ? ReadCharacterItemsSpellsDomain(root["CharacterItemsSpellsDomain"]) : null,
+            CharacterResourcesDomain = version == 11 ? ReadCharacterResourcesDomain(root["CharacterResourcesDomain"]) : null,
         };
     }
 

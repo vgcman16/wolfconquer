@@ -11,7 +11,7 @@ internal static partial class LegacyNpcSalePersistence
         out string reason) => TryPersistItemRemoval(original, updated, playerItemsRoot, null, out reason);
 
     internal static bool TryPersistItemRemoval(WorldSession original, WorldSession updated, string? playerItemsRoot,
-        Func<int, bool>? interruptAfterReplacement, out string reason) =>
+        LegacyJournalInterruption? interruptAfterReplacement, out string reason) =>
         TryPersistCore(original, updated, playerItemsRoot, PersistenceMode.ItemRemoval, interruptAfterReplacement, out reason);
 
     private static bool TryValidateItemRemovalSessions(WorldSession original, WorldSession updated, out string reason)

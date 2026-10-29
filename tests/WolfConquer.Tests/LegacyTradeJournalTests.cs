@@ -26,7 +26,7 @@ public sealed class LegacyTradeJournalTests : IDisposable
         var changes = SeedChanges();
 
         Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes,
-            count => count == replacements, out var reason));
+            LegacyJournalInterruption.StopAfter(replacements), out var reason));
         Assert.Contains("tradeJournalRecoveryRequired", reason);
         Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
 
@@ -44,7 +44,7 @@ public sealed class LegacyTradeJournalTests : IDisposable
     public void UnknownCurrentBytesRefuseRecoveryBeforeChangingAnyParticipant()
     {
         var changes = SeedChanges();
-        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
         File.WriteAllBytes(Target(changes[3]), Encoding.UTF8.GetBytes("unrelated-new-owner-state"));
         var beforeRecovery = ReadTargets(changes);
 
@@ -82,7 +82,7 @@ public sealed class LegacyTradeJournalTests : IDisposable
     public void OtherwiseValidPublishedRecordRejectsUnsupportedVersionPathOrEscapingIdentity(string mutation)
     {
         var changes = SeedChanges();
-        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
         var record = JsonNode.Parse(File.ReadAllText(PendingPath))!.AsObject();
         if (mutation == "Version") record["Version"] = 2;
         else if (mutation == "Path") record["Changes"]![0]!["Path"] = "../outside.ini";
@@ -132,7 +132,7 @@ public sealed class LegacyTradeJournalTests : IDisposable
         File.Delete(Target(original[3]));
         var changes = original.ToArray();
         changes[3] = changes[3] with { Before = null };
-        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count => count == 0, out _));
+        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out _));
 
         Assert.True(LegacyTradeJournal.TryRecover(UsersRoot, ItemsRoot, out var recovered, out var reason), reason);
 

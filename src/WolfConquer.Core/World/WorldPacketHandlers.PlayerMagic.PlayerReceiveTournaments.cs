@@ -166,8 +166,8 @@ public static partial class WorldPacketHandlers
         if (lifes != 0)
         {
             var updatedTarget = WithCharacterAttribute(targetCharacter, lifesKey, lifes - 1);
-            var updatedTargetSession = targetSession with { Character = updatedTarget };
-            context.Sessions?.Set(target.Connection, updatedTargetSession);
+            var updatedTargetSession = PublishLegacyReceiveTargetContinuation(context, target.Connection,
+                targetSession with { Character = updatedTarget }, modifierResult.CapriceReceipt);
 
             return CreateLegacyPlayerMagicDamageResult(
                 target with { Session = updatedTargetSession },
@@ -186,10 +186,11 @@ public static partial class WorldPacketHandlers
             context,
             attackerSession,
             modifierResult.Attacker,
-            out var updatedAttackerSession);
+            out var updatedAttackerSession,
+            modifierResult.CapriceReceipt);
         var deadTarget = ApplyLegacyPlayerPlayerDeath(targetCharacter, updatedAttacker);
-        var deadTargetSession = targetSession with { Character = deadTarget };
-        context.Sessions?.Set(target.Connection, deadTargetSession);
+        var deadTargetSession = PublishLegacyReceiveTargetContinuation(context, target.Connection,
+            targetSession with { Character = deadTarget }, modifierResult.CapriceReceipt);
 
         return CreateLegacyPlayerMagicDamageResult(
             target with { Session = deadTargetSession },
@@ -236,8 +237,8 @@ public static partial class WorldPacketHandlers
             outcomeKind = LegacyPlayerReceiveTournamentOutcomeKind.FreezeWarThawed;
         }
 
-        var updatedTargetSession = targetSession with { Character = updatedTarget };
-        context.Sessions?.Set(target.Connection, updatedTargetSession);
+        var updatedTargetSession = PublishLegacyReceiveTargetContinuation(context, target.Connection,
+            targetSession with { Character = updatedTarget }, modifierResult.CapriceReceipt);
 
         return CreateLegacyPlayerMagicDamageResult(
             target with { Session = updatedTargetSession },
@@ -267,8 +268,8 @@ public static partial class WorldPacketHandlers
                 WithoutLegacyStatusFlag(targetSession.Character, LegacyFootballBallFlag),
                 RuntimeLegacyFootballBallExpiresAtUtcAttribute)
             : targetSession.Character;
-        var updatedTargetSession = targetSession with { Character = updatedTarget };
-        context.Sessions?.Set(target.Connection, updatedTargetSession);
+        var updatedTargetSession = PublishLegacyReceiveTargetContinuation(context, target.Connection,
+            targetSession with { Character = updatedTarget }, modifierResult.CapriceReceipt);
 
         var updatedAttackerSession = attackerSession;
         if (targetHasBall && attackerSession is not null)
@@ -280,8 +281,8 @@ public static partial class WorldPacketHandlers
                 WithLegacyStatusFlag(modifierResult.Attacker, LegacyFootballBallFlag),
                 RuntimeLegacyFootballBallExpiresAtUtcAttribute,
                 expiresAt);
-            updatedAttackerSession = attackerSession with { Character = updatedAttacker };
-            context.Sessions?.Set(context.Connection, updatedAttackerSession);
+            updatedAttackerSession = PublishLegacyReceiveAttackerContinuation(context,
+                attackerSession with { Character = updatedAttacker }, modifierResult.CapriceReceipt);
         }
 
         return CreateLegacyPlayerMagicDamageResult(
@@ -367,14 +368,14 @@ public static partial class WorldPacketHandlers
             killed = true;
         }
 
-        var updatedTargetSession = targetSession with { Character = targetCharacter };
-        context.Sessions?.Set(target.Connection, updatedTargetSession);
+        var updatedTargetSession = PublishLegacyReceiveTargetContinuation(context, target.Connection,
+            targetSession with { Character = targetCharacter }, modifierResult.CapriceReceipt);
 
         var updatedAttackerSession = attackerSession;
         if (attackerSession is not null && !attackerCharacter.Equals(attackerSession.Character))
         {
-            updatedAttackerSession = attackerSession with { Character = attackerCharacter };
-            context.Sessions?.Set(context.Connection, updatedAttackerSession);
+            updatedAttackerSession = PublishLegacyReceiveAttackerContinuation(context,
+                attackerSession with { Character = attackerCharacter }, modifierResult.CapriceReceipt);
         }
 
         return CreateLegacyPlayerMagicDamageResult(
@@ -642,7 +643,8 @@ public static partial class WorldPacketHandlers
             drainingTouchResult,
             bloodSpawnResult,
             responseEffectsResult,
-            infiniteMistResult);
+            infiniteMistResult,
+            CapriceReceipt: modifierResult.CapriceReceipt);
     }
 
     private static bool IsLegacyPlayerReceiveTournamentAttackerActive(
@@ -744,7 +746,8 @@ public static partial class WorldPacketHandlers
         WorldPacketHandlerContext context,
         WorldSession? attackerSession,
         CharacterSnapshot attacker,
-        out WorldSession? updatedAttackerSession)
+        out WorldSession? updatedAttackerSession,
+        WorldSessionStore.CapricePairReceipt? capriceReceipt = null)
     {
         var kills = ReadLegacyPlayerReceiveTournamentUInt64(
             attacker.Attributes,
@@ -757,8 +760,9 @@ public static partial class WorldPacketHandlers
         updatedAttackerSession = null;
         if (attackerSession is not null)
         {
-            updatedAttackerSession = attackerSession with { Character = updatedAttacker };
-            context.Sessions?.Set(context.Connection, updatedAttackerSession);
+            updatedAttackerSession = PublishLegacyReceiveAttackerContinuation(context,
+                attackerSession with { Character = updatedAttacker }, capriceReceipt);
+            updatedAttacker = updatedAttackerSession.Character;
         }
 
         return updatedAttacker;

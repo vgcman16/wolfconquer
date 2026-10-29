@@ -11,8 +11,8 @@ internal enum LegacyCharacterItemsSpellsJournalInterruption { None, AfterPending
 internal sealed record LegacyTradeJournalChange(
     LegacyTradeJournalFileKind Kind, long FileId, byte[]? Before, byte[] After);
 
-// One pending record per configured Users root. Live callers must retain the existing
-// vendor gate -> snapshot-file locks order; startup recovery runs before live owners.
+// One pending record per canonical Users root. Complete snapshot-file monitors
+// precede the common journal domain gate; startup recovery precedes live owners.
 // This is process-restart recovery, not a multi-process or power-loss transaction.
 internal static partial class LegacyTradeJournal
 {
@@ -26,18 +26,19 @@ internal static partial class LegacyTradeJournal
         IReadOnlyList<LegacyTradeJournalChange> changes, out string reason) =>
         TryCommit(usersRoot, itemsRoot, changes, null, out reason);
 
-    // Returning true deliberately leaves the durable record in place, without rollback.
-    // Count zero is after publication; counts one through four follow target replacement.
+    // Closed interruption plans can retain a durable prefix without rollback.
+    // Boundary zero follows publication; one through four follow replacement.
     internal static bool TryCommit(string usersRoot, string itemsRoot,
         IReadOnlyList<LegacyTradeJournalChange> changes,
-        Func<int, bool>? interruptAfterReplacement, out string reason) =>
+        LegacyJournalInterruption? interruptAfterReplacement, out string reason) =>
         TryCommitVersion(usersRoot, itemsRoot, changes, version: 1, interruptAfterReplacement, out reason);
 
     private static bool TryCommitVersion(string usersRoot, string itemsRoot,
         IReadOnlyList<LegacyTradeJournalChange> changes, int version,
-        Func<int, bool>? interruptAfterReplacement, out string reason)
+        LegacyJournalInterruption? interruptAfterReplacement, out string reason)
     {
         reason = string.Empty;
+        if (RefuseJournalReentry(ref reason)) return false;
         try
         {
             var roots = GetRoots(usersRoot, itemsRoot);
@@ -60,6 +61,7 @@ internal static partial class LegacyTradeJournal
     {
         try
         {
+            using var serialized = new JournalDomainScope(usersRoot, mutation: false);
             var root = Path.GetFullPath(usersRoot);
             EnsureSafePath(root);
             var directory = Path.Combine(root, JournalDirectoryName);
@@ -71,7 +73,30 @@ internal static partial class LegacyTradeJournal
     }
 
     private static bool CommitLocked(JournalRoots roots, JournalRecord record,
-        JournalTarget[] targets, Func<int, bool>? interrupt, out string reason)
+        JournalTarget[] targets, LegacyJournalInterruption? interrupt, out string reason)
+    {
+        var paths = targets.Select(target => target.Path).ToArray();
+        interrupt?.Claim(targets.Length);
+        // Permission checks may inspect higher package/admission owners. Keep
+        // them before J, under the caller's complete existing file monitors.
+        if (HasPending(roots.Users)) { reason = RecoveryRequired + ":pending"; return false; }
+        try
+        {
+            EnsureTargetsMatch(targets, allowAfter: false);
+            EnsureAdmissionInputs(roots, record);
+            LegacyMailboxPackageMutationFence.RequireJournalMutation(paths, record.Changes);
+        }
+        catch (Exception error) when (IsJournalException(error))
+        {
+            reason = HasPending(roots.Users) ? RecoveryRequired + ":pending" : "tradeJournalWriteFailed:" + error.GetType().Name;
+            return false;
+        }
+        using var serialized = new JournalDomainScope(roots.Users, mutation: true);
+        return CommitSerialized(roots, record, targets, paths, interrupt, out reason);
+    }
+
+    private static bool CommitSerialized(JournalRoots roots, JournalRecord record,
+        JournalTarget[] targets, string[] paths, LegacyJournalInterruption? interrupt, out string reason)
     {
         reason = string.Empty;
         var published = false;
@@ -86,14 +111,13 @@ internal static partial class LegacyTradeJournal
             }
             EnsureTargetsMatch(targets, allowAfter: false);
             EnsureAdmissionInputs(roots, record);
-            LegacyMailboxPackageMutationFence.RequireJournalMutation(targets.Select(target => target.Path).ToArray(), record.Changes);
-            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9)) Directory.CreateDirectory(roots.Items);
+            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11)) Directory.CreateDirectory(roots.Items);
             Directory.CreateDirectory(roots.Journal);
             EnsureSafePath(roots.Journal);
             WriteFlushed(preparing, Serialize(record));
             File.Move(preparing, pending); // No overwrite: only one transaction can publish.
             published = true;
-            if (interrupt?.Invoke(0) == true)
+            if (interrupt?.AtBoundary(0, paths, pending) == true)
             {
                 reason = RecoveryRequired + ":interrupted";
                 return false;
@@ -108,7 +132,7 @@ internal static partial class LegacyTradeJournal
             {
                 if (!IsOrdinaryAdmissionVersion(record.Version) || !Matches(ReadTarget(targets[index].Path), targets[index].Change.After))
                     ReplaceStaged(targets[index], record.TransactionId);
-                if (interrupt?.Invoke(index + 1) == true)
+                if (interrupt?.AtBoundary(index + 1, paths, pending) == true)
                 {
                     reason = RecoveryRequired + ":interrupted";
                     return false;

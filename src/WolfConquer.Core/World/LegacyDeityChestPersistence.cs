@@ -46,7 +46,7 @@ internal static partial class LegacyDeityChestPersistence
     // Only the real journal's failure-only interruption boundary, never a saver
     // that can manufacture acceptance. Live callers use the overload above.
     internal static bool TryPersist(Prepared prepared, WorldSession updated, LegacyDragonSkinInventory after,
-        Func<int, bool>? interrupt, out string reason)
+        LegacyJournalInterruption? interrupt, out string reason)
     {
         reason = string.Empty;
         try
@@ -63,7 +63,7 @@ internal static partial class LegacyDeityChestPersistence
     }
 
     private static bool PersistLocked(Prepared prepared, WorldSession updated, LegacyDragonSkinInventory after,
-        Func<int, bool>? interrupt, out string reason)
+        LegacyJournalInterruption? interrupt, out string reason)
     {
         var paths = prepared.Paths;
         reason = string.Empty;

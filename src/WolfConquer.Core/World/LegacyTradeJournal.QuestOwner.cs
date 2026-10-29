@@ -13,9 +13,10 @@ internal static partial class LegacyTradeJournal
     // Failure-only boundaries: 0 durable record, 1 Character, 2 Items, 3 Quests.
     internal static bool TryCommitQuestOwner(string usersRoot, string itemsRoot, string questsRoot,
         IReadOnlyList<LegacyTradeJournalChange> changes,
-        Func<int, bool>? interruptAfterReplacement, out string reason)
+        LegacyJournalInterruption? interruptAfterReplacement, out string reason)
     {
         reason = string.Empty;
+        if (RefuseJournalReentry(ref reason)) return false;
         try
         {
             var roots = GetQuestRoots(usersRoot, itemsRoot, questsRoot);

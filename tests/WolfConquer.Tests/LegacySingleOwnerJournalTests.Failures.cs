@@ -8,21 +8,14 @@ public sealed partial class LegacySingleOwnerJournalTests
     public void SecondReplacementSharingFailureRestoresBothOriginalFilesAndClearsJournal()
     {
         var changes = SeedOwner(1_299_101);
-        FileStream? lease = null;
-        try
+        JournalInterruptionTestScope.Run(LegacyJournalInterruption.LeaseTargetAfter(1, 1), interruption =>
         {
-            Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, count =>
-            {
-                if (count != 1) return false;
-                Assert.Equal(changes[0].After, Read(changes[0]));
-                lease = new FileStream(Target(changes[1]), FileMode.Open, FileAccess.Read, FileShare.Read);
-                return false;
-            }, out var reason));
+            Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, interruption, out var reason));
+            Assert.Equal(changes[0].After, interruption.BoundaryImages[0]);
             Assert.StartsWith("tradeJournalWriteFailed:", reason);
             AssertBefore(changes);
             Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
-        }
-        finally { lease?.Dispose(); }
+        });
         Assert.True(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, out var retryReason), retryReason);
         AssertAfter(changes);
     }
@@ -33,16 +26,13 @@ public sealed partial class LegacySingleOwnerJournalTests
     public void InjectedIoOrSecurityFailureAfterBothReplacementsRollsBackBothExactPreimages(bool securityFailure)
     {
         var changes = SeedOwner(1_299_111);
-        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, count =>
+        using var interruption = LegacyJournalInterruption.ThrowAfter(2,
+            securityFailure ? LegacyJournalFault.ThrowSecurity : LegacyJournalFault.ThrowIo);
+        Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, interruption, out var reason));
+        for (var index = 0; index < changes.Length; index++)
         {
-            if (count == 2)
-            {
-                AssertAfter(changes);
-                if (securityFailure) throw new System.Security.SecurityException("Injected completion failure.");
-                throw new IOException("Injected completion failure.");
-            }
-            return false;
-        }, out var reason));
+            Assert.Equal(changes[index].After, interruption.BoundaryImages[index]);
+        }
         Assert.StartsWith("tradeJournalWriteFailed:", reason);
         AssertBefore(changes);
         Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
@@ -55,21 +45,15 @@ public sealed partial class LegacySingleOwnerJournalTests
     public void UncertainSingleOwnerRollbackRetainsRecordUntilTheFileCanBeRecovered()
     {
         var changes = SeedOwner(1_299_121);
-        FileStream? lease = null;
-        try
+        JournalInterruptionTestScope.Run(LegacyJournalInterruption.LeaseTargetAfter(1, 1, exclusive: true), interruption =>
         {
-            Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, count =>
-            {
-                if (count == 1) lease = new FileStream(Target(changes[1]), FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-                return false;
-            }, out var reason));
+            Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, interruption, out var reason));
             Assert.StartsWith("tradeJournalRecoveryRequired:", reason);
             Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
             Assert.False(LegacyTradeJournal.TryRecover(UsersRoot, ItemsRoot, out var recovered, out reason));
             Assert.Equal(0, recovered);
             Assert.StartsWith("tradeJournalRecoveryRequired:", reason);
-        }
-        finally { lease?.Dispose(); }
+        });
         RecoverOnceAndAssertAfter(changes);
     }
 
@@ -77,19 +61,14 @@ public sealed partial class LegacySingleOwnerJournalTests
     public void SingleOwnerCompletedRecordDeleteFailureRetainsAfterBytesWithoutDoubleCredit()
     {
         var changes = SeedOwner(1_299_131);
-        FileStream? lease = null;
-        try
+        JournalInterruptionTestScope.Run(LegacyJournalInterruption.LeasePendingAfter(2), interruption =>
         {
-            Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, count =>
-            {
-                if (count == 2) lease = new FileStream(PendingPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return false;
-            }, out var reason));
+            Assert.False(LegacyTradeJournal.TryCommitSingleOwner(UsersRoot, ItemsRoot, changes, interruption, out var reason));
+            for (var index = 0; index < changes.Length; index++) Assert.Equal(changes[index].After, interruption.BoundaryImages[index]);
             Assert.StartsWith("tradeJournalRecoveryRequired:committedRecordDeleteFailed:", reason);
             AssertAfter(changes);
             Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
-        }
-        finally { lease?.Dispose(); }
+        });
         RecoverOnceAndAssertAfter(changes);
     }
 }

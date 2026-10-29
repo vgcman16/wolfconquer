@@ -22,7 +22,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
         // Deliberate managed interruption boundary, not a killed process or
         // power-loss test. The old in-memory owner is abandoned without reuse.
         Assert.False(LegacyNpcSalePersistence.TryPersist(original, expected, ItemsRoot,
-            count => count == replacements, out var reason));
+            LegacyJournalInterruption.StopAfter(replacements), out var reason));
         Assert.Contains("tradeJournalRecoveryRequired", reason);
         Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
 
@@ -56,7 +56,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
         var player = await Login(owner, uid);
         var original = Current(owner, player);
         Assert.False(LegacyNpcSalePersistence.TryPersist(original, SaleResult(original, 1_300, 50), ItemsRoot,
-            count => count == 0, out _));
+            LegacyJournalInterruption.StopAfter(0), out _));
         var record = JsonNode.Parse(File.ReadAllText(PendingPath))!.AsObject();
         Assert.Equal(2, record["Version"]!.GetValue<int>());
         if (mutation == "count") record["Changes"]!.AsArray().RemoveAt(1);

@@ -99,7 +99,7 @@ public sealed partial class LegacyTradeRestartRecoveryTests
             new LegacyTradeJournalChange(LegacyTradeJournalFileKind.Items, uid,
                 state.BeforeFiles[ItemPath(uid)], state.BeforeFiles[ItemPath(uid)]),
         }).ToArray();
-        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, count => count == 0, out var reason));
+        Assert.False(LegacyTradeJournal.TryCommit(UsersRoot, ItemsRoot, changes, LegacyJournalInterruption.StopAfter(0), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason);
         Assert.True(LegacyTradeJournal.HasPending(UsersRoot));
         return File.ReadAllBytes(PendingPath);

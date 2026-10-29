@@ -153,7 +153,7 @@ public sealed partial class LegacyFloorPickupInventoryPersistenceTests : IDispos
         BinaryPrimitives.WriteUInt16LittleEndian(expectedItems.AsSpan(sizeof(int) + 52), 3);
         var updated = original with { PlayerItems = inventory.UpdatedItems };
         Assert.False(LegacyNpcSalePersistence.TryPersistFloorPickupInventory(original, updated, Items, entry,
-            inventory, count => count == replacementCount, out var reason));
+            inventory, LegacyJournalInterruption.StopAfter(replacementCount), out var reason));
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired, reason);
         Assert.True(LegacyTradeJournal.TryRecover(Users, Items, out var recovered, out reason), reason);
         Assert.Equal(1, recovered);

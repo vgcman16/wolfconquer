@@ -40,7 +40,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [InlineData(AttachStatusXpAccuracySpellId, LegacyStarOfAccuracyFlag, AttachStatusXpAccuracyExpiresAtUtcAttribute, AttachStatusXpAccuracyRemoveOnDeadAttribute)]
     [InlineData(AttachStatusXpShieldSpellId, LegacyMagicShieldFlag, AttachStatusXpShieldExpiresAtUtcAttribute, AttachStatusXpShieldRemoveOnDeadAttribute)]
     [InlineData(AttachStatusXpFlySpellId, FlyStatusFlag, AttachStatusXpFlyExpiresAtUtcAttribute, AttachStatusXpFlyRemoveOnDeadAttribute)]
-    public async Task HandlerAttachStatusXpBuffWithoutXpListPreparesResourcesThenRunsSourceNoOp(
+    public async Task HandlerAttachStatusXpBuffWithoutXpListPreservesResourcesBeforeRefusal(
         ushort spellId,
         int statusFlag,
         string expiresAtAttribute,
@@ -55,8 +55,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             },
             observableResourceCosts: true);
 
-        Assert.Equal(493, result.Session.Character.MinMana);
-        Assert.Equal("96", result.Session.Character.Attributes["Stamina"]);
+        Assert.Equal(500, result.Session.Character.MinMana);
+        Assert.Equal("100", result.Session.Character.Attributes["Stamina"]);
         Assert.False(HasLegacyStatusFlag(result.Session.Character.Attributes, LegacyXpListFlag));
         Assert.False(HasLegacyStatusFlag(result.Session.Character.Attributes, statusFlag));
         Assert.True(HasLegacyStatusFlag(result.Session.Character.Attributes, AttachStatusXpUnrelatedFlag));
@@ -65,20 +65,14 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.False(result.Session.Character.Attributes.ContainsKey(removeOnDeadAttribute));
 
         var updates = ParseMsgUpdates(result.Sent);
-        Assert.Collection(
-            updates,
-            update => Assert.Equal(
-                [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Stamina, 96)],
-                update.Updates),
-            update => Assert.Equal(
-                [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Mana, 493)],
-                update.Updates));
+        Assert.Empty(updates);
         Assert.DoesNotContain(updates, update => update.Updates.Any(entry =>
             entry.Type is LegacyMsgUpdateDataType.XPList or
                 LegacyMsgUpdateDataType.XPCircle or
                 LegacyMsgUpdateDataType.StatusFlag));
         AssertNoAttachStatusXpBuffD13(result.Sent);
-        AssertAttachStatusXpBuffCooldown(result, spellId);
+        Assert.True(result.Session.MagicCooldowns is null || !result.Session.MagicCooldowns.ContainsKey(spellId));
+        Assert.Empty(ParseMagicColdTimePackets(result.Sent));
     }
 
     [Theory]
