@@ -22,6 +22,8 @@ function Assert-GasSavedReferences([string]$Root, $Owner, $Receipt, $Before, $Af
         }
     } elseif ($Owner.scenario -ceq 'login-walk-save') {
         Assert-GasWalkReferences $Root $Owner $Receipt $initial $Before $After
+    } elseif ($Owner.scenario -ceq 'consume-health') {
+        Assert-GasHealthReferences $Root $Owner $Receipt $initial $Before $After
     } elseif ($Owner.scenario -ceq 'mailbox-gear') {
         if ($Receipt.state.status -cne 'ServerStateVerified' -or $initial.state.status -cne 'WaitingForClientAction' -or
             $initial.state.deliveryResult -cne 'delivery-result.json') { throw 'mailRetainedEvidenceMismatch' }

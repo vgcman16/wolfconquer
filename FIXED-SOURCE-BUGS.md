@@ -33,7 +33,7 @@ native/ordinary/equipment/health/trade selection: **587/587 pass, zero skips**.
 These counts overlap. Actual file-lock, WAL interruption/recovery and transport
 fault controls are offline fixtures, not live-client acceptance or power-loss
 proof. Mana/full-restore, distinct AccountId/UID health runtime, SQL and broader
-compound operations remain open. A full successor gate and deployment are pending.
+compound operations remain open. The exact6f668 full Windows40806445884 passed all eight stages: core29,432pass/0fail/156skip, updater446/446 and launcher57/57. Matching five-role binaries are copied separately; deployment/live acceptance remain pending.
 
 Public2fa's full40799284702 failed one older drop test's diagnostic assertion
 (core29,394pass/1fail/156skip; updater446pass). The successor asserts actual
@@ -69,9 +69,8 @@ Earlier prerequisite failures and the broader red remain retained honestly.
 
 The first29-path source was privately checkpointed before publication. The
 health/trade composition above now passes the combined587-case offline selection;
-public2fa's failed full40799284702 predates both changes. Full successor
-qualification, live client, native Team/death/revive and broader field hydration
-remain pending. Mana/other compound sidecars, SQL, power loss and uncooperative
+public2fa's failed full40799284702 predates both changes. The same6f668 full gate above now qualifies the source. Live client, native
+Team/death/revive and broader field hydration remain pending. Mana/other compound sidecars, SQL, power loss and uncooperative
 external writers are not closed by this change.
 
 ## 2026-10-28 operator transport and testing tools - focused verification

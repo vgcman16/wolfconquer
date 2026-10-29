@@ -5,12 +5,12 @@ namespace WolfConquer.Tests;
 public sealed partial class GameAcceptanceStatusTests
 {
     [WindowsGameAcceptanceFact]
-    public async Task EmptyParentListsAllElevenPendingWithoutCreatingEvidence()
+    public async Task EmptyParentListsAllTwelvePendingWithoutCreatingEvidence()
     {
         using var fixture = new EvidenceFixture(); var before = fixture.Capture();
         var result = await RunAsync(fixture.Parent);
         Assert.Equal(0, result.ExitCode); Assert.NotNull(result.Json); NoLivePass(result.Json);
-        Assert.Equal(11, result.Json["rows"]!.AsArray().Count);
+        Assert.Equal(12, result.Json["rows"]!.AsArray().Count);
         Assert.All(result.Json["rows"]!.AsArray(), row => Assert.Equal("Pending", row!["evidenceStatus"]!.GetValue<string>()));
         fixture.AssertUnchanged(before);
     }

@@ -76,7 +76,7 @@ correlate provenance. Even a matching pair leaves client rendering, live memory,
 wire, eligibility, derived stats and unreported opaque bytes as separate evidence.
 
 The [scenario catalog](../tools/testing/SCENARIOS.md) and [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md)
-cover eleven families across login, inventory, equipment, combat, NPC/rewards,
+cover twelve families across login, inventory, equipment, combat, NPC/rewards,
 trade, recovery, events and updater. A guided or pending result is not an
 end-to-end pass; full-game, SQL and crash/power-loss acceptance remain open.
 
@@ -168,3 +168,20 @@ FSB180 and the protocol spec. Actual full80fa53c9 run40790881796 was interrupted
 and ended cancelled; its incomplete output is unqualified. The trusted runner
 was restarted once and is online/idle. A new successor full gate and actual
 game-client hot delivery/claim/equip acceptance remain pending. No failed build was deployed.
+
+
+## Check saved health-potion consumption
+
+The `consume-health` scenario records the exact potion UID/type and expected
+saved HP. Use the same explicit values on initial and `-Resume` invocations;
+`-ExpectedHitpoints` is required. Initial and Resume only inspect saved files.
+Use one potion in the actual client between them. The tool verifies the selected
+HP and one-unit stack/UID change, unchanged reported currency/mana/items, and
+unchanged spell/proficiency/mailbox images. Missing actual saved vital fields,
+truncated summaries or a changed retained intent cannot qualify.
+
+`SavedHealthConsumptionObserved` still exits2: live rendering, wire, Store and
+runtime atomicity remain separate checks. The tool neither clicks nor saves nor
+sends gear. These are four saved assertion families and eight guided families,
+not a complete game acceptance pass. Use matching qualified DataTool/server
+binaries; earlier inspector builds do not supply the required saved vitals.

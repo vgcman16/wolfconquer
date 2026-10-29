@@ -40,9 +40,26 @@ public sealed class LegacyOwnedPlayerInspectionDigestTests
         Assert.Null(oldShape.ContentSha256);
     }
 
+    [Fact]
+    public void ActualInspectorReportsSavedVitalsAndOldCharacterConstructionKeepsThemUnknown()
+    {
+        var oldShape = new LegacyOwnedPlayerCharacter(1, 1002, 410, 354, 1008, 1000, 120, 100, 50);
+        Assert.Null(oldShape.Hitpoints); Assert.Null(oldShape.MinMana); Assert.Null(oldShape.MaxMana);
+        using var scope = new Scope();
+        var absent = scope.Inspect();
+        Assert.Equal(1000L, absent.Character.Hitpoints); Assert.Equal(100L, absent.Character.MinMana);
+        Assert.Null(absent.Character.MaxMana); // Runtime fallback is not an explicitly saved value.
+        Assert.True(CharacterSnapshotFileCoordinator.TryUpdateCharacterAttributes(scope.PathFor("Character"), Scope.Account,
+            new Dictionary<string, string> { ["MinHitPoints"] = "17", ["MinMana"] = "23", ["MaxMana"] = "91" }, true, out var reason), reason);
+        var bytes = File.ReadAllBytes(scope.PathFor("Character"));
+        var report = scope.Inspect();
+        Assert.Equal(17L, report.Character.Hitpoints); Assert.Equal(23L, report.Character.MinMana); Assert.Equal(91L, report.Character.MaxMana);
+        Assert.Equal(bytes, File.ReadAllBytes(scope.PathFor("Character")));
+    }
+
     private sealed class Scope : IDisposable
     {
-        private const uint Account = 2749600;
+        internal const uint Account = 2749600;
         internal string Root { get; } = Path.Combine(Path.GetTempPath(), "wolf-owned-admission-" + Guid.NewGuid().ToString("N"));
         private readonly LegacyOwnedAdmissionFixtureResult fixture;
         private readonly LegacyOwnedAdmissionOptions options;

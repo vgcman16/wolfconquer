@@ -15,6 +15,7 @@ param(
     [Nullable[uint32]]$ExpectedMap,
     [Nullable[uint16]]$ExpectedX,
     [Nullable[uint16]]$ExpectedY,
+    [Nullable[long]]$ExpectedHitpoints,
     [switch]$SendTestKit,
     [ValidateSet('basic-trojan', 'socket-materials')][string]$Kit = 'basic-trojan',
     [string]$DotNetPath,
@@ -29,10 +30,13 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GameAcceptance.Equip.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Status.Files.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Walk.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Health.Assertions.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Health.ps1')
 
 function Get-GaScenarios {
     @(
         @{ id = 'login-walk-save'; mode = 'saved-walk'; actions = @('Retain an explicit changed destination.', 'Walk/save using the actual client, then Resume read-only.'); required = 'Saved destination and unchanged selected projections/sidecar images; live model/movement/wire/Store remain pending.' },
+        @{ id = 'consume-health'; mode = 'saved-health'; actions = @('Retain the exact health potion UID/type and changed expected HP.', 'Use one unit in the actual client, save, then Resume read-only.'); required = 'Exact saved HP/one-unit transition and unchanged selected state/sidecars; live/wire/Store remain pending.' },
         @{ id = 'reconnect'; mode = 'guided'; actions = @('Record current character/items.', 'Disconnect and reconnect the same disposable account; compare retained state and old-owner retirement.'); required = 'Actual session retirement, no duplicate issuance, correct rehydration.' },
         @{ id = 'mailbox-gear'; mode = 'mailbox'; actions = @('Generate a retained test-kit request.', 'Explicitly dispatch, claim in the real client, then Resume without resending.'); required = 'Exact delivered UIDs once in inventory, requested item types/stacks, cleared mail references, separate client visual proof.' },
         @{ id = 'equip-unequip'; mode = 'guided'; actions = @('Record inventory/equipment and visible stats.', 'Equip and unequip a disposable compatible item; record wire, stats and saved containers.'); required = 'Exact UID relocation, capacity/eligibility rejection and derived-stat coherence.' },
@@ -64,7 +68,12 @@ try {
     if ($selected.Count -ne 1) { throw 'Known scenario ID required.' }
     if ($Scenario -ceq 'equip-unequip') {
         if ($ExpectedItemUid -eq 0 -or $ExpectedItemId -eq 0 -or $ExpectedEquipmentPosition -eq 0 -or (-not $Resume -and $EquippedReceipt)) { throw 'Exact item UID, type and slot are required for equip evidence.' }
-    } elseif ($ExpectedItemUid -ne 0 -or $ExpectedItemId -ne 0 -or $ExpectedEquipmentPosition -ne 0 -or $EquippedReceipt) { throw 'Equip parameters require equip-unequip.' }
+    } elseif ($Scenario -ceq 'consume-health') {
+        if ($ExpectedItemUid -eq 0 -or -not (Test-GahType $ExpectedItemId) -or $ExpectedEquipmentPosition -ne 0 -or $EquippedReceipt -or
+            -not $PSBoundParameters.ContainsKey('ExpectedHitpoints') -or $null -eq $ExpectedHitpoints -or $ExpectedHitpoints -lt 0 -or
+            $RunSourceChecks -or $SendTestKit) { throw 'Exact health UID/type/expected HP required; health observation is inspector-only.' }
+    } elseif ($ExpectedItemUid -ne 0 -or $ExpectedItemId -ne 0 -or $ExpectedEquipmentPosition -ne 0 -or $EquippedReceipt) { throw 'Item parameters require equip-unequip or consume-health.' }
+    if ($Scenario -cne 'consume-health' -and $PSBoundParameters.ContainsKey('ExpectedHitpoints')) { throw 'Expected HP requires consume-health.' }
     $walkArguments = @('ExpectedMap','ExpectedX','ExpectedY')
     $walkArgumentCount = 0
     foreach ($walkArgument in $walkArguments) { if ($PSBoundParameters.ContainsKey($walkArgument)) { $walkArgumentCount++ } }
@@ -94,12 +103,16 @@ try {
     if ($Scenario -ceq 'login-walk-save') {
         $identity.expectedMap=[uint32]$ExpectedMap; $identity.expectedX=[uint16]$ExpectedX; $identity.expectedY=[uint16]$ExpectedY
     }
+    if ($Scenario -ceq 'consume-health') {
+        $identity.expectedItemUid=$ExpectedItemUid; $identity.expectedItemId=$ExpectedItemId; $identity.expectedHitpoints=[long]$ExpectedHitpoints
+    }
     $sourceChecks = @{ status = 'NotRequested'; bound = 'No full suite automatically runs for acceptance.' }
     if ($Resume) {
         $retained = Read-GaJson $context 'owner.json'
         $identityKeys = @('schemaVersion', 'evidenceId', 'scenario', 'accountId', 'configPath', 'configSha256', 'dataToolPath', 'dataToolSha256')
         if ($Scenario -ceq 'equip-unequip') { $identityKeys += @('expectedItemUid', 'expectedItemId', 'expectedEquipmentPosition') }
         if ($Scenario -ceq 'login-walk-save') { $identityKeys += @('expectedMap','expectedX','expectedY') }
+        if ($Scenario -ceq 'consume-health') { $identityKeys += @('expectedItemUid','expectedItemId','expectedHitpoints') }
         foreach ($key in $identityKeys) {
             if ($retained[$key] -cne $identity[$key]) { throw 'Retained evidence owner/configuration/tool identity mismatch.' }
         }
@@ -119,6 +132,7 @@ try {
         if ($Scenario -ceq 'mailbox-gear') { $state = Resume-GaMailbox $context $initial $before $afterLeaf }
         elseif ($Scenario -ceq 'equip-unequip') { $state = Resume-GaEquip $context $initial $before $afterLeaf $EquippedReceipt $ExpectedItemUid $ExpectedItemId $ExpectedEquipmentPosition }
         elseif ($Scenario -ceq 'login-walk-save') { $state = Resume-GaWalk $context $initial $before $afterLeaf $ExpectedMap $ExpectedX $ExpectedY }
+        elseif ($Scenario -ceq 'consume-health') { $state = Resume-GaHealth $context $initial $before $afterLeaf $ExpectedItemUid $ExpectedItemId $ExpectedHitpoints }
         else {
             $null = Get-GaInspection $context $afterLeaf
             $state = @{ status = 'GuidedAssertionsPending'; reason = 'NoExecutableAssertionForThisScenarioYet';
@@ -138,6 +152,7 @@ try {
             $state.beforeSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $context.evidenceRoot 'before.json')).Hash
         }
         elseif ($Scenario -ceq 'login-walk-save') { $state = Start-GaWalk $context $before $ExpectedMap $ExpectedX $ExpectedY }
+        elseif ($Scenario -ceq 'consume-health') { $state = Start-GaHealth $context $before $ExpectedItemUid $ExpectedItemId $ExpectedHitpoints }
         else {
             $state = @{ status = 'GuidedActionsPending'; reason = 'NoExecutableAssertionForThisScenarioYet';
                 guidedActions = $selected[0].actions; requiredEvidence = $selected[0].required;

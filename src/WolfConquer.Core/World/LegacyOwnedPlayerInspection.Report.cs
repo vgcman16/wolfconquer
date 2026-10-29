@@ -1,7 +1,8 @@
 namespace WolfConquer.Core.World;
 
 public sealed record LegacyOwnedPlayerCharacter(long Uid, long Map, long X, long Y, long Body,
-    long Class, long Level, long Gold, long ConquerPoints);
+    long Class, long Level, long Gold, long ConquerPoints,
+    long? Hitpoints = null, long? MinMana = null, long? MaxMana = null);
 
 public sealed record LegacyOwnedPlayerItem(string Container, uint Uid, uint ItemId, ushort Position,
     uint WarehouseId, byte Plus, ushort StackSize, ushort Durability, ushort MaximumDurability,

@@ -76,7 +76,9 @@ public static partial class LegacyOwnedPlayerInspection
             { reason = "ownedPlayerInspectionUnstable:selectedFilesChanged"; return false; }
             report = new(1, options.ExpectedDomain, accountId, null, "notStoredInOwnedAdmissionConfiguration",
                 new(character.Uid, character.MapId, character.X, character.Y, character.Body, character.Class,
-                    character.Level, character.Money, character.ConquerPoints),
+                    character.Level, character.Money, character.ConquerPoints,
+                    ReadInspectionSavedVital(character, "MinHitPoints"), ReadInspectionSavedVital(character, "MinMana"),
+                    ReadInspectionSavedVital(character, "MaxMana")),
                 items.InventoryItems.Count, items.EquipmentItems.Count, items.WarehouseItems.Count, physicalCount,
                 spells.Spells.Count, proficiencies.Proficiencies.Count, mails.Count, summaries, shownMails,
                 physicalCount > summaries.Length || mails.Count > shownMails.Length, started, DateTimeOffset.UtcNow,
@@ -90,6 +92,12 @@ public static partial class LegacyOwnedPlayerInspection
         catch (Exception error) when (LegacyOwnedAdmissionOptions.IsConfigurationFailure(error))
         { reason = "ownedPlayerInspectionSnapshotUnreadableOrInvalid"; return false; }
     }
+
+    // Preserve absence/invalid optional saved text, especially MaxMana whose
+    // runtime parser otherwise defaults to MinMana. No additional file reads.
+    private static long? ReadInspectionSavedVital(CharacterSnapshot character, string key) =>
+        character.Attributes.TryGetValue(key, out var text) &&
+        long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : null;
 
     private static bool TryOwnedInspectionPath(string path, out string root)
     {

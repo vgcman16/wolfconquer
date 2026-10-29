@@ -1,13 +1,14 @@
 # Game acceptance runner
 
 This framework records bounded saved-state evidence and guides real-client tests.
-Build the matching DataTool before use. Eight scenarios currently guide actions
-and retain snapshots; saved walk, mailbox delivery/claim and equip/unequip also have saved-state assertions.
+Build the matching DataTool before use. Twelve families are listed. Eight scenarios currently guide actions
+and retain snapshots; saved walk, health consumption, mailbox delivery/claim and equip/unequip have saved-state assertions.
 Rendering, usability and complete gameplay remain separate acceptance work.
 
 | ID | Initial execution | Required acceptance beyond snapshots |
 | --- | --- | --- |
 | login-walk-save | Exact retained saved destination and unchanged projection/image assertions | Correct model/map, real movement, wire, live Store and lifecycle |
+| consume-health | Exact potion UID/type, expected saved HP and one-unit transition | Actual consumption admission, amount, cooldown, wire, live Store and durable transaction |
 | reconnect | Guided snapshots | Same state rehydrated; actual old issuance retired |
 | mailbox-gear | Executable request/dispatch and saved claim assertions | Actual client mailbox/model/rendering/claim observation |
 | equip-unequip | Saved-state equip and unequip assertions | Eligibility/capacity, live Store, wire, derived stats and client visuals |
@@ -163,12 +164,50 @@ prove global CI quiescence. No broad process/service audit or automatic GitHub j
 is started. Root remains responsible for not duplicating an unrelated host job.
 
 
+## Read-only saved health consumption
+
+Use a new evidence leaf and the actual built DataTool/owned configuration:
+
+```powershell
+pwsh -NoProfile -File C:\PATH\tools\testing\Invoke-GameAcceptance.ps1 -Scenario consume-health -DataToolDll C:\ACTUAL-STAGE\DataTool\WolfConquer.DataTool.dll -OwnedAdmissionConfig C:\ACTUAL-OWNED-FIXTURE\owned-admission.json -AccountId 2 -EvidenceRoot C:\EXISTING-PARENT\wolf-game-acceptance-REPLACE-WITH-NEW-32-HEX-GUID -ExpectedItemUid 8013201 -ExpectedItemId 1000000 -ExpectedHitpoints 80
+```
+
+The explicit UID/type and changed expected saved HP are retained. Initial capture
+only inspects saved files and records WaitingForSavedHealthConsumption. It requires
+real non-null saved HP/MinMana/MaxMana, complete unique item/mail summaries and
+stable complete image digests. An absent saved MaxMana remains unknown even when
+the game parser would default runtime MaxMana to MinMana. Missing prerequisites
+do not become a zero value. The type must belong to the current source health
+classification; that check provides no catalog amount or client proof.
+
+Use exactly one unit through the real client and complete its real save lifecycle.
+Invoke the identical arguments with `-Resume`. Both invocations are read-only:
+only the inspector child command runs. SendTestKit and RunSourceChecks are refused.
+No client input, item grant, HP write, save or lifecycle transition is performed.
+Changing UID/type/expected HP or retained intent refuses continuation.
+
+SavedHealthConsumptionObserved requires exact changed expected HP, unchanged
+selected mana/currency/location/appearance fields, the exact selected one-unit
+transition and unchanged other summarized rows/counts. Stack zero and one both
+remove the last UID; larger stacks decrement once with the same UID and other
+fields. All seven real containers and deposited rows participate in uniqueness
+and equality checks. Spells, Proficiencies and Mailbox image presence/length/digest
+must remain equal; Character and Items must have valid changed image digests.
+These modified-image checks do not prove preservation of their opaque fields.
+Truncated or old incomplete evidence refuses qualification.
+
+Every health observation exits 2 with LiveClientVisualPending, WirePending,
+SourceGatePending and liveStoreSynchronized=false. Saved-file equality is not
+runtime HP/Items atomicity, live Store agreement, D13 wire/client acceptance,
+SQL, power-loss safety or an authenticated attestation. The independent runtime
+health implementation and its qualification are outside this tooling batch.
+
 ## Read-only acceptance status overview
 
 `Get-GameAcceptanceStatus.ps1 -EvidenceParent <absolute-existing-parent>` reads
 only direct `wolf-game-acceptance-<lowercaseGuidN>` children. Optional
 `-AccountId <id>` filters known owners; `-Format Table` gives a compact view
-(default JSON). It lists all eleven families and each selected account/evidence
+(default JSON). It lists all twelve families and each selected account/evidence
 ID, recorded saved-state result, pending/invalid reason and visual boundary.
 No grants, game/tool/inspector execution, source checks, writes or probes occur.
 
@@ -179,9 +218,9 @@ older success. Owner-only evidence stays Pending. Invalid folders are also
 reported as diagnostics, even when their owner cannot be identified.
 
 `RecordedSavedObservation` summarizes the existing saved receipt and retained
-schema references. Saved walk additionally rechecks the pure before/after/intent
-transition over retained JSON, including currency, rows and sidecar image
-equality. No inspector or live command is run. The overview does not rerun
+schema references. Saved walk and health additionally recheck their pure before/after/intent
+transitions over retained JSON, including currency, rows and sidecar image
+equality (and the exact health/one-unit change for health). No inspector or live command is run. The overview does not rerun
 mailbox/equip scenario assertions or prove the receipt was created by the runner.
 Local JSON and timestamps are editable;
 reading files is not a synchronized transaction with the running game. No
