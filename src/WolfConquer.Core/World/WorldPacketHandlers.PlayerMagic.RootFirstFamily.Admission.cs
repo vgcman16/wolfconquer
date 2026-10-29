@@ -12,6 +12,7 @@ public static partial class WorldPacketHandlers
         internal ConquerTcpConnection Connection { get; } = connection;
         internal object? Identity { get; } = identity;
         internal WorldSessionStore.MagicCostOutputReceipt? CostOutput { get; set; }
+        internal LegacyClassicBuffAdmissionRequest? ClassicTarget { get; set; }
         // Diagnostics only, never authorization or a reusable admission token.
         internal bool CommitAttempted { get; set; }
         internal bool Committed { get; set; }
@@ -51,8 +52,8 @@ public static partial class WorldPacketHandlers
         owner.CommitAttempted = true;
         // The issued identity and exact record are checked together under the
         // real Store gate. This is not a nested writer inside an identity query.
-        var committed = world.TryCommitMagicCosts(owner.Connection, owner.Expected,
-            owner.Identity!, candidate, out var output);
+        var committed = owner.ClassicTarget is { } target ? TryCommitLegacyClassicBuffAdmission(owner, target, candidate, out var output) : world.TryCommitMagicCosts(owner.Connection, owner.Expected,
+            owner.Identity!, candidate, out output);
         owner.Committed = committed;
         if (committed) { owner.CostOutput = output; session = output!.Published; }
         return committed;

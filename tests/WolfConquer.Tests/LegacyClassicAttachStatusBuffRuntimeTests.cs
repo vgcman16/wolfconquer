@@ -131,7 +131,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [InlineData(StarOfAccuracySpellId, LegacyStarOfAccuracyFlag)]
     [InlineData(MagicShieldSpellId, LegacyMagicShieldFlag)]
     [InlineData(ClassicAttachStatusStigmaSpellId, ClassicAttachStatusStigmaFlag)]
-    public async Task HandlerClassicAttachStatusUnknownTargetSendsProgressAndEmptyAnimation(
+    public async Task HandlerClassicAttachStatusUnknownTargetPreservesResourcesAndEmitsNoSuccess(
         ushort spellId,
         int statusFlag)
     {
@@ -148,16 +148,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             ParseMsgUpdates(result.CasterSent),
             update => update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag));
 
-        var frames = SnapshotFrames(result.CasterSent);
-        var progressIndex = AssertClassicAttachStatusProgressFrame(frames, spellId);
-        var animationIndex = AssertClassicAttachStatusAnimationFrame(
-            frames,
-            spellId,
-            expectedTargetUid: null,
-            expectedX: 832,
-            expectedY: 584);
-
-        Assert.True(progressIndex < animationIndex);
+        Assert.Empty(SnapshotFrames(result.CasterSent));
+        Assert.Equal("100", result.CasterSession.Character.Attributes["Stamina"]);
+        Assert.Equal(0, Assert.Single(result.CasterSession.PlayerSpells.Spells, row => row.Id == spellId).Experience);
+        Assert.Contains("classicTargetUnavailable", result.Log, StringComparison.Ordinal);
     }
 
     [Theory]

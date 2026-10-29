@@ -2,17 +2,35 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    private static async ValueTask<WorldSession?> TryPrepareLegacyPlayerMagicCastAsync(
+    // Preserve both original private wrappers and their reflected signatures.
+    // Only the classic executor selects the closed observed implementation.
+    private static ValueTask<WorldSession?> TryPrepareLegacyPlayerMagicCastAsync(
+        WorldPacketHandlerContext context, WorldSession session, LegacyMagicRuntimeSpell spell,
+        bool ignoreAttackStamp, CancellationToken cancellationToken, object? expectedNativeClientIdentity = null) =>
+        TryPrepareLegacyPlayerMagicCastObservedAsync(context, session, spell, ignoreAttackStamp,
+            cancellationToken, expectedNativeClientIdentity, classicTarget: null);
+
+    private static async ValueTask<WorldSession?> TryPrepareLegacyPlayerMagicCastObservedAsync(
         WorldPacketHandlerContext context,
         WorldSession session,
         LegacyMagicRuntimeSpell spell,
         bool ignoreAttackStamp,
         CancellationToken cancellationToken,
-        object? expectedNativeClientIdentity = null)
+        object? expectedNativeClientIdentity, LegacyClassicBuffAdmissionRequest? classicTarget)
     {
         if (!TryCaptureLegacyRootAdmissionOwner(
                 context, session, expectedNativeClientIdentity, out var owner)) return null;
         session = owner.Expected;
+        if (classicTarget is not null)
+        {
+            if (!TryCaptureLegacyClassicBuffAdmission(context, owner, classicTarget, out var targetReason))
+            {
+                await context.Log.WriteLineAsync(
+                    $"WorldServer skipped classic buff spellId={spell.Id}: {targetReason}." ).ConfigureAwait(false);
+                return null;
+            }
+            owner.ClassicTarget = classicTarget;
+        }
         if (spell.Sort == LegacyMagicSort.AttachStatus && spell.Id == LegacyFlyAttachStatusSpellId &&
             IsLegacyFlyBlocked(session))
         {
@@ -72,7 +90,13 @@ public static partial class WorldPacketHandlers
         cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            if (!TryCommitLegacyRootAdmission(owner, plan.Candidate, out session)) return null;
+            if (!TryCommitLegacyRootAdmission(owner, plan.Candidate, out session))
+            {
+                if (owner.ClassicTarget is { } refused)
+                    await context.Log.WriteLineAsync(
+                        $"WorldServer skipped classic buff spellId={spell.Id}: {refused.RefusalReason}." ).ConfigureAwait(false);
+                return null;
+            }
             if (!IsLegacyRootCommittedRecordCurrent(owner, session)) return null;
             return await PublishLegacyRootAcceptedCostsAsync(
                 context, owner, session, plan.Frames, cancellationToken).ConfigureAwait(false);

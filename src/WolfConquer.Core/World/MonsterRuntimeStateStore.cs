@@ -925,6 +925,8 @@ public sealed partial class MonsterRuntimeStateStore
             return;
         }
 
+        // Renew only at the actual lifecycle publication, including same-value respawns.
+        state.ClassicBuffIncarnation = new object();
         state.X = instance.X;
         state.Y = instance.Y;
         state.Hitpoints = instance.MaxLife;
@@ -1044,6 +1046,8 @@ public sealed partial class MonsterRuntimeStateStore
         int respawnTimeSeconds,
         bool requiresObservedRemovalBeforeRespawn = false)
     {
+        internal object ClassicBuffIncarnation { get; set; } = new();
+
         public ushort X { get; set; } = x;
 
         public ushort Y { get; set; } = y;

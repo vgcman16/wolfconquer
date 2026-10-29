@@ -118,6 +118,32 @@ It includes no game client or feed.
 Distribution and forum publication remain **HELD**. Original saves, routes,
 restore material and live sessions remain preserved.
 
+## Official full-client7937 reference (2026-10-29)
+
+The official7917 full reference was privately unpacked and its own bundled
+updater downloaded the intermediate packages through7937. Final7937 package
+members and the known7931 DX8 engine identities match. A separate whole-client
+staging copy passed actual copy/metadata checks; no proprietary assets are
+published. A reversible ASCII alias of the complete existing skin opened the
+modern launcher. Local routing/auth, English rendering and7937 gameplay are
+still unaccepted; the original working client remains separate.
+
+The final private English UStrRes proposal retains1191 keys and changes1145
+values, with16 tests passed. It is not yet applied or live-rendered and covers
+only one table. The selected catalog intake passed275 focused tests, but its
+first actual7937 run correctly refused the historical65-field item schema.
+Complete saved-data audit instead found57093 main and1693 Sub rows of exactly
+67 fields with canonical uniqueUInt32 IDs, strictCP936 roundtrip and exact
+packed inverse. The explicit7937 typed envelope passed combined Build05 and
+294/294 catalog tests. Actual managed intake returned0 and retained both complete
+57093/1693-row envelopes. New fields remain opaque. Echo/configuration remain opaque without an exact
+decoder/evidence pair. Counts and roundtrips do not establish gameplay parity.
+
+Classic target validation separately passed42 focused/2763 neighbor checks.
+The current integration batch still awaits its combined full Windows gate.
+Whole-cast durability, real SQL ownership, newer runtime/cost/profile wiring,
+complete English support and full gameplay acceptance remain open.
+
 ## Evidence pointers
 
 - [Ordinary player persistence](ORDINARY-PLAYER-PERSISTENCE.md)

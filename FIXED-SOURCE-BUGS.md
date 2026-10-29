@@ -5300,3 +5300,50 @@ Report: https://www.codefactor.io/repository/github/vgcman16/wolfconquer/issues
 
 No blanket warning suppression or exclusion is authorized. An A grade is not
 gameplay completion; retain behavior and protocol tests through quality refactors.
+
+
+### FSB-198: Validate Classic buff targets before costs and retain their real ownership
+
+Classic AttachStatus1075/1085/1090/1095 could resolve an unknown, hidden, dead or
+unowned target only after spending Mana/Stamina and recording cooldown/progress
+or success output. Its later unconditional peer publication could overwrite a
+newer record. The executor now captures the actual current actor and supported
+self/monster/peer target before the existing cost boundary. Peer admission and
+continuation consume the original issued identity **and exact record**. Monster
+admission proves real state membership/visibility/liveness and the incarnation
+renewed by its actual respawn transition. Missing required ownership refuses;
+real movement contention has a distinct busy refusal rather than a fake target.
+
+The existing bound Character scalar writer and prepared native/Store publication
+are reused. Its prepared file scope precedes nonblocking monster acquisition;
+the witness survives final proof and releases before observers or output awaits.
+No caller-selected saver/validator or new accepting authority is introduced.
+Initial rejection preserves resources, authorization, cooldowns, saved files,
+peer/native state and output. Target replacement/retirement or real monster
+death/respawn after accepted costs stops the unperformed continuation without
+overwriting newer state, buff/progress/animation success, refund or fake rollback.
+Valid self/peer/monster sequences and active MagicShield's original expiry and
+accepted empty-animation behavior remain covered.
+
+Two former Main tests required debit/progress for zero or absent targets:
+`HandlerAttachStatusZeroOpponentSpendsResourcesWithoutSelfBuff` and
+`HandlerAttachStatusMissingVisibleTargetAdvancesProgressAndSendsEmptyAnimation`.
+Their replacements retain genuine admission facts, exact current record/issuance,
+500Mana/100Stamina, spell/cooldown/auth/status preservation, empty output and the
+specific `classicTargetUnavailable` diagnostic. They are bounded component tests;
+the separate owned Frame cases prove real saved/native owners and writer refusal,
+not a fabricated persistence substitute.
+
+Root candidate on public633a75df passed build03, focused01 **42/42** and
+neighbors02 **2763/2763**, with no failed/skipped cases in those selections.
+Controls include owned positives for all four spells, hidden/dead/missing-owner
+refusal, genuine Character-file refusal plus retry, stale peer before costs,
+actual send-time replacement/retirement, real consumed respawn and movement-gate
+contention. Reflected legacy wrapper names/signatures remain compatible.
+
+Limits: this is focused source qualification, not a new full Windows gate or live
+acceptance. Buff/status/progress/transport remain later lifecycle boundaries;
+the whole cast is not one durable transaction. Frame-unbound actors retain their
+existing postpublication scalar-save behavior; pure components do not acquire a
+saved owner. Crash-safe SQL, cross-process/power-loss safety, physical Stamina,
+7937 protocol/catalog compatibility and complete English/gameplay remain OPEN.
