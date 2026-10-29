@@ -8,7 +8,7 @@ Planning estimate: **55%**, range **40-70%**, **low confidence**. This is not a 
 
 Estimate date: **2026-10-19**. Status review date: **2026-10-29**. Reviewing the status does not refresh the estimate's age.
 
-Source commit: `7d982158d17d094c847d020c644205da9b7e692f` (short: `7d982158d17d`).
+Source commit: `37dde47a6326fb8458cf7f6f005c261696f9892d` (short: `37dde47a6326`).
 
 Source audit: 2026-10-19; 784 files; 260,144 lines; target comparison: **representative**. Inventory counts are not implementation proof.
 
@@ -20,8 +20,8 @@ A green test suite is not a live-client, complete-English, or full-parity certif
 | --- | --- | --- |
 | Limited local live-client milestone | verified | Exact be2740ae had an October28 disposable D13 login, visible body/Twin City, movement, saved destination and one graceful server restart/relogin. Nine gear mails later rendered; actual claim/equip remains unaccepted. This does not qualify current main or7935 gameplay. |
 | Current public build live-client acceptance | planned | Exact50cf80fa/source30e793f0 passed full Windows40886558198: Core29,929 Passed/152 existing NotExecuted, Updates446, Launcher57; all8stages0. Matching World/DataTool files and actual logs/TRXs are retained. Current-main live-client acceptance remains open. |
-| Complete English client | in-progress | Chinese client 7899 / cached DX8 D13 is the current target; English localization is incomplete. |
-| Newer-client-only parity | in-progress | Privately verified official7936/7937 patches and full7917 base are retained; full-client overlay/autoupdate has not run.2132codec, Echo catalog/request/threshold components and2350reader/writer exist. New pinned decoded-Echo C# intake passed215 component cases and46 new cases are Passed in full50cf. Real newer runtime state/cost/save/profile and client acceptance remain open. Not estimated. |
+| Complete English client | in-progress | Working7899/D13 English remains incomplete. Separate7937 UStrRes proposal passed16 tests, retains1191 keys and changes1145values; not applied/rendered. Other text/assets remain open. |
+| Newer-client-only parity | in-progress | Official7917 full reference auto-updated itself through7937; separate full Wolf stage retained. Complete-skin ASCII alias opened launcher; local auth/routing/gameplay remain unaccepted. Selected intake275focused passed; actual old65 schema refusal led to observed strict67-field main57093/Sub1693 rows. Typed envelope Build05/294focused passed; actual managed intake0 retained both67-field catalogs; non-ID meanings/runtime/cost/save owners remain open. No newer-client completion percentage. |
 | Public full-client download and updates | in-progress | Tooling preview launcher-preview-20261028 remains immutable at224f1eb5; anonymous HTTPS ZIP/checksum downloads match its checked nine-file package. New source adds two exact reviewed data paths (446 updater cases plus7 scripts); token\_type.dat remains quarantined. No full game assets, portable configuration or real client feed are published. Fresh full-client install/update/recovery acceptance remains open. |
 
 ## Legacy-server domains
