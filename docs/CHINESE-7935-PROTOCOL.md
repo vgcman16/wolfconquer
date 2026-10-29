@@ -74,3 +74,26 @@ permissions/costs and durable transaction. Existing RelicFuse 2356 is a separate
 `XuanBaoEcho.dat` catalog, operation 13/14 meaning, fifth-slot behavior, profile
 transport/startup, copied-client rendering and gameplay acceptance remain open.
 No complete 7935 compatibility, live deployment or parity increase is claimed.
+
+## C# decoded Echo catalog intake (2026-10-29)
+
+The strict literal-data intake is now implemented in C# as
+Chinese7935DecodedEchoCatalog, an immutable typed snapshot and explicit pinned
+already-decoded file loading. It retains complete four-field rows in source order,
+rejects duplicate row identities/malformed or unsupported data, and produces a
+fresh typed projection for the existing pure Type6 threshold calculation.
+No Lua/native execution, key discovery, default catalog, startup/profile binding,
+handler or gameplay activation is added. Declared7930/7931 and a supplied digest
+remain metadata/comparison evidence, not trusted runtime ownership.
+
+Root's actual Release build passed with0errors and no changed-file warnings.
+The combined existing/new Chinese patch component selection passed215/215,
+0failures/skips:46 new catalog outcomes plus169 existing component outcomes.
+A separate C# probe used the real new pinned-file API on both preserved private
+decoded inputs without printing table rows:7930 returned0rows;7931 returned85rows,
+IDs1..85 and17attribute groups of5, matching the earlier independent parse and
+both recorded digests. No table/key/assets are bundled in the source or tests.
+
+This is local source/data qualification; the next full integration gate is pending.
+Actual current Echo item/contribution/cache ownership, permissions/costs, Unload,
+operations13/14, durable activation and copied7935-client acceptance remain open.
