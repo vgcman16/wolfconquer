@@ -7,6 +7,7 @@ client-confirmed protocol compatibility while fixing unsafe source logic.
 
 [![Windows local checks](https://github.com/vgcman16/wolfconquer/actions/workflows/windows-local.yml/badge.svg?branch=main)](https://github.com/vgcman16/wolfconquer/actions/workflows/windows-local.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/vgcman16/wolfconquer/badge)](https://www.codefactor.io/repository/github/vgcman16/wolfconquer)
+[![Discord: Join the Pack](https://img.shields.io/badge/Discord-Join%20the%20Pack-10B981?logo=discord&logoColor=white)](https://discord.gg/Cb5fsBHcK)
 
 [![WolfConquer parity planning tracker](docs/parity/progress.gif)](docs/PARITY.md)
 
@@ -15,6 +16,10 @@ coverage or full-client completion.
 [Progress, remaining systems and evidence limits](docs/PARITY.md).
 
 WolfConquer is a C# implementation of server, packet, and data tooling for researching Conquer-compatible protocols. This repository contains a sanitized source snapshot, with a new Git history.
+
+Join the [WolfConquer Discord](https://discord.gg/Cb5fsBHcK) for development
+updates, testing discussions and bug reports. Warden posts public repository
+commits and CI results in `#devlog`.
 
 Windows-first [local development tools](docs/LOCAL-DEVELOPMENT.md) provide a
 sequential check command and read-only localhost dashboard. The game does not
