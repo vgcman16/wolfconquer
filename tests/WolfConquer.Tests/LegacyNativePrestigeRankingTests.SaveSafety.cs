@@ -74,7 +74,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
         });
 
     [Fact]
-    public void SavePersistsCurrentRowsWithoutRepairingTheStaleSafeDictionaryCache()
+    public void SavePersistsCurrentRowsWhileRetainingEscapedPreviousOwners()
         => RunOwnedPrestigeSave(files =>
         {
             files.Seed(Text(FullRow));
@@ -85,12 +85,13 @@ public sealed partial class LegacyNativePrestigeRankingTests
             current.Name = "Current";
             replacement.Items.Add(current.UID, current);
             Ranking.Ranks[Ranking.Type.Ninja] = replacement;
-            Assert.Same(cached, Ranking.Ranks.GetValues());
+            Assert.True(Ranking.Ranks.Update); long revision = Ranking.Ranks.Revision;
 
             Ranking.Save();
 
             files.Expect(Text("88/Current/4/505/206/707/30004/808/909/1010/1111/1212/1313/1414/1515/1616/1717/1818/1919/2020/Guild/2/201/202/"));
-            Assert.Same(cached, Ranking.Ranks.GetValues());
+            Assert.True(Ranking.Ranks.Update); Assert.Equal(revision, Ranking.Ranks.Revision);
+            Assert.Same(replacement, Assert.Single(Ranking.Ranks.GetValues()));
             Assert.Same(old, Assert.Single(cached));
             Assert.Same(replacement, Ranking.Ranks[Ranking.Type.Ninja]);
             Assert.Same(current, Assert.Single(replacement.Items).Value);
@@ -108,11 +109,12 @@ public sealed partial class LegacyNativePrestigeRankingTests
             replacement.Items.Add(19, Entry(19));
             replacement.Items.Add(23, null!);
             Ranking.Ranks[Ranking.Type.Ninja] = replacement;
-            Assert.Same(cached, Ranking.Ranks.GetValues());
+            Assert.True(Ranking.Ranks.Update); long revision = Ranking.Ranks.Revision;
 
             AssertOwnedPrestigeSaveRefusal(files);
 
-            Assert.Same(cached, Ranking.Ranks.GetValues());
+            Assert.True(Ranking.Ranks.Update); Assert.Equal(revision, Ranking.Ranks.Revision);
+            Assert.Same(replacement, Assert.Single(Ranking.Ranks.GetValues()));
             Assert.Same(old, Assert.Single(cached));
             Assert.Single(old.Items);
         });

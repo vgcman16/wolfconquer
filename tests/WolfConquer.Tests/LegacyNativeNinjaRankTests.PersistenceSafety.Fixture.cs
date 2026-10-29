@@ -78,6 +78,7 @@ public sealed partial class LegacyNativeNinjaRankTests
         private readonly Ranking.Rank[]? cache;
         private readonly Ranking.Rank[] cacheRows;
         private readonly bool dirty;
+        private readonly long revision;
         private readonly KeyValuePair<Ranking.Type, Ranking.Rank>[] owners;
         private readonly Dictionary<Ranking.Rank, PersistenceRankImage> ranks = new(ReferenceEqualityComparer.Instance);
 
@@ -87,6 +88,7 @@ public sealed partial class LegacyNativeNinjaRankTests
             cache = Registry?.MyArray;
             cacheRows = cache?.ToArray() ?? [];
             dirty = Registry?.Update ?? false;
+            revision = Registry?.Revision ?? 0;
             owners = Registry?.ToArray() ?? [];
             foreach (var owner in owners.Select(pair => pair.Value).Where(owner => owner is not null))
                 ranks.TryAdd(owner, new(owner));
@@ -102,7 +104,8 @@ public sealed partial class LegacyNativeNinjaRankTests
         {
             if (Registry is null) return;
             Assert.Same(gate, Registry.SyncRoot);
-            Assert.Same(cache, Registry.MyArray);
+            Assert.Equal(cache, Registry.MyArray);
+            Assert.Equal(revision, Registry.Revision);
             Assert.Equal(cacheRows, Registry.MyArray ?? []);
             Assert.Equal(dirty, Registry.Update);
             var current = Registry.ToArray();

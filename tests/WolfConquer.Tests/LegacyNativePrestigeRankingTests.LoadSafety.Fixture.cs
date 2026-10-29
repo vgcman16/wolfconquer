@@ -42,7 +42,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
     private static void RequireRejectedPrestigeText(OwnedRankFile files, string text, bool dirtyCache = false)
     {
         SeedPriorPrestigeGraph();
-        if (dirtyCache) Ranking.Ranks.Update = true;
+        if (dirtyCache) Ranking.Ranks[Ranking.Type.World] = Ranking.Ranks[Ranking.Type.World];
         var prior = new PublishedPrestigeGraph();
         files.Seed(text);
         var bytes = File.ReadAllBytes(files.PathFor());
@@ -84,6 +84,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
         private readonly Ranking.Rank[] cache = Ranking.Ranks.MyArray;
         private readonly Ranking.Rank[] cachedMembers = Ranking.Ranks.MyArray.ToArray();
         private readonly bool dirtyCache = Ranking.Ranks.Update;
+        private readonly long revision = Ranking.Ranks.Revision;
         private readonly KeyValuePair<Ranking.Type, Ranking.Rank>[] pairs = Ranking.Ranks.ToArray();
         private readonly LoadBucketImage[] buckets = Ranking.Ranks.Values.Select(rank => new LoadBucketImage(rank)).ToArray();
 
@@ -100,10 +101,11 @@ public sealed partial class LegacyNativePrestigeRankingTests
             Assert.Equal(pairs.Select(pair => pair.Key), ranks.Keys);
             foreach (var pair in pairs) Assert.Same(pair.Value, ranks[pair.Key]);
             Assert.Equal(dirtyCache, ranks.Update);
-            Assert.Same(cache, ranks.MyArray);
+            Assert.Equal(cache, ranks.MyArray);
+            Assert.Equal(revision, ranks.Revision);
             Assert.Equal(cachedMembers.Length, cache.Length);
             for (var index = 0; index < cache.Length; index++) Assert.Same(cachedMembers[index], cache[index]);
-            if (!dirtyCache) Assert.Same(cache, ranks.GetValues());
+            if (!dirtyCache) Assert.Equal(cache, ranks.GetValues());
             foreach (var bucket in buckets) bucket.RequireUnchanged();
         }
     }

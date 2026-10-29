@@ -129,7 +129,7 @@ public sealed class LegacyNativeBruteforceProtectionTests
     }
 
     [Fact]
-    public void BelowThresholdIncrementsSameRowWithoutRefreshingEitherDateOrArray()
+    public void BelowThresholdIncrementsSameRowWithoutRefreshingDatesOrCollectionRevision()
     {
         var owner = new Native();
         ThresholdField.SetValue(owner, 3);
@@ -137,13 +137,15 @@ public sealed class LegacyNativeBruteforceProtectionTests
         var entries = Entries(owner);
         entries.Add("MODEL-KEY", row);
         var snapshot = entries.GetValues();
+        long revision = entries.Revision;
         owner.AddWatch("MODEL-KEY");
         Assert.Same(row, entries["MODEL-KEY"]);
         Assert.Equal(2, row.WatchCheck);
         Assert.Equal(new DateTime(123), row.AddedTimeRemove);
         Assert.Equal(new DateTime(456), row.Unbantime);
         Assert.False(entries.Update);
-        Assert.Same(snapshot, entries.GetValues());
+        Assert.Equal(snapshot, entries.GetValues());
+        Assert.Equal(revision, entries.Revision);
     }
 
     [Fact]
@@ -362,24 +364,38 @@ public sealed class LegacyNativeBruteforceProtectionTests
     }
 
     [Fact]
-    public void AllowAddressUsesActualValuesRatherThanTheStaleGetValuesArray()
+    public void ReplacingServerRowRefreshesCacheAndAddressQueriesLeaveTheOwnerUnchanged()
     {
         var saved = Groups.GroupServers;
         try
         {
             var rows = new LegacyNativeDbSafeDictionary<uint, Groups.Server>();
             Groups.GroupServers = rows;
-            rows.Add(1, new Groups.Server { IPAddress = "MODEL-OLD" });
-            rows.Add(2, null!);
+            var original = new Groups.Server { IPAddress = "MODEL-OLD" };
+            var second = new Groups.Server { IPAddress = "MODEL-SECOND" };
+            rows.Add(1, original);
+            rows.Add(2, second);
             var stale = rows.GetValues();
+            long revision = rows.Revision;
             var replacement = new Groups.Server { IPAddress = "MODEL-NEW" };
             rows[1] = replacement;
+            Assert.True(rows.Update);
+            Assert.Equal(revision + 1, rows.Revision);
+            Assert.Same(original, stale[0]);
+            var current = rows.GetValues();
             Assert.False(rows.Update);
-            Assert.NotSame(stale[0], rows.Values.First());
-            Assert.Same(replacement, rows.Values.First());
+            Assert.Equal(new[] { replacement, second }, current);
+            stale[0] = second;
+            current[0] = original;
+            Assert.Same(replacement, rows[1]);
+            Assert.Equal(new[] { replacement, second }, rows.GetValues());
             var owner = new Native();
             Assert.False(owner.AllowAddress("MODEL-NEW"));
-            Assert.Throws<NullReferenceException>(() => owner.AllowAddress("MODEL-OLD"));
+            Assert.False(owner.AllowAddress("MODEL-OLD"));
+            Assert.Same(rows, Groups.GroupServers);
+            Assert.Equal(revision + 1, rows.Revision);
+            Assert.False(rows.Update);
+            Assert.Equal(new[] { replacement, second }, rows.Values);
         }
         finally { Groups.GroupServers = saved; }
     }

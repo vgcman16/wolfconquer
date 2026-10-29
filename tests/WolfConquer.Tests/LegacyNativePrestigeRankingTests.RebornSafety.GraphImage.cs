@@ -14,6 +14,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
         private readonly Ranking.Rank[]? cache;
         private readonly Ranking.Rank[] cacheMembers;
         private readonly bool? update;
+        private readonly long? revision;
         private readonly KeyValuePair<Ranking.Type, Ranking.Rank>[] pairs;
         private readonly (Ranking.Rank Owner, Ranking.Type Category, int Limit, PrestigeMutationRankImage Image)[] owners;
 
@@ -26,6 +27,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
             cache = inspected?.MyArray;
             cacheMembers = cache?.ToArray() ?? [];
             update = inspected?.Update;
+            revision = inspected?.Revision;
             pairs = inspected?.ToArray() ?? [];
             owners = pairs.Select(pair => pair.Value).Where(rank => rank is not null).Distinct()
                 .Select(rank => (rank, rank._Type, rank.MaxItems, new PrestigeMutationRankImage(rank))).ToArray();
@@ -55,7 +57,8 @@ public sealed partial class LegacyNativePrestigeRankingTests
             Assert.Same(gate, Ranking.SynRoot);
             if (inspected is null) return;
             Assert.Same(cacheGate, inspected.SyncRoot);
-            Assert.Same(cache, inspected.MyArray);
+            Assert.Equal(cache, inspected.MyArray);
+            Assert.Equal(revision, inspected.Revision);
             Assert.Equal(update, inspected.Update);
             Assert.Equal(cacheMembers.Length, inspected.MyArray.Length);
             for (var index = 0; index < cacheMembers.Length; index++) Assert.Same(cacheMembers[index], inspected.MyArray[index]);

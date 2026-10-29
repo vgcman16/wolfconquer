@@ -58,13 +58,14 @@ public sealed partial class LegacyNativePrestigeRankingTests
         replacement.AddItem(live);
         var escaped = replacement.Items;
         Ranking.Ranks[Ranking.Type.Ninja] = replacement;
-        Assert.Same(cached, Ranking.Ranks.GetValues());
+        var current = Ranking.Ranks.GetValues(); long revision = Ranking.Ranks.Revision;
+        Assert.Contains(replacement, current); Assert.DoesNotContain(old, current);
         Ranking.Remove(41);
         Assert.Empty(replacement.Items);
         Assert.Single(old.Items);
         Assert.Null(replacement.BestOfClass);
         Assert.Same(live, Assert.Single(escaped).Value);
-        Assert.Same(cached,Ranking.Ranks.GetValues());
+        Assert.Equal(current, Ranking.Ranks.GetValues()); Assert.Equal(revision, Ranking.Ranks.Revision);
     }
 
     [Theory]

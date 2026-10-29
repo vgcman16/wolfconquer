@@ -202,6 +202,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
     {
         internal LegacyNativeDbSafeDictionary<Ranking.Type, Ranking.Rank> Graph { get; } = Ranking.Ranks;
         private readonly Ranking.Rank[] cache;
+        private readonly long revision;
         private readonly (Ranking.Rank Rank, Dictionary<uint, Ranking.Entry> Items,
             KeyValuePair<uint, Ranking.Entry>[] Rows, Ranking.Entry? Best)[] buckets;
         private readonly (Ranking.Entry Row, object[] Values, uint[]? Points, uint[]? PointValues)[] rows;
@@ -209,6 +210,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
         internal LoadConsumerGraph()
         {
             cache = Graph.GetValues();
+            revision = Graph.Revision;
             buckets = cache.Select(rank => (rank, rank.Items, rank.Items.ToArray(), rank.BestOfClass)).ToArray();
             rows = cache.SelectMany(rank => rank.Items.Values).Distinct()
                 .Select(row => (row, Values(row), row.Points, row.Points?.ToArray())).ToArray();
@@ -217,7 +219,8 @@ public sealed partial class LegacyNativePrestigeRankingTests
         internal void AssertUnchanged()
         {
             Assert.Equal(12, Graph.Count);
-            Assert.Same(cache, Graph.GetValues());
+            Assert.Equal(cache, Graph.GetValues());
+            Assert.Equal(revision, Graph.Revision);
             foreach (var bucket in buckets)
             {
                 Assert.Same(bucket.Rank, Graph[bucket.Rank._Type]);

@@ -114,11 +114,20 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         var cache = LegacyNativeNinjaRank.Ranks.GetValues();
         var oldFire = scope.Rank(RankType.Fire);
         var current = new LegacyNativeNinjaRank.Rank(RankType.Fire) { MaxItems = 2 };
-        LegacyNativeNinjaRank.Ranks[RankType.Fire] = current; // Genuine setter does not refresh MyArray.
-        Assert.Contains(oldFire, cache); Assert.False(LegacyNativeNinjaRank.Ranks.Update);
+        long priorRevision = LegacyNativeNinjaRank.Ranks.Revision;
+        LegacyNativeNinjaRank.Ranks[RankType.Fire] = current;
+        long currentRevision = LegacyNativeNinjaRank.Ranks.Revision;
+        Assert.Equal(priorRevision + 1, currentRevision);
+        Assert.Contains(oldFire, cache); Assert.True(LegacyNativeNinjaRank.Ranks.Update);
         scope.Ninja.FireMastery = 1000;
         scope.Ninja.UpdateRank();
-        Assert.Same(cache, LegacyNativeNinjaRank.Ranks.MyArray);
+        Assert.Equal(cache, LegacyNativeNinjaRank.Ranks.MyArray);
+        Assert.Equal(currentRevision, LegacyNativeNinjaRank.Ranks.Revision);
+        Assert.True(LegacyNativeNinjaRank.Ranks.Update);
+        Assert.Same(current, LegacyNativeNinjaRank.Ranks[RankType.Fire]);
+        var actual = LegacyNativeNinjaRank.Ranks.GetValues();
+        Assert.Contains(current, actual); Assert.DoesNotContain(oldFire, actual);
+        Assert.False(LegacyNativeNinjaRank.Ranks.Update);
         Assert.Empty(oldFire.RankingList);
         Assert.Equal(1000u, current.RankingList[17].TotalPoints);
         AssertNoRankingPackets(scope);

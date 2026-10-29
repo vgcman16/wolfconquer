@@ -41,23 +41,30 @@ public sealed partial class LegacyNativeMsgMessageBehaviorTests
     });
 
     [Fact]
-    public Task NamedServerUsesActualValuesNotStaleCacheAndMatchingRowBreaksBeforeLaterNull() => NativePacketTestThread.Run(() =>
+    public Task NamedServerIgnoresEscapedSnapshotReplacementsAndMatchingRowBreaksBeforeLaterNull() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         var server = new LegacyNativeGroupServerList.Server { ID = 777, Name = "Wolf" };
         scope.Servers.Add(1, server);
-        var stale = new LegacyNativeGroupServerList.Server[] { null! };
-        scope.Servers.MyArray = stale; scope.Servers.Update = false;
+        var escaped = scope.Servers.GetValues();
+        var cached = scope.Servers.MyArray;
+        long revision = scope.Servers.Revision;
+        escaped[0] = null!; cached[0] = null!;
+        Assert.Same(server, Assert.Single(scope.Servers.GetValues()));
+        Assert.Equal(revision, scope.Servers.Revision);
         var message = new Msg("body", Msg.MsgColor.white, Msg.ChatMode.Talk) { ServerName = "unlisted" };
         message.GetArray(scope.Packet);
         Assert.Equal(0u, message.proto.ServerID); Assert.Equal("unlisted", message.proto.Content[6]);
         scope.Servers.Add(2, null!);
-        scope.Servers.Update = false;
+        _ = scope.Servers.GetValues();
         message.ServerName = "Wolf";
         message.GetArray(scope.Packet);
         Assert.Equal(0u, message.proto.ServerID); // Native local serverID never takes row.ID.
         Assert.Equal(777u, server.ID); Assert.Equal("Wolf", message.proto.Content[6]);
-        Assert.Same(stale, scope.Servers.MyArray); Assert.False(scope.Servers.Update);
+        var current = scope.Servers.MyArray;
+        Assert.Same(server, current[0]); Assert.Null(current[1]); Assert.False(scope.Servers.Update);
+        Assert.Equal(revision + 1, scope.Servers.Revision);
+        Assert.Null(Assert.Single(escaped)); Assert.Null(Assert.Single(cached));
         Assert.Equal("Wolf", Decode(Bytes(scope.Packet)).Content[6]);
     });
 
@@ -74,7 +81,8 @@ public sealed partial class LegacyNativeMsgMessageBehaviorTests
             {
                 scope.Servers.Add(1, new() { ID = 1, Name = "MISSING" }); // Native comparison is case-sensitive.
                 scope.Servers.Add(2, null!);
-                scope.Servers.MyArray = []; scope.Servers.Update = false;
+                var escaped = scope.Servers.GetValues();
+                Array.Clear(escaped); // Only the escaped snapshot changes; the real null row still faults.
             }
             var old = message.proto;
             scope.Packet.Size = 731; scope.Packet.Seek(700);

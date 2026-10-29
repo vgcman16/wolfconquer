@@ -47,19 +47,25 @@ public sealed partial class LegacyNativeMailTests
     });
 
     [Fact]
-    public Task ProducersObserveLiveDictionaryRatherThanExposedStaleSafeDictionaryCache() => NativePacketTestThread.Run(() =>
+    public Task ProducersObserveCurrentRowsAndEscapedSnapshotsCannotRestoreTheOldMail() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var old = Row(4); scope.Client.MailList.Add(7, old);
         var cached = scope.Client.MailList.GetValues();
+        long revision = scope.Client.MailList.Revision;
         var replacement = Row(9); replacement.title = "Replacement";
-        scope.Client.MailList[7] = replacement; // Actual native indexer does not dirty MyArray.
-        Assert.False(scope.Client.MailList.Update); Assert.Same(cached, scope.Client.MailList.GetValues());
+        scope.Client.MailList[7] = replacement;
+        Assert.True(scope.Client.MailList.Update); Assert.Equal(revision + 1, scope.Client.MailList.Revision);
         Assert.Same(old, Assert.Single(cached));
+        var current = scope.Client.MailList.GetValues();
+        Assert.NotSame(cached, current); Assert.Same(replacement, Assert.Single(current));
+        current[0] = old;
+        Assert.Same(replacement, Assert.Single(scope.Client.MailList.GetValues()));
         ListMessage.Loading(scope.Client);
         Assert.Equal(MailFrame(0, 1, replacement), scope.Queue.Dequeue());
         Process(scope.Client, scope.Packet);
         Assert.Equal(MailFrame(0, 1, replacement), scope.Queue.Dequeue());
-        Assert.Same(cached, scope.Client.MailList.GetValues());
+        Assert.Same(replacement, Assert.Single(scope.Client.MailList.GetValues()));
+        Assert.Equal(revision + 1, scope.Client.MailList.Revision); Assert.False(scope.Client.MailList.Update);
     });
 
     [Fact]

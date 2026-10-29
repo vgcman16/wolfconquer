@@ -329,6 +329,8 @@ internal static partial class Program
 
         if (command == "client-reference-intake") return ClientReferenceIntake(args);
 
+        if (command == "client-item-catalog7937-decode") return ClientChinese7937CatalogDecodeCommand(args);
+
         if (command == "client-item-catalog-codec")
         {
             return ClientItemCatalogCodecCommand(args);
@@ -653,6 +655,7 @@ internal static partial class Program
             string.Equals(value, "client-config-decode", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-item-catalog-roundtrip", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-item-catalog-codec", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "client-item-catalog7937-decode", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-reference-intake", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-item-catalog-localize", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "generated-buffer-string-scan", StringComparison.OrdinalIgnoreCase) ||
@@ -866,6 +869,7 @@ internal static partial class Program
         Console.WriteLine("  " + ClientConfigDecodeUsage);
         Console.WriteLine("  WolfConquer.DataTool client-item-catalog-roundtrip <decoded-source-path> [--output-new <fresh-path>]");
         Console.WriteLine("  WolfConquer.DataTool client-item-catalog-codec <decode|encode> <input-path> [--output-new <fresh-path>]");
+        Console.WriteLine("  " + Chinese7937CatalogDecodeUsage);
         Console.WriteLine("  WolfConquer.DataTool client-reference-intake <absolute-reference-root> <expected-version> [--output-new <absolute-findings.md>]");
         Console.WriteLine("  WolfConquer.DataTool client-item-catalog-localize <packed-source> --english-itemtype <67-field-source> [--include-text-fields] [--output-new <fresh-path>]");
         Console.WriteLine("  WolfConquer.DataTool generated-buffer-string-scan [--term text] [--context-bytes N] [--max-hits N] <path|label=path> [...]");

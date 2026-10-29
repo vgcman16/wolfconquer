@@ -70,9 +70,8 @@ internal partial class LegacyNativeHeroRewardsRuntime
         if (rows.Count == before.Rows.Length) return true;
         var candidate = new LegacyNativeDbSafeDictionary<uint, Item>(rows.Count, before.Comparer);
         foreach (var row in rows)
-            ((Dictionary<uint, Item>)candidate).Add(row.Key, row.Value);
-        candidate.MyArray = candidate.Values.ToArray();
-        candidate.Update = false;
+            ((IDictionary<uint, Item>)candidate).Add(row.Key, row.Value);
+        candidate.GetValues(); // Materialize through the actual collection owner.
         prepared = candidate;
         return true;
     }

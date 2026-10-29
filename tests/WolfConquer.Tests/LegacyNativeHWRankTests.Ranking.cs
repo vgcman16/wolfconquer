@@ -102,7 +102,9 @@ public sealed partial class LegacyNativeHWRankTests
         var cached = Ranking.Ranks.GetValues();
         var replacement = new Ranking.Rank(Ranking.Type.Main) { MaxItems = 10 }; replacement.UpdateItem(Entry());
         Ranking.Ranks[Ranking.Type.Main] = replacement;
-        Assert.Same(cached, Ranking.Ranks.GetValues()); Ranking.Remove(41);
+        var current = Ranking.Ranks.GetValues(); long revision = Ranking.Ranks.Revision;
+        Assert.Contains(replacement, current); Assert.DoesNotContain(old, current); Ranking.Remove(41);
+        Assert.Equal(current, Ranking.Ranks.GetValues()); Assert.Equal(revision, Ranking.Ranks.Revision);
         Assert.Empty(replacement.RankingList); Assert.Single(old.RankingList); Assert.Same(old, cached[0]);
     }
 }

@@ -53,7 +53,9 @@ public sealed partial class LegacyNativeEquipmentQueryPrerequisiteTests
             uint id=1000+index;var item=new Item{Uid=index,ITEM_ID=id};s.Client.GearMythsoulBag[index]=item;
             LegacyNativeSpecialEffectAttributeTable.SpEffectAttribute[id]=new(){ID=999,Type=index,value=10+index};
         }
-        Assert.Empty(s.Client.GearMythsoulBag.MyArray);Assert.False(s.Client.GearMythsoulBag.Update); // Actual Values, not stale cached GetValues.
+        Assert.Empty(s.Client.GearMythsoulBag.MyArray);Assert.True(s.Client.GearMythsoulBag.Update);
+        long revision=s.Client.GearMythsoulBag.Revision;object gate=s.Client.GearMythsoulBag.SyncRoot;
+        var rows=s.Client.GearMythsoulBag.Values.ToArray();var uids=rows.Select(item=>item.Uid).ToArray();
         s.Equipment.LoadGearMythsoulBag();
         var expectedSpell=new byte[25];BinaryPrimitives.WriteUInt16LittleEndian(expectedSpell.AsSpan(0,2),25);BinaryPrimitives.WriteUInt16LittleEndian(expectedSpell.AsSpan(2,2),2101);
         BinaryPrimitives.WriteUInt16LittleEndian(expectedSpell.AsSpan(8,2),20000);BinaryPrimitives.WriteUInt16LittleEndian(expectedSpell.AsSpan(12,2),3);
@@ -61,6 +63,11 @@ public sealed partial class LegacyNativeEquipmentQueryPrerequisiteTests
         Assert.Equal(1300u,s.Status.DodgeRate); // (uint)13.4 *100, NOT (uint)(13.4*100).
         Assert.Equal(new uint[]{20,21,22,24,23,11,12,12,14,15,16,17,18,19,13,0},StatusValues(s.Status));
         Assert.Equal(14,s.Client.GearMythsoulBag.Count);
+        Assert.Same(gate,s.Client.GearMythsoulBag.SyncRoot);Assert.Equal(revision,s.Client.GearMythsoulBag.Revision);
+        Assert.True(s.Client.GearMythsoulBag.Update);Assert.Empty(s.Client.GearMythsoulBag.MyArray);
+        var current=s.Client.GearMythsoulBag.Values.ToArray();Assert.Equal(rows.Length,current.Length);
+        for(int index=0;index<rows.Length;index++)Assert.Same(rows[index],current[index]);
+        Assert.Equal(uids,current.Select(item=>item.Uid));
     });
 
     [Fact]

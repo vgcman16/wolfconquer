@@ -4,9 +4,174 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## FSB-203: Retain Ninja persistence's actual initial registry through publication
+
+**Implemented and focused offline qualified; full gate pending.** Root's compiled80
+candidate passed556 focused cases, then its2097-case neighbor run recorded2095
+passes and2 failures. The real Ninja failure was
+ActualLoadWaitingOnCapturedRegistryGateCannotOverwriteANewerWholeRegistry: the
+newer complete800-series registry was replaced by a file-derived registry containing
+UID41. The separate stale BruteForce dirty assertion is handled by Root outside this patch.
+
+The early gate-reentry guard captured the original registry, then could block in
+its now-synchronized TryGetValue. LoadLocked and Save's CapturePersistenceImage
+subsequently recaptured Ranks, silently granting the resumed operation authority
+over a newer owner. Load also had a check-then-plain-assignment gap despite public
+Ranks rebinding outside the captured old gate.
+
+The candidate returns the guard's actual first registry/gate witness and retains
+it across file-lock waiting, parsing/capture and publication. It revalidates after
+the early blocking lookup and under the actual captured gate in the file phase.
+Load prepares the complete graph and consumes the exact expected registry through
+Interlocked.CompareExchange, so a late whole-owner replacement is not overwritten.
+Save captures only that admitted registry, retains its registry gate through
+preparation/stage verification/publication, and rechecks the witness before staging
+and immediately before destination replacement. Existing row/category/location,
+strict input, prepared-image, actual file replacement and cleanup checks remain.
+
+The original failed held-registry Load counterexample and4 gate-reentry cases
+remain byte-identical. Four new source cases cover Save's held-registry twin,
+Load/Save actual file-coordinator waits, and Save's held-category phase. Complete
+real replacement graphs, escaped old graph/row preservation, exact saved bytes,
+no owned stage residue and completed InvalidOperationException are the oracle;
+ThreadState only coordinates a phase, with actual registry-gate ownership also
+observed for category blocking. No production hook or accepting callback is added.
+
+Root Release build02 passed with zero errors. The unchanged counterexample,
+four new witness cases and corrected collection-cache test passed 6/6; all
+2,657 combined focused/neighbor cases passed with zero failures/skips, including
+complete selected Ninja persistence/ranking neighbors. These six outcomes are a
+subset, not an added total. The previous failing TRX remains pre-fix evidence.
+The new publication batch still requires its full Windows gate.
+
+This closes the initial-owner retargeting/Load publication race, not every graph
+or persistence race. Save's captured gate serializes cooperating publications;
+noncooperating public static registry/category-map/gate/row writes are not atomic with file I/O. Category gates retain their existing capture-time scope; other processes and crash/power-loss windows remain outside this guarantee.
+No full graph, cross-process, SQL/journal/crash-safe Save, gameplay or client proof
+is claimed. Spec: [server-native-ninja-persistence-owner-witness](docs/protocol/specs/server-native-ninja-persistence-owner-witness.md).
+
+## FSB-202: Native item bags reuse the synchronized real collection owner
+
+**Implemented and focused offline qualified; full gate pending.** The public233bd0d0
+ItemBag duplicated the old unsafe DbSafeDictionary for uint/actual-item entries.
+Indexer assignments and inherited/base-interface mutations could leave GetValues
+stale; public cache/dirty/gate fields permitted foreign array publication, null
+snapshots and replaceable monitors. Tests explicitly required those defects.
+
+The implementation is a thin specialization of FSB-201's reviewed and focused
+qualified real generic owner. It keeps default/capacity constructors, native Add upsert,
+missing-native-indexer null/no insertion, real item aliases and independent bag
+membership. Standard interface Add rejects duplicates; every supported write uses
+the same stable gate, dirty/cache ownership and mutation revision. Array-slot
+replacement cannot poison owner membership. Bag keys remain native indexes and
+may differ from item UIDs; no item, UID, ownership, eligibility or tradability
+rule is invented or normalized by the collection. Actual consuming validators
+remain in their real owners.
+
+The caller map found no additional production cast or cache-metadata writer.
+Client item save already captures the concrete bag ToArray and preserves its real
+owner/graph/UID checks. Routing/loaders retain native upserts; Mythsoul and item
+queries retain ordered Values and actual row aliases. The only production edit
+is the thin ItemBag specialization; the generic owner is unchanged.
+
+Authored tests replace stale/base-bypass/public-cache/null-gate requirements with
+current defensive snapshots, stable revision/gate, real item aliases, typed and
+non-generic interface behavior, and parallel reads/writes. Existing eight-root
+saved-file bytes, Mythsoul spell/stat outputs, count rules and lifecycle aliases
+remain asserted. New genuine save-owner fixtures cover interface replacement,
+removal/clear, stored-null refusal and duplicate item-UID refusal without dirty
+saved output. Test rows are component fixtures, not live issuance or authorization.
+
+Root composed the dependent source, passed Release build02 with zero errors
+and all 2,657 combined focused/neighbor outcomes, including real item-bag, saved
+item, Mythsoul, routing and lifecycle checks. The new full Windows gate is pending;
+the earlier source qualification does not qualify these additions.
+Collection locking is not compound inventory/persistence atomicity, live Store,
+SQL/journal/crash recovery, client acceptance or full parity evidence. Existing
+client/session, held Guild/Union, routing/save/restore and retained-mail boundaries
+remain intact. Spec: [server-native-item-bag-owner](docs/protocol/specs/server-native-item-bag-owner.md).
+
+## FSB-201: Owned native dictionary mutations and defensive value snapshots
+
+**Implemented and focused offline qualified; full gate pending.** The pinned public
+233bd0d0/sourcea4380ba1 DbSafeDictionary inherited Dictionary while hiding only
+some mutators. Indexer writes and inherited/interface Add/Remove/Clear bypassed
+its dirty cache and monitor; public MyArray/Update could publish arbitrary stale
+or null arrays, and SyncRoot could be replaced or nulled. Existing prerequisite
+and caller tests explicitly required these defects.
+
+The candidate replaces inheritance with one private Dictionary owner and one
+stable nonreplaceable gate. Concrete Add preserves legitimate native upserts;
+generic/nongeneric dictionary and collection Add retain duplicate rejection.
+Every supported mutation participates in cache invalidation and a checked owner
+revision; missing removals and duplicate TryAdd do not invent a mutation. Native
+missing indexing still returns default without inserting. Comparer identity,
+underlying entry order and actual value references are retained. Reentrant
+comparer/equality mutation rejects before writing so an outer operation cannot
+publish a stale revision. All paths restore their operation guard on failure.
+
+GetValues/MyArray no longer expose the cached array. Keys/Values/enumerators are
+independent projections, and concrete ToArray captures entries under one lock
+instead of racing LINQ's separate Count/CopyTo calls. Hero goal admission now
+captures/revalidates actual owner revision and real row identity/fields under its
+existing stable-gate lock order. Its staged writer uses duplicate-add ownership
+and actual GetValues materialization instead of a physical base cast/cache writes.
+The integration also corrects Ninja persistence's newly exposed initial-owner
+race (FSB-203).
+
+Unsafe cache/inheritance assertions are replaced with meaningful owner invariants.
+Authored controls cover actual generic/nongeneric interfaces, duplicate/null/type
+refusals, defensive array replacement, comparer preservation/reentrancy, parallel
+mutation/snapshots, actual RankItems/booth collections, and existing hero/ranking/
+mail/group-server/ban/resource/packet rollback behavior. Root Release build02
+passed with zero errors; all 2,657 combined focused/neighbor outcomes passed,
+including the corrected cache assertion and real Ninja race controls. The original
+2095-pass/two-failure run is retained. The new full Windows gate remains pending.
+
+This collection correction does not make compound gameplay operations atomic,
+protect mutable fields inside value objects, repair the separate Top50 cache,
+or establish durable persistence/SQL/journal/crash safety. ItemBag is FSB-202.
+Held Guild/Union sources,
+active checkouts, saves, sessions and the retained mail operation stay untouched.
+Spec: [server-native-db-dictionary-owner](docs/protocol/specs/server-native-db-dictionary-owner.md).
+
+## FSB-200: Account existence lookup failures must not mean absence
+
+**Implemented and focused offline qualified; full gate pending.**
+`LegacyNativeDialog.Exists` caught every Exception, logged it, then returned false.
+A missing configuration, rejected provider option or failed query was therefore
+indistinguishable from a successfully completed lookup with no matching account.
+Full source/caller search found no installed production invocation; the one existing
+test reference inspected the native public static bool(string) signature only.
+
+The candidate validates the existing non-whitespace username prerequisite before
+building SQL, preserving the account handoff/login contract without inventing a
+length, character, Unicode or normalization policy. It keeps FSB-199's genuine
+parameterized SELECT and actual SQL-backed reader and directly returns Read().
+Using cleanup remains, while exceptions propagate without a catch/log/not-found
+fallback. No new host caller, registration path, alternate reader or accepting
+callback is installed. The earlier FSB-199 helper/package remains unchanged.
+
+Authored offline controls invoke the actual method for null/empty/whitespace input,
+missing configuration and a synthetic unsupported provider option that refuses
+while parsing before connection Open. Real sole-owned buffered DataSet results
+retain the actual reader's empty/present semantics; this is not successful SQL-I/O
+proof through Exists. Source review confirms its direct Read return and using
+cleanup. The packet-signature test comment is updated without changing packet or
+signature assertions; no redundant catch/finally implementation-shape test is kept.
+
+Root Release build02 passed with zero errors. All 15 account-lookup safety
+outcomes passed within the 2,657 combined focused/neighbor cases, zero failures
+or skips. These are offline early-failure and owned buffered-reader controls; no
+SQL connection was opened. The new full Windows gate remains pending.
+Real successful SQL lookups, later network/query failures, future installed caller
+policy, registration transactions, live client/gameplay, deployment and host trust
+remain separate boundaries.
+Spec: [account lookup failure](docs/protocol/specs/server-native-account-exists-failure.md).
+
 ## FSB-199: Native SQL value isolation and buffered resource ownership
 
-**Implemented and focused offline qualified; combined full gate pending.** The archived public baseline
+**Implemented; focused and full Windows source gates passed.** The archived public baseline
 `e026be7f221847cccd8c3b3b0a8a69a85becdf82` native command builder interpolated
 string and numeric values into SQL. Its identity `MySqlEscape` did not quote text,
 the second string SET path did not even call that identity helper, INSERT used a
@@ -46,6 +211,12 @@ helper-mysql-command-safety-next. SQL constructor failure cleanup is source-revi
 owned buffered cleanup is exercised. No connection was opened. Command inspection does not
 prove SQL execution, transaction/idempotency safety, full persistence, deployment or
 client/gameplay parity. Existing activation and live execution holds remain in force.
+Full source qualification: source `a4380ba1`, generated head `233bd0d0`,
+Windows run `40945573643` passed all eight stages, finishing 2026-10-29 at
+20:52:11Z. Core 30,082 Passed / 152 existing NotExecuted, Updates 446, Launcher 57,
+zero failures. All 135 Echo, 117 trade and 48 SQL focused outcomes are present
+in the full core TRX; actual results and matching runtime closures are retained.
+No real SQL execution, transaction, deployment or new-client acceptance follows.
 Spec: [server-native-mysql-parameters](docs/protocol/specs/server-native-mysql-parameters.md).
 
 ## 2026-10-29 Caprice, shared journal and status preflight - full source qualification

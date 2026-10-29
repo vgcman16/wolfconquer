@@ -45,10 +45,11 @@ public sealed partial class LegacyNativeHWRankTests
         old.RankingList.Add(700, Entry(17)); Ranking.Ranks.Add(old._Type, old); var cache = Ranking.Ranks.GetValues();
         var replacement = new Ranking.Rank(old._Type); var row = Entry(19);
         replacement.RankingList.Add(701, row); Ranking.Ranks[old._Type] = replacement;
-        Assert.Same(cache, Ranking.Ranks.GetValues()); Assert.Same(old, Assert.Single(cache));
+        long revision = Ranking.Ranks.Revision;
+        Assert.Same(replacement, Assert.Single(Ranking.Ranks.GetValues())); Assert.Same(old, Assert.Single(cache));
         Assert.Same(row, Ranking.GetInfo(old._Type, 19)); Assert.Equal(1u, Ranking.GetMyRank(old._Type, 19));
         Assert.Null(Ranking.GetInfo(old._Type, 17)); var priorList = replacement.RankingList; replacement.RankingList = new();
         Assert.Null(Ranking.GetInfo(old._Type, 19)); Assert.Equal(0u, Ranking.GetMyRank(old._Type, 19));
-        Assert.Same(row, priorList[701]); Assert.Single(old.RankingList);
+        Assert.Same(row, priorList[701]); Assert.Single(old.RankingList); Assert.Equal(revision, Ranking.Ranks.Revision);
     }
 }

@@ -25,7 +25,7 @@ public sealed partial class LegacyNativeClientItemSaveTests
     }
 
     [Fact]
-    public void SaveUsesEveryRootInNativeOrderAndLiveBagValuesInsteadOfStaleCaches()
+    public void SaveUsesEveryRootInNativeOrderAndCurrentBagRowsWhilePreservingEscapedSnapshots()
     {
         using var owned = new OwnedSave();
         var client = ClientWithNativeItemOwners();
@@ -51,6 +51,9 @@ public sealed partial class LegacyNativeClientItemSaveTests
         var gearCache = client.GearMythsoulBag.GetValues();
         client.RelicFuse[99] = relic;
         client.GearMythsoulBag[99] = gear;
+        long relicRevision = client.RelicFuse.Revision, gearRevision = client.GearMythsoulBag.Revision;
+        object relicGate = client.RelicFuse.SyncRoot, gearGate = client.GearMythsoulBag.SyncRoot;
+        Assert.True(client.RelicFuse.Update); Assert.True(client.GearMythsoulBag.Update);
         Assert.Equal(6, client.GetItemsCount()); // That native counter omits both bags.
 
         LegacyNativeClientItemSave.SaveClientItems(client);
@@ -62,8 +65,14 @@ public sealed partial class LegacyNativeClientItemSaveTests
             Db(15, 200000, position: 17, warehouse: 100),
             Db(16, 1001000, position: 211), Db(17, 1001000), Db(18, 1001000)
         ], []), File.ReadAllBytes(owned.FilePath));
-        Assert.Same(relicCache, client.RelicFuse.GetValues());
-        Assert.Same(gearCache, client.GearMythsoulBag.GetValues());
+        Assert.Same(relicGate, client.RelicFuse.SyncRoot); Assert.Same(gearGate, client.GearMythsoulBag.SyncRoot);
+        Assert.Equal(relicRevision, client.RelicFuse.Revision); Assert.Equal(gearRevision, client.GearMythsoulBag.Revision);
+        Assert.True(client.RelicFuse.Update); Assert.True(client.GearMythsoulBag.Update);
+        var currentRelic = client.RelicFuse.GetValues(); var currentGear = client.GearMythsoulBag.GetValues();
+        Assert.NotSame(relicCache, currentRelic); Assert.NotSame(gearCache, currentGear);
+        Assert.Same(relic, Assert.Single(currentRelic)); Assert.Same(gear, Assert.Single(currentGear));
+        Assert.False(client.RelicFuse.Update); Assert.False(client.GearMythsoulBag.Update);
+        Assert.Equal(relicRevision, client.RelicFuse.Revision); Assert.Equal(gearRevision, client.GearMythsoulBag.Revision);
         Assert.Same(staleRelic, Assert.Single(relicCache));
         Assert.Same(staleGear, Assert.Single(gearCache));
         Assert.Same(relic, client.RelicFuse[99]);

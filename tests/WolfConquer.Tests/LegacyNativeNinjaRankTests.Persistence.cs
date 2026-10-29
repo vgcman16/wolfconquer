@@ -122,11 +122,15 @@ public sealed partial class LegacyNativeNinjaRankTests
         var cached = Ranking.Ranks.GetValues();
         var replacement = new Ranking.Rank(Ranking.Type.Water) { MaxItems = 10 };
         Ranking.Ranks[Ranking.Type.Water] = replacement;
-        Assert.Same(cached, Ranking.Ranks.GetValues());
+        long revision = Ranking.Ranks.Revision;
+        Assert.True(Ranking.Ranks.Update); Assert.Contains(old, cached);
         Assert.Null(Ranking.GetInfo(Ranking.Type.Water, 41));
         Ranking.Save();
         files.Expect(Text());
+        Assert.Equal(revision, Ranking.Ranks.Revision); Assert.True(Ranking.Ranks.Update);
         Assert.Same(replacement, Ranking.Ranks[Ranking.Type.Water]);
+        var current = Ranking.Ranks.GetValues();
+        Assert.Contains(replacement, current); Assert.DoesNotContain(old, current);
         Ranking.Ranks.Add(Ranking.Type.Water, replacement);
         Ranking.Save();
         files.Expect(Text());

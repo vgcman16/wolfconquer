@@ -137,8 +137,10 @@ public sealed partial class LegacyNativeNinjaRankTests
         var replacement = new Ranking.Rank(Ranking.Type.Overall) { MaxItems = 10 };
         replacement.UpdateItem(Entry());
         Ranking.Ranks[Ranking.Type.Overall] = replacement;
-        Assert.Same(cached, Ranking.Ranks.GetValues());
+        var current = Ranking.Ranks.GetValues(); long revision = Ranking.Ranks.Revision;
+        Assert.Contains(replacement, current); Assert.DoesNotContain(old, current);
         Ranking.Remove(41);
+        Assert.Equal(current, Ranking.Ranks.GetValues()); Assert.Equal(revision, Ranking.Ranks.Revision);
         Assert.Empty(replacement.RankingList);
         Assert.Single(old.RankingList);
         Assert.Same(old, cached[0]);

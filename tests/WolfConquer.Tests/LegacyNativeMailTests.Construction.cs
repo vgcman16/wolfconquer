@@ -77,13 +77,26 @@ public sealed partial class LegacyNativeMailTests
     });
 
     [Fact]
-    public Task RealSafeDictionaryLockFaultOccursAfterFirstListSendButBeforeStoreAndNotify() => NativePacketTestThread.Run(() =>
+    public Task ConstructorPublishesThroughTheStableExternallyHeldDictionaryGate() => NativePacketTestThread.Run(() =>
     {
-        using var scope = new Scope(); scope.Client.MailList.SyncRoot = null!;
-        Assert.Throws<ArgumentNullException>(() => new Mail(scope.Client, "T", "S", "C", 60, 2, 3, 4, 6, 5));
-        Assert.Empty(scope.Client.MailList); Assert.False(scope.Client.MailList.Update);
-        Assert.Equal(MailFrame(2, 0, Row()), Assert.Single(scope.Queue));
-        Assert.Equal(11, scope.Available); Assert.Equal(0, scope.Recycled(0).Position);
+        using var scope = new Scope();
+        var book = scope.Client.MailList;
+        object gate = book.SyncRoot;
+        long revision = book.Revision;
+        Mail row;
+        lock (gate)
+        {
+            row = new Mail(scope.Client, "T", "S", "C", 60, 2, 3, 4, 6, 5);
+            Assert.True(Monitor.IsEntered(book.SyncRoot));
+        }
+        Assert.Same(gate, book.SyncRoot);
+        Assert.Same(row, Assert.Single(book).Value); Assert.True(book.Update);
+        Assert.Equal(revision + 1, book.Revision);
+        Assert.Equal(MailFrame(2, 0, row), scope.Queue.Dequeue());
+        Assert.Equal(Convert.FromHexString("0500120803"), scope.Queue.Dequeue());
+        Assert.Empty(scope.Queue);
+        Assert.Equal(10, scope.Available);
+        Assert.Equal(0, scope.Recycled(0).Position); Assert.Equal(0, scope.Recycled(1).Position);
     });
 
     [Theory]

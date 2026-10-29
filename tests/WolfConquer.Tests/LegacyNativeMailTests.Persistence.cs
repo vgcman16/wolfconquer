@@ -43,7 +43,8 @@ public sealed partial class LegacyNativeMailTests
         var stale = scope.Client.MailList.GetValues();
         var replacement = Row(43); replacement.title = "A"; replacement.Sender_name = "B"; replacement.content = "D";
         scope.Client.MailList[901] = replacement;
-        Assert.Same(second, stale[1]); Assert.False(scope.Client.MailList.Update);
+        Assert.Same(second, stale[1]); Assert.True(scope.Client.MailList.Update);
+        long revision = scope.Client.MailList.Revision;
         string path = scope.FileName;
         Mail.SaveMailList(scope.Client);
         Record record = default;
@@ -52,7 +53,8 @@ public sealed partial class LegacyNativeMailTests
         Assert.Equal(FileBytes(2, one, two), File.ReadAllBytes(path));
         Assert.Equal("AITLE", record.title); Assert.Equal("BENDER", record.Sender_name); Assert.Equal("DONTENT", record.content);
         Assert.Equal(43u, BinaryPrimitives.ReadUInt32LittleEndian(two.AsSpan(704)));
-        Assert.Same(stale, scope.Client.MailList.GetValues()); Assert.Empty(scope.Queue);
+        Assert.Equal(revision, scope.Client.MailList.Revision); Assert.True(scope.Client.MailList.Update);
+        Assert.Equal(new[] { first, replacement }, scope.Client.MailList.GetValues()); Assert.Empty(scope.Queue);
     });
 
     [Fact]

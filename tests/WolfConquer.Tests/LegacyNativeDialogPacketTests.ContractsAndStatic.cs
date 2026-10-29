@@ -37,7 +37,7 @@ public sealed partial class LegacyNativeDialogPacketTests
         Assert.Equal(typeof(ushort), Enum.GetUnderlyingType(typeof(LegacyNativeNpcServerReplay.Mode)));
         Assert.Equal(new ushort[] { 3, 5, 6 }, Enum.GetValues<LegacyNativeNpcServerReplay.Mode>().Select(value => (ushort)value));
         Assert.Equal(new[] { "Statue", "Cursor", "PlaceFurniture" }, Enum.GetNames<LegacyNativeNpcServerReplay.Mode>());
-        // Signature only: Exists is deliberately never invoked because even null input can open SQL.
+        // Signature coverage here; required-input/configuration/provider failure paths have separate offline controls.
         MethodInfo exists = typeof(LegacyNativeDialog).GetMethod("Exists", BindingFlags.Public | BindingFlags.Static)!;
         Assert.Equal(typeof(bool), exists.ReturnType); Assert.Equal(typeof(string), Assert.Single(exists.GetParameters()).ParameterType);
     }

@@ -12,7 +12,7 @@ from format_tokens import signature
 
 CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
 MACHINE = re.compile(r"(?i)(?:https?|ftp)://|\b(?:SOFTWARE|HKEY_[A-Z_]+)[\\/]|Font[\\/]|^[A-Z]:[\\/]")
-FAMILIES = frozenset(("character-stat-ui", "equipment-ui", "character-equipment-ui"))
+FAMILIES = frozenset(("character-stat-ui", "equipment-ui", "character-equipment-ui", "mail-trade-ui"))
 DONOR_BOUNDARY = "Caller-supplied English; independent wording and rendering review required."
 
 
@@ -95,7 +95,7 @@ def main():
     parser.add_argument("original", type=Path)
     parser.add_argument("english", type=Path)
     parser.add_argument("current", type=Path)
-    parser.add_argument("--plan", choices=("stat-ui-family.json", "gear-ui-family.json", "combined-ui-family.json"), default="stat-ui-family.json")
+    parser.add_argument("--plan", choices=("stat-ui-family.json", "gear-ui-family.json", "combined-ui-family.json", "mail-trade-ui-family.json"), default="stat-ui-family.json")
     parser.add_argument("--write-proposal", action="store_true")
     args = parser.parse_args()
     root = Path(__file__).absolute().parent

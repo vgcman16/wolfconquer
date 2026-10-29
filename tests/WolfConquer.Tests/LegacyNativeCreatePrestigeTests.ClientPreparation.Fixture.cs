@@ -110,6 +110,7 @@ public sealed partial class LegacyNativeCreatePrestigeTests
         private readonly Ranking.Rank[] cache = Ranking.Ranks.MyArray;
         private readonly Ranking.Rank[] cacheMembers = Ranking.Ranks.MyArray.ToArray();
         private readonly bool update = Ranking.Ranks.Update;
+        private readonly long revision = Ranking.Ranks.Revision;
         private readonly (Ranking.Rank Owner, Ranking.Type Category, int Limit)[] owners = Ranking.Ranks.Values
             .Select(rank => (rank, rank._Type, rank.MaxItems)).ToArray();
 
@@ -172,7 +173,8 @@ public sealed partial class LegacyNativeCreatePrestigeTests
             Assert.Same(gate, Ranking.SynRoot);
             Assert.Same(cacheGate, graph.SyncRoot);
             Assert.Equal(update, graph.Update);
-            Assert.Same(cache, graph.MyArray);
+            Assert.Equal(cache, graph.MyArray);
+            Assert.Equal(revision, graph.Revision);
             Assert.Equal(cacheMembers.Length, cache.Length);
             for (var index = 0; index < cache.Length; index++) Assert.Same(cacheMembers[index], cache[index]);
             foreach (var owner in owners)

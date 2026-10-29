@@ -15,6 +15,7 @@ public sealed partial class LegacyNativeCreatePrestigeTests
         private readonly Ranking.Rank[] cache;
         private readonly Ranking.Rank[] cacheMembers;
         private readonly bool update;
+        private readonly long revision;
         private readonly BucketImage[] buckets;
         private readonly EntryImage[] entries;
 
@@ -24,6 +25,7 @@ public sealed partial class LegacyNativeCreatePrestigeTests
             cache = graph.MyArray;
             cacheMembers = cache.ToArray();
             update = graph.Update;
+            revision = graph.Revision;
             buckets = graph.Select(pair => new BucketImage(pair.Key, pair.Value)).ToArray();
             entries = buckets.SelectMany(bucket => bucket.Rows.Select(pair => pair.Value)
                     .Append(bucket.Champion!)).Where(row => row is not null).Distinct()
@@ -48,7 +50,8 @@ public sealed partial class LegacyNativeCreatePrestigeTests
             Assert.Same(gate, Ranking.SynRoot);
             Assert.Same(cacheGate, graph.SyncRoot);
             Assert.Equal(update, graph.Update);
-            Assert.Same(cache, graph.MyArray);
+            Assert.Equal(cache, graph.MyArray);
+            Assert.Equal(revision, graph.Revision);
             Assert.Equal(cacheMembers.Length, cache.Length);
             for (var index = 0; index < cache.Length; index++) Assert.Same(cacheMembers[index], cache[index]);
             Assert.Equal(buckets.Select(bucket => bucket.Key), graph.Keys);

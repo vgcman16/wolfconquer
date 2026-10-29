@@ -5,20 +5,20 @@ namespace WolfConquer.Core.Data;
 
 internal partial class LegacyNativeNinjaRank
 {
-    private static byte[] CapturePersistenceImage(CultureInfo culture)
+    private static byte[] CapturePersistenceImage(PersistenceRegistry admitted, CultureInfo culture)
     {
-        var registry = Ranks ?? throw PersistenceOwnerChanged();
-        var registryGate = registry.SyncRoot ?? throw PersistenceOwnerChanged();
+        RequirePersistenceRegistryCurrent(admitted);
+        var registry = admitted.Registry;
+        var registryGate = admitted.Gate;
         var held = new List<object>((int)Type.Count + 1);
         try
         {
             EnterPersistenceGate(registryGate, held);
-            if (!ReferenceEquals(Ranks, registry) || !ReferenceEquals(registry.SyncRoot, registryGate))
-                throw PersistenceOwnerChanged();
+            RequirePersistenceRegistryCurrent(admitted);
             var owners = CaptureOwners(registry);
             foreach (var owner in owners)
                 EnterPersistenceGate(owner.SynRoot ?? throw PersistenceOwnerChanged(), held);
-            if (!ReferenceEquals(Ranks, registry)) throw PersistenceOwnerChanged();
+            RequirePersistenceRegistryCurrent(admitted);
 
             var rows = new List<string>(MaximumPersistenceRows);
             for (var category = 0; category < owners.Length; category++)
@@ -100,8 +100,11 @@ internal partial class LegacyNativeNinjaRank
         held.Add(gate);
     }
 
-    private static void WritePersistenceImage(PersistenceLocation location, byte[] image)
+    private static void WritePersistenceImage(PersistenceLocation location, byte[] image, PersistenceRegistry admitted)
     {
+        if (!Monitor.IsEntered(admitted.Gate))
+            throw new InvalidOperationException("Ninja rank save publication requires its captured registry gate.");
+        RequirePersistenceRegistryCurrent(admitted);
         RequirePersistenceLocationCurrent(location);
         var destination = Path.GetFullPath(location.Path);
         var stage = destination + "." + Guid.NewGuid().ToString("N") + ".ninja-stage";
@@ -118,6 +121,7 @@ internal partial class LegacyNativeNinjaRank
             if (!PersistenceImageMatches(stage, image))
                 throw new IOException("Ninja rank stage image verification failed.");
             RequirePersistenceLocationCurrent(location);
+            RequirePersistenceRegistryCurrent(admitted);
             if (File.Exists(destination)) File.Replace(stage, destination, null, ignoreMetadataErrors: false);
             else File.Move(stage, destination, overwrite: false);
             ownsStage = false;

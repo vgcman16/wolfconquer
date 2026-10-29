@@ -70,6 +70,7 @@ public sealed partial class LegacyNativePrestigeRankingTests
         private readonly Ranking.Rank[] cache = Ranking.Ranks.MyArray;
         private readonly Ranking.Rank[] cacheMembers = Ranking.Ranks.MyArray.ToArray();
         private readonly bool update = Ranking.Ranks.Update;
+        private readonly long revision = Ranking.Ranks.Revision;
         private readonly KeyValuePair<Ranking.Type, Ranking.Rank>[] buckets = Ranking.Ranks.ToArray();
         private readonly PrestigeMutationRankImage[] owners = Ranking.Ranks.Values.Where(rank => rank is not null)
             .Distinct().Select(rank => new PrestigeMutationRankImage(rank)).ToArray();
@@ -86,7 +87,8 @@ public sealed partial class LegacyNativePrestigeRankingTests
             Assert.Same(gate, Ranking.SynRoot);
             Assert.Same(cacheGate, graph.SyncRoot);
             Assert.Equal(update, graph.Update);
-            Assert.Same(cache, graph.MyArray);
+            Assert.Equal(cache, graph.MyArray);
+            Assert.Equal(revision, graph.Revision);
             Assert.Equal(cacheMembers.Length, cache.Length);
             for (var index = 0; index < cache.Length; index++) Assert.Same(cacheMembers[index], cache[index]);
             Assert.Equal(buckets.Select(pair => pair.Key), graph.Keys);

@@ -90,20 +90,39 @@ public sealed partial class LegacyNativeNinjaRankTests
         RequireRejectedRankLoad(files);
     });
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void AValidFileCannotInventAMissingPublicationRegistryOrGate(bool nullGate) => WithOwnedRankPersistence(files =>
+    [Fact]
+    public void AValidFileCannotInventAMissingPublicationRegistry() => WithOwnedRankPersistence(files =>
     {
         files.Seed(Text(FullRow));
         var escaped = SeedPersistenceGraph();
-        if (nullGate) Ranking.Ranks.SyncRoot = null!;
-        else Ranking.Ranks = null!;
+        Ranking.Ranks = null!;
         var before = new PersistenceGraphImage();
         var error = Record.Exception(Ranking.Load);
         before.RequireCurrent();
-        if (!nullGate) escaped.RequireEscaped();
+        escaped.RequireEscaped();
         files.Expect(Text(FullRow));
         Assert.IsType<InvalidOperationException>(error);
+    });
+
+    [Fact]
+    public void ValidLoadUsesTheStableRegistryGateDespiteEscapedSnapshotReplacement() => WithOwnedRankPersistence(files =>
+    {
+        files.Seed(Text(FullRow));
+        var escaped = SeedPersistenceGraph();
+        var registry = Ranking.Ranks;
+        var gate = registry.SyncRoot;
+        var revision = registry.Revision;
+        var values = registry.GetValues();
+        values[0] = null!;
+        Assert.Same(gate, registry.SyncRoot);
+        Assert.Equal(revision, registry.Revision);
+        Assert.All(registry.GetValues(), row => Assert.NotNull(row));
+
+        Ranking.Load();
+
+        RequireFreshSixRanks(escaped);
+        Assert.Same(gate, registry.SyncRoot);
+        Assert.Equal(revision, registry.Revision);
+        files.Expect(Text(FullRow));
     });
 }

@@ -101,13 +101,18 @@ public sealed partial class LegacyNativeHWRankTests
     }
 
     [Fact]
-    public void SaveUsesRetainedCachedRankArrayUntilRealAddInvalidatesIt()
+    public void SaveObservesIndexerReplacementBeforeAnyFurtherAddAndRetainsTheEscapedOwner()
     {
         using var state = new State(); using var files = new OwnedRankFile(); var old = Place(Entry());
         var cached = Ranking.Ranks.GetValues(); var replacement = new Ranking.Rank(Ranking.Type.Judge) { MaxItems = 10 };
-        Ranking.Ranks[Ranking.Type.Judge] = replacement; Assert.Same(cached, Ranking.Ranks.GetValues());
-        Ranking.Save(); files.Expect(Text(FullRow)); Assert.Null(Ranking.GetInfo(Ranking.Type.Judge, 41));
+        long priorRevision = Ranking.Ranks.Revision;
+        Ranking.Ranks[Ranking.Type.Judge] = replacement;
+        Assert.True(Ranking.Ranks.Update); Assert.Equal(priorRevision + 1, Ranking.Ranks.Revision);
+        Ranking.Save(); files.Expect(Text()); Assert.Null(Ranking.GetInfo(Ranking.Type.Judge, 41));
+        Assert.Same(old, Assert.Single(cached)); Assert.Same(replacement, Assert.Single(Ranking.Ranks.GetValues()));
+        Assert.Equal(priorRevision + 1, Ranking.Ranks.Revision);
         Ranking.Ranks.Add(Ranking.Type.Judge, replacement); Ranking.Save(); files.Expect(Text()); Assert.Single(old.RankingList);
+        Assert.Equal(priorRevision + 2, Ranking.Ranks.Revision);
     }
 
     [Fact]

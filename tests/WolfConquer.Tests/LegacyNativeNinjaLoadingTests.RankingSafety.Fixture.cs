@@ -31,6 +31,7 @@ public sealed partial class LegacyNativeNinjaLoadingTests
     {
         private readonly LegacyNativeDbSafeDictionary<RankType, LegacyNativeNinjaRank.Rank> registry = LegacyNativeNinjaRank.Ranks;
         private readonly bool updated;
+        private readonly long revision;
         private readonly LegacyNativeNinjaRank.Rank[] cache;
         private readonly KeyValuePair<RankType, LegacyNativeNinjaRank.Rank>[] owners;
         private readonly Dictionary<LegacyNativeNinjaRank.Rank, RankState> ranks = new(ReferenceEqualityComparer.Instance);
@@ -41,6 +42,7 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         internal RankingGraphWitness()
         {
             updated = registry.Update;
+            revision = registry.Revision;
             cache = registry.MyArray;
             owners = registry.ToArray();
             foreach (var owner in owners.Select(pair => pair.Value).Where(owner => owner is not null)
@@ -59,7 +61,8 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         {
             Assert.Same(registry, LegacyNativeNinjaRank.Ranks);
             Assert.Equal(updated, registry.Update);
-            Assert.Same(cache, registry.MyArray);
+            Assert.Equal(cache, registry.MyArray);
+            Assert.Equal(revision, registry.Revision);
             var current = registry.ToArray();
             Assert.Equal(owners.Select(pair => pair.Key), current.Select(pair => pair.Key));
             for (var index = 0; index < owners.Length; index++) Assert.Same(owners[index].Value, current[index].Value);

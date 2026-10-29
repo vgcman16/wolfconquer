@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Reflection;
 using System.Threading;
 using WolfConquer.Core.Data;
@@ -7,254 +8,164 @@ namespace WolfConquer.Tests;
 public sealed class LegacyNativeDbPurePrerequisiteTests
 {
     [Fact]
-    public void DefaultConstructorRetainsIndependentPublicNativeState()
+    public void DefaultConstructorOwnsOneIndependentStableGateAndEmptySnapshots()
     {
         var first = new LegacyNativeDbSafeDictionary<byte, string>();
         var second = new LegacyNativeDbSafeDictionary<byte, string>();
-        Assert.Empty(first);
-        Assert.False(first.Update);
-        Assert.NotNull(first.SyncRoot);
-        Assert.Empty(first.MyArray);
-        Assert.NotSame(first.SyncRoot, second.SyncRoot);
-        Assert.NotSame(first.MyArray, second.MyArray);
-        Assert.Same(first.MyArray, first.GetValues());
+        Assert.Empty(first); Assert.False(first.Update); Assert.Equal(0, first.Revision);
+        Assert.NotNull(first.SyncRoot); Assert.NotSame(first.SyncRoot, second.SyncRoot);
+        Assert.Empty(first.MyArray); Assert.Empty(first.GetValues());
+        Assert.NotSame(first.MyArray, first.MyArray);
+        Assert.Same(first.SyncRoot, ((ICollection)first).SyncRoot);
     }
 
     [Fact]
-    public void CapacityConstructorPreservesTheBclCapacityFault()
+    public void CapacityConstructorKeepsValidCapacityAndRejectsNegativeCapacity()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<byte, string>(4);
-        Assert.Empty(dictionary);
-        Assert.False(dictionary.Update);
-        Assert.NotNull(dictionary.SyncRoot);
-        Assert.Empty(dictionary.MyArray);
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new LegacyNativeDbSafeDictionary<byte, string>(-1));
+        Assert.Empty(dictionary); Assert.False(dictionary.Update); Assert.Empty(dictionary.MyArray);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LegacyNativeDbSafeDictionary<byte, string>(-1));
     }
 
     [Fact]
-    public void MissingIndexerReturnsGenericDefaultWithoutAdmittingAKey()
+    public void MissingNativeIndexerReturnsDefaultWithoutAdmittingAKey()
     {
         var references = new LegacyNativeDbSafeDictionary<byte, string>();
         var values = new LegacyNativeDbSafeDictionary<int, int>();
-        Assert.Null(references[1]);
-        Assert.Equal(0, values[1]);
-        Assert.Empty(references);
-        Assert.Empty(values);
-        Assert.False(references.Update);
-        Assert.False(values.Update);
+        Assert.Null(references[1]); Assert.Equal(0, values[1]);
+        Assert.Empty(references); Assert.Empty(values);
+        Assert.False(references.Update); Assert.False(values.Update);
+        Assert.Throws<KeyNotFoundException>(() => _ = ((IDictionary<byte, string>)references)[1]);
+        Assert.Throws<KeyNotFoundException>(() => _ = ((IReadOnlyDictionary<int, int>)values)[1]);
     }
 
     [Fact]
-    public void NullReferenceKeyKeepsTheDictionaryContainsKeyFault()
+    public void NullReferenceKeysRejectWithoutChangingOwnerState()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<string, string>();
         Assert.Throws<ArgumentNullException>(() => _ = dictionary[null!]);
-        Assert.Empty(dictionary);
-        Assert.False(dictionary.Update);
+        Assert.Throws<ArgumentNullException>(() => dictionary.Add(null!, "value"));
+        Assert.Empty(dictionary); Assert.False(dictionary.Update); Assert.Equal(0, dictionary.Revision);
     }
 
     [Fact]
-    public void NativeAddOverwritesTheExistingKeyAndMarksDirty()
+    public void NativeAddKeepsUpsertAndInvalidatesTheCurrentValueSnapshot()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<byte, string>();
-        var first = new string("first".ToCharArray());
-        var second = new string("second".ToCharArray());
-        dictionary.Add(7, first);
-        Assert.True(dictionary.Update);
-        Assert.Same(first, dictionary[7]);
-        dictionary.GetValues();
-        Assert.False(dictionary.Update);
-        dictionary.Add(7, second);
-        Assert.Single(dictionary);
-        Assert.True(dictionary.Update);
-        Assert.Same(second, dictionary[7]);
+        dictionary.Add(7, "first"); Assert.True(dictionary.Update); Assert.Equal(1, dictionary.Revision);
+        var first = dictionary.GetValues(); Assert.False(dictionary.Update);
+        dictionary.Add(7, "second");
+        Assert.Single(dictionary); Assert.True(dictionary.Update); Assert.Equal(2, dictionary.Revision);
+        Assert.Equal("second", dictionary[7]); Assert.Equal(new[] { "second" }, dictionary.GetValues());
+        Assert.Equal(new[] { "first" }, first);
     }
 
     [Fact]
-    public void GetValuesRebuildsOnceWithTheSameActualReferenceValues()
+    public void ValueSnapshotsKeepActualReferencesAndDefendTheCachedArray()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<byte, object>();
-        var value = new object();
-        var old = dictionary.MyArray;
-        dictionary.Add(9, value);
-        var rebuilt = dictionary.GetValues();
-        Assert.False(dictionary.Update);
-        Assert.NotSame(old, rebuilt);
-        Assert.Single(rebuilt);
-        Assert.Same(value, rebuilt[0]);
-        Assert.Same(rebuilt, dictionary.MyArray);
-        Assert.Same(rebuilt, dictionary.GetValues());
+        var value = new object(); dictionary.Add(9, value);
+        var first = dictionary.GetValues(); var second = dictionary.GetValues();
+        Assert.False(dictionary.Update); Assert.NotSame(first, second); Assert.Same(value, first[0]);
+        first[0] = new object();
+        Assert.Same(value, second[0]); Assert.Same(value, dictionary.GetValues()[0]);
+        var escapedCache = dictionary.MyArray; escapedCache[0] = null!;
+        Assert.Same(value, dictionary.MyArray[0]); Assert.Same(value, dictionary[9]);
     }
 
     [Fact]
-    public void IndexerSetterDeliberatelyLeavesThePreviousCacheStale()
+    public void IndexerAssignmentsInvalidatePreviouslyMaterializedValues()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<byte, string>();
-        dictionary.Add(1, "old");
-        var cached = dictionary.GetValues();
-        dictionary[1] = "new";
-        dictionary[2] = "second";
-        Assert.False(dictionary.Update);
-        Assert.Equal("new", dictionary[1]);
-        Assert.Equal(2, dictionary.Count);
-        Assert.Same(cached, dictionary.GetValues());
-        Assert.Equal(new[] { "old" }, cached);
+        dictionary.Add(1, "old"); var cached = dictionary.GetValues();
+        dictionary[1] = "new"; dictionary[2] = "second";
+        Assert.True(dictionary.Update); Assert.Equal(3, dictionary.Revision);
+        Assert.Equal(new[] { "new", "second" }, dictionary.GetValues());
+        Assert.Equal(new[] { "old" }, cached); Assert.False(dictionary.Update);
     }
 
     [Fact]
-    public void InheritedAddRetainsDuplicateFailureAndBypassesNativeDirtyState()
+    public void InterfaceAddIsDuplicateRejectingAndCannotBypassSnapshotInvalidation()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<byte, string>();
-        Dictionary<byte, string> inherited = dictionary;
-        inherited.Add(1, "first");
-        Assert.False(dictionary.Update);
-        Assert.Empty(dictionary.GetValues());
-        Assert.Throws<ArgumentException>(() => inherited.Add(1, "second"));
-        Assert.Equal("first", dictionary[1]);
-        dictionary.Add(1, "native-overwrite");
-        Assert.Equal("native-overwrite", inherited[1]);
-        Assert.True(dictionary.Update);
+        IDictionary<byte, string> contract = dictionary;
+        contract.Add(1, "first"); Assert.True(dictionary.Update);
+        dictionary.GetValues(); long revision = dictionary.Revision;
+        Assert.Throws<ArgumentException>(() => contract.Add(1, "second"));
+        Assert.False(dictionary.Update); Assert.Equal(revision, dictionary.Revision);
+        Assert.Equal(new[] { "first" }, dictionary.GetValues());
+        dictionary.Add(1, "native-upsert");
+        Assert.Equal("native-upsert", contract[1]); Assert.Equal(revision + 1, dictionary.Revision);
     }
 
     [Fact]
-    public void NativeRemoveMarksDirtyEvenForAMissingKey()
+    public void MissingRemoveAndDuplicateTryAddPreserveRevisionAndCleanCache()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<byte, string>();
-        dictionary.Add(1, "one");
-        dictionary.GetValues();
-        dictionary.Remove(99);
-        Assert.True(dictionary.Update);
-        Assert.Equal("one", dictionary[1]);
+        dictionary.Add(1, "one"); dictionary.GetValues(); long revision = dictionary.Revision;
+        Assert.False(dictionary.Remove(99)); Assert.False(dictionary.TryAdd(1, "ignored"));
+        Assert.False(dictionary.Update); Assert.Equal(revision, dictionary.Revision);
         Assert.Equal(new[] { "one" }, dictionary.GetValues());
-        dictionary.Remove(1);
-        Assert.True(dictionary.Update);
-        Assert.Empty(dictionary.GetValues());
-        Assert.Empty(dictionary);
+        Assert.True(dictionary.Remove(1)); Assert.True(dictionary.Update);
+        Assert.Equal(revision + 1, dictionary.Revision); Assert.Empty(dictionary.GetValues());
     }
 
     [Fact]
-    public void InheritedRemoveLeavesTheNativeSnapshotStale()
+    public void InterfaceRemoveRefreshesSnapshotAndLeavesEscapedOldCopyUnchanged()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<byte, string>();
-        dictionary.Add(1, "one");
-        var cached = dictionary.GetValues();
-        Dictionary<byte, string> inherited = dictionary;
-        Assert.True(inherited.Remove(1));
-        Assert.Empty(dictionary);
-        Assert.False(dictionary.Update);
-        Assert.Same(cached, dictionary.GetValues());
+        dictionary.Add(1, "one"); var cached = dictionary.GetValues();
+        Assert.True(((IDictionary<byte, string>)dictionary).Remove(1));
+        Assert.Empty(dictionary); Assert.True(dictionary.Update); Assert.Empty(dictionary.GetValues());
         Assert.Equal(new[] { "one" }, cached);
     }
 
     [Fact]
-    public void NativeClearMarksDirtyAndDefersSnapshotReplacement()
+    public void ClearInvalidatesValuesAndAnEmptyClearDoesNotInventAMutation()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<byte, string>();
-        dictionary.Add(1, "one");
-        var cached = dictionary.GetValues();
-        dictionary.Clear();
-        Assert.Empty(dictionary);
-        Assert.True(dictionary.Update);
-        Assert.Same(cached, dictionary.MyArray);
-        var rebuilt = dictionary.GetValues();
-        Assert.Empty(rebuilt);
-        Assert.NotSame(cached, rebuilt);
-        Assert.False(dictionary.Update);
-        dictionary.Clear();
-        Assert.True(dictionary.Update);
+        dictionary.Add(1, "one"); var cached = dictionary.GetValues();
+        dictionary.Clear(); Assert.Empty(dictionary); Assert.True(dictionary.Update);
+        Assert.Empty(dictionary.GetValues()); Assert.Equal(new[] { "one" }, cached);
+        long revision = dictionary.Revision; dictionary.Clear();
+        Assert.Equal(revision, dictionary.Revision); Assert.False(dictionary.Update);
     }
 
     [Fact]
-    public void InheritedClearBypassesNativeDirtyAndCacheUpdates()
+    public void NonGenericClearUsesTheSameOwnerAndInvalidatesItsSnapshot()
     {
         var dictionary = new LegacyNativeDbSafeDictionary<byte, string>();
-        dictionary.Add(1, "one");
-        var cached = dictionary.GetValues();
-        ((Dictionary<byte, string>)dictionary).Clear();
-        Assert.Empty(dictionary);
-        Assert.False(dictionary.Update);
-        Assert.Same(cached, dictionary.GetValues());
-        Assert.Equal(new[] { "one" }, cached);
+        dictionary.Add(1, "one"); dictionary.GetValues();
+        ((IDictionary)dictionary).Clear();
+        Assert.Empty(dictionary); Assert.True(dictionary.Update); Assert.Empty(dictionary.GetValues());
+        Assert.Equal(2, dictionary.Revision);
     }
 
     [Fact]
-    public void PublicArrayAndDirtyFieldsKeepNativeUnrepairedStateModels()
-    {
-        var dictionary = new LegacyNativeDbSafeDictionary<byte, string>();
-        var injected = new[] { "external" };
-        dictionary.MyArray = injected;
-        Assert.Same(injected, dictionary.GetValues());
-        injected[0] = "changed";
-        Assert.Equal("changed", dictionary.GetValues()[0]);
-        Assert.Empty(dictionary);
-        // Explicit native public-field MODEL, not a reachable SQL caller assertion.
-        dictionary.MyArray = null!;
-        Assert.Null(dictionary.GetValues());
-        dictionary.Update = true;
-        Assert.Empty(dictionary.GetValues());
-        Assert.False(dictionary.Update);
-        Assert.NotNull(dictionary.MyArray);
-    }
-
-    [Fact]
-    public void PublicNullSyncRootKeepsLockFaultsAndPartialOrder()
-    {
-        var dictionary = new LegacyNativeDbSafeDictionary<byte, string>();
-        dictionary.Add(1, "one");
-        var cached = dictionary.GetValues();
-        // Explicit native public-field MODEL; no production repair is introduced.
-        dictionary.SyncRoot = null!;
-        Assert.Throws<ArgumentNullException>(() => dictionary.Add(2, "two"));
-        Assert.False(dictionary.Update);
-        Assert.False(dictionary.ContainsKey(2));
-        Assert.Same(cached, dictionary.MyArray);
-        dictionary.Update = true;
-        Assert.Throws<ArgumentNullException>(() => dictionary.GetValues());
-        Assert.True(dictionary.Update);
-        dictionary.Update = false;
-        Assert.Throws<ArgumentNullException>(() => dictionary.Remove(1));
-        Assert.False(dictionary.Update);
-        Assert.True(dictionary.ContainsKey(1));
-        Assert.Throws<ArgumentNullException>(() => dictionary.Clear());
-        Assert.False(dictionary.Update);
-        Assert.True(dictionary.ContainsKey(1));
-    }
-
-    [Fact]
-    public void NullKeyWriteFaultReleasesTheActualChosenMonitor()
-    {
-        var dictionary = new LegacyNativeDbSafeDictionary<string, string>();
-        var sync = new object();
-        dictionary.SyncRoot = sync;
-        Assert.Throws<ArgumentNullException>(() => dictionary.Add(null!, "value"));
-        Assert.False(Monitor.IsEntered(sync));
-        Assert.False(dictionary.Update);
-        Assert.Empty(dictionary);
-        dictionary.Add("key", "value");
-        Assert.False(Monitor.IsEntered(sync));
-        dictionary.GetValues();
-        Assert.False(Monitor.IsEntered(sync));
-        dictionary.Remove("key");
-        Assert.False(Monitor.IsEntered(sync));
-        dictionary.Clear();
-        Assert.False(Monitor.IsEntered(sync));
-    }
-
-    [Fact]
-    public void ContainerKeepsNativeGenericInheritanceAndNoInventedKeyConstraint()
+    public void CacheAndGateAreReadOnlyOwnerPropertiesInsteadOfPublicMutationFields()
     {
         var type = typeof(LegacyNativeDbSafeDictionary<,>);
-        Assert.False(type.IsPublic);
-        Assert.False(type.IsSealed);
-        Assert.Equal(typeof(Dictionary<,>), type.BaseType!.GetGenericTypeDefinition());
-        Assert.Null(type.TypeInitializer);
-        var key = type.GetGenericArguments()[0];
-        Assert.Equal(GenericParameterAttributes.None, key.GenericParameterAttributes);
-        Assert.Empty(key.GetGenericParameterConstraints());
-        Assert.NotNull(type.GetField("SyncRoot"));
-        Assert.NotNull(type.GetField("Update"));
-        Assert.NotNull(type.GetField("MyArray"));
+        foreach (string property in new[] { "SyncRoot", "Update", "MyArray", "Revision" })
+        {
+            Assert.Null(type.GetField(property));
+            Assert.NotNull(type.GetProperty(property)); Assert.Null(type.GetProperty(property)!.SetMethod);
+        }
+        Assert.Equal(typeof(object), type.BaseType);
+        Assert.True(typeof(IDictionary<int, string>).IsAssignableFrom(typeof(LegacyNativeDbSafeDictionary<int, string>)));
+        Assert.False(typeof(Dictionary<int, string>).IsAssignableFrom(typeof(LegacyNativeDbSafeDictionary<int, string>)));
+        Assert.Empty(type.GetGenericArguments()[0].GetGenericParameterConstraints());
+        Assert.Equal(GenericParameterAttributes.None, type.GetGenericArguments()[0].GenericParameterAttributes);
+    }
+
+    [Fact]
+    public void NullKeyWriteReleasesTheStableMonitorAndKeepsSubsequentWritesUsable()
+    {
+        var dictionary = new LegacyNativeDbSafeDictionary<string, string>(); var gate = dictionary.SyncRoot;
+        Assert.Throws<ArgumentNullException>(() => dictionary.Add(null!, "value"));
+        Assert.False(Monitor.IsEntered(gate)); Assert.False(dictionary.Update); Assert.Empty(dictionary);
+        dictionary.Add("key", "value"); Assert.False(Monitor.IsEntered(gate));
+        dictionary.GetValues(); dictionary.Remove("key"); dictionary.Clear();
+        Assert.False(Monitor.IsEntered(gate)); Assert.Same(gate, dictionary.SyncRoot);
     }
 
     [Fact]

@@ -42,9 +42,10 @@ public sealed partial class LegacyNativePrestigeRankingTests
         old.Items.Add(700, Entry(17)); Ranking.Ranks.Add(old._Type, old); var cached = Ranking.Ranks.GetValues();
         var replacement = new Ranking.Rank(old._Type); var row = Entry(19);
         replacement.Items.Add(701, row); Ranking.Ranks[old._Type] = replacement;
-        Assert.Same(cached, Ranking.Ranks.GetValues()); Assert.Same(old, Assert.Single(cached));
+        long revision = Ranking.Ranks.Revision;
+        Assert.Same(replacement, Assert.Single(Ranking.Ranks.GetValues())); Assert.Same(old, Assert.Single(cached));
         Assert.Equal(0u, Ranking.GetMyRank(old._Type, 17)); Assert.Equal(1u, Ranking.GetMyRank(old._Type, 19));
         var before = replacement.Items; replacement.Items = new();
-        Assert.Equal(0u, Ranking.GetMyRank(old._Type, 19)); Assert.Same(row, before[701]);
+        Assert.Equal(0u, Ranking.GetMyRank(old._Type, 19)); Assert.Same(row, before[701]); Assert.Equal(revision, Ranking.Ranks.Revision);
     }
 }

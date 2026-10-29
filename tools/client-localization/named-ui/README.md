@@ -17,6 +17,7 @@ Supply one reviewed JSON plan beside the tool, using a curated filename:
 | `stat-ui-family.json` | `character-stat-ui` |
 | `gear-ui-family.json` | `equipment-ui` |
 | `combined-ui-family.json` | `character-equipment-ui` |
+| `mail-trade-ui-family.json` | `mail-trade-ui` |
 
 The plan has exactly `schemaVersion` (integer 1), `family`, `codec` (`utf-8`),
 `inputSha256` (an object with uppercase SHA256 values for `original`, `english`
@@ -27,7 +28,7 @@ creating its plan and English input. Do not import a whole older table.
 ```text
 python propose_named_ui.py inputs/original.ini inputs/english.ini inputs/current.ini --plan combined-ui-family.json
 python propose_named_ui.py inputs/original.ini inputs/english.ini inputs/current.ini --plan combined-ui-family.json --write-proposal
-python -m unittest -v test_named_ui test_named_ui_cli test_equipment_ui
+python -m unittest -v test_named_ui test_named_ui_cli test_equipment_ui test_mail_trade_ui
 ```
 
 Omitting `--plan` selects `stat-ui-family.json`. Default output is a JSON summary

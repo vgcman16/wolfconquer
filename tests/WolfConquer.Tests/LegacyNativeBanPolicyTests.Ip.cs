@@ -33,10 +33,12 @@ public sealed partial class LegacyNativeBanPolicyTests
         var row = Ip("127.0.0.1");
         IpBan.BannedPoll.Add("127.0.0.1", row);
         var cache = IpBan.BannedPoll.GetValues();
+        long revision = IpBan.BannedPoll.Revision;
         IpBan.RemoveBan(ip);
         Assert.Same(row, Assert.Single(IpBan.BannedPoll).Value);
         Assert.False(IpBan.BannedPoll.Update);
-        Assert.Same(cache, IpBan.BannedPoll.GetValues());
+        Assert.Equal(cache, IpBan.BannedPoll.GetValues());
+        Assert.Equal(revision, IpBan.BannedPoll.Revision);
     }
 
     [Fact]

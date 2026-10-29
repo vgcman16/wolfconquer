@@ -6,16 +6,39 @@ Full English/gameplay reconstruction remains active.
 
 ## Full CI boundary
 
-Source `37dde47a6326fb8458cf7f6f005c261696f9892d`, with generated tracker head
-`de49bdf34ce2402721ae02ed44ff1f3d1018db50`, passed
-[Windows run 40922160524](https://github.com/vgcman16/wolfconquer/actions/runs/40922160524).
-All eight stages passed: Core 29,999 Passed / 152 existing NotExecuted, Updates
-446, Launcher 57, zero failures. The local run finished 2026-10-29 at 18:16:37Z.
-Actual logs, all three TRXs and matching complete World/DataTool runtime closures
-are retained. This qualifies source, including Classic buff target validation and
-explicit 7937 item envelopes; deployment and current-source live acceptance remain open.
+Source `a4380ba1c66621ef7e2a5c646035697789988dd4`, with generated tracker head
+`233bd0d0ffcbdf131c638dd03b9f49fff76a83de`, passed
+[Windows run 40945573643](https://github.com/vgcman16/wolfconquer/actions/runs/40945573643).
+All eight stages passed: Core 30,082 Passed / 152 existing NotExecuted, Updates
+446, Launcher 57, zero failures. The local run finished 2026-10-29 at 20:52:11Z.
+The full core TRX contains every outcome from the focused Echo 135, trade 117 and
+SQL 48 selections. Actual logs, all three TRXs and matching complete World/DataTool
+runtime closures are retained. This qualifies the source; deployment, actual SQL
+execution and current-source/new-client live acceptance remain open.
 
-## Current integrated batch
+## Current focused successor batch
+
+The successor adds safe account-lookup failure propagation, synchronized native
+dictionary/item-bag ownership and Ninja persistence initial-registry retention.
+Release build02 passed with zero errors; all 2,657 combined focused/neighbor tests
+passed, zero failures/skips. Six corrected-failure/concurrency cases are included
+in that total. The original two-failure run is retained as pre-fix evidence.
+
+The selected Echo Info API accepted 59 fields from pinned decoded data. The new
+explicit 7937 item decoder accepted all 57,093 main / 1,693 Sub rows with 67 fields,
+expected decoded hashes and exact inverse; original inputs were unchanged.
+Complete older65/current67 byte alignment remains incomplete: main 12 unmatched /
+5 ambiguous columns; Sub 5 unmatched / 53 ambiguous. No text roles, native text
+capacities or runtime mappings were inferred; the duplicated English65 source
+was refused without deduplication.
+
+Mail/trade resource proposals passed 17 Python tests; column diagnostics passed
+13. Proposals remain unapplied/unrendered and actual client files, plans, keys and
+assets are excluded. This source batch still requires its own full Windows gate;
+the successful earlier gate above does not qualify these additions. No real SQL,
+live current-source/new-client acceptance or parity increase follows.
+
+## Previous fully qualified source batch
 
 - Encoded Echo intake: 135/135 focused C# tests passed. An actual 7937 API probe
   decoded 85 rows, retained explicit transform provenance, refused the different
@@ -30,8 +53,8 @@ explicit 7937 item envelopes; deployment and current-source live acceptance rema
   supply their own ignored inputs and reviewed plans. No actual resources, plans,
   game assets or private configuration are included or applied.
 
-These changes are integrated and await the combined full Windows gate. Focused
-checks do not establish new-client login, rendering, English or gameplay parity.
+This published batch passed the full Windows gate above. Neither that result nor
+the focused checks establish new-client login, rendering, English or gameplay parity.
 
 ## Implemented source families
 

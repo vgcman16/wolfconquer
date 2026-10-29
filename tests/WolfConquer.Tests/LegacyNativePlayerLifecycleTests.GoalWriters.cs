@@ -51,7 +51,7 @@ public sealed partial class LegacyNativePlayerLifecycleTests
         for (uint index = 0; index < 65535; index++)
         {
             uint uid = requiredPresent ? index + 1 : index + 1000;
-            ((Dictionary<uint, GoalOwner.Item>)book).Add(uid, new() { UID = uid });
+            ((IDictionary<uint, GoalOwner.Item>)book).Add(uid, new() { UID = uid });
         }
         goals.ArrayGoals = book;
         var snapshot = new GoalAdmissionSnapshot(scope);
@@ -61,6 +61,30 @@ public sealed partial class LegacyNativePlayerLifecycleTests
         Assert.False(goals.TryAddGoal(uint.MaxValue));
         Assert.False(goals.TryLoad("1/4294967295/0/"));
         snapshot.AssertUnchanged(scope, requiredPresent ? (ushort)20 : (ushort)19);
+    });
+
+    [Fact]
+    public Task EscapedGoalSnapshotsCannotCorruptXpAdmissionOrReplaceItsStableGate()
+        => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope(); SeedGoalPreimage(scope);
+        var goals = scope.Client.HeroRewards!;
+        goals.AddGoal(101);
+        var book = goals.ArrayGoals; var row = book[101];
+        object gate = book.SyncRoot; long revision = book.Revision;
+        var values = book.GetValues(); var cached = book.MyArray;
+        values[0] = null!; cached[0] = new() { UID = 999 };
+        Assert.Same(gate, book.SyncRoot); Assert.Equal(revision, book.Revision);
+        Assert.Same(row, Assert.Single(book.GetValues())); Assert.Same(row, book[101]);
+        var before = new GoalAdmissionSnapshot(scope);
+
+        Assert.True(scope.Player.TrySetXpCount(20));
+
+        before.AssertUnchanged(scope, 20, requireBookBinding: false);
+        Assert.Same(gate, book.SyncRoot); Assert.Equal(revision, book.Revision);
+        Assert.NotSame(book, goals.ArrayGoals); Assert.Same(row, goals.ArrayGoals[101]);
+        Assert.Equal(103u, goals.ArrayGoals[103].UID);
+        Assert.Null(Assert.Single(values)); Assert.Equal(999u, Assert.Single(cached).UID);
     });
 
     [Fact]

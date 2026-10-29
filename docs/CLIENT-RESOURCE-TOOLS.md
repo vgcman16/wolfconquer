@@ -52,6 +52,7 @@ curated plan filenames are also ignored:
 | `character-stat-ui` | `stat-ui-family.json` |
 | `equipment-ui` | `gear-ui-family.json` |
 | `character-equipment-ui` | `combined-ui-family.json` |
+| `mail-trade-ui` | `mail-trade-ui-family.json` |
 
 Plans pin the SHA256 of all three inputs and select at most 200 distinct exact-case
 keys. A combined proposal requires an explicitly reviewed union of the maps.

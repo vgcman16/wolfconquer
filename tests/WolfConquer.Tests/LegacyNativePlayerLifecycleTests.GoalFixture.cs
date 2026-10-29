@@ -17,6 +17,7 @@ public sealed partial class LegacyNativePlayerLifecycleTests
         private readonly object? gate, comparer;
         private readonly GoalOwner.Item[]? cache, cacheCopy;
         private readonly bool dirty;
+        private readonly long revision;
         private readonly SavedGoalRow[] rows;
         private readonly ushort counter, kills;
         private readonly byte booster, killer;
@@ -30,6 +31,7 @@ public sealed partial class LegacyNativePlayerLifecycleTests
             player = captured ?? scope.Player; goals = capturedGoals ?? scope.Client.HeroRewards;
             book = goals?.ArrayGoals; gate = book?.SyncRoot; comparer = book?.Comparer;
             cache = book?.MyArray; cacheCopy = cache?.ToArray(); dirty = book?.Update ?? false;
+            revision = book?.Revision ?? 0;
             rows = book?.Select(pair => new SavedGoalRow(pair.Key, pair.Value, pair.Value?.UID ?? 0,
                 pair.Value?.UnKnow ?? 0, pair.Value?.Claim ?? 0)).ToArray() ?? [];
             counter = player.XPCount; kills = player.KillCounter; booster = player.XPBooster;
@@ -45,7 +47,7 @@ public sealed partial class LegacyNativePlayerLifecycleTests
             if (book is not null)
             {
                 Assert.Same(gate, book.SyncRoot); Assert.Same(comparer, book.Comparer);
-                Assert.Same(cache, book.MyArray); Assert.Equal(cacheCopy, book.MyArray); Assert.Equal(dirty, book.Update);
+                Assert.Equal(cache, book.MyArray); Assert.Equal(cacheCopy, book.MyArray); Assert.Equal(dirty, book.Update); Assert.Equal(revision, book.Revision);
                 var actual = book.ToArray(); Assert.Equal(rows.Length, actual.Length);
                 for (int index = 0; index < rows.Length; index++)
                 {
@@ -80,8 +82,6 @@ public sealed partial class LegacyNativePlayerLifecycleTests
             case "missing": scope.Client.HeroRewards = null; break;
             case "foreign": scope.Client.HeroRewards = new GoalOwner(new LegacyNativeGameClientRuntime()); break;
             case "book": goals.ArrayGoals = null!; break;
-            case "gate": goals.ArrayGoals.SyncRoot = null!; break;
-            case "cache": goals.ArrayGoals.MyArray = null!; break;
             case "row": goals.ArrayGoals[101] = null!; break;
             case "key": goals.ArrayGoals[101] = new() { UID = 102 }; break;
             case "zero": goals.ArrayGoals[0] = new() { UID = 0 }; break;

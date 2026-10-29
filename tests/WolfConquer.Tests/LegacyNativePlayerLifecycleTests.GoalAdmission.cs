@@ -7,7 +7,7 @@ public sealed partial class LegacyNativePlayerLifecycleTests
 {
     [Theory]
     [InlineData("missing")] [InlineData("foreign")] [InlineData("book")]
-    [InlineData("gate")] [InlineData("cache")] [InlineData("row")]
+    [InlineData("row")]
     [InlineData("key")] [InlineData("zero")] [InlineData("alias")]
     public Task XpTwentyRequiresItsCurrentWellFormedGoalOwnerBeforeAnyMutation(string corruption)
         => NativePacketTestThread.Run(() =>

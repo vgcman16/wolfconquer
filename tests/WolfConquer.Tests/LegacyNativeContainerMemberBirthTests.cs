@@ -65,7 +65,7 @@ public sealed class LegacyNativeContainerMemberBirthTests
     }
 
     [Fact]
-    public void RepeatedGearSlotRetainsHeldOldBagItemsAndCachedArray()
+    public void RepeatedGearSlotRetainsHeldOldBagItemsAndSnapshotContents()
     {
         var client = new LegacyNativeGameClientRuntime();
         LegacyNativeItemContainerMemberPhases.InitializeGearMythsoulBagAtNativeFieldSlot(client);
@@ -73,12 +73,15 @@ public sealed class LegacyNativeContainerMemberBirthTests
         var item = Item(7);
         old.Add(19, item);
         var cache = old.GetValues();
+        long revision = old.Revision; object gate = old.SyncRoot;
         LegacyNativeItemContainerMemberPhases.InitializeGearMythsoulBagAtNativeFieldSlot(client);
         Assert.NotSame(old, client.GearMythsoulBag);
         Assert.Empty(client.GearMythsoulBag!);
         Assert.Same(item, old[19]);
         Assert.Same(item, Assert.Single(cache));
-        Assert.Same(cache, old.GetValues());
+        var current = old.GetValues();
+        Assert.NotSame(cache, current); Assert.Same(item, Assert.Single(current));
+        Assert.Equal(revision, old.Revision); Assert.Same(gate, old.SyncRoot); Assert.False(old.Update);
     }
 
     [Fact]
@@ -328,18 +331,25 @@ public sealed class LegacyNativeContainerMemberBirthTests
     }
 
     [Fact]
-    public void NativeAllItemsUsesBagValuesRatherThanStalePublicCachedArray()
+    public void NativeAllItemsKeepsEscapedSnapshotsAndEnumeratesCurrentBagValues()
     {
         var client = FullyConstructedContainerSubset();
         var old = Item(7);
         var replacement = Item(8);
         client.GearMythsoulBag!.Add(99, old);
         var cache = client.GearMythsoulBag.GetValues();
-        client.GearMythsoulBag[99] = replacement; // Native hidden indexer does not dirty cache.
+        long priorRevision = client.GearMythsoulBag.Revision;
+        client.GearMythsoulBag[99] = replacement;
+        long revision = client.GearMythsoulBag.Revision;
+        Assert.Equal(priorRevision + 1, revision); Assert.True(client.GearMythsoulBag.Update);
         Assert.Same(old, Assert.Single(cache));
-        Assert.Same(cache, client.GearMythsoulBag.GetValues());
         Assert.Same(replacement, Assert.Single(client.AllMyItems()));
         Assert.Equal(0, client.GetItemsCount()); // Native counter omits both bags.
+        Assert.Equal(revision, client.GearMythsoulBag.Revision); Assert.True(client.GearMythsoulBag.Update);
+        var current = client.GearMythsoulBag.GetValues();
+        Assert.NotSame(cache, current); Assert.Same(replacement, Assert.Single(current));
+        Assert.False(client.GearMythsoulBag.Update); Assert.Equal(revision, client.GearMythsoulBag.Revision);
+        Assert.Same(old, Assert.Single(cache));
     }
 
     [Fact]

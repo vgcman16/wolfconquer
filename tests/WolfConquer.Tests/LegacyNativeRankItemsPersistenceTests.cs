@@ -57,7 +57,7 @@ public sealed class LegacyNativeRankItemsPersistenceTests
     }
 
     [Fact]
-    public void SaveUsesNativeSafeDictionaryCachedValuesNotARepairedCurrentIndexEnumeration()
+    public void SavePersistsTheCurrentReplacementRatherThanAnEscapedOldValueSnapshot()
     {
         using var fixture = new Files();
         LegacyNativeRankItems.CreateRanks();
@@ -68,17 +68,19 @@ public sealed class LegacyNativeRankItemsPersistenceTests
         var cached = rank.Items.GetValues();
         var replacement = new LegacyNativeGameItemRuntime { Uid = 1, ITEM_ID = 111003,
             Plus = 12, ItemPoints = 0, OwnerName = "new" };
-        rank.AddItem(replacement); // Existing-key setter does not dirty the native cache.
+        rank.AddItem(replacement);
         Assert.Same(replacement, rank.Items[1]);
-        Assert.Same(old, Assert.Single(cached));
-        Assert.Same(cached, rank.Items.GetValues());
+        Assert.Same(old, Assert.Single(cached)); Assert.True(rank.Items.Update);
+        long revision = rank.Items.Revision;
         LegacyNativeRankItems.SaveRanks();
+        Assert.Equal(revision, rank.Items.Revision); Assert.False(rank.Items.Update);
+        Assert.Same(replacement, Assert.Single(rank.Items.GetValues()));
         LegacyNativeRankItems.RankPoll = new();
         LegacyNativeRankItems.LoadAllItems();
         var loaded = Assert.Single(LegacyNativeRankItems.RankPoll[1].Items).Value;
-        Assert.Equal((byte)2, loaded.Plus);
-        Assert.Equal(10u, loaded.ItemPoints);
-        Assert.Equal("old", loaded.OwnerName);
+        Assert.Equal((byte)12, loaded.Plus);
+        Assert.Equal(0u, loaded.ItemPoints);
+        Assert.Equal("new", loaded.OwnerName);
     }
 
     private sealed class Files : IDisposable
