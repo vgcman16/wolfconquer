@@ -11,7 +11,7 @@ public sealed record LegacyOwnedPlayerMail(uint MailId, uint AttachedItemUid, bo
     ulong Gold, uint ConquerPoints, uint PackageFlag);
 
 public sealed record LegacyOwnedPlayerFileEvidence(string Kind, bool Present, long Length,
-    DateTime? CreationUtc, DateTime? LastWriteUtc, bool BytesAndMetadataUnchanged);
+    DateTime? CreationUtc, DateTime? LastWriteUtc, bool BytesAndMetadataUnchanged, string? ContentSha256 = null);
 
 public sealed record LegacyOwnedPlayerInspectionReport(int SchemaVersion, Guid Domain, uint AccountId,
     string? ProtocolProfile, string ProfileEvidence, LegacyOwnedPlayerCharacter Character,

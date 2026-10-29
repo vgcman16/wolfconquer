@@ -2,8 +2,8 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Raw images stay internal. Only logical file labels and non-content metadata
-// can enter the public report. This read helper does not create directories.
+// Raw images stay internal. Report only logical labels, metadata and optional
+// comparison digests; a digest is not an authority/signature. No extra reads.
 internal sealed record OwnedPlayerFileObservation(string Kind, string Path, byte[]? Bytes,
     DateTime? CreationUtc, DateTime? LastWriteUtc)
 {
@@ -41,7 +41,8 @@ internal sealed record OwnedPlayerFileObservation(string Kind, string Path, byte
         (Bytes is null ? other.Bytes is null : other.Bytes is not null && Bytes.AsSpan().SequenceEqual(other.Bytes));
 
     internal LegacyOwnedPlayerFileEvidence Evidence() => new(Kind, Bytes is not null,
-        Bytes?.LongLength ?? 0, CreationUtc, LastWriteUtc, true);
+        Bytes?.LongLength ?? 0, CreationUtc, LastWriteUtc, true,
+        Bytes is null ? null : Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Bytes)));
 }
 
 internal sealed class OwnedPlayerInspectionUnstableException : IOException { }

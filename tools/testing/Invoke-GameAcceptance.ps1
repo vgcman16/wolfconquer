@@ -12,6 +12,9 @@ param(
     [uint32]$ExpectedItemId,
     [uint16]$ExpectedEquipmentPosition,
     [string]$EquippedReceipt,
+    [Nullable[uint32]]$ExpectedMap,
+    [Nullable[uint16]]$ExpectedX,
+    [Nullable[uint16]]$ExpectedY,
     [switch]$SendTestKit,
     [ValidateSet('basic-trojan', 'socket-materials')][string]$Kit = 'basic-trojan',
     [string]$DotNetPath,
@@ -24,10 +27,12 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GameAcceptance.Common.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Mailbox.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Equip.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Status.Files.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Walk.ps1')
 
 function Get-GaScenarios {
     @(
-        @{ id = 'login-walk-save'; mode = 'guided'; actions = @('Log into the pinned test client through the authorized input workflow.', 'Walk to a different known tile, save through the real lifecycle and inspect again.'); required = 'Correct model/map, movement wire, saved position and live/save ownership.' },
+        @{ id = 'login-walk-save'; mode = 'saved-walk'; actions = @('Retain an explicit changed destination.', 'Walk/save using the actual client, then Resume read-only.'); required = 'Saved destination and unchanged selected projections/sidecar images; live model/movement/wire/Store remain pending.' },
         @{ id = 'reconnect'; mode = 'guided'; actions = @('Record current character/items.', 'Disconnect and reconnect the same disposable account; compare retained state and old-owner retirement.'); required = 'Actual session retirement, no duplicate issuance, correct rehydration.' },
         @{ id = 'mailbox-gear'; mode = 'mailbox'; actions = @('Generate a retained test-kit request.', 'Explicitly dispatch, claim in the real client, then Resume without resending.'); required = 'Exact delivered UIDs once in inventory, requested item types/stacks, cleared mail references, separate client visual proof.' },
         @{ id = 'equip-unequip'; mode = 'guided'; actions = @('Record inventory/equipment and visible stats.', 'Equip and unequip a disposable compatible item; record wire, stats and saved containers.'); required = 'Exact UID relocation, capacity/eligibility rejection and derived-stat coherence.' },
@@ -60,6 +65,13 @@ try {
     if ($Scenario -ceq 'equip-unequip') {
         if ($ExpectedItemUid -eq 0 -or $ExpectedItemId -eq 0 -or $ExpectedEquipmentPosition -eq 0 -or (-not $Resume -and $EquippedReceipt)) { throw 'Exact item UID, type and slot are required for equip evidence.' }
     } elseif ($ExpectedItemUid -ne 0 -or $ExpectedItemId -ne 0 -or $ExpectedEquipmentPosition -ne 0 -or $EquippedReceipt) { throw 'Equip parameters require equip-unequip.' }
+    $walkArguments = @('ExpectedMap','ExpectedX','ExpectedY')
+    $walkArgumentCount = 0
+    foreach ($walkArgument in $walkArguments) { if ($PSBoundParameters.ContainsKey($walkArgument)) { $walkArgumentCount++ } }
+    if ($Scenario -ceq 'login-walk-save') {
+        if ($walkArgumentCount -ne 3 -or
+            $null -eq $ExpectedMap -or $ExpectedMap -eq 0 -or $null -eq $ExpectedX -or $null -eq $ExpectedY) { throw 'Explicit saved-walk map/X/Y intent required.' }
+    } elseif ($walkArgumentCount -ne 0) { throw 'Walk destination requires login-walk-save.' }
     $tool = Get-GaOrdinaryPath $DataToolDll
     if ([IO.Path]::GetFileName($tool) -cne 'WolfConquer.DataTool.dll') { throw 'Actual DataTool DLL required.' }
     foreach ($leaf in @('WolfConquer.Core.dll', 'WolfConquer.DataTool.deps.json', 'WolfConquer.DataTool.runtimeconfig.json')) {
@@ -79,11 +91,15 @@ try {
         $identity.expectedItemUid = $ExpectedItemUid; $identity.expectedItemId = $ExpectedItemId
         $identity.expectedEquipmentPosition = $ExpectedEquipmentPosition
     }
+    if ($Scenario -ceq 'login-walk-save') {
+        $identity.expectedMap=[uint32]$ExpectedMap; $identity.expectedX=[uint16]$ExpectedX; $identity.expectedY=[uint16]$ExpectedY
+    }
     $sourceChecks = @{ status = 'NotRequested'; bound = 'No full suite automatically runs for acceptance.' }
     if ($Resume) {
         $retained = Read-GaJson $context 'owner.json'
         $identityKeys = @('schemaVersion', 'evidenceId', 'scenario', 'accountId', 'configPath', 'configSha256', 'dataToolPath', 'dataToolSha256')
         if ($Scenario -ceq 'equip-unequip') { $identityKeys += @('expectedItemUid', 'expectedItemId', 'expectedEquipmentPosition') }
+        if ($Scenario -ceq 'login-walk-save') { $identityKeys += @('expectedMap','expectedX','expectedY') }
         foreach ($key in $identityKeys) {
             if ($retained[$key] -cne $identity[$key]) { throw 'Retained evidence owner/configuration/tool identity mismatch.' }
         }
@@ -102,6 +118,7 @@ try {
         $before = (Read-GaJson $context 'before.json').report
         if ($Scenario -ceq 'mailbox-gear') { $state = Resume-GaMailbox $context $initial $before $afterLeaf }
         elseif ($Scenario -ceq 'equip-unequip') { $state = Resume-GaEquip $context $initial $before $afterLeaf $EquippedReceipt $ExpectedItemUid $ExpectedItemId $ExpectedEquipmentPosition }
+        elseif ($Scenario -ceq 'login-walk-save') { $state = Resume-GaWalk $context $initial $before $afterLeaf $ExpectedMap $ExpectedX $ExpectedY }
         else {
             $null = Get-GaInspection $context $afterLeaf
             $state = @{ status = 'GuidedAssertionsPending'; reason = 'NoExecutableAssertionForThisScenarioYet';
@@ -120,6 +137,7 @@ try {
             $state = Start-GaEquip $before $ExpectedItemUid $ExpectedItemId $ExpectedEquipmentPosition
             $state.beforeSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $context.evidenceRoot 'before.json')).Hash
         }
+        elseif ($Scenario -ceq 'login-walk-save') { $state = Start-GaWalk $context $before $ExpectedMap $ExpectedX $ExpectedY }
         else {
             $state = @{ status = 'GuidedActionsPending'; reason = 'NoExecutableAssertionForThisScenarioYet';
                 guidedActions = $selected[0].actions; requiredEvidence = $selected[0].required;

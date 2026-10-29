@@ -12,6 +12,8 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GameAcceptance.Common.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Mailbox.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Status.Files.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Walk.ps1')
+. (Join-Path $PSScriptRoot 'GameAcceptance.Status.Walk.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Status.Saved.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Status.Records.ps1')
 . (Join-Path $PSScriptRoot 'GameAcceptance.Status.Summary.ps1')

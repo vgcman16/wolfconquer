@@ -113,10 +113,38 @@ Store transaction; transient changes, rewrite-and-restore and memory drift remai
 possible. Profile is explicitly unknown because the configuration does not store
 it. Counts are complete; item/mail detail shares a200-row cap with a truncation flag.
 
+## Check a saved walking destination
+
+Use `login-walk-save` with explicit `-ExpectedMap`, `-ExpectedX` and `-ExpectedY`
+on both initial and `-Resume` calls. Choose a different destination and a fresh
+`wolf-game-acceptance-<guidN>` evidence folder. Move and save using the actual
+client between the calls; the runner itself never moves, saves or logs in.
+
+The retained intent pins the expected destination. `SavedWalkObserved` checks
+that saved map/X/Y changed to that exact value, selected gold/CP/body/class/level
+and complete reported item/mail rows stayed unchanged, and the actual selected
+Items/Spells/Proficiencies/Mailbox images stayed equal. The inspector adds an
+optional content digest from its already-read bounded bytes; old reports without
+it cannot qualify this scenario. It supports all seven real item groups and their
+deposited rows, and refuses truncated summaries. Status rechecks the same pure
+saved transition; editable receipts remain comparison evidence only.
+
+Both waiting and matching saved results return exit2. Client rendering, actual
+movement/wire, live Store and the full source gate remain pending. The runner now
+has saved-state assertions for mail, equip/unequip and walking; eight other
+families retain guided snapshots/actions. See the scenario catalog for examples.
+
 ## Qualification
 
-The current tooling candidate builds with zero errors; seven selected PowerShell
-files parse. The final focused selection passes60/60, with no failures/skips:
+Current walking/tooling selection on the public99503716 equipment behavior plus
+this source batch: Release build0errors,7selected PSparses, actual70/70passed,
+0fail/skip in59s. This includes the earlier mail/equip/status/pipe families and
+new walking/digest regressions; selections overlap and are not additive. Full
+successor CI and real-client acceptance remain pending. No NativeHP change is
+included in this tooling batch.
+
+Earlier public80fa53c9 tooling built with zero errors; seven selected PowerShell
+files parsed. Its final focused selection passed60/60, with no failures/skips:
 real pipe/Frame delivery, actual DataTool first and same-operation commands,
 fragmented response reading, wrong receipts, shutdown join, kits, inspector,
 mail/equip runner and the actual status script. A first59/60 run exposed a blank
@@ -126,7 +154,7 @@ overlapping historical evidence, not additional current passes.
 
 The [scenario runner](../tools/testing/SCENARIOS.md) covers eleven families in
 the [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md). Mailbox claim and
-equip/unequip have saved-state assertions; nine other families retain guided
+equip/unequip have saved-state assertions; eight other families retain guided
 snapshots and actions. The read-only status overview lists all eleven families,
 pending/invalid records and narrow recorded saved observations. Neither a table
 row nor exit0 proves client rendering, gameplay or a full source gate.
@@ -136,5 +164,7 @@ duplicate-response body read: Core29,334 passed/one failed/164 existing skips,
 Updater446 passed. Restore/build passed; launcher/parsers were not reached.
 FSB179 StarVolcano passed that run. Transport revision2 now retains the server
 connection until a matching response receipt within the same10s deadline; see
-FSB180 and the protocol spec. Its new full gate and actual game-client hot
-delivery/claim/equip acceptance remain pending. No failed build was deployed.
+FSB180 and the protocol spec. Actual full80fa53c9 run40790881796 was interrupted when its worker disappeared
+and ended cancelled; its incomplete output is unqualified. The trusted runner
+was restarted once and is online/idle. A new successor full gate and actual
+game-client hot delivery/claim/equip acceptance remain pending. No failed build was deployed.

@@ -20,6 +20,8 @@ function Assert-GasSavedReferences([string]$Root, $Owner, $Receipt, $Before, $Af
                 -not (Test-GasUInt $state.expectedPosition 65535) -or $state.expectedItemUid -ne $Owner.expectedItemUid -or $state.expectedItemId -ne $Owner.expectedItemId -or
                 $state.expectedPosition -ne $Owner.expectedEquipmentPosition) { throw 'equipPinnedIdentityMismatch' }
         }
+    } elseif ($Owner.scenario -ceq 'login-walk-save') {
+        Assert-GasWalkReferences $Root $Owner $Receipt $initial $Before $After
     } elseif ($Owner.scenario -ceq 'mailbox-gear') {
         if ($Receipt.state.status -cne 'ServerStateVerified' -or $initial.state.status -cne 'WaitingForClientAction' -or
             $initial.state.deliveryResult -cne 'delivery-result.json') { throw 'mailRetainedEvidenceMismatch' }

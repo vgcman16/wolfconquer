@@ -29,8 +29,9 @@ first/same-operation commands against the real owned endpoint, delayed/fragmente
 body consumption, wrong-operation receipt, actual worker shutdown join and saved
 UID/mail conservation. The first59/60 run found a status-table dictionary display
 bug, corrected without weakening its assertion. Results are retained locally.
-The new full Windows gate and actual game-client hot mail/claim/equip acceptance
-remain pending. This is not SQL, power-loss, full English/parity or deployment
+The full80fa53c9 run40790881796 was interrupted when its worker disappeared
+and is terminalcancelled; it has no terminalTRX/fullpass. A new full successor
+gate and actual game-client hot mail/claim/equip acceptance remain pending. This is not SQL, power-loss, full English/parity or deployment
 proof; the older qualified live stack is preserved.
 
 
@@ -90,8 +91,9 @@ Four real Store/v2 component controls preserve committed history on raw publicat
 proof failure, but actual Frame postwriter fault injection remains OPEN. Later
 stat/spell/query sidecars, distinct-ID ordinary admission, native item storage, SQL,
 power-loss and external writers are outside this bounded increment. Full equipment
-CI and actual client equip/unequip acceptance remain pending. The active tools-only
-Windows40790881796 excludes this change; its result cannot qualify equipment.
+CI and actual client equip/unequip acceptance remain pending. The tools-only
+Windows40790881796 excluded this change and endedcancelled after interruption;
+its incomplete output cannot qualify equipment.
 
 
 ## 2026-10-28 latest full and local boundary

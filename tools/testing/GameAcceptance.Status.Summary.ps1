@@ -93,5 +93,5 @@ function Get-GasSummary([string]$Parent, [uint32]$Account, [int]$MaximumFolders,
         status = $(if ($issues.Count -or @($rows | Where-Object { $_.evidenceStatus -ceq 'Invalid' }).Count) { 'InvalidEvidence' } else { 'EvidenceSummary' });
         rows = @($rows.ToArray()); diagnostics = @($issues.ToArray());
         selectionBound = 'Latest local receipt-file mtime per scenario/account; editable metadata, ties invalid; not authenticated event chronology.';
-        trustBound = 'Recorded saved-schema/identity references only; no scenario assertions, source checks, inspector, live Store, client or process probes run. Local JSON is editable, not an attestation.' }
+        trustBound = 'Recorded saved-schema/identity references; saved-walk consistency is rechecked from retained JSON only. No source checks, inspector, live Store, client or process probes run. Local JSON is editable, not an attestation.' }
 }

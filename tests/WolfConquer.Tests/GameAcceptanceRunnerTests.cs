@@ -12,7 +12,7 @@ public sealed class WindowsGameAcceptanceFactAttribute : FactAttribute
     { if (!OperatingSystem.IsWindows()) Skip = "The acceptance inspector requires Windows physical owned paths."; }
 }
 
-public sealed class GameAcceptanceRunnerTests
+public sealed partial class GameAcceptanceRunnerTests
 {
     private static readonly string[] ScenarioIds =
     ["login-walk-save", "reconnect", "mailbox-gear", "equip-unequip", "upgrade-socket", "combat",
@@ -51,7 +51,7 @@ public sealed class GameAcceptanceRunnerTests
             using var dataTool = TestProjectProcess.Create(repository, "WolfConquer.DataTool");
             var dll = dataTool.StartInfo.ArgumentList[0];
             var dotnet = FindApplication(dataTool.StartInfo.FileName, "DOTNET_HOST_PATH");
-            var args = new[] { "-Scenario", "login-walk-save", "-DataToolDll", dll,
+            var args = new[] { "-Scenario", "reconnect", "-DataToolDll", dll,
                 "-OwnedAdmissionConfig", created.ConfigurationPath, "-AccountId", account.ToString(),
                 "-EvidenceRoot", evidenceRoot, "-DotNetPath", dotnet };
 
@@ -111,10 +111,13 @@ public sealed class GameAcceptanceRunnerTests
     }
 
     private static async Task<(int ExitCode, string Output, string Error)> RunAsync(params string[] args)
+        => await RunScriptAsync("Invoke-GameAcceptance.ps1", args);
+
+    private static async Task<(int ExitCode, string Output, string Error)> RunScriptAsync(string script, params string[] args)
     {
         var start = new ProcessStartInfo(FindApplication("pwsh", "WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH"))
         { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-        foreach (var arg in new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-File", Path.Combine(RepositoryRoot(), "tools", "testing", "Invoke-GameAcceptance.ps1") }.Concat(args))
+        foreach (var arg in new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-File", Path.Combine(RepositoryRoot(), "tools", "testing", script) }.Concat(args))
             start.ArgumentList.Add(arg);
         using var process = Process.Start(start)!;
         var output = process.StandardOutput.ReadToEndAsync();

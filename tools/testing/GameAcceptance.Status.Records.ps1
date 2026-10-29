@@ -15,6 +15,11 @@ function Read-GasOwner([string]$Root) {
     if ($owner.scenario -ceq 'equip-unequip' -and
         (-not (Test-GasUInt $owner.expectedItemUid) -or -not (Test-GasUInt $owner.expectedItemId) -or
          -not (Test-GasUInt $owner.expectedEquipmentPosition 65535))) { throw 'invalidPinnedItemIdentity' }
+    if ($owner.scenario -ceq 'login-walk-save' -and $owner.Contains('expectedMap')) {
+        Assert-GasKeys $owner @('expectedX','expectedY')
+        if (-not (Test-GawInteger $owner.expectedMap 1 ([uint32]::MaxValue)) -or
+            -not (Test-GawInteger $owner.expectedX 0 65535) -or -not (Test-GawInteger $owner.expectedY 0 65535)) { throw 'invalidWalkIntent' }
+    }
     return $owner # Paths identify retained context only; never open tool/config or run them.
 }
 
@@ -59,7 +64,8 @@ function Read-GasReceipt([string]$Root, [string]$Leaf, $Owner) {
     Assert-GasKeys $receipt.state @('status')
     $allowed = @('GuidedActionsPending','GuidedAssertionsPending','PrerequisiteMissing','RequestPreparedNotSent',
         'OperationOutcomeUnproven','OperationRejected','RecoveryRequired','WaitingForClientAction','WaitingForEquip',
-        'ClientActionPendingOrStateMismatch','ServerStateVerified','SavedEquipObserved','SavedEquipUnequipObserved')
+        'ClientActionPendingOrStateMismatch','ServerStateVerified','SavedEquipObserved','SavedEquipUnequipObserved',
+        'WaitingForSavedWalk','SavedWalkObserved')
     $status = $receipt.state.status
     if ($status -cnotin $allowed) { throw 'unknownSavedStateResult' }
     if ($receipt.visualAcceptance -cne 'LiveClientVisualPending' -or
@@ -72,7 +78,8 @@ function Read-GasReceipt([string]$Root, [string]$Leaf, $Owner) {
         if ($receipt.after -isnot [string] -or $receipt.after -cnotmatch '^resume-[0-9a-f]{32}-after\.json$') { throw 'invalidAfterReference' }
         $after = Read-GasInspection $Root $receipt.after $Owner $before.report
     } elseif ($Leaf -cne 'receipt.json') { throw 'resumeAfterReferenceMissing' }
-    $saved = $status -cin @('ServerStateVerified','SavedEquipObserved','SavedEquipUnequipObserved')
+    if ($status -cin @('WaitingForSavedWalk','SavedWalkObserved') -and $Owner.scenario -cne 'login-walk-save') { throw 'savedStatusUnsupportedForScenario' }
+    $saved = $status -cin @('ServerStateVerified','SavedEquipObserved','SavedEquipUnequipObserved','SavedWalkObserved')
     if ($saved -and ($null -eq $after -or $receipt.state.assertions -isnot [array] -or $receipt.state.assertions.Count -ne 0)) {
         throw 'savedObservationEvidenceIncomplete'
     }

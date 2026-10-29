@@ -1,13 +1,13 @@
 # Game acceptance runner
 
 This framework records bounded saved-state evidence and guides real-client tests.
-Build the matching DataTool before use. Nine scenarios currently guide actions
-and retain snapshots; mailbox delivery/claim and equip/unequip also have saved-state assertions.
+Build the matching DataTool before use. Eight scenarios currently guide actions
+and retain snapshots; saved walk, mailbox delivery/claim and equip/unequip also have saved-state assertions.
 Rendering, usability and complete gameplay remain separate acceptance work.
 
 | ID | Initial execution | Required acceptance beyond snapshots |
 | --- | --- | --- |
-| login-walk-save | Guided snapshots | Correct model/map, real movement, saved coordinates and lifecycle |
+| login-walk-save | Exact retained saved destination and unchanged projection/image assertions | Correct model/map, real movement, wire, live Store and lifecycle |
 | reconnect | Guided snapshots | Same state rehydrated; actual old issuance retired |
 | mailbox-gear | Executable request/dispatch and saved claim assertions | Actual client mailbox/model/rendering/claim observation |
 | equip-unequip | Saved-state equip and unequip assertions | Eligibility/capacity, live Store, wire, derived stats and client visuals |
@@ -44,15 +44,28 @@ DLL, actual owned-admission.json and disposable account. The evidence parent mus
 already exist. Choose a new absolute leaf `wolf-game-acceptance-<lowercaseGuidN>`:
 
 ```powershell
-pwsh -NoProfile -File C:\PATH\tools\testing\Invoke-GameAcceptance.ps1 -Scenario login-walk-save -DataToolDll C:\ACTUAL-STAGE\DataTool\WolfConquer.DataTool.dll -OwnedAdmissionConfig C:\ACTUAL-OWNED-FIXTURE\owned-admission.json -AccountId 2 -EvidenceRoot C:\EXISTING-PARENT\wolf-game-acceptance-REPLACE-WITH-NEW-32-HEX-GUID
+pwsh -NoProfile -File C:\PATH\tools\testing\Invoke-GameAcceptance.ps1 -Scenario login-walk-save -DataToolDll C:\ACTUAL-STAGE\DataTool\WolfConquer.DataTool.dll -OwnedAdmissionConfig C:\ACTUAL-OWNED-FIXTURE\owned-admission.json -AccountId 2 -EvidenceRoot C:\EXISTING-PARENT\wolf-game-acceptance-REPLACE-WITH-NEW-32-HEX-GUID -ExpectedMap 1002 -ExpectedX 411 -ExpectedY 355
 ```
 
 Replace every placeholder before invocation. No credentials are accepted, stored
 or printed. This command creates only fresh evidence, invokes the actual
-read-only inspector and returns GuidedActionsPending. It does not log in, move,
-save, restart, run source checks, send mail or drive the client. Resume with the
-same explicit identity paths/account/evidence root captures another snapshot and
-keeps GuidedAssertionsPending until an executable scenario is implemented.
+read-only inspector and returns WaitingForSavedWalk when complete prerequisites
+are present. It does not log in, move, save, restart, run source checks, send mail
+or drive the client. Use the real client and save lifecycle, then Resume with the
+same explicit identity paths/account/evidence root and destination. Resume's only
+child command is the read-only inspector.
+
+SavedWalkObserved requires the saved map/X/Y to equal the retained destination
+and differ from the original position. Body/class/level/gold/CP, all reported
+item/mail fields and selected counts must remain unchanged. Complete physical
+item rows include all seven inspector containers and their deposited rows, with
+unique UIDs; top-level inventory/equipment/warehouse counts match their own rows.
+Items/Spells/Proficiencies/Mailbox must have unchanged presence, length and exact
+observed-image digests. Older digestless reports, truncation, unknown containers
+or changed images cannot qualify, even when counts match. Resume does not move,
+send, save or grant. SavedWalkObserved returns exit 2 and retains live visuals,
+wire, live Store synchronization and source gate as pending. It establishes only
+the selected saved-file observation, never the actual movement path or live game.
 
 ## Mailbox workflow
 
@@ -165,9 +178,12 @@ missing required data and configured count/size bounds cannot fall back to an
 older success. Owner-only evidence stays Pending. Invalid folders are also
 reported as diagnostics, even when their owner cannot be identified.
 
-`RecordedSavedObservation` summarizes the existing mailbox/equip receipt and
-retained schema references. It does not rerun scenario assertions or prove the
-receipt was created by the runner. Local JSON and timestamps are editable;
+`RecordedSavedObservation` summarizes the existing saved receipt and retained
+schema references. Saved walk additionally rechecks the pure before/after/intent
+transition over retained JSON, including currency, rows and sidecar image
+equality. No inspector or live command is run. The overview does not rerun
+mailbox/equip scenario assertions or prove the receipt was created by the runner.
+Local JSON and timestamps are editable;
 reading files is not a synchronized transaction with the running game. No
 source-check field grants source/full-CI acceptance. The current runner has no
 standard live-visual receipt: every summary row retains LiveClientVisualPending,
