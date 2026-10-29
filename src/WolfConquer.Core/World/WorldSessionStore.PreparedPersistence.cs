@@ -33,7 +33,8 @@ public sealed partial class WorldSessionStore
                 FailCommittedSpellPublication(holder, spells.Binding); throw;
             }
             if (updated is null) return false;
-            if (!ReferenceEquals(updated.PlayerSpells, expected.PlayerSpells) ||
+            if (updated.Character.MinHitPoints != expected.Character.MinHitPoints ||
+                !ReferenceEquals(updated.PlayerSpells, expected.PlayerSpells) ||
                 !ReferenceEquals(updated.PlayerProficiencies, expected.PlayerProficiencies) ||
                 !string.Equals(updated.UsersRoot, expected.UsersRoot, StringComparison.Ordinal) ||
                 updated.AccountId != expected.AccountId || updated.Character.Uid != expected.Character.Uid ||

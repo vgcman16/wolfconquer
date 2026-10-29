@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Globalization;
 using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
@@ -27,10 +26,8 @@ public static partial class WorldPacketHandlers
         var characterAfter = baseline.Bytes;
         if (updated.Character.MinHitPoints != current.MinHitPoints)
         {
-            var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            { ["MinHitPoints"] = updated.Character.MinHitPoints.ToString(CultureInfo.InvariantCulture) };
-            var afterText = LegacyOrdinaryAdmissionCharacterText.Project(text, values, paid: null);
-            characterAfter = encoding.GetPreamble().Concat(encoding.GetBytes(afterText)).ToArray();
+            characterAfter = LegacyBoundHitpointsScalarWrite.ProjectAfterImage(baseline.Bytes, updated.Character);
+            var afterText = CharacterSnapshotFileEncoding.Decode(characterAfter, out _);
             if (!FullAccountCharacterScalarsEqual(CharacterSnapshotParser.ParseText(afterText), updated.Character))
                 throw new LegacySpellMutationRefusalException("itemSpellCharacterAfterMismatch");
         }

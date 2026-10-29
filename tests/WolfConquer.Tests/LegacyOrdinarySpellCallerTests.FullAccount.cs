@@ -15,7 +15,9 @@ public sealed partial class LegacyOrdinarySpellCallerTests
             Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(f.Connection, before));
             Assert.True(f.Recovery.IsReadyForCharacterSpells(f.Users, f.Spells));
             byte[] prior = File.ReadAllBytes(f.SpellPath); Assert.Equal(0xA5, prior[15]); int first = f.Sent.Count;
-            Assert.True(await FullAccount(f, before)); var after = f.Current;
+            Assert.True(await FullAccount(f, before));
+            Assert.True(f.CurrentOrNull is not null, f.Log.ToString());
+            var after = f.Current;
             Assert.NotSame(before, after); Assert.Equal(2005, after.Character.Class); Assert.Equal(140, after.Character.Level);
             Assert.Equal(before.Character.Money, after.Character.Money); Assert.Equal(before.Character.ConquerPoints, after.Character.ConquerPoints);
             Assert.Same(before.PlayerItems, after.PlayerItems); AssertNative(f);

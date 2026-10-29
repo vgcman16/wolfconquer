@@ -57,15 +57,13 @@ public sealed partial class WorldSessionStore
                 if (holder.SpellBinding is not null && (previous is null || !ReferenceEquals(previous.PlayerSpells, session.PlayerSpells)))
                     throw InvalidSpellPublication();
                 using var publication = new PreparedSessionSpellPublication(this, connection, holder, previous, session);
-                publication.ArmFinalProof();
-                if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
-                publication.PublishNative();
-                publication.PublishHolder();
+                if (!TryPublishFrameOwnedHitpoints(publication, holder, out var reason))
+                    throw new LegacyNativeHitpointsRefusalException(reason);
                 final = publication.FinalSession;
                 publishedIdentity = publication.PublishedIdentity;
                 publishedBinding = publication.Binding;
                 publication.Dispose();
-                PersistFrameOwnedSessionChange(connection, previous, final, publishedIdentity, publishedBinding);
+                PersistFrameOwnedSessionChange(connection, previous, final, publishedIdentity, publishedBinding, publication.HitpointsWrite);
             }
         }
         NotifyPublishedSessionChange(connection, previous, final, publishedIdentity, publishedBinding);
@@ -106,15 +104,12 @@ public sealed partial class WorldSessionStore
                     expectedNativeIdentity is not null && !ReferenceEquals(holder.NativeClientIdentity, expectedNativeIdentity) ||
                     !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedSession, session)) return false;
                 using var publication = new PreparedSessionSpellPublication(this, connection, holder, expectedSession, session);
-                publication.ArmFinalProof();
-                if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
-                publication.PublishNative();
-                publication.PublishHolder();
+                if (!TryPublishFrameOwnedHitpoints(publication, holder, out _)) return false;
                 final = publication.FinalSession;
                 publishedIdentity = publication.PublishedIdentity;
                 publishedBinding = publication.Binding;
                 publication.Dispose();
-                PersistFrameOwnedSessionChange(connection, expectedSession, final, publishedIdentity, publishedBinding);
+                PersistFrameOwnedSessionChange(connection, expectedSession, final, publishedIdentity, publishedBinding, publication.HitpointsWrite);
             }
         }
         NotifyPublishedSessionChange(connection, expectedSession, final, publishedIdentity, publishedBinding);

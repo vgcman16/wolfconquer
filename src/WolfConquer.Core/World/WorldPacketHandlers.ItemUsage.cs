@@ -358,6 +358,12 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
+        if (kind == LegacyConsumableItemKind.Hitpoints)
+        {
+            await HandleOwnedHealthConsumableAsync(context, session, packet.Id, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+
         if (session.Character.MinHitPoints <= 0 || HasLegacyStatusFlag(session.Character, LegacyDeadFlag))
         {
             await context.Log.WriteLineAsync(

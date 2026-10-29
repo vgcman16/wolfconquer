@@ -265,12 +265,15 @@ public sealed partial class WorldServerFrameHandler
         WorldSessionStore issuingStore,
         ConquerTcpConnection connection,
         WorldSession? previous,
-        WorldSession current)
+        WorldSession current,
+        LegacyBoundHitpointsScalarWrite? completedHitpoints = null)
     {
         if (!ReferenceEquals(_sessions, issuingStore) ||
             !issuingStore.IsFramePersistenceCurrent(this, connection, current))
             throw new InvalidOperationException("Frame persistence requires its current issued Store owner.");
-        PersistChangedSessionCharacterScalars(connection, previous, current);
+        if (completedHitpoints is null) PersistChangedSessionCharacterScalars(connection, previous, current);
+        else if (!completedHitpoints.CoversCommittedPublication(this, issuingStore, connection, previous, current))
+            throw new InvalidOperationException("ordinaryHitpointsCommittedScalarCoverageLost");
         PersistChangedSessionPlayerItems(previous, current);
         PersistChangedSessionPlayerSpells(connection, previous, current);
         PersistChangedSessionPlayerProficiencies(previous, current);

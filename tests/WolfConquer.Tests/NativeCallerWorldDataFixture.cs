@@ -18,7 +18,8 @@ internal static class NativeCallerWorldDataFixture
         IReadOnlyList<ClassLevelStat>? classLevelStats = null,
         IReadOnlyList<MagicTypeOperationEntry>? magicTypeOperations = null,
         IReadOnlyList<ClientConfigRecord>? clientConfigs = null,
-        IReadOnlyList<PrestigeRankEntry>? prestigeRanks = null, IReadOnlyList<MagicType>? magic = null)
+        IReadOnlyList<PrestigeRankEntry>? prestigeRanks = null, IReadOnlyList<MagicType>? magic = null,
+        IReadOnlyList<TransformInfo>? transformInfo = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -35,7 +36,7 @@ internal static class NativeCallerWorldDataFixture
             itemRefineEffects: [],
             itemRefineEffectEx: [],
             itemRefineUpgrades: [],
-            transformInfo: [],
+            transformInfo: transformInfo ?? [],
             furniture: [],
             hairColorTypes: [],
             hairFaceStorageTypes: [],

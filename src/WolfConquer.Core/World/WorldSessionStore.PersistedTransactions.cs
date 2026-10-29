@@ -41,7 +41,7 @@ public sealed partial class WorldSessionStore
             try { persisted = persist(); }
             catch (LegacyCommittedSpellPublicationException) { FailCommittedSpellPublication(holder, publication.Binding); throw; }
             if (!persisted) return false;
-            if (!publication.IsCurrentPlain())
+            if (!publication.AcceptExternallyPersistedHitpoints() || !publication.IsCurrentPlain())
                 FailCommittedSpellPublication(holder, publication.Binding);
             publication.PublishNative();
             publication.PublishHolder();
@@ -102,7 +102,8 @@ public sealed partial class WorldSessionStore
                 FailCommittedPairPublication(firstHolder, first.Binding, secondHolder, second.Binding); throw;
             }
             if (!persisted) return false;
-            if (!first.IsCurrentPlain() || !second.IsCurrentPlain())
+            if (!first.AcceptExternallyPersistedHitpoints() || !second.AcceptExternallyPersistedHitpoints() ||
+                !first.IsCurrentPlain() || !second.IsCurrentPlain())
             {
                 FailCommittedPairPublication(firstHolder, first.Binding, secondHolder, second.Binding);
             }

@@ -23,9 +23,9 @@ public sealed partial class WorldSessionStore
     // not an arbitrary observer, acceptance callback or transaction writer.
     private void PersistFrameOwnedSessionChange(ConquerTcpConnection connection,
         WorldSession? previous, WorldSession current, object publishedIdentity,
-        LegacyOrdinarySpellBinding? publishedBinding)
+        LegacyOrdinarySpellBinding? publishedBinding, LegacyBoundHitpointsScalarWrite? completedHitpoints = null)
     {
-        try { framePersistenceOwner?.PersistChangedSessionState(this, connection, previous, current); }
+        try { framePersistenceOwner?.PersistChangedSessionState(this, connection, previous, current, completedHitpoints); }
         catch (Exception cause)
         {
             var failure = new WorldSessionPublicationException(this, connection, publishedIdentity,

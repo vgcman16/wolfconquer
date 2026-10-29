@@ -8,10 +8,11 @@ namespace WolfConquer.Tests;
 
 public sealed partial class WorldServerFrameHandlerTests
 {
-    internal static async Task WithNativeItemSpellCallerAsync(bool rune, Func<NativeItemSpellCallerFixture, Task> body)
+    internal static async Task WithNativeItemSpellCallerAsync(bool rune, Func<NativeItemSpellCallerFixture, Task> body,
+        IReadOnlyList<TransformInfo>? transformInfo = null, IReadOnlyList<string>? characterLines = null)
     {
         var f = new NativeItemSpellCallerFixture(); Exception? primary = null;
-        try { f.Initialize(rune); await body(f); } catch (Exception error) { primary = error; }
+        try { f.Initialize(rune, transformInfo, characterLines); await body(f); } catch (Exception error) { primary = error; }
         try { await f.DisposeAsync(); }
         catch (Exception cleanup)
         {
@@ -45,13 +46,24 @@ public sealed partial class WorldServerFrameHandlerTests
         private OrdinaryLoginFixture? admission; private NativeLoginBeastMetadataScope? beasts; private bool owned;
         private T Actual<T>(string name) where T : class => Assert.IsType<T>(typeof(WorldServerFrameHandler)
             .GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(Handler));
-        internal void Initialize(bool rune)
+        internal void Initialize(bool rune, IReadOnlyList<TransformInfo>? transformInfo = null, IReadOnlyList<string>? characterLines = null)
         {
             Guard(); Assert.False(Directory.Exists(Root)); Directory.CreateDirectory(Users); owned = true;
             Directory.CreateDirectory(Items); Directory.CreateDirectory(Spells);
             WriteSnapshot(Users, Uid, uid: Uid, classCode: rune ? 6000 : 7051, level: 140,
                 reborn: rune ? 2 : 0, secondClass: 0, money: 1000, conquerPoints: 200, boundConquerPoints: 300,
                 minHitPoints: 1000, name: "OwnedItemSpellOwner");
+            // Pure input preparation precedes the real issuer's baseline capture.
+            if (characterLines is { Count: > 0 })
+            {
+                Assert.All(characterLines, line =>
+                {
+                    Assert.DoesNotContain('\n', line); Assert.DoesNotContain('\r', line);
+                });
+                var text = CharacterSnapshotFileEncoding.Decode(File.ReadAllBytes(CharacterPath), out var encoding);
+                text = text.Replace("[Character]", "[Character]\r\n" + string.Join("\r\n", characterLines), StringComparison.Ordinal);
+                File.WriteAllBytes(CharacterPath, encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray());
+            }
             var item = new PlayerItemSnapshotItem { Uid = ItemUid, ItemId = rune ? 4020517U : 725016U,
                 Position = rune ? (ushort)102 : (ushort)0, Durability = 1, MaximumDurability = 1, StackSize = 1 };
             var rankKeeper = new PlayerItemSnapshotItem { Uid = ItemUid + 1, ItemId = 4020515, Position = 212, Durability = 1, MaximumDurability = 1, StackSize = 1 };
@@ -69,7 +81,7 @@ public sealed partial class WorldServerFrameHandlerTests
             if (rune) { var extra = (string[])fields.Clone(); extra[0] = "4020515"; extra[1] = "OwnedRankKeeper"; extra[ItemType.RuneSpellIdFieldIndex] = "0"; itemTypes.Add(new ItemType(4020515, extra[1], extra)); }
             var catalog = NativeCallerWorldDataFixture.Create(itemTypes, [],
                 classLevelStats: baseline.ClassLevelStats, magicTypeOperations: baseline.MagicTypeOperations,
-                magic: [new MagicType(1360, 1360, "OwnedBookSpell", [])]);
+                magic: [new MagicType(1360, 1360, "OwnedBookSpell", [])], transformInfo: transformInfo);
             Catalog = catalog;
             beasts = new NativeLoginBeastMetadataScope(1000);
             admission = new OrdinaryLoginFixture(new CharacterSnapshotLoader(Users), catalog);

@@ -12,6 +12,7 @@ public sealed partial class WorldSessionStore
         private readonly LegacyNativeProficiencyStorage.PreparedDetachedSessionProficiencies detachedProficiencies;
         private readonly LegacyOrdinarySpellBinding binding;
         private readonly LegacyNativeExistingCharacterPrefix.SpellAdmissionOwner admissionOwner;
+        private readonly LegacyNativePlayerRuntime.OwnedHitpointsPublication hitpoints;
         private bool spellGateHeld, proficiencyGateHeld;
         internal WorldSession FinalSession { get; }
 
@@ -41,6 +42,7 @@ public sealed partial class WorldSessionStore
                     WolfConquer.Core.Data.PlayerSpellSnapshotLoader.ToLegacyBytes(FinalSession.PlayerSpells))) throw InvalidSpellPublication();
             binding = new(store, connection, holder.NativeClientIdentity, FinalSession, client, player,
                 detached.Storage, detachedProficiencies.Storage, recovery, canonicalSpells, savedSpellImage);
+            hitpoints = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareAdmission(binding, admissionOwner, FinalSession);
             try
             {
                 Monitor.Enter(detached.Storage.MutationGate, ref spellGateHeld);
@@ -61,10 +63,10 @@ public sealed partial class WorldSessionStore
         {
             detached.Plan.RequireCurrentBeforeWriter();
             detachedProficiencies.Plan.RequireCurrentBeforeWriter();
-            if (!OwnerIsCurrentPlain()) throw InvalidSpellPublication();
+            if (!OwnerIsCurrentPlain() || !hitpoints.IsCurrentPlain()) throw InvalidSpellPublication();
         }
 
-        internal bool ConsumeCurrentPlain() => OwnerIsCurrentPlain() && admissionOwner.ConsumeCurrentPlain() &&
+        internal bool ConsumeCurrentPlain() => hitpoints.IsCurrentPlain() && OwnerIsCurrentPlain() && admissionOwner.ConsumeCurrentPlain() &&
             detached.Plan.ConsumeCurrentPlain() &&
             detachedProficiencies.Plan.ConsumeCurrentPlain();
         internal bool ArmPreparedProof()
@@ -72,7 +74,7 @@ public sealed partial class WorldSessionStore
             detached.Plan.ArmFinalProof();
             detachedProficiencies.Plan.ArmFinalProof();
             admissionOwner.ArmAdmissionProof();
-            return OwnerIsCurrentPlain() && admissionOwner.ConsumeBeforeWriterPlain() && detached.Plan.ConsumeBeforeWriterPlain() &&
+            return hitpoints.IsCurrentPlain() && OwnerIsCurrentPlain() && admissionOwner.ConsumeBeforeWriterPlain() && detached.Plan.ConsumeBeforeWriterPlain() &&
                 detachedProficiencies.Plan.ConsumeBeforeWriterPlain();
         }
 
@@ -84,6 +86,7 @@ public sealed partial class WorldSessionStore
             binding.Client.MyProfs = detachedProficiencies.Storage;
             detached.Storage.AttachOrdinaryBinding(binding);
             holder.SpellBinding = binding;
+            hitpoints.PublishPrepared();
         }
 
         public void Dispose()

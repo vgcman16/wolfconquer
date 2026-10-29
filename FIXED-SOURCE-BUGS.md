@@ -4,6 +4,76 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-28 health consumption - focused repair, full/live gate OPEN
+
+### FSB-182: Commit health and item consumption together without invalidating trade offers
+
+The earlier health route published its cooldown before metadata checks, then
+published HP/items before separate best-effort persistence. Its native HP caller
+needed a genuine Character+Items transaction, rather than a second late saver.
+
+The health-only successor validates the actual current owner, catalog, stack,
+cooldown and transfer ownership before a real v2 journal commits both exact
+images. Native/Store/cooldown publication and successful replies follow that
+commit. Definite refusal retains resources and outputs; uncertain writes or
+postcommit notification faults fence recovery without refund or automatic retry.
+Raw item ordering/opaque bytes and unchanged Character text are retained.
+
+Review also found an integration defect in the first successor: publishing
+detached live item copies invalidated an unrelated real trade offer's identity.
+A genuine two-player Login/request/accept/offer/use/both-confirmations test
+reproduced `offeredItemChangedOrMissing:refunded`. Publishing actual unchanged
+rows while retaining detached persistence images fixed both unchanged test cases:
+unoffered potion use completes the trade; offered potion use refuses unchanged
+and the full stack can still transfer. Trade's identity checks were not weakened.
+
+Actual health build01 and trade build05: zero errors. Initial health57/57 and
+broader350/350 passed; trade regression1pass/1fail became2/2pass. Final combined
+native/ordinary/equipment/health/trade selection: **587/587 pass, zero skips**.
+These counts overlap. Actual file-lock, WAL interruption/recovery and transport
+fault controls are offline fixtures, not live-client acceptance or power-loss
+proof. Mana/full-restore, distinct AccountId/UID health runtime, SQL and broader
+compound operations remain open. A full successor gate and deployment are pending.
+
+Public2fa's full40799284702 failed one older drop test's diagnostic assertion
+(core29,394pass/1fail/156skip; updater446pass). The successor asserts actual
+removed inventory, empty equipment, unchanged rejected-equip state and no extra
+output instead. No production guard or test exclusion was relaxed. Failed-run
+receipts/logs/TRXs and the real trade red/green are retained locally.
+
+## 2026-10-28 owned native HP - OPEN, focused checkpoint
+
+### FSB-181: Publish admitted physical HP through the real saved owner
+
+Native Player.HitPoints/Alive/NotLife read a signed-int field that remained zero
+for a genuinely admitted positive-HP player. Managed saved HP and2176 outputs
+were separate; default unbound storage is not an admitted health authority.
+
+The private successor prepares checked native HP in genuine ordinary admission
+and bound Store participants. A concrete registered Frame scalar writer commits
+the exact complete Character image before plain native/holder publication.
+External v8/v9 writers must prove that same complete afterimage after their real
+journal succeeds. The typed postlude skip covers only its exact final scalar
+projection; later HP-unchanged mana updates still save. Unbound/retired identities
+cannot gain a new owner by reusing UID. Successful managed packet sequences and
+independent native health goldens remain unchanged; no fake Alive getter or saver.
+
+Actual isolated build07 has zero errors. Native admission/storage/map/health
+selection passed170/170. A real sparse Character plus active catalog-derived
+transform reproduced v9 rune publication refusal after genuine ordinary login;
+complete producer projection changed its actual RED04 to GREEN05(1/1). A broader
+caller selection had312passes/1class-grant failure. The HP-changing class writer
+also used a scalar subset; aligning its real image now passes77/77 class/HP/Rune
+controls,0skips. These selections overlap and are not additive or a full gate.
+Earlier prerequisite failures and the broader red remain retained honestly.
+
+The first29-path source was privately checkpointed before publication. The
+health/trade composition above now passes the combined587-case offline selection;
+public2fa's failed full40799284702 predates both changes. Full successor
+qualification, live client, native Team/death/revive and broader field hydration
+remain pending. Mana/other compound sidecars, SQL, power loss and uncooperative
+external writers are not closed by this change.
+
 ## 2026-10-28 operator transport and testing tools - focused verification
 
 ### FSB-180: Keep an operator response open until a matching peer receipt

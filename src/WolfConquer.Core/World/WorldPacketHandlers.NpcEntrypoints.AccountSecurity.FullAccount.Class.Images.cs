@@ -25,7 +25,10 @@ public static partial class WorldPacketHandlers
                 throw new FullAccountClassRefusal("fullAccountClassCharacterBaselineStale");
             var afterText = LegacyOrdinaryAdmissionCharacterText.Project(text,
                 CreateLegacyFullAccountClassPersistenceValues(updated.Character), paid: null);
-            var characterAfter = encoding.GetPreamble().Concat(encoding.GetBytes(afterText)).ToArray();
+            var characterAfter = updated.Character.MinHitPoints == expected.MinHitPoints
+                ? encoding.GetPreamble().Concat(encoding.GetBytes(afterText)).ToArray()
+                : LegacyBoundHitpointsScalarWrite.ProjectAfterImage(baseline.Bytes, updated.Character);
+            afterText = CharacterSnapshotFileEncoding.Decode(characterAfter, out _);
             var parsedAfter = CharacterSnapshotParser.ParseText(afterText);
             if (!FullAccountCharacterScalarsEqual(parsedAfter, updated.Character))
                 throw new FullAccountClassRefusal("fullAccountClassAfterImageMismatch");

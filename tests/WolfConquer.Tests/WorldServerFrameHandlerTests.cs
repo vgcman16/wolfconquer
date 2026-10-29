@@ -9431,6 +9431,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 ReadFrame(new InternalWorldEnterRequestPacket(ticket.Token).ToFrameBytes()));
 
             var countBeforeDrop = sent.Count;
+            Assert.Equal(2001U, Assert.Single(GetSession(handler, connection).PlayerItems.InventoryItems).Uid);
             await handler.HandleFrameAsync(
                 connection,
                 ReadFrame(new MsgItemUsagePacket(
@@ -9454,6 +9455,9 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                     DwParam3: 0,
                     DwParam4: 0));
 
+            var afterDrop = GetSession(handler, connection);
+            Assert.Empty(afterDrop.PlayerItems.InventoryItems);
+            Assert.Empty(afterDrop.PlayerItems.EquipmentItems);
             await handler.HandleFrameAsync(
                 connection,
                 ReadFrame(new MsgItemUsagePacket(
@@ -9467,7 +9471,8 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
 
             Assert.Equal(countBeforeDrop + 1, sent.Count);
             Assert.Contains("handled MsgItemUsage bound drop", log.ToString());
-            Assert.Contains("inventory item was not found", log.ToString());
+            Assert.Same(afterDrop, GetSession(handler, connection));
+            Assert.Empty(GetSession(handler, connection).PlayerItems.EquipmentItems);
         }
         finally
         {

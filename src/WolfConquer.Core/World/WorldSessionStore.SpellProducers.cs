@@ -33,16 +33,13 @@ public sealed partial class WorldSessionStore
                 if (!ReferenceEquals(holder.Read(), current) || !ReferenceEquals(holder.NativeClientIdentity, identity) ||
                     !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, current, proposed)) return false;
                 using var publication = new PreparedSessionSpellPublication(this, connection, holder, current, proposed);
-                publication.ArmFinalProof();
-                if (!publication.IsCurrentPlain()) throw InvalidSpellPublication();
-                publication.PublishNative();
-                publication.PublishHolder();
+                if (!TryPublishFrameOwnedHitpoints(publication, holder, out _)) return false;
                 final = publication.FinalSession;
                 publishedIdentity = publication.PublishedIdentity;
                 publishedBinding = publication.Binding;
                 publication.Dispose();
                 previous = current;
-                PersistFrameOwnedSessionChange(connection, current, final, publishedIdentity, publishedBinding);
+                PersistFrameOwnedSessionChange(connection, current, final, publishedIdentity, publishedBinding, publication.HitpointsWrite);
             }
         }
         NotifyPublishedSessionChange(connection, previous, final, publishedIdentity, publishedBinding);
