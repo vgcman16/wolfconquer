@@ -85,11 +85,19 @@ public sealed partial class WorldSessionStore
 
     private bool TryCompareAndSetCore(ConquerTcpConnection connection, WorldSession expectedSession, WorldSession session,
         object? expectedNativeIdentity, out WorldSession? final)
+        => TryCompareAndSetCore(connection, expectedSession, session, expectedNativeIdentity,
+            out final, captureMagicCosts: false, out _);
+
+    private bool TryCompareAndSetCore(ConquerTcpConnection connection, WorldSession expectedSession, WorldSession session,
+        object? expectedNativeIdentity, out WorldSession? final, bool captureMagicCosts,
+        out MagicCostOutputReceipt? costOutput)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(expectedSession);
         ArgumentNullException.ThrowIfNull(session);
         final = null;
+        costOutput = null;
+        MagicCostOutputReceipt? preparedCostOutput = null;
         object publishedIdentity;
         LegacyOrdinarySpellBinding? publishedBinding;
         RefuseBoundSpellReentry(connection);
@@ -104,6 +112,11 @@ public sealed partial class WorldSessionStore
                     expectedNativeIdentity is not null && !ReferenceEquals(holder.NativeClientIdentity, expectedNativeIdentity) ||
                     !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expectedSession, session)) return false;
                 using var publication = new PreparedSessionSpellPublication(this, connection, holder, expectedSession, session);
+                // Freeze only requested magic output state from the ACTUAL
+                // prepared publication, before its writer or any observer.
+                if (captureMagicCosts)
+                    preparedCostOutput = new(this, connection, publication.PublishedIdentity,
+                        publication.Binding, expectedSession, publication.FinalSession);
                 if (!TryPublishFrameOwnedHitpoints(publication, holder, out _)) return false;
                 final = publication.FinalSession;
                 publishedIdentity = publication.PublishedIdentity;
@@ -113,6 +126,7 @@ public sealed partial class WorldSessionStore
             }
         }
         NotifyPublishedSessionChange(connection, expectedSession, final, publishedIdentity, publishedBinding);
+        costOutput = preparedCostOutput;
         return true;
     }
     public bool TryRemove(ConquerTcpConnection connection, out WorldSession? session)

@@ -13,6 +13,27 @@ public static partial class WorldPacketHandlers
         if (!TryCaptureLegacyRootAdmissionOwner(
                 context, session, expectedNativeClientIdentity, out var owner)) return null;
         session = owner.Expected;
+        if (!TryValidateLegacyXpAdmissionPrerequisites(session, spell, out var xpReason))
+        {
+            await context.Log.WriteLineAsync(
+                $"WorldServer skipped legacy player magic spellId={spell.Id}: xpAdmissionRejected={xpReason}.")
+                .ConfigureAwait(false);
+            return null;
+        }
+        // Restoration consumes this state even when its priced stamina cost
+        // is zero. Validate the actual expected record, protected by its CAS,
+        // rather than the caller's potentially older immutable snapshot.
+        var requiresRestorationStamina =
+            (spell.Sort == LegacyMagicSort.BreathFocus && spell.Id == LegacyBreathFocusSpellId) ||
+            ((int)spell.Sort == LegacySwirlingStormSort && spell.Id == LegacySwirlingStormSpellId &&
+             HasLegacyStatusFlag(session.Character, LegacyOmnipotenceFlag));
+        if (requiresRestorationStamina && !TryReadLegacyRuntimeStamina(session.Character, out _))
+        {
+            await context.Log.WriteLineAsync(
+                $"WorldServer skipped legacy player magic spellId={spell.Id}: requiredStaminaInvalidBeforeAdmission.")
+                .ConfigureAwait(false);
+            return null;
+        }
         // The actual Root invocation already admitted its own, different cost
         // policy. Its executor must not run generic admission a second time.
         if (HasPreparedLegacyRootFirstFamilyInvocation(context, session, spell))

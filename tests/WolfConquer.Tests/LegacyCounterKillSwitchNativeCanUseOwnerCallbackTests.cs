@@ -38,22 +38,25 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task NativeCounterKillStaminaSendSameClientCopyCannotRepriceCommittedAdmission()
+    public async Task NativeCounterKillStaminaSendSameClientCopyStopsStaleOutputWithoutRepricing()
     {
         using var fixture = new CounterKillOwnerCallbackFixture();
         fixture.AssertSelection();
         var reached = 0;
+        WorldSession? accepted = null;
         fixture.OnSend = (current, bytes) =>
         {
             if (!CounterKillOwnerScalar(bytes, LegacyMsgUpdateDataType.Stamina, 90)) return;
             Assert.Equal(1, ++reached);
             current.AssertCommittedBeforeToggle(current.Owner, 90, 960);
+            accepted = current.Owner;
             current.CopySameClientWithEligibleMpMaster();
         };
 
         await fixture.SwitchAsync();
 
         Assert.Equal(1, reached);
+        fixture.AssertCommittedBeforeToggle(Assert.IsType<WorldSession>(accepted), 90, 960);
         var owner = fixture.Owner;
         Assert.Equal("90", owner.Character.Attributes["Stamina"]);
         Assert.Equal(7, owner.Character.MinMana); // The later input is preserved, not charged again using a new rune.
@@ -62,10 +65,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal("2", owner.Character.Attributes["Reborn"]);
         Assert.Equal("15", owner.Character.Attributes["Level"]);
         Assert.Equal((uint)4_036_109, Assert.Single(owner.PlayerItems.RuneItems).ItemId);
-        Assert.Equal("1", owner.Character.Attributes["LegacyCounterKillActive"]);
+        Assert.False(owner.Character.Attributes.ContainsKey("LegacyCounterKillActive"));
         Assert.Equal(fixture.Now.AddMilliseconds(2_000), owner.MagicCooldowns![6_003]);
-        fixture.AssertFrames([(LegacyMsgUpdateDataType.Stamina, 90UL),
-            (LegacyMsgUpdateDataType.Mana, 960UL)], toggle: true); // Immutable prepared cost, not a fresh debit.
+        // This component Store retains current7 without inventing a native
+        // quarantine, sending obsolete960 or completing an interrupted toggle.
+        fixture.AssertFrames([(LegacyMsgUpdateDataType.Stamina, 90UL)], toggle: null);
     }
 
     [Fact]

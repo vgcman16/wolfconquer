@@ -41,30 +41,43 @@ public static partial class WorldPacketHandlers
             return default;
         }
 
-        updatedAttacker = WithCharacterAttribute(
-            attacker,
-            RuntimeLegacyCapriceStampUtcAttribute,
-            now.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
-        if (!CheckLegacyCapriceRateRoll(attacker, capriceLevel))
+        var rateAccepted = CheckLegacyCapriceRateRoll(attacker, capriceLevel);
+        var branch = rateAccepted ? ReadLegacyCapriceBranch(attacker) : 0;
+        var consolidationBlocked = branch == 1 &&
+            CheckLegacyConsolidationRateRoll(target, targetSession.PlayerItems);
+        var targetStamina = 0UL;
+        var attackerStamina = 0UL;
+        // Validate the complete transfer before preparing even its cooldown.
+        // Other branches and legitimate chance failures keep their old stamp.
+        if (branch == 1 && !consolidationBlocked &&
+            (!TryReadLegacyRuntimeStamina(target, out targetStamina) ||
+             !TryReadLegacyRuntimeStamina(attacker, out attackerStamina) ||
+             attackerStamina > ulong.MaxValue - 20))
         {
             return default;
         }
 
-        var branch = ReadLegacyCapriceBranch(attacker);
+        updatedAttacker = WithCharacterAttribute(
+            attacker,
+            RuntimeLegacyCapriceStampUtcAttribute,
+            now.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        if (!rateAccepted)
+        {
+            return default;
+        }
+
         if (branch == 1)
         {
-            if (CheckLegacyConsolidationRateRoll(target, targetSession.PlayerItems))
+            if (consolidationBlocked)
             {
                 return default;
             }
 
-            var targetStamina = ReadLegacyRuntimeStamina(target);
             if (targetStamina < 20)
             {
                 return default;
             }
 
-            var attackerStamina = ReadLegacyRuntimeStamina(updatedAttacker);
             updatedTarget = WithCharacterAttribute(updatedTarget, "Stamina", targetStamina - 20);
             updatedAttacker = WithCharacterAttribute(updatedAttacker, "Stamina", attackerStamina + 20);
             return new LegacyPlayerReceiveCapriceResult(StaminaTransferred: true, XpListRemoved: false);

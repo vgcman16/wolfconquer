@@ -32,8 +32,13 @@ public static partial class WorldPacketHandlers
             return true;
         }
 
+        if (!TryReadLegacyRuntimeStamina(resourceSession.Character, out var stamina))
+        {
+            await context.Log.WriteLineAsync("WorldServer interrupted legacy BreathFocus restoration after accepted admission: " +
+                "requiredStaminaInvalid; accepted accounting retained, no refund or retry authorization.").ConfigureAwait(false);
+            return true;
+        }
         var updatedSession = resourceSession;
-        var stamina = ReadLegacyRuntimeStamina(resourceSession.Character);
         if (stamina < 100)
         {
             var restoredStamina = (ushort)Math.Min(100UL, stamina + spell.Damage);
@@ -73,10 +78,12 @@ public static partial class WorldPacketHandlers
                 cancellationToken)
             .ConfigureAwait(false);
 
+        var staminaDiagnostic = TryReadLegacyRuntimeStamina(updatedSession.Character, out var finalStamina)
+            ? finalStamina.ToString(System.Globalization.CultureInfo.InvariantCulture) : "unavailableAfterPublication";
         await context.Log.WriteLineAsync(
                 "WorldServer handled legacy BreathFocus magic " +
                 $"{FormatSession(updatedContext)} spellId={spell.Id} sort={(int)spell.Sort} " +
-                $"stamina={ReadLegacyRuntimeStamina(updatedSession.Character)} progressDamage=1000.")
+                $"stamina={staminaDiagnostic} progressDamage=1000.")
             .ConfigureAwait(false);
         return true;
     }

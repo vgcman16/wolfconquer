@@ -8058,7 +8058,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerAttachStatusCycloneWithoutXpListRunsSourceNoOpAfterResources()
+    public async Task HandlerAttachStatusCycloneWithoutXpListRefusesBeforeResources()
     {
         var monsterFamily = CreateMonsterFamily();
         var spawn = CreateMonsterSpawn();
@@ -8100,36 +8100,22 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Empty(ParseSpellAnimations(sent));
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Equal(490, updatedSession.Character.MinMana);
-        Assert.Equal("95", updatedSession.Character.Attributes["Stamina"]);
+        Assert.Same(session, updatedSession);
+        Assert.Equal(500, updatedSession.Character.MinMana);
+        Assert.Equal("100", updatedSession.Character.Attributes["Stamina"]);
         Assert.False(HasLegacyStatusFlag(updatedSession.Character.Attributes, LegacyXpListFlag));
         Assert.False(HasLegacyStatusFlag(updatedSession.Character.Attributes, LegacyCycloneFlag));
         Assert.False(updatedSession.Character.Attributes.ContainsKey(RuntimeLegacyCycloneExpiresAtUtcAttribute));
 
-        var updates = ParseMsgUpdates(sent);
-        Assert.Equal(
-            [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Stamina, 95)],
-            Assert.Single(updates, update => update.Uid == PlayerUid &&
-                update.Updates.Count == 1 &&
-                update.Updates[0].Type == LegacyMsgUpdateDataType.Stamina).Updates);
-        Assert.Equal(
-            [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Mana, 490)],
-            Assert.Single(updates, update => update.Uid == PlayerUid &&
-                update.Updates.Count == 1 &&
-                update.Updates[0].Type == LegacyMsgUpdateDataType.Mana).Updates);
-        Assert.DoesNotContain(updates, update => update.Updates.Any(entry =>
-            entry.Type is LegacyMsgUpdateDataType.XPList or
-                LegacyMsgUpdateDataType.XPCircle or
-                LegacyMsgUpdateDataType.StatusFlag));
-
+        Assert.Empty(sent);
         var output = log.ToString();
-        Assert.Contains("WorldServer skipped legacy Cyclone magic", output);
+        Assert.Contains("xpAdmissionRejected=Cyclone", output);
         Assert.Contains("XPList status flag is not active", output);
         Assert.DoesNotContain("unsupported attach status spell", output);
     }
 
     [Fact]
-    public async Task HandlerAttachStatusUnsupportedSpellSpendsResourcesThenLogs()
+    public async Task HandlerAttachStatusUnsupportedSpellRefusesBeforeResourcesThenLogs()
     {
         const ushort unsupportedSpellId = 9_999;
         var monsterFamily = CreateMonsterFamily();
@@ -8168,18 +8154,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Equal(490, updatedSession.Character.MinMana);
-        Assert.Equal("95", updatedSession.Character.Attributes["Stamina"]);
+        Assert.Same(session, updatedSession);
+        Assert.Equal(500, updatedSession.Character.MinMana);
+        Assert.Equal("100", updatedSession.Character.Attributes["Stamina"]);
         Assert.Empty(ParseSpellAnimations(sent));
-        var updates = ParseMsgUpdates(sent);
-        Assert.Equal(
-            [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Stamina, 95)],
-            Assert.Single(updates, update => update.Updates.Count == 1 &&
-                update.Updates[0].Type == LegacyMsgUpdateDataType.Stamina).Updates);
-        Assert.Equal(
-            [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Mana, 490)],
-            Assert.Single(updates, update => update.Updates.Count == 1 &&
-                update.Updates[0].Type == LegacyMsgUpdateDataType.Mana).Updates);
+        Assert.Empty(sent);
         Assert.Contains("unsupported attach status spell", log.ToString());
     }
 

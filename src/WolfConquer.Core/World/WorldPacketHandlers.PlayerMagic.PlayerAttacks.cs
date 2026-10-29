@@ -763,7 +763,9 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
         }
 
-        if (result.LightOfStaminaResult.IsActive)
+        if (result.LightOfStaminaResult.IsActive &&
+            (result.UpdatedAttackerSession is not { } lightOfStaminaEffectSession ||
+             TryReadLegacyRuntimeStamina(lightOfStaminaEffectSession.Character, out _)))
         {
             var effect = LegacyMsgRefineEffectPacket.LightOfStamina(targetUid).ToFrameBytes();
             await SendFrameToPlayerAndVisiblePeersAsync(
@@ -1126,7 +1128,8 @@ public static partial class WorldPacketHandlers
         }
 
         if (result.LightOfStaminaResult.StaminaRestored &&
-            result.UpdatedAttackerSession is { } lightOfStaminaSession)
+            result.UpdatedAttackerSession is { } lightOfStaminaSession &&
+            TryReadLegacyRuntimeStamina(lightOfStaminaSession.Character, out var restoredStamina))
         {
             var attackerUid = CheckedUInt32(
                 lightOfStaminaSession.Character.Uid,
@@ -1135,7 +1138,7 @@ public static partial class WorldPacketHandlers
                     LegacyMsgUpdatePacket
                         .CreateLegacyRuntimeStaminaTickUpdate(
                             attackerUid,
-                            ReadLegacyRuntimeStamina(lightOfStaminaSession.Character))
+                            restoredStamina)
                         .ToFrameBytes(),
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -1168,7 +1171,9 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
         }
 
-        if (result.CapriceStaminaTransferred && result.UpdatedAttackerSession is { } capriceStaminaSession)
+        if (result.CapriceStaminaTransferred && result.UpdatedAttackerSession is { } capriceStaminaSession &&
+            TryReadLegacyRuntimeStamina(capriceStaminaSession.Character, out var capriceAttackerStamina) &&
+            TryReadLegacyRuntimeStamina(targetSession.Character, out var capriceTargetStamina))
         {
             var attackerUid = CheckedUInt32(
                 capriceStaminaSession.Character.Uid,
@@ -1177,7 +1182,7 @@ public static partial class WorldPacketHandlers
                     LegacyMsgUpdatePacket
                         .CreateLegacyRuntimeStaminaTickUpdate(
                             attackerUid,
-                            ReadLegacyRuntimeStamina(capriceStaminaSession.Character))
+                            capriceAttackerStamina)
                         .ToFrameBytes(),
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -1185,7 +1190,7 @@ public static partial class WorldPacketHandlers
                     LegacyMsgUpdatePacket
                         .CreateLegacyRuntimeStaminaTickUpdate(
                             targetUid,
-                            ReadLegacyRuntimeStamina(targetSession.Character))
+                            capriceTargetStamina)
                         .ToFrameBytes(),
                     cancellationToken)
                 .ConfigureAwait(false);

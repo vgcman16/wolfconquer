@@ -28,8 +28,14 @@ public static partial class WorldPacketHandlers
             return default;
         }
 
+        var stamina = 0UL;
+        if (attackerSession is not null && !TryReadLegacyRuntimeStamina(attacker, out stamina))
+        {
+            return default;
+        }
+
         var staminaRestored = false;
-        if (attackerSession is not null && ReadLegacyRuntimeStamina(updatedAttacker) < 100)
+        if (attackerSession is not null && stamina < 100)
         {
             updatedAttacker = WithCharacterAttribute(updatedAttacker, "Stamina", 100UL);
             staminaRestored = true;

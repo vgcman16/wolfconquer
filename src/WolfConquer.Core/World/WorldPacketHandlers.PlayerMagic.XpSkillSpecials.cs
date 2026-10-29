@@ -48,10 +48,10 @@ public static partial class WorldPacketHandlers
             !IsLegacyThunderstrikerClass(resourceSession.Character.Class))
         {
             await context.Log.WriteLineAsync(
-                    $"WorldServer source-backed returned legacy {definition.Name} XP skill " +
+                    $"WorldServer interrupted legacy {definition.Name} XP skill after accepted admission " +
                     $"{FormatSession(context with { Session = resourceSession })} spellId={spell.Id} sort={(int)spell.Sort} " +
-                    $"class={resourceSession.Character.Class}; source ThunderRampage.cs breaks after " +
-                    "CanUseSpell.Verified when AtributesStatus.IsThunderStriker is false.")
+                    $"class={resourceSession.Character.Class}; required Thunderstriker class changed; " +
+                    "accepted accounting retained, no refund or retry authorization.")
                 .ConfigureAwait(false);
             return true;
         }
@@ -126,7 +126,14 @@ public static partial class WorldPacketHandlers
 
         if (definition.RestoreStaminaToMaximum)
         {
-            var stamina = ReadLegacyRuntimeStamina(resourceSession.Character);
+            if (!TryReadLegacyRuntimeStamina(resourceSession.Character, out var stamina))
+            {
+                await context.Log.WriteLineAsync(
+                        $"WorldServer interrupted legacy {definition.Name} XP restoration after accepted admission: " +
+                        "requiredStaminaInvalid; accepted accounting retained, no refund or retry authorization.")
+                    .ConfigureAwait(false);
+                return true;
+            }
             var maximumStamina = HasLegacyFatalCrossHeavenBlessing(resourceSession.Character)
                 ? LegacyFatalCrossHeavenBlessingStaminaThreshold
                 : LegacyFatalCrossNormalStaminaThreshold;

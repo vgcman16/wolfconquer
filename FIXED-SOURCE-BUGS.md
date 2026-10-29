@@ -4,6 +4,130 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-29 pending cost output and XP eligibility - local qualification
+
+### FSB-193: Stop obsolete unsent cost replies without repricing accepted costs
+
+Generic/Root admission used identity-only refresh between prepared resource
+frames. A genuine same-issuance Mana change during Stamina delivery could be
+followed by an obsolete Mana reply and further execution. The actual Store CAS
+now optionally freezes a closed cost-output receipt from its real prepared final
+record before the writer, returning it only after commitment and the Frame
+postlude/observer. A genuinely unchanged admission validates the actual holder
+without manufacturing a writer/observer event. Other CAS/Proc APIs keep their
+existing path; no saver callback or new native owner is supplied.
+
+Only still-unsent resource fields remain numeric prerequisites. Completed
+Stamina changes do not stale later unchanged Mana, and completed Mana changes
+do not stale ColdTime. Real issuance/binding, managed authorization and admission-
+changed deadlines remain continuation prerequisites; unrelated attributes,
+NPC selection and unrelated cooldowns remain usable. Relevant pending drift
+stops output/continuation with accepted/newer state retained, no refund/reprice.
+Actual native-bound or Frame-unbound owners use their existing recovery fence;
+pure component Stores acquire no fabricated native recovery. Real transport
+failure retains its typed committed outcome, original IO cause and fencing result.
+
+Two original genuine saved/Store/native drift controls and nine further owned
+benign/resource/auth controls pass. Six real Frame-unbound cases redeem actual
+internal handoff tickets from saved inputs and prove positive/drift/transport
+behavior and post-disconnect saved Mana. They call actual private admission,
+not a whole executor or live login. Three old component cases now retain the
+accepted price/current newer state while forbidding obsolete replies/activation.
+The restoration accepted-prefix controls remain unchanged and pass.
+
+Limits: this protects UNSENT frames, not a same-field mutation after its final
+check or inside its own in-flight Send. A still-pending legitimate resource
+change can require quarantine; shared output reservation/order remains future
+work. Real Frame-unbound persistence remains its existing best-effort path,
+not the native typed transaction contract. Manual prefixes, whole-cast/SQL/
+power-loss atomicity and live/English/client parity remain OPEN.
+
+### FSB-194: Validate actual XP eligibility before costs; do not charge unsupported status actions
+
+Cyclone/Superman/FatalStrike/SuperCyclone previously debited before checking
+XPList, and ThunderRampage debited before its required-class rejection. Their
+restoration paths could also default malformed required Stamina. Pure family
+prerequisites now run on the actual captured owner.Expected before the same
+existing plan/CAS, using real descriptor/class predicates. Legitimate non-XP
+special damage, unused state and map cost bypass remain distinct. Later accepted
+changes stop unperformed activation/restoration with accounting retained.
+
+After all recognized AttachStatus handlers decline and the generic status lookup
+is absent, the unsupported fallback now logs before any resource admission.
+No implemented action exists to charge for. Successful handlers and wire formats
+remain unchanged. Existing XP and unsupported tests now assert intact records,
+resources, entitlement, cooldowns and outputs rather than broken debits.
+
+The18 genuine saved-input old-product rejection cases first failed and now pass.
+Thirty-six authored XP cases plus two Root unsupported owned controls cover
+six valid activations, defaults, real non-XP damage, stale caller/current owner,
+unused-state/map behavior and real Character writer refusal/retry. The initial
+combined run found one old CounterKill stale-output expectation and one new
+Superman fixture typo (0x18 instead of the existing independent0x12); only those
+test expectations were corrected. Their9 focused cases and final combined pass.
+
+Accuracy/Fly/Shield and other target/executor gates remain separate OPEN work;
+this is not every XP/status action or complete cast atomicity. Caprice pair
+publication remains OPEN: actual target-file-refusal baseline still exposes
+attacker60 rather than40 (one failure, one retirement control pass). Its isolated
+v11/paired-writer draft is NOT intaken: post-pair newer-state overwrite and valid
+Caprice+Light output composition and missing shared journal serialization require
+a separate successor. The52
+publication paths do not include those future unqualified baseline/draft files.
+
+Root local qualification2026-10-29: final combined magic/admission/required-
+stamina/Frame selection passed2804/2804,0failures/skips. Shared Store/native-
+vitals/ordinary-publication/testing-tool neighbors passed289/289,0failures/skips.
+Selections may overlap. Build10 passed with0errors/157historical warnings, none
+in changed paths. The original41 safety controls first failed on old product
+(39numeric and2pending-output), and18 XP admission controls separately reproduced
+their old paid rejection behavior. All applicable controls now pass. Full
+successor Windows CI and live client acceptance remain pending; the last full
+is exact c6c/40853051675, whose actual outputs/results were already preserved.
+
+## 2026-10-29 required stamina - local source qualification
+
+### FSB-192: Reject malformed required stamina before debits or restoration
+
+The shared fallback reader treated present empty/negative/nonnumeric/overflowing
+Stamina as an absent100/150 balance. Paid generic/Root admission could therefore
+spend synthetic resources; BreathFocus/Omnipotence restoration and Caprice/Light
+receive effects could also manufacture valid balances from invalid saved input.
+Caprice additionally allowed an unrepresentable attacker+20 transfer.
+
+The new strict reader distinguishes present invalid input from actual absence,
+retains the existing unsigned Integer/Invariant contract and ordered blessing
+defaults, and invents no cap. Paid costs validate their actual calculated
+requiredness; map1039 and truly unused zero-cost data remain optional. Required
+restoration validates the actual captured owner.Expected before preparation/CAS,
+so a stale valid caller cannot authorize an invalid current record. A stale
+invalid caller cannot veto a valid current record. Later independently accepted
+invalid publications stop only unperformed restoration and retain accepted costs.
+
+Caprice validates both transfer inputs and representability before preparing
+its transfer stamp/deltas. Light validates before accepting its restoration.
+Rejected receive effects retain the independent accepted outer attack/costs and
+emit no rejected stamina/refine success. Successful producer bytes and valid
+arithmetic/default/independent XP-branch controls remain covered.
+
+Root local qualification2026-10-29: all39 selected old-API numeric
+controls first failed on exact c6c product, alongside two separately OPEN stale-Mana
+output controls. After the reviewed numeric23 composition, sequential stable
+build05 completed with0errors. Fresh numeric02 passed93/93,0skips/failures.
+The wider combat/admission selection passed2749/2749,0skips/failures; selections
+overlap. Its filter explicitly omits only the two separate unimplemented output
+controls. That is not a whole-suite or output-freshness success claim. The earlier
+overlapping build04/test attempt was interrupted and discarded. Actual TRXs/logs
+remain under root-stamina-safety-next. Full successor CI and live remain pending.
+
+Boundaries remain OPEN: remaining old-reader callers, valid Caprice pair
+publication, saved-stamina durability, complete native stamina ownership,
+multi-action/SQL/power-loss atomicity, in-flight transport ordering and live
+client/English/full parity. Insufficient-target Caprice attempt throttling is
+not newly certified as client truth. Two prepared-output regressions are a
+separate repair, not hidden by this numeric qualification. No live activation,
+original-save/route edit, retained mail resend or held Guild intake occurred.
+
 ## 2026-10-29 automatic-skill admission - full source qualification
 
 Full Windows [40853051675](https://github.com/vgcman16/wolfconquer/actions/runs/40853051675)

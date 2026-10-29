@@ -387,20 +387,9 @@ public static partial class WorldPacketHandlers
 
         if (!TryGetLegacyAttachStatusFlag(spell.Id, out var statusFlag))
         {
-            var unsupportedResourceSession = await TryPrepareLegacyPlayerMagicCastAsync(
-                    context,
-                    session,
-                    spell,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            if (unsupportedResourceSession is null)
-            {
-                return true;
-            }
-
             await context.Log.WriteLineAsync(
                     "WorldServer skipped legacy player attach-status magic " +
-                    $"{FormatSession(context with { Session = unsupportedResourceSession })} spellId={spell.Id}; unsupported attach status spell.")
+                    $"{FormatSession(context)} spellId={spell.Id}; unsupported attach status spell.")
                 .ConfigureAwait(false);
             return true;
         }
@@ -723,94 +712,6 @@ public static partial class WorldPacketHandlers
         bool SendEquipmentRefreshOnAdd,
         bool SendEquipmentRefreshOnRemove,
         Func<LegacyMagicRuntimeSpell, ulong> SpellExperienceDamage);
-
-    private static async ValueTask<bool> HandleLegacyPlayerOpenXpSkillMagicAsync(
-        WorldPacketHandlerContext context,
-        MsgAttackQuery query,
-        PlayerSpellSnapshotEntry playerSpell,
-        LegacyMagicRuntimeSpell spell,
-        WorldSession session,
-        int statusFlag,
-        string expiresAtAttribute,
-        TimeSpan duration,
-        string skillName,
-        bool restoreStaminaToMaximum,
-        CancellationToken cancellationToken)
-    {
-        var resourceSession = await TryPrepareLegacyPlayerMagicCastAsync(
-                context,
-                session,
-                spell,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (resourceSession is null)
-        {
-            return true;
-        }
-
-        if (!HasLegacyStatusFlag(resourceSession.Character, LegacyRuntimeUpdateTicker.XpListFlag))
-        {
-            await context.Log.WriteLineAsync(
-                    $"WorldServer skipped legacy {skillName} magic " +
-                    $"{FormatSession(context)} spellId={spell.Id}; XPList status flag is not active.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        if (restoreStaminaToMaximum)
-        {
-            var stamina = ReadLegacyRuntimeStamina(resourceSession.Character);
-            var maximumStamina = HasLegacyFatalCrossHeavenBlessing(resourceSession.Character)
-                ? LegacyFatalCrossHeavenBlessingStaminaThreshold
-                : LegacyFatalCrossNormalStaminaThreshold;
-            if (stamina < maximumStamina)
-            {
-                resourceSession = await ApplyLegacyStaminaToPlayerAsync(
-                        context,
-                        context.Connection,
-                        resourceSession,
-                        maximumStamina,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-            }
-        }
-
-        var hadStatus = HasLegacyStatusFlag(resourceSession.Character, statusFlag);
-        var xpSkillNow = DateTimeOffset.UtcNow;
-        var xpListSession = await ApplyLegacyOpenXpSkillAsync(
-                context with { Session = resourceSession },
-                resourceSession,
-                statusFlag,
-                expiresAtAttribute,
-                xpSkillNow,
-                cancellationToken,
-                duration)
-            .ConfigureAwait(false);
-
-        var casterUid = CheckedUInt32(xpListSession.Character.Uid, nameof(xpListSession.Character.Uid));
-        var animation = LegacySpellAnimationPacket.ForPlayerMagic(
-            casterUid,
-            query.X,
-            query.Y,
-            spell.Id,
-            (byte)Math.Min(playerSpell.Level, byte.MaxValue),
-            playerSpell.UseSpellSoul,
-            [new LegacySpellAnimationTarget(casterUid, 0, Hit: true, MsgAttackEffect.None)]);
-        await SendPlayerSpellAnimationToVisibleAsync(
-                context with { Session = xpListSession },
-                xpListSession,
-                animation,
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        await context.Log.WriteLineAsync(
-                $"WorldServer handled legacy {skillName} XPList transition " +
-                $"{FormatSession(context)} spellId={spell.Id} sort={(int)spell.Sort} " +
-                $"consumedXpList=True opened{skillName}=True refreshed{skillName}={hadStatus} " +
-                $"expiresAtUtc={xpListSession.Character.Attributes[expiresAtAttribute]}.")
-            .ConfigureAwait(false);
-        return true;
-    }
 
     private static async ValueTask<bool> HandleLegacySourceSilentPlayerMagicAsync(
         WorldPacketHandlerContext context,

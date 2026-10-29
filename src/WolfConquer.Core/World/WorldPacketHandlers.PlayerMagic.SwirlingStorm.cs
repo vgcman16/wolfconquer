@@ -43,6 +43,7 @@ public static partial class WorldPacketHandlers
                 resourceSession,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (updatedSession is null) return true;
         context = context with { Session = updatedSession };
 
         var monsterTargets = context.MonsterStates is not null
@@ -417,7 +418,7 @@ public static partial class WorldPacketHandlers
         return true;
     }
 
-    private static async ValueTask<WorldSession> TryApplyLegacySwirlingStormOmnipotenceStaminaAsync(
+    private static async ValueTask<WorldSession?> TryApplyLegacySwirlingStormOmnipotenceStaminaAsync(
         WorldPacketHandlerContext context,
         WorldSession session,
         CancellationToken cancellationToken)
@@ -427,7 +428,12 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
-        var stamina = ReadLegacyRuntimeStamina(session.Character);
+        if (!TryReadLegacyRuntimeStamina(session.Character, out var stamina))
+        {
+            await context.Log.WriteLineAsync("WorldServer interrupted legacy SwirlingStorm restoration after accepted admission: " +
+                "requiredStaminaInvalid; accepted accounting retained, no refund or retry authorization.").ConfigureAwait(false);
+            return null;
+        }
         var threshold = HasLegacyFatalCrossHeavenBlessing(session.Character)
             ? LegacyFatalCrossHeavenBlessingStaminaThreshold
             : LegacyFatalCrossNormalStaminaThreshold;

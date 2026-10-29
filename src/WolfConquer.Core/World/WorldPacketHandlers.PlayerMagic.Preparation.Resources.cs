@@ -18,7 +18,9 @@ public static partial class WorldPacketHandlers
             spell, expected.PlayerItems, spell.UseMana == 0 ? null : context.WorldData,
             expected.Character.Attributes, expected.AlternateEquipmentActive, expected.Character.Class);
         var character = expected.Character;
-        var stamina = ReadLegacyRuntimeStamina(character);
+        ulong stamina = 0;
+        if (cost.UseStamina > 0 && !TryReadLegacyRuntimeStamina(character, out stamina))
+        { reason = "staminaInvalid"; return false; }
         if (stamina < cost.UseStamina)
         { reason = $"stamina={stamina} requiredStamina={cost.UseStamina}"; return false; }
         if (character.MinMana < cost.UseMana)

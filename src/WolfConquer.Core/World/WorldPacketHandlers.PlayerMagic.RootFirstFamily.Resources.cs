@@ -21,7 +21,9 @@ public static partial class WorldPacketHandlers
         {
             var useStamina = (uint)spell.UseStamina +
                 (HasLegacyStatusFlag(character, LegacyScurvyBombFlag) ? 6U : 0U);
-            var stamina = ReadLegacyRuntimeStamina(character);
+            ulong stamina = 0;
+            if (useStamina > 0 && !TryReadLegacyRuntimeStamina(character, out stamina))
+            { reason = "staminaInvalid"; return false; }
             if (stamina < useStamina)
             { reason = $"stamina={stamina} requiredStamina={useStamina}"; return false; }
             if (character.MinMana < useMana)
@@ -94,7 +96,9 @@ public static partial class WorldPacketHandlers
         if (session.Character.MapId == 1_039) return true;
         var required = (uint)spell.UseStamina +
             (HasLegacyStatusFlag(session.Character, LegacyScurvyBombFlag) ? 6U : 0U);
-        var available = ReadLegacyRuntimeStamina(session.Character);
+        if (required == 0) return true;
+        if (!TryReadLegacyRuntimeStamina(session.Character, out var available))
+        { reason = "staminaInvalid"; return false; }
         if (available >= required) return true;
         reason = $"stamina={available} requiredStamina={required}";
         return false;

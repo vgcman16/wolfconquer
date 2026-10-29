@@ -71,13 +71,15 @@ public sealed partial class LegacyMagicClassGatePreparationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task GenericAdmissionPostcommitSameClientEditIsNotRepriced(bool sixArguments)
+    public async Task GenericAdmissionPostcommitSameClientEditStopsStaleOutputWithoutRepricing(bool sixArguments)
     {
+        WorldSession? committed = null;
         var spell = GenericAdmissionSpell();
         await GenericAdmissionFixture.RunAsync(new(GenericAdmissionInput(), onSend: (fixture, _) =>
         {
             if (fixture.Frames.Count != 1) return;
             var owner = fixture.Current;
+            committed = owner;
             fixture.Store!.Set(fixture.Connection, owner with
             {
                 Character = owner.Character with
@@ -89,12 +91,18 @@ public sealed partial class LegacyMagicClassGatePreparationTests
         }), async fixture =>
         {
             var result = await fixture.InvokeAsync(spell, sixArguments);
-            Assert.Same(fixture.Current, result);
+            Assert.Null(result);
+            var accepted = Assert.IsType<WorldSession>(committed);
+            Assert.Equal(960L, accepted.Character.MinMana);
             Assert.Equal(7L, fixture.Current.Character.MinMana);
             Assert.Equal("90", fixture.Current.Character.Attributes["Stamina"]);
             Assert.Equal("retained", fixture.Current.Character.Attributes["AfterAdmission"]);
             Assert.True(fixture.Current.MagicCooldowns!.ContainsKey(spell.Id));
-            AssertGenericAdmissionWire(fixture, spell); // Prepared960 is sent; no second debit from the new7.
+            Assert.Equal(accepted.MagicCooldowns![spell.Id], fixture.Current.MagicCooldowns[spell.Id]);
+            Assert.Equal(LegacyMsgUpdatePacket.CreateLegacyRuntimeStaminaTickUpdate(
+                checked((uint)fixture.Original.Character.Uid), 90).ToFrameBytes(), Assert.Single(fixture.Frames));
+            // This is a component-only Store: current7 remains without a
+            // fabricated native fence, stale960, refund or a second debit.
         });
     }
 

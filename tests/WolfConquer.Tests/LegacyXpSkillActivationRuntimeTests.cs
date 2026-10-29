@@ -134,7 +134,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerFatalStrike6011WithoutXpListSpendsResourcesThenSkipsActivationAndAnimation()
+    public async Task HandlerFatalStrike6011WithoutXpListRefusesBeforeResourcesActivationAndAnimation()
     {
         var result = await RunLegacyXpSkillActivationAsync(
             TestFatalStrikeAttachStatusSpellId,
@@ -148,18 +148,17 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             });
 
         Assert.Empty(ParseSpellAnimations(result.Sent));
-        Assert.Equal(493, result.Session.Character.MinMana);
+        Assert.Equal(500, result.Session.Character.MinMana);
         Assert.True(HasLegacyStatusFlag(result.Session.Character.Attributes, LegacySupermanFlag));
         Assert.False(HasLegacyStatusFlag(result.Session.Character.Attributes, TestFatalStrikeFlag));
         Assert.False(result.Session.Character.Attributes.ContainsKey(RuntimeLegacyFatalStrikeExpiresAtUtcAttribute));
         Assert.Equal("29", result.Session.Character.Attributes["XPCount"]);
 
         var updates = ParseMsgUpdates(result.Sent);
-        Assert.Contains(updates, update => update.Uid == PlayerUid &&
-            update.Updates.SequenceEqual([new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Mana, 493)]));
+        Assert.DoesNotContain(updates, update => update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.Mana));
         Assert.DoesNotContain(updates, update => update.Updates.Any(entry =>
             entry.Type is LegacyMsgUpdateDataType.XPList or LegacyMsgUpdateDataType.XPCircle));
-        Assert.Contains("WorldServer skipped legacy FatalStrike magic", result.Log);
+        Assert.Contains("xpAdmissionRejected=FatalStrike", result.Log);
         Assert.Contains("XPList status flag is not active", result.Log);
     }
 
@@ -348,7 +347,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerThunderRampageWrongClassSpendsResourcesThenReturnsWithoutXpListConsumptionOrAnimation()
+    public async Task HandlerThunderRampageWrongClassRefusesBeforeResourcesXpListConsumptionOrAnimation()
     {
         var result = await RunLegacyXpSkillActivationAsync(
             TestThunderRampageSpellId,
@@ -364,7 +363,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             classCode: 142);
 
         Assert.Empty(ParseSpellAnimations(result.Sent));
-        Assert.Equal(493, result.Session.Character.MinMana);
+        Assert.Equal(500, result.Session.Character.MinMana);
         Assert.True(HasLegacyStatusFlag(result.Session.Character.Attributes, LegacyXpListFlag));
         Assert.True(HasLegacyStatusFlag(result.Session.Character.Attributes, LegacySupermanFlag));
         Assert.False(HasLegacyStatusFlag(result.Session.Character.Attributes, TestThunderRampageFlag));
@@ -372,12 +371,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal("55", result.Session.Character.Attributes["XPCount"]);
 
         var updates = ParseMsgUpdates(result.Sent);
-        Assert.Contains(updates, update => update.Uid == PlayerUid &&
-            update.Updates.SequenceEqual([new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Mana, 493)]));
+        Assert.DoesNotContain(updates, update => update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.Mana));
         Assert.DoesNotContain(updates, update => update.Updates.Any(entry =>
             entry.Type is LegacyMsgUpdateDataType.XPList or LegacyMsgUpdateDataType.XPCircle or LegacyMsgUpdateDataType.Stamina));
-        Assert.Contains("WorldServer source-backed returned legacy ThunderRampage XP skill", result.Log);
-        Assert.Contains("AtributesStatus.IsThunderStriker is false", result.Log);
+        Assert.Contains("xpAdmissionRejected=ThunderRampage", result.Log);
+        Assert.Contains("required Thunderstriker class is absent", result.Log);
     }
 
     private static async Task<LegacyXpSkillActivationResult> RunLegacyXpSkillActivationAsync(
