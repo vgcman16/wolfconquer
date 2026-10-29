@@ -4,7 +4,17 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## 2026-10-29 owned consumable transactions - focused qualification
+## 2026-10-29 owned consumable transactions - full source qualification
+
+Full Windows [40839078556](https://github.com/vgcman16/wolfconquer/actions/runs/40839078556)
+passed on exact ad23e71e2ed25da043f1dcbdfd0517c88200358f: Core29,632 passed,
+152 existing external-fixture skips, Updates446/446 and Launcher57/57, zero
+failures; all eight stages passed. The actual local check finished
+2026-10-29T08:42:46.3993684Z. Logs, all three TRXs and matching World/DataTool
+outputs are preserved outside the runner. This qualifies the published offline
+consumable/tool checkpoint; it does not prove live rendering, SQL/power-loss
+durability, physical Mana ownership or full gameplay parity. No deployment,
+client relaunch or retained gear resend followed.
 
 ### FSB-186: Validate Mana uses before cooldown and commit Character with Items
 
@@ -31,7 +41,7 @@ compare actual optional native owners rather than requiring missing wiring.
 
 This fixes the active managed route. It does not implement physical Mana
 ownership/hydration, compound native spell costs, SQL, power-loss durability or
-live-client acceptance. The publication batch's full Windows gate is pending.
+live-client acceptance. The full offline Windows gate passed as recorded above.
 
 ### FSB-187: Restoring a resource must not lower an existing over-cap value
 
@@ -79,12 +89,12 @@ owned delivery/replay/claim and missing-catalog-before-allocation controls in th
 selection. It grants nothing automatically; no actual client mail was sent.
 Current saved catalog evidence resolves Stancher/Agrypnotic/LifeFruit. Source
 tests are not live rendering, physical Mana ownership, SQL, power-loss durability
-or complete gameplay proof. The full Windows publication gate remains pending;
+or complete gameplay proof. The full offline Windows gate passed above;
 HP-full/Mana-low gameplay intent remains unresolved.
 
 Final broader consumable/HP/trade/Frame/operator/runtime selection also passed:
 1258passed/126existing skips/0failed in3m16s. Selections overlap. The full Windows
-successor gate remains required for this publication batch.
+successor gate now passed above for this publication batch.
 
 ## 2026-10-29 connection safety and runtime diagnostics - full source qualified
 

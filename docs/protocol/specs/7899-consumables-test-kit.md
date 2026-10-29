@@ -88,3 +88,15 @@ passed56/56, zero failures/skips, in6m55s. Both old unsupported-entry controls n
 pass; their original FAIL2/2 receipts are retained. The mailbox runner also accepts
 -Kit consumables and proves request preparation without a send or player-file
 mutation. Full Windows CI and real client/wire/Store acceptance remain separate.
+
+Latest qualification, superseding the pending full-gate note above:
+
+Full Windows [40839078556](https://github.com/vgcman16/wolfconquer/actions/runs/40839078556)
+passed on exact ad23e71e2ed25da043f1dcbdfd0517c88200358f: Core29,632 passed,
+152 existing external-fixture skips, Updates446/446 and Launcher57/57, zero
+failures; all eight stages passed. The actual local check finished
+2026-10-29T08:42:46.3993684Z. Logs, all three TRXs and matching World/DataTool
+outputs are preserved outside the runner. This qualifies the published offline
+consumable/tool checkpoint; it does not prove live rendering, SQL/power-loss
+durability, physical Mana ownership or full gameplay parity. No deployment,
+client relaunch or retained gear resend followed.
