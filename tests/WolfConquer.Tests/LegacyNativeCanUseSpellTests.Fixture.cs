@@ -89,7 +89,7 @@ public sealed partial class LegacyNativeCanUseSpellTests
     private static byte[] Update(uint uid, LegacyMsgUpdateDataType type, uint value) =>
         new LegacyMsgUpdatePacket(uid, [new LegacyMsgUpdateEntry(type, value)]).ToFrameBytes();
 
-    private sealed record Snapshot(ushort Stamina, ushort Mana, ushort RandomSpell,
+    private sealed record Snapshot(ushort Stamina, uint Mana, ushort RandomSpell,
         ushort Soul, DateTime ColdTime, bool HasColdTime, byte[][] Frames);
 
     private static Snapshot Capture(Fixture f) => new(f.Player.Stamina, f.Player.Mana,

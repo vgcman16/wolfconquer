@@ -34,6 +34,7 @@ public sealed partial class WorldSessionStore
             }
             if (updated is null) return false;
             if (updated.Character.MinHitPoints != expected.Character.MinHitPoints ||
+                updated.Character.MinMana != expected.Character.MinMana ||
                 !ReferenceEquals(updated.PlayerSpells, expected.PlayerSpells) ||
                 !ReferenceEquals(updated.PlayerProficiencies, expected.PlayerProficiencies) ||
                 !string.Equals(updated.UsersRoot, expected.UsersRoot, StringComparison.Ordinal) ||

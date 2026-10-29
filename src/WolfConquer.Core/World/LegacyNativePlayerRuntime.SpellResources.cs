@@ -9,24 +9,15 @@ public sealed partial class LegacyNativePlayerRuntime
 
     public ushort Stamina = 0;
 
-    private ushort _mana;
+    private uint _mana;
 
-    // Complete native Player2633..2653, commit before conditional owner send.
-    public ushort Mana
+    // Ordinary admitted players require their actual private Store-first joint
+    // participant. This public component setter refuses owned attachments.
+    // Whole unbound components retain the native conditional-send contract.
+    public uint Mana
     {
-        get { return _mana; }
-        set
-        {
-            _mana = value;
-            if (Owner.FullLoading)
-            {
-                using (LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket())
-                {
-                    LegacyNativePacket stream = recycledPacket.GetStream();
-                    SendUpdate(stream, value, LegacyNativeMsgUpdate.DataType.Mana);
-                }
-            }
-        }
+        get { return Volatile.Read(ref _mana); }
+        set { SetCurrentMana(value); }
     }
 }
 

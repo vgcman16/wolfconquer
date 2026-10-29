@@ -64,7 +64,7 @@ public static partial class LegacyMagicResourceCostCalculator
         var mana = spell.UseMana;
         byte? mpMasterLevel = null;
         var mpMasterReductionPercent = 0;
-        if (CanUseLegacyRuneEffects(characterAttributes) &&
+        if (mana > 0 && CanUseLegacyRuneEffects(characterAttributes) &&
             TryGetEquippedRuneLevel(
                 playerItems,
                 itemsById,

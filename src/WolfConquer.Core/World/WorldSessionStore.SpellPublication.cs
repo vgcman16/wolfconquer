@@ -33,7 +33,9 @@ public sealed partial class WorldSessionStore
             {
                 // A retired/foreign attachment is never an unbound fallback.
                 if (connection.NativeGameClient?.OrdinarySpellBinding is not null ||
-                    proposed.NativeGameClient?.OrdinarySpellBinding is not null) throw InvalidSpellPublication();
+                    proposed.NativeGameClient?.OrdinarySpellBinding is not null ||
+                    connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true ||
+                    proposed.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true) throw InvalidSpellPublication();
                 FinalSession = proposed;
                 return;
             }
@@ -52,7 +54,8 @@ public sealed partial class WorldSessionStore
                     ReferenceEquals(proposed.PlayerProficiencies, proficiencies.FinalSnapshot) ? proposed :
                     proposed with { PlayerSpells = map.FinalSnapshot, PlayerProficiencies = proficiencies.FinalSnapshot };
                 hitpoints = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareBound(binding, expected, final);
-                if (expected.Character.MinHitPoints != final.Character.MinHitPoints)
+                if (expected.Character.MinHitPoints != final.Character.MinHitPoints ||
+                    expected.Character.MinMana != final.Character.MinMana)
                     HitpointsWrite = (store.framePersistenceOwner ?? throw InvalidSpellPublication())
                         .PrepareNativeHitpointsWrite(store, connection, binding, expected, final);
                 FinalSession = HitpointsWrite?.Proposed ?? final;

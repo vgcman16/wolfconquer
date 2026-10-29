@@ -15,10 +15,16 @@ internal partial class LegacyNativeCanUseSpell
         if (Attack is null || client is null || DBSpells is null)
             return false;
 
+        // The four whole-component executors have late eligibility/effects
+        // outside this admission. They have no complete Store-first owned cast
+        // plan yet. Active managed Frame admission does not call this helper.
+        if (client.OrdinarySpellBinding is not null || client.Player?.HasOwnedVitalsAttachment == true)
+            return false;
+
         lock (client.SpellAdmissionSyncRoot)
         {
             LegacyNativePlayerRuntime? player = client.Player;
-            if (player is null || !ReferenceEquals(player.Owner, client))
+            if (player is null || !ReferenceEquals(player.Owner, client) || player.HasOwnedVitalsAttachment)
                 return false;
 
             lock (player.SpellAdmissionSyncRoot)
@@ -102,7 +108,7 @@ internal partial class LegacyNativeCanUseSpell
 
         plan = new AdmissionPlan(row,
             new LegacyNativeSpellAdmissionCommit(
-                (ushort)(player.Stamina - staminaCost), (ushort)(player.Mana - manaCost),
+                (ushort)(player.Stamina - staminaCost), checked((uint)(player.Mana - manaCost)),
                 learned.UseSpellSoul > 0 ? learned.ID : (ushort)0,
                 consumeWeaponAuthorization, learned, startCooldown, deadline),
             staminaCost > 0, manaCost > 0 && client.FullLoading, sigilCapture);

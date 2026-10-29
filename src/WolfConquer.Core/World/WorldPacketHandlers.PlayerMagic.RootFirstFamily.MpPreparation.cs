@@ -3,7 +3,7 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private sealed record LegacyRootManualMpPreparation(
-        ushort Mana, byte[] ManaFrame, byte[] AnimationFrame);
+        uint Mana, byte[] ManaFrame, byte[] AnimationFrame);
 
     private static LegacyRootManualMpPreparation? PrepareLegacyRootManualMp(
         WorldPacketHandlerContext context, WorldSession session, ushort originalSpellId, ushort requiredMana)
@@ -13,10 +13,10 @@ public static partial class WorldPacketHandlers
 
         // This genuine draw/projection is not a resource or authorization write.
         // A draw spent before a later preparation refusal is not rolled back.
-        var current = checked((ushort)session.Character.MinMana);
+        var current = CheckedUInt32(session.Character.MinMana, nameof(session.Character.MinMana));
         var maximum = physical.MaxMana ?? 0;
         var restored = maximum > current ? Math.Min(300U, maximum - current) : 0U;
-        var mana = checked((ushort)(current + restored));
+        var mana = checked(current + restored);
         // Even a successful proc cannot rescue this known shortage. Reject it
         // through the normal resource check without spending a needless draw.
         if (mana < requiredMana ||

@@ -5,7 +5,7 @@ public sealed record LegacyRuntimeInspectionRequest(int SchemaVersion, Guid Quer
 
 public enum LegacyRuntimeInspectionStatus { Observed, Rejected }
 
-public sealed record LegacyRuntimeNativeVitals(uint Uid, int Hitpoints, ushort Mana);
+public sealed record LegacyRuntimeNativeVitals(uint Uid, int Hitpoints, uint Mana);
 
 public sealed record LegacyRuntimeInspectionSnapshot(Guid Domain, uint AccountId, uint CharacterUid,
     DateTimeOffset ObservedUtc, string ProtocolProfile, LegacyOwnedPlayerCharacter ManagedCharacter,
@@ -14,7 +14,7 @@ public sealed record LegacyRuntimeInspectionSnapshot(Guid Domain, uint AccountId
 {
     public const int MaximumRows = 200;
     public string Coverage => "Managed inventory/equipment roots and current HP/Mana; native roots only when actual owners exist. Null native rows mean unavailable, never empty; deposits, other containers and native derived maxima excluded.";
-    public string ConsistencyBound => "Current issuance/actor owners and repeated selected witnesses; unlocked native Mana/raw-item writers and restore ABA are not excluded. Equal values do not prove their lock discipline.";
+    public string ConsistencyBound => "Current issuance/actor owners and repeated selected witnesses; raw-item/other native writers and restore ABA are not excluded. Equal values do not prove their lock discipline.";
 }
 
 public sealed record LegacyRuntimeInspectionResult(int SchemaVersion, Guid QueryId,

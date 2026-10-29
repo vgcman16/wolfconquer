@@ -8,14 +8,14 @@ public sealed partial class LegacyNativeAttackDispatchTests
     [Theory]
     [InlineData(100, 1000u, 50f, 150, 50u)]
     [InlineData(100, 1000u, -1f, 1000, 900u)]
-    [InlineData(100, 100000u, 65536f, 100, 65536u)]
-    [InlineData(65530, 100000u, 10f, 4, 10u)]
+    [InlineData(100, 100000u, 65536f, 65636u, 65536u)]
+    [InlineData(65530, 100000u, 10f, 65540u, 10u)]
     [InlineData(500, 400u, 999f, 500, 0u)]
     [InlineData(400, 400u, 999f, 400, 0u)]
     [InlineData(100, 1000u, float.NaN, 100, 0u)]
     [InlineData(100, 1000u, 4294967808f, 612, 512u)]
-    public Task AddManaUsesNativeScalarConversionHealthClampAndUInt16PlayerWrap(
-        ushort before, uint maximum, float damage, ushort after, uint animationDamage) => NativePacketTestThread.Run(() =>
+    public Task AddManaUsesNativeDamageConversionAndHealthClampWithoutCurrentManaTruncation(
+        uint before, uint maximum, float damage, uint after, uint animationDamage) => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); s.Player.Mana = before; s.Client.Status.MaxMana = maximum; s.Row.Damage = damage;
         LegacyNativeAddMana.Execute(s.Client, s.Attack, s.Packet, s.Rows);
@@ -68,9 +68,9 @@ public sealed partial class LegacyNativeAttackDispatchTests
     [InlineData(900, 1000u, 1000, 100u)]
     [InlineData(1000, 1000u, 1000, 0u)]
     [InlineData(2000, 1000u, 2000, 0u)]
-    [InlineData(65530, 100000u, 294, 300u)]
+    [InlineData(65530u, 100000u, 65830u, 300u)]
     public Task EffectMpDoesNotVerifyOrReadAttackDictionaryAndAlwaysUsesPlayerCoordinates(
-        ushort before, uint maximum, ushort after, uint damage) => NativePacketTestThread.Run(() =>
+        uint before, uint maximum, uint after, uint damage) => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); s.Player.Mana = before; s.Client.Status.MaxMana = maximum;
         LegacyNativeEffectMP.Execute(null!, s.Client, s.Packet, null!);

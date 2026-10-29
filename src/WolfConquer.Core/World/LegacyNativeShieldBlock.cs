@@ -9,6 +9,8 @@ internal class LegacyNativeShieldBlock
 {
 	public static void Execute(LegacyNativeGameClientRuntime user, LegacyNativeInteractQuery Attack, LegacyNativePacket stream, Dictionary<ushort, LegacyNativeMagicType.Magic> DBSpells)
 	{
+		if (!LegacyNativeUnboundSpellScope.TryEnter(user, out var unbound)) return;
+		using var unboundExecution = unbound;
 		if (LegacyNativeCanUseSpell.Verified(Attack, user, DBSpells, out var ClientSpell, out var Spell))
 		{
 			LegacyNativeMsgSpellAnimation msgSpellAnimation = new LegacyNativeMsgSpellAnimation(user.Player.UID, 0u, Attack.X, Attack.Y, ClientSpell.ID, ClientSpell.Level, ClientSpell.UseSpellSoul);

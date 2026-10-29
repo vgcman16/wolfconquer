@@ -12,10 +12,10 @@ namespace WolfConquer.Tests;
 public sealed partial class WorldServerFrameHandlerTests
 {
     internal static async Task WithOwnedManagedManaConsumableAsync(ushort stack, Func<ManagedManaConsumableFixture, Task> body,
-        bool metadata = true, bool protectedPin = false, string amount = "70", long initialMana = 10)
+        bool metadata = true, bool protectedPin = false, string amount = "70", long initialMana = 10, long maximumMana = 5000)
     {
         var fixture = new ManagedManaConsumableFixture(); Exception? primary = null;
-        try { fixture.Initialize(stack, metadata, protectedPin, amount, initialMana); await body(fixture); }
+        try { fixture.Initialize(stack, metadata, protectedPin, amount, initialMana, maximumMana); await body(fixture); }
         catch (Exception error) { primary = error; }
         try { await fixture.DisposeAsync(); }
         catch (Exception cleanup)
@@ -52,14 +52,15 @@ public sealed partial class WorldServerFrameHandlerTests
         private LegacyOwnedAdmissionRuntime? reopened;
         private WorldDataCatalog catalog = null!;
         private NativeLoginBeastMetadataScope? beasts;
-        private long initialMana;
+        private long initialMana, maximumMana;
         private bool initialized;
         private T Actual<T>(string name) where T : class => Assert.IsType<T>(typeof(WorldServerFrameHandler)
             .GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(Handler));
 
-        internal void Initialize(ushort stack, bool metadata, bool protectedPin, string amount, long initialMana)
+        internal void Initialize(ushort stack, bool metadata, bool protectedPin, string amount, long initialMana, long maximumMana = 5000)
         {
             this.initialMana = initialMana;
+            this.maximumMana = maximumMana;
             Guard(); Assert.False(Directory.Exists(Root)); Directory.CreateDirectory(Users); initialized = true;
             Directory.CreateDirectory(Items); Directory.CreateDirectory(Spells);
             WriteSnapshot(Users, Uid, uid: Uid, classCode: 7051, level: 140, minHitPoints: 10,
@@ -68,7 +69,8 @@ public sealed partial class WorldServerFrameHandlerTests
                 extraCharacterLines: OpaqueComment + "\r\n" + OpaqueAttribute);
             var text = CharacterSnapshotFileEncoding.Decode(File.ReadAllBytes(CharacterPath), out var encoding);
             Assert.Contains("MinMana=5000", text, StringComparison.Ordinal);
-            text = text.Replace("MinMana=5000", "MinMana=" + initialMana.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\r\nMaxMana=5000", StringComparison.Ordinal);
+            text = text.Replace("MinMana=5000", "MinMana=" + initialMana.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                "\r\nMaxMana=" + maximumMana.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
             File.WriteAllBytes(CharacterPath, encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray());
             var potion = new PlayerItemSnapshotItem { Uid = PotionUid, ItemId = PotionType, StackSize = stack,
                 Durability = 1, MaximumDurability = 1 };
@@ -104,7 +106,7 @@ public sealed partial class WorldServerFrameHandlerTests
             Assert.DoesNotContain("runtime exception", Log.ToString(), StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("PARITY-BUG", Log.ToString(), StringComparison.Ordinal);
             Assert.Equal(10L, Current.Character.MinHitPoints); Assert.Equal(10, Player.HitPoints);
-            Assert.Equal(initialMana, Current.Character.MinMana); Assert.Equal(5000L, Current.Character.MaxMana);
+            Assert.Equal(initialMana, Current.Character.MinMana); Assert.Equal(maximumMana, Current.Character.MaxMana);
             Assert.False(Recovery.IsBlocked);
         }
         internal async Task Use() => await Handler.HandleFrameAsync(Connection, ReadFrame(

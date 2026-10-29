@@ -19,7 +19,7 @@ public sealed partial class LegacyNativeAttackExecutorTests
     private static Flag SelfStatusFlag(bool stigma) => stigma ? Flag.Stigma : Flag.MagicShield;
 
     private sealed record SelfStatusBefore(EffectResultState State, object? Cache, byte Booster, byte Killer,
-        ushort Counter, ushort Stamina, ushort Mana)
+        ushort Counter, ushort Stamina, uint Mana)
     {
         internal static SelfStatusBefore Capture(Scope scope, LegacyNativeStatusFlagsBigVector32.Flag retained) =>
             new(CaptureEffectResultState(scope, retained), SelfStatusCache.GetValue(scope.Player.BitVector),

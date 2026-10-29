@@ -43,20 +43,20 @@ public sealed partial class LocalRuntimeInspectionTests
         });
 
     [Fact]
-    public Task ActualManaWriterSetupReportsBothCurrentSourcesWithoutRequiringWriterDriftAsAContract() =>
+    public Task ActualOwnedStoreManaPublicationReportsBothCurrentSourcesWithoutRequiringWriterDriftAsAContract() =>
         LegacyOperatorGearMailOwnerTests.WithOwnerAsync(async f =>
         {
-            var mana = f.Native.Player.Mana;
-            // Use the real existing setter on this owned fixture, not a fabricated owner.
-            // Ordinary Frame currently leaves native Mana unhydrated; a zero initial value is explicit.
+            var mana = f.Current.Character.MinMana;
+            // Actual active managed route: public component setters have no
+            // full executor/send plan and must not mutate bound sessions.
             try
             {
-                // The present raw writer can create controlled disagreement; that
-                // seam is setup, never desired gameplay behavior. A repaired
-                // coordinated setter may update Store too and produce equality.
-                // If it later requires another admitted writer entry, update
-                // this setup to that entry; do not restore the unsafe seam.
-                f.Native.Player.Mana = mana == ushort.MaxValue ? (ushort)(mana - 1) : (ushort)(mana + 1);
+                // Setup uses actual Store publication. Compare diagnostics
+                // to its resulting sources; do not require either drift or native
+                // item hydration as a permanent gameplay contract.
+                var current = f.Current;
+                f.Store.Set(f.Connection, current with { Character = current.Character with
+                    { MinMana = mana == uint.MaxValue ? mana - 1 : mana + 1 } });
                 var actualMana = f.Native.Player.Mana; var actualManaged = f.Current.Character.MinMana;
                 var actualNativeHp = f.Native.Player.HitPoints; var actualManagedHp = f.Current.Character.MinHitPoints;
                 var files = Files(f); var sent = f.SentSnapshot(); var water = f.HighWater;
@@ -68,7 +68,11 @@ public sealed partial class LocalRuntimeInspectionTests
                 AssertOptionalNativeProjection(f, result.Snapshot);
                 Assert.Equal(water, f.HighWater); Unchanged(f, files, sent);
             }
-            finally { f.Native.Player.Mana = mana; }
+            finally
+            {
+                var current = f.Current;
+                f.Store.Set(f.Connection, current with { Character = current.Character with { MinMana = mana } });
+            }
         });
 
     [WindowsOperatorPipeFact]
@@ -129,7 +133,7 @@ public sealed partial class LocalRuntimeInspectionTests
         Assert.True(value.Status == LegacyRuntimeInspectionStatus.Observed, LocalRuntimeInspectionProtocol.FormatResult(value));
         Assert.True(value.ReadOnly); Assert.True(value.RuntimeObserved);
         Assert.False(value.AtomicNativeTupleProven); Assert.False(value.LiveStoreSynchronized);
-        Assert.Contains("unlocked native Mana", value.Snapshot!.ConsistencyBound);
+        Assert.Contains("raw-item/other native writers", value.Snapshot!.ConsistencyBound);
         Assert.Contains("deposits", value.Snapshot.Coverage);
     }
     private static void AssertOptionalNativeProjection(OperatorGearMailFixture f, LegacyRuntimeInspectionSnapshot snapshot)

@@ -50,7 +50,7 @@ public sealed partial class LocalRuntimeInspectionTests
                 new(2, 9, 3), [], [], true));
         var roundtrip = LocalRuntimeInspectionProtocol.ParseResult(Encoding.UTF8.GetBytes(LocalRuntimeInspectionProtocol.FormatResult(observed)));
         Assert.False(roundtrip.AtomicNativeTupleProven); Assert.False(roundtrip.LiveStoreSynchronized);
-        Assert.Contains("unlocked native Mana", roundtrip.Snapshot!.ConsistencyBound);
+        Assert.Contains("raw-item/other native writers", roundtrip.Snapshot!.ConsistencyBound);
         var missing = JsonNode.Parse(LocalRuntimeInspectionProtocol.FormatResult(observed))!;
         missing["snapshot"]!["nativeVitals"] = null;
         Assert.Throws<JsonException>(() => LocalRuntimeInspectionProtocol.ParseResult(Encoding.UTF8.GetBytes(missing.ToJsonString())));

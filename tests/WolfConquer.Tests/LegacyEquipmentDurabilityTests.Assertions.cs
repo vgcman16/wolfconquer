@@ -8,7 +8,7 @@ public sealed partial class LegacyEquipmentDurabilityTests
     private sealed record NativeRow(uint Key, object Row, uint Uid, uint Id, ushort Position,
         ushort Durability, ushort Maximum, byte Bound, byte Locked);
     private sealed record NativeImage(object Player, object? Inventory, object? Equipment, object? InventoryMap,
-        object? EquipmentMap, NativeRow[] InventoryRows, NativeRow[] EquipmentRows, bool Checked, int Hitpoints, ushort Mana);
+        object? EquipmentMap, NativeRow[] InventoryRows, NativeRow[] EquipmentRows, bool Checked, int Hitpoints, uint Mana);
 
     private static NativeImage CaptureNative(EquipmentFixture f) => new(f.Native.Player, f.Native.Inventory, f.Native.Equipment,
         f.Native.Inventory?.ClientItems, f.Native.Equipment?.ClientItems,

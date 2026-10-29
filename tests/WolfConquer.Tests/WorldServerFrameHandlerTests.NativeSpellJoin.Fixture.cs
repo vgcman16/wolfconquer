@@ -12,11 +12,12 @@ namespace WolfConquer.Tests;
 public sealed partial class WorldServerFrameHandlerTests
 {
     internal static async Task WithNativeSpellJoinAsync(Func<NativeSpellJoinFixture, Task> body,
-        PlayerSpellSnapshotEntry[]? rows = null, bool lineage = true, bool missingSpellFile = false, bool combined = false, bool training = false)
+        PlayerSpellSnapshotEntry[]? rows = null, bool lineage = true, bool missingSpellFile = false, bool combined = false, bool training = false,
+        long? initialMana = null, long? maximumMana = null, string? extraCharacterLines = null)
     {
         var fixture = new NativeSpellJoinFixture();
         Exception? primary = null;
-        try { fixture.Initialize(rows, lineage, missingSpellFile, combined, training); await body(fixture); }
+        try { fixture.Initialize(rows, lineage, missingSpellFile, combined, training, initialMana, maximumMana, extraCharacterLines); await body(fixture); }
         catch (Exception error) { fixture.RetainRoot = true; primary = error; }
         try { await fixture.DisposeAsync(); }
         catch (Exception cleanup)
@@ -58,14 +59,25 @@ public sealed partial class WorldServerFrameHandlerTests
         private readonly List<ConquerTcpConnection> connections = [];
         private bool ownsRoot;
 
-        internal void Initialize(PlayerSpellSnapshotEntry[]? rows, bool lineage, bool missingSpellFile, bool combined, bool training)
+        internal void Initialize(PlayerSpellSnapshotEntry[]? rows, bool lineage, bool missingSpellFile, bool combined, bool training,
+            long? initialMana = null, long? maximumMana = null, string? extraCharacterLines = null)
         {
             ValidateRoot();
             Assert.False(Directory.Exists(Root) || File.Exists(Root));
             Directory.CreateDirectory(Users); ownsRoot = true;
             WriteSnapshot(Users, Uid, uid: Uid, classCode: combined ? 10 : lineage ? 1052 : 7051, level: 110,
                 reborn: 0, secondClass: 0, money: 1000, conquerPoints: 200, boundConquerPoints: 300,
-                minHitPoints: 1000, name: "OrdinarySpellOwner");
+                minHitPoints: 1000, name: "OrdinarySpellOwner", extraCharacterLines: extraCharacterLines);
+            // Genuine saved inputs BEFORE OrdinaryLoginFixture captures its
+            // exact admission baseline. Never seed private native resource fields.
+            if (initialMana is not null || maximumMana is not null)
+            {
+                var vitals = new Dictionary<string, string>();
+                if (initialMana is { } mana) vitals["MinMana"] = mana.ToString(CultureInfo.InvariantCulture);
+                if (maximumMana is { } maximum) vitals["MaxMana"] = maximum.ToString(CultureInfo.InvariantCulture);
+                Assert.True(CharacterSnapshotFileCoordinator.TryUpdateCharacterAttributes(CharacterPath, Uid,
+                    vitals, detailedIoFailures: true, out var reason), reason);
+            }
             Directory.CreateDirectory(Spells);
             rows ??= [new(6001, 4, 1111, 2, 3, 2)];
             SavedSpellsBefore = PlayerSpellSnapshotLoader.ToLegacyBytes(new PlayerSpellSnapshot(rows));

@@ -4,6 +4,53 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-29 owned vitals and zero-cost metadata - local qualification
+
+### FSB-189: Keep saved, Store and physical current Mana together
+
+Real old-entry admission controls kept native Mana0 while saved current Mana was
+65535/65536/uint.MaxValue; an actual Store update to123 also left native0. Ordinary
+admission and active Store/CAS publication now use one joint physical HP/Mana
+participant and the same complete Character afterimage writer. HP or Mana changes
+select that writer; external Character+Items/Spells owners must prove the identical
+complete afterimage. Real file rejection, recovery, raw-map conflict, send faults,
+repeated potion use, existing-domain reload and active owned casts are covered.
+
+Current native Mana is uint, preserving the existing managed range and independent
+maximum. HeroInfo field19 and2176 serializers already carry that domain. AddMana,
+EffectMP, native cost commitment and managed manual-MP no longer narrow current
+Mana to ushort. Three old tests requiring wraparound were corrected while their
+literal animation bytes remain. The latched bound public setter and five unsafe
+whole components refuse before unowned effects; active managed Frame/CAS paths
+remain supported. This does not implement their full compound native executor.
+
+The runtime diagnostic uses uint Mana with unchanged keys/framing/false proof
+flags. Large observations need a matching updated query Core. Raw item/other
+writers and global atomic tuples remain outside that diagnostic's proof.
+
+### FSB-190: Zero-Mana costs must not query optional MPMaster metadata
+
+Four actual old-code normal/alternate cost controls queried an unrelated worn
+MPMaster catalog for UseMana0, including a faulting read. Calculate now skips only
+that irrelevant lookup. Positive-Mana reduction and real catalog access, ordinary
+argument validation, equipment selection and stamina surcharges remain covered.
+No protocol layout or persistence owner changes in this pure calculation.
+
+Root qualification2026-10-29: old-code ten-case baseline failed8/passed2.
+All25 genuine owned-vitals controls passed, as did the zero-cost metadata controls.
+The broad selection passed1882 with122 existing fixture skips and one invalid
+component setup: uint.MaxValue base maximum plus an equipment bonus overflowed
+before the cast. That setup now earns a normal independent maximum first, then
+sets wide current Mana through the actual component Store. All3 component values
+65535/65536/uint.MaxValue pass. No product calculator bound was weakened. Three
+old native wrap expectations now retain full values and independent animation
+bytes. Build09:zero errors/100 historical warnings, none in changed files.
+Selections overlap. Full successor CI and live client acceptance remain pending.
+
+Known StarFlow/nested automatic-skill partial-debit failures are separate OPEN
+work. Two genuine old-API rejection controls fail on the previous product. This
+checkpoint does not claim that all failed actions preserve every resource yet.
+
 ## 2026-10-29 owned consumable transactions - full source qualification
 
 Full Windows [40839078556](https://github.com/vgcman16/wolfconquer/actions/runs/40839078556)

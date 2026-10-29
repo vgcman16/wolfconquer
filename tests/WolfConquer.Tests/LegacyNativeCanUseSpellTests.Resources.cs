@@ -91,7 +91,8 @@ public sealed partial class LegacyNativeCanUseSpellTests
     {
         using var f = new Fixture();
         f.Player.Map = 1039;
-        f.Player.Stamina = f.Player.Mana = 0;
+        f.Player.Stamina = 0;
+        f.Player.Mana = 0;
         f.Row.UseStamina = byte.MaxValue;
         f.Row.UseMana = ushort.MaxValue;
         f.Owner.Rune = null;

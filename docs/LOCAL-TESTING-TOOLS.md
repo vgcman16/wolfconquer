@@ -270,8 +270,12 @@ The response reports managed and native HP/Mana separately, plus at most200
 inventory/equipment roots from the managed projection. Native item roots are
 reported only when their actual owners exist. Ordinary login currently leaves
 those native owners uninitialized: nativeItems and selectedValuesEqual are null
-with an explicit reason. Actual native Mana may be unhydrated too; its observed
-value is reported separately. Foreign, retired, malformed or detected-changing
+with an explicit reason. The new source hydrates ordinary current Mana and
+coordinates it with saved/Store HP and Mana through the real owner; its local
+qualification is recorded in FSB-189, with full successor/live checks pending.
+Mana remains a separately reported observation. Values above65535 require the
+matching updated query Core; keys/framing and both false proof flags stay the same.
+Foreign, retired, malformed or detected-changing
 required owners refuse. Other containers and
 derived native maxima remain outside coverage; an equipped wardrobe alias is
 checked against its actual owner but the whole wardrobe is not reported.

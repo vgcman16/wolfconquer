@@ -39,9 +39,9 @@ internal partial class LegacyNativeCanUseSpell
         }
 
         private static unsafe void Serialize(LegacyNativePacket packet, uint uid,
-            LegacyNativeMsgUpdate.DataType type, ushort value)
+            LegacyNativeMsgUpdate.DataType type, uint value)
         {
-            // A single UID + one ushort scalar update is below64B even at maximum
+            // A single UID + one uint scalar update is below64B even at maximum
             // varint widths. Include the actual optional seal before unsafe writes.
             if (packet is null || packet.Memory == null || packet.Capacity < 64 + LegacyNativePacket.SealSize)
                 throw new InvalidOperationException("Spell update packet has no live, bounded storage.");

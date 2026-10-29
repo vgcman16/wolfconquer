@@ -9,6 +9,8 @@ internal class LegacyNativeAddMana
 {
 	public static void Execute(LegacyNativeGameClientRuntime user, LegacyNativeInteractQuery Attack, LegacyNativePacket stream, Dictionary<ushort, LegacyNativeMagicType.Magic> DBSpells)
 	{
+		if (!LegacyNativeUnboundSpellScope.TryEnter(user, out var unbound)) return;
+		using var unboundExecution = unbound;
 		if (!LegacyNativeCanUseSpell.Verified(Attack, user, DBSpells, out var ClientSpell, out var Spell))
 		{
 			return;
@@ -27,7 +29,7 @@ internal class LegacyNativeAddMana
 			{
 				num2 = LegacyNativeAttackBase.CalculateHealtDmg(LegacyNativeAttackConversions.UInt32(Spell.Damage), user.Status.MaxMana, user.Player.Mana);
 				msgSpellAnimation.Targets.Enqueue(new LegacyNativeMsgSpellAnimation.SpellObj(user.Player.UID, num2, LegacyNativeMsgAttackPacket.AttackEffect.None));
-				user.Player.Mana += (ushort)num2;
+				user.Player.Mana = checked(user.Player.Mana + num2);
 			}
 			LegacyNativeUpdateSpell.CheckUpdate(stream, user, Attack, LegacyNativeAttackConversions.UInt32(Spell.Damage), DBSpells);
 			msgSpellAnimation.SetStream(stream);

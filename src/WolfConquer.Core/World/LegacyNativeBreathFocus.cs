@@ -9,6 +9,8 @@ internal class LegacyNativeBreathFocus
 {
 	public static void Execute(LegacyNativeInteractQuery Attack, LegacyNativeGameClientRuntime user, LegacyNativePacket stream, Dictionary<ushort, LegacyNativeMagicType.Magic> DBSpells)
 	{
+		if (!LegacyNativeUnboundSpellScope.TryEnter(user, out var unbound)) return;
+		using var unboundExecution = unbound;
 		if (LegacyNativeCanUseSpell.Verified(Attack, user, DBSpells, out var ClientSpell, out var Spell))
 		{
 			LegacyNativeMsgSpellAnimation msgSpellAnimation = new LegacyNativeMsgSpellAnimation(user.Player.UID, 0u, user.Player.X, user.Player.Y, 11960, ClientSpell.Level, ClientSpell.UseSpellSoul);

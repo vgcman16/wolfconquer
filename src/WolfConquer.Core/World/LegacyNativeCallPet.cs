@@ -9,6 +9,9 @@ internal class LegacyNativeCallPet
 {
 	public static void Execute(LegacyNativeGameClientRuntime user, LegacyNativeInteractQuery Attack, LegacyNativePacket stream, Dictionary<ushort, LegacyNativeMagicType.Magic> DBSpells)
 	{
+		// Clone removal precedes Verified and is an effect too.
+		if (!LegacyNativeUnboundSpellScope.TryEnter(user, out var unbound)) return;
+		using var unboundExecution = unbound;
 		if (user.Player.MyClones.Count != 0)
 		{
 			LegacyNativeClone[] array = user.Player.MyClones.ToArray();
