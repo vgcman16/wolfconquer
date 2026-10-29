@@ -4,7 +4,19 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## 2026-10-29 automatic-skill admission - local source qualification
+## 2026-10-29 automatic-skill admission - full source qualification
+
+Full Windows [40853051675](https://github.com/vgcman16/wolfconquer/actions/runs/40853051675)
+passed on exact c6c706464e8a09e5da3dc3b0697dbda3f5e25c57: Core29,685 passed,
+152 existing fixture skips, Updates446/446 and Launcher57/57, zero failures;
+all eight stages passed. Local run20261029T095254390Z-3647c6d3 finished
+2026-10-29T10:34:20.1942239Z. Actual workflow/job/phase logs, all3TRXs and matching
+World/DataTool builds are preserved outside runner. This qualifies the offline
+testing tools, joint owned HP/Mana and automatic-skill admission checkpoint.
+Live deployment/client acceptance, complete native-resource ownership, SQL/
+power-loss durability and full gameplay/English parity remain separate and open.
+No client relaunch, original-save/route edit or retained gear resend followed.
+
 
 ### FSB-191: Validate complete proc costs and eligibility before charging
 
@@ -45,7 +57,7 @@ zero failures/skips. The neighboring native/owned/ordinary/consumable/HP/mail/
 equipment/trade/runtime selection passed1883 with122 existing fixture skips,
 zero failures. Selections overlap. All8 malformed saved-Stamina controls first
 reproduced admission success, then pass after the proc-local guard. Build03:
-zeroerrors, no changed-file warnings. Full successor Windows CI/live remain pending.
+zeroerrors, no changed-file warnings. Full Windows now passed above; live remains pending.
 
 Owned positives exercise the private admission transaction using real ordinary
 saved/registry/native owners. Whole nested executor behavior is still primarily
@@ -54,7 +66,7 @@ direct owned tests here. Global damage/status/SQL/power-loss atomicity, complete
 native executors, live client/English/parity and retained mail claim/equipment
 remain OPEN. Tests/source review are not deployment or complete gameplay proof.
 
-## 2026-10-29 owned vitals and zero-cost metadata - local qualification
+## 2026-10-29 owned vitals and zero-cost metadata - full source qualification
 
 ### FSB-189: Keep saved, Store and physical current Mana together
 
@@ -95,7 +107,7 @@ sets wide current Mana through the actual component Store. All3 component values
 65535/65536/uint.MaxValue pass. No product calculator bound was weakened. Three
 old native wrap expectations now retain full values and independent animation
 bytes. Build09:zero errors/100 historical warnings, none in changed files.
-Selections overlap. Full successor CI and live client acceptance remain pending.
+Selections overlap. Full Windows now passed above; live client acceptance remains pending.
 
 Known StarFlow/nested automatic-skill partial-debit failures are separate OPEN
 work. Two genuine old-API rejection controls fail on the previous product. This

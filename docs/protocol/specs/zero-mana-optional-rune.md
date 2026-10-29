@@ -62,3 +62,16 @@ sets wide current Mana through the actual component Store. All3 component values
 old native wrap expectations now retain full values and independent animation
 bytes. Build09:zero errors/100 historical warnings, none in changed files.
 Selections overlap. Full successor CI and live client acceptance remain pending.
+
+Latest full qualification, superseding the pending gate above:
+
+Full Windows [40853051675](https://github.com/vgcman16/wolfconquer/actions/runs/40853051675)
+passed on exact c6c706464e8a09e5da3dc3b0697dbda3f5e25c57: Core29,685 passed,
+152 existing fixture skips, Updates446/446 and Launcher57/57, zero failures;
+all eight stages passed. Local run20261029T095254390Z-3647c6d3 finished
+2026-10-29T10:34:20.1942239Z. Actual workflow/job/phase logs, all3TRXs and matching
+World/DataTool builds are preserved outside runner. This qualifies the offline
+testing tools, joint owned HP/Mana and automatic-skill admission checkpoint.
+Live deployment/client acceptance, complete native-resource ownership, SQL/
+power-loss durability and full gameplay/English parity remain separate and open.
+No client relaunch, original-save/route edit or retained gear resend followed.

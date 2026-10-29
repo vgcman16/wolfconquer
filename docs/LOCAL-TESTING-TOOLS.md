@@ -6,15 +6,16 @@ server's actual configured owned-admission runtime.
 
 The current saved-resource extension passed56/56 actual offline tool tests,
 zero skips/failures, including existing health/walk/mail/equip/status compatibility.
-Full Windows [40839078556](https://github.com/vgcman16/wolfconquer/actions/runs/40839078556)
-passed on exact ad23e71e2ed25da043f1dcbdfd0517c88200358f: Core29,632 passed,
-152 existing external-fixture skips, Updates446/446 and Launcher57/57, zero
-failures; all eight stages passed. The actual local check finished
-2026-10-29T08:42:46.3993684Z. Logs, all three TRXs and matching World/DataTool
-outputs are preserved outside the runner. This qualifies the published offline
-consumable/tool checkpoint; it does not prove live rendering, SQL/power-loss
-durability, physical Mana ownership or full gameplay parity. No deployment,
-client relaunch or retained gear resend followed.
+Full Windows [40853051675](https://github.com/vgcman16/wolfconquer/actions/runs/40853051675)
+passed on exact c6c706464e8a09e5da3dc3b0697dbda3f5e25c57: Core29,685 passed,
+152 existing fixture skips, Updates446/446 and Launcher57/57, zero failures;
+all eight stages passed. Local run20261029T095254390Z-3647c6d3 finished
+2026-10-29T10:34:20.1942239Z. Actual workflow/job/phase logs, all3TRXs and matching
+World/DataTool builds are preserved outside runner. This qualifies the offline
+testing tools, joint owned HP/Mana and automatic-skill admission checkpoint.
+Live deployment/client acceptance, complete native-resource ownership, SQL/
+power-loss durability and full gameplay/English parity remain separate and open.
+No client relaunch, original-save/route edit or retained gear resend followed.
 
 ## List tests and view progress
 
@@ -272,7 +273,7 @@ reported only when their actual owners exist. Ordinary login currently leaves
 those native owners uninitialized: nativeItems and selectedValuesEqual are null
 with an explicit reason. The new source hydrates ordinary current Mana and
 coordinates it with saved/Store HP and Mana through the real owner; its local
-qualification is recorded in FSB-189, with full successor/live checks pending.
+qualification is recorded in FSB-189, with full Windows passed and live checks pending.
 Mana remains a separately reported observation. Values above65535 require the
 matching updated query Core; keys/framing and both false proof flags stay the same.
 Foreign, retired, malformed or detected-changing
