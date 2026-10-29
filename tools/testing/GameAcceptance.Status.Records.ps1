@@ -25,6 +25,15 @@ function Read-GasOwner([string]$Root) {
         if (-not (Test-GasUInt $owner.expectedItemUid) -or -not (Test-GahType $owner.expectedItemId) -or
             -not (Test-GawInteger $owner.expectedHitpoints 0 ([long]::MaxValue))) { throw 'invalidHealthIntent' }
     }
+    if ($owner.scenario -cin @('consume-mana','consume-full-restore')) {
+        $profile=Get-GarProfile $owner.scenario
+        Assert-GasKeys $owner (@('expectedItemUid','expectedItemId') + $profile.expectedKeys)
+        if (-not (Test-GasUInt $owner.expectedItemUid) -or -not (Test-GarType $owner.expectedItemId $owner.scenario) -or
+            ($owner.scenario -ceq 'consume-mana' -and $owner.Contains('expectedHitpoints'))) { throw 'invalidSavedResourceIntent' }
+        foreach ($key in $profile.expectedKeys) {
+            if (-not (Test-GawInteger $owner[$key] 0 ([long]::MaxValue))) { throw 'invalidSavedResourceIntent' }
+        }
+    }
     return $owner # Paths identify retained context only; never open tool/config or run them.
 }
 
@@ -70,7 +79,8 @@ function Read-GasReceipt([string]$Root, [string]$Leaf, $Owner) {
     $allowed = @('GuidedActionsPending','GuidedAssertionsPending','PrerequisiteMissing','RequestPreparedNotSent',
         'OperationOutcomeUnproven','OperationRejected','RecoveryRequired','WaitingForClientAction','WaitingForEquip',
         'ClientActionPendingOrStateMismatch','ServerStateVerified','SavedEquipObserved','SavedEquipUnequipObserved',
-        'WaitingForSavedWalk','SavedWalkObserved','WaitingForSavedHealthConsumption','SavedHealthConsumptionObserved')
+        'WaitingForSavedWalk','SavedWalkObserved','WaitingForSavedHealthConsumption','SavedHealthConsumptionObserved',
+        'WaitingForSavedManaConsumption','SavedManaConsumptionObserved','WaitingForSavedFullRestoreConsumption','SavedFullRestoreConsumptionObserved')
     $status = $receipt.state.status
     if ($status -cnotin $allowed) { throw 'unknownSavedStateResult' }
     if ($receipt.visualAcceptance -cne 'LiveClientVisualPending' -or
@@ -85,7 +95,12 @@ function Read-GasReceipt([string]$Root, [string]$Leaf, $Owner) {
     } elseif ($Leaf -cne 'receipt.json') { throw 'resumeAfterReferenceMissing' }
     if ($status -cin @('WaitingForSavedWalk','SavedWalkObserved') -and $Owner.scenario -cne 'login-walk-save') { throw 'savedStatusUnsupportedForScenario' }
     if ($status -cin @('WaitingForSavedHealthConsumption','SavedHealthConsumptionObserved') -and $Owner.scenario -cne 'consume-health') { throw 'savedStatusUnsupportedForScenario' }
-    $saved = $status -cin @('ServerStateVerified','SavedEquipObserved','SavedEquipUnequipObserved','SavedWalkObserved','SavedHealthConsumptionObserved')
+    foreach ($resource in @('consume-mana','consume-full-restore')) {
+        $profile=Get-GarProfile $resource
+        if ($status -cin @($profile.waiting,$profile.observed) -and $Owner.scenario -cne $resource) { throw 'savedStatusUnsupportedForScenario' }
+    }
+    $saved = $status -cin @('ServerStateVerified','SavedEquipObserved','SavedEquipUnequipObserved','SavedWalkObserved','SavedHealthConsumptionObserved',
+        'SavedManaConsumptionObserved','SavedFullRestoreConsumptionObserved')
     if ($saved -and ($null -eq $after -or $receipt.state.assertions -isnot [array] -or $receipt.state.assertions.Count -ne 0)) {
         throw 'savedObservationEvidenceIncomplete'
     }

@@ -4,9 +4,14 @@ These tools support disposable Windows test fixtures using Chinese7899 and
 VisibleDx8D13. The operator sender is disabled by default and requires the
 server's actual configured owned-admission runtime.
 
+The current saved-resource extension passed56/56 actual offline tool tests,
+zero skips/failures, including existing health/walk/mail/equip/status compatibility.
+Its full Windows publication gate remains pending; no changed server/client was
+deployed or launched by these checks.
+
 ## List tests and view progress
 
-The runner covers twelve test areas. Saved movement, health consumption,
+The current source runner covers fourteen test areas. Saved movement, health/Mana/FullRestore consumption,
 mail claims and equip/unequip have specific state assertions. Eight other areas
 provide guided steps and retained snapshots. The [scenario catalog](../tools/testing/SCENARIOS.md)
 and [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md) show the remaining work.
@@ -98,7 +103,7 @@ correlate provenance. Even a matching pair leaves client rendering, live memory,
 wire, eligibility, derived stats and unreported opaque bytes as separate evidence.
 
 The [scenario catalog](../tools/testing/SCENARIOS.md) and [acceptance matrix](testing/GAME-ACCEPTANCE-MATRIX.md)
-cover twelve families across login, inventory, equipment, combat, NPC/rewards,
+covered twelve families at that historical checkpoint across login, inventory, equipment, combat, NPC/rewards,
 trade, recovery, events and updater. A guided or pending result is not an
 end-to-end pass; full-game, SQL and crash/power-loss acceptance remain open.
 
@@ -192,9 +197,32 @@ truncated summaries or a changed retained intent cannot qualify.
 
 `SavedHealthConsumptionObserved` still exits2: live rendering, wire, Store and
 runtime atomicity remain separate checks. The tool neither clicks nor saves nor
-sends gear. These are four saved assertion families and eight guided families,
+sends gear. The earlier health tool batch had four saved assertion families and eight guided families; the current source adds Mana/FullRestore for six saved and eight guided families,
 not a complete game acceptance pass. Use matching qualified DataTool/server
 binaries; earlier inspector builds do not supply the required saved vitals.
+
+## Check saved Mana or FullRestore consumption
+
+The current source adds `consume-mana` with exact UID/type and `-ExpectedMana`, and
+`consume-full-restore` with exact type723726, UID, `-ExpectedHitpoints` and
+`-ExpectedMana`. Mana must increase while HP stays unchanged; FullRestore allows
+one vital unchanged but neither decreases and at least one increases. No runtime
+HP-trigger/formula rule is inferred. The new two source scenarios await Root's
+qualification; historical twelve-family run results above are unchanged.
+
+Initial and Resume each run only the real saved inspector. Retain the same
+arguments/evidence; Resume writes a new after/receipt and preserves original
+before/intent/receipt. It never sends a kit, saves, repairs or relogs the client.
+The [complete invocation workflow](../tools/testing/SCENARIOS.md) lists parameters.
+Missing vital fields, incomplete rows, wrong one-unit transition, changed selected
+state or untouched sidecar bytes refuse. Status only rechecks retained JSON and
+never opens retained tool/config paths or probes the host.
+
+Saved Mana/FullRestore observations retain exit2 and pending live/wire/Store/source
+flags. Only complete reported item/Character fields are compared; their changed
+image digests do not prove preservation of opaque selected bytes. Untouched
+Spells/Proficiencies/Mailbox use exact image digests. Editable JSON establishes no
+authenticated runtime synchronization, visual acceptance or transaction atomicity.
 
 ## Save a reproducible protocol fixture
 

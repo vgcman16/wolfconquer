@@ -1,14 +1,20 @@
 # Game acceptance runner
 
 This framework records bounded saved-state evidence and guides real-client tests.
-Build the matching DataTool before use. Twelve families are listed. Eight scenarios currently guide actions
-and retain snapshots; saved walk, health consumption, mailbox delivery/claim and equip/unequip have saved-state assertions.
+Build the matching DataTool before use. Fourteen families are listed. Eight scenarios currently guide actions
+and retain snapshots; saved walk, health/Mana/FullRestore consumption, mailbox delivery/claim and equip/unequip have saved-state assertions.
 Rendering, usability and complete gameplay remain separate acceptance work.
+
+The earlier twelve-family source qualifications remain historical records.
+Mana/FullRestore are newly implemented read-only source scenarios awaiting Root's
+qualification; adding catalog entries is not new execution or live acceptance.
 
 | ID | Initial execution | Required acceptance beyond snapshots |
 | --- | --- | --- |
 | login-walk-save | Exact retained saved destination and unchanged projection/image assertions | Correct model/map, real movement, wire, live Store and lifecycle |
 | consume-health | Exact potion UID/type, expected saved HP and one-unit transition | Actual consumption admission, amount, cooldown, wire, live Store and durable transaction |
+| consume-mana | Exact Mana potion UID/type, increased expected saved Mana and one-unit transition | Actual admission/formula, cooldown, wire, live Store and durable transaction |
+| consume-full-restore | Exact FullRestore UID/type and nondecreasing expected saved HP/Mana with one improvement | Actual HP-trigger intent/formula, admission, wire, live Store and durable transaction |
 | reconnect | Guided snapshots | Same state rehydrated; actual old issuance retired |
 | mailbox-gear | Executable request/dispatch and saved claim assertions | Actual client mailbox/model/rendering/claim observation |
 | equip-unequip | Saved-state equip and unequip assertions | Eligibility/capacity, live Store, wire, derived stats and client visuals |
@@ -202,12 +208,48 @@ runtime HP/Items atomicity, live Store agreement, D13 wire/client acceptance,
 SQL, power-loss safety or an authenticated attestation. The independent runtime
 health implementation and its qualification are outside this tooling batch.
 
+## Read-only saved Mana and FullRestore consumption
+
+`consume-mana` requires `-ExpectedItemUid`, `-ExpectedItemId` from the closed Mana
+class and `-ExpectedMana`. Mana must increase; saved HP stays unchanged.
+`consume-full-restore` requires exact UID/type723726 plus both
+`-ExpectedHitpoints` and `-ExpectedMana`: neither may decrease and at least one must
+increase. Either may remain unchanged. This captures explicit saved outcomes;
+it does not settle the runtime HP-full/Mana-low trigger or prove a formula.
+
+Use the same ordinary paths/account/evidence and exact arguments initially and
+with `-Resume`. Initial captures one actual saved inspection and a fresh
+`mana-intent.json` or `full-restore-intent.json`. Resume runs only the real saved
+inspector and retains a new after/receipt; it never resends, saves, relogs,
+dispatches a kit or runs source checks. Use separate fresh evidence per scenario.
+For example, use actual already-reviewed values and a new GUID leaf:
+
+```powershell
+$mana = @('-Scenario','consume-mana','-DataToolDll','C:\ACTUAL-STAGE\WolfConquer.DataTool.dll','-OwnedAdmissionConfig','C:\ACTUAL-FIXTURE\owned-admission.json','-AccountId','2','-EvidenceRoot','C:\EXISTING-PARENT\wolf-game-acceptance-REPLACE-WITH-NEW-32-HEX-GUID','-ExpectedItemUid','8013201','-ExpectedItemId','1001000','-ExpectedMana','90')
+pwsh -NoProfile -File C:\PATH\tools\testing\Invoke-GameAcceptance.ps1 @mana
+# After the actual client action and its real save, use identical arguments:
+pwsh -NoProfile -File C:\PATH\tools\testing\Invoke-GameAcceptance.ps1 @mana -Resume
+```
+
+For FullRestore choose another new leaf and use `-Scenario consume-full-restore
+-ExpectedItemUid <actualUid> -ExpectedItemId 723726 -ExpectedHitpoints <exactHp>
+-ExpectedMana <exactMana>` with the same identity/path arguments. Missing saved
+vitals, old digestless data, incomplete rows, unknown containers, wrong selected
+UID/type/stack, altered intent or unrelated selected state cannot qualify.
+
+`SavedManaConsumptionObserved`/`SavedFullRestoreConsumptionObserved` still exit2.
+Comparisons cover all complete reported rows and unchanged Spells/Proficiencies/
+Mailbox image digests. Changed Character/Items digests are required, but their
+opaque bytes are not revealed: this proves no full opaque item/Character
+preservation. Live visuals, wire, Store, authenticated runtime and atomicity stay
+pending. Existing health schema1/intents/statuses remain supported.
+
 ## Read-only acceptance status overview
 
 `Get-GameAcceptanceStatus.ps1 -EvidenceParent <absolute-existing-parent>` reads
 only direct `wolf-game-acceptance-<lowercaseGuidN>` children. Optional
 `-AccountId <id>` filters known owners; `-Format Table` gives a compact view
-(default JSON). It lists all twelve families and each selected account/evidence
+(default JSON). It lists all fourteen families and each selected account/evidence
 ID, recorded saved-state result, pending/invalid reason and visual boundary.
 No grants, game/tool/inspector execution, source checks, writes or probes occur.
 
@@ -218,9 +260,9 @@ older success. Owner-only evidence stays Pending. Invalid folders are also
 reported as diagnostics, even when their owner cannot be identified.
 
 `RecordedSavedObservation` summarizes the existing saved receipt and retained
-schema references. Saved walk and health additionally recheck their pure before/after/intent
+schema references. Saved walk and health/Mana/FullRestore additionally recheck their pure before/after/intent
 transitions over retained JSON, including currency, rows and sidecar image
-equality (and the exact health/one-unit change for health). No inspector or live command is run. The overview does not rerun
+equality (and the exact retained vital/one-unit change for each consumption scenario). No inspector or live command is run. The overview does not rerun
 mailbox/equip scenario assertions or prove the receipt was created by the runner.
 Local JSON and timestamps are editable;
 reading files is not a synchronized transaction with the running game. No

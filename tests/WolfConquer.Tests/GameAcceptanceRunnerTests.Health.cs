@@ -38,7 +38,7 @@ public sealed partial class GameAcceptanceRunnerTests
             var result = await RunScriptAsync("Get-GameAcceptanceStatus.ps1", "-EvidenceParent", f.Parent);
             Assert.Equal(0, result.ExitCode); Assert.Empty(result.Error);
             var summary = JsonNode.Parse(result.Output)!;
-            Assert.Equal(12, summary["rows"]!.AsArray().Count);
+            Assert.Equal(14, summary["rows"]!.AsArray().Count);
             var row = Assert.Single(summary["rows"]!.AsArray(), row => row!["scenario"]!.GetValue<string>() == "consume-health")!;
             Assert.Equal("RecordedSavedObservation", row["evidenceStatus"]!.GetValue<string>());
             Assert.Equal("SavedHealthConsumptionObserved", row["savedStateResult"]!.GetValue<string>());

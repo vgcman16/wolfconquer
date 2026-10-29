@@ -53,64 +53,7 @@ function Test-GaHealthReport($Report) {
     return $issues.ToArray()
 }
 
-function Test-GahSelection($Before, $Intent) {
-    $issues = @(Test-GaHealthReport $Before)
-    if (-not (Test-GahType $Intent.expectedItemId)) { $issues += 'explicitHealthTypeRequired' }
-    $item = @($Before.items | Where-Object { $_.uid -eq $Intent.expectedItemUid })
-    if ($item.Count -ne 1 -or $item[0].container -cne 'inventory' -or $item[0].position -ne 0 -or
-        $item[0].warehouseId -ne 0 -or $item[0].itemId -ne $Intent.expectedItemId) { $issues += 'exactInventoryPotionRequired' }
-    if ($Before.character.Contains('hitpoints') -and $Before.character.hitpoints -eq $Intent.expectedHitpoints) { $issues += 'expectedHitpointsMustDiffer' }
-    return $issues
-}
+. (Join-Path $PSScriptRoot 'GameAcceptance.Resources.Assertions.ps1')
 
-function Test-GaHealthTransition($Before, $After, $Intent) {
-    $issues = [Collections.Generic.List[string]]::new()
-    foreach ($issue in @(Test-GahSelection $Before $Intent) + @(Test-GaHealthReport $After)) { $issues.Add($issue) }
-    if ([guid]$Before.domain -ne [guid]$After.domain -or $Before.accountId -ne $After.accountId -or
-        $Before.character.uid -ne $After.character.uid -or [guid]$Before.domain -ne [guid]$Intent.domain -or
-        $Before.accountId -ne $Intent.accountId -or $Before.character.uid -ne $Intent.characterUid) { $issues.Add('sameSavedIdentityRequired') }
-    if (-not $After.character.Contains('hitpoints') -or $After.character.hitpoints -ne $Intent.expectedHitpoints) { $issues.Add('expectedSavedHitpointsNotObserved') }
-    foreach ($field in @('map','x','y','body','class','level','gold','conquerPoints','minMana','maxMana')) {
-        if (-not $Before.character.Contains($field) -or -not $After.character.Contains($field) -or
-            $Before.character[$field] -cne $After.character[$field]) { $issues.Add('characterProjectionChanged:' + $field) }
-    }
-    $selected = @($Before.items | Where-Object { $_.uid -eq $Intent.expectedItemUid })
-    if ($selected.Count -ne 1) { return $issues.ToArray() }
-    $last = $selected[0].stackSize -le 1
-    $consumed = @($After.items | Where-Object { $_.uid -eq $Intent.expectedItemUid })
-    if ($last) {
-        if ($consumed.Count -ne 0) { $issues.Add('lastPotionUidStillPresent') }
-    } elseif ($consumed.Count -ne 1) { $issues.Add('stackedPotionUidMissing') }
-    else {
-        foreach ($field in $selected[0].Keys) {
-            $expected = $(if ($field -ceq 'stackSize') { $selected[0].stackSize - 1 } else { $selected[0][$field] })
-            if ($consumed[0][$field] -cne $expected) { $issues.Add('selectedPotionChanged:' + $field) }
-        }
-    }
-    foreach ($field in @('inventoryCount','physicalItemCount','equipmentCount','warehouseCount','spellCount','proficiencyCount','activeMailCount')) {
-        $expected = $Before[$field] - $(if ($last -and $field -cin @('inventoryCount','physicalItemCount')) { 1 } else { 0 })
-        if ($After[$field] -ne $expected) { $issues.Add('unexpectedCount:' + $field) }
-    }
-    foreach ($group in @(@{name='items';key='uid'},@{name='mails';key='mailId'})) {
-        $prior = @($Before[$group.name] | Where-Object { $group.name -cne 'items' -or $_.uid -ne $Intent.expectedItemUid })
-        $next = @($After[$group.name] | Where-Object { $group.name -cne 'items' -or $_.uid -ne $Intent.expectedItemUid })
-        if ($prior.Count -ne $next.Count) { $issues.Add('unrelatedRowsChanged:' + $group.name) }
-        foreach ($row in $prior) {
-            $match = @($next | Where-Object { $_[$group.key] -eq $row[$group.key] })
-            if ($match.Count -ne 1) { $issues.Add('unrelatedRowIdentityChanged:' + $group.name); continue }
-            foreach ($field in $row.Keys) { if ($row[$field] -cne $match[0][$field]) { $issues.Add('unrelatedRowChanged:' + $group.name + ':' + $field) } }
-        }
-    }
-    foreach ($kind in @('Spells','Proficiencies','Mailbox','Character','Items')) {
-        $a=@($Before.files | Where-Object { $_.kind -ceq $kind }); $b=@($After.files | Where-Object { $_.kind -ceq $kind })
-        if ($a.Count -ne 1 -or $b.Count -ne 1) { continue }
-        if ($kind -cin @('Character','Items')) {
-            if ($a[0].contentSha256 -ceq $b[0].contentSha256) { $issues.Add('savedImageUnchanged:' + $kind) }
-        } else {
-            foreach ($field in @('present','length','contentSha256')) {
-                if ($a[0][$field] -cne $b[0][$field]) { $issues.Add('savedSidecarChanged:' + $kind) }
-            }
-        }
-    }
-    return $issues.ToArray()
-}
+function Test-GahSelection($Before, $Intent) { return Test-GarSelection $Before $Intent 'consume-health' }
+function Test-GaHealthTransition($Before, $After, $Intent) { return Test-GaResourceTransition $Before $After $Intent 'consume-health' }

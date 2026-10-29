@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-GasScenarioIds {
-    @('login-walk-save','consume-health','reconnect','mailbox-gear','equip-unequip','upgrade-socket','combat',
+    @('login-walk-save','consume-health','consume-mana','consume-full-restore','reconnect','mailbox-gear','equip-unequip','upgrade-socket','combat',
       'npc-shop-rewards','trade-two-clients','persistence-restart','events-social','updater')
 }
 

@@ -74,3 +74,17 @@ Root qualification2026-10-29: actual build08 zeroerrors and combined selection
 refusals2/2 and restoration/Mana controls now pass. This includes genuine journal,
 recovery, trade, reload and mailbox-kit child/delivery/claim checks. The full
 Windows publication gate and live-client acceptance are still separate/pending.
+
+Acceptance-runner companion: mailbox-gear also accepts explicit -Kit consumables.
+Without -SendTestKit it only retains the ordinary request and reports
+RequestPreparedNotSent. An actual child test must verify all three requested
+types, unchanged owned player files, no delivery result and exactly inspection
+plus request generation. Resource-observation scenarios still forbid sends.
+
+Root qualification2026-10-29: all11 changed PowerShell files parse without errors;
+actual Release build02 zeroerrors/no changed-code warnings. Selected actual runner,
+status, saved-inspector, old health/walk/mail/equip and new resource/kit child tests
+passed56/56, zero failures/skips, in6m55s. Both old unsupported-entry controls now
+pass; their original FAIL2/2 receipts are retained. The mailbox runner also accepts
+-Kit consumables and proves request preparation without a send or player-file
+mutation. Full Windows CI and real client/wire/Store acceptance remain separate.
