@@ -60,6 +60,40 @@ These overlap and are not additive coverage. Full successor CI and actual-client
 tools acceptance remain pending. Actual failed run evidence remains retained.
 
 
+## 2026-10-28 ordinary equipment successor - OPEN, focused qualification
+
+### FSB-178: Commit equipment moves before publishing success
+
+The old ordinary equip/unequip path published Store/native state and item replies
+before best-effort saving. Missing catalog rows skipped eligibility, unequip lacked
+capacity validation, and an occupied right slot could prevent a two-handed equip
+from clearing the left item.
+
+The successor validates real current issuance/PIN/catalog/UID membership and final
+40-slot capacity, prepares complete owned graphs and response frames, then commits
+the actual v2 unchanged Character(AccountId)+changed Items(characterUID) journal
+before Store/native publication or replies. Only validated raw item Position words
+change; opaque bytes, other metadata/UIDs and successful D13 order survive.
+Definite refusal publishes nothing; uncertain/durable publication faults fence the
+captured actual recovery. No late ordinary item rewrite or accepting saver remains.
+
+Fresh public80fa53c9-based Release build05: zero errors. Actual focused equipment
+TRX test04:161 passed/0 failed/0 skipped; surviving affected neighbors test05:
+281 passed/0 failed/11 existing skips. These selections overlap and are not additive.
+The nine serialized callback/RootMagic cases also pass, using reachable independent
+or follow-on operations, legitimate peer HP gear, real worker joins and full ordered
+Shield/FlashingName vectors. Earlier failing/stale-binary runs remain retained;
+no production guard or protocol assertion was weakened. Two private-seed-wide stat
+cases and nine existing consumable cases remain skipped in the neighbor selection.
+
+Four real Store/v2 component controls preserve committed history on raw publication
+proof failure, but actual Frame postwriter fault injection remains OPEN. Later
+stat/spell/query sidecars, distinct-ID ordinary admission, native item storage, SQL,
+power-loss and external writers are outside this bounded increment. Full equipment
+CI and actual client equip/unequip acceptance remain pending. The active tools-only
+Windows40790881796 excludes this change; its result cannot qualify equipment.
+
+
 ## 2026-10-28 latest full and local boundary
 
 Exact public `be2740aea8f3295b57901fcd64d58a5e9cfc11c8` passed Windows

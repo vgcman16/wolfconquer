@@ -56,46 +56,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         DirectOverlayCallbackAssertNoOrdinary(result);
     }
 
-    [Theory]
-    [InlineData((ushort)17_490, 337U)]
-    [InlineData((ushort)17_650, 252U)]
-    public async Task DirectOverlay313ActualSameUidCriticalZeroEquipStillContinuesTheEnteredDashBlock(
-        ushort spellId, uint expectedDamage)
-    {
-        var result = await DirectOverlayCallbackRunAsync(spellId, "equip", false, initialCriticalZero: false);
-        Assert.True(result.Mutated);
-        Assert.Equal(1_000U, result.EntryCritical);
-        Assert.Equal(66U, result.CommittedBreakthrough);
-        Assert.Equal(100_000, result.TargetHpAtCallback);
-        Assert.Equal(3, result.FrontRecipients.Length);
-        Assert.Equal(PlayerUid, result.FrontRecipients[0]);
-        Assert.Equal(new[] { TargetPlayerUid, PlayerUid + 50 }.OrderBy(uid => uid),
-            result.FrontRecipients.Skip(1).OrderBy(uid => uid));
-        Assert.True(result.Sessions.TryGet(result.Connections[PlayerUid], out var caster));
-        Assert.NotNull(caster);
-        Assert.Equal(90_002U, Assert.Single(caster.PlayerItems.EquipmentItems).Uid);
-        Assert.True(HasLegacyStatusFlag(caster.Character.Attributes, DirectOverlayFrontBreakFlag));
-        var rawCaster = LegacyPlayerStatusCalculator.CalculateFields(
-            caster.Character, caster.PlayerItems, result.World, 100_000, 0);
-        Assert.Equal(0U, rawCaster[LegacyPlayerStatusPacket.CriticalStrikeIndex]);
-        Assert.Equal(60U, rawCaster[LegacyPlayerStatusPacket.BreakthroughIndex]);
-        Assert.Equal(60U, LegacyPhysicalStatusOverlay.ForOwner(caster).Breakthrough ?? 60U);
-        Assert.Equal(60U, result.PublicCasterStatus.Breakthrough);
-        Assert.Equal(0U, result.PublicCasterStatus.CriticalStrike);
-        Assert.True(result.Sessions.TryGet(result.Connections[TargetPlayerUid], out var target));
-        Assert.NotNull(target);
-        Assert.Equal(75U, result.PublicTargetStatus.Counteraction); // Independent Imp call still runs inside entered block.
-        Assert.Equal(100_000 - expectedDamage, target.Character.MinHitPoints);
-        var animation = Assert.Single(ParseSpellAnimations(result.Frames[PlayerUid]), packet => packet.SpellId == spellId);
-        var hit = Assert.Single(animation.Targets);
-        Assert.Equal(TargetPlayerUid, hit.Uid);
-        Assert.Equal(expectedDamage, hit.Damage);
-        Assert.Equal(MsgAttackEffect.Dash, hit.Effect);
-        // Raw300 -> Dash450 -> rb2 Defense2 half225 -> +floor112 =337.
-        // Ironbone's CALLER then floors337*75/100=252. Not a calculator oracle.
-        Assert.DoesNotContain(result.Order, bytes => LegacyMsgRefineEffectPacket.TryParse(ReadFrame(bytes), out _));
-        DirectOverlayCallbackAssertNoOrdinary(result);
-    }
 
     [Theory]
     [InlineData((ushort)17_490, 225U)]

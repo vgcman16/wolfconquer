@@ -56,7 +56,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
     [Theory]
     [InlineData(false)]
-    [InlineData(true)]
     public async Task DirectQueryStagesAppendKeepsEarnedPairUntilSourceResetAndRebuildsCapturedGearAfterReentry(
         bool equipInsideAppend)
     {

@@ -22,7 +22,8 @@ public sealed partial class WorldServerFrameHandler
         frame.Header.Opcode == WorldPacketOpcodes.LegacyFloorItem ||
         frame.Header.Opcode == WorldPacketOpcodes.MsgItemUsage &&
         MsgItemUsagePacket.TryParse(frame, out var packet) &&
-        packet.Action is MsgItemUsageAction.SellItem or MsgItemUsageAction.DropItem;
+        packet.Action is MsgItemUsageAction.SellItem or MsgItemUsageAction.DropItem or
+            MsgItemUsageAction.Equip or MsgItemUsageAction.Unequip;
 
     // Parsed claims own their actual Exclusive before resolving the current participant.
     private static bool IsLegacyMailboxClaimFrame(PacketFrame frame) =>

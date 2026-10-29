@@ -40,9 +40,11 @@ public sealed class LegacyItemPackNpcTests : IDisposable
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
         var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
+        var context = LegacyItemUseComponentTestOwner.Prepare(new WorldPacketHandlerContext(
+            connection, log, Session: session, Sessions: sessions), _root, ref session);
 
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(connection, log, Session: session, Sessions: sessions),
+            context,
             ReadFrame(CreateItemUse(pack.Uid).ToFrameBytes()));
 
         Assert.True(sessions.TryGet(connection, out var activeSession));
@@ -51,7 +53,7 @@ public sealed class LegacyItemPackNpcTests : IDisposable
 
         var countBeforeReward = sent.Count;
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(connection, log, Session: activeSession, Sessions: sessions),
+            context with { Session = activeSession },
             ReadFrame(BuildLegacyNpcDialogReply(optionId, interactType: 1, npcId: 0)));
 
         Assert.Equal(2, sent.Count - countBeforeReward);
@@ -82,9 +84,11 @@ public sealed class LegacyItemPackNpcTests : IDisposable
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
         var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
+        var context = LegacyItemUseComponentTestOwner.Prepare(new WorldPacketHandlerContext(
+            connection, log, Session: session, Sessions: sessions), _root, ref session);
 
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(connection, log, Session: session, Sessions: sessions),
+            context,
             ReadFrame(CreateItemUse(anima.Uid).ToFrameBytes()));
 
         Assert.Equal(9, sent.Count);
@@ -97,7 +101,7 @@ public sealed class LegacyItemPackNpcTests : IDisposable
 
         var countBeforeUsePage = sent.Count;
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(connection, log, Session: activeSession, Sessions: sessions),
+            context with { Session = activeSession },
             ReadFrame(BuildLegacyNpcDialogReply(optionId: 1, interactType: 1, npcId: 0)));
 
         Assert.Equal(7, sent.Count - countBeforeUsePage);
@@ -108,7 +112,7 @@ public sealed class LegacyItemPackNpcTests : IDisposable
         Assert.True(sessions.TryGet(connection, out var usePageSession));
         var countBeforeEmbed = sent.Count;
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(connection, log, Session: usePageSession, Sessions: sessions),
+            context with { Session = usePageSession },
             ReadFrame(BuildLegacyNpcDialogReply(optionId: 5, interactType: 1, npcId: 0)));
 
         Assert.Single(sent.Skip(countBeforeEmbed));
@@ -154,9 +158,12 @@ public sealed class LegacyItemPackNpcTests : IDisposable
         sessions.Set(connection, session);
         var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
         var worldData = CreateWorldDataCatalog(CreateItemType(anima.ItemId, "P3Anima", conquerPointsWorth: 101));
+        var context = LegacyItemUseComponentTestOwner.Prepare(new WorldPacketHandlerContext(
+            connection, log, Session: session, WorldData: worldData, Sessions: sessions,
+            PlayerItemsRoot: playerItemsRoot), _root, ref session);
 
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(connection, log, Session: session, WorldData: worldData, Sessions: sessions),
+            context,
             ReadFrame(CreateItemUse(anima.Uid).ToFrameBytes()));
 
         Assert.True(sessions.TryGet(connection, out var activeSession));
@@ -164,13 +171,7 @@ public sealed class LegacyItemPackNpcTests : IDisposable
         var countBeforeExchange = sent.Count;
 
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(
-                connection,
-                log,
-                Session: activeSession,
-                WorldData: worldData,
-                Sessions: sessions,
-                PlayerItemsRoot: playerItemsRoot),
+            context with { Session = activeSession },
             ReadFrame(BuildLegacyNpcDialogReply(optionId: 7, interactType: 1, npcId: 0)));
 
         Assert.Equal(3, sent.Count - countBeforeExchange);

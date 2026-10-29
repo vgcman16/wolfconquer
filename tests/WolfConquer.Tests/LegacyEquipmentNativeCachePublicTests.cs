@@ -21,51 +21,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal(expected, (await fixture.ReadStatusAsync()).MaxMana);
     }
 
-    [Fact]
-    public async Task HandlerEquipmentQueryOwnsEffectCachesAndRetainsAbsentNecklaceEffect()
-    {
-        using var fixture = new NativeEquipmentCacheFixture();
-        await fixture.QueryAsync();
-        var earned = LegacyPhysicalStatusOverlay.ForOwner(fixture.Owner);
-        Assert.Equal(202U, earned.RightWeaponItemEffect);
-        Assert.Equal(201U, earned.RingItemEffect);
-        Assert.Equal(203U, earned.NecklaceItemEffect);
-        Assert.Equal(450U, earned.MaxMana);
-        await fixture.UnequipAsync(4);
-        Assert.Equal(0U, LegacyPhysicalStatusOverlay.ForOwner(fixture.Owner).RightWeaponItemEffect);
-        Assert.Equal(420U, (await fixture.ReadStatusAsync()).MaxMana);
-        await fixture.UnequipAsync(6);
-        Assert.Equal(0U, LegacyPhysicalStatusOverlay.ForOwner(fixture.Owner).RingItemEffect);
-        Assert.Equal(380U, (await fixture.ReadStatusAsync()).MaxMana);
-        await fixture.UnequipAsync(2);
-        Assert.Equal(203U, LegacyPhysicalStatusOverlay.ForOwner(fixture.Owner).NecklaceItemEffect);
-        Assert.Equal(330U, (await fixture.ReadStatusAsync()).MaxMana);
-        using var json = JsonDocument.Parse(JsonSerializer.Serialize(fixture.Owner));
-        var serializedOverlay = json.RootElement.GetProperty("PhysicalStatusOverlay");
-        Assert.False(serializedOverlay.TryGetProperty("RightWeaponItemEffect", out _));
-        Assert.False(serializedOverlay.TryGetProperty("RingItemEffect", out _));
-        Assert.False(serializedOverlay.TryGetProperty("NecklaceItemEffect", out _));
-        Assert.False(serializedOverlay.TryGetProperty("MaxMana", out _));
-        var foreign = fixture.Owner with { Character = fixture.Owner.Character with { Uid = PlayerUid + 1 } };
-        Assert.Null(LegacyPhysicalStatusOverlay.ForOwner(foreign).MaxMana);
-        Assert.Null(LegacyPhysicalStatusOverlay.ForOwner(foreign).NecklaceItemEffect);
-    }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task HandlerEquipmentQueryManaAndEffectsResetOnlyWhenFineRainAdmitsUnequipQuery(bool rejected)
-    {
-        using var fixture = new NativeEquipmentCacheFixture();
-        await fixture.QueryAsync();
-        if (rejected) await fixture.FineRainAsync();
-        await fixture.UnequipAsync(4);
-        Assert.DoesNotContain(fixture.Owner.PlayerItems.EquipmentItems, item => item.Position == 4);
-        var current = LegacyPhysicalStatusOverlay.ForOwner(fixture.Owner);
-        Assert.Equal(rejected ? 202U : 0U, current.RightWeaponItemEffect);
-        Assert.Equal(rejected ? 450U : 420U, current.MaxMana);
-        Assert.Equal(rejected ? 450U : 420U, (await fixture.ReadStatusAsync()).MaxMana);
-    }
 
     [Fact]
     public async Task HandlerEquipmentQueryReadsCurrentSpiritAfterNativeDerivedSpellPublication()

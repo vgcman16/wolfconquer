@@ -36,14 +36,11 @@ public sealed class LegacyDeitylandSupportItemNpcTests : IDisposable
             session.Character.Uid,
             session.PlayerItems);
         var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
+        var context = LegacyItemUseComponentTestOwner.Prepare(new WorldPacketHandlerContext(
+            connection, log, Session: session, Sessions: sessions, PlayerItemsRoot: playerItemsRoot), _root, ref session);
 
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(
-                connection,
-                log,
-                Session: session,
-                Sessions: sessions,
-                PlayerItemsRoot: playerItemsRoot),
+            context,
             ReadFrame(CreateItemUse(spirit.Uid).ToFrameBytes()));
 
         Assert.Equal(15, sent.Count);
@@ -57,12 +54,7 @@ public sealed class LegacyDeitylandSupportItemNpcTests : IDisposable
 
         var countBeforeNextPage = sent.Count;
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(
-                connection,
-                log,
-                Session: activeSession,
-                Sessions: sessions,
-                PlayerItemsRoot: playerItemsRoot),
+            context with { Session = activeSession },
             ReadFrame(BuildLegacyNpcDialogReply(optionId: 8, interactType: 1, npcId: 0)));
 
         Assert.Equal(10, sent.Count - countBeforeNextPage);
@@ -109,9 +101,11 @@ public sealed class LegacyDeitylandSupportItemNpcTests : IDisposable
             session.Character.Uid,
             session.PlayerItems);
         var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
+        var context = LegacyItemUseComponentTestOwner.Prepare(new WorldPacketHandlerContext(
+            connection, log, Session: session, Sessions: sessions, PlayerItemsRoot: playerItemsRoot), _root, ref session);
 
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(connection, log, Session: session, Sessions: sessions),
+            context,
             ReadFrame(CreateItemUse(crystal.Uid).ToFrameBytes()));
 
         Assert.Equal(4, sent.Count);
@@ -122,7 +116,7 @@ public sealed class LegacyDeitylandSupportItemNpcTests : IDisposable
 
         var countBeforePreview = sent.Count;
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(connection, log, Session: activeSession, Sessions: sessions),
+            context with { Session = activeSession },
             ReadFrame(BuildLegacyNpcDialogReply(optionId: 1, interactType: 1, npcId: 0)));
 
         Assert.Equal(9, sent.Count - countBeforePreview);
@@ -134,12 +128,7 @@ public sealed class LegacyDeitylandSupportItemNpcTests : IDisposable
         var countBeforeRepair = sent.Count;
         Assert.True(sessions.TryGet(connection, out var previewSession));
         await registry.HandleAsync(
-            new WorldPacketHandlerContext(
-                connection,
-                log,
-                Session: previewSession,
-                Sessions: sessions,
-                PlayerItemsRoot: playerItemsRoot),
+            context with { Session = previewSession },
             ReadFrame(BuildLegacyNpcDialogReply(optionId: 3, interactType: 1, npcId: 0)));
 
         Assert.Equal(2, sent.Count - countBeforeRepair);

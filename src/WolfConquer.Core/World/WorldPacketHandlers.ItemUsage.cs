@@ -107,8 +107,13 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (packet.Action is MsgItemUsageAction.Equip or MsgItemUsageAction.Unequip)
+        {
+            await HandleOwnedEquipmentIntentAsync(context, packet, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         if (packet.Action is (MsgItemUsageAction.RemoveInventory
-                or MsgItemUsageAction.Equip
                 or MsgItemUsageAction.SetEquipPosition
                 or MsgItemUsageAction.UpdateDurability
                 or MsgItemUsageAction.ActiveItems) &&
@@ -160,18 +165,6 @@ public static partial class WorldPacketHandlers
         if (packet.Action == MsgItemUsageAction.SellItem)
         {
             await HandleSellItemAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        if (packet.Action == MsgItemUsageAction.Unequip)
-        {
-            await HandleUnequipAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        if (packet.Action == MsgItemUsageAction.Equip)
-        {
-            await HandleEquipAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
             return;
         }
 

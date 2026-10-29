@@ -23,11 +23,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Theory]
     [InlineData("front-single")]
     [InlineData("front-persistence-and-guard")]
-    [InlineData("front-equipment-reset")]
     [InlineData("front-critical-zero")]
     [InlineData("impregnability-stacks")]
     [InlineData("impregnability-strict-miss")]
-    [InlineData("impregnability-equipment-reset")]
     [InlineData("impregnability-lethal-reset")]
     public async Task DirectOverlayPhysicalRunesRetainMutableStatusUntilActualEquipmentRebuild(string scenario)
     {

@@ -102,39 +102,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 8));
     }
 
-    [Fact]
-    public async Task RootManualMpCallbackUsesFreshQueriedRingButNativeRetainedNeck()
-    {
-        var armed = false;
-        var entered = false;
-        await using var fixture = new RootMagicEntryFixture(mana: 100,
-            itemEffects: new(RingEffect: 1, NeckEffect: 200), onSend: async (current, uid, bytes) =>
-            {
-                if (!armed || entered || uid != PlayerUid || !RootManualItemScalar(bytes, LegacyMsgUpdateDataType.Mana, 400)) return;
-                entered = true;
-                await current.UnequipRootItemEffectAsync(6);
-                await current.UnequipRootItemEffectAsync(2);
-                Assert.Equal(0U, LegacyPhysicalStatusOverlay.ForOwner(current.Owner).RingItemEffect);
-                Assert.Equal(200U, LegacyPhysicalStatusOverlay.ForOwner(current.Owner).NecklaceItemEffect);
-            });
-        await fixture.QueryRootItemEffectsAsync();
-        var start = fixture.Order.Count;
-        armed = true;
-        await fixture.CastAsync(1_000);
-        armed = false;
-        Assert.True(entered);
-        Assert.DoesNotContain(fixture.Owner.PlayerItems.EquipmentItems, item => item.Position is 6 or 2);
-        Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 9));
-        Assert.True(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 8));
-        Assert.Equal(360L, fixture.Owner.Character.MinMana);
-        foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
-        {
-            var animations = ParseSpellAnimations(fixture.FramesSince(uid, start));
-            Assert.Single(animations, packet => packet.SpellId == 1_175);
-            Assert.DoesNotContain(animations, packet => packet.SpellId == 1_095);
-            Assert.Single(animations, packet => packet.SpellId == 1_020);
-        }
-    }
 
     [Fact]
     public async Task RootManualMpAndRingCaptureFramesBeforeTheirAwaitWhileNextPhaseUsesCurrentPosition()

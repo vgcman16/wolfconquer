@@ -36,7 +36,8 @@ public sealed partial class LegacyOrdinarySpellCallerTests
             store.Set(connection, session);
             var context = LegacySpellProducerTestOwner.PrepareContext(new WorldPacketHandlerContext(
                 connection, f.Log, Session: session, WorldData: f.Catalog, Sessions: store,
-                PlayerSpellsRoot: f.Spells, PlayerItemsRoot: f.Items), ref session);
+                PlayerSpellsRoot: f.Spells, PlayerItemsRoot: f.Items)
+                { TradeOperations = new WorldOperationBarrier() }, ref session);
             Assert.True(context.TradeRecovery!.IsReadyForCharacterItemsSpells(f.Users, f.Items, f.Spells));
             var handler = typeof(WorldPacketHandlers).GetMethod("HandleMsgItemUsageAsync",
                 BindingFlags.NonPublic | BindingFlags.Static);

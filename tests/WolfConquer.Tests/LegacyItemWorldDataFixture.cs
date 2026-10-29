@@ -18,7 +18,8 @@ internal static class LegacyItemWorldDataFixture
         IReadOnlyList<ClassLevelStat>? classLevelStats = null,
         IReadOnlyList<MagicTypeOperationEntry>? magicTypeOperations = null,
         IReadOnlyList<ClientConfigRecord>? clientConfigs = null,
-        IReadOnlyList<PrestigeRankEntry>? prestigeRanks = null)
+        IReadOnlyList<PrestigeRankEntry>? prestigeRanks = null,
+        IReadOnlyList<CombatGearRankEntry>? combatGearRanks = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -82,7 +83,7 @@ internal static class LegacyItemWorldDataFixture
             teamElitePkRecords: [],
             skillTeamPkRecords: [],
             classPkWarRecords: [],
-            combatGearRanks: [],
+            combatGearRanks: combatGearRanks ?? [],
             prestigeRanks: prestigeRanks ?? [],
             innerPowerRanks: [],
             runeRankings: [],

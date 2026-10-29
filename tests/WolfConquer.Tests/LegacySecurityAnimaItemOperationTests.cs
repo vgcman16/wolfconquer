@@ -235,6 +235,9 @@ public sealed class LegacySecurityAnimaItemOperationTests : IDisposable
         sessions.Set(connection, initialStoredSession);
         var floorItems = new FloorItemRuntimeStateStore();
         using var log = new StringWriter();
+        var recovery = new LegacyTradeRecoveryState(usersRoot, itemsRoot);
+        Assert.True(recovery.TryEnsureInitialized(out var recoveryReason), recoveryReason);
+        Assert.True(recovery.IsReadyFor(usersRoot, itemsRoot));
         var characterBefore = File.ReadAllBytes(characterPath);
         var itemsBefore = File.ReadAllBytes(itemPath);
 
@@ -246,7 +249,8 @@ public sealed class LegacySecurityAnimaItemOperationTests : IDisposable
                 WorldData: worldData,
                 Sessions: sessions,
                 FloorItems: floorItems,
-                PlayerItemsRoot: itemsRoot),
+                PlayerItemsRoot: itemsRoot)
+                { TradeOperations = new WorldOperationBarrier(), TradeRecovery = recovery },
             ReadFrame(request));
 
         Assert.True(sessions.TryGet(connection, out var stored));
