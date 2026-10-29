@@ -68,8 +68,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.True(HasLegacyStatusFlag(fixture.Target.Character.Attributes, 0x32));
         Assert.Empty(fixture.DemountFrames(TargetPlayerUid));
         Assert.Empty(fixture.DemountFrames(PlayerUid));
-        Assert.Equal(new ulong[] { 90, 80 }, fixture.TargetStamina());
-        Assert.Equal("80", fixture.Target.Character.Attributes["Stamina"]);
+        Assert.Equal(new ulong[] { 90 }, fixture.TargetStamina());
+        Assert.Equal("90", fixture.Target.Character.Attributes["Stamina"]);
         Assert.Single(fixture.MagneticAnimations());
         Assert.Equal(fixture.Now.AddSeconds(1), fixture.Target.MagicCooldowns![20_220]);
     }

@@ -48,8 +48,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.Equal(map != 1_039, sawNestedStamina);
         Assert.True(sawNestedAnimation);
-        Assert.Equal(map == 1_039 ? "100" : "80", fixture.Caster.Character.Attributes["Stamina"]);
-        Assert.Equal(map == 1_039 ? "100" : "60", fixture.Target.Character.Attributes["Stamina"]);
+        Assert.Equal(map == 1_039 ? "100" : "90", fixture.Caster.Character.Attributes["Stamina"]);
+        Assert.Equal(map == 1_039 ? "100" : "90", fixture.Target.Character.Attributes["Stamina"]);
         Assert.Equal(500, fixture.Caster.Character.MinMana);
         Assert.Equal(500, fixture.Target.Character.MinMana);
         Assert.Equal(fixture.Now.AddSeconds(1), fixture.Caster.MagicCooldowns![NestedProcMagnetic]);
@@ -61,9 +61,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal(new[] { PlayerUid, TargetPlayerUid }.Order(), casts.Select(packet => packet.AttackerUid).Order());
             Assert.All(casts, packet => Assert.Equal(1, packet.BombFlag));
         }
-        Assert.Equal(map == 1_039 ? Array.Empty<ulong>() : new ulong[] { 90, 80 },
+        Assert.Equal(map == 1_039 ? Array.Empty<ulong>() : new ulong[] { 90 },
             fixture.StaminaValues(PlayerUid));
-        Assert.Equal(map == 1_039 ? Array.Empty<ulong>() : new ulong[] { 90, 80, 70, 60 },
+        Assert.Equal(map == 1_039 ? Array.Empty<ulong>() : new ulong[] { 90 },
             fixture.StaminaValues(TargetPlayerUid));
         fixture.AssertNoManaOrColdtimePackets();
         Assert.Equal(0, fixture.ScheduledTimers);
@@ -115,14 +115,14 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerNestedSyntheticManaRejectionKeepsSourceSpentStaminaAndDoesNotUseGrace()
+    public async Task HandlerNestedSyntheticManaRejectionPreservesBothResourcesAndDoesNotUseGrace()
     {
         // Supplied20220/20360 rows have mana0. This explicitly synthetic mana50
-        // branch proves CanUseSpell's ordering, not a claimed nonzero source row.
+        // branch proves safe resource refusal, not a claimed nonzero source row.
         using var fixture = new NestedProcAdmissionFixture(manaCost: 50, mana: 49, graceShape: true);
         await fixture.CastAsync();
-        Assert.Equal("80", fixture.Target.Character.Attributes["Stamina"]);
-        Assert.Equal(new ulong[] { 90, 80 }, fixture.StaminaValues(TargetPlayerUid));
+        Assert.Equal("100", fixture.Target.Character.Attributes["Stamina"]);
+        Assert.Empty(fixture.StaminaValues(TargetPlayerUid));
         Assert.Equal(49, fixture.Target.Character.MinMana);
         Assert.False(fixture.Target.MagicCooldowns?.ContainsKey(NestedProcMagnetic) == true);
         Assert.DoesNotContain(fixture.Animations(TargetPlayerUid), packet => packet.SpellId == NestedProcMagnetic);
@@ -134,7 +134,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerNestedSyntheticManaReadsCurrentMpMasterAfterItsStaminaPublication()
+    public async Task HandlerNestedSyntheticManaShortageCannotBeRescuedByALaterCostNotificationCallback()
     {
         var mutated = false;
         using var fixture = new NestedProcAdmissionFixture(manaCost: 100, mana: 80,
@@ -150,15 +150,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 return ValueTask.CompletedTask;
             });
         await fixture.CastAsync();
-        Assert.True(mutated);
-        Assert.Equal("80", fixture.Target.Character.Attributes["Stamina"]);
-        Assert.Equal(5, fixture.Target.Character.MinMana); // 100 - floor(100*25/100) =75; second attempt fails mana.
-        Assert.Equal("preserved", fixture.Target.Character.Attributes["NestedProcSameUidMutation"]);
-        var rune = Assert.Single(fixture.Target.PlayerItems.RuneItems);
-        Assert.Equal(4_030_803U, rune.ItemId);
-        Assert.Equal((ushort)101, rune.Position);
-        Assert.Equal(fixture.Now.AddSeconds(1), fixture.Target.MagicCooldowns![NestedProcMagnetic]);
-        Assert.Single(fixture.Animations(TargetPlayerUid), packet => packet.SpellId == NestedProcMagnetic);
+        Assert.False(mutated); // Rejection emits no cost frame and never invokes the rescue callback.
+        Assert.Equal("100", fixture.Target.Character.Attributes["Stamina"]);
+        Assert.Equal(80, fixture.Target.Character.MinMana);
+        Assert.False(fixture.Target.Character.Attributes.ContainsKey("NestedProcSameUidMutation"));
+        Assert.Empty(fixture.Target.PlayerItems.RuneItems);
+        Assert.False(fixture.Target.MagicCooldowns?.ContainsKey(NestedProcMagnetic) == true);
+        Assert.DoesNotContain(fixture.Animations(TargetPlayerUid), packet => packet.SpellId == NestedProcMagnetic);
         fixture.AssertNoManaOrColdtimePackets();
     }
 
@@ -170,7 +168,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.True(HasLegacyStatusFlag(fixture.Target.Character.Attributes, 0xEC));
         Assert.Equal(fixture.Now.AddSeconds(1), fixture.Target.MagicCooldowns![NestedProcMagnetic]);
         Assert.Single(fixture.Animations(TargetPlayerUid), packet => packet.SpellId == NestedProcMagnetic);
-        Assert.Equal(new ulong[] { 90, 80 }, fixture.StaminaValues(TargetPlayerUid));
+        Assert.Equal(new ulong[] { 90 }, fixture.StaminaValues(TargetPlayerUid));
         fixture.AssertNoManaOrColdtimePackets();
     }
 
@@ -211,7 +209,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var survivor = loseAttacker ? fixture.Target : fixture.Caster;
         Assert.Equal(100_000, survivor.Character.MinHitPoints);
         Assert.Equal(loseAttacker ? "90" : "100", survivor.Character.Attributes["Stamina"]);
-        Assert.False(survivor.MagicCooldowns?.ContainsKey(NestedProcMagnetic) == true);
+        Assert.Equal(loseAttacker, survivor.MagicCooldowns?.ContainsKey(NestedProcMagnetic) == true);
         Assert.Equal(new ulong[] { 90 }, fixture.StaminaValues(TargetPlayerUid));
         foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
         {
@@ -226,7 +224,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Theory]
     [InlineData(NestedProcMagnetic)]
     [InlineData(NestedProcAblaze)]
-    public async Task HandlerNestedProcRechecksItsOwnDeadTargetWithoutRegatingTheOriginalIncomingReceive(ushort proc)
+    public async Task HandlerNestedProcStopsAfterCommittedCostWhenTargetChangesWithoutRegatingOriginalIncomingReceive(ushort proc)
     {
         var changed = false;
         // Ablaze's supplied cost is0: synthetic stamina10 creates the same
@@ -244,12 +242,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         await fixture.CastAsync();
         Assert.True(changed);
         Assert.Equal(0, fixture.Caster.Character.MinHitPoints);
-        Assert.Equal("80", fixture.Target.Character.Attributes["Stamina"]);
+        Assert.Equal("90", fixture.Target.Character.Attributes["Stamina"]);
         Assert.Equal(fixture.Now.AddSeconds(1), fixture.Target.MagicCooldowns![proc]);
-        var nested = Assert.Single(fixture.Animations(TargetPlayerUid), packet => packet.SpellId == proc);
-        Assert.Equal(TargetPlayerUid, nested.AttackerUid);
-        Assert.Empty(nested.Targets); // Accepted proc still sends its source empty animation.
-        if (proc == NestedProcMagnetic) AssertNestedMagneticSourcePrefix(fixture);
+        Assert.DoesNotContain(fixture.Animations(TargetPlayerUid), packet => packet.SpellId == proc);
+        if (proc == NestedProcMagnetic) Assert.False(HasLegacyStatusFlag(fixture.Target.Character.Attributes, 0x16B));
         var outer = Assert.Single(fixture.Animations(PlayerUid), packet => packet.SpellId == ThunderSpellId);
         Assert.Equal(TargetPlayerUid, Assert.Single(outer.Targets).Uid);
         Assert.True(Assert.Single(outer.Targets).Damage > 0);
@@ -264,16 +260,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerNestedMagneticOwnBattlePowerZeroChanceStillPublishesAnEmptyAdmittedProc()
+    public async Task HandlerNestedMagneticZeroBattlePowerChanceRefusesItsProcWithoutDebitingTheOuterHit()
     {
         using var fixture = new NestedProcAdmissionFixture(attackerBattlePower: 170);
         await fixture.CastAsync();
         Assert.Equal(100_000, fixture.Caster.Character.MinHitPoints);
-        Assert.Equal("80", fixture.Target.Character.Attributes["Stamina"]);
-        Assert.Equal(fixture.Now.AddSeconds(1), fixture.Target.MagicCooldowns![NestedProcMagnetic]);
-        var nested = Assert.Single(fixture.Animations(TargetPlayerUid), packet => packet.SpellId == NestedProcMagnetic);
-        Assert.Empty(nested.Targets); // 100 - 2*(170-120) =0; no nested Receive/HP/push.
-        AssertNestedMagneticSourcePrefix(fixture);
+        Assert.Equal("100", fixture.Target.Character.Attributes["Stamina"]);
+        Assert.False(fixture.Target.MagicCooldowns?.ContainsKey(NestedProcMagnetic) == true);
+        Assert.DoesNotContain(fixture.Animations(TargetPlayerUid), packet => packet.SpellId == NestedProcMagnetic);
+        Assert.False(HasLegacyStatusFlag(fixture.Target.Character.Attributes, 0x16B));
+        Assert.Empty(fixture.StaminaValues(TargetPlayerUid));
         Assert.True(fixture.Target.Character.MinHitPoints < 100_000);
         Assert.Equal((830L, 584L), (fixture.Caster.Character.X, fixture.Caster.Character.Y));
         var outer = Assert.Single(fixture.Animations(PlayerUid), packet => packet.SpellId == ThunderSpellId);
@@ -284,7 +280,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Theory]
     [InlineData(49U, true)]
     [InlineData(50U, false)]
-    public async Task HandlerNestedMagneticUsesStrictIntegerBattlePowerBoundaryAfterAdmission(
+    public async Task HandlerNestedMagneticUsesStrictIntegerBattlePowerBoundaryBeforeAdmission(
         uint roll, bool hits)
     {
         // Source Core.Rate(int): 100 - 2*(145 - 120) =50, then50 > integer roll.
@@ -298,21 +294,22 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         await fixture.CastAsync();
 
-        Assert.Equal(new ulong[] { 90, 80 }, fixture.StaminaValues(TargetPlayerUid));
+        Assert.Equal(hits ? new ulong[] { 90 } : Array.Empty<ulong>(), fixture.StaminaValues(TargetPlayerUid));
         Assert.Empty(fixture.StaminaValues(PlayerUid));
-        Assert.Equal("80", fixture.Target.Character.Attributes["Stamina"]);
+        Assert.Equal(hits ? "90" : "100", fixture.Target.Character.Attributes["Stamina"]);
         Assert.Equal(500, fixture.Target.Character.MinMana);
-        Assert.Equal(fixture.Now.AddSeconds(1), fixture.Target.MagicCooldowns![NestedProcMagnetic]);
+        Assert.Equal(hits, fixture.Target.MagicCooldowns?.ContainsKey(NestedProcMagnetic) == true);
+        if (hits) Assert.Equal(fixture.Now.AddSeconds(1), fixture.Target.MagicCooldowns![NestedProcMagnetic]);
         Assert.Null(fixture.Caster.MagicCooldowns);
-        AssertNestedMagneticSourcePrefix(fixture);
+        if (hits) AssertNestedMagneticSourcePrefix(fixture);
 
         foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
         {
-            var nested = Assert.Single(fixture.Animations(uid), packet => packet.SpellId == NestedProcMagnetic);
-            Assert.Equal(TargetPlayerUid, nested.AttackerUid);
-            Assert.Equal(1, nested.BombFlag);
             if (hits)
             {
+                var nested = Assert.Single(fixture.Animations(uid), packet => packet.SpellId == NestedProcMagnetic);
+                Assert.Equal(TargetPlayerUid, nested.AttackerUid);
+                Assert.Equal(1, nested.BombFlag);
                 var hit = Assert.Single(nested.Targets);
                 Assert.Equal(PlayerUid, hit.Uid);
                 Assert.Equal(15_000U, hit.Damage); // Source replaces only the animation carrier after Receive.
@@ -328,7 +325,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             }
             else
             {
-                Assert.Empty(nested.Targets); // Admitted source handler still sends its empty bomb1 animation.
+                Assert.DoesNotContain(fixture.Animations(uid), packet => packet.SpellId == NestedProcMagnetic);
                 Assert.DoesNotContain(ParseMsgUpdates(fixture.Frames(uid)), update => update.Uid == PlayerUid &&
                     update.Updates.Any(entry => entry.Type is LegacyMsgUpdateDataType.MaxHitpoints or LegacyMsgUpdateDataType.Hitpoints));
             }

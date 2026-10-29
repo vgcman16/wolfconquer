@@ -2,7 +2,7 @@ using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
 
-public enum WorldSessionPublicationStage { FramePersistence, Observer }
+public enum WorldSessionPublicationStage { FramePersistence, Observer, ProcContinuation }
 
 // Construction belongs to the actual Store publisher. This outcome proves its
 // historical memory publication, not a successful save of every sidecar.

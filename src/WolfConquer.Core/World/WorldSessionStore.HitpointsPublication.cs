@@ -5,11 +5,13 @@ public sealed partial class WorldSessionStore
     // Ordinary Store writes use their registered concrete Frame's typed scalar
     // writer. No public callback, loose saved flag or deferred HP mirror exists.
     private bool TryPublishFrameOwnedHitpoints(PreparedSessionSpellPublication publication,
-        SessionHolder holder, out string reason)
+        SessionHolder holder, out string reason, PreparedSessionSpellPublication? observedPeer = null, SessionHolder? peerHolder = null)
     {
         reason = string.Empty;
         publication.ArmFinalProof();
-        if (!publication.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
+        observedPeer?.ArmFinalProof();
+        if (!publication.ConsumeBeforeWriterPlain() || observedPeer is not null && !observedPeer.ConsumeBeforeWriterPlain())
+            throw InvalidSpellPublication();
         if (publication.HitpointsWrite is { } write)
         {
             var outcome = write.TryCommit(out reason);
@@ -20,12 +22,14 @@ public sealed partial class WorldSessionStore
                 var uncertainty = new LegacyNativeHitpointsRecoveryRequiredException(failure);
                 try { publication.Binding!.Recovery.Block(failure); }
                 catch (Exception fence) { throw new AggregateException("HP persistence outcome and recovery fence failed.", uncertainty, fence); }
-                finally { holder.Clear(); }
+                finally { holder.Clear(); peerHolder?.Clear(); }
                 throw uncertainty;
             }
         }
-        if (!publication.IsCurrentPlain())
+        if (!publication.IsCurrentPlain() || observedPeer is not null && !observedPeer.IsCurrentPlain())
         {
+            if (publication.HasCommittedHitpoints && observedPeer is not null)
+                FailCommittedPairPublication(holder, publication.Binding, peerHolder!, observedPeer.Binding);
             if (publication.HasCommittedHitpoints) FailCommittedSpellPublication(holder, publication.Binding);
             throw InvalidSpellPublication();
         }

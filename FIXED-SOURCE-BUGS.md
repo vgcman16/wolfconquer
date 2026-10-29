@@ -4,6 +4,56 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-29 automatic-skill admission - local source qualification
+
+### FSB-191: Validate complete proc costs and eligibility before charging
+
+StarFlow10950 and nested20220/20360 used to publish stamina before Mana and
+cooldown refusal. Two genuine old admission controls changed the actual Store
+on Mana rejection. Older fixtures also required extra costs for cooldown-rejected
+recursion. Costs, actual MPMaster metadata, balances and natural cooldown are now
+prepared without mutation/output. Nested alive/view/DynamicID/PK/direct range
+and Magnetic battle-power admission are checked before commitment; the roll is
+not repeated after debit. StarFlow keeps its own area-victim selection rules.
+
+The actual Store compares owner and observed peer records/generations under its
+ordered gates. Only the proc caster changes. When Mana changes the existing real
+complete Character writer commits before joint native HP/Mana and holder state.
+No accepting saver, fake journal or pending-writer barrier is used. Exact committed
+records and actual bound ownership/recovery guard prepared cost sends. A competing
+same-generation change stops stale remaining replies/effects; committed accounting
+is retained and the actual bound issuance fenced. Real transport failure follows
+the same no-refund/no-retry rule. Magnetic status advances by observed-peer CAS
+and guarded owner/view sends; no lock spans transport or retracts an in-flight frame.
+
+Successful StarFlow stamina-then-Mana bytes and nested silent Mana/no-ColdTime
+remain. Valid map1039 bypasses costs while retaining cooldown admission. Independent
+book/steed/outer-attack prefixes remain; the whole rejected invocation is not
+claimed unchanged. Five old test families now require one accepted charge and
+no charge for rejected retries, while keeping meaningful positive packet checks.
+
+Independent review also found explicit malformed/negative Stamina becoming the
+absent-field100/150 default. Eight genuinely admitted saved-input controls
+reproduced that bug. The proc planner now rejects present values that cannot
+parse as the existing unsigned integer type, preserving supported absent defaults
+and valid values without inventing a maximum. Other legacy-reader callers remain
+OPEN for the next audit; this is not a global stamina-validation claim.
+
+Root qualification2026-10-29: the two genuine old-entry Mana refusals
+failed before this product, then all2656 LegacyMagicAttackRuntimeTests passed,
+zero failures/skips. The neighboring native/owned/ordinary/consumable/HP/mail/
+equipment/trade/runtime selection passed1883 with122 existing fixture skips,
+zero failures. Selections overlap. All8 malformed saved-Stamina controls first
+reproduced admission success, then pass after the proc-local guard. Build03:
+zeroerrors, no changed-file warnings. Full successor Windows CI/live remain pending.
+
+Owned positives exercise the private admission transaction using real ordinary
+saved/registry/native owners. Whole nested executor behavior is still primarily
+component-fixture evidence. Postcommit peer mutation and bound reissuance lack
+direct owned tests here. Global damage/status/SQL/power-loss atomicity, complete
+native executors, live client/English/parity and retained mail claim/equipment
+remain OPEN. Tests/source review are not deployment or complete gameplay proof.
+
 ## 2026-10-29 owned vitals and zero-cost metadata - local qualification
 
 ### FSB-189: Keep saved, Store and physical current Mana together

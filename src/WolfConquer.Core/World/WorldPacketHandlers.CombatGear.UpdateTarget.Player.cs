@@ -242,9 +242,9 @@ public static partial class WorldPacketHandlers
             return (defenderSession, attackerSession, false, LegacyPlayerMagicReceiveAbortReason.None);
         }
 
-        // Native MyCombatGear.ProcescMagic864 writes the selected book ID BEFORE root/steed/CanUse.
-        var randomOwner = TryAssignLegacyNestedDamageRandomSpellEntry(
-            defenderContext, defenderSession, playerSpell.Id);
+        // Preserve the independent selected-book entry prefix. These two IDs
+        // are excluded from weapon authorization; this is not a proc debit.
+        var randomOwner = TryAssignLegacyNestedDamageRandomSpellEntry(defenderContext, defenderSession, playerSpell.Id);
         if (randomOwner is null)
             return (defenderSession, attackerSession, false, LegacyPlayerMagicReceiveAbortReason.TargetLost);
         defenderSession = randomOwner;
@@ -267,15 +267,17 @@ public static partial class WorldPacketHandlers
             }
         }
 
-        var admission = await TryAdmitLegacyCombatGearNestedPlayerDamageProcAsync(
+        var admission = await TryCommitLegacyNestedProcAdmissionAsync(
                 defenderContext, attackerConnection, attackerSession, defenderSession, spell, cancellationToken)
             .ConfigureAwait(false);
-        defenderSession = admission.DefenderSession;
-        attackerSession = admission.AttackerSession;
+        defenderSession = admission.Owner;
+        attackerSession = admission.Peer!;
         if (admission.AbortReason != LegacyPlayerMagicReceiveAbortReason.None || !admission.Admitted)
             return (defenderSession, attackerSession, false, admission.AbortReason);
         defenderContext = defenderContext with { Session = defenderSession };
 
+        try
+        {
         return spellId switch
         {
             LegacyCombatGearMagneticLightSpellId =>
@@ -286,6 +288,7 @@ public static partial class WorldPacketHandlers
                         defenderSession,
                         playerSpell,
                         spell,
+                        admission.Authorization!,
                         attempt,
                         cancellationToken)
                     .ConfigureAwait(false),
@@ -297,11 +300,15 @@ public static partial class WorldPacketHandlers
                         defenderSession,
                         playerSpell,
                         spell,
+                        admission.Authorization!,
                         attempt,
                         cancellationToken)
                     .ConfigureAwait(false),
             _ => (defenderSession, attackerSession, false, LegacyPlayerMagicReceiveAbortReason.None),
         };
+        }
+        catch (WorldSessionPublicationException) { throw; }
+        catch (Exception error) when (admission.Receipt is not null) { throw admission.Receipt.Failure(error); }
     }
 
     private static async ValueTask<(WorldSession DefenderSession, WorldSession AttackerSession, bool Applied,
@@ -313,6 +320,7 @@ public static partial class WorldPacketHandlers
             WorldSession defenderSession,
             PlayerSpellSnapshotEntry playerSpell,
             LegacyMagicRuntimeSpell spell,
+            LegacyNestedProcAuthorization authorization,
             int attempt,
             CancellationToken cancellationToken)
     {
@@ -320,7 +328,8 @@ public static partial class WorldPacketHandlers
         var defenderUid = defenderSession.Character.Uid;
 
         var targetGate = await TryEnterLegacyCombatGearNestedPlayerTargetAsync(
-                defenderContext, attackerConnection, attackerSession, defenderSession, spell, cancellationToken)
+                defenderContext, attackerConnection, attackerSession, defenderSession, spell,
+                authorization, authorization.Owner, cancellationToken)
             .ConfigureAwait(false);
         defenderSession = targetGate.DefenderSession;
         attackerSession = targetGate.AttackerSession;
@@ -451,6 +460,7 @@ public static partial class WorldPacketHandlers
             WorldSession defenderSession,
             PlayerSpellSnapshotEntry playerSpell,
             LegacyMagicRuntimeSpell spell,
+            LegacyNestedProcAuthorization authorization,
             int attempt,
             CancellationToken cancellationToken)
     {
@@ -458,17 +468,21 @@ public static partial class WorldPacketHandlers
         var attackerUid = attackerSession.Character.Uid;
         var defenderUid = defenderSession.Character.Uid;
 
+        var originalAuthorizationCurrent = ReferenceEquals(defenderSession.Character, authorization.Owner);
+
         var prefix = await SendLegacyCombatGearMagneticPlayerPrefixAsync(
-                defenderContext, attackerConnection, attackerSession, defenderSession, cancellationToken)
+                defenderContext, attackerConnection, attackerSession, defenderSession, authorization, cancellationToken)
             .ConfigureAwait(false);
         defenderSession = prefix.DefenderSession;
         attackerSession = prefix.AttackerSession;
         defenderContext = defenderContext with { Session = defenderSession };
         if (prefix.AbortReason != LegacyPlayerMagicReceiveAbortReason.None)
             return (defenderSession, attackerSession, false, prefix.AbortReason);
+        if (!prefix.Published) return (defenderSession, attackerSession, false, LegacyPlayerMagicReceiveAbortReason.None);
 
         var targetGate = await TryEnterLegacyCombatGearNestedPlayerTargetAsync(
-                defenderContext, attackerConnection, attackerSession, defenderSession, spell, cancellationToken)
+                defenderContext, attackerConnection, attackerSession, defenderSession, spell,
+                authorization, originalAuthorizationCurrent ? prefix.PublishedCharacter : authorization.Owner, cancellationToken)
             .ConfigureAwait(false);
         defenderSession = targetGate.DefenderSession;
         attackerSession = targetGate.AttackerSession;

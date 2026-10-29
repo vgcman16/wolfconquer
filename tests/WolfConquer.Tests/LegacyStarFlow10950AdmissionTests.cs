@@ -92,7 +92,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task StarFlow10950ManaFailureRetainsAlreadySpentStaminaAndSourcePrefix()
+    public async Task StarFlow10950ManaFailurePreservesBothResourcesAndRetainsIndependentTriggerPrefix()
     {
         var armed = false;
         await using var fixture = new ArrowLifecycleFixture(learnedStarFlow: true, starFlowRow: StarAdmissionRow(),
@@ -106,17 +106,17 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var start = fixture.Order.Count;
         armed = true;
         await fixture.OrdinaryMagicAsync();
-        Assert.Equal("90", fixture.Owner.Character.Attributes["Stamina"]);
+        Assert.Equal("100", fixture.Owner.Character.Attributes["Stamina"]);
         Assert.Equal(5, fixture.Owner.Character.MinMana);
         Assert.False(fixture.Owner.MagicCooldowns?.ContainsKey(StarAdmissionSpell) == true);
-        Assert.Equal(new[] { (LegacyMsgUpdateDataType.Stamina, 90UL) }, StarAdmissionCosts(fixture.FramesSince(PlayerUid, start)));
+        Assert.Empty(StarAdmissionCosts(fixture.FramesSince(PlayerUid, start)));
         Assert.DoesNotContain(ParseSpellAnimations(fixture.FramesSince(PlayerUid, start)), packet => packet.SpellId == StarAdmissionSpell);
         Assert.Equal(0U, ArrowLifeCounter(fixture.Owner, "StarFlow"));
         fixture.AssertRegistration(336, ArrowLifeOrigin.AddSeconds(2).DateTime, 10);
     }
 
     [Fact]
-    public async Task StarFlow10950CooldownFailureStillConsumesBothCostsAndRenewsThirdPrefix()
+    public async Task StarFlow10950CooldownFailurePreservesResourcesAndRenewsIndependentThirdPrefix()
     {
         await using var fixture = new ArrowLifecycleFixture(learnedStarFlow: true, starFlowRow: StarAdmissionRow());
         await ArrowThirdWarmAsync(fixture);
@@ -127,17 +127,17 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var start = fixture.Order.Count;
         await fixture.OrdinaryMagicAsync();
         Assert.Equal(ArrowLifeOrigin.AddSeconds(5), fixture.Now);
-        Assert.Equal("80", fixture.Owner.Character.Attributes["Stamina"]);
-        Assert.Equal(920, fixture.Owner.Character.MinMana);
+        Assert.Equal("90", fixture.Owner.Character.Attributes["Stamina"]);
+        Assert.Equal(960, fixture.Owner.Character.MinMana);
         Assert.Equal(ArrowLifeOrigin.AddSeconds(12), fixture.Owner.MagicCooldowns![StarAdmissionSpell]);
-        Assert.Equal(new[] { (LegacyMsgUpdateDataType.Stamina, 80UL), (LegacyMsgUpdateDataType.Mana, 920UL) }, StarAdmissionCosts(fixture.FramesSince(PlayerUid, start)));
+        Assert.Empty(StarAdmissionCosts(fixture.FramesSince(PlayerUid, start)));
         Assert.DoesNotContain(ParseSpellAnimations(fixture.FramesSince(PlayerUid, start)), packet => packet.SpellId == StarAdmissionSpell);
         Assert.Equal(0U, ArrowLifeCounter(fixture.Owner, "StarFlow"));
         fixture.AssertRegistration(336, ArrowLifeOrigin.AddSeconds(5).DateTime, 10);
     }
 
     [Fact]
-    public async Task StarFlow10950HpOnlyAliveGateRunsAfterCostsAndCooldownWithoutRegatingIncomingReceive()
+    public async Task StarFlow10950DeathAfterCommittedCostIsAProcInterruptionWithoutRegatingIncomingReceive()
     {
         var armed = false;
         await using var fixture = new ArrowLifecycleFixture(learnedStarFlow: true, starFlowRow: StarAdmissionRow(),
@@ -164,7 +164,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task StarFlow10950UsesFreshManaAndClockButKeepsQueryCoordinatesCapturedBeforeCostSends()
+    public async Task StarFlow10950SameIdentityMutationStopsStalePreparedManaAndRetainsItsCommittedDeadline()
     {
         var armed = false;
         await using var fixture = new ArrowLifecycleFixture(learnedStarFlow: true, starFlowRow: StarAdmissionRow(),
@@ -172,12 +172,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         {
             if (!armed || recipient != PlayerUid) return ValueTask.CompletedTask;
             if (StarAdmissionScalar(bytes, LegacyMsgUpdateDataType.Stamina, 90))
-                current.ChangeOwnerDuringArrowSend(value => value with { Character = value.Character with { MinMana = 77 } });
-            if (StarAdmissionScalar(bytes, LegacyMsgUpdateDataType.Mana, 37))
             {
                 current.AdvanceUnstartedArrowInputClock(TimeSpan.FromSeconds(1));
                 current.ChangeOwnerDuringArrowSend(value => value with { Character = value.Character with
-                    { MinMana = 11, MinHitPoints = 4_444, X = 831, Y = 585 } });
+                    { MinMana = 77, MinHitPoints = 4_444, X = 831, Y = 585 } });
             }
             return ValueTask.CompletedTask;
         });
@@ -186,16 +184,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         armed = true;
         await fixture.OrdinaryMagicAsync();
         Assert.Equal(ArrowLifeOrigin.AddSeconds(3), fixture.Now);
-        Assert.Equal(ArrowLifeOrigin.AddSeconds(13), fixture.Owner.MagicCooldowns![StarAdmissionSpell]);
-        Assert.Equal(11, fixture.Owner.Character.MinMana);
+        Assert.Equal(ArrowLifeOrigin.AddSeconds(12), fixture.Owner.MagicCooldowns![StarAdmissionSpell]);
+        Assert.Equal(77, fixture.Owner.Character.MinMana);
         Assert.Equal(4_444, fixture.Owner.Character.MinHitPoints);
         Assert.Equal(831, fixture.Owner.Character.X);
         Assert.Equal(585, fixture.Owner.Character.Y);
-        Assert.Equal(new[] { (LegacyMsgUpdateDataType.Stamina, 90UL), (LegacyMsgUpdateDataType.Mana, 37UL) }, StarAdmissionCosts(fixture.FramesSince(PlayerUid, start)));
-        var cast = Assert.Single(ParseSpellAnimations(fixture.FramesSince(PlayerUid, start)), packet => packet.SpellId == StarAdmissionSpell);
-        Assert.Equal((ushort)830, cast.X);
-        Assert.Equal((ushort)584, cast.Y);
-        Assert.True(Assert.Single(cast.Targets, target => target.Uid == TargetPlayerUid).Damage > 0);
+        Assert.Equal(new[] { (LegacyMsgUpdateDataType.Stamina, 90UL) }, StarAdmissionCosts(fixture.FramesSince(PlayerUid, start)));
+        Assert.DoesNotContain(ParseSpellAnimations(fixture.FramesSince(PlayerUid, start)), packet => packet.SpellId == StarAdmissionSpell);
+        var outer = Assert.Single(ParseSpellAnimations(fixture.FramesSince(PlayerUid, start)), packet => packet.SpellId == 1000);
+        Assert.True(Assert.Single(outer.Targets, target => target.Uid == TargetPlayerUid).Damage > 0);
     }
 
     [Theory]

@@ -592,13 +592,15 @@ public static partial class WorldPacketHandlers
             return (session, LegacyPlayerMagicReceiveAbortReason.None);
         }
 
-        var admission = await TryAdmitLegacyStoneCrackerStarFlowSpellAsync(
+        var admission = await TryCommitLegacyStarFlowAdmissionAsync(
                 context, session, spell, cancellationToken).ConfigureAwait(false);
-        session = admission.Session;
+        session = admission.Owner;
         context = context with { Session = session };
         if (!admission.Admitted || admission.AbortReason != LegacyPlayerMagicReceiveAbortReason.None)
             return (session, admission.AbortReason);
 
+        try
+        {
         const double starFlowRadius = 2.5;
         var now = DateTimeOffset.UtcNow;
         var updatedSession = session;
@@ -855,5 +857,8 @@ public static partial class WorldPacketHandlers
                 "source=MyCombatGear.Update StoneCracker -> CombatGearAttack 10950.")
             .ConfigureAwait(false);
         return (updatedSession, LegacyPlayerMagicReceiveAbortReason.None);
+        }
+        catch (WorldSessionPublicationException) { throw; }
+        catch (Exception error) when (admission.Receipt is not null) { throw admission.Receipt.Failure(error); }
     }
 }

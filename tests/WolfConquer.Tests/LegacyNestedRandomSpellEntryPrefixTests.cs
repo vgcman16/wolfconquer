@@ -123,9 +123,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal(1, witnessed);
         Assert.Equal(procId, fixture.Target.LegacyRandomSpell);
         Assert.Equal("cost-send", fixture.Target.Character.Attributes["NestedRandomCopy"]);
-        Assert.Equal(procId == 20_220 ? new ulong[] { 90, 80 } : new ulong[] { 94, 88 },
+        // The first cost committed. Copying its prepared owner stops that proc;
+        // the later cooldown-rejected attempt cannot charge or animate again.
+        Assert.Equal(procId == 20_220 ? new ulong[] { 90 } : new ulong[] { 94 },
             fixture.TargetStamina()); // Native Scurvy+6 supplies the otherwise zero-cost20360 witness.
-        Assert.Single(fixture.ProcAnimations());
+        Assert.Equal(procId == 20_220 ? "90" : "94", fixture.Target.Character.Attributes["Stamina"]);
+        Assert.Empty(fixture.ProcAnimations());
     }
 
     private static bool NestedRandomPrefixDemount(byte[] bytes) =>

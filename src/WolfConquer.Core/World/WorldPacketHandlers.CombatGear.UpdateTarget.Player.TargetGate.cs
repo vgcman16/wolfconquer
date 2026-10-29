@@ -9,6 +9,32 @@ public static partial class WorldPacketHandlers
     private const string RuntimeLegacyCombatGearMagneticBattlePowerRollAttribute =
         "LegacyCombatGearMagneticBattlePowerRoll";
 
+    private static bool CanPrepareLegacyNestedProcTarget(WorldPacketHandlerContext context, WorldSession owner,
+        WorldSession target, LegacyMagicRuntimeSpell spell, out LegacyPlayerMagicGateFailureEffect effect)
+    {
+        effect = LegacyPlayerMagicGateFailureEffect.None;
+        if (owner.Character.MinHitPoints <= 0 || target.Character.MinHitPoints <= 0 ||
+            !CanSeePlayer(owner.Character, target.Character) ||
+            (spell.Sort is LegacyMagicSort.Attack or LegacyMagicSort.DirectAttack) &&
+                LegacyGetDistance(owner.Character.X, owner.Character.Y, target.Character.X, target.Character.Y) > spell.Range)
+            return false;
+        return CanLegacyPlayerMagicDamageTarget(context, owner, target, spell, out _, out effect) &&
+            (spell.Id != LegacyCombatGearMagneticLightSpellId || context.WorldData is { } world &&
+                CheckLegacyCombatGearMagneticBattlePowerRoll(owner, target, world));
+    }
+
+    private static async ValueTask SendLegacyNestedProcGateFailureAsync(WorldPacketHandlerContext context,
+        ConquerTcpConnection targetConnection, WorldSession target, WorldSession owner,
+        LegacyPlayerMagicGateFailureEffect effect, CancellationToken cancellationToken)
+    {
+        if (effect == LegacyPlayerMagicGateFailureEffect.ForbiddenPirate)
+            await SendScalarUpdateAsync(context, owner.Character, LegacyMsgUpdateDataType.ForbiddenPirate, 1, cancellationToken)
+                .ConfigureAwait(false);
+        else if (effect == LegacyPlayerMagicGateFailureEffect.HellVortexCounter)
+            await TrySendLegacyPlayerHellVortexCounterAsync(context, owner,
+                new WorldActiveSession(targetConnection, target), cancellationToken).ConfigureAwait(false);
+    }
+
     private static async ValueTask<(WorldSession DefenderSession, WorldSession AttackerSession,
         bool Allowed, LegacyPlayerMagicReceiveAbortReason AbortReason)>
         TryEnterLegacyCombatGearNestedPlayerTargetAsync(
@@ -17,6 +43,8 @@ public static partial class WorldPacketHandlers
             WorldSession attackerSession,
             WorldSession defenderSession,
             LegacyMagicRuntimeSpell spell,
+            LegacyNestedProcAuthorization authorization,
+            CharacterSnapshot authorizedOwner,
             CancellationToken cancellationToken)
     {
         var attackerUid = attackerSession.Character.Uid;
@@ -31,29 +59,17 @@ public static partial class WorldPacketHandlers
 
         var reason = Refresh();
         if (reason != LegacyPlayerMagicReceiveAbortReason.None) return Result(false, reason);
-        // This is the NEW nested handler's View lookup, not an incoming Receive re-gate.
-        if (!CanSeePlayer(defenderSession.Character, attackerSession.Character))
+        if (authorization.Receipt is { } receipt && !receipt.RequirePreparedCurrent()) return Result(false, Refresh());
+        // Target permissions/RNG were prepared before debit. A changed actor
+        // cannot inherit that authorization; this is a committed miss, not a
+        // second admission, second roll or refund of the original outer hit.
+        if (!ReferenceEquals(defenderSession.Character, authorizedOwner) ||
+            !ReferenceEquals(attackerSession.Character, authorization.Target) ||
+            !ReferenceEquals(defenderSession.PlayerItems, authorization.Items) ||
+            !ReferenceEquals(defenderSession.PlayerSpells, authorization.Spells) ||
+            defenderSession.AlternateEquipmentActive != authorization.AlternateEquipment ||
+            !CanSeePlayer(defenderSession.Character, attackerSession.Character))
             return Result(false);
-
-        if (!CanLegacyPlayerMagicDamageTarget(
-                defenderContext, defenderSession, attackerSession, spell, out _, out var failureEffect))
-        {
-            if (failureEffect == LegacyPlayerMagicGateFailureEffect.ForbiddenPirate)
-            {
-                await SendScalarUpdateAsync(defenderContext, defenderSession.Character,
-                        LegacyMsgUpdateDataType.ForbiddenPirate, 1, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            else if (failureEffect == LegacyPlayerMagicGateFailureEffect.HellVortexCounter)
-            {
-                await TrySendLegacyPlayerHellVortexCounterAsync(
-                        defenderContext, defenderSession,
-                        new WorldActiveSession(attackerConnection, attackerSession), cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            reason = Refresh();
-            return Result(false, reason);
-        }
 
         defenderSession = await TryApplyLegacyPlayerMagicCanAttackFlashingNameAsync(
                 defenderContext, defenderSession,
@@ -63,10 +79,7 @@ public static partial class WorldPacketHandlers
         reason = Refresh();
         if (reason != LegacyPlayerMagicReceiveAbortReason.None) return Result(false, reason);
 
-        // Source Verified's side effects precede this independent integer Rate draw.
-        return Result(spell.Id != LegacyCombatGearMagneticLightSpellId ||
-            defenderContext.WorldData is { } worldData &&
-            CheckLegacyCombatGearMagneticBattlePowerRoll(defenderSession, attackerSession, worldData));
+        return Result(ReferenceEquals(attackerSession.Character, authorization.Target));
     }
 
     private static bool CheckLegacyCombatGearMagneticBattlePowerRoll(

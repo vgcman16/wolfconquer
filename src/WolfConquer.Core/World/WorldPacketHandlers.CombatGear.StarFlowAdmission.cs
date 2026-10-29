@@ -4,74 +4,62 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
+    // Retain this bounded managed entry for existing component callers/tests.
     private static async ValueTask<(WorldSession Session, bool Admitted, LegacyPlayerMagicReceiveAbortReason AbortReason)>
-        TryAdmitLegacyStoneCrackerStarFlowSpellAsync(
-            WorldPacketHandlerContext context, WorldSession session, LegacyMagicRuntimeSpell spell,
-            CancellationToken cancellationToken)
+        TryAdmitLegacyStoneCrackerStarFlowSpellAsync(WorldPacketHandlerContext context, WorldSession session,
+            LegacyMagicRuntimeSpell spell, CancellationToken cancellationToken)
     {
+        var result = await TryCommitLegacyStarFlowAdmissionAsync(context, session, spell, cancellationToken).ConfigureAwait(false);
+        return (result.Owner, result.Admitted, result.AbortReason);
+    }
+
+    private static async ValueTask<LegacyCombatProcAdmission> TryCommitLegacyStarFlowAdmissionAsync(
+        WorldPacketHandlerContext context, WorldSession session, LegacyMagicRuntimeSpell requested, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         var uid = session.Character.Uid;
-        (WorldSession, bool, LegacyPlayerMagicReceiveAbortReason) Result(
-            bool admitted, LegacyPlayerMagicReceiveAbortReason reason = LegacyPlayerMagicReceiveAbortReason.None) =>
-            (session, admitted, reason);
-        bool Refresh() => TryRefreshLegacyPlayerMagicResourceSession(context, uid, ref session);
-        if (!Refresh()) return Result(false, LegacyPlayerMagicReceiveAbortReason.AttackerLost);
+        LegacyCombatProcAdmission Result(bool admitted, LegacyPlayerMagicReceiveAbortReason reason = LegacyPlayerMagicReceiveAbortReason.None,
+            WorldSessionStore.ProcReceipt? receipt = null) => new(session, null, admitted, reason, receipt);
+        if (!TryRefreshLegacyPlayerMagicResourceSession(context, uid, ref session))
+            return Result(false, LegacyPlayerMagicReceiveAbortReason.AttackerLost);
+        if (context.Sessions is null && HasOwnedLegacyProcAttachment(session, context.Connection)) return Result(false);
+        if (requested.Id != LegacyCombatGearStarFlowSpellId || context.WorldData is not { } world ||
+            !LegacyMagicRuntime.TryResolveLearnedSpell(session.PlayerSpells, world, requested.Id, out _, out var spell) ||
+            spell != requested ||
+            spell.Sort is LegacyMagicSort.Attack or LegacyMagicSort.DirectAttack ||
+            !TryPrepareLegacyCombatGearProc(context, session, spell, sendMana: true, out var plan)) return Result(false);
 
-        // MyCombatGear's10950 query has OpponentUID0. Source IsInSpellRange
-        // cannot resolve a valid view object0, so Attack/DirectAttack reject BEFORE costs.
-        if (spell.Sort is LegacyMagicSort.Attack or LegacyMagicSort.DirectAttack) return Result(false);
-        if (session.Character.MapId != 1_039)
+        WorldSessionStore.ProcReceipt? committed = null;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (context.Sessions is { } store)
         {
-            var useStamina = (uint)spell.UseStamina +
-                (HasLegacyStatusFlag(session.Character, LegacyScurvyBombFlag) ? 6U : 0U);
-            var stamina = ReadLegacyRuntimeStamina(session.Character);
-            if (stamina < useStamina) return Result(false);
-            if (useStamina > 0)
+            if (!TryCaptureLegacyProcParticipant(context, session, out var owner))
+                return Result(false, LegacyPlayerMagicReceiveAbortReason.AttackerLost);
+            try
             {
-                var remaining = stamina - useStamina;
-                session = session with { Character = WithCharacterAttribute(session.Character, "Stamina", remaining) };
-                context.Sessions?.Set(context.Connection, session);
-                await context.Connection.SendAsync(
-                        LegacyMsgUpdatePacket.CreateLegacyRuntimeStaminaTickUpdate(
-                            CheckedUInt32(uid, nameof(uid)), remaining).ToFrameBytes(), cancellationToken)
-                    .ConfigureAwait(false);
-                if (!Refresh()) return Result(false, LegacyPlayerMagicReceiveAbortReason.AttackerLost);
+                if (!store.TryCommitProc(owner, plan.Candidate, null, out committed)) return Result(false);
             }
-
-            // Rune lookup is AFTER the stamina setter's publication and refresh.
-            var cost = LegacyMagicResourceCostCalculator.Calculate(spell, session.PlayerItems,
-                context.WorldData, session.Character.Attributes, session.AlternateEquipmentActive, session.Character.Class);
-            if (session.Character.MinMana < cost.UseMana) return Result(false); // Stamina is not rolled back.
-            if (cost.UseMana > 0)
+            catch (LegacyNativeHitpointsRefusalException) { return Result(false); }
+            session = committed!.Published;
+            if (!await committed.SendAsync(plan.CostFrames, cancellationToken).ConfigureAwait(false))
             {
-                session = session with { Character = session.Character with
-                    { MinMana = session.Character.MinMana - cost.UseMana } };
-                context.Sessions?.Set(context.Connection, session);
-                // Player.Mana2633–2650 emits its owner update after FullLoading;
-                // runtime WorldSession is that modeled post-loading boundary.
-                await SendScalarUpdateAsync(context, session.Character, LegacyMsgUpdateDataType.Mana,
-                        CheckedUInt32(session.Character.MinMana, nameof(session.Character.MinMana)), cancellationToken)
-                    .ConfigureAwait(false);
-                if (!Refresh()) return Result(false, LegacyPlayerMagicReceiveAbortReason.AttackerLost);
+                if (!committed.TryCurrent(out var interrupted))
+                    return Result(true, LegacyPlayerMagicReceiveAbortReason.AttackerLost, committed);
+                session = interrupted;
+                return Result(false, receipt: committed); // Same-generation committed interruption; outer hit is independent.
             }
+            if (!committed.TryCurrent(out var current))
+                return Result(true, LegacyPlayerMagicReceiveAbortReason.AttackerLost, committed);
+            session = current;
         }
-
-        // Source checks coldtime AFTER both costs. No Grace/HeavensWrath bypass,
-        // no ColdTime packet, and map1039 skips costs only.10950 has no sigil adjustment.
-        if (LegacyMagicRuntime.UsesLegacyCooldown(spell) &&
-            !HasLegacyStatusFlag(session.Character, LegacyCannonBarrageFlag) &&
-            !HasLegacyStatusFlag(session.Character, LegacyBlackbeardsRageFlag))
+        else
         {
-            var now = (context.TimeProvider ?? TimeProvider.System).GetUtcNow();
-            if (session.MagicCooldowns is { } existing &&
-                existing.TryGetValue(spell.Id, out var readyAt) && readyAt > now) return Result(false);
-            var cooldowns = session.MagicCooldowns is null
-                ? new Dictionary<ushort, DateTimeOffset>()
-                : new Dictionary<ushort, DateTimeOffset>(session.MagicCooldowns);
-            cooldowns[spell.Id] = now.AddMilliseconds(spell.ColdTime);
-            session = session with { MagicCooldowns = cooldowns };
-            context.Sessions?.Set(context.Connection, session);
+            session = plan.Candidate; // Existing local component path; no invented Store/persistence claim.
+            foreach (var frame in plan.CostFrames) await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
         }
-        // CombatGearAttack20 uses source HP-only Alive AFTER CanUseSpell.
-        return Result(session.Character.MinHitPoints > 0);
+        // Death after a committed cost notification is a committed interruption
+        // of this proc, not a failed preflight or a re-gate of the outer hit.
+        if (session.Character.MinHitPoints <= 0) return Result(false, receipt: committed);
+        return Result(true, receipt: committed);
     }
 }
