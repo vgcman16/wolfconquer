@@ -1,22 +1,23 @@
 # Reconstruction status
 
-Updated 2026-10-29. Target: Chinese client7899 / VisibleDx8D13.
-Full English/gameplay reconstruction remains active. Current source5daa0fe4 and
-generated tracker531a9aa3 are pushed. Current-main live acceptance remains open.
+Updated2026-10-29. Target: Chinese client7899 / VisibleDx8D13.
+Full English/gameplay reconstruction remains active. Source30e793f0 and generated
+tracker50cf80fa are pushed; current-main live acceptance remains open.
 
 ## Full CI boundary
 
-Full Windows [40867334704](https://github.com/vgcman16/wolfconquer/actions/runs/40867334704)
-passed on exact531a9aa3d8e17c18ccd9f5bf68d480cbc5295319, containing source5daa0fe4:
-Core29,833 passed/152 existing fixture skips, Updates446/446 and Launcher57/57,
-zero failures; all eight stages passed. Actual local20261029T114153515Z-2d796ae9
-finished2026-10-29T12:24:15.2854218Z. Workflow/job/local phase logs and all3TRXs
-are retained; matching complete World/DataTool runtime files were preserved
-outside the runner before any next candidate build. This qualifies the published
-required-stamina, XP eligibility and pending-cost-output source changes.
-Caprice paired transfer/shared journal successors, live deployment/client acceptance,
-SQL/power-loss safety and complete English/gameplay parity remain unqualified.
-No original-save/route edit, client relaunch or retained gear resend followed.
+Full Windows [40886558198](https://github.com/vgcman16/wolfconquer/actions/runs/40886558198)
+passed on exact50cf80fa8c5d1c334d7ee6bfea0715040c66fc56, containing source30e793f0
+and the preceding decoded-Echo loader dd976947. Core29,929 passed/152 existing
+NotExecuted, Updates446/446, Launcher57/57; all eight stages passed with0failures.
+Actual local20261029T135633667Z-e23c3f08 finished2026-10-29T14:44:06.9964313Z.
+All51 new combined focused outcomes and46 decoded-Echo catalog outcomes are
+present as Passed in the full core TRX. Actual logs/receipts/all3TRXs and matching
+complete World/DataTool runtime files are preserved outside the runner.
+This qualifies the Caprice pair, shared journal, XP/Fly preflight and Echo loader
+source. Whole-cast/SQL/native physical Stamina, power-loss/multiprocess safety,
+deployment, newer-client/English/full gameplay and live acceptance remain open.
+No original-save/route edit, legacy client relaunch or retained gear resend followed.
 
 ## Implemented source families
 
@@ -127,7 +128,7 @@ restore material and live sessions remain preserved.
 - [World-wire diagnostics](WORLD-WIRE-DIAGNOSTICS.md)
 - [Sanitized Parity](engineering/SANITIZED-PARITY.md)
 - [Protocol workflow](engineering/PROTOCOL-WORKFLOW.md)
-- `FIXED-SOURCE-BUGS.md` entries through FSB-194; open entries are not fixed claims
+- `FIXED-SOURCE-BUGS.md` entries through FSB-197; open entries are not fixed claims
 
 ## Honest estimate boundary
 

@@ -4,13 +4,26 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## 2026-10-29 Caprice, shared journal and status preflight - local qualification
+## 2026-10-29 Caprice, shared journal and status preflight - full source qualification
+
+Full Windows [40886558198](https://github.com/vgcman16/wolfconquer/actions/runs/40886558198)
+passed on exact50cf80fa8c5d1c334d7ee6bfea0715040c66fc56, containing source30e793f0
+and the preceding decoded-Echo loader dd976947. Core29,929 passed/152 existing
+NotExecuted, Updates446/446, Launcher57/57; all eight stages passed with0failures.
+Actual local20261029T135633667Z-e23c3f08 finished2026-10-29T14:44:06.9964313Z.
+All51 new combined focused outcomes and46 decoded-Echo catalog outcomes are
+present as Passed in the full core TRX. Actual logs/receipts/all3TRXs and matching
+complete World/DataTool runtime files are preserved outside the runner.
+This qualifies the Caprice pair, shared journal, XP/Fly preflight and Echo loader
+source. Whole-cast/SQL/native physical Stamina, power-loss/multiprocess safety,
+deployment, newer-client/English/full gameplay and live acceptance remain open.
+No original-save/route edit, legacy client relaunch or retained gear resend followed.
+
 
 The combined 108-path candidate passed Root build04 (0 errors/114 historical
 warnings), focused02 = 51/51 and neighbors01 = 3614/3614, with 0 failures/skips in both
-selections. No new full Windows gate has run yet. The prior exact531 full success
-(Core 29,833 passed / 152 existing fixture skips, Updates 446, Launcher 57) qualifies the
-preceding published source, not this candidate. Local checks do not prove live
+selections. The successor full Windows gate now passed as recorded above.
+The prior exact531 evidence remains retained separately. Source checks do not prove live
 client acceptance, deployment, SQL or whole-cast/power-loss/multiprocess safety.
 
 ### FSB-195: Commit Caprice's real two-Character stamina transfer before publication
@@ -104,7 +117,7 @@ covered.
 Limits: Classic 1075/1085/1090/1095 target admission is a separate frozen draft,
 not part of this 108-path candidate. Other executor eligibility, complete status/
 progress/save atomicity, physical Stamina, SQL and live client acceptance remain
-OPEN. This local qualification does not supersede the required new full gate.
+OPEN. The full source gate is now qualified above; live acceptance is separate.
 
 
 

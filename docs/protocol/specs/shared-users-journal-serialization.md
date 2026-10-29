@@ -63,3 +63,18 @@ The recovery test path correction above the actual v11 afterimage checks did not
 alter the journal engine or authorize unrelated sidecar reads. The evidence is
 bounded to these in-process engine/file tests and existing neighbor behavior;
 physical aliases, active-world replay and cross-process ordering remain unproven.
+
+## Full Windows qualification, superseding pending notes above
+
+Full Windows [40886558198](https://github.com/vgcman16/wolfconquer/actions/runs/40886558198)
+passed on exact50cf80fa8c5d1c334d7ee6bfea0715040c66fc56, containing source30e793f0
+and the preceding decoded-Echo loader dd976947. Core29,929 passed/152 existing
+NotExecuted, Updates446/446, Launcher57/57; all eight stages passed with0failures.
+Actual local20261029T135633667Z-e23c3f08 finished2026-10-29T14:44:06.9964313Z.
+All51 new combined focused outcomes and46 decoded-Echo catalog outcomes are
+present as Passed in the full core TRX. Actual logs/receipts/all3TRXs and matching
+complete World/DataTool runtime files are preserved outside the runner.
+This qualifies the Caprice pair, shared journal, XP/Fly preflight and Echo loader
+source. Whole-cast/SQL/native physical Stamina, power-loss/multiprocess safety,
+deployment, newer-client/English/full gameplay and live acceptance remain open.
+No original-save/route edit, legacy client relaunch or retained gear resend followed.
