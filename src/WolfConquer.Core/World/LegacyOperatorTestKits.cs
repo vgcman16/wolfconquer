@@ -15,9 +15,15 @@ public static class LegacyOperatorTestKits
         {
             "basic-trojan" => [118003, 120003, 130003, 150003, 160013, 410003, 420003, 1088000, 1088001],
             "socket-materials" => [700011, 700031, 1200005, 1200006, 1088000, 1088001],
+            "consumables" => [1000000, 1001000, 723726],
             _ => throw new ArgumentException("Unknown operator test kit.", nameof(kit))
         };
-        var title = kit == "basic-trojan" ? "Basic Trojan test kit" : "Socket material test kit";
+        var title = kit switch
+        {
+            "basic-trojan" => "Basic Trojan test kit",
+            "socket-materials" => "Socket material test kit",
+            _ => "Consumable test kit"
+        };
         return new(operationId, domain, accountId, characterUid, title, "WolfConquer Operator",
             "Disposable local test items. Claim through the mailbox. Request generation does not deliver items.",
             ids.Select(id => new LegacyOperatorGearMailItem(id, StackSize: 1)).ToArray());

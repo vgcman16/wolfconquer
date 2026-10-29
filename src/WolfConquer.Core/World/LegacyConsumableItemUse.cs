@@ -103,10 +103,10 @@ public static class LegacyConsumableItemUse
             case LegacyConsumableItemKind.FullRestore:
                 if (currentHitpoints != maxHitpoints)
                 {
-                    updatedHitpoints = maxHitpoints;
-                    hitpointAmount = maxHitpoints > currentHitpoints ? maxHitpoints - currentHitpoints : 0;
-                    updatedMana = maxMana;
-                    manaAmount = maxMana > currentMana ? maxMana - currentMana : 0;
+                    updatedHitpoints = Math.Max(currentHitpoints, maxHitpoints);
+                    hitpointAmount = updatedHitpoints - currentHitpoints;
+                    updatedMana = Math.Max(currentMana, maxMana);
+                    manaAmount = updatedMana - currentMana;
                 }
 
                 break;
@@ -162,6 +162,7 @@ public static class LegacyConsumableItemUse
 
     private static uint AddAndClamp(uint currentValue, uint amount, uint maxValue)
     {
+        if (currentValue >= maxValue) return currentValue;
         return (uint)Math.Min((ulong)maxValue, (ulong)currentValue + amount);
     }
 

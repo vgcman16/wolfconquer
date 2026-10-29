@@ -45,7 +45,7 @@ public sealed partial class LocalRuntimeInspectionTests
     }
 
     [WindowsOperatorPipeFact]
-    public Task ExplicitGenuineNativeItemPhasesAndLoaderSupportADiagnosticWithoutClaimingNormalFrameWiring() =>
+    public Task GenuineNativeItemGraphSupportsADiagnosticWithoutRequiringOrdinaryInitializationToStayAbsent() =>
         WithShapeOwner(false, async f =>
         {
             var current = f.Current; var binding = f.Native.OrdinarySpellBinding;
@@ -82,7 +82,17 @@ public sealed partial class LocalRuntimeInspectionTests
             // This explicit component setup requires the currently absent
             // owners. When normal Frame wiring exists, reuse its real owners
             // instead of overwriting them or preserving their absence as a rule.
-            Assert.Null(f.Native.Inventory); Assert.Null(f.Native.Equipment);
+            if (f.Native.Inventory is not null && f.Native.Equipment is not null)
+            {
+                Assert.Same(f.Native, f.Native.Inventory.Owner); Assert.True(f.Native.Equipment.IsOwnedBy(f.Native));
+                Assert.Equal(current.PlayerItems.InventoryItems.Select(row => row.Uid).Order(),
+                    f.Native.Inventory.ClientItems.Values.Select(row => row.Uid).Order());
+                Assert.Equal(current.PlayerItems.EquipmentItems.Select(row => row.Uid).Order(),
+                    f.Native.Equipment.ClientItems.Values.Select(row => row.Uid).Order());
+                return; // Genuine future Frame initialization needs no fixture replacement.
+            }
+            if (f.Native.Inventory is not null || f.Native.Equipment is not null)
+                throw new InvalidOperationException("A partial native graph cannot be replaced by test fixture owners.");
             var path = Path.GetFullPath(Path.Combine(f.Fixture.Items, player.UID.ToString(CultureInfo.InvariantCulture) + ".bin"));
             Assert.Equal(OperatorGearMailFixture.Uid, player.UID);
             LegacyNativeDbReadOwnedFiles.OrdinaryChain(path);

@@ -4,6 +4,88 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## 2026-10-29 owned consumable transactions - focused qualification
+
+### FSB-186: Validate Mana uses before cooldown and commit Character with Items
+
+The old managed Mana branch published a new session/cooldown before checking
+metadata or resource improvement, then saved consumed items and Character through
+separate best-effort paths. Genuine ordinary-admitted old-entry controls reproduce
+both missing-metadata and full-Mana rejection changing the session/cooldown.
+
+The new early route validates the actual bound owner, recovery/domain, PIN state,
+trade offer identity, complete item graph, catalog amount/stack cap and cooldown
+before publication. A real v2 journal writes exact Character(AccountId)+Items(UID)
+images together; the real Store then publishes the canonical Mana attributes,
+unchanged native HP participant and cooldown. Consume then Mana replies follow
+commitment. Untouched live item identities survive an unrelated active trade.
+Uncertain journal/publication or committed notification faults fence the owner;
+they do not authorize another consume or a refund.
+
+Actual Release focused109/109 passed, including the17 earlier controls, genuine
+interruption/recovery, repeated uses, fresh existing-domain reload and both trade
+confirmations. Neighbor selection1139passed/127existing skips/0failed (overlap).
+Three older skipped Mana positives now use genuine owned fixtures under the same
+test names and retain UID/stack/resource/wire expectations. Diagnostic fixtures
+compare actual optional native owners rather than requiring missing wiring.
+
+This fixes the active managed route. It does not implement physical Mana
+ownership/hydration, compound native spell costs, SQL, power-loss durability or
+live-client acceptance. The publication batch's full Windows gate is pending.
+
+### FSB-187: Restoring a resource must not lower an existing over-cap value
+
+The old unsigned clamp reduced Mana6000 to its stored maximum5000 while consuming
+a potion. The same pure helper could lower HP, and FullRestore assigned both
+maxima even when one existing resource was higher. Baseline17cases recorded
+15failures/2passes, including the actual admitted Mana handler and independent
+overflow controls; all17 pass after correction.
+
+Ordinary restoration preserves a value already at/above its cap and reports no
+consumption when nothing improves. Within FullRestore's existing trigger, each
+resource targets at least its current value and amounts reflect only increases.
+Existing in-range arithmetic, clamp and successful wire behavior remain checked.
+The HP-full/Mana-low FullRestore gameplay rule is unresolved and receives no new
+bug-preserving acceptance test. The separate FullRestore transaction repair is
+qualified below; calculator safety alone was not presented as that repair.
+
+### FSB-188: Commit FullRestore HP, Mana and one item before publishing success
+
+Genuine old-entry controls reproduce two failures: absent required catalog state
+still restoresHP10 to100000 and consumes an item; both already-full resources
+publish a new holder/cooldown. The old route used separate best-effort saves.
+
+The new FullRestore-only plan requires real current ownership/metadata and a
+nondecreasing improvement, prepares complete canonical HP+Mana Character and one
+opaque-preserving item transition, then commits their actual v2 journal. The real
+Store's typed HP participant verifies the identical complete saved Character
+afterimage before native HP/holder/cooldown publication. Conditional consume,
+MaxHP/currentHP and Mana serializers/order remain. Mana and FullRestore reuse a
+closed typed orchestration; no external accepting writer is introduced. The
+now-unreachable old consumable fallback and its exclusive best-effort saver are
+removed; unrelated item-use persistence handlers remain.
+
+Actual build08 has zeroerrors; the combined consumable/operator/runtime selection
+passed205/205 with2existing external-health skips. Both original FullRestore red
+cases now pass, alongside real pending/Character/Items recovery, send faults,
+repeated use/reload, unverified-PIN permission and two-client final trade controls.
+The old skipped FullRestore positive now uses real owned inputs under its same
+name and retains UID5337121, HP123->100000, Mana40->5000, stack2->1 and wire order.
+Together with the three Mana migrations this activates four existing skipped
+positives; it does not remove their coverage.
+
+The new consumables mailbox recipe separately passed actual generator child,
+owned delivery/replay/claim and missing-catalog-before-allocation controls in that
+selection. It grants nothing automatically; no actual client mail was sent.
+Current saved catalog evidence resolves Stancher/Agrypnotic/LifeFruit. Source
+tests are not live rendering, physical Mana ownership, SQL, power-loss durability
+or complete gameplay proof. The full Windows publication gate remains pending;
+HP-full/Mana-low gameplay intent remains unresolved.
+
+Final broader consumable/HP/trade/Frame/operator/runtime selection also passed:
+1258passed/126existing skips/0failed in3m16s. Selections overlap. The full Windows
+successor gate remains required for this publication batch.
+
 ## 2026-10-29 connection safety and runtime diagnostics - full source qualified
 
 ### FSB-184: Construct account connections without option injection or secret text

@@ -16,6 +16,7 @@ public sealed class DataToolOperatorTestKitTests : IDisposable
     [Theory]
     [InlineData("basic-trojan", 9)]
     [InlineData("socket-materials", 6)]
+    [InlineData("consumables", 3)]
     public async Task ActualChildCommandCreatesOnlyTheStrictRequestAndReportsNoSend(string kit, int rows)
     {
         var result = await RunAsync(Output, domain.ToString("N"), "2", "1293600", kit);

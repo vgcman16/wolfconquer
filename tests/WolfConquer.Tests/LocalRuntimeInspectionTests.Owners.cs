@@ -21,9 +21,7 @@ public sealed partial class LocalRuntimeInspectionTests
                 Assert.Equal(current.Character.MinMana, snapshot.ManagedCharacter.MinMana);
                 Assert.Equal(current.PlayerItems.InventoryItems.Select(row => row.Uid).Order(),
                     snapshot.ManagedItems.Where(row => row.Container == "inventory").Select(row => row.Uid).Order());
-                Assert.Null(f.Native.Inventory); Assert.Null(f.Native.Equipment);
-                Assert.Null(snapshot.NativeItems); Assert.Null(snapshot.SelectedValuesEqual);
-                Assert.Equal("nativeInventoryAndEquipmentNotInitialized", snapshot.NativeItemsUnavailableReason);
+                AssertOptionalNativeProjection(f, snapshot);
             }
             Assert.Same(current, f.Current); Assert.False(f.Native.OrdinarySpellBinding!.IsRetired);
             Assert.Equal(water, f.HighWater); Unchanged(f, files, sent);
@@ -40,8 +38,7 @@ public sealed partial class LocalRuntimeInspectionTests
             var result = await f.Handler.InspectOwnedRuntimeAsync(f.Runtime, Query(f)); Diagnostic(result);
             var uid = Assert.Single(grant.ItemUids);
             Assert.Contains(result.Snapshot!.ManagedItems, row => row.Uid == uid && row.Container == "inventory");
-            Assert.Null(result.Snapshot.NativeItems); Assert.Null(result.Snapshot.SelectedValuesEqual);
-            Assert.Equal("nativeInventoryAndEquipmentNotInitialized", result.Snapshot.NativeItemsUnavailableReason);
+            AssertOptionalNativeProjection(f, result.Snapshot);
             Assert.Equal(water, f.HighWater); Unchanged(f, files, sent);
         });
 
@@ -68,7 +65,7 @@ public sealed partial class LocalRuntimeInspectionTests
                 Assert.Equal(actualManaged, result.Snapshot.ManagedCharacter.MinMana);
                 Assert.Equal(actualNativeHp, result.Snapshot.NativeVitals.Hitpoints);
                 Assert.Equal(actualManagedHp, result.Snapshot.ManagedCharacter.Hitpoints);
-                Assert.Null(result.Snapshot.NativeItems); Assert.Null(result.Snapshot.SelectedValuesEqual);
+                AssertOptionalNativeProjection(f, result.Snapshot);
                 Assert.Equal(water, f.HighWater); Unchanged(f, files, sent);
             }
             finally { f.Native.Player.Mana = mana; }
@@ -134,6 +131,27 @@ public sealed partial class LocalRuntimeInspectionTests
         Assert.False(value.AtomicNativeTupleProven); Assert.False(value.LiveStoreSynchronized);
         Assert.Contains("unlocked native Mana", value.Snapshot!.ConsistencyBound);
         Assert.Contains("deposits", value.Snapshot.Coverage);
+    }
+    private static void AssertOptionalNativeProjection(OperatorGearMailFixture f, LegacyRuntimeInspectionSnapshot snapshot)
+    {
+        var inventory = f.Native.Inventory; var equipment = f.Native.Equipment;
+        if (inventory is null || equipment is null)
+        {
+            Assert.Null(snapshot.NativeItems); Assert.Null(snapshot.SelectedValuesEqual);
+            var reason = inventory is null && equipment is null ? "nativeInventoryAndEquipmentNotInitialized" :
+                inventory is null ? "nativeInventoryNotInitialized" : "nativeEquipmentNotInitialized";
+            Assert.Equal(reason, snapshot.NativeItemsUnavailableReason);
+            return;
+        }
+        var rows = Assert.IsType<LegacyOwnedPlayerItem[]>(snapshot.NativeItems);
+        Assert.Null(snapshot.NativeItemsUnavailableReason);
+        Assert.Equal(inventory.ClientItems.Values.Select(row => row.Uid).Order(),
+            rows.Where(row => row.Container == "inventory").Select(row => row.Uid).Order());
+        Assert.Equal(equipment.ClientItems.Values.Select(row => row.Uid).Order(),
+            rows.Where(row => row.Container == "equipment").Select(row => row.Uid).Order());
+        Assert.Equal<bool?>(snapshot.ManagedCharacter.Hitpoints == snapshot.NativeVitals.Hitpoints &&
+            snapshot.ManagedCharacter.MinMana == snapshot.NativeVitals.Mana && snapshot.ManagedItems.SequenceEqual(rows),
+            snapshot.SelectedValuesEqual);
     }
     private static void Rejected(LegacyRuntimeInspectionResult value)
     {

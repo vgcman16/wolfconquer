@@ -6,7 +6,7 @@ writes no account/mail/save state and never connects or sends automatically.
 The existing real Frame producer still validates the actual owner, domain,
 account/character, catalog, physical rows and persistence before any grant.
 
-`create-operator-test-kit <NEW-absolute-request.json> <domainN> <accountId> <characterUid> <basic-trojan|socket-materials>`
+`create-operator-test-kit <NEW-absolute-request.json> <domainN> <accountId> <characterUid> <basic-trojan|socket-materials|consumables>`
 requires nonzero IDs, an explicit nonempty lowercase GuidN domain and a new .json
 file in an existing ordinary local parent. Reparse parents, UNC paths, existing
 files/directories and unknown kit names refuse. Parent folders are never created.
@@ -56,6 +56,11 @@ Basic kit has 9 rows; socket-materials has 6. Presence/name evidence does not pr
 NPC socket costs, gem installation, upgrades or successful equipment rendering.
 The real grant rechecks the active catalog and derives durability there. A changed
 catalog can reject a recipe; the generator does not waive those checks.
+
+The `consumables` extension is specified and catalog-cross-referenced in
+[7899-consumables-test-kit.md](7899-consumables-test-kit.md). It has three rows:
+Stancher1000000, Agrypnotic1001000 and LifeFruit723726. The real current grant
+checks still apply; consumption and client visuals are separate acceptance.
 
 ## Qualification
 

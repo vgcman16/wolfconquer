@@ -1,0 +1,98 @@
+using System.Globalization;
+using WolfConquer.Core.Data;
+
+namespace WolfConquer.Core.World;
+
+internal enum LegacyManagedManaConsumableOutcome { Rejected, Committed, RecoveryRequired }
+internal enum LegacyManagedManaConsumableInterruption { None, AfterPending, AfterCharacter, AfterItems }
+
+// Immutable images for the actual v2 Character(AccountId)+Items(UID) journal.
+// No permission or current-owner acceptance is supplied by this serializer.
+internal sealed class LegacyManagedManaConsumableWrite
+{
+    private readonly string users, items, characterPath, itemPath;
+    private readonly LegacyTradeJournalChange[] changes;
+    private LegacyManagedManaConsumableWrite(string users, string items, string characterPath, string itemPath,
+        LegacyTradeJournalChange[] changes)
+    { this.users = users; this.items = items; this.characterPath = characterPath; this.itemPath = itemPath; this.changes = changes; }
+
+    internal static bool TryPrepare(WorldSession before, WorldSession after, string itemsRoot, uint itemUid,
+        out LegacyManagedManaConsumableWrite? write, out string reason)
+    {
+        write = null; reason = "managedManaConsumableImageBindingInvalid";
+        if (before.AccountId is <= 0 or > uint.MaxValue || before.Character.Uid is <= 0 or > uint.MaxValue ||
+            before.AccountId != after.AccountId || before.Character.Uid != after.Character.Uid || before.UsersRoot != after.UsersRoot ||
+            string.IsNullOrWhiteSpace(before.UsersRoot) || !Path.IsPathFullyQualified(before.UsersRoot) ||
+            string.IsNullOrWhiteSpace(itemsRoot) || !Path.IsPathFullyQualified(itemsRoot) ||
+            !WorldPacketHandlers.BoundHitpointsInputs.ScalarsEqual(before.Character, after.Character with { MinMana = before.Character.MinMana }) ||
+            !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(before.Character, after.Character)) return false;
+        try
+        {
+            var users = Path.TrimEndingDirectorySeparator(Path.GetFullPath(before.UsersRoot));
+            var items = Path.TrimEndingDirectorySeparator(Path.GetFullPath(itemsRoot));
+            var characterPath = Path.Combine(users, before.AccountId.ToString(CultureInfo.InvariantCulture) + ".ini");
+            var itemPath = Path.Combine(items, before.Character.Uid.ToString(CultureInfo.InvariantCulture) + ".bin");
+            var failure = reason; LegacyManagedManaConsumableWrite? prepared = null;
+            var valid = SnapshotFileLockCoordinator.ExecuteLocked([characterPath, itemPath], () =>
+            {
+                if (LegacyTradeJournal.HasPending(users) || !Directory.Exists(items) ||
+                    !CharacterSnapshotFileBaseline.TryRead(characterPath, "managedManaConsumable", out var file, out failure) || file is null ||
+                    !CharacterSnapshotFileBaseline.TryReadBytes(itemPath, "managedManaConsumable", out var rawItems, out failure)) return false;
+                var text = CharacterSnapshotFileEncoding.Decode(file.Bytes, out var encoding);
+                var disk = CharacterSnapshotParser.ParseText(text);
+                if (!encoding.GetPreamble().Concat(encoding.GetBytes(text)).SequenceEqual(file.Bytes) ||
+                    !WorldPacketHandlers.BoundHitpointsInputs.ScalarsEqual(disk, before.Character) ||
+                    CharacterSnapshotScalarPersistence.HasPersistedScalarChanges(disk, before.Character) ||
+                    !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(disk, before.Character) ||
+                    disk.Attributes.Any(pair => !before.Character.Attributes.TryGetValue(pair.Key, out var value) || value != pair.Value))
+                { failure = "managedManaConsumableCharacterBaselineStale"; return false; }
+                var characterAfter = LegacyBoundHitpointsScalarWrite.ProjectAfterImage(file.Bytes, after.Character);
+                var itemAfter = WorldPacketHandlers.PrepareOwnedConsumableItemImage(rawItems, before.PlayerItems, after.PlayerItems, itemUid, LegacyConsumableItemKind.Mana);
+                prepared = new(users, items, characterPath, itemPath,
+                    [new(LegacyTradeJournalFileKind.Character, before.AccountId, file.Bytes, characterAfter),
+                     new(LegacyTradeJournalFileKind.Items, before.Character.Uid, rawItems, itemAfter)]);
+                return true;
+            });
+            write = prepared; reason = valid ? string.Empty : failure; return valid;
+        }
+        catch (Exception error) when (LegacyEquipmentMovePersistence.IsPreparationFailure(error))
+        { reason = "managedManaConsumablePreparation:" + error.GetType().Name; return false; }
+    }
+
+    internal LegacyManagedManaConsumableOutcome TryCommit(out string reason,
+        LegacyManagedManaConsumableInterruption interruption = LegacyManagedManaConsumableInterruption.None)
+    {
+        reason = "managedManaConsumableBeforeImageChanged";
+        if (!Enum.IsDefined(interruption)) return LegacyManagedManaConsumableOutcome.Rejected;
+        var enteredWriter = false; var failure = reason;
+        try
+        {
+            var result = SnapshotFileLockCoordinator.ExecuteLocked([characterPath, itemPath], () =>
+            {
+                if (LegacyTradeJournal.HasPending(users))
+                { failure = LegacyTradeJournal.RecoveryRequired + ":pending"; return LegacyManagedManaConsumableOutcome.RecoveryRequired; }
+                if (!ImagesMatch(after: false)) return LegacyManagedManaConsumableOutcome.Rejected;
+                Func<int, bool>? stop = interruption == LegacyManagedManaConsumableInterruption.None ? null :
+                    count => count == (int)interruption - 1;
+                enteredWriter = true;
+                var saved = LegacyTradeJournal.TryCommitSingleOwner(users, items, changes, stop, out failure);
+                if (saved && !LegacyTradeJournal.HasPending(users) && ImagesMatch(after: true)) return LegacyManagedManaConsumableOutcome.Committed;
+                if (!saved && !failure.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal) &&
+                    !LegacyTradeJournal.HasPending(users) && ImagesMatch(after: false)) return LegacyManagedManaConsumableOutcome.Rejected;
+                failure = "managedManaConsumableRecoveryRequired:" + failure; return LegacyManagedManaConsumableOutcome.RecoveryRequired;
+            });
+            reason = result == LegacyManagedManaConsumableOutcome.Committed ? string.Empty : failure; return result;
+        }
+        catch (Exception error) when (LegacyEquipmentMovePersistence.IsPreparationFailure(error))
+        {
+            reason = "managedManaConsumableWrite:" + error.GetType().Name;
+            return enteredWriter ? LegacyManagedManaConsumableOutcome.RecoveryRequired : LegacyManagedManaConsumableOutcome.Rejected;
+        }
+    }
+
+    private bool ImagesMatch(bool after) =>
+        CharacterSnapshotFileBaseline.TryReadBytes(characterPath, "managedManaConsumable", out var character, out _) &&
+        character.AsSpan().SequenceEqual(after ? changes[0].After : changes[0].Before) &&
+        CharacterSnapshotFileBaseline.TryReadBytes(itemPath, "managedManaConsumable", out var items, out _) &&
+        items.AsSpan().SequenceEqual(after ? changes[1].After : changes[1].Before);
+}

@@ -1554,52 +1554,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         Assert.DoesNotContain("PARITY-GAP MsgItemUsage chance rune", output);
     }
 
-    [Fact(Skip = "Requires external game fixtures omitted from the public source snapshot.")]
-    public async Task HandlerItemUsageManaPotionRestoresManaConsumesItemAndSendsManaUpdate()
-    {
-        const uint itemUid = 5_337_020;
-        var seedPath = Path.Combine(FindRepositoryRoot(), ".setup_work", "seed-json");
-        if (!File.Exists(Path.Combine(seedPath, "manifest.json")))
-        {
-            return;
-        }
 
-        var worldData = await new JsonWorldDataLoader(new WorldDataOptions(seedPath)).LoadAsync();
-        WriteSnapshot(
-            accountId: 1_293_600,
-            uid: 1_293_600,
-            mapId: 1_015,
-            x: 826,
-            y: 565,
-            minMana: 40,
-            maxMana: 5_000);
-        WriteItems(1_293_600, PlayerItemSnapshotLoaderTests.DbItem(itemUid, 1_001_000, position: 0));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log, worldData);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(connection, ReadFrame(CreateEquipUse(itemUid).ToFrameBytes()));
-
-        Assert.Equal(countBeforeRequest + 2, sent.Count);
-        AssertItemUsage(
-            sent[countBeforeRequest],
-            new MsgItemUsagePacket(itemUid, DwParam: 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
-        Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[countBeforeRequest + 1]), out var manaUpdate));
-        Assert.Equal(1_293_600U, manaUpdate.Uid);
-        Assert.Equal([new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Mana, 110)], manaUpdate.Updates);
-
-        var session = GetSession(handler, connection);
-        Assert.Equal(110, session.Character.MinMana);
-        Assert.Equal(5_000, session.Character.MaxMana);
-        Assert.Empty(session.PlayerItems.InventoryItems);
-
-        var output = log.ToString();
-        Assert.Contains("WorldServer handled MsgItemUsage consumable", output);
-        Assert.Contains("itemId=1001000", output);
-        Assert.Contains("mp=40->110", output);
-        Assert.DoesNotContain("current mana state is not modeled yet", output);
-        Assert.DoesNotContain("non-equipment item effects are not modeled", output);
-    }
 
     [Fact(Skip = "Requires external game fixtures omitted from the public source snapshot.")]
     public async Task HandlerItemUsagePotionCooldownBlocksImmediateSecondUseWithoutConsuming()

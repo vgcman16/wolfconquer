@@ -19,11 +19,12 @@ public sealed partial class LegacyOperatorGearMailOwnerTests
     private const uint Uid = OperatorGearMailFixture.Uid;
     private const uint GearId = OperatorGearMailFixture.GearId;
 
-    internal static async Task WithOwnerAsync(Func<OperatorGearMailFixture, Task> test)
+    internal static async Task WithOwnerAsync(Func<OperatorGearMailFixture, Task> test,
+        IReadOnlyList<ItemType>? additionalCatalogItems = null)
     {
         OperatorGearMailFixture? owner = null;
         Exception? primary = null;
-        try { owner = new OperatorGearMailFixture(); owner.Initialize(); await owner.LoginAsync(); await test(owner); }
+        try { owner = new OperatorGearMailFixture(); owner.Initialize(additionalCatalogItems); await owner.LoginAsync(); await test(owner); }
         catch (Exception error) { primary = error; }
         Exception? cleanup = null;
         if (owner is not null) try { owner.RetainEvidence = primary is not null; await owner.DisposeAsync(); } catch (Exception error) { cleanup = error; }

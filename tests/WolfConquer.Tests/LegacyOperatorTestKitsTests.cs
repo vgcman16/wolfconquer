@@ -7,14 +7,18 @@ public sealed class LegacyOperatorTestKitsTests
     [Theory]
     [InlineData("basic-trojan", 9)]
     [InlineData("socket-materials", 6)]
+    [InlineData("consumables", 3)]
     public void RecipesUseConfirmedRowsWithoutGrantingOrPreOpeningAnything(string kit, int count)
     {
         var operation = Guid.NewGuid();
         var domain = Guid.NewGuid();
         var request = LegacyOperatorTestKits.Create(operation, domain, 2, 1293600, kit);
-        uint[] expected = kit == "basic-trojan"
-            ? [118003, 120003, 130003, 150003, 160013, 410003, 420003, 1088000, 1088001]
-            : [700011, 700031, 1200005, 1200006, 1088000, 1088001];
+        uint[] expected = kit switch
+        {
+            "basic-trojan" => [118003, 120003, 130003, 150003, 160013, 410003, 420003, 1088000, 1088001],
+            "socket-materials" => [700011, 700031, 1200005, 1200006, 1088000, 1088001],
+            _ => [1000000, 1001000, 723726]
+        };
         Assert.Equal(operation, request.OperationId);
         Assert.Equal(domain, request.ExpectedDomain);
         Assert.Equal(2u, request.AccountId);

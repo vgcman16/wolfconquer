@@ -11,6 +11,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
+[Collection("NativeItemCounterSourcePrerequisite")]
 public sealed class LegacyConsumableManaPersistenceParityTests : IDisposable
 {
     private const long AccountId = 1_293_600;
@@ -30,66 +31,42 @@ public sealed class LegacyConsumableManaPersistenceParityTests : IDisposable
         Directory.CreateDirectory(_itemsRoot);
     }
 
-    [Fact(Skip = "Requires external game fixtures omitted from the public source snapshot.")]
-    public async Task ManaPotionRestoresManaAndPersistsCharacterAndStackedItemToDisk()
+
+
+    [Fact]
+    public Task FullRestoreItemRestoresHitpointsAndManaAndPersistsCharacterAndStackedItemToDisk()
     {
-        const uint itemUid = 5_337_120;
-
-        WriteSnapshot(minHitPoints: 10_000, minMana: 40, maxMana: 5_000);
-        WriteItems(PlayerItemSnapshotLoaderTests.DbItem(itemUid, 1_001_000, position: 0, stackSize: 2));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(connection, ReadFrame(CreateEquipUse(itemUid).ToFrameBytes()));
-
-        Assert.Equal(countBeforeRequest + 2, sent.Count);
-        AssertStackUpdate(sent[countBeforeRequest], itemUid, itemId: 1_001_000, stackSize: 1);
-        AssertScalarUpdate(sent[countBeforeRequest + 1], LegacyMsgUpdateDataType.Mana, value: 110);
-
-        var reloadedCharacter = AssertLoadedCharacter();
-        Assert.Equal(110, reloadedCharacter.MinMana);
-        Assert.Equal(5_000, reloadedCharacter.MaxMana);
-
-        var reloadedPotion = Assert.Single(
-            new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(CharacterUid).InventoryItems,
-            item => item.Uid == itemUid);
-        Assert.Equal(1_001_000U, reloadedPotion.ItemId);
-        Assert.Equal(1, reloadedPotion.StackSize);
+        const uint itemUid = 5_337_121, maxHitpoints = 100_000;
+        var character = OwnedEquipmentBehaviorFixture.Character(name: "OwnedLegacyFullRestore", reborn: 0, minHitPoints: 123) with
+        {
+            MinMana = 40, MaxMana = 5000,
+            Attributes = new Dictionary<string, string> { ["MaxHitpoints"] = "100000" }
+        };
+        var items = new PlayerItemSnapshot([new() { Uid = itemUid, ItemId = 723726, StackSize = 2,
+            Durability = 1, MaximumDurability = 1 }], [], [], [], []);
+        var catalog = OwnedEquipmentBehaviorFixture.Catalog(OwnedEquipmentBehaviorFixture.Item(723726, "OwnedLegacyFullRestore",
+            new Dictionary<int, string> { [ItemType.StackSizeFieldIndex] = "10", [ItemType.DurabilityFieldIndex] = "1" }));
+        return OwnedEquipmentBehaviorFixture.RunAsync(new(character, items), catalog, async fixture =>
+        {
+            var sent = fixture.ActorFrames; var countBeforeRequest = sent.Count;
+            await fixture.DispatchAsync(CreateEquipUse(itemUid));
+            Assert.Equal(countBeforeRequest + 4, sent.Count);
+            AssertStackUpdate(sent[countBeforeRequest], itemUid, itemId: 723_726, stackSize: 1);
+            AssertScalarUpdate(sent[countBeforeRequest + 1], LegacyMsgUpdateDataType.MaxHitpoints, maxHitpoints);
+            AssertHitpointUpdate(sent[countBeforeRequest + 2], maxHitpoints, maxHitpoints);
+            AssertScalarUpdate(sent[countBeforeRequest + 3], LegacyMsgUpdateDataType.Mana, value: 5_000);
+            var reloaded = CharacterSnapshotParser.ParseText(CharacterSnapshotFileEncoding.Decode(File.ReadAllBytes(fixture.CharacterPath()), out _));
+            Assert.Equal((long)maxHitpoints, reloaded.MinHitPoints); Assert.Equal(5000L, reloaded.MinMana); Assert.Equal(5000L, reloaded.MaxMana);
+            Assert.Equal((long)maxHitpoints, fixture.Current().Character.MinHitPoints); Assert.Equal(5000L, fixture.Current().Character.MinMana);
+            Assert.Equal((int)maxHitpoints, Assert.IsType<LegacyNativePlayerRuntime>(fixture.Current().NativePlayer).HitPoints);
+            var potion = Assert.Single(new PlayerItemSnapshotLoader(fixture.Data.Items).LoadByCharacterUid(CharacterUid).InventoryItems,
+                item => item.Uid == itemUid);
+            Assert.Equal(723_726U, potion.ItemId); Assert.Equal((ushort)1, potion.StackSize);
+            Assert.False(fixture.Recovery.IsBlocked); Assert.False(LegacyTradeJournal.HasPending(fixture.Data.Users));
+            Assert.DoesNotContain("runtime exception", fixture.Log.ToString(), StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("PARITY-BUG", fixture.Log.ToString(), StringComparison.Ordinal);
+        });
     }
-
-    [Fact(Skip = "Requires external game fixtures omitted from the public source snapshot.")]
-    public async Task FullRestoreItemRestoresHitpointsAndManaAndPersistsCharacterAndStackedItemToDisk()
-    {
-        const uint itemUid = 5_337_121;
-        const uint maxHitpoints = 100_000;
-
-        WriteSnapshot(minHitPoints: 123, minMana: 40, maxMana: 5_000, maxHitpoints: maxHitpoints);
-        WriteItems(PlayerItemSnapshotLoaderTests.DbItem(itemUid, 723_726, position: 0, stackSize: 2));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(connection, ReadFrame(CreateEquipUse(itemUid).ToFrameBytes()));
-
-        Assert.Equal(countBeforeRequest + 4, sent.Count);
-        AssertStackUpdate(sent[countBeforeRequest], itemUid, itemId: 723_726, stackSize: 1);
-        AssertScalarUpdate(sent[countBeforeRequest + 1], LegacyMsgUpdateDataType.MaxHitpoints, maxHitpoints);
-        AssertHitpointUpdate(sent[countBeforeRequest + 2], maxHitpoints, maxHitpoints);
-        AssertScalarUpdate(sent[countBeforeRequest + 3], LegacyMsgUpdateDataType.Mana, value: 5_000);
-
-        var reloadedCharacter = AssertLoadedCharacter();
-        Assert.Equal(maxHitpoints, reloadedCharacter.MinHitPoints);
-        Assert.Equal(5_000, reloadedCharacter.MinMana);
-        Assert.Equal(5_000, reloadedCharacter.MaxMana);
-
-        var reloadedPotion = Assert.Single(
-            new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(CharacterUid).InventoryItems,
-            item => item.Uid == itemUid);
-        Assert.Equal(723_726U, reloadedPotion.ItemId);
-        Assert.Equal(1, reloadedPotion.StackSize);
-    }
-
     public void Dispose()
     {
         if (Directory.Exists(_root))

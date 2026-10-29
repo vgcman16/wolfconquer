@@ -42,8 +42,12 @@ creates a complete request with one retained operation ID. It does not send
 automatically. `basic-trojan` contains seven low-level gear rows, one DragonBall
 and one Meteor. `socket-materials` contains DragonGem, RainbowGem, ToughDrill,
 StarDrill, DragonBall and Meteor, one physical row each. These recipes pre-open
-no sockets or enhancements. The sender checks the active catalog and reserves
-real item UIDs from the current server owner.
+no sockets or enhancements. `consumables` contains one health1000000, one
+Mana1001000 and one FullRestore723726 item, each unbound and without enhancements.
+Choose it as the final kit argument in the same create/send commands. The sender
+checks the active catalog and reserves real item UIDs from the current owner;
+missing required catalog rows refuse before allocation. Consumption and client
+rendering remain separate tests. Never resend an uncertain operation as a new kit.
 
 After delivery, open mail and claim the attachments. Claiming, equipping,
 changing stats and saving are separate test steps. An empty eligible-item list

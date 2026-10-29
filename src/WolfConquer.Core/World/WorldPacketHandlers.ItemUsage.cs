@@ -347,190 +347,21 @@ public static partial class WorldPacketHandlers
             CancellationToken cancellationToken)
     {
         var item = session.PlayerItems.InventoryItems.FirstOrDefault(item => item.Uid == packet.Id);
-        if (item is null)
+        if (item is null) return false;
+        switch (LegacyConsumableItemUse.Classify(item.ItemId))
         {
-            return false;
+            case LegacyConsumableItemKind.Hitpoints:
+                await HandleOwnedHealthConsumableAsync(context, session, packet.Id, cancellationToken).ConfigureAwait(false);
+                break;
+            case LegacyConsumableItemKind.Mana:
+                await HandleOwnedManagedManaConsumableAsync(context, session, packet.Id, cancellationToken).ConfigureAwait(false);
+                break;
+            case LegacyConsumableItemKind.FullRestore:
+                await HandleOwnedFullRestoreConsumableAsync(context, session, packet.Id, cancellationToken).ConfigureAwait(false);
+                break;
+            default:
+                return false;
         }
-
-        var kind = LegacyConsumableItemUse.Classify(item.ItemId);
-        if (kind == LegacyConsumableItemKind.Unknown)
-        {
-            return false;
-        }
-
-        if (kind == LegacyConsumableItemKind.Hitpoints)
-        {
-            await HandleOwnedHealthConsumableAsync(context, session, packet.Id, cancellationToken).ConfigureAwait(false);
-            return true;
-        }
-
-        if (session.Character.MinHitPoints <= 0 || HasLegacyStatusFlag(session.Character, LegacyDeadFlag))
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage consumable " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId}; character is dead.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        if (session.LastLegacyPotionUseUtc is { } lastUseUtc &&
-            now < lastUseUtc.AddMilliseconds(LegacyPotionCooldownMilliseconds))
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage consumable " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId}; " +
-                    $"legacy potion cooldown {LegacyPotionCooldownMilliseconds}ms is active.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        session = session with { LastLegacyPotionUseUtc = now };
-        context = context with { Session = session };
-        context.Sessions?.Set(context.Connection, session);
-
-        ItemType? itemType = null;
-        if (kind is LegacyConsumableItemKind.Hitpoints or LegacyConsumableItemKind.Mana &&
-            !TryReadItemType(context.WorldData, item.ItemId, out itemType))
-        {
-            await LogParityGapAsync(
-                    context,
-                    LegacyParityGapDiagnostics.UnsupportedItemUse(
-                        item.ItemId,
-                        action: (uint)packet.Action,
-                        actionName: packet.Action.ToString(),
-                        itemUid: item.Uid,
-                        source: "MsgItemUsage.Consumable",
-                        reason: "consumable itemtype metadata is not loaded, so legacy ItemHP/ItemMP fields cannot be read"))
-                .ConfigureAwait(false);
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP MsgItemUsage consumable missing itemtype " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId}; " +
-                    "cannot read legacy ItemHP/ItemMP fields.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var currentHitpoints = CheckedUInt32(session.Character.MinHitPoints, nameof(session.Character.MinHitPoints));
-        var maxHitpoints = ComputeLegacyRuntimeMaxHitpoints(
-            session.Character,
-            currentHitpoints,
-            session.PlayerItems,
-            session.CombatGear ?? CombatGearSnapshot.Empty,
-            context.WorldData,
-            session.AlternateEquipmentActive);
-        var currentMana = CheckedUInt32(session.Character.MinMana, nameof(session.Character.MinMana));
-        var maxMana = CheckedUInt32(session.Character.MaxMana, nameof(session.Character.MaxMana));
-        var hitpointMultiplierPercent = kind == LegacyConsumableItemKind.Hitpoints &&
-            (HasLegacyStatusFlag(session.Character, LegacyShieldBlockFlag) ||
-                HasLegacyStatusFlag(session.Character, LegacyHawksAmbitionFlag))
-            ? LegacyBoostedPotionHitpointPercent
-            : 100U;
-        var result = LegacyConsumableItemUse.Calculate(
-            item.ItemId,
-            currentHitpoints,
-            maxHitpoints,
-            currentMana,
-            maxMana,
-            itemType?.ItemHP ?? 0,
-            itemType?.ItemMP ?? 0,
-            hitpointMultiplierPercent);
-        if (result.Outcome == LegacyConsumableItemUseOutcome.MissingHitpointAmount)
-        {
-            await LogParityGapAsync(
-                    context,
-                    LegacyParityGapDiagnostics.UnsupportedItemUse(
-                        item.ItemId,
-                        action: (uint)packet.Action,
-                        actionName: packet.Action.ToString(),
-                        itemUid: item.Uid,
-                        source: "MsgItemUsage.Consumable",
-                        reason: "health consumable source branch is modeled but ItemHP metadata is missing"))
-                .ConfigureAwait(false);
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP MsgItemUsage health consumable missing ItemHP " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId}.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        if (result.Outcome == LegacyConsumableItemUseOutcome.MissingManaAmount)
-        {
-            await LogParityGapAsync(
-                    context,
-                    LegacyParityGapDiagnostics.UnsupportedItemUse(
-                        item.ItemId,
-                        action: (uint)packet.Action,
-                        actionName: packet.Action.ToString(),
-                        itemUid: item.Uid,
-                        source: "MsgItemUsage.Consumable",
-                        reason: "mana consumable source branch is modeled but ItemMP metadata is missing"))
-                .ConfigureAwait(false);
-            await context.Log.WriteLineAsync(
-                    "PARITY-GAP MsgItemUsage mana consumable missing ItemMP " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId}.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        if (!result.ShouldConsumeItem)
-        {
-            var fullResource = result.Kind == LegacyConsumableItemKind.Mana
-                ? "mana is already full"
-                : "hitpoints are already full";
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage consumable " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId}; {fullResource}.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var updatedItems = ConsumeSingleLegacyInventoryItem(session.PlayerItems, item, out var consumeFrame);
-        var updatedCharacter = session.Character with
-        {
-            MinHitPoints = result.UpdatedHitpoints,
-            MinMana = result.UpdatedMana,
-        };
-        var updated = session with
-        {
-            Character = updatedCharacter,
-            PlayerItems = updatedItems,
-        };
-        context.Sessions?.Set(context.Connection, updated);
-        var updatedContext = context with { Session = updated };
-
-        await TryPersistLegacyConsumableUseAsync(updatedContext, updated).ConfigureAwait(false);
-
-        await context.Connection.SendAsync(consumeFrame, cancellationToken).ConfigureAwait(false);
-        if (result.HitpointsChanged)
-        {
-            foreach (var update in LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(
-                CheckedUInt32(updatedCharacter.Uid, nameof(updatedCharacter.Uid)),
-                maxHitpoints,
-                result.UpdatedHitpoints))
-            {
-                await context.Connection.SendAsync(update.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        if (result.ManaChanged)
-        {
-            await SendScalarUpdateAsync(
-                    updatedContext,
-                    updatedCharacter,
-                    LegacyMsgUpdateDataType.Mana,
-                    result.UpdatedMana,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        await context.Log.WriteLineAsync(
-                "WorldServer handled MsgItemUsage consumable " +
-                $"{FormatSession(updatedContext)} action={packet.Action} itemUid={item.Uid} itemId={item.ItemId} " +
-                $"hp={currentHitpoints}->{result.UpdatedHitpoints} maxHitpoints={maxHitpoints} " +
-                $"healAmount={result.HitpointAmount} hitpointMultiplierPercent={hitpointMultiplierPercent} " +
-                $"mp={currentMana}->{result.UpdatedMana} maxMana={maxMana} manaAmount={result.ManaAmount}.")
-            .ConfigureAwait(false);
         return true;
     }
 
@@ -621,25 +452,6 @@ public static partial class WorldPacketHandlers
 
 
 
-
-    private static async ValueTask TryPersistLegacyConsumableUseAsync(
-        WorldPacketHandlerContext context,
-        WorldSession session)
-    {
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["MinHitPoints"] = session.Character.MinHitPoints.ToString(CultureInfo.InvariantCulture),
-            ["MinMana"] = session.Character.MinMana.ToString(CultureInfo.InvariantCulture),
-        };
-
-        await TryPersistLegacyItemUsageMutationAsync(
-                context,
-                session,
-                "consumable",
-                values,
-                persistItems: true)
-            .ConfigureAwait(false);
-    }
 
     private static async ValueTask TryPersistLegacyItemUsageMutationAsync(
         WorldPacketHandlerContext context,
