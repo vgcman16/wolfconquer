@@ -81,7 +81,7 @@ public static partial class WorldPacketHandlers
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!LegacyMailboxModePacket.TryParse(frame, out var packet))
+        if (!LegacyMailboxModePacket.TryParse(frame, context.ProtocolProfile, out var packet))
         {
             await context.Log.WriteLineAsync(
                     $"WorldServer rejected malformed LegacyMailboxMode packet {FormatSession(context)}. {FormatFrameDiagnostic(frame)}")

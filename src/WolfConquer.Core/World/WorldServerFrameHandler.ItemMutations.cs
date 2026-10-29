@@ -15,7 +15,7 @@ public sealed partial class WorldServerFrameHandler
     private static bool IsLegacyExclusiveItemMutationFrame(PacketFrame frame, ConquerProtocolProfile profile) =>
         IsLegacyDragonSkinMutationFrame(frame) ||
         IsLegacyVendorPurchaseFrame(frame, profile) ||
-        IsLegacyMailboxClaimFrame(frame) ||
+        IsLegacyMailboxClaimFrame(frame, profile) ||
         IsLegacyInventorySashUpgradeFrame(frame) ||
         IsLegacyWarehouseItemTransferFrame(frame) ||
         IsLegacyWarehouseLockRefreshFrame(frame) ||
@@ -26,9 +26,9 @@ public sealed partial class WorldServerFrameHandler
             MsgItemUsageAction.Equip or MsgItemUsageAction.Unequip;
 
     // Parsed claims own their actual Exclusive before resolving the current participant.
-    private static bool IsLegacyMailboxClaimFrame(PacketFrame frame) =>
+    private static bool IsLegacyMailboxClaimFrame(PacketFrame frame, ConquerProtocolProfile profile) =>
         frame.Header.Opcode == WorldPacketOpcodes.LegacyMailboxMode &&
-        LegacyMailboxModePacket.TryParse(frame, out var packet) &&
+        LegacyMailboxModePacket.TryParse(frame, profile, out var packet) &&
         packet.Type is LegacyMailboxModeType.ClaimItem or LegacyMailboxModeType.ClaimMoney or LegacyMailboxModeType.ClaimAll or
             LegacyMailboxModeType.Delete or LegacyMailboxModeType.DeleteClaim or LegacyMailboxModeType.ClaimRecordType;
 

@@ -4,7 +4,40 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## 2026-10-28 health consumption - focused repair, full/live gate OPEN
+## 2026-10-28 incoming D13 mailbox requests - offline repair
+
+### FSB-183: Read D13 mail trailers through the selected recovery profile
+
+The fixed10+8n-only parser rejected actual Chinese7899/VisibleDx8D13 Content
+and Claim This Page requests. Controlled live captures retained the same fields
+with mode-specific zero trailers: Content(count0)+8bytes, ClaimAll(count2/7)
++7bytes. All three were rejected before mutation; the nine retained gear mails
+and ten physical items remained saved. These are observed incoming bytes,
+not a new protobuf schema or authority to guess other modes.
+
+The profile-aware parser now bounds the count against the complete physical
+snapshot before allocation, accepts only canonical or those narrow D13 forms,
+and rejects nonzero/wrong-size trailers and incoherent envelopes. The selected
+profile reaches Frame mutation classification, predispatch debt admission,
+registered-context admission and actual after-lease recovery revalidation.
+Original mode/requestID/selectedIDs still define replay identity. Outbound
+acknowledgement encoding, ownership, PIN, capacity and durable journals stay
+unchanged. Default/D11 remains strict canonical parsing.
+
+Root's isolated build01 has zero errors/156 historical warnings. Actual focused
+mail/export batch passed196/196 with zero skips in3m41s. It includes independent
+captured goldens, malformed/envelope/segment controls, actual recovery replay
+entrypoints and a queued world-lease transition. The neighboring mailbox/
+runner/status/inspector selection passed223/223, zero skips,6m1s (overlap).
+Evidence: `.artifacts/root-mailbox-wire-next`. The new fixture exporter also has
+direct PS controls and source tests; export success is not handler acceptance.
+
+This is an offline source repair. Its full successor gate, live Content/claim
+acknowledgement, inventory/rendering and saved/runtime acceptance remain OPEN.
+No full parity, SQL or power-loss safety claim follows. Separate local test
+environment details remain in the private handoff rather than this source log.
+
+## 2026-10-28 health consumption - source qualified, live gate OPEN
 
 ### FSB-182: Commit health and item consumption together without invalidating trade offers
 

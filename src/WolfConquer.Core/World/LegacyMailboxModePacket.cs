@@ -1,4 +1,5 @@
 using WolfConquer.Core.Packets;
+using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
@@ -13,7 +14,7 @@ public enum LegacyMailboxModeType : ushort
     ClaimAll = 7,
 }
 
-public sealed record LegacyMailboxModePacket(
+public sealed partial record LegacyMailboxModePacket(
     LegacyMailboxModeType Type,
     uint Id,
     IReadOnlyList<ulong> Items)
@@ -28,10 +29,14 @@ public sealed record LegacyMailboxModePacket(
 
     public uint Count => checked((uint)Items.Count);
 
-    public static bool TryParse(PacketFrame frame, out LegacyMailboxModePacket packet)
+    public static bool TryParse(PacketFrame frame, out LegacyMailboxModePacket packet) =>
+        TryParse(frame, ConquerProtocolProfile.RootD11_7899, out packet);
+
+    public static bool TryParse(PacketFrame frame, ConquerProtocolProfile profile, out LegacyMailboxModePacket packet)
     {
         packet = default!;
-        if (frame.Header.Length < PacketHeader.Size + HeaderPayloadLength ||
+        if (profile is not (ConquerProtocolProfile.RootD11_7899 or ConquerProtocolProfile.VisibleDx8D13) ||
+            frame.Header.Length < PacketHeader.Size + HeaderPayloadLength ||
             !PacketFrameEnvelope.TryRead(frame, Opcode, frame.Header.Length, out var reader))
         {
             return false;
@@ -44,15 +49,13 @@ public sealed record LegacyMailboxModePacket(
         }
 
         var count = reader.ReadUInt32(CountOffset);
-        var remainingBytes = reader.Payload.Length - ItemsOffset;
-        if (remainingBytes % sizeof(ulong) != 0 ||
-            count != (uint)(remainingBytes / sizeof(ulong)))
+        if (!HasKnownItemExtent((LegacyMailboxModeType)type, count, reader.Payload[ItemsOffset..], profile))
         {
             return false;
         }
 
-        // Exact equality with the bounded snapshot proves this allocation and
-        // every read fit; untrusted count multiplication cannot overflow first.
+        // The bounded physical item extent (and only its explicit zero trailer)
+        // proves this allocation/read fits before any count multiplication.
         var items = new ulong[(int)count];
         var offset = ItemsOffset;
         for (var index = 0; index < items.Length; index++)

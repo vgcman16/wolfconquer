@@ -29,7 +29,7 @@ internal sealed class LegacyMailboxPacketInvocation : IDisposable
         if (!invocation.active || !ReferenceEquals(invocation.context.TradeOperations, operations) ||
             !invocation.producer.OwnsPacketOperations(operations) ||
             !LegacyMailboxPacketAdmission.TryRequireCurrent(invocation.producer, invocation.context.Sessions!,
-                invocation.context.Connection, invocation.frame, out _))
+                invocation.context.Connection, invocation.frame, invocation.context.ProtocolProfile, out _))
             throw new InvalidOperationException("Mailbox recovery denied the queued packet after world admission.");
     }
 

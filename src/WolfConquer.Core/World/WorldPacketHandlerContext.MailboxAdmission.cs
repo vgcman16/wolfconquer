@@ -31,7 +31,7 @@ public sealed partial record WorldPacketHandlerContext : IPacketHandlerInvocatio
             if (!selfOwned && TradeRecovery is { } live && !live.TryRequireLiveJournalClear(out var tradeReason))
             { await Log.WriteLineAsync($"WorldServer trade recovery denied packet: {tradeReason}.").ConfigureAwait(false); return; }
             if (producer is not null &&
-                !LegacyMailboxPacketAdmission.TryRequireCurrent(producer, Sessions!, Connection, frame, out var reason))
+                !LegacyMailboxPacketAdmission.TryRequireCurrent(producer, Sessions!, Connection, frame, ProtocolProfile, out var reason))
             { await Log.WriteLineAsync($"WorldServer mailbox recovery denied packet: {reason}.").ConfigureAwait(false); return; }
             await handler(this, frame, cancellationToken).ConfigureAwait(false);
         }

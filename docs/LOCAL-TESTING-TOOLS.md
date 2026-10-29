@@ -63,10 +63,11 @@ live Store synchronization and gameplay acceptance pending. Record the observed
 client result separately. See the [runner workflow](../tools/testing/SCENARIOS.md)
 for complete parameters and failure handling.
 
-The equip/unequip saved-state assertions are **available in this source;
-full Windows qualification and real-client acceptance remain pending**. The
-successor starts a
-separate fresh evidence folder with the exact claimed item UID, item type and
+The published equip/unequip and saved-health tooling passed full Windows
+run40812655135 on014c3263: core29,440pass/156skip, Updates446/446 and
+Launcher57/57; all eight stages passed. **Real-client claim/equipment acceptance
+remains pending.** The tool uses a separate fresh evidence folder with the exact
+claimed item UID, item type and
 equipment slot. After real client equip and save, the first resume retains an
 equipment snapshot and receipt; after real unequip and save, a second resume
 references that first receipt. It is intended to check both saved relocations,
@@ -166,8 +167,10 @@ FSB179 StarVolcano passed that run. Transport revision2 now retains the server
 connection until a matching response receipt within the same10s deadline; see
 FSB180 and the protocol spec. Actual full80fa53c9 run40790881796 was interrupted when its worker disappeared
 and ended cancelled; its incomplete output is unqualified. The trusted runner
-was restarted once and is online/idle. A new successor full gate and actual
-game-client hot delivery/claim/equip acceptance remain pending. No failed build was deployed.
+was restarted once. Successors6f668 and014c3263 now passed their actual full
+gates. Hot delivery of nine retained gear mails was observed; the current D13
+claim format exposed a separate parser gap. Claim/equip acceptance and the new
+wire-export/parser successor gate remain pending. No failed build was deployed.
 
 
 ## Check saved health-potion consumption
@@ -185,3 +188,25 @@ runtime atomicity remain separate checks. The tool neither clicks nor saves nor
 sends gear. These are four saved assertion families and eight guided families,
 not a complete game acceptance pass. Use matching qualified DataTool/server
 binaries; earlier inspector builds do not supply the required saved vitals.
+
+## Save a reproducible protocol fixture
+
+This new exporter is being qualified separately from the published014c toolset.
+
+`Export-GameWireFixture.ps1` reads an existing local game-wire log and exports
+only selected complete packet frames into a new JSON file. It leaves the log
+unchanged and never enables tracing, attaches to a client, logs in, sends a
+packet or grants an item. Select the actual client build/profile and record the
+UI action. Those labels remain caller reports, not verified client identity.
+
+```powershell
+pwsh -NoProfile -File C:\PATH\tools\testing\Export-GameWireFixture.ps1 -TraceLogPath C:\TEST\WorldServer.out.log -OutputPath C:\TEST\mail-claim.json -Opcode 2264 -ClientBuild 7899 -ProtocolProfile VisibleDx8D13 -Observation 'Claim This Page in the owned test mailbox'
+```
+
+The default selects inbound frames; `-Direction Outbound` selects plaintext
+responses. Handshake records, other opcodes and encrypted-log fields are omitted.
+Truncated or inconsistent selected records fail rather than becoming goldens.
+The default input limit is16MiB and32frames, with explicit maximum bounds.
+`-AfterLine` selects a later observation. Existing outputs cannot be overwritten;
+keep fixtures local and review their contents before any public publication.
+An export proves recorded bytes were retained, not a correct schema or gameplay.
