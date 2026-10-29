@@ -6,16 +6,17 @@ server's actual configured owned-admission runtime.
 
 The current saved-resource extension passed56/56 actual offline tool tests,
 zero skips/failures, including existing health/walk/mail/equip/status compatibility.
-Full Windows [40853051675](https://github.com/vgcman16/wolfconquer/actions/runs/40853051675)
-passed on exact c6c706464e8a09e5da3dc3b0697dbda3f5e25c57: Core29,685 passed,
-152 existing fixture skips, Updates446/446 and Launcher57/57, zero failures;
-all eight stages passed. Local run20261029T095254390Z-3647c6d3 finished
-2026-10-29T10:34:20.1942239Z. Actual workflow/job/phase logs, all3TRXs and matching
-World/DataTool builds are preserved outside runner. This qualifies the offline
-testing tools, joint owned HP/Mana and automatic-skill admission checkpoint.
-Live deployment/client acceptance, complete native-resource ownership, SQL/
-power-loss durability and full gameplay/English parity remain separate and open.
-No client relaunch, original-save/route edit or retained gear resend followed.
+Full Windows [40867334704](https://github.com/vgcman16/wolfconquer/actions/runs/40867334704)
+passed on exact531a9aa3d8e17c18ccd9f5bf68d480cbc5295319, containing source5daa0fe4:
+Core29,833 passed/152 existing fixture skips, Updates446/446 and Launcher57/57,
+zero failures; all eight stages passed. Actual local20261029T114153515Z-2d796ae9
+finished2026-10-29T12:24:15.2854218Z. Workflow/job/local phase logs and all3TRXs
+are retained; matching complete World/DataTool runtime files were preserved
+outside the runner before any next candidate build. This qualifies the published
+required-stamina, XP eligibility and pending-cost-output source changes.
+Caprice paired transfer/shared journal successors, live deployment/client acceptance,
+SQL/power-loss safety and complete English/gameplay parity remain unqualified.
+No original-save/route edit, client relaunch or retained gear resend followed.
 
 ## List tests and view progress
 

@@ -4,7 +4,20 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## 2026-10-29 pending cost output and XP eligibility - local qualification
+## 2026-10-29 pending cost output and XP eligibility - full source qualification
+
+Full Windows [40867334704](https://github.com/vgcman16/wolfconquer/actions/runs/40867334704)
+passed on exact531a9aa3d8e17c18ccd9f5bf68d480cbc5295319, containing source5daa0fe4:
+Core29,833 passed/152 existing fixture skips, Updates446/446 and Launcher57/57,
+zero failures; all eight stages passed. Actual local20261029T114153515Z-2d796ae9
+finished2026-10-29T12:24:15.2854218Z. Workflow/job/local phase logs and all3TRXs
+are retained; matching complete World/DataTool runtime files were preserved
+outside the runner before any next candidate build. This qualifies the published
+required-stamina, XP eligibility and pending-cost-output source changes.
+Caprice paired transfer/shared journal successors, live deployment/client acceptance,
+SQL/power-loss safety and complete English/gameplay parity remain unqualified.
+No original-save/route edit, client relaunch or retained gear resend followed.
+
 
 ### FSB-193: Stop obsolete unsent cost replies without repricing accepted costs
 
@@ -81,11 +94,10 @@ vitals/ordinary-publication/testing-tool neighbors passed289/289,0failures/skips
 Selections may overlap. Build10 passed with0errors/157historical warnings, none
 in changed paths. The original41 safety controls first failed on old product
 (39numeric and2pending-output), and18 XP admission controls separately reproduced
-their old paid rejection behavior. All applicable controls now pass. Full
-successor Windows CI and live client acceptance remain pending; the last full
-is exact c6c/40853051675, whose actual outputs/results were already preserved.
+their old paid rejection behavior. All applicable controls now pass. Full Windows40867334704 now passed as recorded above; live acceptance remains
+pending. Earlier exact c6c evidence and outputs remain preserved separately.
 
-## 2026-10-29 required stamina - local source qualification
+## 2026-10-29 required stamina - full source qualification
 
 ### FSB-192: Reject malformed required stamina before debits or restoration
 
@@ -118,7 +130,7 @@ The wider combat/admission selection passed2749/2749,0skips/failures; selections
 overlap. Its filter explicitly omits only the two separate unimplemented output
 controls. That is not a whole-suite or output-freshness success claim. The earlier
 overlapping build04/test attempt was interrupted and discarded. Actual TRXs/logs
-remain under root-stamina-safety-next. Full successor CI and live remain pending.
+remain under root-stamina-safety-next. Full Windows now passed above; live remains pending.
 
 Boundaries remain OPEN: remaining old-reader callers, valid Caprice pair
 publication, saved-stamina durability, complete native stamina ownership,

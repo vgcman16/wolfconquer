@@ -99,3 +99,17 @@ is exact c6c/40853051675, whose actual outputs/results were already preserved.
 This supersedes earlier proposal/pending-output scope notes for this published
 checkpoint. FSB193/194 record the current output/XP boundaries; Caprice pair,
 remaining readers and whole-action/native/SQL/client acceptance remain open.
+
+Latest full qualification, superseding pending full-gate notes above:
+
+Full Windows [40867334704](https://github.com/vgcman16/wolfconquer/actions/runs/40867334704)
+passed on exact531a9aa3d8e17c18ccd9f5bf68d480cbc5295319, containing source5daa0fe4:
+Core29,833 passed/152 existing fixture skips, Updates446/446 and Launcher57/57,
+zero failures; all eight stages passed. Actual local20261029T114153515Z-2d796ae9
+finished2026-10-29T12:24:15.2854218Z. Workflow/job/local phase logs and all3TRXs
+are retained; matching complete World/DataTool runtime files were preserved
+outside the runner before any next candidate build. This qualifies the published
+required-stamina, XP eligibility and pending-cost-output source changes.
+Caprice paired transfer/shared journal successors, live deployment/client acceptance,
+SQL/power-loss safety and complete English/gameplay parity remain unqualified.
+No original-save/route edit, client relaunch or retained gear resend followed.

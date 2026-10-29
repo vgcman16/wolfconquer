@@ -1,27 +1,22 @@
 # Reconstruction status
 
-Updated 2026-10-28. Target: Chinese client 7899 / `VisibleDx8D13`.
-This is a current component checklist, not a release or measured-completion claim.
-Historical detail remains in Git at the referenced source checkpoints.
-
-Qualified public gameplay checkpoint `224f1eb5` is pushed; its generated-only
-tracker child is `2da8a7c0`. Current-build live acceptance remains open.
+Updated 2026-10-29. Target: Chinese client7899 / VisibleDx8D13.
+Full English/gameplay reconstruction remains active. Current source5daa0fe4 and
+generated tracker531a9aa3 are pushed. Current-main live acceptance remains open.
 
 ## Full CI boundary
 
-- [x] Exact public `224f1eb5dfc1ed148ccd53252f833339b5622f7c` passed
-  [run 40646084998](https://github.com/vgcman16/wolfconquer/actions/runs/40646084998),
-  job `122675116449`. Receipt `20261028T065007663Z-6d4fda5e` ran from
-  2026-10-28T06:50:07.8007529Z through 07:32:27.2033388Z.
-- [x] Restore/build and all eight steps exited 0: Core 29,039 Passed /
-  164 existing NotExecuted, Updater 434, Launcher 57, synthetic parsers 20+13.
-- [x] Actual terminal receipt, logs and three TRXs are retained in
-  `.artifacts/root-fullaccount-durable-next/full-224f1eb5`.
-- [x] Prior exact `8e8ff83f` run `40569779073` also passed. Historical `9e779d5d`
-  run `40555473262` remains failed evidence and is not retroactively repaired.
-
-The parsers did not perform network/client probes. Full CI does not establish
-current-build live-client acceptance, a real-client feed or full parity.
+Full Windows [40867334704](https://github.com/vgcman16/wolfconquer/actions/runs/40867334704)
+passed on exact531a9aa3d8e17c18ccd9f5bf68d480cbc5295319, containing source5daa0fe4:
+Core29,833 passed/152 existing fixture skips, Updates446/446 and Launcher57/57,
+zero failures; all eight stages passed. Actual local20261029T114153515Z-2d796ae9
+finished2026-10-29T12:24:15.2854218Z. Workflow/job/local phase logs and all3TRXs
+are retained; matching complete World/DataTool runtime files were preserved
+outside the runner before any next candidate build. This qualifies the published
+required-stamina, XP eligibility and pending-cost-output source changes.
+Caprice paired transfer/shared journal successors, live deployment/client acceptance,
+SQL/power-loss safety and complete English/gameplay parity remain unqualified.
+No original-save/route edit, client relaunch or retained gear resend followed.
 
 ## Implemented source families
 
@@ -57,12 +52,13 @@ No 7935 feature is default-enabled, runtime-adopted or live-client accepted.
 
 ## Live-client boundary
 
-- [x] A narrow October 26 disposable D13 fixture authenticated, initialized the
-  world, moved and rendered Body1008 in Twin City.
+- [x] Exact be2740ae had an October28 disposable D13 login, full body/Twin City,
+  movement, saved position and one graceful restart/relogin. Nine gear mails later
+  rendered; real claim/equip/forge transactions remain unaccepted.
 - [ ] Verify the current public source in a controlled live session.
 - [ ] Verify native graph adoption, multiplayer gameplay and complete save/reload.
 
-The October 26 observation does not prove the current build, full gameplay,
+The October28 observation does not prove the current build, full gameplay,
 English coverage, distribution or 7935 compatibility.
 
 ## FullAccount qualification
@@ -131,7 +127,7 @@ restore material and live sessions remain preserved.
 - [World-wire diagnostics](WORLD-WIRE-DIAGNOSTICS.md)
 - [Sanitized Parity](engineering/SANITIZED-PARITY.md)
 - [Protocol workflow](engineering/PROTOCOL-WORKFLOW.md)
-- `FIXED-SOURCE-BUGS.md` entries FSB-139 through FSB-158
+- `FIXED-SOURCE-BUGS.md` entries through FSB-194; open entries are not fixed claims
 
 ## Honest estimate boundary
 

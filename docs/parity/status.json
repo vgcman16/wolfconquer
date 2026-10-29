@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "Sanitized legacy-server parity: client compatibility, corrected emulator defects (project planning)",
-  "reviewedAt": "2026-10-28",
+  "reviewedAt": "2026-10-29",
   "estimate": {
     "percent": 55,
     "low": 40,
@@ -27,14 +27,14 @@
       "id": "persistence",
       "title": "Shared player, items and persistence",
       "status": "partial",
-      "implemented": "Managed storage, mailbox and selected trade closures use validated journal participants. Ordinary login preserves saved progress and physical class/level after commit. Ninja rank files and Performer learning prepare state while retaining opaque spell bytes. FullAccount class reset uses current-session/file checks and a Character+Spells journal; focused354 and exact-public full224f1eb5 checks pass. Native/session graph adoption and real SQL remain open.",
+      "implemented": "Selected storage, mailbox, Trade/booth, equipment moves, learning and consumables use validated saved transactions. Ordinary admission retains class/level; owned HP/Mana now join saved and managed state. FullAccount/rank/spell preservation and source531a9aa3 passed full Windows checks. Native item graph adoption, broad recovery and real SQL remain open.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
       "id": "combat",
       "title": "Combat, monsters and death",
       "status": "partial",
-      "implemented": "Spell, damage, equipment, AI and death logic has focused proof. Required metadata and bounded XP precede local credit; physical/sigil admission checks real owners.1110/Action78 responses retain publication ownership. Scoped Ninja/rank/spell preparation passes1,067 common private/public cases. Native owner/sender adoption, full callers and multiplayer acceptance remain open.",
+      "implemented": "Selected combat, status, AI and death paths have focused proof. Automatic-skill costs, strict required stamina, selected XP eligibility and unsent cost replies now validate actual owners/state; full Windows531a9aa3 passes. Caprice paired transfer and shared journal ordering remain unqualified. Broader native executors and multiplayer acceptance are open.",
       "remaining": "Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios."
     },
     {
@@ -64,13 +64,13 @@
       "id": "live-client",
       "title": "Limited local live-client milestone",
       "status": "verified",
-      "detail": "An October26 disposable D13 fixture completed manual authentication, world initialization and movement. Supported Body1008 passed41 focused checks; root and user confirmed its full body visible in Twin City. One local trial does not prove restart reliability or the whole public build. Earlier drop/pickup/save proof applies to an older build."
+      "detail": "Exact be2740ae had an October28 disposable D13 login, visible body/Twin City, movement, saved destination and one graceful server restart/relogin. Nine gear mails later rendered; actual claim/equip remains unaccepted. This does not qualify current main or7935 gameplay."
     },
     {
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Prior exact224f1eb5 passed full Windows40646084998: Core29,039 Passed/164 existing NotExecuted, Updater434, Launcher57, synthetic parsers20+13. New exact native-data publishing review source passes446 updater cases and7 standalone distribution scripts; its new exact-public full gate is pending. Current-public live-client acceptance remains unverified."
+      "detail": "Exact531a9aa3 passed full Windows40867334704: Core29,833 passed/152 existing fixture skips, Updates446, Launcher57; all eight stages passed. Matching World/DataTool outputs and actual logs/TRXs are retained. Current-main live-client acceptance remains open."
     },
     {
       "id": "english",
