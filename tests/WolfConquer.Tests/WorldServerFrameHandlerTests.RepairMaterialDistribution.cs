@@ -225,9 +225,14 @@ public sealed partial class WorldServerFrameHandlerTests
             OwnerUid = 56,
             OwnerName = "repair owner",
             Signature = "unchanged metadata",
+        };
+        // A consumable material cannot own child items. Keep container-preservation
+        // coverage on an unrelated root; actual material-child refusals are separate.
+        var unrelated = new PlayerItemSnapshotItem
+        {
+            Uid = 43, ItemId = 100_001, Position = 0, StackSize = 7,
             DepositedItems = [RepairDistributionMaterial(42, 100_000, 1)],
         };
-        var unrelated = RepairDistributionMaterial(43, 100_001, 7);
         PlayerItemSnapshotItem[] relics = [RepairDistributionMaterial(51, RepairDistributionMeteorId, 10)];
         PlayerItemSnapshotItem[] mythsouls = [RepairDistributionMaterial(52, RepairDistributionMeteorTearId, 10)];
         PlayerItemSnapshotItem[] equipment = [RepairDistributionMaterial(53, RepairDistributionMeteorId, 10)];

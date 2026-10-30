@@ -14,6 +14,8 @@ public sealed partial class WorldSessionStore
         private readonly LegacyNativeExistingCharacterPrefix.SpellAdmissionOwner admissionOwner;
         private readonly LegacyNativePlayerRuntime.OwnedHitpointsPublication hitpoints;
         private readonly LegacyNativePlayerRuntime.OwnedMoneyPublication money;
+        private readonly LegacyNativePlayerRuntime.OwnedCpsPublication cps;
+        private readonly LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication warehouseMoney;
         private readonly LegacyOwnedNativeItemImage.Preparation itemImage;
         private readonly LegacyNativeOwnedItemGraph.PreparedPublication? items;
         private bool spellGateHeld, proficiencyGateHeld;
@@ -51,6 +53,8 @@ public sealed partial class WorldSessionStore
                 detached.Storage, detachedProficiencies.Storage, recovery, canonicalSpells, savedSpellImage);
             hitpoints = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareAdmission(binding, admissionOwner, FinalSession);
             money = LegacyNativePlayerRuntime.OwnedMoneyPublication.PrepareAdmission(binding, admissionOwner, FinalSession);
+            cps = LegacyNativePlayerRuntime.OwnedCpsPublication.PrepareAdmission(binding, admissionOwner, FinalSession);
+            warehouseMoney = LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication.PrepareAdmission(binding, admissionOwner, FinalSession);
             try
             {
                 Monitor.Enter(detached.Storage.MutationGate, ref spellGateHeld);
@@ -75,10 +79,14 @@ public sealed partial class WorldSessionStore
             detached.Plan.RequireCurrentBeforeWriter();
             detachedProficiencies.Plan.RequireCurrentBeforeWriter();
             items!.RequireCurrentBeforeWriter();
-            if (!OwnerIsCurrentPlain() || !hitpoints.IsCurrentPlain() || !money.IsCurrentPlain()) throw InvalidSpellPublication();
+            if (!OwnerIsCurrentPlain() || !hitpoints.IsCurrentPlain() || !money.IsCurrentPlain() || !cps.IsCurrentPlain() ||
+                !warehouseMoney.IsCurrentPlain())
+                throw InvalidSpellPublication();
         }
 
-        internal bool ConsumeCurrentPlain() => hitpoints.IsCurrentPlain() && money.IsCurrentPlain() && OwnerIsCurrentPlain() && admissionOwner.ConsumeCurrentPlain() &&
+        internal bool ConsumeCurrentPlain() => hitpoints.IsCurrentPlain() && money.IsCurrentPlain() && cps.IsCurrentPlain() &&
+            warehouseMoney.IsCurrentPlain() &&
+            OwnerIsCurrentPlain() && admissionOwner.ConsumeCurrentPlain() &&
             detached.Plan.ConsumeCurrentPlain() &&
             detachedProficiencies.Plan.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain();
         internal bool ArmPreparedProof()
@@ -87,7 +95,9 @@ public sealed partial class WorldSessionStore
             detachedProficiencies.Plan.ArmFinalProof();
             items!.ArmFinalProof();
             admissionOwner.ArmAdmissionProof();
-            return hitpoints.IsCurrentPlain() && money.IsCurrentPlain() && OwnerIsCurrentPlain() && admissionOwner.ConsumeBeforeWriterPlain() && detached.Plan.ConsumeBeforeWriterPlain() &&
+            return hitpoints.IsCurrentPlain() && money.IsCurrentPlain() && cps.IsCurrentPlain() && warehouseMoney.IsCurrentPlain() &&
+                OwnerIsCurrentPlain() &&
+                admissionOwner.ConsumeBeforeWriterPlain() && detached.Plan.ConsumeBeforeWriterPlain() &&
                 detachedProficiencies.Plan.ConsumeBeforeWriterPlain() && items.ConsumeBeforeWriterPlain();
         }
 
@@ -102,6 +112,8 @@ public sealed partial class WorldSessionStore
             holder.SpellBinding = binding;
             hitpoints.PublishPrepared();
             money.PublishPrepared();
+            cps.PublishPrepared();
+            warehouseMoney.PublishPrepared();
         }
 
         public void Dispose()

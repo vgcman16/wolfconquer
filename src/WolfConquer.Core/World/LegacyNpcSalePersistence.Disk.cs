@@ -59,7 +59,8 @@ internal static partial class LegacyNpcSalePersistence
             !TryNonnegative(uidText, out var uid) || uid != original.Character.Uid ||
             !fields.TryGetValue("Money", out var moneyText) || !TryNonnegative(moneyText, out var money) ||
             money != original.Character.Money || !fields.TryGetValue("ConquerPoints", out var cpText) ||
-            !TryNonnegative(cpText, out var cp) || cp > uint.MaxValue || cp != original.Character.ConquerPoints)
+            !TryNonnegative(cpText, out var cp) || mode != CharacterWriteMode.BankConquerPoints && cp > uint.MaxValue ||
+            cp != original.Character.ConquerPoints)
         { reason = "npcSaleWalletOrUidBaselineInvalid"; return false; }
         if (!TryFields(original.Character.Attributes, out var expected, out reason) ||
             !TryWarehouse(fields, out _, out reason)) return false;
@@ -72,13 +73,17 @@ internal static partial class LegacyNpcSalePersistence
             reason = "npcSaleProtectedBaselineStale";
             return false;
         }
+        if (mode == CharacterWriteMode.BankConquerPoints &&
+            (!SameBankCpsProtectedField(expected, fields, "BoundConquerPoints") ||
+             !SameBankCpsProtectedField(expected, fields, "BankCps")))
+        { reason = "bankCpsProtectedBaselineStale"; return false; }
         if (!LegacySecondaryPasswordState.TryRead(fields, out _, out reason) ||
             !LegacyTradeEscrowClaims.TryRead(fields, out var claim, out reason) || claim is not null)
         { if (reason.Length == 0) reason = "npcSaleTradeEscrowActive"; return false; }
-        if (mode == CharacterWriteMode.PickupConquerPoints &&
+        if (mode is CharacterWriteMode.PickupConquerPoints or CharacterWriteMode.BankConquerPoints &&
             (!fields.TryGetValue("BankCps", out var bankText) || !TryNonnegative(bankText, out var bank) ||
              bank != original.Character.BankConquerPoints))
-        { reason = "floorPickupBankCpsBaselineInvalid"; return false; }
+        { reason = mode == CharacterWriteMode.BankConquerPoints ? "bankCpsSavedBaselineInvalid" : "floorPickupBankCpsBaselineInvalid"; return false; }
         if (mode == CharacterWriteMode.Preserve)
         {
             // Item removal has no wallet/INI projection. In particular, a missing
@@ -87,7 +92,7 @@ internal static partial class LegacyNpcSalePersistence
             return true;
         }
         var updates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (mode == CharacterWriteMode.PickupConquerPoints)
+        if (mode is CharacterWriteMode.PickupConquerPoints or CharacterWriteMode.BankConquerPoints)
         {
             updates["ConquerPoints"] = updated.Character.ConquerPoints.ToString(CultureInfo.InvariantCulture);
             updates["BankCps"] = updated.Character.BankConquerPoints.ToString(CultureInfo.InvariantCulture);
@@ -131,13 +136,8 @@ internal static partial class LegacyNpcSalePersistence
     {
         value = 0;
         reason = string.Empty;
-        var canonical = fields.TryGetValue("WHMoney", out var canonicalText);
-        var alias = fields.TryGetValue("WarehouseMoney", out var aliasText);
-        long first = 0, second = 0;
-        if ((canonical && !TryNonnegative(canonicalText!, out first)) ||
-            (alias && !TryNonnegative(aliasText!, out second)) || (canonical && alias && first != second))
+        if (!LegacyWarehouseMoneyState.TryRead(fields, out value))
         { reason = "npcSaleWarehouseInvalidOrAmbiguous"; return false; }
-        value = canonical ? first : alias ? second : 0;
         return true;
     }
 

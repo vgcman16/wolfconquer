@@ -91,7 +91,7 @@ public sealed class LegacyBankingServicesNpcTests
     }
 
     [Fact]
-    public async Task BankCpsWithdrawConfirmationMovesBankToConquerPointsPersistsAndSendsUpdate()
+    public async Task RoutedBankWithdrawalWithoutItsRealWriterOwnerPreservesPendingWalletAndFiles()
     {
         var usersRoot = Path.Combine(Path.GetTempPath(), "wolf-bankcp-withdraw-" + Guid.NewGuid());
         try
@@ -134,22 +134,20 @@ public sealed class LegacyBankingServicesNpcTests
 
             Assert.True(handled);
             Assert.True(sessions.TryGet(connection, out var updated));
-            Assert.Null(updated!.PendingBankConquerPoints);
-            Assert.Equal(1_125, updated.Character.ConquerPoints);
-            Assert.Equal(125, updated.Character.BankConquerPoints);
-            Assert.Contains(sent, frame => LegacyMsgUpdatePacket.TryParse(ReadFrame(frame), out var update) &&
-                update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.ConquerPoints && entry.Value == 1_125UL));
+            Assert.Same(session, updated);
+            Assert.Equal(125U, updated!.PendingBankConquerPoints);
+            Assert.Equal(1_000, updated.Character.ConquerPoints);
+            Assert.Equal(250, updated.Character.BankConquerPoints);
+            Assert.Empty(sent);
 
             var persistedText = File.ReadAllText(snapshotPath);
-            Assert.Contains("ConquerPoints=1125", persistedText);
-            Assert.Contains("BankCps=125", persistedText);
+            Assert.Contains("ConquerPoints=1000", persistedText);
+            Assert.Contains("BankCps=250", persistedText);
             Assert.Contains("Note=keep-me", persistedText);
 
             var output = log.ToString();
-            Assert.Contains("persisted LegacyNpc BankCps transfer", output);
-            Assert.Contains("keys=ConquerPoints,BankCps", output);
-            Assert.Contains("mode=withdraw amount=125 conquerPoints=1125 bankCps=125", output);
-            AssertAsciiReplies(sent.Where(frame => LegacyNpcReplyPacket.TryParse(ReadFrame(frame), out _)));
+            Assert.Contains("bankCpsOwnerUnavailable", output);
+            Assert.DoesNotContain("applied LegacyNpc BankCps transfer", output);
         }
         finally
         {
@@ -161,7 +159,7 @@ public sealed class LegacyBankingServicesNpcTests
     }
 
     [Fact]
-    public async Task BankCpsDepositConfirmationSkipsPersistenceWhenSnapshotUidDoesNotMatchAccount()
+    public async Task RoutedBankDepositWithMissingActualWriterAndMismatchedUidCannotConsumePendingOrPublishSuccess()
     {
         var usersRoot = Path.Combine(Path.GetTempPath(), "wolf-bankcp-uid-mismatch-" + Guid.NewGuid());
         try
@@ -203,8 +201,12 @@ public sealed class LegacyBankingServicesNpcTests
 
             Assert.True(handled);
             Assert.True(sessions.TryGet(connection, out var updated));
-            Assert.Equal(700, updated!.Character.ConquerPoints);
-            Assert.Equal(550, updated.Character.BankConquerPoints);
+            Assert.Same(session, updated);
+            Assert.Equal(300U, updated!.PendingBankConquerPoints);
+            Assert.True(updated.PendingBankConquerPointsIsDeposit);
+            Assert.Equal(1000, updated.Character.ConquerPoints);
+            Assert.Equal(250, updated.Character.BankConquerPoints);
+            Assert.Empty(sent);
 
             var persistedText = File.ReadAllText(snapshotPath);
             Assert.Contains("UID=1299999", persistedText);
@@ -214,8 +216,8 @@ public sealed class LegacyBankingServicesNpcTests
             Assert.DoesNotContain("BankCps=550", persistedText);
 
             var output = log.ToString();
-            Assert.Contains("skipped LegacyNpc BankCps transfer persistence", output);
-            Assert.Contains("reason=uidMismatch", output);
+            Assert.Contains("bankCpsOwnerUnavailable", output);
+            Assert.DoesNotContain("applied LegacyNpc BankCps transfer", output);
         }
         finally
         {

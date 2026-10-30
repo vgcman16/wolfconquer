@@ -27,7 +27,7 @@ public sealed class OwnedNativeMoneyPublicationTests
             Assert.NotNull(f.Native.OrdinarySpellBinding);
             Assert.Equal(money, f.Current.Character.Money);
             Assert.Equal(money, f.Native.Player.Money);
-            Assert.Equal(77L, f.Native.Player.WHMoney);
+            Assert.Equal(0L, f.Native.Player.WHMoney);
             Assert.Equal(42L, f.Native.PokerPlayer!.CurrentMoney);
             var saved = CharacterSnapshotParser.ParseText(CharacterSnapshotFileEncoding.Decode(
                 File.ReadAllBytes(f.CharacterPath), out _));

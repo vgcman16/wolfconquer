@@ -52,6 +52,15 @@ public sealed partial class WorldSessionStore
             return final;
         }
 
+        internal void ValidateCurrenciesBeforeReservation(WorldSession proposed)
+        {
+            RequireLease();
+            if (prepared || !requirementsValidated) throw InvalidSpellPublication();
+            catalog?.RequireCurrent();
+            publication.RequireCurrenciesBeforeReservation(proposed);
+            if (catalog is not null && !catalog.IsCurrentPlain()) throw InvalidSpellPublication();
+        }
+
         internal void ArmBeforeCommit()
         {
             RequireLease();

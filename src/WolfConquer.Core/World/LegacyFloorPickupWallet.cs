@@ -4,17 +4,18 @@ using WolfConquer.Core.Data;
 namespace WolfConquer.Core.World;
 
 internal sealed record LegacyFloorPickupWalletChange(CharacterSnapshot UpdatedCharacter,
-    long SilverTransferred, uint CpsTransferred);
+    long SilverTransferred, long CpsTransferred);
 
 internal static class LegacyFloorPickupWallet
 {
     private const long MoneyCap = 500_000_000_000;
     private const uint ConquerPointsCap = 2_000_000_000;
 
-    // FloorMap adds native uint Gold/CPS (MsgItem.cs:38..40). Player.cs:2494..2560
-    // caps Money after signed addition, but CPS addition wraps as uint BEFORE its
-    // setter caps it. BankCps projects native GameClient.ConquerPointsSave (ulong)
-    // into the existing signed snapshot; unsupported negative/overflow states deny.
+    // FloorMap inputs are native uint Gold/CPS (MsgItem.cs:38..40). Sanitize
+    // the emulator's unchecked CP addition: preserve earned CP in a wide total
+    // before the existing cap/bank transfer instead of silently wrapping it.
+    // BankCps projects the actual UInt64 bank into the existing signed snapshot;
+    // unsupported negative/overflow states deny before any claim or mutation.
     internal static bool TryAdd(CharacterSnapshot character, FloorItemRuntimePickupKind kind, long amount,
         out LegacyFloorPickupWalletChange change, out string reason)
     {
@@ -45,8 +46,8 @@ internal static class LegacyFloorPickupWallet
             }
             else
             {
-                var total = unchecked((uint)character.ConquerPoints + (uint)amount);
-                var transferred = total > ConquerPointsCap ? total - ConquerPointsCap : 0u;
+                var total = checked(character.ConquerPoints + amount);
+                var transferred = Math.Max(0L, total - ConquerPointsCap);
                 var cps = total - transferred;
                 var bank = checked(character.BankConquerPoints + transferred);
                 attrs["ConquerPoints"] = cps.ToString(CultureInfo.InvariantCulture);
@@ -63,13 +64,6 @@ internal static class LegacyFloorPickupWallet
     private static bool TryWarehouse(IReadOnlyDictionary<string, string> fields, out long warehouse)
     {
         warehouse = 0;
-        var hasCanonical = fields.TryGetValue("WHMoney", out var canonical);
-        var hasAlias = fields.TryGetValue("WarehouseMoney", out var alias);
-        long first = 0, second = 0;
-        if (hasCanonical && (!long.TryParse(canonical, NumberStyles.Integer, CultureInfo.InvariantCulture, out first) || first < 0) ||
-            hasAlias && (!long.TryParse(alias, NumberStyles.Integer, CultureInfo.InvariantCulture, out second) || second < 0) ||
-            hasCanonical && hasAlias && first != second) return false;
-        warehouse = hasCanonical ? first : hasAlias ? second : 0;
-        return true;
+        return LegacyWarehouseMoneyState.TryRead(fields, out warehouse);
     }
 }

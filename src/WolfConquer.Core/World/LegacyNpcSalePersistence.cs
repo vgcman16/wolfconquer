@@ -8,8 +8,8 @@ namespace WolfConquer.Core.World;
 // Nonnegative signed wallets and coherent aliases are managed safety guards, not native unchecked overflow parity.
 internal static partial class LegacyNpcSalePersistence
 {
-    private enum PersistenceMode { Sale, ItemRemoval, FloorPickup, FloorPickupInventory }
-    private enum CharacterWriteMode { SaleWallet, Preserve, PickupMoney, PickupConquerPoints }
+    private enum PersistenceMode { Sale, ItemRemoval, FloorPickup, FloorPickupInventory, WarehouseMoney, BankCps }
+    private enum CharacterWriteMode { SaleWallet, Preserve, PickupMoney, PickupConquerPoints, BankConquerPoints }
 
     internal static bool TryPersist(WorldSession original, WorldSession updated, string? playerItemsRoot,
         out string reason) => TryPersist(original, updated, playerItemsRoot, null, out reason);
@@ -21,7 +21,7 @@ internal static partial class LegacyNpcSalePersistence
     private static bool TryPersistCore(WorldSession original, WorldSession updated, string? playerItemsRoot,
         PersistenceMode mode, LegacyJournalInterruption? interruptAfterReplacement, out string reason,
         FloorItemRuntimeEntry? pickupEntry = null, PlayerItemSnapshotItem? pickupItem = null,
-        LegacyFloorPickupInventoryChange? pickupInventory = null)
+        LegacyFloorPickupInventoryChange? pickupInventory = null, bool transferDeposit = false, long transferAmount = 0)
     {
         reason = string.Empty;
         try
@@ -33,8 +33,17 @@ internal static partial class LegacyNpcSalePersistence
             { if (!TryValidateFloorPickupSessions(original, updated, pickupEntry, pickupItem, out warehouse, out reason)) return false; }
             else if (mode == PersistenceMode.FloorPickupInventory)
             { if (!TryValidateFloorPickupInventorySessions(original, updated, pickupEntry, pickupInventory, out warehouse, out reason)) return false; }
+            else if (mode == PersistenceMode.WarehouseMoney)
+            { if (!TryValidateWarehouseMoneySessions(original, updated, transferDeposit, transferAmount, out warehouse, out reason)) return false; }
+            else if (mode == PersistenceMode.BankCps)
+            {
+                if (transferAmount is <= 0 or > uint.MaxValue)
+                { reason = "bankCpsTransferAmountInvalid"; return false; }
+                if (!TryValidateBankCpsSessions(original, updated, transferDeposit, checked((uint)transferAmount), out warehouse, out reason)) return false;
+            }
             else if (!TryValidateSessions(original, updated, out warehouse, out reason)) return false;
-            var characterMode = mode is PersistenceMode.ItemRemoval or PersistenceMode.FloorPickupInventory ? CharacterWriteMode.Preserve :
+            var characterMode = mode == PersistenceMode.BankCps ? CharacterWriteMode.BankConquerPoints :
+                mode is PersistenceMode.ItemRemoval or PersistenceMode.FloorPickupInventory ? CharacterWriteMode.Preserve :
                 mode != PersistenceMode.FloorPickup ? CharacterWriteMode.SaleWallet : pickupEntry!.Kind switch
                 {
                     FloorItemRuntimePickupKind.Item => CharacterWriteMode.Preserve,
@@ -63,6 +72,8 @@ internal static partial class LegacyNpcSalePersistence
                     out var beforeCharacter, out var afterCharacter, out failure)) return false;
                 if (!TryItemBytes(original.PlayerItems, out var expectedItems, out var originallyEmpty, out failure) ||
                     !TryItemBytes(updated.PlayerItems, out var afterItems, out _, out failure)) return false;
+                if (mode is PersistenceMode.WarehouseMoney or PersistenceMode.BankCps && !expectedItems.AsSpan().SequenceEqual(afterItems))
+                { failure = "warehouseMoneyItemMutationUnexpected"; return false; }
                 if (mode == PersistenceMode.ItemRemoval && !TryValidateItemRemovalImage(original.PlayerItems, updated.PlayerItems,
                     afterItems, out failure)) return false;
                 if (mode == PersistenceMode.FloorPickup && !TryValidateFloorPickupImage(original.PlayerItems,

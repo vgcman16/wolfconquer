@@ -20,7 +20,7 @@ public sealed partial class LegacyJournalDomainSerializationTests
         using var interruption = LegacyJournalInterruption.StopAfter(0);
         Assert.False(LegacyTradeJournal.TryCommitSingleOwner(data.Users, data.Items, laterChanges, interruption, out _));
         var before = data.Files();
-        object?[] arguments = [capture, 0, null];
+        object?[] arguments = [capture, 0, null, null]; // No owned-startup recovery capability in this control.
         Assert.False(Assert.IsType<bool>(InvokeRecoveryPhase("RecoverCaptured", arguments)));
         Assert.Equal(0, arguments[1]); Assert.Equal(LegacyTradeJournal.RecoveryRequired + ":pendingRecordChanged", arguments[2]);
         data.AssertFiles(before);
@@ -38,7 +38,7 @@ public sealed partial class LegacyJournalDomainSerializationTests
         var capture = CaptureRecovery(data);
         Assert.True(LegacyTradeJournal.TryRecover(data.Users, data.Items, out var count, out var reason), reason);
         Assert.Equal(1, count); var before = data.Files();
-        object?[] arguments = [capture, 0, null];
+        object?[] arguments = [capture, 0, null, null];
         Assert.True(Assert.IsType<bool>(InvokeRecoveryPhase("RecoverCaptured", arguments)));
         Assert.Equal(0, arguments[1]); data.AssertFiles(before);
     }
@@ -53,7 +53,7 @@ public sealed partial class LegacyJournalDomainSerializationTests
         var capture = CaptureRecovery(data);
         File.Delete(Path.Combine(data.Users, ".managed-trade-journal", "pending.json")); // Actual owned evidence-loss control.
         var before = data.Files();
-        object?[] arguments = [capture, 0, null];
+        object?[] arguments = [capture, 0, null, null];
         Assert.False(Assert.IsType<bool>(InvokeRecoveryPhase("RecoverCaptured", arguments)));
         Assert.Equal(0, arguments[1]);
         Assert.StartsWith(LegacyTradeJournal.RecoveryRequired + ":capturedRecordMissingOrIncomplete:", Assert.IsType<string>(arguments[2]));

@@ -12,15 +12,21 @@ public sealed partial class LegacyNativePlayerRuntime
     {
         get
         {
-            return _bountCps;
+            return Volatile.Read(ref _bountCps);
         }
         set
         {
-            _bountCps = value;
-            if (Owner.FullLoading)
+            RequireUnboundCpsSetter();
+            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), "Bound ConquerPoints cannot be negative.");
+            RequireCpsActorOrder();
+            lock (Owner.SpellAdmissionSyncRoot)
+            lock (SpellAdmissionSyncRoot)
             {
-                using (LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket())
+                RequireUnboundCpsSetter();
+                Volatile.Write(ref _bountCps, value);
+                if (Owner.FullLoading)
                 {
+                    using var recycledPacket = new LegacyNativeRecycledPacket();
                     LegacyNativePacket stream = recycledPacket.GetStream();
                     LegacyNativeMsgUpdate msgUpdate = new LegacyNativeMsgUpdate(stream, UID);
                     stream = msgUpdate.Append(stream, LegacyNativeMsgUpdate.DataType.BoundConquerPoints, value);

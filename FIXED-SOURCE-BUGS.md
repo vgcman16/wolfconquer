@@ -8,6 +8,100 @@ Candidate source qualification for FSB-204 through FSB-225: Release build06 pass
 
 Earlier FSB-200 through FSB-203 were included in the separately verified full Windows gate 40958745483 on source731d8e54 / generated91040398: Core30175 passed/152 existing NotExecuted, Updates446 and Launcher57, zero failures. The new FSB-204..225 public-commit full gate remains pending.
 
+## Currency and CI qualification — 2026-10-30
+
+This note supersedes older pending full-gate labels. Actual Windows run
+41082514020 on a17e03c4 failed: Core31,396 passed /4 failed /152 existing skips;
+Updates446 passed. Later launcher/parser stages did not run. Exact failed logs,
+TRXs and built outputs remain retained. Three reflection calls now explicitly
+pass the absent owned-startup capability. The repair preservation fixture keeps
+nested children on an unrelated container; real material-child rejection remains
+covered, including partial-stack consumption. No safety guard was weakened.
+
+The combined currency source compiled with zero errors. Focused02 passed
+**387/387**, zero failures/skips, including those4 failed names, new CP/warehouse/
+bank controls and meaningful recovery/repair/mail neighbors. Earlier focused01
+passed279 before the CP-bank extension. The forthcoming public-commit full gate
+is still required. This is source verification, not deployment or live acceptance.
+
+## FSB-237 candidate: Join native CP ownership and conserve wide pickup rewards
+
+Owned admission/publication omitted actual inventory CP, bound CP and bank CP.
+The native inventory slot was absent; negative bound CP and unchecked UInt32
+pickup addition could accept invalid state or lose earned currency.
+
+A closed participant now prepares all3 physical slots with the actual Store,
+current holder and client/player gates. Callback/writer drift refuses before
+commit or retires/fences after genuine durable commitment. Deferred mail checks
+the proposed currency tuple before real UID reservation and prepares its final
+tuple again. Hydration invokes no emitting setter or invented spill queue.
+Bound/retired native setters refuse; negative bound CP cannot mutate outputs.
+
+Checked-wide pickup arithmetic conserves the whole earned amount through the
+existing inventory/bank split, including excess above UInt32. Genuine bank
+overflow refuses before floor claim, journal changes or output. Old wrap-loss
+expectations now require conservation and exact saved/wire/replay behavior.
+
+Verification: included in actual387-pass focused02. Current native representation
+widths are prerequisites, not client-confirmed global gameplay caps. Wider valid
+saved values remain retained/refused rather than silently truncated. Native
+spill ownership, SQL/global durability and current-client acceptance remain open.
+
+## FSB-238 candidate: Join warehouse silver and commit bank transfers before replies
+
+Native WHMoney could disagree with saved/managed balances. Bank mutations used
+loose alias fallback, left WarehouseMoney stale and published through generic
+Set before its best-effort scalar save. Intermediate arithmetic could reject
+representable conserved final balances.
+
+The actual Store-issued warehouse participant validates nonnegative signed-64
+coherent aliases and physical before/current tuples in admission, bound/deferred
+publication and mailbox pre-reservation checks. Captured BCL dictionary rows
+detect value-only drift without calling wrappers in final proofs. Existing
+both-absent=zero format semantics are preserved; global parsing is unchanged.
+
+Routed/native deposit/withdraw requests own actual Exclusive, validate current
+PIN/trade/escrow/connection/funds, prepare response bytes and use a genuine
+Character + unchanged Items v2 WAL through the current Store. Native/canonical
+publication and the unchanged3/4-frame sequence follow durable commitment.
+Exact decimal accounting preserves totals after the established inventory cap.
+Prepared BCL writer inputs prevent fresh caller-map callbacks inside persistence;
+a plain source proof precedes the WAL. Observed postwriter drift fences recovery.
+
+Verification: included in actual387-pass focused02, including real sharing
+refusal/retry, interruption/recovery, first-reply convergence and readonly inputs.
+Public raw field races after final proof remain outside exclusion. Action10/11
+has no transaction nonce; current-funds/stale-image safety is not network dedup.
+No SQL/global economy durability or client/host qualification is established.
+
+## FSB-239 candidate: Persist CP-bank confirmation before consuming pending authority
+
+NPC102177 cleared pending authority, published CP and sent success before a
+best-effort save. Missing/failed persistence could leave a changed wallet and
+consumed confirmation. Generic NPC routing could also change ActiveNpc before
+preflight; a queued confirmation could consume a newer pending request.
+
+Both2084 and2255 bank transports now use the actual current Frame/Store,
+configured catalog/roots, PIN/connection/trade/escrow/recovery and Exclusive.
+Input staging changes only real transient pending state by CAS. Confirmation
+requires its exact current holder/pending tuple and prepares only CP/bank changes
+and success bytes. Its closed writer validates explicit raw BankCps/baselines,
+exact conservation and unchanged other assets, then commits Character + unchanged
+Items through the real v2 WAL. Pending clears only with committed publication.
+
+Existing native currency participants validate before/final physical state;
+prepared stable maps and a plain input proof prevent writer-time callbacks.
+Postwriter drift retires/fences without refund or success. Routing-hint races
+reacquire actual Shared for foreign dispatch or refuse retained Shared before
+bank Exclusive. Numeric options alone grant no permission.
+
+Verification: actual387-pass focused02 includes the98 new successor outcomes,
+two migrated unsafe routed tests, exact wire/first-reply, sharing/retry, actual
+owner recovery, bounded routing races and pending preservation controls.
+Separate restaging is a new transfer; there is no global request-ID dedup claim.
+Entirely in-memory compatibility has no disk claim. Full public CI is pending;
+SQL/global durability, deployment, current patch/client and full parity remain open.
+
 ## Qualification for FSB-232 through FSB-236
 
 The widened selection retained 1,356 passed and two new cold-client packet

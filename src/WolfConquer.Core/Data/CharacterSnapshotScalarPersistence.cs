@@ -15,6 +15,7 @@ public static class CharacterSnapshotScalarPersistence
         "CanChangeWindWalkerFree",
         "ClassExperience",
         "WHMoney",
+        "WarehouseMoney",
         "VotePoints",
         "PinCodeAnima",
         "Dragon",

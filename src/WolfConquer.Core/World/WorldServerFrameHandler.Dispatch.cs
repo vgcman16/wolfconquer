@@ -27,8 +27,7 @@ public sealed partial class WorldServerFrameHandler
             if (await TryHandleGmCommandAsync(connection, frame, cancellationToken).ConfigureAwait(false)) return;
             // Normal frames can run concurrently, but a trade mutation must not
             // cross an awaited handler that will later publish an older session.
-            using var operation = frame.Header.Opcode is WorldPacketOpcodes.LegacyTrade or WorldPacketOpcodes.LegacySecondaryPassword ||
-                IsLegacyExclusiveItemMutationFrame(frame)
+            using var operation = HandlerOwnsOperation(frame, _protocolProfile, ActiveNpcForOperationRouting(connection))
                 ? null
                 : frame.Header.Opcode is WorldPacketOpcodes.LegacyMsgLoginGame or
                     WorldPacketOpcodes.InternalWorldEnterRequest or WorldPacketOpcodes.LegacyNewRole

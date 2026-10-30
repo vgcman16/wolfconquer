@@ -1,38 +1,41 @@
-using System.Globalization;
-
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    private static async ValueTask PersistLegacyBankCpsAsync(
-        WorldPacketHandlerContext context,
-        WorldSession updatedSession)
+    private static bool TryCommitLegacyBankCps(WorldPacketHandlerContext context, WorldSession current,
+        LegacyBankCpsTransferPlan plan, out string reason)
     {
-        if (TryPersistLegacyCharacterAttributes(
-                updatedSession.UsersRoot,
-                updatedSession.AccountId,
-                updatedSession.Character.Uid,
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["ConquerPoints"] = updatedSession.Character.ConquerPoints.ToString(CultureInfo.InvariantCulture),
-                    ["BankCps"] = updatedSession.Character.BankConquerPoints.ToString(CultureInfo.InvariantCulture),
-                },
-                out var path,
-                out var reason))
+        reason = "bankCpsPersistenceOwnerUnavailable";
+        if (context.Sessions is not { } sessions) return false;
+        // Existing entirely in-memory/no-native compatibility owns no files.
+        // Its current CAS still consumes the pending amount only on success.
+        if (BankCpsMemoryOnly(context, current))
         {
-            await context.Log.WriteLineAsync(
-                    "WorldServer persisted LegacyNpc BankCps transfer " +
-                    $"{FormatSession(context with { Session = updatedSession })} source={LegacyBankCpsSource} " +
-                    $"path={Path.GetFileName(path)} keys=ConquerPoints,BankCps.")
-                .ConfigureAwait(false);
+            bool changed = sessions.TryCompareAndSet(context.Connection, current, plan.Updated, out _);
+            reason = changed ? string.Empty : "bankCpsCurrentOwnerChanged";
+            return changed;
         }
-        else
+        if (!sessions.IsBankCpsFrameContext(context, current)) return false;
+        var failure = string.Empty;
+        bool ActualWriter()
         {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped LegacyNpc BankCps transfer persistence " +
-                    $"{FormatSession(context with { Session = updatedSession })} source={LegacyBankCpsSource} " +
-                    $"reason={reason}.")
-                .ConfigureAwait(false);
+            var items = sessions.RequireBankCpsWriterContext(context, current);
+            if (context.TradeRecovery!.IsBlocked || context.Trades!.HasConnectionEnded(context.Connection) ||
+                !LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, plan.PersistenceBefore) ||
+                !WarehouseMoneyTradeClear(context, plan.PersistenceBefore) ||
+                current.PendingBankConquerPoints != plan.Amount || current.PendingBankConquerPointsIsDeposit != plan.Deposit)
+            { failure = "bankCpsCurrentPermissionChanged"; return false; }
+            if (!plan.Inputs.IsCurrentPlain()) { failure = "bankCpsPreparedInputChanged"; return false; }
+            return LegacyNpcSalePersistence.TryPersistBankCps(plan.PersistenceBefore, plan.Updated, items,
+                plan.Deposit, plan.Amount, out failure);
         }
+        if (sessions.TryCommitSession(context.Connection, current, plan.Updated, ActualWriter, out var final))
+        {
+            if (final is null) throw new LegacyCommittedSpellPublicationException();
+            reason = string.Empty; return true;
+        }
+        if (failure.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal)) context.TradeRecovery!.Block(failure);
+        reason = failure.Length == 0 ? "bankCpsCurrentOwnerChanged" : failure;
+        return false;
     }
 }

@@ -25,7 +25,7 @@ public sealed partial record WorldPacketHandlerContext : IPacketHandlerInvocatio
         using var invocation = producer is null ? null : new LegacyMailboxPacketInvocation(this, producer, frame);
         try
         {
-            var selfOwned = WorldServerFrameHandler.HandlerOwnsOperation(frame, ProtocolProfile);
+            var selfOwned = WorldServerFrameHandler.HandlerOwnsOperation(frame, ProtocolProfile, Session?.ActiveNpcId);
             using var lease = selfOwned || operations.OwnsActiveLease(FrameOperationLease) ? null :
                 await operations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
             if (!selfOwned && TradeRecovery is { } live && !live.TryRequireLiveJournalClear(out var tradeReason))

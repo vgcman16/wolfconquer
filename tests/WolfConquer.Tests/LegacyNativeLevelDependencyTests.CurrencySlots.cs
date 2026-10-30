@@ -6,16 +6,35 @@ public sealed partial class LegacyNativeLevelDependencyTests
     [InlineData(int.MinValue, true)]
     [InlineData(int.MaxValue, true)]
     [InlineData(-1, true)]
+    [InlineData(int.MinValue, false)]
+    [InlineData(-1, false)]
     [InlineData(0, true)]
     [InlineData(42, false)]
-    public Task BoundPointsCommitTheSignedSlotAndOnlyGatePublicationOnFullLoading(int value,
+    public Task BoundPointsRejectNegativeBalancesAndRetainTheValidNativeLoadingGate(int value,
         bool loaded) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
+        if (value < 0)
+        {
+            scope.Client.FullLoading = false;
+            scope.Player.BoundConquerPoints = 41;
+            scope.Client.ConquerPointsSave = 99;
+            scope.Client.FullLoading = loaded;
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => scope.Player.BoundConquerPoints = value);
+
+            Assert.Equal(41, scope.Player.BoundConquerPoints);
+            Assert.Equal(99uL, scope.Client.ConquerPointsSave);
+            Assert.Equal(loaded, scope.Client.FullLoading);
+            Assert.Empty(scope.Queue);
+            Assert.Equal(8, WolfConquer.Core.Networking.LegacyNativePacketRecycle.Count);
+            Assert.All(scope.Borrowed, packet => { Assert.Equal(321, packet.Size); Assert.Equal(237, packet.Position); });
+            return;
+        }
         scope.Client.FullLoading = loaded;
         scope.Player.BoundConquerPoints = value;
         Assert.Equal(value, scope.Player.BoundConquerPoints);
-        if (loaded) Assert.Equal(Update(45, unchecked((ulong)(long)value)), Assert.Single(scope.Queue));
+        if (loaded) Assert.Equal(Update(45, checked((ulong)value)), Assert.Single(scope.Queue));
         else Assert.Empty(scope.Queue);
         Assert.Equal(loaded ? 7 : 8, WolfConquer.Core.Networking.LegacyNativePacketRecycle.Count);
     });

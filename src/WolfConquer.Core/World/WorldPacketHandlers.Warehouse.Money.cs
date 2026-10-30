@@ -1,177 +1,98 @@
-using System.Globalization;
 using WolfConquer.Core.Data;
-using WolfConquer.Core.Packets;
 
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    private static async ValueTask HandleWarehouseMoneyMutationAsync(
-            WorldPacketHandlerContext context,
-            WorldSession session,
-            MsgItemUsagePacket packet,
-            CancellationToken cancellationToken)
+    private static async ValueTask HandleWarehouseMoneyMutationAsync(WorldPacketHandlerContext context,
+        WorldSession supplied, MsgItemUsagePacket packet, CancellationToken cancellationToken)
     {
-        if (!TryGetLegacyMoneyAmount(packet.DwParam, out var amount))
+        var reason = "currentSessionMissing";
+        LegacyWarehouseMoneyPlan? committed = null;
+        // Dispatch gives parsed deposits/withdrawals their own Exclusive. Do
+        // not retain Shared while acquiring it, or await sends inside it.
+        using (var operation = context.TradeOperations is { } operations
+            ? await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false) : null)
         {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage warehouse money mutation " +
-                    $"{FormatSession(context)} action={packet.Action}; amount is outside legacy signed money range.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var money = session.Character.Money;
-        var warehouseMoney = ReadWarehouseMoney(session.Character);
-
-        if (packet.Action == MsgItemUsageAction.DepositWarehouse)
-        {
-            if (money <= amount ||
-                !TryAddWarehouseMoney(warehouseMoney, amount, out var updatedWarehouseMoney))
+            if (context.TradeRecovery?.IsBlocked == true) reason = "recoveryRequired";
+            else if (context.Trades?.HasConnectionEnded(context.Connection) == true) reason = "connectionEnded";
+            else if (!TryAdmitLegacySecondaryPasswordItemUsage(context, supplied, out var current, out reason)) { }
+            else if (!WarehouseMoneyTradeClear(context, current)) reason = "tradeOrEscrowActiveOrInvalid";
+            else if (!TryPlanWarehouseMoneyMutation(current, packet, out var plan, out reason)) { }
+            else if (TryCommitWarehouseMoneyMutation(context, current, plan, out var final, out reason))
             {
-                await context.Log.WriteLineAsync(
-                        "WorldServer skipped MsgItemUsage warehouse deposit " +
-                        $"{FormatSession(context)} amount={amount} money={money} warehouseMoney={warehouseMoney}.")
-                    .ConfigureAwait(false);
-                return;
+                if (final is not null && LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, final)) committed = plan;
+                else
+                {
+                    reason = "warehouseMoneyRecoveryRequired:ownerChangedAfterCommit";
+                    context.TradeRecovery?.Block(reason);
+                }
             }
-
-            var updatedMoney = money - amount;
-            var updatedSession = UpdateSessionWallet(context, session, updatedMoney, updatedWarehouseMoney);
-            await SendWalletMoneyUpdateAsync(context, updatedSession.Character, cancellationToken).ConfigureAwait(false);
-            await SendWalletMoneyUpdateAsync(context, updatedSession.Character, cancellationToken).ConfigureAwait(false);
-            await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-            await context.Log.WriteLineAsync(
-                    "WorldServer handled MsgItemUsage warehouse deposit " +
-                    $"{FormatSession(context)} amount={amount} money={updatedMoney} warehouseMoney={updatedWarehouseMoney}.")
-                .ConfigureAwait(false);
-            return;
         }
-
-        if (warehouseMoney < (ulong)amount)
+        if (committed is not null)
         {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage warehouse withdraw " +
-                    $"{FormatSession(context)} amount={amount} money={money} warehouseMoney={warehouseMoney}.")
-                .ConfigureAwait(false);
-            return;
+            foreach (var frame in committed.Frames)
+                await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+            await context.Log.WriteLineAsync("WorldServer handled MsgItemUsage warehouse " +
+                $"{(committed.Deposit ? "deposit" : "withdraw")} {FormatSession(context)} amount={committed.Amount}; " +
+                $"persistedBeforeReply={!string.IsNullOrWhiteSpace(committed.Updated.UsersRoot)}.").ConfigureAwait(false);
         }
+        else await context.Log.WriteLineAsync("WorldServer skipped MsgItemUsage warehouse " +
+            $"{(packet.Action == MsgItemUsageAction.DepositWarehouse ? "deposit" : "withdraw")} " +
+            $"{FormatSession(context)}; {reason}.").ConfigureAwait(false);
+    }
 
-        if (money > long.MaxValue - amount)
+    private static bool WarehouseMoneyTradeClear(WorldPacketHandlerContext context, WorldSession current) =>
+        !current.LegacyTradeActive && context.Trades?.Contains(context.Connection) != true &&
+        LegacyTradeEscrowClaims.TryRead(current.Character.Attributes, out var claim, out _) && claim is null;
+
+    private static bool TryCommitWarehouseMoneyMutation(WorldPacketHandlerContext context, WorldSession current,
+        LegacyWarehouseMoneyPlan plan, out WorldSession? final, out string reason)
+    {
+        final = null; reason = "warehouseMoneyPersistenceOwnerUnavailable";
+        // Preserve only the existing entirely in-memory managed compatibility
+        // path. Neither a native owner nor any configured disk route falls back.
+        if (context.Connection.NativeGameClient is null && current.NativeGameClient is null &&
+            string.IsNullOrWhiteSpace(current.UsersRoot) && string.IsNullOrWhiteSpace(context.PlayerItemsRoot))
         {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage warehouse withdraw " +
-                    $"{FormatSession(context)} amount={amount}; signed money range would overflow.")
-                .ConfigureAwait(false);
-            return;
+            if (context.Sessions is not { } memorySessions)
+            { final = plan.Updated; reason = string.Empty; return true; }
+            var changed = memorySessions.TryCompareAndSet(context.Connection, current, plan.Updated, out final);
+            reason = changed ? string.Empty : "warehouseMoneySessionChanged";
+            return changed;
         }
-
-        var newMoney = money + amount;
-        var newWarehouseMoney = warehouseMoney;
-        if (newMoney > LegacyMaxInventoryMoney)
+        if (context.Sessions is not { } sessions || string.IsNullOrWhiteSpace(current.UsersRoot) ||
+            string.IsNullOrWhiteSpace(context.PlayerItemsRoot) || context.TradeOperations is null || context.Trades is null ||
+            context.TradeRecovery is null || plan.Inputs is null) return false;
+        var failure = string.Empty;
+        bool ActualWriter()
         {
-            var overflow = (ulong)(newMoney - LegacyMaxInventoryMoney);
-            newMoney = LegacyMaxInventoryMoney;
-            if (newWarehouseMoney > ulong.MaxValue - overflow)
-            {
-                await context.Log.WriteLineAsync(
-                        "WorldServer skipped MsgItemUsage warehouse withdraw " +
-                        $"{FormatSession(context)} amount={amount}; warehouse overflow would exceed unsigned range.")
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            newWarehouseMoney += overflow;
+            if (context.TradeRecovery.IsBlocked || context.Trades.HasConnectionEnded(context.Connection) ||
+                !LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, plan.PersistenceBefore) ||
+                !WarehouseMoneyTradeClear(context, plan.PersistenceBefore))
+            { failure = "warehouseMoneyOwnerChangedBeforeWriter"; return false; }
+            if (!plan.Inputs.IsCurrentPlain())
+            { failure = "warehouseMoneyInputsChangedBeforeWriter"; return false; }
+            return LegacyNpcSalePersistence.TryPersistWarehouseMoney(plan.PersistenceBefore, plan.Updated, context.PlayerItemsRoot,
+                plan.Deposit, plan.Amount, out failure);
         }
-
-        newWarehouseMoney -= (ulong)amount;
-        var sessionAfterWithdraw = UpdateSessionWallet(context, session, newMoney, newWarehouseMoney);
-        await SendWalletMoneyUpdateAsync(context, sessionAfterWithdraw.Character, cancellationToken).ConfigureAwait(false);
-        await SendWalletMoneyUpdateAsync(context, sessionAfterWithdraw.Character, cancellationToken).ConfigureAwait(false);
-        await SendWarehouseMoneyUpdateAsync(context, sessionAfterWithdraw.Character, cancellationToken).ConfigureAwait(false);
-        await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-        await context.Log.WriteLineAsync(
-                "WorldServer handled MsgItemUsage warehouse withdraw " +
-                $"{FormatSession(context)} amount={amount} money={newMoney} warehouseMoney={newWarehouseMoney}.")
-            .ConfigureAwait(false);
+        if (sessions.TryCommitSession(context.Connection, current, plan.Updated, ActualWriter, out final))
+        { reason = string.Empty; return true; }
+        if (failure.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal)) context.TradeRecovery.Block(failure);
+        reason = failure.Length == 0 ? "warehouseMoneySessionChanged" : failure;
+        return false;
     }
 
     private const long LegacyMaxInventoryMoney = 500_000_000_000L;
 
     private static ulong ReadWarehouseMoney(CharacterSnapshot character)
     {
-        return ReadAttributeUInt64(character.Attributes, "WHMoney", "WarehouseMoney");
+        if (!LegacyWarehouseMoneyState.TryRead(character.Attributes, out var warehouse))
+            throw new InvalidOperationException("warehouseMoneyStateInvalidOrAmbiguous");
+        return checked((ulong)warehouse);
     }
 
-    private static bool TryGetLegacyMoneyAmount(ulong value, out long amount)
-    {
-        if (value > long.MaxValue)
-        {
-            amount = 0;
-            return false;
-        }
-
-        amount = (long)value;
-        return true;
-    }
-
-    private static bool TryAddWarehouseMoney(ulong warehouseMoney, long amount, out ulong updatedWarehouseMoney)
-    {
-        var unsignedAmount = (ulong)amount;
-        if (warehouseMoney > ulong.MaxValue - unsignedAmount)
-        {
-            updatedWarehouseMoney = 0;
-            return false;
-        }
-
-        updatedWarehouseMoney = warehouseMoney + unsignedAmount;
-        return true;
-    }
-
-    private static WorldSession UpdateSessionWallet(
-            WorldPacketHandlerContext context,
-            WorldSession session,
-            long money,
-            ulong warehouseMoney)
-    {
-        var attributes = new Dictionary<string, string>(
-            session.Character.Attributes,
-            StringComparer.OrdinalIgnoreCase)
-        {
-            ["WHMoney"] = warehouseMoney.ToString(CultureInfo.InvariantCulture),
-        };
-        var character = session.Character with
-        {
-            Money = money,
-            Attributes = attributes,
-        };
-        var updated = session with { Character = character };
-        return PublishLegacyItemUsageSession(context, updated);
-    }
-
-    private static ValueTask SendWalletMoneyUpdateAsync(
-            WorldPacketHandlerContext context,
-            CharacterSnapshot character,
-            CancellationToken cancellationToken)
-    {
-        return SendScalarUpdateAsync(
-            context,
-            character,
-            LegacyMsgUpdateDataType.Money,
-            checked((ulong)character.Money),
-            cancellationToken);
-    }
-
-    private static ValueTask SendWarehouseMoneyUpdateAsync(
-            WorldPacketHandlerContext context,
-            CharacterSnapshot character,
-            CancellationToken cancellationToken)
-    {
-        return SendScalarUpdateAsync(
-            context,
-            character,
-            LegacyMsgUpdateDataType.WarehouseMoney,
-            ReadWarehouseMoney(character),
-            cancellationToken);
-    }
+    private static ValueTask SendWalletMoneyUpdateAsync(WorldPacketHandlerContext context,
+        CharacterSnapshot character, CancellationToken cancellationToken) =>
+        SendScalarUpdateAsync(context, character, LegacyMsgUpdateDataType.Money, checked((ulong)character.Money), cancellationToken);
 }

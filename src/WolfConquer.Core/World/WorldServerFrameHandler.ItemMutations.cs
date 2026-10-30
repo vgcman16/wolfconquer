@@ -1,4 +1,5 @@
 using WolfConquer.Core.Packets;
+using WolfConquer.Core.Networking;
 using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
@@ -6,11 +7,14 @@ namespace WolfConquer.Core.World;
 public sealed partial class WorldServerFrameHandler
 {
     internal static bool HandlerOwnsOperation(PacketFrame frame, ConquerProtocolProfile profile) =>
-        frame.Header.Opcode is WorldPacketOpcodes.LegacyTrade or WorldPacketOpcodes.LegacySecondaryPassword ||
-        IsLegacyExclusiveItemMutationFrame(frame, profile);
+        HandlerOwnsOperation(frame, profile, activeNpcId: null);
 
-    private bool IsLegacyExclusiveItemMutationFrame(PacketFrame frame) =>
-        IsLegacyExclusiveItemMutationFrame(frame, _protocolProfile);
+    internal static bool HandlerOwnsOperation(PacketFrame frame, ConquerProtocolProfile profile, uint? activeNpcId) =>
+        frame.Header.Opcode is WorldPacketOpcodes.LegacyTrade or WorldPacketOpcodes.LegacySecondaryPassword ||
+        IsLegacyExclusiveItemMutationFrame(frame, profile) || WorldPacketHandlers.IsLegacyBankCpsMutationFrame(frame, activeNpcId);
+
+    private uint? ActiveNpcForOperationRouting(ConquerTcpConnection connection) =>
+        _sessions.TryGet(connection, out var current) ? current?.ActiveNpcId : null;
 
     private static bool IsLegacyExclusiveItemMutationFrame(PacketFrame frame, ConquerProtocolProfile profile) =>
         IsLegacyDragonSkinMutationFrame(frame) ||
@@ -23,7 +27,8 @@ public sealed partial class WorldServerFrameHandler
         frame.Header.Opcode == WorldPacketOpcodes.MsgItemUsage &&
         MsgItemUsagePacket.TryParse(frame, out var packet) &&
         packet.Action is MsgItemUsageAction.SellItem or MsgItemUsageAction.DropItem or
-            MsgItemUsageAction.Equip or MsgItemUsageAction.Unequip or MsgItemUsageAction.RepairItem;
+            MsgItemUsageAction.Equip or MsgItemUsageAction.Unequip or MsgItemUsageAction.RepairItem or
+            MsgItemUsageAction.DepositWarehouse or MsgItemUsageAction.WarehouseWithdraw;
 
     // Parsed claims own their actual Exclusive before resolving the current participant.
     private static bool IsLegacyMailboxClaimFrame(PacketFrame frame, ConquerProtocolProfile profile) =>

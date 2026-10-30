@@ -72,13 +72,19 @@ public sealed class LegacyFloorPickupPersistenceTests : IDisposable
     [InlineData(FloorItemRuntimePickupKind.Money, 500000000000L, 4294967295L, 500000000000L, 4294967320L, 4294967295L)]
     [InlineData(FloorItemRuntimePickupKind.ConquerPoints, 1999999999L, 1L, 2000000000L, 10L, 0L)]
     [InlineData(FloorItemRuntimePickupKind.ConquerPoints, 2000000000L, 1L, 2000000000L, 11L, 1L)]
-    [InlineData(FloorItemRuntimePickupKind.ConquerPoints, 4294967295L, 1L, 0L, 10L, 0L)]
-    [InlineData(FloorItemRuntimePickupKind.ConquerPoints, 4294967295L, 4294967295L, 2000000000L, 2294967304L, 2294967294L)]
-    public void NativeCurrencyCapsAndUintWrapAreSharedByPlannerAndPersistence(FloorItemRuntimePickupKind kind,
+    [InlineData(FloorItemRuntimePickupKind.ConquerPoints, 4294967295L, 1L, 2000000000L, 2294967306L, 2294967296L)]
+    [InlineData(FloorItemRuntimePickupKind.ConquerPoints, 2000000000L, 4294967295L, 2000000000L, 4294967305L, 4294967295L)]
+    [InlineData(FloorItemRuntimePickupKind.ConquerPoints, 4294967295L, 4294967295L, 2000000000L, 6589934600L, 6589934590L)]
+    public void CurrencyCapsAndWideCpConservationAreSharedByPlannerAndPersistence(FloorItemRuntimePickupKind kind,
         long before, long amount, long expectedWallet, long expectedStorage, long expectedTransfer)
     {
         var original = WriteSession(money: kind == FloorItemRuntimePickupKind.Money ? before : 1000,
             cps: kind == FloorItemRuntimePickupKind.ConquerPoints ? before : 50);
+        var itemsBefore = File.ReadAllBytes(ItemPath);
+        var expectedText = CharacterSnapshotFileEncoding.ReadAllText(CharacterPath, out var encoding);
+        var beforeStorage = kind == FloorItemRuntimePickupKind.Money
+            ? long.Parse(original.Character.Attributes["WHMoney"], CultureInfo.InvariantCulture)
+            : original.Character.BankConquerPoints;
         Assert.True(LegacyFloorPickupWallet.TryAdd(original.Character, kind, amount, out var change, out var reason), reason);
         Assert.Equal(expectedWallet, kind == FloorItemRuntimePickupKind.Money
             ? change.UpdatedCharacter.Money : change.UpdatedCharacter.ConquerPoints);
@@ -86,12 +92,26 @@ public sealed class LegacyFloorPickupPersistenceTests : IDisposable
             ? long.Parse(change.UpdatedCharacter.Attributes["WHMoney"], CultureInfo.InvariantCulture)
             : change.UpdatedCharacter.BankConquerPoints);
         Assert.Equal(expectedTransfer, kind == FloorItemRuntimePickupKind.Money ? change.SilverTransferred : change.CpsTransferred);
+        Assert.Equal(checked(before + beforeStorage + amount), checked(expectedWallet + expectedStorage));
+        var beforeText = before.ToString(CultureInfo.InvariantCulture);
+        var walletText = expectedWallet.ToString(CultureInfo.InvariantCulture);
+        var storageText = expectedStorage.ToString(CultureInfo.InvariantCulture);
+        if (kind == FloorItemRuntimePickupKind.Money)
+            expectedText = expectedText.Replace("\nMoney=" + beforeText + "\n", "\nMoney=" + walletText + "\n", StringComparison.Ordinal)
+                .Replace("\nWHMoney=25\n", "\nWHMoney=" + storageText + "\n", StringComparison.Ordinal)
+                .Replace("\nWarehouseMoney=25\n", "\nWarehouseMoney=" + storageText + "\n", StringComparison.Ordinal);
+        else
+            expectedText = expectedText.Replace("\nConquerPoints=" + beforeText + "\n", "\nConquerPoints=" + walletText + "\n", StringComparison.Ordinal)
+                .Replace("\nBankCps=10\n", "\nBankCps=" + storageText + "\n", StringComparison.Ordinal);
         var plan = Prepare(original, kind, amount);
         Assert.True(Persist(original, plan, out reason), reason);
+        Assert.Equal(encoding.GetPreamble().Concat(encoding.GetBytes(expectedText)).ToArray(), File.ReadAllBytes(CharacterPath));
+        Assert.Equal(itemsBefore, File.ReadAllBytes(ItemPath));
         var saved = CharacterSnapshotParser.ParseText(File.ReadAllText(CharacterPath));
         Assert.Equal(change.UpdatedCharacter.Money, saved.Money);
         Assert.Equal(change.UpdatedCharacter.ConquerPoints, saved.ConquerPoints);
         Assert.Equal(change.UpdatedCharacter.BankConquerPoints, saved.BankConquerPoints);
+        Assert.False(LegacyTradeJournal.HasPending(Users));
     }
 
     [Theory]

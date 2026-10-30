@@ -87,6 +87,13 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (packet.NpcId == LegacyBankCpsNpcId && IsBankCpsMutationOption(packet.OptionId))
+        {
+            await TryHandleLegacyBankCpsMutationAsync(context, session, packet.OptionId, packet.Input,
+                requireActiveNpc: false, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         var updatedSession = session with { ActiveNpcId = packet.NpcId };
         if (context.Sessions is { } sessions)
             sessions.Set(context.Connection, updatedSession, out updatedSession);
@@ -282,6 +289,10 @@ public static partial class WorldPacketHandlers
         {
             return false;
         }
+
+        if (npcId == LegacyBankCpsNpcId && IsBankCpsMutationOption(packet.OptionId) && packet.IsScriptReply)
+            return await TryHandleLegacyBankCpsMutationAsync(context, session, packet.OptionId, packet.Input,
+                requireActiveNpc: packet.NpcId == 0, cancellationToken).ConfigureAwait(false);
 
         if (packet.OptionId == LegacyNpcClosedOption)
         {

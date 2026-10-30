@@ -221,26 +221,29 @@ public sealed partial class LegacyNpcSaleTransactionTests
     [InlineData(1, false)]
     [InlineData(2, false)]
     [InlineData(2, true)]
-    public async Task PickupPreservesNativeSilverCapCpBankingAndUintWrapWithCoherentSavedAliases(int disposition, bool wrap)
+    public async Task PickupPreservesSilverCapAndWideCpConservationWithCoherentSavedAliases(int disposition, bool aboveUintBoundary)
     {
         const uint uid = 1_299_991;
         Seed(uid, money: disposition == 1 ? InventoryMoneyCap - 5 : 1_000, warehouseAlias: true);
         if (disposition == 2) ReplaceCharacterField(uid, "ConquerPoints",
-            (wrap ? (long)uint.MaxValue - 5 : 2_000_000_000L - 5).ToString(CultureInfo.InvariantCulture));
+            (aboveUintBoundary ? (long)uint.MaxValue - 5 : 2_000_000_000L - 5).ToString(CultureInfo.InvariantCulture));
         var owner = NewOwner(identity: new(42));
         var player = await Login(owner, uid);
         var before = Current(owner, player);
-        var amount = wrap ? 10 : PersistencePickupAmount;
+        var amount = aboveUintBoundary ? 10 : PersistencePickupAmount;
         var entry = SeedPersistencePickupFloor(owner, player, disposition, amount);
         var characterBytes = File.ReadAllBytes(UserPath(uid));
         var first = player.Sent.Count;
         var expected = disposition == 1
             ? new PersistencePickupWallet(InventoryMoneyCap, 50, 170, 444)
-            : new PersistencePickupWallet(1_000, wrap ? 4 : 2_000_000_000L, 50, wrap ? 444 : 564);
+            : new PersistencePickupWallet(1_000, 2_000_000_000L, 50, aboveUintBoundary ? 2_294_967_744L : 564);
 
         await PickupAdmissionFloor(owner, player, PersistencePickupFloorUid);
 
         AssertPersistencePickupCommitted(owner, player, before, entry, characterBytes, expected);
+        if (disposition == 2)
+            Assert.Equal((decimal)before.Character.ConquerPoints + before.Character.BankConquerPoints + amount,
+                (decimal)expected.ConquerPoints + expected.BankCps);
         var frames = player.Sent.Skip(first).ToArray();
         AssertPersistencePickupFrames(frames, entry, expected);
         var messages = frames
@@ -263,20 +266,17 @@ public sealed partial class LegacyNpcSaleTransactionTests
             // MsgMessage Dialog/color. It is not guarded Player.MessageBox.
             Assert.DoesNotContain(messages, message => message.Content.Count > 3 &&
                 message.Content[3].Contains("bank", StringComparison.OrdinalIgnoreCase));
-            if (wrap) Assert.Empty(npcReplies);
-            else
-            {
-                var boxFrame = Assert.Single(npcReplies);
-                Assert.True(LegacyNpcReplyPacket.TryParse(ReadFrame(boxFrame), out var box));
-                Assert.Equal(0U, box.Unknown);
-                Assert.Equal(ushort.MaxValue, box.InputMaxLength);
-                Assert.Equal((byte)0, box.OptionId);
-                Assert.Equal(LegacyNpcReplyInteractType.MessageBox, box.InteractType);
-                Assert.Equal("120 Your ConquerPoints[CPS] has Transfare To Your Bank Thanks.", box.Text);
-                var walletFrame = Assert.Single(frames, bytes => LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out var update) &&
-                    update.Updates.Any(value => value.Type == LegacyMsgUpdateDataType.ConquerPoints));
-                Assert.True(Array.IndexOf(frames, boxFrame) < Array.IndexOf(frames, walletFrame));
-            }
+            var boxFrame = Assert.Single(npcReplies);
+            Assert.True(LegacyNpcReplyPacket.TryParse(ReadFrame(boxFrame), out var box));
+            Assert.Equal(0U, box.Unknown);
+            Assert.Equal(ushort.MaxValue, box.InputMaxLength);
+            Assert.Equal((byte)0, box.OptionId);
+            Assert.Equal(LegacyNpcReplyInteractType.MessageBox, box.InteractType);
+            Assert.Equal((aboveUintBoundary ? "2294967300" : "120") +
+                " Your ConquerPoints[CPS] has Transfare To Your Bank Thanks.", box.Text);
+            var walletFrame = Assert.Single(frames, bytes => LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out var update) &&
+                update.Updates.Any(value => value.Type == LegacyMsgUpdateDataType.ConquerPoints));
+            Assert.True(Array.IndexOf(frames, boxFrame) < Array.IndexOf(frames, walletFrame));
         }
         await AssertPersistencePickupReplayIsSilent(owner, player);
     }

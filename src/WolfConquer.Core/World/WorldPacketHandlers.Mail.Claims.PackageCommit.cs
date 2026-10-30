@@ -51,6 +51,7 @@ public static partial class WorldPacketHandlers
                         prepared.Stacks,
                         [baseline.Character.Bytes, baseline.ItemsBefore, baseline.Mail.CopyImage(), prepared.GearBefore],
                         prepared.CharacterAfter, prepared.GearAfter, prepared.MailAfter.Image);
+                    nativeItems.ValidateCurrenciesBeforeReservation(prepared.Updated);
                     LegacyItemUidReservationReceipt? receipt = null;
                     if (recipe.Count != 0)
                     {

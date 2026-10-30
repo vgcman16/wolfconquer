@@ -12,6 +12,7 @@ public sealed partial class OwnedItemRepairTests
     [InlineData("materials")]
     [InlineData("material-target")]
     [InlineData("material-children")]
+    [InlineData("material-children-partial")]
     [InlineData("raw-tail")]
     [InlineData("missing-items")]
     [InlineData("saved-money")]
@@ -19,7 +20,7 @@ public sealed partial class OwnedItemRepairTests
     [InlineData("foreign-player")]
     public async Task ActualRepairRefusesWithoutPublishingOrUndoingExternallyChangedInputs(string fault)
     {
-        bool meteor = fault is "materials" or "material-target" or "material-children";
+        bool meteor = fault is "materials" or "material-target" or "material-children" or "material-children-partial";
         var initial = Saved(meteor);
         if (fault == "materials") initial = initial with
             { InventoryItems = new[] { Target(true), Material(0, count: 4) } };
@@ -28,9 +29,10 @@ public sealed partial class OwnedItemRepairTests
             InventoryItems = new[] { new Item { Uid = Fixture.ItemUid, ItemId = MeteorId,
                 Durability = 0, MaximumDurability = 10, StackSize = 5 } },
         };
-        if (fault == "material-children")
+        if (fault is "material-children" or "material-children-partial")
         {
-            var material = Material(0, count: 5, children: new[] { new Item { Uid = Fixture.ItemUid + 99,
+            var material = Material(0, count: fault == "material-children" ? (ushort)5 : (ushort)10,
+                children: new[] { new Item { Uid = Fixture.ItemUid + 99,
                 ItemId = TargetId, Durability = 1, MaximumDurability = 10, StackSize = 1 } });
             initial = initial with { InventoryItems = new[] { Target(true), material } };
         }

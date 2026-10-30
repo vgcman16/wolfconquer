@@ -1,65 +1,37 @@
 # Reconstruction status
 
-Updated 2026-10-30. The observed live target remains Chinese client7899 /
-VisibleDx8D13. The separate official reference and complete stage are 7937.
-Full English/gameplay reconstruction remains active.
+Updated 2026-10-30. Full English server/client reconstruction remains active.
+Observed live target: Chinese client7899 / VisibleDx8D13. The separate official
+7937 reference/stage is not complete current-client feature or English acceptance.
 
-## Verified published checkpoint
+## Current source qualification
 
-Public source `133513eb6f9ccd1c0fa90618b791783e7bc9e2cc`, with reviewed generated
-tracker head `2ff18f1282d7f969d0533a8566ee5c08a28613eb`, passed
-[Windows run 41061642002](https://github.com/vgcman16/wolfconquer/actions/runs/41061642002).
-All eight stages passed: Core 31,174 Passed / 152 existing NotExecuted, Updates 446
-and Launcher 57, zero failures. All 359 focused GM outcomes were present and passed.
-Actual logs, three TRXs and matching complete unexecuted managed outputs are
-retained. This qualifies that source; deployment, SQL and current-client live
-acceptance remain separate.
+The reviewed currency/CI correction batch compiled with zero errors and passed
+**387/387 focused outcomes**, zero failures/skips. It includes all4 names that
+failed actual Windows run41082514020 on a17e03c4:3 recovery reflection controls
+and1 old repair-material expectation. That failed run retained Core31,396 passed,
+4 failed and152 existing skips; Updates446 passed; later launcher/parser stages
+did not run. Its exact receipts and built outputs remain retained.
 
-## Current implementation batch
+This batch's own public-commit full Windows gate is still pending. Earlier full
+gates do not qualify these additions automatically. See
+[source-bug records237-239](../FIXED-SOURCE-BUGS.md).
 
-The combined successor's widened selection retained 1,356 passed and two new
-cold-client packet-expectation failures, with no skips. The corrected controls
-and affected neighbors then passed **64/64**,
-zero failures/skips, without changing production behavior. Together they cover
-the complete 1,358-outcome widened selection. It includes actual managed server-process controls
-for raw/encrypted login after supported journal recovery and a second restart
-without replay. Its own actual public-commit full Windows gate remains pending;
-the earlier checkpoint above does not qualify these additions automatically.
+- Actual native inventory CP, bound CP, bank CP and warehouse silver join real
+  Store admission/bound/deferred publication, including mailbox pre-reservation.
+- Wide CP pickup rewards conserve their whole value across inventory/bank;
+  overflow and stale or invalid ownership refuse before consumption.
+- Routed silver deposits/withdrawals and NPC CP-bank confirmations use genuine
+  Character + unchanged Items v2 journal commits before publication and replies.
+- Pending CP confirmation survives refusal and clears only on committed success.
+  Both NPC message formats retain their exact valid sequence and ownership checks.
+- Prepared input maps, current native proofs, real sharing/interruption/recovery
+  and bounded routing-race controls are included in the focused verification.
 
-- Paid and five-Meteor repair preserve raw saved data and commit Character/Items
-  through the real single-owner journal before canonical publication and replies.
-- Explicit catalog-item GM mail uses the real UID/mailbox transaction. Existing
-  grants do not gain that new permission. Required Rune metadata is checked
-  before reservation; no caller-selected UID or automatic remint is introduced.
-- Owned startup can finish complete v2 Character/Items journals under the real
-  namespace lease and exact captured-record proof. UID birth, retained producer
-  history and unsupported/multi-owner/mail journals remain refused.
-- Native inventory Money now publishes with the real owned session, including
-  deferred mailbox proposals. Negative values, overflowing warehouse spill and
-  direct bound-setter bypass refuse before effects. Valid wire goldens remain.
-- Optional public heartbeat comes from the actual listener/Frame lifecycle.
-  Windows publication retains old readers while fresh opens see complete new
-  data. It is a bounded status signal, not gameplay or SQL health proof.
-
-The original failed receipts remain retained. Tests that required negative gold
-or overflow wrap now require unchanged state on rejection. See
-[source-bug entries 232-236](../FIXED-SOURCE-BUGS.md).
-Only inventory Money is bridged; CP/bound-CP/warehouse projections and generic
-best-effort postpublication scalar saves remain unfinished. No live configuration,
-GM grants, client launch, original-save change or deployment is implied.
-
-## Current decoded-client evidence
-
-The selected Echo Info API accepted 59 fields from pinned decoded data. The
-explicit 7937 item decoder accepted all 57,093 main / 1,693 Sub rows with 67 fields,
-expected decoded hashes and exact inverse. Original inputs stayed unchanged.
-Complete older 65/current 67 alignment is still incomplete: main 12 unmatched /
-5 ambiguous columns; Sub 5 unmatched / 53 ambiguous. No text roles, native text
-capacities, costs or runtime mappings were invented.
-
-Mail/trade resource proposals passed 17 Python tests and column diagnostics 13.
-English proposals remain unapplied/unrendered. Actual game resources, plans,
-keys, client assets and private configuration are excluded from this repository.
+These source results establish neither deployment, SQL/global economy durability,
+raw-writer exclusion, current-client rendering, host trust nor complete parity.
+The legacy client/updater execution hold remains active. This section supersedes
+older currency/bank frontier notes in the historical family inventory below.
 
 ## Implemented source families
 
