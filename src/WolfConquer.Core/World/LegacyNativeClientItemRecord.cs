@@ -106,12 +106,21 @@ internal partial struct LegacyNativeClientItemRecord
 
 	public uint MythSoulPoints;
 
-	internal MsgGameItem GetDataItem()
+	internal MsgGameItem GetDataItem() => GetDataItemCore(null);
+
+    internal MsgGameItem GetDataItem(LegacyOwnedNativeItemImage.CatalogEvidence catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        return GetDataItemCore(catalog);
+    }
+
+    private MsgGameItem GetDataItemCore(LegacyOwnedNativeItemImage.CatalogEvidence? catalog)
 	{
 		MsgGameItem msgGameItem = new MsgGameItem();
 		msgGameItem.Uid = UID;
 		msgGameItem.Effect = Effect;
-		msgGameItem.ITEM_ID = ITEM_ID;
+		if (catalog is null) msgGameItem.ITEM_ID = ITEM_ID;
+        else msgGameItem.SetOwnedItemId(ITEM_ID, catalog);
 		msgGameItem.Durability = Durability;
 		msgGameItem.MaximDurability = MaximDurability;
 		msgGameItem.Position = Position;
@@ -137,7 +146,7 @@ internal partial struct LegacyNativeClientItemRecord
 		msgGameItem.Purification.PurificationItemID = PurificationItemID;
 		msgGameItem.Purification.PurificationLevel = PurificationLevel;
 		msgGameItem.Purification.PurificationDuration = PurificationDuration;
-		msgGameItem.Purification.AddedOn = DateTime.FromBinary((PurificationAddedOn > DateTime.MinValue.Ticks && PurificationAddedOn < DateTime.MaxValue.Ticks) ? PurificationAddedOn : 0);
+		msgGameItem.Purification.AddedOn = DateTime.FromBinary(PurificationAddedOn);
 		if (!msgGameItem.Purification.InLife)
 		{
 			msgGameItem.Purification = default(MsgItemExtra.Purification);

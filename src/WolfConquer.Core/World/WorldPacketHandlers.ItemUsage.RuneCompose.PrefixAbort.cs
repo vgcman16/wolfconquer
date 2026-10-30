@@ -15,7 +15,7 @@ public static partial class WorldPacketHandlers
     {
         var prefixItems = ReplaceRuneItem(updatedItems, originalTarget, updatedTarget);
         var prefixSession = session with { PlayerItems = prefixItems };
-        context.Sessions?.Set(context.Connection, prefixSession);
+        prefixSession = PublishLegacyItemUsageSession(context, prefixSession);
         var prefixContext = context with { Session = prefixSession };
 
         // Compatibility persistence of the accepted prefix, not native Save/SQL timing.

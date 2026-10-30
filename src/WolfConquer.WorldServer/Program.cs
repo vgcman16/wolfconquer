@@ -6,6 +6,11 @@ using WolfConquer.Core.World;
 
 var endpoint = ConquerRuntimeDefaults.WorldServer;
 var protocolProfile = ConquerProtocolProfileConfiguration.FromEnvironment();
+if (!LegacyGmPolicyConfiguration.TryLoadFromEnvironment(out var gmPolicy, out var gmPolicyReason))
+{
+    Console.Error.WriteLine($"WorldServer GM policy startup refused: {gmPolicyReason}.");
+    return 1;
+}
 LegacyLocalServerIdentity? localServerIdentity;
 try
 {
@@ -33,6 +38,13 @@ if (listenRequested && worldData is null)
 if (!LegacyOwnedAdmissionOptions.TryLoadFromEnvironment(out var ownedAdmissionOptions, out var ownedConfigurationReason))
 {
     Console.Error.WriteLine($"WorldServer owned admission startup refused: {ownedConfigurationReason}.");
+    return 1;
+}
+if (gmPolicy is not null && (ownedAdmissionOptions is null ||
+    protocolProfile != ConquerProtocolProfile.VisibleDx8D13 ||
+    gmPolicy.ExpectedDomain != ownedAdmissionOptions.ExpectedDomain))
+{
+    Console.Error.WriteLine("WorldServer GM policy requires the explicit owned domain and VisibleDx8D13 profile.");
     return 1;
 }
 var explicitUsers = Environment.GetEnvironmentVariable(CharacterSnapshotOptions.UsersRootEnvironmentVariable);
@@ -167,7 +179,8 @@ try
         accountEmailVerifier,
         protocolProfile: protocolProfile,
         ownedAdmission: ownedAdmission,
-        wireDiagnostics: wireDiagnostics);
+        wireDiagnostics: wireDiagnostics,
+        gmPolicy: gmPolicy);
 }
 catch (ArgumentException) when (ownedAdmission is not null)
 {

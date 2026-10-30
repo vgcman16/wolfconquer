@@ -10,7 +10,7 @@ public static partial class WorldPacketHandlers
         reason = MailboxClaimPrefix + "CandidateInvalid";
         if (!TryProjectMailboxClaimCharacter(plan, out var characterAfter) || !MailboxClaimPlanCurrent(plan)) return false;
         var itemsAfter = PlayerItemSnapshotLoader.ToLegacyBytes(
-            plan.ItemsAfter.WithOwnedItemsForPersistence(plan.Updated).PlayerItems);
+            plan.ItemsAfter.WithOwnedItemsForPersistence(plan.Updated with { PlayerItems = plan.PreparedItems }).PlayerItems);
         var before = plan.Baseline;
         var failure = reason;
         var saved = SnapshotFileLockCoordinator.ExecuteLocked(before.Paths.All, () =>
@@ -21,7 +21,7 @@ public static partial class WorldPacketHandlers
 
     private static bool MailboxClaimPlanCurrent(LegacyMailboxClaimPlan plan) =>
         plan.Baseline.Items.IsCurrent(plan.Baseline.Owner.Expected.PlayerItems) &&
-        plan.ItemsAfter.IsCurrent(plan.Updated.PlayerItems) && plan.Baseline.Mail.IsCurrent() &&
+        plan.ItemsAfter.IsCurrent(plan.PreparedItems) && plan.Baseline.Mail.IsCurrent() &&
         plan.Selected.All(mail => mail.IsLive(plan.Baseline.Mail.Now)) &&
         MailboxClaimAdmissionCurrent(plan.Baseline.Owner);
 

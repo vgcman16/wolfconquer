@@ -44,11 +44,16 @@ public static partial class WorldPacketHandlers
             if (!saved && failure.StartsWith(LegacyWarehouseItemTransferPersistence.RecoveryRequired, StringComparison.Ordinal))
                 recovery.Block(failure);
             return saved;
-        }))
+        }, out var canonical))
         { reason = failure; return null; }
+        if (canonical is null)
+            throw new LegacyCommittedSpellPublicationException();
 
         reason = string.Empty;
-        return new(owner with { Session = updated, Items = after }, prepared, selectedCount, true);
+        // The prepared source remains the proof source. Store's exact receipt
+        // supplies current identity; never recapture/rebind after real IO.
+        return new(owner with { Session = canonical, Items = after, ItemSource = updated.PlayerItems },
+            prepared, selectedCount, true);
     }
 
     private static bool CanPublishLegacyWarehouseLockRefresh(WorldPacketHandlerContext context, LegacyWarehouseShowOwner owner)

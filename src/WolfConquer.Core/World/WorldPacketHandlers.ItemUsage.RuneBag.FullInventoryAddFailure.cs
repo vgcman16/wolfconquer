@@ -31,7 +31,7 @@ public static partial class WorldPacketHandlers
         };
         var updatedSession = ClampLegacyEquipmentRuntimeHitpoints(
             session with { PlayerItems = updatedItems }, context.WorldData);
-        context.Sessions?.Set(context.Connection, updatedSession);
+        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
         var updatedContext = context with { Session = updatedSession };
         // Selected managed file compatibility, not native Save/SQL/send-interleaving equivalence.
         await TryPersistLegacyItemUsageMutationAsync(

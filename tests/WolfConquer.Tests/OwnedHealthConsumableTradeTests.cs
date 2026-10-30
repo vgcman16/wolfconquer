@@ -44,6 +44,8 @@ public sealed class OwnedHealthConsumableTradeTests
             }
             var originalOffered = Assert.Single(f.Current().PlayerItems.InventoryItems, row => row.Uid == offeredUid);
             Assert.Same(originalOffered, offer.Item); Assert.True(offer.Closure.MatchesSource(originalOffered));
+            var lineage = Assert.IsType<WorldSessionStore.TradeItemLineage>(offer.Lineage);
+            var nativeOffered = f.Current().NativeGameClient!.Inventory!.ClientItems[offeredUid];
             Assert.Contains(f.Frames(Fixture.Peer).Skip(peerStart), bytes =>
                 LegacyGameItemPacket.TryParse(Fixture.ReadFrame(bytes), out var preview) && preview.Uid == offeredUid && preview.Mode == 2);
             var before = f.Current(); var beforeFiles = f.Data.Files();
@@ -80,13 +82,17 @@ public sealed class OwnedHealthConsumableTradeTests
                 Assert.Equal(80UL, current.Updates[1].Value);
             }
             var afterPotion = Assert.Single(f.Current().PlayerItems.InventoryItems, row => row.Uid == offeredUid);
-            bool originalOfferRetained = ReferenceEquals(originalOffered, afterPotion) && offer.Closure.MatchesSource(afterPotion);
-            // Do not assert this identity yet: let the OLD producer reach its
-            // actual final-confirm/refund branch for a genuine regression red.
+            bool originalOfferRetained = lineage.MatchesCurrent(f.Store, f.Connection(Fixture.Actor), f.Current(), afterPotion);
+            Assert.Same(nativeOffered, f.Current().NativeGameClient!.Inventory!.ClientItems[offeredUid]);
+            if (!offerPotion)
+            {
+                Assert.NotSame(originalOffered, afterPotion); // Canonical saved rows remain deeply isolated.
+                Assert.False(offer.Closure.MatchesSource(afterPotion)); // Unbound source contract is unchanged.
+            }
             await Trade(f, Fixture.Actor, new(9)); await Trade(f, Fixture.Peer, new(9));
             Assert.True(HasCompletion(f, Fixture.Actor, actorStart), f.Log.ToString());
             Assert.True(HasCompletion(f, Fixture.Peer, peerStart), f.Log.ToString());
-            Assert.True(originalOfferRetained, "An unchanged real offered closure must retain its original row identity through unrelated health use.");
+            Assert.True(originalOfferRetained, "An unchanged offered native lineage must survive unrelated canonical refresh.");
             Assert.False(f.Current().LegacyTradeActive); Assert.False(f.Current(Fixture.Peer).LegacyTradeActive);
             Assert.DoesNotContain(f.Current().PlayerItems.InventoryItems, row => row.Uid == offeredUid);
             var transferred = Assert.Single(f.Current(Fixture.Peer).PlayerItems.InventoryItems, row => row.Uid == offeredUid);

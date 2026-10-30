@@ -9,8 +9,11 @@ public static partial class WorldPacketHandlers
     private static bool TryCommitLegacyVendorPurchase(WorldPacketHandlerContext context,
         WorldSession buyer, WorldSession updatedBuyer, WorldActiveSession sellerActive,
         WorldSession updatedSeller, LegacyItemSaveGraph buyerItems,
-        LegacyItemSaveGraph sellerItems, out string reason)
+        LegacyItemSaveGraph sellerItems, out string reason,
+        out WorldSession? finalBuyer, out WorldSession? finalSeller)
     {
+        finalBuyer = null;
+        finalSeller = null;
         reason = "vendorTradeOwnerUnavailable";
         if (!Monitor.IsEntered(LegacyVendorMutationGate) || context.Trades is not { } trades ||
             context.Sessions is not { } sessions || context.TradeOperations is null ||
@@ -45,7 +48,7 @@ public static partial class WorldPacketHandlers
                                 preparedBuyerItems, preparedSellerItems, incoming, out baselineReason), out failure);
                     if (!saved && baselineReason.Length != 0) failure = baselineReason;
                     return saved;
-                });
+                }, out finalBuyer, out finalSeller);
             reason = committed ? string.Empty : failure.Length == 0 ? "vendorPairStale" : failure;
             if (!committed && IsLegacyTradeRecoveryRequired(reason)) recovery.Block(reason);
             return committed;

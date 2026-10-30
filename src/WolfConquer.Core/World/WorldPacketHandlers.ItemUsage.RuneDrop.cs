@@ -26,7 +26,7 @@ public static partial class WorldPacketHandlers
         {
             PlayerItems = RemoveLegacyRuneItem(session.PlayerItems, rune),
         };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
         var updatedContext = context with { Session = updatedSession };
 
         await TryPersistLegacyItemUsageMutationAsync(

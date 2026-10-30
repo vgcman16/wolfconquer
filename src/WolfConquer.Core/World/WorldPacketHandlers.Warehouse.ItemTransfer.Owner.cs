@@ -35,8 +35,19 @@ public static partial class WorldPacketHandlers
         LegacyNativeClientPublication.TryCurrent(sessions, context.Connection, expected.Character.Uid, owner.Identity, out var current) &&
         ReferenceEquals(current, expected) && ReferenceEquals(expected.NativeGameClient, owner.Client) &&
         ReferenceEquals(context.Connection.NativeGameClient, owner.Client) &&
+        IsCurrentLegacyWarehouseJoinedItemOwner(sessions, expected) &&
         (owner.Client is null || owner.Client.PokerPlayer is null && owner.Player is not null && ReferenceEquals(owner.Client.Player, owner.Player) &&
             ReferenceEquals(owner.Player.Owner, owner.Client) && owner.Player.UID == expected.Character.Uid);
+
+    // The existing wholly managed Store path creates no native binding.
+    // A native owner must retain its actual current binding and canonical graph;
+    // no UID or proposal alias supplies either of those authorities.
+    private static bool IsCurrentLegacyWarehouseJoinedItemOwner(WorldSessionStore sessions, WorldSession expected) =>
+        expected.NativeGameClient is not { } client ||
+        client.OrdinarySpellBinding is { } binding &&
+        ReferenceEquals(binding.Store, sessions) && ReferenceEquals(binding.Client, client) &&
+        ReferenceEquals(binding.Player, expected.NativePlayer) && ReferenceEquals(binding.ItemSnapshot, expected.PlayerItems) &&
+        binding.PhysicalOwnerIsCurrentPlain() && sessions.IsBoundSpellOwnerCurrent(binding);
 
     private static bool LegacyWarehouseItemTransferAttributesCurrent(LegacyWarehouseItemTransferOwner owner)
     {

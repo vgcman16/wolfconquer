@@ -89,6 +89,14 @@ public sealed partial class LocalRuntimeInspectionTests
                 var partial = await f.Handler.InspectOwnedRuntimeAsync(f.Runtime, Query(f)); Diagnostic(partial);
                 Assert.Null(partial.Snapshot!.NativeItems); Assert.Null(partial.Snapshot.SelectedValuesEqual);
                 Assert.Equal("nativeInventoryNotInitialized", partial.Snapshot.NativeItemsUnavailableReason);
+                // Diagnostic observation must not grant item mutation authority
+                // while the joined physical graph is damaged.
+                var binding = Assert.IsType<LegacyOrdinarySpellBinding>(f.Native.OrdinarySpellBinding);
+                var current = f.Current;
+                Assert.False(f.Store.IsBoundSpellOwnerCurrent(binding));
+                Assert.Throws<InvalidOperationException>(() =>
+                    f.Store.Set(f.Connection, current with { ActiveNpcId = 991 }));
+                Assert.Same(current, f.Current);
             }
             finally { f.Native.Inventory = inventory; }
             var item = Assert.Single(inventory.ClientItems).Value;

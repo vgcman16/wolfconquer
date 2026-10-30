@@ -37,6 +37,7 @@ internal static partial class Program
         }
 
         if (command == "create-operator-test-kit") return CreateOperatorTestKit(args);
+        if (command == "create-gm-policy") return CreateGmPolicy(args);
         if (command == "inspect-owned-player") return InspectOwnedPlayer(args);
         if (command == "inspect-runtime-player") return InspectRuntimePlayer(args);
 
@@ -596,6 +597,7 @@ internal static partial class Program
             string.Equals(value, "seed-owned-admission-fixture", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "send-operator-gear-mail", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "create-operator-test-kit", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "create-gm-policy", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "inspect-owned-player", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "inspect-runtime-player", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "seed-loot-roundtrip-fixture", StringComparison.OrdinalIgnoreCase) ||
@@ -812,6 +814,7 @@ internal static partial class Program
         Console.WriteLine("  WolfConquer.DataTool seed-owned-admission-fixture <NEW-absolute-wolf-owned-admission-GUID-dir> <account-key> <character-uid> <item-uid> [--profile RootD11_7899|VisibleDx8D13]");
         Console.WriteLine("  WolfConquer.DataTool send-operator-gear-mail <wolfconquer-operator-mail-domainN> <absolute-request.json>");
         Console.WriteLine("  WolfConquer.DataTool create-operator-test-kit <NEW-absolute-request.json> <domainN> <accountId> <characterUid> <basic-trojan|socket-materials|consumables>");
+        Console.WriteLine("  WolfConquer.DataTool create-gm-policy <NEW-absolute-policy.json> <existing-owned-admission.json> <accountId> <characterUid> [inspect|mail|both] (creates inert policy only)");
         Console.WriteLine("  WolfConquer.DataTool inspect-owned-player <absolute-owned-admission.json> <accountId>");
         Console.WriteLine("  WolfConquer.DataTool inspect-runtime-player <wolfconquer-runtime-inspect-domainN> <domainN> <accountId> <characterUid> (diagnostic only)");
         Console.WriteLine("  WolfConquer.DataTool seed-loot-roundtrip-fixture <NEW-absolute-DBServer-dir> <account-key> <character-uid> <item-uid>");

@@ -48,10 +48,10 @@ public sealed partial class LegacyOrdinaryNativeSpellCoherenceTests
             byte[] character = File.ReadAllBytes(f.CharacterPath);
             await NativePacketTestThread.Run(() =>
             {
-                var equipment = f.Native.Equipment; uint rate = LegacyNativeServerConfig.ExpRateSpell;
+                var equipment = Assert.IsType<LegacyNativeEquipItemStorage>(f.Native.Equipment);
+                uint rate = LegacyNativeServerConfig.ExpRateSpell;
                 try
                 {
-                    f.Native.Equipment = new LegacyNativeEquipItemStorage(f.Native);
                     LegacyNativeServerConfig.ExpRateSpell = 1;
                     var metadata = Enumerable.Range(0, 6).ToDictionary(i => (ushort)i,
                         i => new LegacyNativeMagicType.Magic { ID = 6001, Level = (byte)i, Experience = 10000 });
@@ -59,6 +59,7 @@ public sealed partial class LegacyOrdinaryNativeSpellCoherenceTests
                     using var packet = new LegacyNativePacket(LegacyNativePacket.MAX_SIZE);
                     LegacyNativeUpdateSpell.CheckUpdate(packet, f.Native, attack, 600, metadata);
                     var unsaved = f.Current;
+                    Assert.Same(equipment, f.Native.Equipment);
                     Assert.Equal(1711, Assert.Single(unsaved.PlayerSpells.Spells, row => row.Id == 6001).Experience);
                     Assert.Equal(saved, File.ReadAllBytes(f.SpellPath)); Assert.Same(anchor, binding.SavedSpells);
                     LegacyNativeServerDatabasePersistence.SaveClientSpells(f.Native);
@@ -68,7 +69,7 @@ public sealed partial class LegacyOrdinaryNativeSpellCoherenceTests
                     Assert.Equal(character, File.ReadAllBytes(f.CharacterPath)); RequireSavedOpaqueByte(File.ReadAllBytes(f.SpellPath), 6001, 0xA5);
                     Assert.False(f.Recovery.IsBlocked); Assert.False(LegacyTradeJournal.HasPending(f.Users));
                 }
-                finally { f.Native.Equipment = equipment; LegacyNativeServerConfig.ExpRateSpell = rate; }
+                finally { LegacyNativeServerConfig.ExpRateSpell = rate; }
             });
         }, [new(6001, 4, 1111, 0, 3, 2)], lineage: false);
     }

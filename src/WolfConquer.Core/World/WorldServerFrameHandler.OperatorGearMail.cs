@@ -35,7 +35,8 @@ public sealed partial class WorldServerFrameHandler
     }
 
     private LegacyOperatorGearMailResult PrepareAndCommitOperatorMail(LegacyOwnedAdmissionRuntime runtime,
-        OperatorMailRequest request, CancellationToken cancellationToken, out OperatorMailPlan? delivery)
+        OperatorMailRequest request, CancellationToken cancellationToken, out OperatorMailPlan? delivery,
+        GmCommandActor? gmActor = null)
     {
         delivery = null;
         OperatorMailPlan? plan = null;
@@ -45,6 +46,12 @@ public sealed partial class WorldServerFrameHandler
         {
             if (!TryCaptureOperatorMailOwner(runtime, request, out var owner, out var reason))
                 return OperatorMailResult(request.Request.OperationId, LegacyOperatorGearMailStatus.Rejected, reason);
+            // The local OS-operator API may select its genuine unique target.
+            // A game command must additionally retain its original ingress actor;
+            // numeric target IDs cannot authorize a replacement login.
+            if (gmActor is not null && !GmMailOwnerMatches(gmActor, owner!))
+                return OperatorMailResult(request.Request.OperationId, LegacyOperatorGearMailStatus.Rejected,
+                    "gmOriginalActorUnavailable");
             // Actual Store gate precedes all baseline file locks and UID issuance.
             _sessions.WithCurrentNativeClientIdentity(owner!.Connection, owner.Expected.Character.Uid, identity =>
             {

@@ -92,12 +92,13 @@ public static partial class WorldPacketHandlers
         }
 
         updatedSession = session with { PlayerItems = reward.Items };
-        if (!sessions.TryCompareAndSet(context.Connection, session, updatedSession))
+        if (!sessions.TryCompareAndSet(context.Connection, session, updatedSession, out var final))
         {
             await LogLegacyEarthForcePreparationRefusalAsync(context, "session-changed-before-commit")
                 .ConfigureAwait(false);
             return session;
         }
+        updatedSession = final!;
         updatedContext = context with { Session = updatedSession };
 
         // The full state and all native frames are prepared before this single

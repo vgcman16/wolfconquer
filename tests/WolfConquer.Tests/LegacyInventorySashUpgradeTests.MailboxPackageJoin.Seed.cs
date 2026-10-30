@@ -49,9 +49,15 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 SocketProgress = 17, Color = 3, PerfectionLevel = 2, PerfectionProgress = 19,
                 OwnerUid = 77, OwnerName = "MailOwner", Signature = "mail sentinel",
             };
+            // This fixture reconnects through genuine native wardrobe admission.
+            // Keep the retained UID/location sentinel, using an actual garment
+            // rather than the generic fixture's meteor in a WH100 slot.
+            var wardrobe = Current.PlayerItems.WardrobeItems.Select(item =>
+                item.Uid == 9005 ? item.WithItemId(181305) : item).ToArray();
             SaveTransferSetup(Current.PlayerItems with
             {
                 InventoryItems = inventory,
+                WardrobeItems = wardrobe,
                 WarehouseItems = Current.PlayerItems.WarehouseItems.Append(attachment)
                     .OrderBy(item => item.WarehouseId).ThenBy(item => item.Uid).ToArray(),
             });

@@ -31,8 +31,17 @@ public static partial class WorldPacketHandlers
                         if (!LegacyVendorPurchaseOwnersCurrent(context, prepared, committed: false))
                             reason = "vendor-owner-changed-before-commit";
                         else if (TryCommitLegacyVendorPurchase(context, prepared.Buyer, prepared.UpdatedBuyer,
-                                     prepared.Seller, prepared.UpdatedSeller, prepared.BuyerItems, prepared.SellerItems, out reason))
-                            committed = prepared;
+                                     prepared.Seller, prepared.UpdatedSeller, prepared.BuyerItems, prepared.SellerItems,
+                                     out reason, out var finalBuyer, out var finalSeller))
+                        {
+                            // Original inputs/proofs/Sends retain their prepared
+                            // sources. Only exact Store receipts pin continuation.
+                            committed = prepared with
+                            {
+                                UpdatedBuyer = finalBuyer ?? throw new LegacyCommittedSpellPublicationException(),
+                                UpdatedSeller = finalSeller ?? throw new LegacyCommittedSpellPublicationException()
+                            };
+                        }
                     }
                 }
             }

@@ -5,7 +5,7 @@ namespace WolfConquer.Core.World;
 
 // A binding is consumed only while the issuing Store still owns this exact
 // object. Its saved UID, by itself, never authorizes a publication.
-internal sealed class LegacyOrdinarySpellBinding
+internal sealed partial class LegacyOrdinarySpellBinding
 {
     internal readonly WorldSessionStore Store;
     internal readonly ConquerTcpConnection Connection;
@@ -49,9 +49,17 @@ internal sealed class LegacyOrdinarySpellBinding
         Volatile.Write(ref proficiencySnapshot, proficiencies);
     }
     internal void PublishSavedSpells(LegacySavedSpellImage image) => Volatile.Write(ref savedSpells, image);
-    internal void Retire() => Volatile.Write(ref retired, 1);
+    internal void Retire()
+    {
+        items?.Retire();
+        Volatile.Write(ref retired, 1);
+    }
 
-    internal bool PhysicalOwnerIsCurrentPlain() => !IsRetired && !Recovery.IsBlocked &&
+    internal bool PhysicalOwnerIsCurrentPlain() => RuntimeInspectionPlayerOwnerIsCurrentPlain() && ItemOwnerIsCurrentPlain();
+
+    // Observation only: native item state is the diagnostic's subject and may
+    // be missing or different. This proof grants no gameplay mutation authority.
+    internal bool RuntimeInspectionPlayerOwnerIsCurrentPlain() => !IsRetired && !Recovery.IsBlocked &&
         ReferenceEquals(Connection.NativeGameClient, Client) && ReferenceEquals(Client.Player, Player) &&
         ReferenceEquals(Player.Owner, Client) && Player.UID == Uid &&
         ReferenceEquals(Client.OrdinarySpellBinding, this) && ReferenceEquals(Client.MySpells, Storage) &&

@@ -4,8 +4,9 @@ public static partial class WorldPacketHandlers
 {
     private static bool TryCommitLegacyFloorPickup(WorldPacketHandlerContext context, WorldSession current,
         LegacyFloorPickupPlan plan, FloorItemRuntimeStateStore.PickupReservation reservation,
-        out bool durable, out string reason)
+        out WorldSession? final, out bool durable, out string reason)
     {
+        final = null;
         var inMemoryCompatibility = context.Connection.NativeGameClient is null && current.NativeGameClient is null &&
             string.IsNullOrWhiteSpace(current.UsersRoot) && string.IsNullOrWhiteSpace(context.PlayerItemsRoot);
         durable = !inMemoryCompatibility;
@@ -26,9 +27,14 @@ public static partial class WorldPacketHandlers
             return true;
         }
         bool committed;
+        WorldSession? published = null;
         if (context.Sessions is { } sessions)
-            committed = sessions.TryCommitSession(context.Connection, current, plan.Updated, PersistAndConsume);
-        else if (inMemoryCompatibility) committed = PersistAndConsume();
+            committed = sessions.TryCommitSession(context.Connection, current, plan.Updated, PersistAndConsume, out published);
+        else if (inMemoryCompatibility)
+        {
+            committed = PersistAndConsume();
+            if (committed) published = plan.Updated;
+        }
         else { reason = "sessionStoreUnavailable"; return false; }
         if (!committed)
         {
@@ -37,12 +43,13 @@ public static partial class WorldPacketHandlers
             reason = "commitRejected:" + (failure.Length == 0 ? "sessionChanged" : failure);
             return false;
         }
-        if (!IsCurrentLegacyFloorPickupOwner(context, plan.Updated))
+        if (published is null || !IsCurrentLegacyFloorPickupOwner(context, published))
         {
             context.TradeRecovery?.Block("pickupRecoveryRequired:ownerChangedAfterCommit");
             reason = "ownerChangedAfterCommit";
             return false;
         }
+        final = published;
         reason = "committed";
         return true;
     }

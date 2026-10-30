@@ -56,7 +56,8 @@ internal sealed class OperatorGearMailFixture : IAsyncDisposable
         internal WorldSessionStore Store => Field<WorldSessionStore>(Handler, "_sessions");
         internal WorldSession Current => Assert.IsType<WorldSession>(Store.TryGet(Connection, out var current) ? current : null);
 
-        internal void Initialize(IReadOnlyList<ItemType>? additionalCatalogItems = null)
+        internal void Initialize(IReadOnlyList<ItemType>? additionalCatalogItems = null,
+            IReadOnlyList<string>? gmCapabilities = null, uint? gmAccount = null, uint? gmCharacter = null)
         {
             // v4 requires an existing complete mailbox image; this is a separate no-reward fixture initialization.
             new LegacyMailboxStore(Fixture.Root).Save(Uid);
@@ -65,8 +66,15 @@ internal sealed class OperatorGearMailFixture : IAsyncDisposable
             Runtime = Assert.IsType<LegacyOwnedAdmissionRuntime>(opened);
             var catalog = LegacyItemWorldDataFixture.Create(new[] { Item(1_000_000), Item(GearId) }
                 .Concat(additionalCatalogItems ?? []).ToArray(), []);
+            var policy = gmCapabilities is null ? null : LegacyGmPolicy.Parse(
+                System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new
+                {
+                    schemaVersion = 1, expectedDomain = Domain.ToString("D"),
+                    grants = new[] { new { accountId = gmAccount ?? AccountId,
+                        characterUid = gmCharacter ?? Uid, capabilities = gmCapabilities } }
+                }));
             Handler = new WorldServerFrameHandler(Fixture.Loader, null, catalog, LegacyRuntimeUpdateLoopOptions.Disabled,
-                Log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime);
+                Log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime, gmPolicy: policy);
             Connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
                 (frame, _) => { Sent.Enqueue(frame.ToArray()); return ValueTask.CompletedTask; },
                 _ => { Closed.Cancel(); return ValueTask.CompletedTask; }, Native);

@@ -34,9 +34,9 @@ public static partial class WorldPacketHandlers
                     if (!LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, current))
                     { failure = "secondaryPasswordOwnerChanged"; return false; }
                     return LegacyNpcSalePersistence.TryPersist(current, plan.Updated, context.PlayerItemsRoot, out failure);
-                }))
+                }, out var final))
                 {
-                    if (LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, plan.Updated))
+                    if (final is not null && LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, final))
                     {
                         committed = plan;
                         sends.AddRange(frames);

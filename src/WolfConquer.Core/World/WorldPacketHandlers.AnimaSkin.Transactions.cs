@@ -19,6 +19,7 @@ public static partial class WorldPacketHandlers
             !recovery.IsReadyFor(session.UsersRoot, context.PlayerItemsRoot))
         { await LogDragonSkinRefusalAsync(context, "dragonSkinRecoveryOrOperationOwnerUnavailable").ConfigureAwait(false); return; }
         DragonSkinMutationPlan? committed = null;
+        WorldSession? final = null;
         byte[]? rejection = null;
         using (await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -38,7 +39,7 @@ public static partial class WorldPacketHandlers
                         !plan.AfterItems.IsCurrent(plan.Updated.PlayerItems) || !IsCurrentDragonSkinOwner(context, owner, session))
                     { failure = "dragonSkinPreparedOwnerChanged"; return false; }
                     return LegacyDragonSkinPersistence.TryPersist(session, plan.Updated, context.PlayerItemsRoot, out failure);
-                });
+                }, out final);
                 if (saved) { committed = plan; reason = "committed"; }
                 else
                 {
@@ -49,7 +50,7 @@ public static partial class WorldPacketHandlers
         }
         if (committed is not null)
         {
-            await PublishDragonSkinMutationAsync(context, owner, committed, packet, cancellationToken).ConfigureAwait(false);
+            await PublishDragonSkinMutationAsync(context, owner, committed, final!, packet, cancellationToken).ConfigureAwait(false);
             return;
         }
         if (IsOrdinaryDragonSkinRefusal(reason) && IsCurrentDragonSkinOwner(context, owner, session))

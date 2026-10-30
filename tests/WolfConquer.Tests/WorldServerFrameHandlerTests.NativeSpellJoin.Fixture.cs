@@ -13,11 +13,12 @@ public sealed partial class WorldServerFrameHandlerTests
 {
     internal static async Task WithNativeSpellJoinAsync(Func<NativeSpellJoinFixture, Task> body,
         PlayerSpellSnapshotEntry[]? rows = null, bool lineage = true, bool missingSpellFile = false, bool combined = false, bool training = false,
-        long? initialMana = null, long? maximumMana = null, string? extraCharacterLines = null)
+        long? initialMana = null, long? maximumMana = null, string? extraCharacterLines = null,
+        PlayerItemSnapshot? playerItems = null)
     {
         var fixture = new NativeSpellJoinFixture();
         Exception? primary = null;
-        try { fixture.Initialize(rows, lineage, missingSpellFile, combined, training, initialMana, maximumMana, extraCharacterLines); await body(fixture); }
+        try { fixture.Initialize(rows, lineage, missingSpellFile, combined, training, initialMana, maximumMana, extraCharacterLines, playerItems); await body(fixture); }
         catch (Exception error) { fixture.RetainRoot = true; primary = error; }
         try { await fixture.DisposeAsync(); }
         catch (Exception cleanup)
@@ -60,7 +61,8 @@ public sealed partial class WorldServerFrameHandlerTests
         private bool ownsRoot;
 
         internal void Initialize(PlayerSpellSnapshotEntry[]? rows, bool lineage, bool missingSpellFile, bool combined, bool training,
-            long? initialMana = null, long? maximumMana = null, string? extraCharacterLines = null)
+            long? initialMana = null, long? maximumMana = null, string? extraCharacterLines = null,
+        PlayerItemSnapshot? playerItems = null)
         {
             ValidateRoot();
             Assert.False(Directory.Exists(Root) || File.Exists(Root));
@@ -96,6 +98,8 @@ public sealed partial class WorldServerFrameHandlerTests
                     Content = "Synthetic package", Flag = 1, Timer = new DateTime(2099, 1, 1).ToBinary() });
                 mailbox.Save(Uid);
             }
+            if (playerItems is not null)
+                new PlayerItemSnapshotLoader(Path.Combine(Root, "PlayersItems")).SaveByCharacterUid(Uid, playerItems);
             var loader = new CharacterSnapshotLoader(Users);
             if (training)
             {

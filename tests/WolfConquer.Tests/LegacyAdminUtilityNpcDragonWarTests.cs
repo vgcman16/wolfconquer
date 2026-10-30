@@ -1,8 +1,6 @@
-using System.Buffers;
 using System.Net;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
-using WolfConquer.Core.Packets;
 using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
@@ -10,179 +8,90 @@ namespace WolfConquer.Tests;
 public sealed class LegacyAdminUtilityNpcDragonWarTests
 {
     private const uint StuffNpcId = 77_839;
+    private const uint Stuff12NpcId = 22_224;
     private const byte OpenDragonWarOptionId = 201;
-    private const string DragonWarInvitationText = "DragonWar[SS/FB]";
-    private const string DragonWarInvitationCenterText = " " + DragonWarInvitationText;
 
-    [Fact]
-    public async Task AdminStuffRootDialogExposesOpenDragonWarOptionForPrivilegedGm()
+    [Theory]
+    [InlineData(StuffNpcId)]
+    [InlineData(Stuff12NpcId)]
+    public async Task DisabledAdminRootDoesNotExposeDragonWarOrOtherAdminOptions(uint npcId)
     {
-        var result = await InvokeAsync(StuffNpcId, optionId: 0, gmName: true);
-
-        Assert.True(result.Handled);
-        Assert.Contains(
-            ParseNpcReplies(result.GmSent),
-            reply => reply.InteractType == LegacyNpcReplyInteractType.Option &&
-                reply.OptionId == OpenDragonWarOptionId &&
-                reply.Text == "Open DragonWar.");
-        AssertAsciiReplies(result.GmSent);
+        await AssertDisabledAsync(npcId, option: 0, LegacyDragonWarProcess.Dead);
     }
 
-    [Fact]
-    public async Task AdminOption201OpensDragonWarAndInvitesEveryActiveSession()
+    [Theory]
+    [InlineData(StuffNpcId, LegacyDragonWarProcess.Dead)]
+    [InlineData(Stuff12NpcId, LegacyDragonWarProcess.Dead)]
+    [InlineData(StuffNpcId, LegacyDragonWarProcess.Idle)]
+    [InlineData(Stuff12NpcId, LegacyDragonWarProcess.Idle)]
+    [InlineData(StuffNpcId, LegacyDragonWarProcess.Alive)]
+    [InlineData(Stuff12NpcId, LegacyDragonWarProcess.Alive)]
+    public async Task DisabledAdminOption201CannotOpenResetOrInviteToDragonWar(uint npcId, LegacyDragonWarProcess process)
+    {
+        await AssertDisabledAsync(npcId, OpenDragonWarOptionId, process);
+    }
+
+    private static async Task AssertDisabledAsync(uint npcId, byte option, LegacyDragonWarProcess process)
     {
         using var log = new StringWriter();
         var gmSent = new List<byte[]>();
         var peerSent = new List<byte[]>();
-        var gmConnection = CreateSendingConnection(gmSent, 9958);
-        var peerConnection = CreateSendingConnection(peerSent, 9959);
+        var disconnects = 0;
+        var gmConnection = CreateSendingConnection(gmSent, 9958, () => disconnects++);
+        var peerConnection = CreateSendingConnection(peerSent, 9959, () => disconnects++);
         var sessions = new WorldSessionStore();
-        var gmSession = CreateSession(uid: 1_293_600, name: "DragonWarAdmin[GM]");
-        var peerSession = CreateSession(uid: 1_293_601, name: "DragonWarGuest");
+        var gmSession = CreateSession(1_293_600, "DragonWarAdmin[GM][PM]");
+        var peerSession = CreateSession(1_293_601, "DragonWarGuest");
+        foreach (var key in new[] { "ProjectManager", "GM", "IsGM", "GameMaster", "IsGameMaster", "Admin", "IsAdmin", "Privileged" })
+            ((Dictionary<string, string>)gmSession.Character.Attributes)[key] = "true";
+        ((Dictionary<string, string>)gmSession.Character.Attributes)["Role"] = "Admin";
         sessions.Set(gmConnection, gmSession);
         sessions.Set(peerConnection, peerSession);
-        var dragonWarStates = new LegacyDragonWarRuntimeStateStore();
+        var gmAttributes = gmSession.Character.Attributes.ToArray();
+        var peerAttributes = peerSession.Character.Attributes.ToArray();
+        var now = new DateTimeOffset(2026, 6, 28, 19, 0, 0, TimeSpan.Zero);
+        var states = CreateState(process, now);
+        var control = CreateState(process, now);
 
-        var handled = await WorldPacketHandlers.TryHandleLegacyAdminUtilityNpcAsync(
-            new WorldPacketHandlerContext(
-                gmConnection,
-                log,
-                Session: gmSession,
-                Sessions: sessions,
-                DragonWarStates: dragonWarStates),
-            gmSession,
-            StuffNpcId,
-            OpenDragonWarOptionId,
-            CancellationToken.None);
+        Assert.True(await WorldPacketHandlers.TryHandleLegacyAdminUtilityNpcAsync(
+            new WorldPacketHandlerContext(gmConnection, log, Session: gmSession,
+                Sessions: sessions, DragonWarStates: states), gmSession, npcId, option, CancellationToken.None));
 
-        Assert.True(handled);
-        Assert.Equal(LegacyDragonWarProcess.Idle, dragonWarStates.Process);
-        AssertDragonWarInvitationSent(gmSent);
-        AssertDragonWarInvitationSent(peerSent);
-        AssertPendingDragonWarInvitation(sessions, gmConnection);
-        AssertPendingDragonWarInvitation(sessions, peerConnection);
-        Assert.DoesNotContain("PARITY-GAP LegacyNpc AdminUtility", log.ToString());
-    }
-
-    [Fact]
-    public async Task AdminOption201WhileDragonWarOpenDoesNotDuplicateInvitation()
-    {
-        using var log = new StringWriter();
-        var gmSent = new List<byte[]>();
-        var peerSent = new List<byte[]>();
-        var gmConnection = CreateSendingConnection(gmSent, 9960);
-        var peerConnection = CreateSendingConnection(peerSent, 9961);
-        var sessions = new WorldSessionStore();
-        var gmSession = CreateSession(uid: 1_293_600, name: "DragonWarAdmin[GM]");
-        var peerSession = CreateSession(uid: 1_293_601, name: "DragonWarGuest");
-        sessions.Set(gmConnection, gmSession);
-        sessions.Set(peerConnection, peerSession);
-        var dragonWarStates = new LegacyDragonWarRuntimeStateStore();
-        dragonWarStates.Open(new DateTimeOffset(2026, 6, 28, 19, 0, 0, TimeSpan.Zero));
-
-        var handled = await WorldPacketHandlers.TryHandleLegacyAdminUtilityNpcAsync(
-            new WorldPacketHandlerContext(
-                gmConnection,
-                log,
-                Session: gmSession,
-                Sessions: sessions,
-                DragonWarStates: dragonWarStates),
-            gmSession,
-            StuffNpcId,
-            OpenDragonWarOptionId,
-            CancellationToken.None);
-
-        Assert.True(handled);
-        Assert.Equal(LegacyDragonWarProcess.Idle, dragonWarStates.Process);
-        Assert.DoesNotContain(gmSent, IsDragonWarInvitationMessageBox);
-        Assert.DoesNotContain(peerSent, IsDragonWarInvitationMessageBox);
+        Assert.Equal(process, states.Process);
+        Assert.True(sessions.TryGet(gmConnection, out var gmAfter));
+        Assert.True(sessions.TryGet(peerConnection, out var peerAfter));
+        Assert.Same(gmSession, gmAfter);
+        Assert.Same(peerSession, peerAfter);
+        Assert.Equal(gmAttributes, gmAfter!.Character.Attributes.ToArray());
+        Assert.Equal(peerAttributes, peerAfter!.Character.Attributes.ToArray());
+        Assert.False(gmAfter.Character.Attributes.ContainsKey(LegacyRuntimeMessageBoxPrompt.PendingAttribute));
+        Assert.False(peerAfter.Character.Attributes.ContainsKey(LegacyRuntimeMessageBoxPrompt.PendingAttribute));
+        Assert.Empty(gmSent);
         Assert.Empty(peerSent);
-
-        var combinedText = string.Join(
-            " ",
-            ParseNpcReplies(gmSent).Select(reply => reply.Text).Append(log.ToString()));
-        Assert.Contains("DragonWar", combinedText, StringComparison.Ordinal);
-        Assert.Contains("already open", combinedText, StringComparison.OrdinalIgnoreCase);
-        AssertAsciiReplies(gmSent);
+        Assert.Equal(0, disconnects);
+        Assert.Contains("reason=ownedGmTransactionRequired", log.ToString());
+        // Exercise the real existing event timer after refusal against an
+        // independently initialized same-time state; no update is published.
+        foreach (var seconds in new[] { 11, 61, 362 })
+        {
+            var expected = control.CreateDueRuntimeUpdates(now.AddSeconds(seconds), new[] { gmSession, peerSession });
+            var actual = states.CreateDueRuntimeUpdates(now.AddSeconds(seconds), new[] { gmSession, peerSession });
+            if (process == LegacyDragonWarProcess.Idle && seconds == 11) Assert.NotEmpty(expected.Updates);
+            Assert.Equal(expected.Updates.Count, actual.Updates.Count);
+            for (var index = 0; index < expected.Updates.Count; index++)
+                Assert.Equal(expected.Updates[index].FrameBytes, actual.Updates[index].FrameBytes);
+            Assert.Empty(expected.SessionUpdates);
+            Assert.Empty(actual.SessionUpdates);
+            Assert.Equal(control.Process, states.Process);
+        }
     }
 
-    [Fact]
-    public async Task NormalPlayersCannotOpenDragonWarFromAdminUtility()
+    private static LegacyDragonWarRuntimeStateStore CreateState(LegacyDragonWarProcess process, DateTimeOffset now)
     {
-        var result = await InvokeAsync(
-            StuffNpcId,
-            OpenDragonWarOptionId,
-            gmName: false,
-            dragonWarStates: new LegacyDragonWarRuntimeStateStore());
-
-        Assert.True(result.Handled);
-        Assert.Empty(result.GmSent);
-        Assert.Equal(LegacyDragonWarProcess.Dead, result.DragonWarStates!.Process);
-        Assert.Contains("ignored LegacyNpc admin utility for non-privileged character", result.Log);
-    }
-
-    private static async Task<AdminDragonWarInvokeResult> InvokeAsync(
-        uint npcId,
-        byte optionId,
-        bool gmName,
-        LegacyDragonWarRuntimeStateStore? dragonWarStates = null)
-    {
-        using var log = new StringWriter();
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent, 9958);
-        var session = CreateSession(uid: 1_293_600, name: gmName ? "AdminUtilityHero[GM]" : "AdminUtilityHero");
-        var sessions = new WorldSessionStore();
-        sessions.Set(connection, session);
-
-        var handled = await WorldPacketHandlers.TryHandleLegacyAdminUtilityNpcAsync(
-            new WorldPacketHandlerContext(
-                connection,
-                log,
-                Session: session,
-                Sessions: sessions,
-                DragonWarStates: dragonWarStates),
-            session,
-            npcId,
-            optionId,
-            CancellationToken.None);
-
-        return new AdminDragonWarInvokeResult(handled, sent, log.ToString(), dragonWarStates);
-    }
-
-    private static void AssertDragonWarInvitationSent(IReadOnlyList<byte[]> sent)
-    {
-        Assert.Contains(sent, IsDragonWarSystemCenter);
-        Assert.Contains(sent, IsDragonWarInvitationMessageBox);
-    }
-
-    private static bool IsDragonWarSystemCenter(byte[] bytes)
-    {
-        return LegacyMsgMessagePacket.TryParse(ReadFrame(bytes), out var message) &&
-            message.ChatType == LegacyMsgMessagePacket.CenterChatType &&
-            message.Content.Contains(DragonWarInvitationCenterText);
-    }
-
-    private static bool IsDragonWarInvitationMessageBox(byte[] bytes)
-    {
-        return LegacyNpcReplyPacket.TryParse(ReadFrame(bytes), out var reply) &&
-            reply.InteractType == LegacyNpcReplyInteractType.MessageBox &&
-            reply.Text == DragonWarInvitationText;
-    }
-
-    private static void AssertPendingDragonWarInvitation(
-        WorldSessionStore sessions,
-        ConquerTcpConnection connection)
-    {
-        Assert.True(sessions.TryGet(connection, out var updated));
-        Assert.NotNull(updated);
-        Assert.Equal(
-            LegacyRuntimeMessageBoxPrompt.DragonWarInvitationKey,
-            updated.Character.Attributes[LegacyRuntimeMessageBoxPrompt.PendingAttribute]);
-        Assert.Equal("1002", updated.Character.Attributes[LegacyRuntimeMessageBoxPrompt.DestinationMapIdAttribute]);
-        Assert.Equal("319", updated.Character.Attributes[LegacyRuntimeMessageBoxPrompt.DestinationXAttribute]);
-        Assert.Equal("256", updated.Character.Attributes[LegacyRuntimeMessageBoxPrompt.DestinationYAttribute]);
-        Assert.Equal("0", updated.Character.Attributes[LegacyRuntimeMessageBoxPrompt.DestinationDynamicIdAttribute]);
-        Assert.Equal("60", updated.Character.Attributes[LegacyRuntimeMessageBoxPrompt.TimeoutSecondsAttribute]);
+        var state = new LegacyDragonWarRuntimeStateStore();
+        if (process != LegacyDragonWarProcess.Dead) Assert.NotNull(state.Open(now));
+        if (process == LegacyDragonWarProcess.Alive) state.SetProcess(process);
+        return state;
     }
 
     private static WorldSession CreateSession(long uid, string name)
@@ -229,49 +138,12 @@ public sealed class LegacyAdminUtilityNpcDragonWarTests
             PlayerProficiencies: PlayerProficiencySnapshot.Empty);
     }
 
-    private static ConquerTcpConnection CreateSendingConnection(List<byte[]> sent, int port)
+    private static ConquerTcpConnection CreateSendingConnection(List<byte[]> sent, int port, Action disconnect)
     {
         return new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, port), (frame, _) =>
         {
             sent.Add(frame.ToArray());
             return ValueTask.CompletedTask;
-        });
+        }, _ => { disconnect(); return ValueTask.CompletedTask; });
     }
-
-    private static IReadOnlyList<LegacyNpcReplyPacket> ParseNpcReplies(IEnumerable<byte[]> sent)
-    {
-        var packets = new List<LegacyNpcReplyPacket>();
-        foreach (var bytes in sent)
-        {
-            if (LegacyNpcReplyPacket.TryParse(ReadFrame(bytes), out var packet))
-            {
-                packets.Add(packet);
-            }
-        }
-
-        return packets;
-    }
-
-    private static PacketFrame ReadFrame(byte[] bytes)
-    {
-        Assert.True(PacketFrameDecoder.TryRead(new ReadOnlySequence<byte>(bytes), out var frame, out _, out _));
-        return frame;
-    }
-
-    private static void AssertAsciiReplies(IEnumerable<byte[]> sent)
-    {
-        foreach (var reply in ParseNpcReplies(sent))
-        {
-            if (!string.IsNullOrEmpty(reply.Text))
-            {
-                Assert.True(reply.Text.All(static character => character <= 127), reply.Text);
-            }
-        }
-    }
-
-    private sealed record AdminDragonWarInvokeResult(
-        bool Handled,
-        IReadOnlyList<byte[]> GmSent,
-        string Log,
-        LegacyDragonWarRuntimeStateStore? DragonWarStates);
 }

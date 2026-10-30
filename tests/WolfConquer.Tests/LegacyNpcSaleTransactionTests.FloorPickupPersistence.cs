@@ -194,9 +194,15 @@ public sealed partial class LegacyNpcSaleTransactionTests
             var items = current.PlayerItems with
             {
                 WarehouseItems = current.PlayerItems.WarehouseItems.Select(item =>
-                    item.WithDepositedItems([AdmissionFloorItem()])).ToArray(),
+                    item.WithDepositedItems(new[] { AdmissionFloorItem() })).ToArray(),
             };
-            owner.Sessions.Set(player.Connection, current with { PlayerItems = items });
+            owner.Sessions.Set(player.Connection, current with { PlayerItems = items }, out var final);
+            Assert.Same(final, Current(owner, player));
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(player.Connection.NativeGameClient!.OrdinarySpellBinding);
+            Assert.Same(final.PlayerItems, binding.ItemSnapshot);
+            Assert.Same(final.PlayerItems, binding.Items.Image.FinalSnapshot);
+            var child = Assert.Single(final.PlayerItems.WarehouseItems.SelectMany(item => item.DepositedItems));
+            Assert.Equal(AdmissionPickedItemUid, child.Uid);
         }
         else ReplaceCharacterField(uid, scenario == "stale-money" ? "Money" : "ConquerPoints",
             scenario == "stale-money" ? "1001" : "51");

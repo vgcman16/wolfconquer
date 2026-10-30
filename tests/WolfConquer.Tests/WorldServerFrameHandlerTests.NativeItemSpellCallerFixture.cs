@@ -9,10 +9,12 @@ namespace WolfConquer.Tests;
 public sealed partial class WorldServerFrameHandlerTests
 {
     internal static async Task WithNativeItemSpellCallerAsync(bool rune, Func<NativeItemSpellCallerFixture, Task> body,
-        IReadOnlyList<TransformInfo>? transformInfo = null, IReadOnlyList<string>? characterLines = null)
+        IReadOnlyList<TransformInfo>? transformInfo = null, IReadOnlyList<string>? characterLines = null,
+        PlayerItemSnapshot? playerItems = null, IReadOnlyList<ItemType>? additionalItems = null,
+        IReadOnlyList<Npc>? npcs = null, PlayerQuestSnapshot? playerQuests = null)
     {
         var f = new NativeItemSpellCallerFixture(); Exception? primary = null;
-        try { f.Initialize(rune, transformInfo, characterLines); await body(f); } catch (Exception error) { primary = error; }
+        try { f.Initialize(rune, transformInfo, characterLines, playerItems, additionalItems, npcs, playerQuests); await body(f); } catch (Exception error) { primary = error; }
         try { await f.DisposeAsync(); }
         catch (Exception cleanup)
         {
@@ -46,7 +48,9 @@ public sealed partial class WorldServerFrameHandlerTests
         private OrdinaryLoginFixture? admission; private NativeLoginBeastMetadataScope? beasts; private bool owned;
         private T Actual<T>(string name) where T : class => Assert.IsType<T>(typeof(WorldServerFrameHandler)
             .GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(Handler));
-        internal void Initialize(bool rune, IReadOnlyList<TransformInfo>? transformInfo = null, IReadOnlyList<string>? characterLines = null)
+        internal void Initialize(bool rune, IReadOnlyList<TransformInfo>? transformInfo = null, IReadOnlyList<string>? characterLines = null,
+            PlayerItemSnapshot? playerItems = null, IReadOnlyList<ItemType>? additionalItems = null,
+            IReadOnlyList<Npc>? npcs = null, PlayerQuestSnapshot? playerQuests = null)
         {
             Guard(); Assert.False(Directory.Exists(Root)); Directory.CreateDirectory(Users); owned = true;
             Directory.CreateDirectory(Items); Directory.CreateDirectory(Spells);
@@ -68,18 +72,26 @@ public sealed partial class WorldServerFrameHandlerTests
                 Position = rune ? (ushort)102 : (ushort)0, Durability = 1, MaximumDurability = 1, StackSize = 1 };
             var rankKeeper = new PlayerItemSnapshotItem { Uid = ItemUid + 1, ItemId = 4020515, Position = 212, Durability = 1, MaximumDurability = 1, StackSize = 1 };
             var items = rune ? new PlayerItemSnapshot([], [], [], [], [item, rankKeeper]) : new PlayerItemSnapshot([item], [], [], [], []);
-            File.WriteAllBytes(ItemsPath, PlayerItemSnapshotLoader.ToLegacyBytes(items));
+            File.WriteAllBytes(ItemsPath, PlayerItemSnapshotLoader.ToLegacyBytes(playerItems ?? items));
             var rows = rune ? new[] { new PlayerSpellSnapshotEntry(14160, 16, 0, 0, 0, 0), new PlayerSpellSnapshotEntry(6001, 4, 1111, 2, 3, 2) }
                 : new[] { new PlayerSpellSnapshotEntry(6001, 4, 1111, 2, 3, 2) };
             var spellBytes = PlayerSpellSnapshotLoader.ToLegacyBytes(new PlayerSpellSnapshot(rows)); spellBytes[^1] = 0xA5;
             File.WriteAllBytes(SpellsPath, spellBytes);
+            if (playerQuests is not null)
+            {
+                var roots = LegacyOrdinaryAdmissionRoots.FromLoader(new CharacterSnapshotLoader(Users));
+                var quests = roots.Quests ?? throw new InvalidOperationException("Actual derived quest root is required.");
+                Directory.CreateDirectory(quests);
+                new PlayerQuestSnapshotLoader(quests).SaveByCharacterUid(Uid, playerQuests);
+            }
             var baseline = OrdinaryLoginFixture.Catalog();
             var fields = Enumerable.Repeat("0", 66).ToArray(); fields[0] = (rune ? 4020517 : 725016).ToString();
             fields[1] = "OwnedFixtureItem"; fields[ItemType.DurabilityFieldIndex] = "1"; fields[ItemType.StackSizeFieldIndex] = "1";
             if (rune) { fields[ItemType.RequiredClassFieldIndex] = "6000"; fields[ItemType.RuneSpellIdFieldIndex] = "1416016"; }
             var itemTypes = baseline.Items.Append(new ItemType(rune ? 4020517 : 725016, fields[1], fields)).ToList();
             if (rune) { var extra = (string[])fields.Clone(); extra[0] = "4020515"; extra[1] = "OwnedRankKeeper"; extra[ItemType.RuneSpellIdFieldIndex] = "0"; itemTypes.Add(new ItemType(4020515, extra[1], extra)); }
-            var catalog = NativeCallerWorldDataFixture.Create(itemTypes, [],
+            if (additionalItems is not null) itemTypes.AddRange(additionalItems);
+            var catalog = NativeCallerWorldDataFixture.Create(itemTypes, [], npcs: npcs,
                 classLevelStats: baseline.ClassLevelStats, magicTypeOperations: baseline.MagicTypeOperations,
                 magic: [new MagicType(1360, 1360, "OwnedBookSpell", [])], transformInfo: transformInfo);
             Catalog = catalog;

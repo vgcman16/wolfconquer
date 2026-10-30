@@ -31,9 +31,9 @@ public sealed partial class WorldSessionStore
         lock (gate)
         {
             using var entered = EnterNativeConnectionGate();
-            if (!_sessions.TryGetValue(binding.Connection, out var holder) || !BindingIsCurrentPlain(binding, holder, expected)) return false;
+            if (!_sessions.TryGetValue(binding.Connection, out var holder) || !RuntimeInspectionBindingIsCurrentPlain(binding, holder, expected)) return false;
             using var actors = new SpellActorScope(binding);
-            if (!BindingIsCurrentPlain(binding, holder, expected) ||
+            if (!RuntimeInspectionBindingIsCurrentPlain(binding, holder, expected) ||
                 !LegacySecondaryPasswordRuntime.TryGet(binding.Connection, expected, out _, out _)) return false;
             var managed = LegacyRuntimeInspectionProjection.CaptureManaged(expected);
             var character = LegacyRuntimeInspectionProjection.Character(expected);
@@ -42,7 +42,7 @@ public sealed partial class WorldSessionStore
             if (!LegacyRuntimeInspectionProjection.SameNative(native, nativeAgain) ||
                 !LegacyRuntimeInspectionProjection.SameManaged(managed, LegacyRuntimeInspectionProjection.CaptureManaged(expected)) ||
                 character != LegacyRuntimeInspectionProjection.Character(expected) ||
-                !BindingIsCurrentPlain(binding, holder, expected) ||
+                !RuntimeInspectionBindingIsCurrentPlain(binding, holder, expected) ||
                 !LegacySecondaryPasswordRuntime.TryGet(binding.Connection, expected, out _, out _)) return false;
             var rows = native.UnavailableReason is null ? native.Rows.Select(row => row.Value).ToArray() : null;
             var managedRows = managed.Rows.Select(row => row.Value).ToArray();
@@ -53,4 +53,22 @@ public sealed partial class WorldSessionStore
             return true;
         }
     }
+
+    // Keeps the real retained Store/player/spell issuance. Item values and slots
+    // are observed separately; this path cannot prepare or publish a mutation.
+    private bool RuntimeInspectionBindingIsCurrentPlain(LegacyOrdinarySpellBinding binding,
+        SessionHolder holder, WorldSession expected) =>
+        ReferenceEquals(binding.Store, this) && _sessions.TryGetValue(binding.Connection, out var actual) &&
+        ReferenceEquals(actual, holder) && ReferenceEquals(holder.SpellBinding, binding) &&
+        ReferenceEquals(holder.NativeClientIdentity, binding.NativeIdentity) && ReferenceEquals(holder.Read(), expected) &&
+        expected.AccountId == binding.AccountId && expected.Character.Uid == binding.Uid &&
+        string.Equals(expected.UsersRoot, binding.SessionUsersRoot, StringComparison.Ordinal) &&
+        ReferenceEquals(expected.NativeGameClient, binding.Client) && ReferenceEquals(expected.PlayerSpells, binding.Snapshot) &&
+        ReferenceEquals(expected.PlayerProficiencies, binding.ProficiencySnapshot) &&
+        ReferenceEquals(expected.PlayerItems, binding.ItemSnapshot) && binding.RuntimeInspectionPlayerOwnerIsCurrentPlain();
+
+    internal bool IsRuntimeInspectionOwnerCurrent(LegacyOrdinarySpellBinding binding) =>
+        _sessions.TryGetValue(binding.Connection, out var holder) && holder.Read() is { } current &&
+        RuntimeInspectionBindingIsCurrentPlain(binding, holder, current);
+
 }

@@ -46,11 +46,13 @@ public static partial class WorldPacketHandlers
         {
             // Mode Trade=2; the underlying inventory item is never temporarily mutated.
             var preview = LegacyGameItemPacket.FromSnapshotItem(item, mode: 2).ToFrameBytes();
+            WorldSessionStore.TradeItemLineage? lineage = null;
             if (!context.Sessions!.TryCommitPair(party.Connection, own, own, party.Other.Connection, other, other,
                     () => ownItems.IsCurrent(own.PlayerItems) && otherItems.IsCurrent(other.PlayerItems) &&
-                          IsLegacyTradeClosureTradable(context, party, closure)))
+                          IsLegacyTradeClosureTradable(context, party, closure) &&
+                          context.Sessions.TryCaptureTradeItemLineage(party.Connection, own, closure, out lineage)))
                 return "staleItemOffer";
-            party.Items.Add(item.Uid, new(item, closure));
+            party.Items.Add(item.Uid, new(item, closure, lineage));
             party.ResetConfirmations(); // Harden changes after confirmation instead of exchanging unseen edits.
             sends.Add(new(party.Other.Connection, party.Other.Uid, preview));
             return "itemOffered";
@@ -150,7 +152,7 @@ public static partial class WorldPacketHandlers
         if (LegacyInventorySlots - own.PlayerItems.InventoryItems.Count < party.Other.Items.Count ||
             LegacyInventorySlots - other.PlayerItems.InventoryItems.Count < party.Items.Count)
             problem = "capacityBeforeOutgoingRemovals";
-        else if (!ValidLegacyTradeOffers(context, party, ownItems) || !ValidLegacyTradeOffers(context, party.Other, otherItems))
+        else if (!ValidateLegacyTradeExchangeOffers(context, party, own, ownItems, other, otherItems, out _))
             problem = "offeredItemChangedOrMissing";
         else if (LegacyTradeHasUidCollision(ownItems, party.Other) || LegacyTradeHasUidCollision(otherItems, party))
             problem = "receivingUidCollision";

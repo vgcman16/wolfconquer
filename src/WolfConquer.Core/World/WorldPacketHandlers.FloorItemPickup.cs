@@ -11,6 +11,7 @@ public static partial class WorldPacketHandlers
         cancellationToken.ThrowIfCancellationRequested();
         LegacyFloorPickupPlan? committed = null;
         WorldSession? admitted = null;
+        WorldSession? published = null;
         LegacyNativePlayerRuntime? pickupPlayer = null;
         byte[]? rejection = null;
         uint floorUid = 0;
@@ -38,7 +39,7 @@ public static partial class WorldPacketHandlers
                     using (reservation)
                     {
                         if (status != FloorItemRuntimePickupStatus.Available) reason = "pickupReservation:" + status;
-                        else if (TryCommitLegacyFloorPickup(context, current, plan, reservation!, out durable, out reason))
+                        else if (TryCommitLegacyFloorPickup(context, current, plan, reservation!, out published, out durable, out reason))
                         { committed = plan; teamOwnerLock = ownerBypass; }
                     }
                 }
@@ -53,13 +54,16 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        var updatedContext = context with { Session = committed.Updated };
+        // The frozen plan remains the prewriter source proof. Delivery carries
+        // the exact Store-issued canonical receipt, without post-IO recapture.
+        var receipt = published!;
+        var updatedContext = context with { Session = receipt };
         if (teamOwnerLock)
             await context.Log.WriteLineAsync($"WorldServer allowed LegacyFloorItem team owner-lock pickup {FormatSession(context)} " +
                 $"floorUid={floorUid} ownerUid={committed.Entry.Packet.ItemOwnerUid} kind={committed.Entry.Kind}.").ConfigureAwait(false);
         foreach (var bytes in committed.BeforeRemovalFrames)
             await context.Connection.SendAsync(bytes, cancellationToken).ConfigureAwait(false);
-        await SendLegacyFloorItemRemoveAsync(updatedContext, committed.Updated.Character,
+        await SendLegacyFloorItemRemoveAsync(updatedContext, receipt.Character,
             committed.Entry, cancellationToken).ConfigureAwait(false);
         await context.Connection.SendAsync(committed.PickupTextFrame, cancellationToken).ConfigureAwait(false);
         if (committed.CreditsQuest1311)
@@ -68,7 +72,7 @@ public static partial class WorldPacketHandlers
         var kind = committed.Entry.Kind switch
         { FloorItemRuntimePickupKind.Money => "money", FloorItemRuntimePickupKind.ConquerPoints => "Conquer Point", _ => "item" };
         var walletLog = committed.Entry.Kind == FloorItemRuntimePickupKind.ConquerPoints
-            ? $" updatedConquerPoints={committed.Updated.Character.ConquerPoints} walletUpdate=LegacyMsgUpdate.ConquerPoints" : string.Empty;
+            ? $" updatedConquerPoints={receipt.Character.ConquerPoints} walletUpdate=LegacyMsgUpdate.ConquerPoints" : string.Empty;
         await context.Log.WriteLineAsync($"WorldServer handled LegacyFloorItem {kind} pickup {FormatSession(updatedContext)} " +
             $"floorUid={floorUid} kind={committed.Entry.Kind} amount={committed.Entry.Amount} " +
             $"itemUid={committed.Item?.Uid} persistedBeforeReply={durable}{walletLog}.").ConfigureAwait(false);

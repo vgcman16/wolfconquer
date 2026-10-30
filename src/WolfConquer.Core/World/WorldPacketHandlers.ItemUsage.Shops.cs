@@ -193,7 +193,7 @@ public static partial class WorldPacketHandlers
             Character = updatedCharacter,
             PlayerItems = updatedItems,
         };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
 
         foreach (var item in purchased)
         {
@@ -323,7 +323,7 @@ public static partial class WorldPacketHandlers
             Character = session.Character with { ConquerPoints = session.Character.ConquerPoints - totalCost },
             PlayerItems = updatedItems,
         };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
 
         foreach (var item in purchased)
         {
@@ -433,7 +433,7 @@ public static partial class WorldPacketHandlers
             Character = WithCharacterAttribute(session.Character, "RacePoints", updatedRacePoints),
             PlayerItems = updatedItems,
         };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
 
         await SendScalarUpdateAsync(
                 context,
@@ -550,7 +550,7 @@ public static partial class WorldPacketHandlers
             Character = WithArenaCurrentHonor(session.Character, updatedCurrentHonor),
             PlayerItems = updatedItems,
         };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
 
         foreach (var item in purchased)
         {
@@ -674,7 +674,7 @@ public static partial class WorldPacketHandlers
             Character = WithCharacterAttribute(session.Character, "ChampionPoints", updatedChampionPoints),
             PlayerItems = updatedItems,
         };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
 
         foreach (var item in purchased)
         {

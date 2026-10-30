@@ -14,6 +14,7 @@ internal partial class LegacyNativeUpdateSpell
         private readonly uint uid, damage, right, left, spellRate;
         private readonly ushort spellId, attackType, playerLevel, originalLevel;
         private readonly LegacyNativeEquipItemStorage equipment;
+        private readonly LegacyNativeOwnedItemGraph.TrainingWeaponsLease? trainingWeapons;
         private readonly LegacyNativeProficiencyStorage? profs;
         private readonly LegacyNativeSpellStorage? storage;
         private readonly LegacyNativeSecuritySocket? socket;
@@ -32,18 +33,22 @@ internal partial class LegacyNativeUpdateSpell
         private TrainingPlan(LegacyNativePacket stream, LegacyNativeGameClientRuntime client, LegacyNativePlayerRuntime player,
             LegacyNativeInteractQuery attack, uint damage, Dictionary<ushort, LegacyNativeMagicType.Magic>? metadata,
             LegacyNativeEquipItemStorage equipment, LegacyNativeProficiencyStorage? profs, LegacyNativeSpellStorage? storage,
-            LegacyNativeSpellStorage.DirectSpellSnapshot.DirectSpellChange? selected)
+            LegacyNativeSpellStorage.DirectSpellSnapshot.DirectSpellChange? selected,
+            LegacyNativeOwnedItemGraph.TrainingWeaponsLease? trainingWeapons)
         {
             this.stream = stream; this.client = client; this.player = player; this.attack = attack; this.damage = damage;
             this.metadata = metadata; this.equipment = equipment; this.profs = profs; this.storage = storage; this.selected = selected;
+            this.trainingWeapons = trainingWeapons;
             socket = client.Socket; fake = client.Fake;
             uid = player.UID; playerLevel = player.Level; spellId = attack.SpellID; attackType = attack.AtkType;
-            right = equipment.RightWeapon / 1000; left = equipment.LeftWeapon / 1000;
+            right = (trainingWeapons?.RightWeaponId ?? equipment.RightWeapon) / 1000;
+            left = (trainingWeapons?.LeftWeaponId ?? equipment.LeftWeapon) / 1000;
             spellRate = LegacyNativeServerConfig.ExpRateSpell; originalLevel = selected?.Value.Level ?? 0;
         }
 
         internal static TrainingPlan? TryPrepare(LegacyNativePacket stream, LegacyNativeGameClientRuntime client,
-            LegacyNativeInteractQuery attack, uint damage, Dictionary<ushort, LegacyNativeMagicType.Magic>? metadata, bool physical)
+            LegacyNativeInteractQuery attack, uint damage, Dictionary<ushort, LegacyNativeMagicType.Magic>? metadata, bool physical,
+            LegacyNativeOwnedItemGraph.TrainingWeaponsLease? trainingWeapons = null)
         {
             TrainingPlan plan;
             lock (client.SpellAdmissionSyncRoot)
@@ -52,7 +57,14 @@ internal partial class LegacyNativeUpdateSpell
                 if (player is null) return null;
                 lock (player.SpellAdmissionSyncRoot)
                 {
-                    LegacyNativeSpellStorage.RequireDirectEntry(client);
+                    if (trainingWeapons is null)
+                        LegacyNativeSpellStorage.RequireDirectEntry(client);
+                    else if (client.Equipment is not { } joinedEquipment ||
+                        !trainingWeapons.MatchesCurrent(client, player, joinedEquipment))
+                        return null;
+                    // The public CheckUpdate entry still rejects nested calls.
+                    // Only the exact closed Store-issued projection permits this
+                    // internal preparation while its genuine gates are held.
                     if (!ReferenceEquals(player.Owner, client) || player.UID == 0) throw new InvalidOperationException("Training requires its physical player.");
                     var storage = metadata is null ? null : client.MySpells;
                     if (metadata is not null && storage is null) return null;
@@ -62,14 +74,19 @@ internal partial class LegacyNativeUpdateSpell
                     if (selected is null && !physical || client.Equipment is not { } equipment || stream is null) return null;
                     if (!equipment.IsOwnedBy(client))
                         throw new InvalidOperationException("Training requires its physical equipment owner.");
+                    if (trainingWeapons is not null && !trainingWeapons.MatchesCurrent(client, player, equipment))
+                        return null;
                     var profs = client.MyProfs;
-                    if (equipment.RightWeapon / 1000 != 0 || equipment.LeftWeapon / 1000 != 0)
+                    uint right = trainingWeapons?.RightWeaponId ?? equipment.RightWeapon;
+                    uint left = trainingWeapons?.LeftWeaponId ?? equipment.LeftWeapon;
+                    if (right / 1000 != 0 || left / 1000 != 0)
                     {
                         if (profs is null) return null;
                         if (!profs.IsOwnedBy(client))
                             throw new InvalidOperationException("Training requires its physical proficiency owner.");
                     }
-                    plan = new(stream, client, player, attack, damage, metadata, equipment, profs, storage, selected);
+                    plan = new(stream, client, player, attack, damage, metadata, equipment, profs, storage, selected,
+                        trainingWeapons);
                     if (storage is not null)
                         lock (storage.MutationGate)
                         {

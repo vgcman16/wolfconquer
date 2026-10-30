@@ -146,8 +146,7 @@ public static partial class WorldPacketHandlers
             Attributes = attributes,
         };
         var updated = session with { Character = character };
-        context.Sessions?.Set(context.Connection, updated);
-        return updated;
+        return PublishLegacyItemUsageSession(context, updated);
     }
 
     private static ValueTask SendWalletMoneyUpdateAsync(

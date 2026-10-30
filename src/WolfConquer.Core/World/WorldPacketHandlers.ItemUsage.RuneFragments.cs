@@ -99,7 +99,7 @@ public static partial class WorldPacketHandlers
             InventoryItems = updatedItems.InventoryItems.Concat([rewardItem]).ToArray(),
         };
         var updatedSession = session with { PlayerItems = updatedItems };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
         var updatedContext = context with { Session = updatedSession };
 
         await TryPersistLegacyItemUsageMutationAsync(

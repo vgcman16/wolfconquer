@@ -23,7 +23,7 @@ public static partial class WorldPacketHandlers
                 if (!LegacyFloorPickupItemLock.TryProject(row, now, out var final, out _, out reason)) return false;
                 if (!ReferenceEquals(final, row)) unlocked.Add(row.Uid, final);
             }
-            if (!owner.Items.IsCurrent(owner.Session.PlayerItems)) return false;
+            if (!owner.Items.IsCurrent(owner.ItemSource)) return false;
             reason = string.Empty;
             return true;
         }
@@ -51,6 +51,6 @@ public static partial class WorldPacketHandlers
             },
         };
         return LegacyItemSaveGraph.TryCapture(updated.PlayerItems, out after) &&
-            owner.Items.IsCurrent(owner.Session.PlayerItems);
+            owner.Items.IsCurrent(owner.ItemSource);
     }
 }

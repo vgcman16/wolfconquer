@@ -47,7 +47,7 @@ public static partial class WorldPacketHandlers
                             durable = true;
                             mailboxes.PublishClaims(baseline.Mail, plan.MailAfter);
                             return true;
-                        })) delivery = plan;
+                        }, out var final)) delivery = plan with { Updated = final! };
                     }
                 }
             }

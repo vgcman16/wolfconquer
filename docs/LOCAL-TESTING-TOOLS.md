@@ -292,3 +292,10 @@ null when they are unavailable. `atomicNativeTupleProven` and
 and changes after capture remain possible. The endpoint never grants, repairs,
 saves or changes the character; a saved-file inspection is still a separate
 observation. A transport failure never retries an action automatically.
+
+## Private GM test commands
+
+The opt-in [GM testing toolkit](GM-TEST-COMMANDS.md) provides self inspection and
+three real mailbox kits through explicit account/character/domain permissions.
+It includes a new-file-only policy creation tool. Default startup grants no GM
+access. Offline qualification and staged/live activation remain separate.

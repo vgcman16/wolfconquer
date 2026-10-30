@@ -4,6 +4,7 @@ internal sealed partial class LegacyNativeRuneItemStorage
 {
     internal LoadPublication CaptureLoadPublication(LegacyNativeGameClientRuntime client, LegacyNativePlayerRuntime player)
     {
+        if (JoinedItemGraph is not null) throw new InvalidOperationException("Joined Rune requires canonical Store publication.");
         if (!Monitor.IsEntered(StorageSyncRoot)) throw new InvalidOperationException("Actual Rune gate is required.");
         var binding = new StorageBinding(client, player, player.UID);
         if (!IsCurrent(binding)) throw new InvalidDataException("Rune load owner is foreign.");

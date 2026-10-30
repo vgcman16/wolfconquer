@@ -18,15 +18,20 @@ public sealed partial class WorldSessionStore
         private readonly SpellActorScope? actors;
         private readonly LegacyNativeSpellStorage.PreparedSessionSpellMap? map;
         private readonly LegacyNativeProficiencyStorage.PreparedSessionProficiencyMap? proficiencies;
-        internal WorldSession FinalSession { get; }
+        private LegacyOwnedNativeItemImage.Preparation? itemImage;
+        private LegacyNativeOwnedItemGraph.PreparedPublication? items;
+        private readonly bool deferItems;
+        private bool deferredItemsPrepared;
+        internal WorldSession FinalSession { get; private set; }
         internal LegacyOrdinarySpellBinding? Binding => binding;
         internal object PublishedIdentity => finalIdentity;
 
         internal PreparedSessionSpellPublication(WorldSessionStore store, ConquerTcpConnection connection,
             SessionHolder holder, WorldSession? expected, WorldSession proposed,
-            WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null)
+            WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null, bool deferItems = false)
         {
             this.store = store; this.connection = connection; this.holder = holder; this.expected = expected;
+            this.deferItems = deferItems;
             binding = holder.SpellBinding;
             finalIdentity = expected is not null && expected.AccountId == proposed.AccountId &&
                 expected.Character.Uid == proposed.Character.Uid ? holder.NativeClientIdentity : new object();
@@ -47,6 +52,7 @@ public sealed partial class WorldSessionStore
             actors = new(binding);
             try
             {
+                binding.Items.RequireCurrentBeforePreparation();
                 map = LegacyNativeSpellStorage.PrepareSessionSnapshot(binding.Client, binding.Player,
                     expected.PlayerSpells, proposed.PlayerSpells);
                 proficiencies = LegacyNativeProficiencyStorage.PrepareSessionSnapshot(binding.Client, binding.Player,
@@ -54,6 +60,12 @@ public sealed partial class WorldSessionStore
                 var final = ReferenceEquals(proposed.PlayerSpells, map.FinalSnapshot) &&
                     ReferenceEquals(proposed.PlayerProficiencies, proficiencies.FinalSnapshot) ? proposed :
                     proposed with { PlayerSpells = map.FinalSnapshot, PlayerProficiencies = proficiencies.FinalSnapshot };
+                if (!deferItems)
+                {
+                    PrepareItems(final);
+                    if (!ReferenceEquals(final.PlayerItems, itemImage!.FinalSnapshot))
+                        final = final with { PlayerItems = itemImage.FinalSnapshot };
+                }
                 hitpoints = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareBound(binding, expected, final);
                 if (expected.Character.MinHitPoints != final.Character.MinHitPoints ||
                     expected.Character.MinMana != final.Character.MinMana || caprice is not null)
@@ -62,7 +74,47 @@ public sealed partial class WorldSessionStore
                 FinalSession = HitpointsWrite?.Proposed ?? final;
                 RequireCurrentBeforeWriter();
             }
-            catch { actors.Dispose(); throw; }
+            catch { items?.Dispose(); actors.Dispose(); throw; }
+        }
+
+        private void PrepareItems(WorldSession proposed)
+        {
+            if (binding is null || items is not null) throw InvalidSpellPublication();
+            binding.Items.RequireCurrentBeforePreparation();
+            var context = (store.framePersistenceOwner ?? throw InvalidSpellPublication()).RequireOwnedNativeItemContext();
+            if (!ReferenceEquals(context.Catalog, binding.ItemCatalog) || context.Profile != binding.ItemProfile)
+                throw InvalidSpellPublication();
+            itemImage = LegacyOwnedNativeItemImage.Prepare(context.Catalog, proposed.PlayerItems,
+                context.Profile, binding.Items.Image);
+            if (!ReferenceEquals(itemImage.SourceSnapshot, proposed.PlayerItems) ||
+                !ReferenceEquals(itemImage.BaseImage, binding.Items.Image)) throw InvalidSpellPublication();
+            items = LegacyNativeOwnedItemGraph.PrepareRefresh(binding.Items, itemImage);
+            if (!ReferenceEquals(items.Graph, binding.Items) ||
+                !ReferenceEquals(items.FinalSnapshot, itemImage.FinalSnapshot)) throw InvalidSpellPublication();
+        }
+
+        // Only the actual Store-issued mailbox capability calls this before its
+        // real joint writer. Spell/vital ownership cannot be replaced by it.
+        internal WorldSession PrepareDeferredItems(WorldSession proposed)
+        {
+            if (!deferItems || deferredItemsPrepared || expected is null ||
+                !ReferenceEquals(holder.Read(), expected) ||
+                proposed.AccountId != expected.AccountId || proposed.Character.Uid != expected.Character.Uid ||
+                proposed.Character.MinHitPoints != expected.Character.MinHitPoints || proposed.Character.MinMana != expected.Character.MinMana ||
+                !ReferenceEquals(proposed.PlayerSpells, expected.PlayerSpells) ||
+                !ReferenceEquals(proposed.PlayerProficiencies, expected.PlayerProficiencies) ||
+                !ReferenceEquals(proposed.NativeGameClient, expected.NativeGameClient) ||
+                !string.Equals(proposed.UsersRoot, expected.UsersRoot, StringComparison.Ordinal)) throw InvalidSpellPublication();
+            deferredItemsPrepared = true;
+            if (binding is not null)
+            {
+                PrepareItems(proposed);
+                proposed = proposed with { PlayerItems = itemImage!.FinalSnapshot,
+                    PlayerSpells = map!.FinalSnapshot, PlayerProficiencies = proficiencies!.FinalSnapshot };
+            }
+            FinalSession = proposed;
+            RequireCurrentBeforeWriter();
+            return FinalSession;
         }
 
         internal void RequireCurrentBeforeWriter()
@@ -71,26 +123,29 @@ public sealed partial class WorldSessionStore
                 !store.BindingIsCurrentPlain(binding, holder, expected!)) throw InvalidSpellPublication();
             map?.RequireCurrentBeforeWriter();
             proficiencies?.RequireCurrentBeforeWriter();
+            items?.RequireCurrentBeforeWriter();
             if (hitpoints is not null && !hitpoints.IsCurrentPlain()) throw InvalidSpellPublication();
             if (binding is not null && !store.BindingIsCurrentPlain(binding, holder, expected!)) throw InvalidSpellPublication();
         }
 
         internal void ArmFinalProof()
         {
+            if (deferItems && !deferredItemsPrepared) throw InvalidSpellPublication();
             map?.ArmFinalProof();
             proficiencies?.ArmFinalProof();
+            items?.ArmFinalProof();
             HitpointsWrite?.Inputs.Arm();
         }
         internal bool ConsumeBeforeWriterPlain() => ReferenceEquals(holder.Read(), expected) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeBeforeWriterPlain() &&
-                proficiencies!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() &&
+                proficiencies!.ConsumeBeforeWriterPlain() && items!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() &&
                 (HitpointsWrite is null || HitpointsWrite.Inputs.ConsumeBeforePlain()));
 
         // The raw map enumerator was allocated before the writer. Consume it
         // once, without a comparer or a fresh iterator at this final boundary.
         internal bool IsCurrentPlain() => ReferenceEquals(holder.Read(), expected) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeCurrentPlain() &&
-                proficiencies!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() &&
+                proficiencies!.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() &&
                 (HitpointsWrite is null || HitpointsWrite.IsCommitted && HitpointsWrite.Inputs.ConsumeAfterPlain()));
 
         // Call only after the final plain proof and actual successful writer.
@@ -99,7 +154,9 @@ public sealed partial class WorldSessionStore
             if (binding is null) return;
             map!.PublishPreparedMap();
             proficiencies!.PublishPreparedMap();
+            items!.PublishPrepared();
             binding.PublishSnapshots(FinalSession.PlayerSpells, FinalSession.PlayerProficiencies);
+            binding.PublishItemSnapshot(FinalSession.PlayerItems);
             hitpoints!.PublishPrepared();
         }
 
@@ -107,7 +164,11 @@ public sealed partial class WorldSessionStore
 
         internal void PublishHolder() => holder.PublishPrepared(FinalSession, finalIdentity);
 
-        public void Dispose() => actors?.Dispose();
+        public void Dispose()
+        {
+            items?.Dispose();
+            actors?.Dispose();
+        }
     }
 
     private bool BindingIsCurrentPlain(LegacyOrdinarySpellBinding binding, SessionHolder holder, WorldSession expected) =>
@@ -118,6 +179,7 @@ public sealed partial class WorldSessionStore
         string.Equals(expected.UsersRoot, binding.SessionUsersRoot, StringComparison.Ordinal) &&
         ReferenceEquals(expected.NativeGameClient, binding.Client) && ReferenceEquals(expected.PlayerSpells, binding.Snapshot) &&
         ReferenceEquals(expected.PlayerProficiencies, binding.ProficiencySnapshot) &&
+        ReferenceEquals(expected.PlayerItems, binding.ItemSnapshot) &&
         binding.PhysicalOwnerIsCurrentPlain();
 
     internal bool IsBoundSpellOwnerCurrent(LegacyOrdinarySpellBinding binding) =>

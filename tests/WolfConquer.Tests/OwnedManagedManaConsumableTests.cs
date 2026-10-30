@@ -46,6 +46,8 @@ public sealed partial class OwnedManagedManaConsumableTests
         await f.Login(); var before = f.Current; var files = f.Files();
         var binding = Assert.IsType<LegacyOrdinarySpellBinding>(f.Native.OrdinarySpellBinding);
         var other = Assert.Single(before.PlayerItems.InventoryItems, row => row.Uid == Fixture.OtherUid);
+        var nativeOther = Assert.IsType<LegacyNativeInventoryRuntime>(f.Native.Inventory).ClientItems[Fixture.OtherUid];
+        var otherImage = PlayerItemSnapshotLoader.ToLegacyBytes(PlayerItemSnapshot.Empty with { InventoryItems = new[] { other } });
         var characterAfter = LegacyBoundHitpointsScalarWrite.ProjectAfterImage(File.ReadAllBytes(f.CharacterPath),
             before.Character with { MinMana = 80 });
         var itemsAfter = ExpectedItems(File.ReadAllBytes(f.ItemsPath), stack);
@@ -58,7 +60,9 @@ public sealed partial class OwnedManagedManaConsumableTests
                 Assert.Equal(first, f.Sent.Count); Assert.NotSame(before, f.Current);
                 Assert.Equal(characterAfter, File.ReadAllBytes(f.CharacterPath)); Assert.Equal(itemsAfter, File.ReadAllBytes(f.ItemsPath));
                 AssertManagedMana(f, 80); Assert.NotNull(f.Current.LastLegacyPotionUseUtc);
-                Assert.Same(other, Assert.Single(f.Current.PlayerItems.InventoryItems, row => row.Uid == Fixture.OtherUid));
+                var currentOther = Assert.Single(f.Current.PlayerItems.InventoryItems, row => row.Uid == Fixture.OtherUid);
+                Assert.Equal(otherImage, PlayerItemSnapshotLoader.ToLegacyBytes(PlayerItemSnapshot.Empty with { InventoryItems = new[] { currentOther } }));
+                Assert.Same(nativeOther, f.Native.Inventory!.ClientItems[Fixture.OtherUid]);
                 Assert.Same(binding, f.Native.OrdinarySpellBinding); Assert.False(binding.IsRetired);
                 Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); Assert.False(f.Recovery.IsBlocked);
                 Assert.False(LegacyTradeJournal.HasPending(f.Users));

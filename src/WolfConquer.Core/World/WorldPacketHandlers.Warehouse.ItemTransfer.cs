@@ -17,6 +17,7 @@ public static partial class WorldPacketHandlers
             return;
         }
         LegacyWarehouseItemTransferPlan? committed = null;
+        WorldSession? canonical = null;
         var reason = "warehouseItemTransferOwnerUnavailable";
         using (await operations.EnterPacketExclusiveAsync(cancellationToken).ConfigureAwait(false))
         lock (trades.SyncRoot)
@@ -41,12 +42,16 @@ public static partial class WorldPacketHandlers
                     if (!saved && failure.StartsWith(LegacyWarehouseItemTransferPersistence.RecoveryRequired, StringComparison.Ordinal))
                         recovery.Block(failure);
                     return saved;
-                })) committed = plan;
+                }, out var published))
+                {
+                    committed = plan;
+                    canonical = published ?? throw new LegacyCommittedSpellPublicationException();
+                }
                 else reason = failure;
             }
         }
 
-        if (committed is null)
+        if (committed is null || canonical is null)
         {
             await context.Log.WriteLineAsync($"WorldServer skipped {label} action={packet.Action} reason={reason}; " +
                 (recovery.IsBlocked ? "durable state requires reconciliation; world fenced, success withheld."
@@ -57,7 +62,10 @@ public static partial class WorldPacketHandlers
             $"{location}={packet.NpcId} itemUid={packet.ItemUid}; item file and Store committed, delivery pending.").ConfigureAwait(false);
         foreach (var frame in committed.Frames)
         {
-            if (!IsCurrentLegacyWarehouseItemTransferOwner(context, committed.Owner, committed.Updated))
+            // Retain the original prepared source proof. Only the actual
+            // Store receipt, not the proposal, pins current delivery identity.
+            if (!committed.After.IsCurrent(committed.Updated.PlayerItems) ||
+                !IsCurrentLegacyWarehouseItemTransferOwner(context, committed.Owner, canonical))
             {
                 await context.Log.WriteLineAsync($"WorldServer {label} delivery stopped after commit; owner retired or changed.")
                     .ConfigureAwait(false);
@@ -69,7 +77,7 @@ public static partial class WorldPacketHandlers
         var operation = LegacyWarehouseItemTransferActions.IsDeposit(packet.Action) ? "deposit" : "withdraw";
         var family = physicalSash ? "sash " : string.Empty;
         await context.Log.WriteLineAsync($"WorldServer handled LegacyWarehouse {family}{operation} " +
-            $"{FormatSession(context with { Session = committed.Updated })} {location}={packet.NpcId} itemUid={packet.ItemUid}.")
+            $"{FormatSession(context with { Session = canonical })} {location}={packet.NpcId} itemUid={packet.ItemUid}.")
             .ConfigureAwait(false);
     }
 }

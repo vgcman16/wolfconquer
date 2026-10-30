@@ -39,6 +39,7 @@ internal sealed partial class LegacyNativeRuneItemStorage
 
     public bool Add(LegacyNativeGameItemRuntime item)
     {
+        if (JoinedItemGraph is not null) return false;
         var client = constructorOwner;
         if (client is null || item is null) return false;
         lock (client.SpellAdmissionSyncRoot)

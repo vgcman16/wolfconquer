@@ -91,7 +91,7 @@ public static partial class WorldPacketHandlers
             Character = updatedCharacter,
             PlayerItems = updatedItems,
         };
-        context.Sessions?.Set(context.Connection, updated);
+        updated = PublishLegacyItemUsageSession(context, updated);
 
         await context.Connection.SendAsync(consumeFrame, cancellationToken).ConfigureAwait(false);
         if (rewardFrame is not null)
@@ -182,7 +182,7 @@ public static partial class WorldPacketHandlers
             Character = WithCharacterAttribute(session.Character, "OpenHousePack", updatedOpenedToday),
             PlayerItems = updatedItems,
         };
-        context.Sessions?.Set(context.Connection, updated);
+        updated = PublishLegacyItemUsageSession(context, updated);
 
         await context.Connection.SendAsync(consumeFrame, cancellationToken).ConfigureAwait(false);
         await context.Connection.SendAsync(
@@ -280,7 +280,7 @@ public static partial class WorldPacketHandlers
             Character = updatedCharacter,
             PlayerItems = updatedItems,
         };
-        context.Sessions?.Set(context.Connection, updated);
+        updated = PublishLegacyItemUsageSession(context, updated);
 
         await context.Connection.SendAsync(consumeFrame, cancellationToken).ConfigureAwait(false);
         if (modeledExperience)

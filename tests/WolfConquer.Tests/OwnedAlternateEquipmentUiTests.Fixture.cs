@@ -43,6 +43,7 @@ public sealed partial class OwnedAlternateEquipmentUiTests
         internal ConquerTcpConnection Connection = null!, Peer = null!;
         internal bool RetainEvidence = true;
         private byte[]? expectedEquipmentImage;
+        private Exception? ownerSendFailure;
         internal Func<SourceAlternateUiFixture, byte[], ValueTask>? OnOwnerSend;
         internal WorldSessionStore Sessions => Assert.IsType<WorldSessionStore>(typeof(WorldServerFrameHandler)
             .GetField("_sessions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Handler));
@@ -104,7 +105,20 @@ public sealed partial class OwnedAlternateEquipmentUiTests
         {
             var closed = new CancellationTokenSource(); closes.Add(closed);
             var connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
-                async (bytes, token) => { token.ThrowIfCancellationRequested(); var copy = bytes.ToArray(); if (ReferenceEquals(frames, OwnerFrames) && expectedEquipmentImage is { } expected) Assert.Equal(expected, File.ReadAllBytes(Path.Combine(Data.Items, PlayerUid + ".bin"))); frames.Enqueue(copy); if (ReferenceEquals(frames, OwnerFrames) && OnOwnerSend is { } observe) await observe(this, copy); },
+                async (bytes, token) =>
+                {
+                    token.ThrowIfCancellationRequested();
+                    var copy = bytes.ToArray();
+                    try
+                    {
+                        if (ReferenceEquals(frames, OwnerFrames) && expectedEquipmentImage is { } expected)
+                            Assert.Equal(expected, File.ReadAllBytes(Path.Combine(Data.Items, PlayerUid + ".bin")));
+                        frames.Enqueue(copy);
+                        if (ReferenceEquals(frames, OwnerFrames) && OnOwnerSend is { } observe)
+                            await observe(this, copy);
+                    }
+                    catch (Exception failure) { ownerSendFailure ??= failure; throw; }
+                },
                 _ => { closed.Cancel(); return ValueTask.CompletedTask; }, new LegacyNativeGameClientRuntime());
             connections.Add(connection); return connection;
         }
@@ -162,10 +176,66 @@ public sealed partial class OwnedAlternateEquipmentUiTests
             }
             Assert.Equal(1, found);
             expectedEquipmentImage = expected;
-            try { await Handler.HandleFrameAsync(Connection, ReadFrame(new MsgItemUsagePacket(92_602, 51,
-                MsgItemUsageAction.Equip, 0, 0, 0, 0).ToFrameBytes())); }
+            try
+            {
+                await Handler.HandleFrameAsync(Connection, ReadFrame(new MsgItemUsagePacket(92_602, 51,
+                    MsgItemUsageAction.Equip, 0, 0, 0, 0).ToFrameBytes()));
+                if (ownerSendFailure is { } failure) ExceptionDispatchInfo.Capture(failure).Throw();
+                Assert.Equal(Assert.IsType<byte[]>(expectedEquipmentImage), File.ReadAllBytes(path));
+            }
             finally { expectedEquipmentImage = null; }
-            Assert.Equal(expected, File.ReadAllBytes(path));
+        }
+        internal WorldSession SetAcceptedEquipmentDurability(ushort durability)
+        {
+            var before = Owner;
+            var item = Assert.Single(before.PlayerItems.EquipmentItems, row => row.Uid == 92_602);
+            Assert.Equal((ushort)51, item.Position);
+            Assert.NotEqual(item.Durability, durability);
+            var proposedItems = before.PlayerItems with
+            {
+                EquipmentItems = before.PlayerItems.EquipmentItems.Select(row =>
+                    row.Uid == item.Uid ? row.WithDurability(durability) : row).ToArray(),
+            };
+            // The equipment transaction preserves the original physical root
+            // order; generic Set writes the canonical equipment root order.
+            // Retain both whole raw records, then change only target durability.
+            var expected = CanonicalEquipmentImage(before);
+            var count = BinaryPrimitives.ReadInt32LittleEndian(expected);
+            var found = 0;
+            for (var index = 0; index < count; index++)
+            {
+                var offset = 4 + index * PlayerItemSnapshotLoader.LegacyDbItemSize;
+                if (BinaryPrimitives.ReadUInt32LittleEndian(expected.AsSpan(offset, 4)) != item.Uid) continue;
+                Assert.Equal(item.Durability,
+                    BinaryPrimitives.ReadUInt16LittleEndian(expected.AsSpan(offset + 8, 2)));
+                BinaryPrimitives.WriteUInt16LittleEndian(expected.AsSpan(offset + 8, 2), durability);
+                found++;
+            }
+            Assert.Equal(1, found);
+            Assert.Equal(expected, PlayerItemSnapshotLoader.ToLegacyBytes(proposedItems));
+            Sessions.Set(Connection, before with { PlayerItems = proposedItems }, out var final);
+            Assert.Same(final, Owner);
+            Assert.Equal(expected, PlayerItemSnapshotLoader.ToLegacyBytes(final.PlayerItems));
+            Assert.Equal(expected, File.ReadAllBytes(Path.Combine(Data.Items, PlayerUid + ".bin")));
+            expectedEquipmentImage = expected;
+            return final;
+        }
+        private byte[] CanonicalEquipmentImage(WorldSession before)
+        {
+            var raw = Assert.IsType<byte[]>(expectedEquipmentImage);
+            Assert.Equal(raw, File.ReadAllBytes(Path.Combine(Data.Items, PlayerUid + ".bin")));
+            Assert.Equal(new uint[] { 92_601, 92_602 }, before.PlayerItems.EquipmentItems.Select(row => row.Uid));
+            Assert.Equal(2, BinaryPrimitives.ReadInt32LittleEndian(raw));
+            var recordSize = PlayerItemSnapshotLoader.LegacyDbItemSize;
+            Assert.Equal(8 + 2 * recordSize, raw.Length);
+            Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(raw.AsSpan(raw.Length - 4)));
+            Assert.Equal(92_602U, BinaryPrimitives.ReadUInt32LittleEndian(raw.AsSpan(4)));
+            Assert.Equal(92_601U, BinaryPrimitives.ReadUInt32LittleEndian(raw.AsSpan(4 + recordSize)));
+            var canonical = raw.ToArray();
+            raw.AsSpan(4 + recordSize, recordSize).CopyTo(canonical.AsSpan(4, recordSize));
+            raw.AsSpan(4, recordSize).CopyTo(canonical.AsSpan(4 + recordSize, recordSize));
+            Assert.Equal(canonical, PlayerItemSnapshotLoader.ToLegacyBytes(before.PlayerItems));
+            return canonical;
         }
         internal async Task QueryStatusAsync() => await Handler.HandleFrameAsync(Connection,
             ReadFrame(new LegacyPlayerStatusQueryPacket(PlayerUid).ToFrameBytes()));

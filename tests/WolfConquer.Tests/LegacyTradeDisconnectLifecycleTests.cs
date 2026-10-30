@@ -251,8 +251,9 @@ public sealed class LegacyTradeDisconnectLifecycleTests : IDisposable
                 if (!pauseRepair || !LegacyGameItemPacket.TryParse(ReadFrame(bytes), out var item) ||
                     item.Uid != offeredUid || item.Mode != LegacyGameItemPacket.UpdateItemMode ||
                     item.Durability != 10 || Interlocked.Exchange(ref repairPauseCount, 1) != 0) return;
-                // This is the actual zero-durability repair's final send, immediately
-                // before its unconditional Sessions.Set and item-file persistence.
+                // The real final repair send follows canonical Store publication
+                // and its save callback. Frame still owns its Shared lease until
+                // this awaited send and the remaining ordinary handler finish.
                 repairPaused.TrySetResult();
                 await releaseRepair.Task.WaitAsync(cancellationToken);
             });
@@ -276,13 +277,23 @@ public sealed class LegacyTradeDisconnectLifecycleTests : IDisposable
             pending.Add(repair);
             await repairPaused.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.False(repair.IsCompleted);
-            Assert.Equal((ushort)0, Assert.Single(Current(right).PlayerItems.InventoryItems,
-                item => item.Uid == offeredUid).Durability);
+            var pausedRight = Current(right);
+            var pausedLeft = Current(left);
+            var pausedItem = Assert.Single(pausedRight.PlayerItems.InventoryItems);
+            Assert.Equal(offeredUid, pausedItem.Uid);
+            Assert.Equal((ushort)10, pausedItem.Durability);
+            Assert.Equal((ushort)10, pausedItem.MaximumDurability);
+            Assert.DoesNotContain(pausedRight.PlayerItems.InventoryItems,
+                item => meteors.Any(meteor => meteor.Uid == item.Uid));
+            Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(pausedRight.PlayerItems), File.ReadAllBytes(ItemPath(right)));
+            Assert.True(pausedLeft.LegacyTradeActive); Assert.True(pausedRight.LegacyTradeActive);
 
             var confirmation = Trade(left, new(9));
             pending.Add(confirmation);
             Assert.False(confirmation.IsCompleted,
                 "Trade must wait for the in-flight ordinary frame, not commit against its stale pre-repair snapshot.");
+            Assert.False(repair.IsCompleted);
+            Assert.Same(pausedRight, Current(right)); Assert.Same(pausedLeft, Current(left));
             Assert.DoesNotContain(Current(left).PlayerItems.InventoryItems, item => item.Uid == offeredUid);
             AssertPersistedWallet(left, 700, 50);
             AssertPersistedWallet(right, 2_000, 50);

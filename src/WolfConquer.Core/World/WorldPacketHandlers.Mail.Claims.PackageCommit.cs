@@ -23,7 +23,7 @@ public static partial class WorldPacketHandlers
         {
             if (!producer.TryAdmitRequest(owner.Expected.AccountId, checked((uint)owner.Expected.Character.Uid), packet, out failure))
             { reason = failure; return false; }
-            var success = owner.Context.Sessions!.TryCommitPreparedSession(owner.Context.Connection, owner.Expected, producer, () =>
+            var success = owner.Context.Sessions!.TryCommitPreparedSession(owner.Context.Connection, owner.Expected, producer, nativeItems =>
                 SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -43,6 +43,9 @@ public static partial class WorldPacketHandlers
                         !ReferenceEquals(prepared.Updated.NativeGameClient, owner.Expected.NativeGameClient) ||
                         prepared.Updated.AccountId != owner.Expected.AccountId ||
                         prepared.Updated.Character.Uid != owner.Expected.Character.Uid) return null;
+                    // Real catalog requirements precede the first UID intent;
+                    // no placeholder UID/item graph is constructed for this check.
+                    nativeItems.ValidateItemIds(prepared.Grants.Select(grant => grant.ItemId));
                     var recipe = LegacyMailboxPackageRecipe.CreateForStacks(producer.Domain, checked((uint)owner.Expected.AccountId),
                         checked((uint)owner.Expected.Character.Uid), packet, prepared.Selected, prepared.Grants,
                         prepared.Stacks,
@@ -58,6 +61,13 @@ public static partial class WorldPacketHandlers
                     // Allocating work now owns a durable intent. No-allocation work
                     // is admitted by its real prepared record below, without a UID.
                     var plan = MaterializeMailboxPackage(prepared, packet, receipt);
+                    var final = nativeItems.Prepare(plan.Updated);
+                    if (!ReferenceEquals(final, plan.Updated))
+                    {
+                        if (!LegacyItemSaveGraph.TryCapture(final.PlayerItems, out var canonical))
+                            throw new InvalidOperationException("Canonical package item image is unavailable.");
+                        plan = plan with { Updated = final, ItemsAfter = canonical, PreparedItems = final.PlayerItems };
+                    }
                     if (!MailboxPackagePreparationCurrent(prepared) || !MailboxClaimPlanCurrent(plan) ||
                         !MailboxPackagePreimagesCurrent(prepared))
                     { failure = MailboxClaimRecoveryRequired + ":packagePreparedStateChanged"; return null; }
@@ -70,6 +80,7 @@ public static partial class WorldPacketHandlers
                             new(LegacyTradeJournalFileKind.Mailbox, owner.Expected.Character.Uid, baseline.Mail.CopyImage(), prepared.MailAfter.Image),
                             new(LegacyTradeJournalFileKind.CombatGear, owner.Expected.Character.Uid, prepared.GearBefore, prepared.GearAfter),
                         ], ref admitted, out var work, out failure)) return null;
+                    nativeItems.ArmBeforeCommit();
                     if (!work!.TryCommit(out var proof, out committed, out failure)) return null;
                     if (!PublishMailboxPackageNative(prepared, proof!))
                     { failure = MailboxClaimRecoveryRequired + ":packageNativePublicationChanged"; return null; }

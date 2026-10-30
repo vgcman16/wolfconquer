@@ -1,0 +1,9 @@
+# Floor pickup canonical continuation
+
+Revision1,2026-10-30, owned-native-item graph integration. Existing VisibleDx8D13 packet IDs/layouts/order and native quest1311 source behavior remain unchanged; no7937/live/SQL claim.
+
+Pickup keeps three distinct facts: original admitted physical player/connection for quest ownership, frozen proposed plan for exact prewriter source/persistence/floor reservation consumption, and actual WorldSessionStore.TryCommitSession outfinal for successful continuation. The persistence closure keeps its original plan.Updated. After real journal/floor consumption and Store/native publication, postcommit physical-owner proof, delivery context, removal character and wallet log use the exact canonical receipt. There is no recapture after IO and no UID/value alias treated as ownership. The genuine store-free/no-file/non-native compatibility branch keeps its real successful local plan; no owner/storage fallback is added.
+
+Quest1311 still reads latest current owner, prepares frame/quest-only saved image, uses actual CAS and retries only the pre-callback session race. Its postcommit context/log continuation uses the exact returned canonical session, preserving pre-pickup physical-owner checks and notification ordering. No extra credit, second floor consume, save retry or notification retry is introduced. Pickup and quest-file transactions remain separate; transport failure remains a postcommit notification failure, not a refundable rejection.
+
+A focused actual Frame/Store/file/floor test observes the first asset send and later quest objective send, verifies the same real binding/native maps and exact holder/image snapshots, preserved original source/frames/order, committed files and consumed floor, then verifies silent replay. Source-only authored/unrun until Root qualification. Repair package and C's existing quest test path remain untouched.

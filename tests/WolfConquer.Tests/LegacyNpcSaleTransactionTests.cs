@@ -108,6 +108,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
         var player = await Login(owner, uid);
         var current = Current(owner, player);
         var sold = current.PlayerItems.InventoryItems.Single(item => item.Uid == SoldUid);
+        NativeGraphFault? rawFault = null;
         switch (scenario)
         {
             case "character-uid": ReplaceCharacterField(uid, "UID", (uid + 1).ToString(CultureInfo.InvariantCulture)); break;
@@ -130,18 +131,22 @@ public sealed partial class LegacyNpcSaleTransactionTests
                     {
                         WarehouseItems = current.PlayerItems.WarehouseItems.Append(new PlayerItemSnapshotItem
                         {
-                            Uid = KeptUid + 2, ItemId = ItemId, WarehouseId = 1000, StackSize = 1, DepositedItems = [sold],
+                            Uid = KeptUid + 2, ItemId = ItemId, WarehouseId = 1000, StackSize = 1, DepositedItems = new[] { sold },
                         }).ToArray(),
                     },
                 };
-                owner.Sessions.Set(player.Connection, current with { PlayerItems = items });
-                Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(items), File.ReadAllBytes(ItemPath(uid)));
+                rawFault = RefuseMalformedProposalThenCorruptNativeGraph(owner, player, items, scenario);
                 break;
         }
 
-        await AssertDenied(owner, player);
-
-        Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
+        try
+        {
+            await AssertDenied(owner, player);
+            rawFault?.AssertRetained();
+            Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
+        }
+        finally { rawFault?.Dispose(); }
+        rawFault?.AssertRemoved();
     }
 
     [Theory]

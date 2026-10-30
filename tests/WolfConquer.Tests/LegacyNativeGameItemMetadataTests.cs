@@ -303,39 +303,39 @@ public sealed class LegacyNativeGameItemMetadataTests
     }
 
     [Fact]
-    public void NullItemsBaseFaultOccursAfterIdCommitWithoutSpellOrEffectWrites()
+    public void NullItemsBaseRefusesWithoutIdSpellOrEffectWrites()
     {
         WithTable(null, () =>
         {
             var item = new LegacyNativeGameItemRuntime { SpellID = 7u, Effect = Flags.ItemEffect.Horse };
             Assert.Throws<NullReferenceException>(() => item.ITEM_ID = 4010001u);
-            Assert.Equal(4010001u, item.ITEM_ID);
+            Assert.Equal(0u, item.ITEM_ID);
             Assert.Equal(7u, item.SpellID);
             Assert.Equal(Flags.ItemEffect.Horse, item.Effect);
         });
     }
 
     [Fact]
-    public void MissingRuneKeyThrowsNativeDictionaryFaultAfterIdCommit()
+    public void MissingRuneKeyKeepsPriorIdSpellAndEffect()
     {
         WithTable(new LegacyNativeItemTypeRuneMetadata(), () =>
         {
             var item = new LegacyNativeGameItemRuntime { SpellID = 8u, Effect = Flags.ItemEffect.MP };
             Assert.Throws<KeyNotFoundException>(() => item.ITEM_ID = 4020001u);
-            Assert.Equal(4020001u, item.ITEM_ID);
+            Assert.Equal(0u, item.ITEM_ID);
             Assert.Equal(8u, item.SpellID);
             Assert.Equal(Flags.ItemEffect.MP, item.Effect);
         });
     }
 
     [Fact]
-    public void PresentNullRowDereferenceFaultOccursAfterIdCommit()
+    public void PresentNullRowRefusesWithoutIdCommit()
     {
         WithTable(new LegacyNativeItemTypeRuneMetadata { [4030001u] = null! }, () =>
         {
             var item = new LegacyNativeGameItemRuntime { SpellID = 9u, Effect = Flags.ItemEffect.Shield };
             Assert.Throws<NullReferenceException>(() => item.ITEM_ID = 4030001u);
-            Assert.Equal(4030001u, item.ITEM_ID);
+            Assert.Equal(0u, item.ITEM_ID);
             Assert.Equal(9u, item.SpellID);
             Assert.Equal(Flags.ItemEffect.Shield, item.Effect);
         });

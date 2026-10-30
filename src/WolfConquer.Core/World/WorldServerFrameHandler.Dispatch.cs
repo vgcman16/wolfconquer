@@ -21,6 +21,10 @@ public sealed partial class WorldServerFrameHandler
                     .ConfigureAwait(false);
                 return;
             }
+            // Reserved GM chat enters its own actual exclusive operation before
+            // ordinary chat takes Shared. Re-entering the public operator APIs
+            // from an ordinary chat lease would otherwise deadlock.
+            if (await TryHandleGmCommandAsync(connection, frame, cancellationToken).ConfigureAwait(false)) return;
             // Normal frames can run concurrently, but a trade mutation must not
             // cross an awaited handler that will later publish an older session.
             using var operation = frame.Header.Opcode is WorldPacketOpcodes.LegacyTrade or WorldPacketOpcodes.LegacySecondaryPassword ||

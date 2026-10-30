@@ -18,6 +18,7 @@ internal sealed partial class LegacyNativeWarehouseRuntime
 
     public void RemoveInscribedItems()
     {
+        if (JoinedItemGraph is not null) throw new InvalidOperationException("Joined warehouse requires canonical Store publication.");
         foreach (ConcurrentDictionary<uint, LegacyNativeGameItemRuntime> value in ClientItems.Values)
         {
             foreach (LegacyNativeGameItemRuntime value2 in value.Values)
@@ -60,6 +61,7 @@ internal sealed partial class LegacyNativeWarehouseRuntime
 
     public bool AddItem(LegacyNativeGameItemRuntime DataItem, uint NpcID)
     {
+        if (JoinedItemGraph is not null) return false;
         if (!ClientItems.ContainsKey(NpcID))
         {
             ClientItems.TryAdd(NpcID, new ConcurrentDictionary<uint, LegacyNativeGameItemRuntime>());

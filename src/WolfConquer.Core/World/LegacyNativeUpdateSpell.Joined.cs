@@ -13,7 +13,8 @@ internal partial class LegacyNativeUpdateSpell
         byte[][]? notifications = null;
         try
         {
-            var plan = TrainingPlan.TryPrepare(stream, client, attack, damage, metadata, physical);
+            using var weapons = lease.PrepareTrainingWeapons();
+            var plan = TrainingPlan.TryPrepare(stream, client, attack, damage, metadata, physical, weapons);
             if (plan is null) return;
             notifications = plan.CommitJoined(binding, lease, physical);
         }

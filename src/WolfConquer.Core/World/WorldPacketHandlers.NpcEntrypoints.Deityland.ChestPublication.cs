@@ -3,16 +3,17 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private static async ValueTask PublishDeityChestAsync(WorldPacketHandlerContext context, DeityChestOwner owner,
-        DeityChestPlan plan, CancellationToken cancellationToken)
+        DeityChestPlan plan, WorldSession final, CancellationToken cancellationToken)
     {
+        context = context with { Session = final };
         try
         {
             foreach (var frame in plan.Frames)
             {
-                if (!IsCurrentDeityChestOwner(context, owner, plan.Updated)) return;
+                if (!IsCurrentDeityChestOwner(context, owner, final)) return;
                 await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
             }
-            if (IsCurrentDeityChestOwner(context, owner, plan.Updated))
+            if (IsCurrentDeityChestOwner(context, owner, final))
                 await context.Log.WriteLineAsync(plan.Success).ConfigureAwait(false);
         }
         catch (Exception)

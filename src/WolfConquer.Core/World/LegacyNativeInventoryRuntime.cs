@@ -25,12 +25,14 @@ internal sealed partial class LegacyNativeInventoryRuntime
 
     internal void AddDBItem(LegacyNativeGameItemRuntime item)
     {
+        if (JoinedItemGraph is not null) throw new InvalidOperationException("Joined inventory requires canonical Store publication.");
         ClientItems.TryAdd(item.Uid, item);
     }
 
     // Native spelling/order retained. No copied item, cached counter, lock or retry bound.
     internal void CheakUp(LegacyNativeGameItemRuntime item)
     {
+        if (JoinedItemGraph is not null) throw new InvalidOperationException("Joined inventory requires canonical Store publication.");
         if (item.Uid == 0)
         {
             item.Uid = LegacyNativePoolItems.ItemCounter.Next;

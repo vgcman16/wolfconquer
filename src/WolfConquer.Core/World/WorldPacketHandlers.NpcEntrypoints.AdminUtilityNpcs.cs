@@ -79,20 +79,16 @@ public static partial class WorldPacketHandlers
         {
             LegacyAdminStuffNpcId => await TryHandleLegacyPrivilegedAdminUtilityNpcAsync(
                     context,
-                    session,
                     npcId,
                     optionId,
                     "NpcHandler.Stuff",
-                    TryHandleLegacyStuffNpcAsync,
                     cancellationToken)
                 .ConfigureAwait(false),
             LegacyAdminStuff12NpcId => await TryHandleLegacyPrivilegedAdminUtilityNpcAsync(
                     context,
-                    session,
                     npcId,
                     optionId,
                     "NpcHandler.Stuff12",
-                    TryHandleLegacyStuff12NpcAsync,
                     cancellationToken)
                 .ConfigureAwait(false),
             LegacyInnerPowerBookNpcId => await TryHandleLegacyInnerPowerBookNpcAsync(
@@ -107,63 +103,19 @@ public static partial class WorldPacketHandlers
 
     private static async ValueTask<bool> TryHandleLegacyPrivilegedAdminUtilityNpcAsync(
         WorldPacketHandlerContext context,
-        WorldSession session,
         uint npcId,
         byte optionId,
         string sourceMethod,
-        Func<WorldPacketHandlerContext, WorldSession, byte, CancellationToken, ValueTask<bool>> handler,
         CancellationToken cancellationToken)
     {
-        if (!IsLegacyAdminUtilityPrivileged(session.Character))
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer ignored LegacyNpc admin utility for non-privileged character " +
-                    $"{FormatSession(context)} npcId={npcId} source={sourceMethod} option={optionId}.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        return await handler(context, session, optionId, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static bool IsLegacyAdminUtilityPrivileged(CharacterSnapshot character)
-    {
-        if (character.Name.Contains("[PM]", StringComparison.OrdinalIgnoreCase) ||
-            character.Name.Contains("[GM]", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        if (TryReadLegacyAdminUtilityBoolAttribute(character, "ProjectManager", "GM", "IsGM", "GameMaster", "IsGameMaster", "Admin", "IsAdmin", "Privileged"))
-        {
-            return true;
-        }
-
-        return character.Attributes.TryGetValue("Role", out var role) &&
-            (string.Equals(role, "PM", StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(role, "GM", StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static bool TryReadLegacyAdminUtilityBoolAttribute(CharacterSnapshot character, params string[] names)
-    {
-        foreach (var name in names)
-        {
-            if (!character.Attributes.TryGetValue(name, out var raw))
-            {
-                continue;
-            }
-
-            if (raw == "1" ||
-                string.Equals(raw, "yes", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase) ||
-                bool.TryParse(raw, out var parsed) && parsed)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        cancellationToken.ThrowIfCancellationRequested();
+        // Saved names/Role/booleans are not permission. The new explicit GM
+        // policy does not grant transaction authority to these legacy actions.
+        await context.Log.WriteLineAsync(
+                "WorldServer disabled LegacyNpc admin utility " +
+                $"npcId={npcId} source={sourceMethod} option={optionId}; reason=ownedGmTransactionRequired.")
+            .ConfigureAwait(false);
+        return true;
     }
 
     private static async ValueTask<bool> TryHandleLegacyStuffNpcAsync(

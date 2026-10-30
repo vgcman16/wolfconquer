@@ -48,6 +48,9 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         Assert.Equal(111U, verifiedState.Password);
         Assert.True(admittedByIssuer);
 
+        var nativeOwners = CaptureSashPinNativeOwners(player);
+        var otherNativeRows = CaptureSashPinOtherNativeRows(player);
+        Assert.Equal(6, otherNativeRows.Count);
         var expectedItems = SashPinExpectedItems(admitted.PlayerItems, withdraw);
         var expectedFiles = new Dictionary<string, byte[]>(rejectedFiles, StringComparer.OrdinalIgnoreCase)
         {
@@ -61,6 +64,7 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
             var current = Current(owner, player);
             Assert.Equal(JsonSerializer.Serialize(expectedItems), JsonSerializer.Serialize(current.PlayerItems));
             Assert.Equal(admitted with { PlayerItems = current.PlayerItems }, current);
+            AssertSashPinNativeOwnersCurrent(owner, player, current, nativeOwners, otherNativeRows);
             observed++;
         };
 
@@ -73,6 +77,7 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         Assert.Equal(rejectedJson, JsonSerializer.Serialize(rejected));
         Assert.Equal(admitted with { PlayerItems = committed.PlayerItems }, committed);
         AssertSashPinOtherStores(admitted.PlayerItems, committed.PlayerItems);
+        AssertSashPinNativeOwnersCurrent(owner, player, committed, nativeOwners, otherNativeRows);
         var frames = player.Sent.Skip(successFrameCount).ToArray();
         var expectedFrames = SashPinSuccessFrames(expectedItems, withdraw);
         Assert.Equal(expectedFrames.Length, frames.Length);
@@ -109,7 +114,7 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         return new(deposited ? [sash.WithDepositedItems([child])] : [sash, child],
             [Row(40_001).WithPosition(213)], [Row(40_002).WithPosition(217)],
             [Row(40_003).WithPosition(4)], [Row(40_004).WithPosition(211)],
-            [Row(40_005).WithWarehouseId(100)])
+            [Row(40_005).WithItemId(181305).WithWarehouseId(100)])
         { WarehouseItems = [Row(40_006).WithWarehouseId(1000)] };
     }
 
@@ -142,12 +147,65 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
 
     private static void AssertSashPinOtherStores(PlayerItemSnapshot before, PlayerItemSnapshot after)
     {
-        Assert.Same(before.RelicFuseItems, after.RelicFuseItems);
-        Assert.Same(before.MythsoulBagItems, after.MythsoulBagItems);
-        Assert.Same(before.EquipmentItems, after.EquipmentItems);
-        Assert.Same(before.RuneItems, after.RuneItems);
-        Assert.Same(before.WardrobeItems, after.WardrobeItems);
-        Assert.Same(before.WarehouseItems, after.WarehouseItems);
+        // Canonical publication owns detached snapshot lists. Preserve every
+        // unchanged saved field/order rather than requiring proposal aliases.
+        Assert.Equal(
+            PlayerItemSnapshotLoader.ToLegacyBytes(before with { InventoryItems = Array.Empty<PlayerItemSnapshotItem>() }),
+            PlayerItemSnapshotLoader.ToLegacyBytes(after with { InventoryItems = Array.Empty<PlayerItemSnapshotItem>() }));
+    }
+
+    private static object[] CaptureSashPinNativeOwners(Player player)
+    {
+        var client = player.NativeClient;
+        return
+        [
+            Assert.IsType<LegacyOrdinarySpellBinding>(client.OrdinarySpellBinding),
+            Assert.IsType<LegacyNativeInventoryRuntime>(client.Inventory),
+            Assert.IsType<LegacyNativeEquipItemStorage>(client.Equipment),
+            Assert.IsType<LegacyNativeWarehouseRuntime>(client.Warehouse),
+            Assert.IsType<LegacyNativeWardrobeRuntime>(client.MyWardrobe),
+            Assert.IsType<LegacyNativeRuneItemStorage>(client.Rune),
+            Assert.IsType<LegacyNativeItemBagRuntime>(client.RelicFuse),
+            Assert.IsType<LegacyNativeItemBagRuntime>(client.GearMythsoulBag),
+        ];
+    }
+
+    private static Dictionary<uint, LegacyNativeGameItemRuntime> CaptureSashPinOtherNativeRows(Player player)
+    {
+        var client = player.NativeClient;
+        return client.Equipment!.ClientItems
+            .Concat(client.Warehouse!.ClientItems.Values.SelectMany(bank => bank))
+            .Concat(client.MyWardrobe!.Items.SelectMany(bucket => bucket))
+            .Concat(client.Rune!.Objects.Select(item => new KeyValuePair<uint, LegacyNativeGameItemRuntime>(item.Uid, item)))
+            .Concat(client.RelicFuse!.ToArray())
+            .Concat(client.GearMythsoulBag!.ToArray())
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
+    }
+
+    private static void AssertSashPinNativeOwnersCurrent(
+        Owner owner,
+        Player player,
+        WorldSession current,
+        object[] beforeOwners,
+        Dictionary<uint, LegacyNativeGameItemRuntime> beforeRows)
+    {
+        var afterOwners = CaptureSashPinNativeOwners(player);
+        Assert.Equal(beforeOwners.Length, afterOwners.Length);
+        for (int index = 0; index < beforeOwners.Length; index++)
+            Assert.Same(beforeOwners[index], afterOwners[index]);
+        var afterRows = CaptureSashPinOtherNativeRows(player);
+        Assert.Equal(beforeRows.Keys.Order(), afterRows.Keys.Order());
+        foreach (var pair in beforeRows)
+            Assert.Same(pair.Value, afterRows[pair.Key]);
+        var binding = Assert.IsType<LegacyOrdinarySpellBinding>(player.NativeClient.OrdinarySpellBinding);
+        Assert.Same(owner.Sessions, binding.Store);
+        Assert.Same(player.Connection, binding.Connection);
+        Assert.Same(player.NativeClient, binding.Client);
+        Assert.Same(player.NativeClient.Player, binding.Player);
+        Assert.Same(current.PlayerItems, binding.ItemSnapshot);
+        Assert.Same(current.PlayerItems, binding.Items.Image.FinalSnapshot);
+        Assert.True(binding.Items.PhysicalOwnerIsCurrentPlain());
+        Assert.True(owner.Sessions.IsBoundSpellOwnerCurrent(binding));
     }
 
     private Dictionary<string, byte[]> SashPinFiles() => Directory.GetFiles(root, "*", SearchOption.AllDirectories)

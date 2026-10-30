@@ -34,14 +34,17 @@ public sealed partial class WorldSessionStore
         _sessionChanged = sessionChanged;
     }
 
-    public void Set(ConquerTcpConnection connection, WorldSession session)
+    public void Set(ConquerTcpConnection connection, WorldSession session) => Set(connection, session, out _);
+
+    // Return the exact canonical image published by this operation. A later
+    // TryGet cannot identify this outcome after an observer changes the holder.
+    public void Set(ConquerTcpConnection connection, WorldSession session, out WorldSession final)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(session);
 
         RefuseBoundSpellReentry(connection);
         WorldSession? previous;
-        WorldSession final;
         object publishedIdentity;
         LegacyOrdinarySpellBinding? publishedBinding;
         {

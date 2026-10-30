@@ -117,22 +117,34 @@ internal sealed partial class LegacyNativeGameItemRuntime
 		}
 		set
 		{
-			_id = value;
-			if (LegacyNativeItemTypeRuneMetadata.IsRune(value))
+			lock (this)
 			{
-				if (LegacyNativePoolItems.ItemsBase![value].RuneSpellID == value)
-				{
-					SpellID = LegacyNativePoolItems.ItemsBase![value].RuneSpellID - LegacyNativePoolItems.ItemsBase![value].RuneSpellID % 100 + 1;
-					Effect = Flags.ItemEffect.RuneEffect;
-				}
-				else
-				{
-					SpellID = LegacyNativePoolItems.ItemsBase![value].RuneSpellID;
-					Effect = Flags.ItemEffect.None;
-				}
+				if (!LegacyNativeItemTypeRuneMetadata.IsRune(value)) { _id = value; return; }
+				// Preserve the actual legacy lookup exceptions, but no rejected ID
+				// prefix. One real metadata value drives the complete native result.
+				uint spell = LegacyNativePoolItems.ItemsBase![value].RuneSpellID;
+				CommitRuneItemId(value, spell);
 			}
 		}
 	}
+
+    internal uint OwnedTimeLeftStorage => _TimeLeftInMinutes;
+
+    internal void SetOwnedItemId(uint value, LegacyOwnedNativeItemImage.CatalogEvidence catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        if (LegacyNativeItemTypeRuneMetadata.IsRune(value)) CommitRuneItemId(value, catalog.RuneSpell(value));
+        else _id = value;
+    }
+
+    private void CommitRuneItemId(uint value, uint runeSpell)
+    {
+        uint spell = runeSpell == value ? runeSpell - runeSpell % 100 + 1 : runeSpell;
+        var effect = runeSpell == value ? Flags.ItemEffect.RuneEffect : Flags.ItemEffect.None;
+        _id = value;
+        SpellID = spell;
+        Effect = effect;
+    }
 
 	public uint RemainingTime
 	{

@@ -178,17 +178,18 @@ public sealed class LegacyNativeItemExtraHydrationSendTests
     }
 
     [Fact]
-    public void PurificationClampsUtcBinaryWhileRefineryDecodesKindAndWriterUsesTicks()
+    public void PurificationAndRefineryPreserveUtcBinaryKindWhileWriterUsesNativeTicks()
     {
         var utc = new DateTime(2000, 1, 2, 3, 4, 5, DateTimeKind.Utc);
         var record = RecordWithBothExtras(Past, duration: 0);
         record.PurificationAddedOn = utc.ToBinary();
         record.EffectAddedOn = utc.ToBinary();
+        var rawBefore = RawBytes(record);
         var item = record.GetDataItem();
 
-        Assert.Equal(DateTime.MinValue, item.Purification.AddedOn);
-        Assert.Equal(DateTimeKind.Unspecified, item.Purification.AddedOn.Kind);
-        Assert.Equal(utc, item.Refinary.AddedOn);
+        Assert.Equal(utc.ToBinary(), item.Purification.AddedOn.ToBinary());
+        Assert.Equal(DateTimeKind.Utc, item.Purification.AddedOn.Kind);
+        Assert.Equal(utc.ToBinary(), item.Refinary.AddedOn.ToBinary());
         Assert.Equal(DateTimeKind.Utc, item.Refinary.AddedOn.Kind);
         Assert.Equal(ExpectedFrame(
             2u,
@@ -196,57 +197,90 @@ public sealed class LegacyNativeItemExtraHydrationSendTests
             ItemUid, 3u, 301u, 9u, 11u, 13u, 0u), item.CreateItemExtraFrame());
 
         var written = default(LegacyNativeClientItemRecord).GetDBItem(item);
-        Assert.Equal(0L, written.PurificationAddedOn);
+        Assert.Equal(utc.Ticks, written.PurificationAddedOn);
         Assert.Equal(utc.Ticks, written.EffectAddedOn);
+        Assert.NotEqual(utc.ToBinary(), written.PurificationAddedOn);
         Assert.NotEqual(utc.ToBinary(), written.EffectAddedOn);
         var loadedAgain = written.GetDataItem();
+        Assert.Equal(DateTimeKind.Unspecified, loadedAgain.Purification.AddedOn.Kind);
+        Assert.Equal(utc.Ticks, loadedAgain.Purification.AddedOn.Ticks);
         Assert.Equal(DateTimeKind.Unspecified, loadedAgain.Refinary.AddedOn.Kind);
         Assert.Equal(utc.Ticks, loadedAgain.Refinary.AddedOn.Ticks);
+        Assert.Equal(rawBefore, RawBytes(record));
     }
 
     [Fact]
-    public void ClampedTimedPurificationExpiresDuringHydrationButPermanentRefineryStillSends()
+    public void ValidUtcTimedPurificationSendsWhileRealExpiredHydrationLeavesPermanentRefinery()
     {
         var futureUtc = DateTime.UtcNow.AddDays(1);
         var record = RecordWithBothExtras(Past, duration: 0);
         record.PurificationAddedOn = futureUtc.ToBinary();
         record.PurificationDuration = 600u;
+        var rawBefore = RawBytes(record);
         var item = record.GetDataItem();
 
-        Assert.Equal(default(Extra.Purification), item.Purification);
-        Assert.Equal(ItemUid, item.Refinary.ItemUID);
-        Assert.Equal(ExpectedFrame(1u, ItemUid, 3u, 301u, 9u, 11u, 13u, 0u),
-            item.CreateItemExtraFrame());
-        var written = default(LegacyNativeClientItemRecord).GetDBItem(item);
+        Assert.Equal(futureUtc.ToBinary(), item.Purification.AddedOn.ToBinary());
+        Assert.Equal(DateTimeKind.Utc, item.Purification.AddedOn.Kind);
+        Assert.True(item.Purification.InLife);
+        var beforeSend = DateTime.Now;
+        var frame = Assert.IsType<byte[]>(item.CreateItemExtraFrame());
+        var afterSend = DateTime.Now;
+        AssertHeader(frame, 68, 2u);
+        Assert.Equal(ExpectedFrame(
+            2u,
+            ItemUid, 6u, 800001u, 7u, 0u, 600u, ReadWord(frame, 32), 0u,
+            ItemUid, 3u, 301u, 9u, 11u, 13u, 0u), frame);
+        AssertSecondsBetween(frame, 32, futureUtc.AddSeconds(600), beforeSend, afterSend);
+        var liveWritten = default(LegacyNativeClientItemRecord).GetDBItem(item);
+        Assert.Equal(800001u, liveWritten.PurificationItemID);
+        Assert.Equal(600u, liveWritten.PurificationDuration);
+        Assert.Equal(futureUtc.Ticks, liveWritten.PurificationAddedOn);
+        Assert.Equal(rawBefore, RawBytes(record));
+
+        var expiredRecord = record;
+        expiredRecord.PurificationAddedOn = new DateTime(2000, 1, 2, 3, 4, 5, DateTimeKind.Utc).ToBinary();
+        var expiredBefore = RawBytes(expiredRecord);
+        var expired = expiredRecord.GetDataItem();
+        Assert.Equal(default(Extra.Purification), expired.Purification);
+        Assert.Equal(ItemUid, expired.Refinary.ItemUID);
+        Assert.Equal(ExpectedFrame(1u, ItemUid, 3u, 301u, 9u, 11u, 13u, 0u), expired.CreateItemExtraFrame());
+        var written = default(LegacyNativeClientItemRecord).GetDBItem(expired);
         Assert.Equal(0u, written.PurificationItemID);
         Assert.Equal(0u, written.PurificationDuration);
         Assert.Equal(0L, written.PurificationAddedOn);
         Assert.Equal(724440u, written.EffectID);
         Assert.Equal(Past.Ticks, written.EffectAddedOn);
+        Assert.Equal(expiredBefore, RawBytes(expiredRecord));
     }
 
     [Fact]
-    public void InvalidRawRefineryBinaryThrowsWithoutReturningAnItemOrRewritingTheRecord()
+    public void InvalidRawExtraBinariesRefuseWithoutReturningAnItemOrRewritingTheRecord()
     {
-        var record = RecordWithBothExtras(Past, duration: 0);
-        record.PurificationAddedOn = InvalidDateBinary; // Clamped, not the fault.
-        record.EffectAddedOn = InvalidDateBinary; // No native clamp on refinery.
-        var before = RawBytes(record);
-        LegacyNativeGameItemRuntime? returned = null;
+        foreach (bool purificationFault in new[] { true, false })
+        {
+            var record = RecordWithBothExtras(Past, duration: 0);
+            if (purificationFault) record.PurificationAddedOn = InvalidDateBinary;
+            else record.EffectAddedOn = InvalidDateBinary;
+            var before = RawBytes(record);
+            LegacyNativeGameItemRuntime? returned = null;
 
-        Assert.Throws<ArgumentException>(() => returned = record.GetDataItem());
-
-        Assert.Null(returned);
-        Assert.Equal(before, RawBytes(record));
-        // The internally allocated, partially populated item is not returned by native code.
-        record.EffectAddedOn = Past.Ticks;
-        var recovered = record.GetDataItem();
-        Assert.Equal(DateTime.MinValue, recovered.Purification.AddedOn);
-        Assert.Equal(Past, recovered.Refinary.AddedOn);
-        Assert.Equal(ExpectedFrame(
-            2u,
-            ItemUid, 8u, 800001u, 7u, 0u, 0u, 0u, 0u,
-            ItemUid, 3u, 301u, 9u, 11u, 13u, 0u), recovered.CreateItemExtraFrame());
+            Assert.Throws<ArgumentException>(() => returned = record.GetDataItem());
+            Assert.Null(returned);
+            Assert.Equal(before, RawBytes(record));
+            // Each actual decoder refuses its own invalid field. Repairing that
+            // field restores the real valid path without a fabricated zero date.
+            if (purificationFault) record.PurificationAddedOn = Past.ToBinary();
+            else record.EffectAddedOn = Past.ToBinary();
+            var repairedBefore = RawBytes(record);
+            var recovered = record.GetDataItem();
+            Assert.Equal(Past, recovered.Purification.AddedOn);
+            Assert.Equal(Past, recovered.Refinary.AddedOn);
+            Assert.Equal(ExpectedFrame(
+                2u,
+                ItemUid, 8u, 800001u, 7u, 0u, 0u, 0u, 0u,
+                ItemUid, 3u, 301u, 9u, 11u, 13u, 0u), recovered.CreateItemExtraFrame());
+            Assert.Equal(repairedBefore, RawBytes(record));
+        }
     }
 
     [Fact]

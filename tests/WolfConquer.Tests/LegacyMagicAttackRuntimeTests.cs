@@ -19847,7 +19847,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 "fixture://legacy-magic-runtime",
                 new Dictionary<string, int>()),
             clientConfigs: [],
-            items: items ?? [],
+            items: items?.ToArray() ?? Array.Empty<ItemType>(),
             itemAddBonuses: itemAddBonuses ?? [],
             levelExperience: [],
             runeLevelExperience: [],

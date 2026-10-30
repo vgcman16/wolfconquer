@@ -40,6 +40,7 @@ public static partial class WorldPacketHandlers
 
         VictoryChestPlan plan = null!;
         var committed = false;
+        WorldSession? final = null;
         var journalReturnedSuccess = false;
         reason = "victoryChestRequiredTradeOwnerUnavailable";
         if (context.Trades is { } trades)
@@ -63,7 +64,7 @@ public static partial class WorldPacketHandlers
                                 plan.Inventory, plan.Quests, out reason);
                             journalReturnedSuccess = saved;
                             return saved;
-                        });
+                        }, out final);
                     }
                 }
                 catch (Exception error) when (LegacyVictoryChestPersistence.IsPreparationFailure(error))
@@ -76,7 +77,7 @@ public static partial class WorldPacketHandlers
             }
         }
         if (committed)
-            await PublishVictoryChestAsync(plan, cancellationToken).ConfigureAwait(false);
+            await PublishVictoryChestAsync(plan, final!, cancellationToken).ConfigureAwait(false);
         else
             await LogVictoryChestRefusalAsync(context, reason).ConfigureAwait(false);
     }

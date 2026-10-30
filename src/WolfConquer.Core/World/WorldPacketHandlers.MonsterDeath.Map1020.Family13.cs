@@ -372,7 +372,7 @@ public static partial class WorldPacketHandlers
             return session;
         }
 
-        if (!sessions.TryCompareAndSet(context.Connection, session, updatedSession))
+        if (!sessions.TryCompareAndSet(context.Connection, session, updatedSession, out var final))
         {
             await context.Log.WriteLineAsync(
                     "WorldServer skipped legacy map 1020 family 13 Cloud Riding Scroll reward " +
@@ -380,6 +380,8 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
             return session;
         }
+
+        updatedSession = final!;
 
         // A synchronous real session observer may retire the committed owner.
         // This is a committed grant with suppressed publication, never rollback.

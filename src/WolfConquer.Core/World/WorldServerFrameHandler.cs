@@ -56,6 +56,7 @@ public sealed partial class WorldServerFrameHandler
     private readonly LegacyWorldEntryStartupProbeOptions _worldEntryStartupProbe;
     private readonly ConquerProtocolProfile _protocolProfile;
     private readonly UnknownPacketAndFieldLogger? _wireDiagnostics;
+    private readonly LegacyGmPolicy? _gmPolicy;
     private readonly SemaphoreSlim _paidNobilityExpiryLock = new(1, 1);
     private readonly TextWriter _log;
     private int _legacyRuntimeGlobalLoopStarted;
@@ -109,7 +110,8 @@ public sealed partial class WorldServerFrameHandler
         IAccountEmailVerifier? accountEmailVerifier = null,
         ConquerProtocolProfile protocolProfile = ConquerProtocolProfile.RootD11_7899,
         LegacyOwnedAdmissionRuntime? ownedAdmission = null,
-        UnknownPacketAndFieldLogger? wireDiagnostics = null)
+        UnknownPacketAndFieldLogger? wireDiagnostics = null,
+        LegacyGmPolicy? gmPolicy = null)
         : this(
             snapshotLoader,
             handoffService,
@@ -126,6 +128,10 @@ public sealed partial class WorldServerFrameHandler
             protocolProfile,
             wireDiagnostics)
     {
+        if (gmPolicy is not null && (ownedAdmission is null ||
+            protocolProfile != ConquerProtocolProfile.VisibleDx8D13 ||
+            gmPolicy.ExpectedDomain != ownedAdmission.Ordinary.Domain))
+            throw new ArgumentException("gmPolicyActualOwnedDomainAndProfileRequired", nameof(gmPolicy));
         if (ownedAdmission is not null)
         {
             // These are genuine factory-owned participants. Assign before the
@@ -136,6 +142,10 @@ public sealed partial class WorldServerFrameHandler
             if (!ownedAdmission.TryClaimFrame(this, snapshotLoader, _mailboxes?.ClaimRoot, out var reason))
                 throw new ArgumentException(reason, nameof(ownedAdmission));
         }
+        if (gmPolicy is not null &&
+            !ownedAdmission!.TryGetOperatorGearMailConfiguration(this, gmPolicy.ExpectedDomain, out _, out _))
+            throw new ArgumentException("gmPolicyCurrentFrameOwnerUnavailable", nameof(gmPolicy));
+        _gmPolicy = gmPolicy;
     }
 
     public WorldServerFrameHandler(

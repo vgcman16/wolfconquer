@@ -4,12 +4,13 @@ public static partial class WorldPacketHandlers
 {
     private static bool TryCommitLegacyItemDrop(WorldPacketHandlerContext context, WorldSession current,
         LegacyItemDropPlan plan, FloorItemRuntimeStateStore.GroundReservation? reservation,
-        out bool durable, out string reason)
+        out bool durable, out string reason, out WorldSession? final)
     {
         // Retain the pre-existing wholly-unbound, no-file fixture behavior. A
         // physical Player or any configured file root never gets this fallback.
         var inMemoryCompatibility = context.Connection.NativeGameClient is null && current.NativeGameClient is null &&
             string.IsNullOrWhiteSpace(current.UsersRoot) && string.IsNullOrWhiteSpace(context.PlayerItemsRoot);
+        final = null;
         durable = !inMemoryCompatibility;
         reason = string.Empty;
         var failure = string.Empty;
@@ -27,9 +28,12 @@ public static partial class WorldPacketHandlers
         }
         bool committed;
         if (context.Sessions is { } sessions)
-            committed = sessions.TryCommitSession(context.Connection, current, plan.Updated, PersistAndPublishGround);
+            committed = sessions.TryCommitSession(context.Connection, current, plan.Updated, PersistAndPublishGround, out final);
         else if (context.Connection.NativeGameClient is null && current.NativeGameClient is null)
+        {
             committed = PersistAndPublishGround(); // Original standalone managed fixture compatibility.
+            if (committed) final = plan.Updated;
+        }
         else
         { reason = "sessionStoreUnavailable"; return false; }
         if (!committed)
@@ -39,7 +43,7 @@ public static partial class WorldPacketHandlers
             reason = "commitRejected:" + (failure.Length == 0 ? "sessionChanged" : failure);
             return false;
         }
-        if (!LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, plan.Updated))
+        if (final is null || !LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, final))
         {
             context.TradeRecovery?.Block("dropRecoveryRequired:ownerChangedAfterCommit");
             reason = "ownerChangedAfterCommit";

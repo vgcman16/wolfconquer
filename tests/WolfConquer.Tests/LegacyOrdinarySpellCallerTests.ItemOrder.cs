@@ -67,7 +67,8 @@ public sealed partial class LegacyOrdinarySpellCallerTests
                 Assert.Equal(MsgItemUsageAction.RemoveInventory, consume.Action);
                 Assert.Equal(ItemFixture.ItemUid, consume.Id);
             }
-        });
+        }, additionalItems: rune ? null :
+            [OwnedEquipmentBehaviorFixture.Item(4020515, "OwnedRankKeeper")]);
     }
 
     [Fact]
@@ -115,7 +116,8 @@ public sealed partial class LegacyOrdinarySpellCallerTests
             Assert.Equal(first, f.Sent.Count); f.CheckFiles(before);
             Assert.Contains("itemSpellItemBaselineStaleOrUnrepresentable", f.Log.ToString());
             Assert.False(LegacyTradeJournal.HasPending(f.Users));
-        });
+        }, additionalItems: rune ? null :
+            [OwnedEquipmentBehaviorFixture.Item(4020515, "OwnedRankKeeper")]);
     }
 
     [Fact]

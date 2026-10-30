@@ -131,7 +131,7 @@ public static partial class WorldPacketHandlers
         if (teleportBlocked)
         {
             var blockedSession = session with { PlayerItems = updatedItems };
-            context.Sessions?.Set(context.Connection, blockedSession);
+            blockedSession = PublishLegacyItemUsageSession(context, blockedSession);
             await context.Log.WriteLineAsync(
                     "WorldServer handled MsgItemUsage teleport item consume only " +
                     $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId} " +
@@ -207,7 +207,7 @@ public static partial class WorldPacketHandlers
     {
         var updatedItems = ConsumeSingleLegacyInventoryItem(session.PlayerItems, item, out var consumeFrame);
         var updated = session with { PlayerItems = updatedItems };
-        context.Sessions?.Set(context.Connection, updated);
+        updated = PublishLegacyItemUsageSession(context, updated);
 
         await context.Connection.SendAsync(consumeFrame, cancellationToken).ConfigureAwait(false);
         await context.Log.WriteLineAsync(

@@ -64,47 +64,46 @@ public sealed partial class LegacyNpcSaleTransactionTests
     }
 
     [Theory]
-    [InlineData((ushort)39, (ushort)2)]
-    [InlineData((ushort)40, (ushort)0)]
-    public async Task InventoryOwnedStackDecrementsOnlyBelowNativePositionForty(ushort position, ushort remaining)
+    [InlineData((ushort)39)]
+    [InlineData((ushort)40)]
+    public async Task MalformedInventoryPositionCannotReplaceOwnedGraphOrAuthorizeAStackSale(ushort position)
     {
         const uint uid = 1_299_131;
         SeedStack(uid);
         var owner = NewOwner();
         var player = await Login(owner, uid);
         var initial = Current(owner, player);
-        // The managed file loader classifies nonzero positions as equipment.
-        // Explicitly control the already-loaded inventory owner for this native
-        // dictionary boundary; do not claim ordinary loader parity here.
+        var characters = File.ReadAllBytes(UserPath(uid));
+        var items = File.ReadAllBytes(ItemPath(uid));
+        var inventory = Assert.IsType<LegacyNativeInventoryRuntime>(player.Connection.NativeGameClient!.Inventory);
+        var originalItem = inventory.ClientItems[SoldUid];
         var controlledItems = initial.PlayerItems with
         {
             InventoryItems = initial.PlayerItems.InventoryItems.Select(item =>
                 item.Uid == SoldUid ? item.WithPosition(position) : item).ToArray(),
         };
-        owner.Sessions.Set(player.Connection, initial with { PlayerItems = controlledItems });
-        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(controlledItems), File.ReadAllBytes(ItemPath(uid)));
-        var expected = StackSaleResult(Current(owner, player), remaining, 1_300);
-        var first = player.Sent.Count;
+        int first = player.Sent.Count;
 
+        Assert.Throws<InvalidDataException>(() =>
+            owner.Sessions.Set(player.Connection, initial with { PlayerItems = controlledItems }));
+
+        Assert.Same(initial, Current(owner, player));
+        Assert.Same(originalItem, inventory.ClientItems[SoldUid]);
+        Assert.Equal((ushort)0, originalItem.Position);
+        Assert.Equal(characters, File.ReadAllBytes(UserPath(uid)));
+        Assert.Equal(items, File.ReadAllBytes(ItemPath(uid)));
+        Assert.Equal(first, player.Sent.Count);
+        // The failed malformed replacement must not poison the real owner. A
+        // subsequent valid stack sale still pays once and keeps the whole graph.
+        var expected = StackSaleResult(initial, 2, 1_300);
         await Sell(owner, player);
-
         AssertSaved(uid, expected);
         Assert.Equal(1_300, Current(owner, player).Character.Money);
-        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(expected.PlayerItems),
-            PlayerItemSnapshotLoader.ToLegacyBytes(Current(owner, player).PlayerItems));
         Assert.Equal(2, MoneyUpdateCount(player, first));
-        if (remaining == 0)
-        {
-            Assert.Single(player.Sent.Skip(first), IsRemoval);
-            Assert.Empty(StackUpdates(player, first));
-        }
-        else
-        {
-            var update = Assert.Single(StackUpdates(player, first));
-            Assert.Equal((byte)position, update.Position);
-            Assert.Equal(remaining, update.StackSize);
-            Assert.DoesNotContain(player.Sent.Skip(first), IsRemoval);
-        }
+        var update = Assert.Single(StackUpdates(player, first));
+        Assert.Equal((byte)0, update.Position);
+        Assert.Equal((ushort)2, update.StackSize);
+        Assert.DoesNotContain(player.Sent.Skip(first), IsRemoval);
     }
 
     [Fact]

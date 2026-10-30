@@ -97,7 +97,7 @@ public static partial class WorldPacketHandlers
         if (movedReplacement || movedRequested)
         {
             updatedSession = ClampLegacyEquipmentRuntimeHitpoints(updatedSession, context.WorldData);
-            context.Sessions?.Set(context.Connection, updatedSession);
+            updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
             var updatedContext = context with { Session = updatedSession };
             await TryPersistLegacyItemUsageMutationAsync(
                     updatedContext,
@@ -175,7 +175,7 @@ public static partial class WorldPacketHandlers
             PlayerItems = MoveMythsoulBagItemToInventory(session.PlayerItems, item, returned),
         };
         updatedSession = ClampLegacyEquipmentRuntimeHitpoints(updatedSession, context.WorldData);
-        context.Sessions?.Set(context.Connection, updatedSession);
+        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
         var updatedContext = context with { Session = updatedSession };
 
         await TryPersistLegacyItemUsageMutationAsync(

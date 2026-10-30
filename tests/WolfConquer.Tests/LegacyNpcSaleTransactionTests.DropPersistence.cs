@@ -181,6 +181,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
         var player = await Login(owner, uid);
         var session = Current(owner, player);
         var dropped = Assert.Single(session.PlayerItems.InventoryItems, item => item.Uid == SoldUid);
+        NativeGraphFault? rawFault = null;
         if (scenario == "stale-item-image")
         {
             new PlayerItemSnapshotLoader(ItemsRoot).SaveByCharacterUid(uid, session.PlayerItems with
@@ -197,24 +198,29 @@ public sealed partial class LegacyNpcSaleTransactionTests
                 "warehouse-duplicate" => session.PlayerItems with { WarehouseItems = session.PlayerItems.WarehouseItems.Append(dropped.WithWarehouseId(1000)).ToArray() },
                 _ => session.PlayerItems with
                 {
-                    WarehouseItems = session.PlayerItems.WarehouseItems.Select(item => item.WithDepositedItems([dropped])).ToArray(),
+                    WarehouseItems = session.PlayerItems.WarehouseItems.Select(item => item.WithDepositedItems(new[] { dropped })).ToArray(),
                 },
             };
-            owner.Sessions.Set(player.Connection, session with { PlayerItems = items });
+            rawFault = RefuseMalformedProposalThenCorruptNativeGraph(owner, player, items, scenario);
         }
-        var before = Current(owner, player);
-        var itemBytes = File.ReadAllBytes(ItemPath(uid));
-        var characterBytes = File.ReadAllBytes(UserPath(uid));
-        var first = player.Sent.Count;
+        try
+        {
+            var before = Current(owner, player);
+            var itemBytes = File.ReadAllBytes(ItemPath(uid));
+            var characterBytes = File.ReadAllBytes(UserPath(uid));
+            var first = player.Sent.Count;
+            await DropPinItem(owner, player, SoldUid);
 
-        await DropPinItem(owner, player, SoldUid);
-
-        Assert.Same(before, Current(owner, player));
-        Assert.Equal(itemBytes, File.ReadAllBytes(ItemPath(uid)));
-        Assert.Equal(characterBytes, File.ReadAllBytes(UserPath(uid)));
-        Assert.Empty(player.Sent.Skip(first));
-        Assert.Empty(DropFloor(owner).SnapshotVisible(DateTimeOffset.UtcNow));
-        Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
+            Assert.Same(before, Current(owner, player));
+            Assert.Equal(itemBytes, File.ReadAllBytes(ItemPath(uid)));
+            Assert.Equal(characterBytes, File.ReadAllBytes(UserPath(uid)));
+            Assert.Empty(player.Sent.Skip(first));
+            Assert.Empty(DropFloor(owner).SnapshotVisible(DateTimeOffset.UtcNow));
+            Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
+            rawFault?.AssertRetained();
+        }
+        finally { rawFault?.Dispose(); }
+        rawFault?.AssertRemoved();
     }
 
     private void SeedPersistenceDrop(uint uid, int disposition)

@@ -1,8 +1,6 @@
-using System.Buffers;
 using System.Net;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
-using WolfConquer.Core.Packets;
 using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
@@ -35,273 +33,98 @@ public sealed class LegacyAdminUtilityLevelProficiencyParityTests : IDisposable
     [InlineData(StuffNpcId, StuffLevel140Option)]
     [InlineData(Stuff12NpcId, Stuff12Level140Option)]
     [InlineData(Stuff12NpcId, Stuff12MaxProficiencyOption)]
-    public async Task NonPrivilegedCharactersCannotReachMutationBranches(uint npcId, byte optionId)
+    public async Task NormalCharactersCannotReachMutationBranches(uint npcId, byte optionId)
     {
-        var originalProficiencies = CreateMixedProficiencies();
-        var result = await InvokeAsync(
-            npcId,
-            optionId,
-            gmName: false,
-            projectManager: false,
-            proficiencies: originalProficiencies);
-
-        Assert.True(result.Handled);
-        Assert.Same(result.InitialSession, result.UpdatedSession);
-        Assert.Empty(result.Sent);
-        Assert.Equal(0, result.DisconnectCount);
-        Assert.Equal(result.OriginalCharacterText, result.PersistedCharacterText);
-        Assert.Equal(result.OriginalProficiencyBytes, result.PersistedProficiencyBytes);
-        Assert.Null(result.PersistedCharacterAtCommit);
-        Assert.Null(result.PersistedProficienciesAtCommit);
-        Assert.Contains("ignored LegacyNpc admin utility for non-privileged character", result.Log);
+        AssertUnchanged(await InvokeAsync(npcId, optionId, gmName: false,
+            proficiencies: CreateMixedProficiencies()));
     }
 
     [Fact]
-    public async Task StuffOption60PersistsBeforeCommitAndSendsExactUpdateLevelOrder()
+    public async Task StuffOption60DoesNotRaiseLevelStatsOrHitpointsForGmNickname()
     {
-        var result = await InvokeAsync(
-            StuffNpcId,
-            StuffLevel140Option,
-            level: 130,
-            experience: 123_456,
-            attributePoints: 7,
-            minHitpoints: 5);
-
-        Assert.Equal(140, result.UpdatedSession.Character.Level);
-        Assert.Equal(123_456, result.UpdatedSession.Character.Experience);
-        Assert.Equal(37, result.UpdatedSession.Character.AttributePoints);
-        Assert.True(result.UpdatedSession.Character.MinHitPoints > 5);
-        AssertCharacterMutation(
-            Assert.IsType<CharacterSnapshot>(result.PersistedCharacterAtCommit),
-            result.UpdatedSession.Character);
-        AssertCharacterMutation(result.ReloadedCharacter, result.UpdatedSession.Character);
-        Assert.Contains("Sentinel=keep-me", result.PersistedCharacterText, StringComparison.Ordinal);
-        Assert.Contains("Note=preserve-this-section", result.PersistedCharacterText, StringComparison.Ordinal);
-
-        Assert.Equal(9, result.Sent.Count);
-        AssertScalarUpdate(result.Sent[0], LegacyMsgUpdateDataType.Level, 140);
-        AssertLevelAction(result.Sent[1]);
-        AssertScalarUpdate(result.Sent[2], LegacyMsgUpdateDataType.Atributes, 37);
-        AssertHitpointPair(
-            result.Sent,
-            startIndex: 3,
-            checked((uint)result.UpdatedSession.Character.MinHitPoints),
-            expectedCurrent: 5);
-        Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(result.Sent[5]), out _));
-        Assert.True(LegacyUserTotalRefineLevPacket.TryParse(ReadFrame(result.Sent[6]), out _));
-        AssertHitpointPair(
-            result.Sent,
-            startIndex: 7,
-            checked((uint)result.UpdatedSession.Character.MinHitPoints),
-            checked((uint)result.UpdatedSession.Character.MinHitPoints));
-        Assert.Empty(ParseNpcReplies(result.Sent));
-        Assert.Equal(0, result.DisconnectCount);
-        Assert.Contains("attributePointsAdded=30", result.Log);
-        Assert.Contains("updateOrder=Level,Action92,StatsOrAtributes,Equipment,Hitpoints,SourceDialog", result.Log);
-        Assert.DoesNotContain("PARITY-GAP", result.Log);
+        AssertUnchanged(await InvokeAsync(StuffNpcId, StuffLevel140Option,
+            level: 130, experience: 123_456, attributePoints: 7, minHitpoints: 5));
     }
 
     [Fact]
-    public async Task StuffOption60At140IsIdempotentAndSendsExactMessageBox()
+    public async Task StuffOption60At140DoesNotPublishAnAdminMessageBox()
     {
-        var result = await InvokeAsync(
-            StuffNpcId,
-            StuffLevel140Option,
-            level: 140,
-            experience: 777,
-            attributePoints: 9,
-            includeMutationDependencies: false);
-
-        Assert.Same(result.InitialSession, result.UpdatedSession);
-        Assert.Null(result.PersistedCharacterAtCommit);
-        Assert.Equal(result.OriginalCharacterText, result.PersistedCharacterText);
-        var reply = AssertNpcReply(Assert.Single(result.Sent), LegacyNpcReplyInteractType.MessageBox);
-        Assert.Equal("Sorry, your level is already 140.", reply.Text);
-        Assert.Equal(140, result.ReloadedCharacter.Level);
-        Assert.Equal(777, result.ReloadedCharacter.Experience);
-        Assert.Equal(9, result.ReloadedCharacter.AttributePoints);
-        Assert.Equal(0, result.DisconnectCount);
-        Assert.Contains("reason=alreadyLevel140", result.Log);
-        Assert.DoesNotContain("PARITY-GAP", result.Log);
+        AssertUnchanged(await InvokeAsync(StuffNpcId, StuffLevel140Option,
+            level: 140, experience: 777, attributePoints: 9, includeMutationDependencies: false));
     }
 
     [Fact]
-    public async Task Stuff12Option162PreservesBelowCutoffStatsAndSendsExactThanksOutput()
+    public async Task Stuff12Option162DoesNotChangeBelowCutoffStatsForProjectManagerAttribute()
     {
-        var result = await InvokeAsync(
-            Stuff12NpcId,
-            Stuff12Level140Option,
-            level: 119,
-            experience: 88,
-            strength: 11,
-            agility: 12,
-            vitality: 100,
-            spirit: 14,
-            attributePoints: 7,
-            gmName: false,
-            projectManager: true);
-
-        Assert.Equal(140, result.ReloadedCharacter.Level);
-        Assert.Equal(7, result.ReloadedCharacter.AttributePoints);
-        Assert.Equal(11, result.ReloadedCharacter.Strength);
-        Assert.Equal(12, result.ReloadedCharacter.Agility);
-        Assert.Equal(100, result.ReloadedCharacter.Vitality);
-        Assert.Equal(14, result.ReloadedCharacter.Spirit);
-        AssertCharacterMutation(
-            Assert.IsType<CharacterSnapshot>(result.PersistedCharacterAtCommit),
-            result.UpdatedSession.Character);
-
-        Assert.Equal(14, result.Sent.Count);
-        AssertScalarUpdate(result.Sent[0], LegacyMsgUpdateDataType.Level, 140);
-        AssertLevelAction(result.Sent[1]);
-        AssertScalarUpdate(result.Sent[2], LegacyMsgUpdateDataType.Strength, 11);
-        AssertScalarUpdate(result.Sent[3], LegacyMsgUpdateDataType.Agility, 12);
-        AssertScalarUpdate(result.Sent[4], LegacyMsgUpdateDataType.Spirit, 14);
-        AssertScalarUpdate(result.Sent[5], LegacyMsgUpdateDataType.Vitality, 100);
-        AssertHitpointPair(
-            result.Sent,
-            startIndex: 6,
-            checked((uint)result.UpdatedSession.Character.MinHitPoints),
-            expectedCurrent: 5);
-        Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(result.Sent[8]), out _));
-        Assert.True(LegacyUserTotalRefineLevPacket.TryParse(ReadFrame(result.Sent[9]), out _));
-        AssertHitpointPair(
-            result.Sent,
-            startIndex: 10,
-            checked((uint)result.UpdatedSession.Character.MinHitPoints),
-            checked((uint)result.UpdatedSession.Character.MinHitPoints));
-
-        var option = AssertNpcReply(result.Sent[12], LegacyNpcReplyInteractType.Option);
-        Assert.Equal("Thanks!", option.Text);
-        Assert.Equal(byte.MaxValue, option.OptionId);
-        AssertNpcReply(result.Sent[13], LegacyNpcReplyInteractType.Finish);
-        Assert.DoesNotContain(
-            ParseMsgUpdates(result.Sent).SelectMany(packet => packet.Updates),
-            update => update.Type == LegacyMsgUpdateDataType.Atributes);
-        Assert.DoesNotContain("non-privileged", result.Log);
-        Assert.DoesNotContain("PARITY-GAP", result.Log);
+        AssertUnchanged(await InvokeAsync(Stuff12NpcId, Stuff12Level140Option,
+            level: 119, experience: 88, strength: 11, agility: 12, vitality: 100,
+            spirit: 14, attributePoints: 7, gmName: false, projectManager: true));
     }
 
     [Fact]
-    public async Task Stuff12Option162At140IsIdempotentAndSendsExactRejectedDialog()
+    public async Task Stuff12Option162At140DoesNotPublishSuccessOrRejectionDialogs()
     {
-        var result = await InvokeAsync(
-            Stuff12NpcId,
-            Stuff12Level140Option,
-            level: 140,
-            experience: 654,
-            attributePoints: 19,
-            includeMutationDependencies: false);
-
-        Assert.Same(result.InitialSession, result.UpdatedSession);
-        Assert.Equal(result.OriginalCharacterText, result.PersistedCharacterText);
-        Assert.Equal(3, result.Sent.Count);
-        var text = AssertNpcReply(result.Sent[0], LegacyNpcReplyInteractType.Dialog);
-        Assert.Equal("You do not have enough Conquer Points.", text.Text);
-        var option = AssertNpcReply(result.Sent[1], LegacyNpcReplyInteractType.Option);
-        Assert.Equal("Oh!", option.Text);
-        Assert.Equal(byte.MaxValue, option.OptionId);
-        AssertNpcReply(result.Sent[2], LegacyNpcReplyInteractType.Finish);
-        Assert.Equal(0, result.DisconnectCount);
-        Assert.Contains("reason=levelNotBelow140", result.Log);
-        Assert.DoesNotContain("PARITY-GAP", result.Log);
+        AssertUnchanged(await InvokeAsync(Stuff12NpcId, Stuff12Level140Option,
+            level: 140, experience: 654, attributePoints: 19, includeMutationDependencies: false));
     }
 
     [Fact]
-    public async Task LevelPersistenceFailureRollsBackAndSendsOnlyExactFenceDialog()
+    public async Task DisabledLevelRouteDoesNotAttemptTheLockedCharacterWriter()
     {
-        var result = await InvokeAsync(
-            StuffNpcId,
-            StuffLevel140Option,
-            level: 130,
-            experience: 55,
-            attributePoints: 7,
-            lockCharacterFile: true);
-
-        Assert.Same(result.InitialSession, result.UpdatedSession);
-        Assert.Null(result.PersistedCharacterAtCommit);
-        Assert.Equal(result.OriginalCharacterText, result.PersistedCharacterText);
-        Assert.Equal(130, result.ReloadedCharacter.Level);
-        AssertFenceDialog(result.Sent, "Level 140 admin service is disabled.");
-        Assert.DoesNotContain(ParseMsgUpdates(result.Sent), packet =>
-            packet.Updates.Any(update => update.Type == LegacyMsgUpdateDataType.Level));
-        Assert.DoesNotContain(result.Sent, bytes => MsgActionPacket.TryParse(ReadFrame(bytes), out _));
-        Assert.Equal(0, result.DisconnectCount);
-        Assert.Contains("persistence failed reason=snapshotWriteFailed", result.Log);
-        Assert.Contains("PARITY-GAP LegacyNpc AdminUtility", result.Log);
+        AssertUnchanged(await InvokeAsync(StuffNpcId, StuffLevel140Option,
+            level: 130, experience: 55, attributePoints: 7, lockCharacterFile: true));
     }
 
     [Fact]
-    public async Task Stuff12Option149PersistsEveryProficiencyBeforeDisconnectWithoutPackets()
+    public async Task Stuff12Option149PreservesEveryMixedProficiencyWithoutDisconnect()
     {
-        var originalProficiencies = CreateMixedProficiencies();
-        var result = await InvokeAsync(
-            Stuff12NpcId,
-            Stuff12MaxProficiencyOption,
-            proficiencies: originalProficiencies);
-
-        Assert.All(result.UpdatedSession.PlayerProficiencies.Proficiencies, proficiency =>
-        {
-            Assert.Equal(20U, proficiency.Level);
-            Assert.Equal(0U, proficiency.Experience);
-        });
-        AssertProficiencyIdentityFieldsPreserved(
-            originalProficiencies,
-            result.UpdatedSession.PlayerProficiencies);
-        AssertProficienciesEqual(
-            result.UpdatedSession.PlayerProficiencies,
-            Assert.IsType<PlayerProficiencySnapshot>(result.PersistedProficienciesAtCommit));
-        AssertProficienciesEqual(
-            result.UpdatedSession.PlayerProficiencies,
-            result.ReloadedProficiencies);
-        Assert.Empty(result.Sent);
-        Assert.Equal(1, result.DisconnectCount);
-        Assert.Equal(result.OriginalCharacterText, result.PersistedCharacterText);
-        Assert.Contains("proficiencyCount=3", result.Log);
-        Assert.Contains("changedCount=2", result.Log);
-        Assert.Contains("output=disconnect-only", result.Log);
-        Assert.DoesNotContain("PARITY-GAP", result.Log);
+        AssertUnchanged(await InvokeAsync(Stuff12NpcId, Stuff12MaxProficiencyOption,
+            proficiencies: CreateMixedProficiencies()));
     }
 
     [Fact]
-    public async Task Stuff12Option149IsIdempotentAndStillUsesSourceDisconnect()
+    public async Task Stuff12Option149PreservesAlreadyMaximumRowsAndDoesNotDisconnect()
     {
         var proficiencies = new PlayerProficiencySnapshot(
         [
             new(410, Level: 20, PreviousLevel: 9, Experience: 0, NeededExperience: 456),
             new(999, Level: 20, PreviousLevel: 3, Experience: 0, NeededExperience: 88),
         ]);
-        var result = await InvokeAsync(
-            Stuff12NpcId,
-            Stuff12MaxProficiencyOption,
-            proficiencies: proficiencies);
-
-        AssertProficienciesEqual(proficiencies, result.UpdatedSession.PlayerProficiencies);
-        Assert.Equal(result.OriginalProficiencyBytes, result.PersistedProficiencyBytes);
-        Assert.Empty(result.Sent);
-        Assert.Equal(1, result.DisconnectCount);
-        Assert.Contains("changedCount=0", result.Log);
-        Assert.DoesNotContain("PARITY-GAP", result.Log);
+        AssertUnchanged(await InvokeAsync(Stuff12NpcId, Stuff12MaxProficiencyOption,
+            proficiencies: proficiencies));
     }
 
     [Fact]
-    public async Task ProficiencyPersistenceFailureRollsBackWithoutSessionCommitOrDisconnect()
+    public async Task DisabledProficiencyRouteDoesNotAttemptTheLockedProficiencyWriter()
     {
-        var originalProficiencies = CreateMixedProficiencies();
-        var result = await InvokeAsync(
-            Stuff12NpcId,
-            Stuff12MaxProficiencyOption,
-            proficiencies: originalProficiencies,
-            lockProficiencyFile: true);
+        AssertUnchanged(await InvokeAsync(Stuff12NpcId, Stuff12MaxProficiencyOption,
+            proficiencies: CreateMixedProficiencies(), lockProficiencyFile: true));
+    }
 
+    private static void AssertUnchanged(InvokeResult result)
+    {
+        Assert.True(result.Handled);
         Assert.Same(result.InitialSession, result.UpdatedSession);
-        Assert.Null(result.PersistedProficienciesAtCommit);
-        Assert.Equal(result.OriginalProficiencyBytes, result.PersistedProficiencyBytes);
-        AssertProficienciesEqual(originalProficiencies, result.ReloadedProficiencies);
-        AssertFenceDialog(result.Sent, "Max weapon proficiency admin service is disabled.");
+        Assert.Empty(result.Sent);
         Assert.Equal(0, result.DisconnectCount);
-        Assert.Contains("max proficiency persistence failed reason=", result.Log);
-        Assert.Contains("PARITY-GAP LegacyNpc AdminUtility", result.Log);
+        Assert.Null(result.PersistedCharacterAtCommit);
+        Assert.Null(result.PersistedProficienciesAtCommit);
+        Assert.Equal(result.OriginalCharacterText, result.PersistedCharacterText);
+        Assert.Equal(result.OriginalProficiencyBytes, result.PersistedProficiencyBytes);
+        Assert.Equal(result.InitialSession.Character.Level, result.ReloadedCharacter.Level);
+        Assert.Equal(result.InitialSession.Character.Experience, result.ReloadedCharacter.Experience);
+        Assert.Equal(result.InitialSession.Character.Strength, result.ReloadedCharacter.Strength);
+        Assert.Equal(result.InitialSession.Character.Agility, result.ReloadedCharacter.Agility);
+        Assert.Equal(result.InitialSession.Character.Vitality, result.ReloadedCharacter.Vitality);
+        Assert.Equal(result.InitialSession.Character.Spirit, result.ReloadedCharacter.Spirit);
+        Assert.Equal(result.InitialSession.Character.AttributePoints, result.ReloadedCharacter.AttributePoints);
+        Assert.Equal(result.InitialSession.Character.MinHitPoints, result.ReloadedCharacter.MinHitPoints);
+        Assert.Equal(result.InitialSession.PlayerProficiencies.Proficiencies, result.ReloadedProficiencies.Proficiencies);
+        Assert.Contains("Sentinel=keep-me", result.PersistedCharacterText, StringComparison.Ordinal);
+        Assert.Contains("Note=preserve-this-section", result.PersistedCharacterText, StringComparison.Ordinal);
+        Assert.Contains("reason=ownedGmTransactionRequired", result.Log);
+        Assert.DoesNotContain("PARITY-GAP", result.Log);
+        Assert.DoesNotContain("persistence failed", result.Log, StringComparison.OrdinalIgnoreCase);
     }
 
     public void Dispose()
@@ -349,6 +172,7 @@ public sealed class LegacyAdminUtilityLevelProficiencyParityTests : IDisposable
         var proficiencyPath = Path.Combine(_playerProficienciesRoot, CharacterUid + ".bin");
         var originalCharacterText = File.ReadAllText(characterPath);
         var originalProficiencyBytes = File.ReadAllBytes(proficiencyPath);
+        var originalFiles = Directory.GetFiles(_root, "*", SearchOption.AllDirectories).Order().ToArray();
         var characterLoader = new CharacterSnapshotLoader(_usersRoot);
         var character = Assert.IsType<CharacterSnapshot>(characterLoader.LoadByAccountId(AccountId));
         var session = new WorldSession(
@@ -396,6 +220,7 @@ public sealed class LegacyAdminUtilityLevelProficiencyParityTests : IDisposable
             }
         });
         sessions.Set(connection, session);
+        var originalAttributes = session.Character.Attributes.ToArray();
 
         FileStream? characterLock = null;
         FileStream? proficiencyLock = null;
@@ -427,6 +252,8 @@ public sealed class LegacyAdminUtilityLevelProficiencyParityTests : IDisposable
 
             Assert.True(sessions.TryGet(connection, out var updatedSession));
             Assert.NotNull(updatedSession);
+            Assert.Equal(originalAttributes, session.Character.Attributes.ToArray());
+            Assert.Equal(originalFiles, Directory.GetFiles(_root, "*", SearchOption.AllDirectories).Order().ToArray());
             return new InvokeResult(
                 handled,
                 session,
@@ -514,140 +341,6 @@ public sealed class LegacyAdminUtilityLevelProficiencyParityTests : IDisposable
             new(999, Level: 20, PreviousLevel: 3, Experience: 77, NeededExperience: 88),
             new(420, Level: 20, PreviousLevel: 7, Experience: 0, NeededExperience: 999),
         ]);
-    }
-
-    private static void AssertCharacterMutation(CharacterSnapshot actual, CharacterSnapshot expected)
-    {
-        Assert.Equal(expected.Level, actual.Level);
-        Assert.Equal(expected.Experience, actual.Experience);
-        Assert.Equal(expected.Strength, actual.Strength);
-        Assert.Equal(expected.Agility, actual.Agility);
-        Assert.Equal(expected.Vitality, actual.Vitality);
-        Assert.Equal(expected.Spirit, actual.Spirit);
-        Assert.Equal(expected.AttributePoints, actual.AttributePoints);
-        Assert.Equal(expected.MinHitPoints, actual.MinHitPoints);
-    }
-
-    private static void AssertProficiencyIdentityFieldsPreserved(
-        PlayerProficiencySnapshot original,
-        PlayerProficiencySnapshot updated)
-    {
-        Assert.Equal(original.Proficiencies.Count, updated.Proficiencies.Count);
-        for (var index = 0; index < original.Proficiencies.Count; index++)
-        {
-            Assert.Equal(original.Proficiencies[index].Id, updated.Proficiencies[index].Id);
-            Assert.Equal(original.Proficiencies[index].PreviousLevel, updated.Proficiencies[index].PreviousLevel);
-            Assert.Equal(original.Proficiencies[index].NeededExperience, updated.Proficiencies[index].NeededExperience);
-        }
-    }
-
-    private static void AssertProficienciesEqual(
-        PlayerProficiencySnapshot expected,
-        PlayerProficiencySnapshot actual)
-    {
-        Assert.Equal(expected.Proficiencies.Count, actual.Proficiencies.Count);
-        for (var index = 0; index < expected.Proficiencies.Count; index++)
-        {
-            Assert.Equal(expected.Proficiencies[index], actual.Proficiencies[index]);
-        }
-    }
-
-    private static void AssertLevelAction(byte[] bytes)
-    {
-        Assert.True(MsgActionPacket.TryParse(ReadFrame(bytes), out var action));
-        Assert.Equal(CharacterUid, action.ObjId);
-        Assert.Equal((MsgActionType)92, action.Type);
-        Assert.Equal(140U, action.PositionX);
-    }
-
-    private static void AssertHitpointPair(
-        IReadOnlyList<byte[]> sent,
-        int startIndex,
-        uint expectedMax,
-        uint expectedCurrent)
-    {
-        Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[startIndex]), out var maxOnly));
-        var maxUpdate = Assert.Single(maxOnly.Updates);
-        Assert.Equal(LegacyMsgUpdateDataType.MaxHitpoints, maxUpdate.Type);
-        Assert.Equal((ulong)expectedMax, maxUpdate.Value);
-
-        Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[startIndex + 1]), out var pair));
-        Assert.Collection(
-            pair.Updates,
-            update =>
-            {
-                Assert.Equal(LegacyMsgUpdateDataType.MaxHitpoints, update.Type);
-                Assert.Equal((ulong)expectedMax, update.Value);
-            },
-            update =>
-            {
-                Assert.Equal(LegacyMsgUpdateDataType.Hitpoints, update.Type);
-                Assert.Equal((ulong)expectedCurrent, update.Value);
-            });
-    }
-
-    private static void AssertScalarUpdate(
-        byte[] bytes,
-        LegacyMsgUpdateDataType expectedType,
-        ulong expectedValue)
-    {
-        Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out var packet));
-        Assert.Equal(CharacterUid, packet.Uid);
-        var update = Assert.Single(packet.Updates);
-        Assert.Equal(expectedType, update.Type);
-        Assert.Equal(expectedValue, update.Value);
-    }
-
-    private static void AssertFenceDialog(IReadOnlyList<byte[]> sent, string expectedText)
-    {
-        Assert.Equal(4, sent.Count);
-        Assert.Equal(expectedText, AssertNpcReply(sent[0], LegacyNpcReplyInteractType.Dialog).Text);
-        var option = AssertNpcReply(sent[1], LegacyNpcReplyInteractType.Option);
-        Assert.Equal("I understand.", option.Text);
-        Assert.Equal(byte.MaxValue, option.OptionId);
-        Assert.Equal((ushort)285, AssertNpcReply(sent[2], LegacyNpcReplyInteractType.Avatar).InputMaxLength);
-        AssertNpcReply(sent[3], LegacyNpcReplyInteractType.Finish);
-    }
-
-    private static LegacyNpcReplyPacket AssertNpcReply(
-        byte[] bytes,
-        LegacyNpcReplyInteractType expectedType)
-    {
-        Assert.True(LegacyNpcReplyPacket.TryParse(ReadFrame(bytes), out var reply));
-        Assert.Equal(expectedType, reply.InteractType);
-        return reply;
-    }
-
-    private static IReadOnlyList<LegacyMsgUpdatePacket> ParseMsgUpdates(IEnumerable<byte[]> sent)
-    {
-        return sent
-            .Select(ReadFrame)
-            .Where(frame => LegacyMsgUpdatePacket.TryParse(frame, out _))
-            .Select(frame =>
-            {
-                Assert.True(LegacyMsgUpdatePacket.TryParse(frame, out var packet));
-                return packet;
-            })
-            .ToArray();
-    }
-
-    private static IReadOnlyList<LegacyNpcReplyPacket> ParseNpcReplies(IEnumerable<byte[]> sent)
-    {
-        return sent
-            .Select(ReadFrame)
-            .Where(frame => LegacyNpcReplyPacket.TryParse(frame, out _))
-            .Select(frame =>
-            {
-                Assert.True(LegacyNpcReplyPacket.TryParse(frame, out var reply));
-                return reply;
-            })
-            .ToArray();
-    }
-
-    private static PacketFrame ReadFrame(byte[] bytes)
-    {
-        Assert.True(PacketFrameDecoder.TryRead(new ReadOnlySequence<byte>(bytes), out var frame, out _, out _));
-        return frame;
     }
 
     private static WorldDataCatalog CreateWorldDataCatalog()

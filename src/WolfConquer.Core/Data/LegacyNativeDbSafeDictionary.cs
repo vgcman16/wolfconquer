@@ -113,7 +113,7 @@ internal partial class LegacyNativeDbSafeDictionary<T1, T2> : IDictionary<T1, T2
         private readonly LegacyNativeDbSafeDictionary<T1, T2> owner;
         internal EntryOperation(LegacyNativeDbSafeDictionary<T1, T2> owner, bool mutation)
         {
-            if (mutation && owner.entryOperationDepth != 0)
+            if (mutation && (owner.entryOperationDepth != 0 || owner.joinedItemGraph is not null))
                 throw new InvalidOperationException("Reentrant collection mutation is not permitted.");
             this.owner = owner;
             owner.entryOperationDepth++;

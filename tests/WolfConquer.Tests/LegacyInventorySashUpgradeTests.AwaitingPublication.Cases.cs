@@ -44,14 +44,21 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 Assert.True(pending);
                 AssertPackageJoinFiles(fixture, committed);
                 Assert.Equal(first, fixture.Sent.Count);
-                Assert.True(join.SessionStore.TryCommitPreparedSession(join.Connection!, before.Owner, producer, () =>
+                Assert.True(join.SessionStore.TryCommitPreparedSession(join.Connection!, before.Owner, producer, nativeItems =>
                 {
+                    // This recovery control intentionally committed its real
+                    // work above. Prepare from those actual saved postimages
+                    // before Store/cache completion, never replay the writer.
+                    var candidate = LoadDebtRecoveryCandidate(fixture, before.Owner);
+                    nativeItems.ValidateItemIds(candidate.PlayerItems.InventoryItems.Select(item => item.ItemId));
+                    var final = nativeItems.Prepare(candidate);
+                    nativeItems.ArmBeforeCommit();
                     // Publish the genuine cache projection and complete saved
                     // loader candidate under the actual Store holder/gate. The
                     // real producer then verifies all committed files/session
                     // postimages before clearing its awaiting identity.
                     mailboxes.PublishClaims(capture, projection);
-                    return LoadDebtRecoveryCandidate(fixture, before.Owner);
+                    return final;
                 }));
                 Assert.False(ReferenceEquals(before.Owner, join.Current));
                 Assert.Equal(JsonSerializer.Serialize(expected), JsonSerializer.Serialize(join.Current.PlayerItems));

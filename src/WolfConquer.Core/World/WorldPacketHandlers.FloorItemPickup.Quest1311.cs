@@ -47,7 +47,7 @@ public static partial class WorldPacketHandlers
                     { failure = "pickupOwnerChanged"; return false; }
                     return !hasQuestRoot || TryPersistLegacyFloorPickupQuest1311(context.PlayerQuestsRoot!,
                         current.Character.Uid, quests, updated.Character.PlayerQuests, out failure);
-                }))
+                }, out var final))
                 {
                     // Only a pre-callback CAS race is retried, against its latest
                     // wallet/items/quest state. Never retry an ambiguous save here.
@@ -55,7 +55,7 @@ public static partial class WorldPacketHandlers
                     reason = "sessionChanged";
                     continue;
                 }
-                committed = updated;
+                committed = final;
                 objectiveFrame = frame;
                 break;
             }

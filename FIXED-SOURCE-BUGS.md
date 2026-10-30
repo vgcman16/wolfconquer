@@ -8,6 +8,114 @@ Candidate source qualification for FSB-204 through FSB-225: Release build06 pass
 
 Earlier FSB-200 through FSB-203 were included in the separately verified full Windows gate 40958745483 on source731d8e54 / generated91040398: Core30175 passed/152 existing NotExecuted, Updates446 and Launcher57, zero failures. The new FSB-204..225 public-commit full gate remains pending.
 
+## FSB-231 candidate: Remove saved-text admin NPC privileges
+
+Source: Stuff NPC77839 and Stuff12 NPC22224 in
+`WorldPacketHandlers.NpcEntrypoints.AdminUtilityNpcs.cs`. Character names
+containing [GM]/[PM], saved Role text and eight boolean attributes could reach
+level/proficiency rewrites and DragonWar invitations without actual GM authority.
+Both entrypoints now refuse before invoking those actions; ordinary InnerPowerBook
+behavior remains. The new separate GM toolkit requires immutable explicit
+account/character/domain capabilities and the real admitted Frame/Store/native
+issuer/PIN, world/recovery/mailbox owners and actual UID/journal mechanisms.
+
+Qualification: full solution build04 zero errors/157existing warnings. Combined
+GM/parser/startup/actual-chat/real-mail/claim/retry/actor/legacy-NPC/inspection/chat
+neighbors passed359/359 with no skips; all72 rewritten legacy-NPC outcomes are
+included. Original focused349pass/10fail receipt is retained: two missing
+InvalidDataException catches and owned junction cleanup were corrected rather
+than hidden. No live permissions, server/client launch or original saves changed.
+Actual public-commit fullCI is pending. Underlying old private admin actions stay
+unreachable; teleport/vitals/level/class/skills/quest/event GM mutations still need
+real owned transactions. Other legacy nickname/privacy/combat flags remain open.
+
+## FSB-230 candidate: Retain one genuine item graph through session publication
+
+Source/location: ordinary admission, `WorldSessionStore`, the native item
+containers and item-handler continuations. Admission could publish a session
+without its complete genuine native inventory/storage graph. Later changes could
+replace live containers or continue with the detached proposal after Store had
+published a different canonical record, withholding committed replies or allowing
+subsequent work to observe different item state.
+
+The candidate prepares the complete image with actual catalog provenance, strict
+root/deposit identity and lossless modeled fields before publication. It retains
+the seven actual container owners and unchanged native item objects. Real Store
+preparation validates the graph and its cooperating writers, then publishes the
+canonical snapshot/native graph together. Persisted single/pair/package paths
+keep original writer inputs separate from the exact returned publication record.
+Mailbox, equipment, pickup/drop/sale, warehouse, vendor, reward and generic item
+continuations use that actual receipt. Training reads its weapons from a closed
+projection of the real equipment graph; it does not invent combat-cache state.
+
+Missing Rune metadata refuses before the writer; unrelated non-Rune owners do
+not require an unused catalog. Diagnostic inspection can report a damaged item
+owner without granting gameplay mutation authority. Malformed proposals remain
+rejected; fault tests corrupt only genuine owned native maps and clean up their
+exact aliases. Earlier saved-list alias assertions now require unchanged bytes,
+retained native owners/rows and current canonical binding, while preserving PIN,
+file, wire, rejection and replay coverage.
+
+Trade offers now retain a closed lineage of the actual Store/connection/binding,
+canonical inventory row and genuine native node. Confirmation and the final
+journal validator consume the same owners: unrelated canonical copies preserve
+an offered item, while remove/move/recreate cannot resurrect its old offer using
+the same numeric UID and bytes. Both callback-bearing party lookups finish before
+the final pure two-party check. The original wholly unbound contract stays
+separate; a bound or foreign owner cannot use it as a fallback.
+
+Qualification: Root solution build06 passed; its one new test-style warning was
+corrected before successful build07/08. Focused04 retained1242pass/2fail; the two
+corrected SashTransfer cases subsequently passed2/2. Full Core01 retained30857pass/64fail/152existingNotExecuted. Reviewed corrections
+passed focused05 with3313pass/one fixturefailure/2existing skips, then all9 alternate
+UI cases passed after the final raw/canonical-order fixture correction. GM/neighbor
+359/359 also passed on the combined graph. Actual-public-commit fullCI is pending.
+
+Limits: cooperating graph publication is not whole-world/crash-safe atomicity.
+Generic postpublication item/scalar saves still have best-effort IO paths; the
+separate journaled repair batch remains unrun. Raw public field/map writers do
+not acquire these gates. Existing max+1 reward UID creators still need genuine
+global reservation/claim ownership. Full native combat/stat activation, SQL,
+7937 protocol/catalog integration, English assets and live acceptance remain open.
+Specs: `owned-native-item-image.md`, `owned-native-item-graph-join.md`,
+`owned-native-item-store-publication.md` and the finite continuation specs under
+`docs/protocol/specs/`.
+
+## FSB-229 candidate: Preserve valid DateTime binary values during item hydration
+
+Source/location: `LegacyNativeClientItemRecord.GetDataItem`. Comparing a stored
+DateTime binary value directly with the ticks range discarded valid UTC/local
+kind bits and silently replaced valid dates with zero. The candidate uses the
+actual `DateTime.FromBinary` contract; invalid encodings refuse rather than being
+clamped, before an owned item graph can publish. Valid expiry/extra behavior and
+the existing native writer's ticks representation remain distinct contracts.
+
+Three former UTC-clamp assertions now prove valid kind/time preservation,
+purification/refinery expiry and independent output bytes; invalid-date refusal
+and raw source preservation remain covered. The complete10-case hydration group
+passed in focused04. Full Core/current-public-commit qualification is pending.
+This does not redesign native time-left arithmetic, storage format or all timers.
+
+## FSB-228 candidate: Reject Rune metadata failures before changing the item ID
+
+Source/location: `LegacyNativeGameItemRuntime.ITEM_ID`. The old setter wrote the
+new ID before its required Rune lookup, so a missing dictionary/row could leave a
+partially changed item with the old spell/effect. It now resolves the actual Rune
+metadata first, prepares the full result and assigns under the real item gate.
+Valid Rune/non-Rune semantics and the original missing-metadata exception types
+remain. The joined image uses its actual captured catalog, including required
+root/deposit Rune metadata; it never substitutes an accepting empty catalog.
+
+Candidate source is built; full Core qualification is running. This is a bounded
+setter/owned-image repair, not proof that arbitrary public writers or global
+catalog replacement participate in the same transaction.
+
+Predecessor qualification update: the actual full Windows run40990231326 on
+5362feb15b4132da58af2bbc592436e755fb9052 passed all8stages: Core30846passed/
+152existingNotExecuted, Updates446 and Launcher57, zero failures. This descendant
+includes FSB204..227 and supersedes their earlier pending-full-gate notes below.
+It does not qualify the new candidate or establish live/SQL/new7937/full parity.
+
 ## FSB-227: Reject native Champion Point overflow coherently
 
 Locally qualified; exact-commit fullCI pending. AddChampionPoints used unchecked uint +=

@@ -13,6 +13,8 @@ public sealed partial class WorldSessionStore
         private readonly LegacyOrdinarySpellBinding binding;
         private readonly LegacyNativeExistingCharacterPrefix.SpellAdmissionOwner admissionOwner;
         private readonly LegacyNativePlayerRuntime.OwnedHitpointsPublication hitpoints;
+        private readonly LegacyOwnedNativeItemImage.Preparation itemImage;
+        private readonly LegacyNativeOwnedItemGraph.PreparedPublication? items;
         private bool spellGateHeld, proficiencyGateHeld;
         internal WorldSession FinalSession { get; }
 
@@ -34,8 +36,12 @@ public sealed partial class WorldSessionStore
                 !ReferenceEquals(player.Owner, client) || recovery.IsBlocked) throw InvalidSpellPublication();
             detached = LegacyNativeSpellStorage.PrepareDetachedSessionSnapshot(client, player, proposed.PlayerSpells, admissionOwner);
             detachedProficiencies = LegacyNativeProficiencyStorage.PrepareDetachedSessionSnapshot(client, player, proposed.PlayerProficiencies, admissionOwner);
+            var context = (store.framePersistenceOwner ?? throw InvalidSpellPublication()).RequireOwnedNativeItemContext();
+            itemImage = LegacyOwnedNativeItemImage.Prepare(context.Catalog, proposed.PlayerItems, context.Profile);
+            if (!ReferenceEquals(itemImage.SourceSnapshot, proposed.PlayerItems) || itemImage.BaseImage is not null)
+                throw InvalidSpellPublication();
             FinalSession = proposed with { PlayerSpells = detached.Plan.FinalSnapshot,
-                PlayerProficiencies = detachedProficiencies.Plan.FinalSnapshot };
+                PlayerProficiencies = detachedProficiencies.Plan.FinalSnapshot, PlayerItems = itemImage.FinalSnapshot };
             var savedRows = savedSpellImage is null ? WolfConquer.Core.Data.PlayerSpellSnapshot.Empty :
                 WolfConquer.Core.Data.PlayerSpellSnapshotLoader.Parse(savedSpellImage);
             if (!WolfConquer.Core.Data.PlayerSpellSnapshotLoader.ToLegacyBytes(savedRows).AsSpan().SequenceEqual(
@@ -47,6 +53,9 @@ public sealed partial class WorldSessionStore
             {
                 Monitor.Enter(detached.Storage.MutationGate, ref spellGateHeld);
                 Monitor.Enter(detachedProficiencies.Storage.MutationGate, ref proficiencyGateHeld);
+                items = LegacyNativeOwnedItemGraph.PrepareAdmission(client, player, admissionOwner.PreparedUid, itemImage);
+                if (!ReferenceEquals(items.FinalSnapshot, FinalSession.PlayerItems)) throw InvalidSpellPublication();
+                binding.InitializePreparedItems(items.Graph, context.Catalog, context.Profile, FinalSession.PlayerItems);
                 RequireCurrentBeforeWriter();
             }
             catch { Dispose(); throw; }
@@ -63,25 +72,28 @@ public sealed partial class WorldSessionStore
         {
             detached.Plan.RequireCurrentBeforeWriter();
             detachedProficiencies.Plan.RequireCurrentBeforeWriter();
+            items!.RequireCurrentBeforeWriter();
             if (!OwnerIsCurrentPlain() || !hitpoints.IsCurrentPlain()) throw InvalidSpellPublication();
         }
 
         internal bool ConsumeCurrentPlain() => hitpoints.IsCurrentPlain() && OwnerIsCurrentPlain() && admissionOwner.ConsumeCurrentPlain() &&
             detached.Plan.ConsumeCurrentPlain() &&
-            detachedProficiencies.Plan.ConsumeCurrentPlain();
+            detachedProficiencies.Plan.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain();
         internal bool ArmPreparedProof()
         {
             detached.Plan.ArmFinalProof();
             detachedProficiencies.Plan.ArmFinalProof();
+            items!.ArmFinalProof();
             admissionOwner.ArmAdmissionProof();
             return hitpoints.IsCurrentPlain() && OwnerIsCurrentPlain() && admissionOwner.ConsumeBeforeWriterPlain() && detached.Plan.ConsumeBeforeWriterPlain() &&
-                detachedProficiencies.Plan.ConsumeBeforeWriterPlain();
+                detachedProficiencies.Plan.ConsumeBeforeWriterPlain() && items.ConsumeBeforeWriterPlain();
         }
 
         internal void PublishPrepared()
         {
             detached.Plan.PublishPreparedMap();
             detachedProficiencies.Plan.PublishPreparedMap();
+            items!.PublishPrepared();
             binding.Client.MySpells = detached.Storage;
             binding.Client.MyProfs = detachedProficiencies.Storage;
             detached.Storage.AttachOrdinaryBinding(binding);
@@ -91,6 +103,7 @@ public sealed partial class WorldSessionStore
 
         public void Dispose()
         {
+            items?.Dispose();
             if (proficiencyGateHeld) { proficiencyGateHeld = false; Monitor.Exit(detachedProficiencies.Storage.MutationGate); }
             if (spellGateHeld) { spellGateHeld = false; Monitor.Exit(detached.Storage.MutationGate); }
         }

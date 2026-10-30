@@ -7,6 +7,7 @@ public static partial class WorldPacketHandlers
     {
         var reason = "currentSessionMissing";
         LegacyItemDropPlan? committed = null;
+        WorldSession? committedSession = null;
         FloorItemRuntimeEntry? floorEntry = null;
         byte[]? rejection = null;
         var durable = false;
@@ -28,7 +29,7 @@ public static partial class WorldPacketHandlers
                     {
                         // Validate all outbound representation before touching disk.
                         _ = reservation?.Entry.Packet.ToFrameBytes();
-                        if (TryCommitLegacyItemDrop(context, current, plan, reservation, out durable, out reason))
+                        if (TryCommitLegacyItemDrop(context, current, plan, reservation, out durable, out reason, out committedSession))
                         {
                             committed = plan;
                             floorEntry = reservation?.Entry;
@@ -40,13 +41,13 @@ public static partial class WorldPacketHandlers
         }
         if (rejection is not null)
             await context.Connection.SendAsync(rejection, cancellationToken).ConfigureAwait(false);
-        if (committed is not null)
+        if (committed is not null && committedSession is not null)
         {
-            var updatedContext = context with { Session = committed.Updated };
+            var updatedContext = context with { Session = committedSession };
             // Native network order remains floor-visible then RemoveInventory;
             // the managed disk/session/ground commit precedes both sends.
             if (floorEntry is not null)
-                await SendFloorItemVisibleAsync(updatedContext, committed.Updated.Character, floorEntry, cancellationToken)
+                await SendFloorItemVisibleAsync(updatedContext, committedSession.Character, floorEntry, cancellationToken)
                     .ConfigureAwait(false);
             await context.Connection.SendAsync(committed.RemovalFrame, cancellationToken).ConfigureAwait(false);
             var kind = committed.GroundDrop ? "ground drop" : committed.Item.Bound >= 1 ? "bound drop" : "unable-trade discard";

@@ -186,7 +186,7 @@ public static partial class WorldPacketHandlers
             updatedTarget,
             targetIsEquipment);
         var updated = session with { PlayerItems = updatedItems };
-        context.Sessions?.Set(context.Connection, updated);
+        updated = PublishLegacyItemUsageSession(context, updated);
 
         await context.Connection.SendAsync(
                 LegacyGameItemPacket
@@ -256,7 +256,7 @@ public static partial class WorldPacketHandlers
                 updatedTarget,
                 targetIsEquipment);
             var updated = session with { PlayerItems = updatedItems };
-            context.Sessions?.Set(context.Connection, updated);
+            updated = PublishLegacyItemUsageSession(context, updated);
 
             await context.Connection.SendAsync(
                     LegacyGameItemPacket
@@ -291,7 +291,7 @@ public static partial class WorldPacketHandlers
             WarehouseItems = consumedMaterialItems.WarehouseItems,
         };
         var failed = session with { PlayerItems = failedItems };
-        context.Sessions?.Set(context.Connection, failed);
+        failed = PublishLegacyItemUsageSession(context, failed);
 
         foreach (var materialFrame in materialFrames)
         {
@@ -357,7 +357,7 @@ public static partial class WorldPacketHandlers
             updatedTarget,
             targetIsEquipment);
         var updated = session with { PlayerItems = updatedItems };
-        context.Sessions?.Set(context.Connection, updated);
+        updated = PublishLegacyItemUsageSession(context, updated);
 
         await context.Connection.SendAsync(
                 LegacyGameItemPacket

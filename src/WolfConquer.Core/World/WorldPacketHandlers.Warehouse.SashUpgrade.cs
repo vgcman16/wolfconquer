@@ -23,6 +23,7 @@ public static partial class WorldPacketHandlers
         }
 
         LegacySashUpgradePlan? committed = null;
+        WorldSession? canonical = null;
         LegacySashUpgradeOwner? denied = null;
         var reason = "sashUpgradeOwnerUnavailable";
         // Frame delegates this exact action to the exclusive owner; never upgrade a shared lease.
@@ -42,7 +43,11 @@ public static partial class WorldPacketHandlers
                 else
                 {
                     var plan = PrepareLegacySashUpgrade(owner);
-                    if (TryCommitLegacySashUpgrade(context, plan, cancellationToken, out reason)) committed = plan;
+                    if (TryCommitLegacySashUpgrade(context, plan, cancellationToken, out reason, out var published))
+                    {
+                        committed = plan;
+                        canonical = published ?? throw new LegacyCommittedSpellPublicationException();
+                    }
                 }
             }
             else if (!context.Sessions.TryGet(context.Connection, out _))
@@ -51,7 +56,7 @@ public static partial class WorldPacketHandlers
             }
         }
 
-        if (committed is null)
+        if (committed is null || canonical is null)
         {
             if (reason == "sashUpgradeNoActiveSession")
             {
@@ -73,11 +78,12 @@ public static partial class WorldPacketHandlers
         // The persisted CP/count pair and current-session publication already succeeded.
         // Send/log exceptions propagate; they do not refund this purchase or report rejection.
         await context.Log.WriteLineAsync(
-            $"WorldServer persisted MsgAction UpdateInventorySash {FormatSession(context with { Session = committed.Updated })} " +
+            $"WorldServer persisted MsgAction UpdateInventorySash {FormatSession(context with { Session = canonical })} " +
             "keys=ConquerPoints,InventorySashCount; committed, delivery pending.").ConfigureAwait(false);
         foreach (var frame in committed.Frames)
         {
-            if (!IsCurrentLegacySashUpgradeOwner(context, committed.Owner, committed.Updated))
+            if (!IsCurrentLegacySashUpgradeOwner(context, committed.Owner, canonical) ||
+                !IsCurrentLegacyWarehouseJoinedItemOwner(context.Sessions!, canonical))
             {
                 await context.Log.WriteLineAsync("WorldServer UpdateInventorySash delivery stopped after commit; owner retired or changed.")
                     .ConfigureAwait(false);
@@ -86,9 +92,9 @@ public static partial class WorldPacketHandlers
             await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
         }
         await context.Log.WriteLineAsync(
-            $"WorldServer handled MsgAction UpdateInventorySash {FormatSession(context with { Session = committed.Updated })} " +
+            $"WorldServer handled MsgAction UpdateInventorySash {FormatSession(context with { Session = canonical })} " +
             $"inventorySashCount={committed.Owner.Count + 1} cost={LegacyInventorySashSlotCost} " +
-            $"conquerPoints={committed.Updated.Character.ConquerPoints}.").ConfigureAwait(false);
+            $"conquerPoints={canonical.Character.ConquerPoints}.").ConfigureAwait(false);
     }
 
     private static LegacySashUpgradePlan PrepareLegacySashUpgrade(LegacySashUpgradeOwner owner)
@@ -109,7 +115,7 @@ public static partial class WorldPacketHandlers
     }
 
     private static bool TryCommitLegacySashUpgrade(WorldPacketHandlerContext context, LegacySashUpgradePlan plan,
-        CancellationToken cancellationToken, out string reason)
+        CancellationToken cancellationToken, out string reason, out WorldSession? canonical)
     {
         var failure = "sashUpgradeOwnerChanged";
         var saved = context.Sessions!.TryCommitSession(context.Connection, plan.Owner.Session, plan.Updated, () =>
@@ -124,7 +130,7 @@ public static partial class WorldPacketHandlers
             if (!persisted && failure.StartsWith(LegacyInventorySashUpgradePersistence.RecoveryRequired, StringComparison.Ordinal))
                 context.TradeRecovery.Block(failure);
             return persisted;
-        });
+        }, out canonical);
         reason = saved ? "committed" : failure;
         return saved;
     }

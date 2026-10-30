@@ -11,7 +11,9 @@ internal partial class LegacyNativeUpdateSpell
             ReferenceEquals(client.Equipment, equipment) && equipment.IsOwnedBy(client) &&
             (right == 0 && left == 0 || ReferenceEquals(client.MyProfs, profs) && profs?.IsOwnedBy(client) == true) &&
             ReferenceEquals(client.Socket, socket) && client.Fake == fake &&
-            equipment.RightWeapon / 1000 == right && equipment.LeftWeapon / 1000 == left;
+            (trainingWeapons is not null
+                ? trainingWeapons.MatchesCurrent(client, player, equipment)
+                : equipment.RightWeapon / 1000 == right && equipment.LeftWeapon / 1000 == left);
 
         private bool HasMetadata()
         {

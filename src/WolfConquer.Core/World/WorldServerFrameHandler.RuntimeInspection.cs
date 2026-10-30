@@ -29,25 +29,35 @@ public sealed partial class WorldServerFrameHandler
             using (await _worldOperations.EnterExclusiveAsync(lifetime.Token).ConfigureAwait(false))
             lock (_tradeStates.SyncRoot)
             {
-                lifetime.Token.ThrowIfCancellationRequested();
-                var active = _sessions.FindUniqueRuntimeInspectionSession(request.AccountId, request.CharacterUid);
-                if (active is null) return Refused("runtimeInspectionUniqueCurrentSessionRequired");
-                var client = active.Connection.NativeGameClient;
-                if (client?.OrdinarySpellBinding is not { } binding || !ReferenceEquals(client, active.Session.NativeGameClient) ||
-                    !ReferenceEquals(binding.Store, _sessions) || !ReferenceEquals(binding.Connection, active.Connection) ||
-                    !ReferenceEquals(binding.Recovery, _tradeRecovery) || !active.Connection.HasSendRoute || !active.Connection.HasDisconnectRoute ||
-                    _tradeStates.HasConnectionEnded(active.Connection) || !OperatorMailSameRoute(active.Session.UsersRoot, routes.UsersRoot) ||
-                    !_sessions.TryReadRuntimeInspection(binding, active.Session, request.ExpectedDomain, out var snapshot))
-                    return Refused("runtimeInspectionCurrentNativeGraphUnavailableOrChanged");
-                lifetime.Token.ThrowIfCancellationRequested();
-                if (!owner.TryGetOperatorGearMailConfiguration(this, request.ExpectedDomain, out var finalRoutes, out _) || finalRoutes != routes ||
-                    !binding.PhysicalOwnerIsCurrentPlain() || !_sessions.IsBoundSpellOwnerCurrent(binding) ||
-                    !_sessions.TryGet(active.Connection, out var current) || !ReferenceEquals(current, active.Session) ||
-                    _tradeStates.HasConnectionEnded(active.Connection)) return Refused("runtimeInspectionOwnerRetiredDuringCopy");
-                return new(1, query, LegacyRuntimeInspectionStatus.Observed, "boundedDiagnosticOnly", snapshot);
+                return InspectOwnedRuntimeUnderLease(owner, request, routes, lifetime.Token);
             }
         }
         catch (Exception error) when (IsOperatorMailPreparationFailure(error))
         { return Refused("runtimeInspectionUnavailable:" + error.GetType().Name); }
+    }
+
+    // Called only by the two closed entrypoints after their real worker,
+    // Exclusive world operation and trade owner have already been acquired.
+    private LegacyRuntimeInspectionResult InspectOwnedRuntimeUnderLease(LegacyOwnedAdmissionRuntime owner,
+        LegacyRuntimeInspectionRequest request, LegacyOwnedAdmissionOptions routes, CancellationToken cancellationToken)
+    {
+        LegacyRuntimeInspectionResult Refused(string reason) =>
+            new(1, request.QueryId, LegacyRuntimeInspectionStatus.Rejected, reason, null);
+        cancellationToken.ThrowIfCancellationRequested();
+        var active = _sessions.FindUniqueRuntimeInspectionSession(request.AccountId, request.CharacterUid);
+        if (active is null) return Refused("runtimeInspectionUniqueCurrentSessionRequired");
+        var client = active.Connection.NativeGameClient;
+        if (client?.OrdinarySpellBinding is not { } binding || !ReferenceEquals(client, active.Session.NativeGameClient) ||
+            !ReferenceEquals(binding.Store, _sessions) || !ReferenceEquals(binding.Connection, active.Connection) ||
+            !ReferenceEquals(binding.Recovery, _tradeRecovery) || !active.Connection.HasSendRoute || !active.Connection.HasDisconnectRoute ||
+            _tradeStates.HasConnectionEnded(active.Connection) || !OperatorMailSameRoute(active.Session.UsersRoot, routes.UsersRoot) ||
+            !_sessions.TryReadRuntimeInspection(binding, active.Session, request.ExpectedDomain, out var snapshot))
+            return Refused("runtimeInspectionCurrentNativeGraphUnavailableOrChanged");
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!owner.TryGetOperatorGearMailConfiguration(this, request.ExpectedDomain, out var finalRoutes, out _) || finalRoutes != routes ||
+            !_sessions.IsRuntimeInspectionOwnerCurrent(binding) ||
+            !_sessions.TryGet(active.Connection, out var current) || !ReferenceEquals(current, active.Session) ||
+            _tradeStates.HasConnectionEnded(active.Connection)) return Refused("runtimeInspectionOwnerRetiredDuringCopy");
+        return new(1, request.QueryId, LegacyRuntimeInspectionStatus.Observed, "boundedDiagnosticOnly", snapshot);
     }
 }

@@ -3,10 +3,12 @@ using System.Net;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.Packets;
+using WolfConquer.Core.Runtime;
 using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
+[Collection("NativeItemCounterSourcePrerequisite")]
 public sealed class LegacyAdminUtilityNpcTests
 {
     private const uint Stuff12NpcId = 22_224;
@@ -22,60 +24,97 @@ public sealed class LegacyAdminUtilityNpcTests
 
         Assert.True(result.Handled);
         Assert.Empty(result.Sent);
-        Assert.Contains("ignored LegacyNpc admin utility for non-privileged character", result.Log);
+        Assert.Contains("disabled LegacyNpc admin utility", result.Log);
         Assert.Contains(sourceMethod, result.Log);
         Assert.DoesNotContain("PARITY-GAP LegacyNpc AdminUtility", result.Log);
     }
 
-    [Theory]
-    [InlineData(StuffNpcId, "NpcHandler.Stuff", "Legacy admin equipment selector", "Level 140.", 60)]
-    [InlineData(Stuff12NpcId, "NpcHandler.Stuff12", "Legacy advanced admin equipment selector", "Max weapon proficiency.", 149)]
-    public async Task AdminStuffRootDialogsAreEnglishAndExposeLegacyOptions(
-        uint npcId,
-        string sourceMethod,
-        string expectedText,
-        string expectedOptionText,
-        byte expectedOptionId)
+    public static IEnumerable<object?[]> ForgedPrivileges()
     {
-        var result = await InvokeAsync(npcId, optionId: 0, gmName: true);
-
-        Assert.True(result.Handled);
-        Assert.Contains(ParseNpcReplies(result.Sent), reply => reply.Text.Contains(expectedText, StringComparison.Ordinal));
-        Assert.Contains(ParseNpcReplies(result.Sent), reply => reply.Text == expectedOptionText && reply.OptionId == expectedOptionId);
-        Assert.Contains(sourceMethod, result.Log);
-        Assert.DoesNotContain("PARITY-GAP LegacyNpc AdminUtility", result.Log);
-        AssertAsciiReplies(result.Sent);
+        yield return ["AdminUtilityHero[GM]", null, null];
+        yield return ["AdminUtilityHero[PM]", null, null];
+        yield return ["AdminUtilityHero[gM]", null, null];
+        foreach (var role in new[] { "PM", "GM", "Admin", "admin" })
+            yield return ["AdminUtilityHero", "Role", role];
+        foreach (var key in new[] { "ProjectManager", "GM", "IsGM", "GameMaster", "IsGameMaster", "Admin", "IsAdmin", "Privileged" })
+            foreach (var value in new[] { "1", "yes", "true", "TrUe", " true " })
+                yield return ["AdminUtilityHero", key, value];
     }
 
     [Theory]
-    [InlineData(StuffNpcId, 60, "Level 140 admin service is disabled.", "NpcHandler.Stuff")]
-    [InlineData(StuffNpcId, 89, "Admin item grants are disabled.", "NpcHandler.Stuff")]
-    [InlineData(Stuff12NpcId, 149, "Max weapon proficiency admin service is disabled.", "NpcHandler.Stuff12")]
-    [InlineData(Stuff12NpcId, 162, "Level 140 admin service is disabled.", "NpcHandler.Stuff12")]
-    public async Task AdminStuffGrantLevelAndProficiencyBranchesAreFenced(
-        uint npcId,
-        byte optionId,
-        string expectedText,
-        string sourceMethod)
+    [MemberData(nameof(ForgedPrivileges))]
+    public async Task ForgedNamesRolesAndBooleanAttributesCannotReachAnyLegacyAdminBranch(string name, string? key, string? value)
     {
-        var result = await InvokeAsync(npcId, optionId, gmName: true);
-
-        Assert.True(result.Handled);
-        Assert.Contains(ParseNpcReplies(result.Sent), reply => reply.Text == expectedText);
-        Assert.Contains("PARITY-GAP LegacyNpc AdminUtility", result.Log);
-        Assert.Contains(sourceMethod, result.Log);
-        Assert.Equal(100, result.UpdatedSession.Character.Level);
-        Assert.Empty(result.UpdatedSession.PlayerItems.InventoryItems);
+        foreach (var npcId in new[] { StuffNpcId, Stuff12NpcId })
+            foreach (var option in new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 60, 89, 120, 149, 162, 200, 201, 254, 255 })
+            {
+                var result = await InvokeAsync(npcId, option, name: name, key: key, value: value);
+                Assert.True(result.Handled);
+                Assert.Empty(result.Sent);
+                Assert.Contains("reason=ownedGmTransactionRequired", result.Log);
+                Assert.DoesNotContain(name, result.Log, StringComparison.Ordinal);
+                Assert.Equal(100, result.UpdatedSession.Character.Level);
+                Assert.Empty(result.UpdatedSession.PlayerItems.InventoryItems);
+            }
     }
 
     [Fact]
-    public async Task AdminStuffRootDialogAllowsProjectManagerAttribute()
+    public async Task UnknownNpcRemainsUnhandled()
     {
-        var result = await InvokeAsync(StuffNpcId, optionId: 0, projectManager: true);
+        var result = await InvokeAsync(99_999, 0, name: "Unknown[GM]");
+        Assert.False(result.Handled);
+        Assert.Empty(result.Sent);
+        Assert.Empty(result.Log);
+    }
 
-        Assert.True(result.Handled);
-        Assert.Contains(ParseNpcReplies(result.Sent), reply => reply.Text.Contains("admin equipment selector", StringComparison.Ordinal));
-        Assert.DoesNotContain("non-privileged", result.Log);
+    [Fact]
+    public async Task DisabledAdminRoutesPreserveGenuinelyAdmittedNativeOwnersAndAllSavedFiles()
+    {
+        await WorldServerFrameHandlerTests.WithNativeItemSpellCallerAsync(false, async fixture =>
+        {
+            await fixture.Login();
+            var before = fixture.Current;
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(fixture.Native.OrdinarySpellBinding);
+            var player = binding.Player;
+            var image = binding.Items.Image;
+            var spellOwner = Assert.IsType<LegacyNativeSpellStorage>(fixture.Native.MySpells);
+            var proficiencyOwner = Assert.IsType<LegacyNativeProficiencyStorage>(fixture.Native.MyProfs);
+            var spells = spellOwner.ClientSpells;
+            var proficiencies = proficiencyOwner.ClientProf;
+            var nativeBefore = (player.Level, player.HitPoints, player.Mana, player.HeroPoints,
+                player.Kills, player.DragonWarHits, player.DragonWarScore);
+            var files = fixture.Files();
+            var itemBytes = PlayerItemSnapshotLoader.ToLegacyBytes(before.PlayerItems);
+            var spellBytes = PlayerSpellSnapshotLoader.ToLegacyBytes(before.PlayerSpells);
+            var proficiencyBytes = PlayerProficiencySnapshotLoader.ToLegacyBytes(before.PlayerProficiencies);
+            var dragonWar = new LegacyDragonWarRuntimeStateStore();
+            fixture.Sent.Clear();
+            foreach (var npcId in new[] { StuffNpcId, Stuff12NpcId })
+                foreach (var option in new byte[] { 0, 1, 7, 60, 89, 120, 149, 162, 200, 201, 254, 255 })
+                    Assert.True(await WorldPacketHandlers.TryHandleLegacyAdminUtilityNpcAsync(
+                        new WorldPacketHandlerContext(fixture.Connection, fixture.Log, Session: fixture.Current,
+                            Sessions: fixture.Store, WorldData: fixture.Catalog, DragonWarStates: dragonWar,
+                            ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13), fixture.Current,
+                        npcId, option, CancellationToken.None));
+            Assert.Same(before, fixture.Current);
+            Assert.Same(binding, fixture.Native.OrdinarySpellBinding);
+            Assert.Same(player, fixture.Native.Player);
+            Assert.Same(image, binding.Items.Image);
+            Assert.Same(spellOwner, fixture.Native.MySpells);
+            Assert.Same(proficiencyOwner, fixture.Native.MyProfs);
+            Assert.Same(spells, spellOwner.ClientSpells);
+            Assert.Same(proficiencies, proficiencyOwner.ClientProf);
+            Assert.True(binding.Items.PhysicalOwnerIsCurrentPlain());
+            Assert.Equal(nativeBefore, (player.Level, player.HitPoints, player.Mana, player.HeroPoints,
+                player.Kills, player.DragonWarHits, player.DragonWarScore));
+            Assert.Equal(itemBytes, PlayerItemSnapshotLoader.ToLegacyBytes(fixture.Current.PlayerItems));
+            Assert.Equal(spellBytes, PlayerSpellSnapshotLoader.ToLegacyBytes(fixture.Current.PlayerSpells));
+            Assert.Equal(proficiencyBytes, PlayerProficiencySnapshotLoader.ToLegacyBytes(fixture.Current.PlayerProficiencies));
+            Assert.Equal(LegacyDragonWarProcess.Dead, dragonWar.Process);
+            Assert.Empty(fixture.Sent);
+            fixture.CheckFiles(files);
+        }, characterLines: ["ProjectManager=1", "GM=yes", "IsGM=true", "GameMaster=1",
+            "IsGameMaster=yes", "Admin=true", "IsAdmin=1", "Privileged=true", "Role=Admin"]);
     }
 
     [Fact]
@@ -87,6 +126,7 @@ public sealed class LegacyAdminUtilityNpcTests
         Assert.Contains(ParseNpcReplies(result.Sent), reply => reply.Text.Contains("second rebirth", StringComparison.Ordinal));
         Assert.Contains("source=NpcHandler.InnerPowerNpc", result.Log);
         Assert.DoesNotContain("PARITY-GAP LegacyNpc AdminUtility", result.Log);
+        AssertAsciiReplies(result.Sent);
     }
 
     [Fact]
@@ -109,19 +149,23 @@ public sealed class LegacyAdminUtilityNpcTests
         Assert.Contains("PARITY-GAP LegacyNpc AdminUtility", grant.Log);
         Assert.Contains("NpcHandler.InnerPowerNpc", grant.Log);
         Assert.Empty(grant.UpdatedSession.PlayerItems.InventoryItems);
+        AssertAsciiReplies(root.Sent.Concat(info.Sent).Concat(grant.Sent));
     }
 
     private static async Task<AdminUtilityInvokeResult> InvokeAsync(
         uint npcId,
         byte optionId,
         int reborn = 0,
-        bool gmName = false,
-        bool projectManager = false)
+        string name = "AdminUtilityHero",
+        string? key = null,
+        string? value = null)
     {
         using var log = new StringWriter();
         var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
-        var session = CreateSession(reborn, gmName, projectManager);
+        var disconnected = 0;
+        var connection = CreateSendingConnection(sent, () => disconnected++);
+        var session = CreateSession(reborn, name, key, value);
+        var attributes = session.Character.Attributes.ToArray();
         var sessions = new WorldSessionStore();
         sessions.Set(connection, session);
 
@@ -134,15 +178,18 @@ public sealed class LegacyAdminUtilityNpcTests
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
+        Assert.Same(session, updatedSession);
+        Assert.Equal(attributes, session.Character.Attributes.ToArray());
+        Assert.Equal(0, disconnected);
         return new AdminUtilityInvokeResult(handled, sent, log.ToString(), updatedSession);
     }
 
-    private static WorldSession CreateSession(int reborn, bool gmName, bool projectManager)
+    private static WorldSession CreateSession(int reborn, string name, string? key, string? value)
     {
         var attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (projectManager)
+        if (key is not null)
         {
-            attributes["ProjectManager"] = "1";
+            attributes[key] = value!;
         }
 
         return new WorldSession(
@@ -150,7 +197,7 @@ public sealed class LegacyAdminUtilityNpcTests
             Username: "admin-utility-test",
             Character: new CharacterSnapshot(
                 Uid: 1_293_600,
-                Name: gmName ? "AdminUtilityHero[GM]" : "AdminUtilityHero",
+                Name: name,
                 Body: 1003,
                 Face: 0,
                 Hair: 0,
@@ -187,13 +234,13 @@ public sealed class LegacyAdminUtilityNpcTests
             PlayerProficiencies: PlayerProficiencySnapshot.Empty);
     }
 
-    private static ConquerTcpConnection CreateSendingConnection(List<byte[]> sent)
+    private static ConquerTcpConnection CreateSendingConnection(List<byte[]> sent, Action disconnect)
     {
         return new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958), (frame, _) =>
         {
             sent.Add(frame.ToArray());
             return ValueTask.CompletedTask;
-        });
+        }, _ => { disconnect(); return ValueTask.CompletedTask; });
     }
 
     private static IReadOnlyList<LegacyNpcReplyPacket> ParseNpcReplies(IEnumerable<byte[]> sent)

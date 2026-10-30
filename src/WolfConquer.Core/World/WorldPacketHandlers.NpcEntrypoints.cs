@@ -88,7 +88,8 @@ public static partial class WorldPacketHandlers
         }
 
         var updatedSession = session with { ActiveNpcId = packet.NpcId };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        if (context.Sessions is { } sessions)
+            sessions.Set(context.Connection, updatedSession, out updatedSession);
 
         if (!CanUseLegacyNpcServerClick(context, session.Character, packet.NpcId, out var npcLookup))
         {

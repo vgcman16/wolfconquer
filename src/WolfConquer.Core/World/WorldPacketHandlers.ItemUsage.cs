@@ -270,7 +270,7 @@ public static partial class WorldPacketHandlers
             }
 
             var updated = session with { AlternateEquipmentActive = !session.AlternateEquipmentActive };
-            context.Sessions?.Set(context.Connection, updated);
+            updated = PublishLegacyItemUsageSession(context, updated);
             await SendPlayerSpawnToVisiblePeersAsync(context, updated, cancellationToken)
                 .ConfigureAwait(false);
 

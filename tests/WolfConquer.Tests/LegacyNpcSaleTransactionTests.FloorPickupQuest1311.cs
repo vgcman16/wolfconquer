@@ -110,7 +110,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
                 var current = Current(owner, player!);
                 var quests = current.Character.PlayerQuests.WithQuest(new(1311, PlayerQuestStatus.Accepted, 543, [10U, 99U]))
                     .WithQuest(new(9002, PlayerQuestStatus.Accepted, 999, [41U]));
-                latest = current with
+                var proposed = current with
                 {
                     Character = current.Character with { Money = 7_777, PlayerQuests = quests },
                     PlayerItems = current.PlayerItems with
@@ -120,7 +120,11 @@ public sealed partial class LegacyNpcSaleTransactionTests
                     },
                     ActiveNpcId = 777,
                 };
-                owner.Sessions.Set(player!.Connection, latest);
+                owner.Sessions.Set(player!.Connection, proposed, out var final);
+                latest = final;
+                var binding = Assert.IsType<LegacyOrdinarySpellBinding>(player.Connection.NativeGameClient!.OrdinarySpellBinding);
+                Assert.Same(final.PlayerItems, binding.ItemSnapshot);
+                Assert.Same(final.PlayerItems, binding.Items.Image.FinalSnapshot);
                 Assert.Equal(PlayerQuestSnapshotLoader.Serialize(quests), File.ReadAllBytes(PickupQuestPath(uid)));
             });
         });

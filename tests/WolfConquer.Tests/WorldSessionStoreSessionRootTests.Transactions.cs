@@ -36,7 +36,7 @@ public sealed partial class WorldSessionStoreSessionRootTests
                     persistenceCalls++;
                     throw new InvalidOperationException("Invalid-root transaction reached persistence.");
                 }
-                WorldSession? UnexpectedPreparation()
+                WorldSession? UnexpectedPreparation(WorldSessionStore.PreparedMailboxItemPublication _)
                 {
                     persistenceCalls++;
                     throw new InvalidOperationException("Invalid-root transaction reached prepare-and-persist.");

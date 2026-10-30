@@ -12,6 +12,7 @@ public static partial class WorldPacketHandlers
         byte[]? refusal = null;
         var reason = "deityChestTradeOwnerUnavailable";
         var committed = false;
+        WorldSession? final = null;
         var journalReturnedSuccess = false;
         if (context.Trades is { } trades)
         {
@@ -35,7 +36,7 @@ public static partial class WorldPacketHandlers
                             var saved = LegacyDeityChestPersistence.TryPersist(plan.Files, plan.Updated, plan.Items, out reason);
                             journalReturnedSuccess = saved;
                             return saved;
-                        });
+                        }, out final);
                     }
                 }
                 catch (Exception error) when (LegacyDeityChestPersistence.IsPreparationFailure(error))
@@ -49,7 +50,7 @@ public static partial class WorldPacketHandlers
         }
         if (committed)
         {
-            await PublishDeityChestAsync(context, owner!, plan!, cancellationToken).ConfigureAwait(false);
+            await PublishDeityChestAsync(context, owner!, plan!, final!, cancellationToken).ConfigureAwait(false);
             return;
         }
         if (refusal is not null && owner is not null && IsCurrentDeityChestOwner(context, owner, session) &&

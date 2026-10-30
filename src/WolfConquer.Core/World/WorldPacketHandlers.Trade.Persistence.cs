@@ -65,7 +65,8 @@ public static partial class WorldPacketHandlers
                   ValidateLegacyTradeDiskBaseline(second, secondItems, context.PlayerItemsRoot, out baselineReason) &&
                   ValidateLegacyTradeItemGraphs(first, firstItems, updatedFirst, updatedFirstItems,
                       second, secondItems, updatedSecond, updatedSecondItems, out baselineReason) &&
-                  ValidateLegacyTradeExchangeOffers(context, exchangeParty, firstItems, secondItems, out baselineReason), out reason);
+                  ValidateLegacyTradeExchangeOffers(context, exchangeParty, first, firstItems, second, secondItems,
+                      out baselineReason), out reason);
         if (!persisted && baselineReason.Length != 0) reason = baselineReason;
         if (!persisted && IsLegacyTradeRecoveryRequired(reason)) context.TradeRecovery?.Block(reason);
         return persisted;

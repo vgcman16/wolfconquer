@@ -3,12 +3,12 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private static bool TryRefreshCommittedEquipmentMove(WorldPacketHandlerContext context, EquipmentMoveOwner owner,
-        EquipmentMovePlan plan, ref WorldSession session)
+        WolfConquer.Core.Data.PlayerItemSnapshot committedItems, ref WorldSession session)
     {
         if (context.Sessions is not { } sessions ||
             !LegacyNativeClientPublication.TryCurrent(sessions, context.Connection, owner.Expected.Character.Uid,
                 owner.Identity, out var current) ||
-            !ReferenceEquals(current.PlayerItems, plan.Updated.PlayerItems) ||
+            !ReferenceEquals(current.PlayerItems, committedItems) ||
             !EquipmentMoveOwnerIsCurrent(context, owner, current)) return false;
         session = current; return true;
     }
@@ -16,32 +16,33 @@ public static partial class WorldPacketHandlers
     private static async ValueTask DeliverEquipmentMoveAsync(WorldPacketHandlerContext context, EquipmentMoveOwner owner,
         EquipmentMovePlan plan, WorldSession session, CancellationToken cancellationToken)
     {
+        var committedItems = session.PlayerItems;
         try
         {
             foreach (var frame in plan.Frames)
             {
-                if (!TryRefreshCommittedEquipmentMove(context, owner, plan, ref session)) return;
+                if (!TryRefreshCommittedEquipmentMove(context, owner, committedItems, ref session)) return;
                 await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
-                if (!TryRefreshCommittedEquipmentMove(context, owner, plan, ref session)) return;
+                if (!TryRefreshCommittedEquipmentMove(context, owner, committedItems, ref session)) return;
             }
             context = context with { Session = session };
             if (plan.QueryUnconditionally || session.AlternateEquipmentActive)
             {
                 var query = await ExecuteLegacyEquipmentQueryAsync(context, session,
                     new LegacyEquipmentQueryRequest(LegacyEquipmentRebuildReason.EquipmentMutation,
-                        new LegacyEquipmentQueryPublicationScope(owner.Expected.Character.Uid, plan.Updated.PlayerItems)
+                        new LegacyEquipmentQueryPublicationScope(owner.Expected.Character.Uid, committedItems)
                         { OwnerNativeClientIdentity = owner.Identity }), cancellationToken).ConfigureAwait(false);
                 if (!query.Completed) return;
                 session = query.Session!;
             }
             else
             {
-                if (!TryRefreshCommittedEquipmentMove(context, owner, plan, ref session)) return;
+                if (!TryRefreshCommittedEquipmentMove(context, owner, committedItems, ref session)) return;
                 await context.Connection.SendAsync(new LegacyShowEquipmentPacket(WParam: 0, Alternante: 0,
                     Action: LegacyShowEquipmentPacket.AllowAlternanteAction, EquipmentSlots: default).ToFrameBytes(),
                     cancellationToken).ConfigureAwait(false);
             }
-            if (!TryRefreshCommittedEquipmentMove(context, owner, plan, ref session)) return;
+            if (!TryRefreshCommittedEquipmentMove(context, owner, committedItems, ref session)) return;
             // No late best-effort item rewrite. Membership was durably committed
             // before the first response; later query sidecars keep their owners.
             await context.Log.WriteLineAsync($"WorldServer handled MsgItemUsage {plan.Operation} " +

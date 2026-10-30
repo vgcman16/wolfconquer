@@ -266,20 +266,22 @@ public sealed class LegacyNativeClientItemRecordTests
     }
 
     [Fact]
-    public void PurificationClampsEveryNonInteriorTickValueWithoutDroppingPermanentState()
+    public void PurificationDecodesValidBinaryKindsAndRefusesInvalidBinaryWithoutTickFallback()
     {
-        foreach (var added in new[] { long.MinValue, -1L, 0L, DateTime.MaxValue.Ticks, long.MaxValue })
+        DateTime[] times = [DateTime.MinValue, DateTime.MaxValue,
+            new DateTime(2000, 1, 2, 3, 4, 5, DateTimeKind.Utc),
+            new DateTime(2000, 1, 2, 3, 4, 5, DateTimeKind.Local)];
+        foreach (var time in times)
         {
-            var record = new LegacyNativeClientItemRecord { UID = 17u, PurificationItemID = 1001u, PurificationLevel = 42u, PurificationAddedOn = added };
-            var item = record.GetDataItem();
-            Assert.Equal(17u, item.Purification.ItemUID);
-            Assert.Equal(1001u, item.Purification.PurificationItemID);
-            Assert.Equal(42u, item.Purification.PurificationLevel);
-            Assert.Equal(DateTime.FromBinary(0L), item.Purification.AddedOn);
-            Assert.Equal((LegacyNativeItemExtra.Typing)0, item.Purification.Typ);
-            Assert.Equal(0u, item.Purification.EffectPercent2);
-            Assert.True(item.Purification.InLife);
+            var item = new LegacyNativeClientItemRecord { UID = 17, PurificationItemID = 1001,
+                PurificationAddedOn = time.ToBinary() }.GetDataItem();
+            Assert.Equal(time.ToBinary(), item.Purification.AddedOn.ToBinary());
+            Assert.Equal(time.Kind, item.Purification.AddedOn.Kind);
+            Assert.Equal(17u, item.Purification.ItemUID); Assert.True(item.Purification.InLife);
         }
+        foreach (long binary in new[] { InvalidDateBinary, long.MaxValue })
+            Assert.Throws<ArgumentException>(() => new LegacyNativeClientItemRecord
+                { PurificationItemID = 1001, PurificationAddedOn = binary }.GetDataItem());
     }
 
     [Fact]
@@ -351,12 +353,13 @@ public sealed class LegacyNativeClientItemRecordTests
     }
 
     [Fact]
-    public void BinaryKindGuardIsDeliberatelyDifferentForPurificationRefineryAndExpiration()
+    public void BinaryKindsRemainConsistentForPurificationRefineryAndExpiration()
     {
         var time = new DateTime(2000, 1, 2, 3, 4, 5, DateTimeKind.Utc);
         var binary = time.ToBinary();
         var item = new LegacyNativeClientItemRecord { PurificationItemID = 1001u, PurificationAddedOn = binary, EffectID = 1001u, EffectAddedOn = binary, Expiration = binary }.GetDataItem();
-        Assert.Equal(DateTime.FromBinary(0L), item.Purification.AddedOn);
+        Assert.Equal(time, item.Purification.AddedOn);
+        Assert.Equal(DateTimeKind.Utc, item.Purification.AddedOn.Kind);
         Assert.Equal(time, item.Refinary.AddedOn);
         Assert.Equal(DateTimeKind.Utc, item.Refinary.AddedOn.Kind);
         Assert.Equal(time, item.EndDate);

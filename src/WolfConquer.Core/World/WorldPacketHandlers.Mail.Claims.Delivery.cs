@@ -11,7 +11,7 @@ public static partial class WorldPacketHandlers
         if (plan.PackagePublication is { } publication &&
             (!publication.CatalogsCurrent() || !MailboxPackageGearMatches(plan.Updated.CombatGear, publication.Prepared.GearAfter)))
             return false;
-        return plan.ItemsAfter.IsCurrent(plan.Updated.PlayerItems) &&
+        return plan.ItemsAfter.IsCurrent(plan.PreparedItems) &&
             plan.Updated.Character.Attributes.SequenceEqual(plan.UpdatedFields) &&
             LegacySecondaryPasswordState.TryRead(plan.Updated.Character.Attributes, out pin, out _);
     }

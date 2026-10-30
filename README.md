@@ -9,6 +9,13 @@ client-confirmed protocol compatibility while fixing unsafe source logic.
 [![CodeFactor](https://www.codefactor.io/repository/github/vgcman16/wolfconquer/badge)](https://www.codefactor.io/repository/github/vgcman16/wolfconquer)
 [![Discord: Join the Pack](https://img.shields.io/badge/Discord-Join%20the%20Pack-10B981?logo=discord&logoColor=white)](https://discord.gg/Cb5fsBHcK)
 
+[![Tooling preview](https://img.shields.io/github/v/release/vgcman16/wolfconquer?include_prereleases&sort=date&filter=launcher-preview-*&label=tooling%20preview&color=10B981)](https://github.com/vgcman16/wolfconquer/releases)
+[![Release downloads](https://img.shields.io/github/downloads/vgcman16/wolfconquer/total?label=release%20downloads&color=10B981)](https://github.com/vgcman16/wolfconquer/releases)
+[![Source license: not declared](https://img.shields.io/badge/license-not%20declared-lightgrey)](PUBLICATION-SCOPE.md)
+[![Page hits](https://hits.sh/github.com/vgcman16/wolfconquer.svg?label=page%20hits&color=10B981)](https://hits.sh/github.com/vgcman16/wolfconquer/)
+
+Page hits count badge loads; preview releases contain tooling only.
+
 [![WolfConquer parity planning tracker](docs/parity/progress.gif)](docs/PARITY.md)
 
 The tracker shows a dated, low-confidence planning estimate, not measured

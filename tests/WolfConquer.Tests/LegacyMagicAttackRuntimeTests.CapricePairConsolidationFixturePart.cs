@@ -7,8 +7,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     internal static Task CapricePairConsolidationRunAsync(Func<OwnedEquipmentBehaviorFixture, WorldDataCatalog, Task> body)
     {
         var world = CreateMagicCatalogWithItems(CreateMonsterFamily(), [],
-            [CreateRetainedNativeMagic421Helmet(), CreateItemType((int)LegacyCapriceLevelTwentySevenItemId, "Caprice (+27)"),
-             CreateItemType((int)LegacyConsolidationLevelNineItemId, "Consolidation(+9)")],
+            [CreateRetainedNativeMagic421Helmet(), OwnedEquipmentBehaviorFixture.Item(LegacyCapriceLevelTwentySevenItemId, "Caprice (+27)"),
+             OwnedEquipmentBehaviorFixture.Item(LegacyConsolidationLevelNineItemId, "Consolidation(+9)")],
             CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
         var actor = CreateRetainedNativeMagic421Input(CreateSession(stamina: 40,
             playerItems: CreatePlayerItems(new PlayerItemSnapshotItem { Uid = LegacyCapriceLevelTwentySevenItemId,

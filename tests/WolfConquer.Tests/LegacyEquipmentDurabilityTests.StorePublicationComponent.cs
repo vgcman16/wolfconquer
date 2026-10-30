@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.World;
@@ -85,7 +86,20 @@ public sealed partial class LegacyEquipmentDurabilityTests
             Assert.Equal(registryBefore, File.ReadAllBytes(f.Data.State));
             Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
             Assert.Empty(f.Sent); // The Store component does not emit game packets.
-            AssertNativeUnchanged(f, nativeBefore); // Inventory/equipment/PIN/HP/Mana physical owners were not fabricated.
+            // A committed Store publication replaces complete native maps; a
+            // failed final proof instead retires/detaches the joined graph.
+            // Neither outcome mutates escaped old maps or scalar owners.
+            var originalInventory = Assert.IsType<LegacyNativeInventoryRuntime>(nativeBefore.Inventory);
+            var originalEquipment = Assert.IsType<LegacyNativeEquipItemStorage>(nativeBefore.Equipment);
+            var originalInventoryMap = Assert.IsType<ConcurrentDictionary<uint, LegacyNativeGameItemRuntime>>(nativeBefore.InventoryMap);
+            var originalEquipmentMap = Assert.IsType<ConcurrentDictionary<uint, LegacyNativeGameItemRuntime>>(nativeBefore.EquipmentMap);
+            Assert.Equal(nativeBefore.InventoryRows, Rows(originalInventoryMap));
+            Assert.Equal(nativeBefore.EquipmentRows, Rows(originalEquipmentMap));
+            Assert.Same(f.Native, originalInventory.Owner); Assert.True(originalEquipment.IsOwnedBy(f.Native));
+            Assert.Same(nativeBefore.Player, f.Native.Player);
+            Assert.Equal(nativeBefore.Checked, f.Native.Player.IsCheckedPass);
+            Assert.Equal(nativeBefore.Hitpoints, f.Native.Player.HitPoints);
+            Assert.Equal(nativeBefore.Mana, f.Native.Player.Mana);
 
             var expectedFiles = new Dictionary<string, byte[]>(filesBefore, StringComparer.OrdinalIgnoreCase)
             { [Path.GetRelativePath(f.Data.Root, f.ItemsPath)] = expectedImage };
@@ -104,6 +118,14 @@ public sealed partial class LegacyEquipmentDurabilityTests
                 Assert.Null(final); // Candidate was never published after the failed final proof.
                 Assert.True(binding.IsRetired);
                 Assert.Same(binding, f.Native.OrdinarySpellBinding);
+                Assert.False(binding.Items.PhysicalOwnerIsCurrentPlain());
+                Assert.Null(f.Native.Inventory); Assert.Null(f.Native.Equipment);
+                Assert.Null(f.Native.Warehouse); Assert.Null(f.Native.MyWardrobe); Assert.Null(f.Native.Rune);
+                Assert.Null(f.Native.RelicFuse); Assert.Null(f.Native.GearMythsoulBag);
+                Assert.Same(originalInventoryMap, originalInventory.ClientItems);
+                Assert.Same(originalEquipmentMap, originalEquipment.ClientItems);
+                Assert.Same(originalInventory, binding.Items.Inventory);
+                Assert.Same(originalEquipment, binding.Items.Equipment);
                 Assert.Null(f.CurrentOrNull);
                 Assert.True(f.Recovery.IsBlocked);
                 Assert.False(f.Recovery.TryRequireLiveJournalClear(out var fencedReason));
@@ -117,9 +139,21 @@ public sealed partial class LegacyEquipmentDurabilityTests
                 Assert.True(returned == true, writerReason);
                 Assert.Same(final, f.Current);
                 Assert.NotSame(before, final);
+                Assert.Same(f.Current.PlayerItems, binding.ItemSnapshot);
+                Assert.Same(f.Current.PlayerItems, binding.Items.Image.FinalSnapshot);
+                Assert.Same(originalInventory, f.Native.Inventory); Assert.Same(originalEquipment, f.Native.Equipment);
+                AssertEquipmentComponentMap(f.Current.PlayerItems.InventoryItems, originalInventory.ClientItems);
+                AssertEquipmentComponentMap(f.Current.PlayerItems.EquipmentItems, originalEquipment.ClientItems);
+                var actualItems = originalInventory.ClientItems.Values.Concat(originalEquipment.ClientItems.Values).ToArray();
+                Assert.Equal(actualItems.Length, actualItems.Select(item => item.Uid).Distinct().Count());
+                Assert.Equal(targetPosition, Assert.Single(actualItems, item => item.Uid == EquipmentFixture.GearUid).Position);
+                foreach (var unchanged in nativeBefore.InventoryRows.Concat(nativeBefore.EquipmentRows)
+                    .Where(item => item.Uid != EquipmentFixture.GearUid))
+                    Assert.Same(unchanged.Row, Assert.Single(actualItems, item => item.Uid == unchanged.Uid));
                 Assert.False(binding.IsRetired);
                 Assert.False(f.Recovery.IsBlocked);
                 Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+                Assert.True(binding.Items.PhysicalOwnerIsCurrentPlain());
                 Assert.False(storage.ClientSpells.ContainsKey(6001));
             }
         }
@@ -139,4 +173,18 @@ public sealed partial class LegacyEquipmentDurabilityTests
     private static T ReadEquipmentComponentOwner<T>(WorldServerFrameHandler handler, string fieldName) where T : class =>
         Assert.IsType<T>(typeof(WorldServerFrameHandler).GetField(fieldName,
             BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(handler));
+
+    private static void AssertEquipmentComponentMap(IReadOnlyList<PlayerItemSnapshotItem> expected,
+        ConcurrentDictionary<uint, LegacyNativeGameItemRuntime> actual)
+    {
+        Assert.Equal(expected.Count, actual.Count);
+        foreach (var row in expected)
+        {
+            Assert.True(actual.TryGetValue(row.Uid, out var item)); Assert.NotNull(item);
+            Assert.Equal(row.Uid, item.Uid); Assert.Equal(row.ItemId, item.ITEM_ID);
+            Assert.Equal(row.Position, item.Position); Assert.Equal(row.Durability, item.Durability);
+            Assert.Equal(row.MaximumDurability, item.MaximDurability);
+            Assert.Equal(row.Bound, item.Bound); Assert.Equal(row.Locked, item.Locked);
+        }
+    }
 }

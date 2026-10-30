@@ -1,3 +1,4 @@
+using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
@@ -6,7 +7,7 @@ public static partial class WorldPacketHandlers
 {
     private sealed record LegacyWarehouseShowOwner(WorldSession Session, object Identity, ConquerTcpConnection Connection,
         LegacyNativeGameClientRuntime? Client, LegacyNativePlayerRuntime? Player,
-        KeyValuePair<string, string>[] Fields, LegacyItemSaveGraph Items);
+        KeyValuePair<string, string>[] Fields, LegacyItemSaveGraph Items, PlayerItemSnapshot ItemSource);
 
     // Reading does not acquire economic, escrow, recovery or persistence authority.
     private static bool TryCaptureLegacyWarehouseShowOwner(WorldPacketHandlerContext context, out LegacyWarehouseShowOwner owner)
@@ -28,7 +29,7 @@ public static partial class WorldPacketHandlers
                 !LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, session)) return false;
             if (!LegacyItemSaveGraph.TryCapture(session.PlayerItems, out var items)) return false;
             var client = context.Connection.NativeGameClient;
-            owner = new(session, identity, context.Connection, client, client?.Player, fields, items);
+            owner = new(session, identity, context.Connection, client, client?.Player, fields, items, session.PlayerItems);
             return IsCurrentLegacyWarehouseShowOwner(context, owner);
         }
         catch (InvalidOperationException) { return false; }
@@ -41,13 +42,14 @@ public static partial class WorldPacketHandlers
                 owner.Identity, out var current) || !ReferenceEquals(current, owner.Session) ||
             !ReferenceEquals(current.NativeGameClient, owner.Client) ||
             !ReferenceEquals(context.Connection.NativeGameClient, owner.Client) ||
+            !IsCurrentLegacyWarehouseJoinedItemOwner(sessions, current) ||
             owner.Client is not null && (owner.Client.PokerPlayer is not null || owner.Player is null ||
                 !ReferenceEquals(owner.Client.Player, owner.Player) || !ReferenceEquals(owner.Player.Owner, owner.Client) ||
                 owner.Player.UID != current.Character.Uid)) return false;
         try
         {
             return current.Character.Attributes.SequenceEqual(owner.Fields) &&
-                owner.Items.IsCurrent(current.PlayerItems) &&
+                owner.Items.IsCurrent(owner.ItemSource) &&
                 LegacySecondaryPasswordRuntime.IsAdmitted(context.Connection, current);
         }
         catch (InvalidOperationException) { return false; }

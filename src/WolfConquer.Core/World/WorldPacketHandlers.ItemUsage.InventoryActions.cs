@@ -51,18 +51,15 @@ public static partial class WorldPacketHandlers
                 : ReplaceInventoryItem(itemsAfterMeteorCost, item, meteorRepaired);
             var meteorRepairedSession = session with { PlayerItems = meteorRepairedItems };
 
+            var repairFrame = LegacyGameItemPacket.FromSnapshotItem(
+                meteorRepaired, mode: LegacyGameItemPacket.UpdateItemMode).ToFrameBytes();
+            meteorRepairedSession = PublishLegacyItemUsageSession(context, meteorRepairedSession);
             foreach (var frame in meteorCostFrames)
             {
                 await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
             }
 
-            await context.Connection.SendAsync(
-                    LegacyGameItemPacket.FromSnapshotItem(
-                        meteorRepaired,
-                        mode: LegacyGameItemPacket.UpdateItemMode).ToFrameBytes(),
-                    cancellationToken)
-                .ConfigureAwait(false);
-            context.Sessions?.Set(context.Connection, meteorRepairedSession);
+            await context.Connection.SendAsync(repairFrame, cancellationToken).ConfigureAwait(false);
             await TryPersistLegacyItemUsageMutationAsync(
                     context,
                     meteorRepairedSession,

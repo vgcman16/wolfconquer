@@ -51,6 +51,22 @@ public sealed partial class WorldSessionStore
             catch { Dispose(); throw; }
         }
 
+        internal LegacyNativeOwnedItemGraph.TrainingWeaponsLease PrepareTrainingWeapons()
+        {
+            if (!HasTrainingOwnerPlain(binding, binding.Items))
+                throw InvalidSpellPublication();
+            return binding.Items.CaptureTrainingWeapons(this, binding);
+        }
+
+        // A graph projection cannot mint Store authority from a UID or supplied
+        // session. Only this exact still-active holder capability can issue it.
+        internal bool HasTrainingOwnerPlain(
+            LegacyOrdinarySpellBinding expectedBinding, LegacyNativeOwnedItemGraph graph) =>
+            active && !disposed && gateHeld && Monitor.IsEntered(gate) &&
+            ReferenceEquals(binding, expectedBinding) && ReferenceEquals(binding.Items, graph) &&
+            ReferenceEquals(expected.PlayerItems, graph.Image.FinalSnapshot) &&
+            store.BindingIsCurrentPlain(binding, holder, expected);
+
         internal void PreparePublication(PlayerSpellSnapshot snapshot)
         {
             if (!active || prepared is not null || !store.BindingIsCurrentPlain(binding, holder, expected))

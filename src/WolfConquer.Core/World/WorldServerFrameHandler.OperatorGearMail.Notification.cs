@@ -34,6 +34,6 @@ public sealed partial class WorldServerFrameHandler
     {
         // Read the actual trade dictionary under its owner, never across SendAsync.
         lock (_tradeStates.SyncRoot)
-            return plan.AfterGraph.IsCurrent(final.PlayerItems) && OperatorMailOwnerCurrent(runtime, plan.Owner, final);
+            return plan.AfterGraph.IsCurrent(plan.Candidate.PlayerItems) && OperatorMailOwnerCurrent(runtime, plan.Owner, final);
     }
 }

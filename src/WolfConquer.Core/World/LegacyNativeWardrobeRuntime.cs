@@ -107,6 +107,7 @@ internal partial class LegacyNativeWardrobeRuntime
 
 	public bool AddItem(LegacyNativeGameItemRuntime item)
 	{
+        if (JoinedItemGraph is not null) return false;
 		ItemsType itemType = GetItemType(item.ITEM_ID);
 		if (itemType == ItemsType.Count)
 		{
@@ -125,6 +126,7 @@ internal partial class LegacyNativeWardrobeRuntime
 	public bool RemoveItem(uint UID, out LegacyNativeGameItemRuntime? item)
 	{
 		item = null;
+        if (JoinedItemGraph is not null) return false;
 		ConcurrentDictionary<uint, LegacyNativeGameItemRuntime>[] items = Items;
 		foreach (ConcurrentDictionary<uint, LegacyNativeGameItemRuntime> concurrentDictionary in items)
 		{

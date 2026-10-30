@@ -55,7 +55,7 @@ public static partial class WorldPacketHandlers
                 }
             }
             // Validate the complete tail and all wire bounds before the first send.
-            if (!owner.Items.IsCurrent(owner.Session.PlayerItems)) return false;
+            if (!owner.Items.IsCurrent(owner.ItemSource)) return false;
             frames = prepared.ToArray();
             return true;
         }
