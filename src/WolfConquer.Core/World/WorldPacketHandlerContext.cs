@@ -52,6 +52,12 @@ public sealed partial record WorldPacketHandlerContext(
     internal LegacyTradeRecoveryState? TradeRecovery { get; init; }
 
     [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyJournalInterruption? TradeJournalInterruption { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyJournalInterruption? VendorJournalInterruption { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
     internal LegacyMailboxPackageProducer? MailboxPackages { get; init; }
 
     [System.Text.Json.Serialization.JsonIgnore]

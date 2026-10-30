@@ -15,7 +15,8 @@ public static partial class LegacyVendorPurchasePersistence
     internal static bool TryPersistVendorWithBaselineValidation(
         WorldSession originalBuyer, WorldSession updatedBuyer,
         WorldSession originalSeller, WorldSession updatedSeller,
-        string? playerItemsRoot, Func<bool> validateLocked, out string reason)
+        string? playerItemsRoot, Func<bool> validateLocked, out string reason,
+        LegacyJournalInterruption? interruption = null)
     {
         ArgumentNullException.ThrowIfNull(originalBuyer);
         ArgumentNullException.ThrowIfNull(updatedBuyer);
@@ -25,12 +26,12 @@ public static partial class LegacyVendorPurchasePersistence
         lock (PersistenceGate)
         {
             return TryPersistCore(originalBuyer, updatedBuyer, originalSeller, updatedSeller,
-                playerItemsRoot, out reason, validateLocked, PersistenceMode.Vendor);
+                playerItemsRoot, out reason, validateLocked, PersistenceMode.Vendor, interruption);
         }
     }
 
     private static bool TryPersistJournal(JournalParticipant buyer, JournalParticipant seller,
-        string itemsRoot, PersistenceMode mode, out string reason)
+        string itemsRoot, PersistenceMode mode, out string reason, LegacyJournalInterruption? interruption = null)
     {
         var usersRoot = Path.GetDirectoryName(buyer.CharacterPath)!;
         if (!PathsEqual(usersRoot, Path.GetDirectoryName(seller.CharacterPath)!))
@@ -52,7 +53,7 @@ public static partial class LegacyVendorPurchasePersistence
                     PlayerItemSnapshotFilePersistence.ReadAllBytesIfExists(buyer.ItemPath), buyer.ItemBytes),
                 new(LegacyTradeJournalFileKind.Items, seller.Updated.Character.Uid,
                     PlayerItemSnapshotFilePersistence.ReadAllBytesIfExists(seller.ItemPath), seller.ItemBytes),
-            ], out reason);
+            ], interruption, out reason);
         }
         catch (Exception error) when (IsPersistenceException(error))
         {
@@ -60,5 +61,29 @@ public static partial class LegacyVendorPurchasePersistence
                 error.GetType().Name;
             return false;
         }
+    }
+
+    internal static byte[] ProjectTradeCharacterImage(byte[] before, long money, long conquerPoints) =>
+        ProjectPairCharacterImage(before, money, conquerPoints, clearTradeClaim: true);
+
+    internal static byte[] ProjectVendorCharacterImage(byte[] before, long money, long conquerPoints) =>
+        ProjectPairCharacterImage(before, money, conquerPoints, clearTradeClaim: false);
+
+    private static byte[] ProjectPairCharacterImage(byte[] before, long money, long conquerPoints, bool clearTradeClaim)
+    {
+        var text = CharacterSnapshotFileEncoding.Decode(before, out var encoding);
+        var lines = new List<string>();
+        using var reader = new StringReader(text);
+        while (reader.ReadLine() is { } line) lines.Add(line);
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Money"] = money.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["ConquerPoints"] = conquerPoints.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        };
+        if (clearTradeClaim)
+            foreach (var pair in LegacyTradeEscrowClaims.ClearValues) values.Add(pair.Key, pair.Value);
+        if (!TryApplyCharacterValues(lines.ToArray(), values, out var updated))
+            throw new InvalidDataException("Captured trade Character section is missing.");
+        return EncodeTradeCharacterLines(updated, encoding);
     }
 }

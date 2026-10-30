@@ -13,11 +13,21 @@ internal static class LegacyWarehouseMoneyState
     {
         value = 0;
         if (attributes is null) return false;
-        var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        bool canonical = false, alias = false;
+        string? firstText = null, secondText = null;
         foreach (var pair in attributes)
-            if (string.IsNullOrEmpty(pair.Key) || pair.Value is null || !fields.TryAdd(pair.Key, pair.Value)) return false;
-        var canonical = fields.TryGetValue("WHMoney", out var firstText);
-        var alias = fields.TryGetValue("WarehouseMoney", out var secondText);
+        {
+            if (string.Equals(pair.Key, "WHMoney", StringComparison.OrdinalIgnoreCase))
+            {
+                if (canonical || pair.Value is null) return false;
+                canonical = true; firstText = pair.Value;
+            }
+            else if (string.Equals(pair.Key, "WarehouseMoney", StringComparison.OrdinalIgnoreCase))
+            {
+                if (alias || pair.Value is null) return false;
+                alias = true; secondText = pair.Value;
+            }
+        }
         long first = 0, second = 0;
         if (canonical && !Nonnegative(firstText!, out first) || alias && !Nonnegative(secondText!, out second) ||
             canonical && alias && first != second) return false;
@@ -27,6 +37,20 @@ internal static class LegacyWarehouseMoneyState
 
     private static bool Nonnegative(string text, out long value) =>
         long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value) && value >= 0;
+
+    // A complete Character save has stricter requirements than this scoped
+    // wallet projection. Reject ambiguity instead of dropping unrelated rows.
+    internal static bool TryCopyPersistenceFields(IReadOnlyDictionary<string, string> source,
+        out Dictionary<string, string> fields)
+    {
+        fields = null!;
+        if (source is null) return false;
+        var captured = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in source)
+            if (string.IsNullOrEmpty(pair.Key) || pair.Value is null || !captured.TryAdd(pair.Key, pair.Value)) return false;
+        fields = captured;
+        return true;
+    }
 
     // Only actual BCL dictionary enumeration is admitted to the native final
     // proof. A read-only wrapper may execute code when opened; that happens
@@ -47,7 +71,7 @@ internal static class LegacyWarehouseMoneyState
                 source.GetEnumerator() is Dictionary<string, string>.Enumerator actual) witness = actual;
             else throw Invalid();
             var captured = new List<KeyValuePair<string, string>>();
-            var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var fields = new Dictionary<string, string>(StringComparer.Ordinal);
             var iterator = witness;
             while (iterator.MoveNext())
             {

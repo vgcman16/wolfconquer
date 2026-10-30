@@ -8,6 +8,10 @@ public sealed partial class WorldServerFrameHandler
     private readonly LegacyTradeStateStore _tradeStates = new();
     private readonly WorldOperationBarrier _worldOperations = new();
     private readonly LegacyTradeRecoveryState _tradeRecovery;
+    // Failure-only engine control used by owned regression fixtures. It has no
+    // configuration/packet binding and cannot choose images, paths or a saver.
+    internal LegacyJournalInterruption? TradeJournalInterruption { get; set; }
+    internal LegacyJournalInterruption? VendorJournalInterruption { get; set; }
     private readonly ConditionalWeakTable<ConquerTcpConnection, TradeDisconnectRegistration> _tradeLifetimes = new();
 
     private void RegisterTradeDisconnect(ConquerTcpConnection connection, CancellationToken connectionLifetime)
@@ -34,6 +38,7 @@ public sealed partial class WorldServerFrameHandler
             Trades = _tradeStates,
             TradeOperations = _worldOperations,
             TradeRecovery = _tradeRecovery,
+            TradeJournalInterruption = TradeJournalInterruption,
         };
 
     private async Task CancelTradeAfterDisconnectAsync(WorldPacketHandlerContext context, bool transportClosed = false)

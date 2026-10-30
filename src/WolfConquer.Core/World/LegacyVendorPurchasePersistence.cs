@@ -20,13 +20,14 @@ public static partial class LegacyVendorPurchasePersistence
         WorldSession updatedSecond,
         string? playerItemsRoot,
         Func<bool> validateLocked,
-        out string reason)
+        out string reason,
+        LegacyJournalInterruption? interruption = null)
     {
         ArgumentNullException.ThrowIfNull(validateLocked);
         lock (PersistenceGate)
         {
             return TryPersistCore(originalFirst, updatedFirst, originalSecond, updatedSecond,
-                playerItemsRoot, out reason, validateLocked, mode: PersistenceMode.Trade);
+                playerItemsRoot, out reason, validateLocked, mode: PersistenceMode.Trade, interruption: interruption);
         }
     }
 
@@ -63,7 +64,8 @@ public static partial class LegacyVendorPurchasePersistence
         string? playerItemsRoot,
         out string reason,
         Func<bool>? validateLocked = null,
-        PersistenceMode mode = PersistenceMode.Compatibility)
+        PersistenceMode mode = PersistenceMode.Compatibility,
+        LegacyJournalInterruption? interruption = null)
     {
         reason = string.Empty;
         if (!TryValidateSessionPair(
@@ -139,7 +141,7 @@ public static partial class LegacyVendorPurchasePersistence
                 updatedSeller,
                 normalizedPlayerItemsRoot,
                 out lockedReason,
-                mode);
+                mode, interruption);
             });
         reason = lockedReason;
         return persisted;
@@ -154,7 +156,8 @@ public static partial class LegacyVendorPurchasePersistence
         WorldSession updatedSeller,
         string normalizedPlayerItemsRoot,
         out string reason,
-        PersistenceMode mode)
+        PersistenceMode mode,
+        LegacyJournalInterruption? interruption)
     {
         reason = string.Empty;
         if (!TryPrepareCharacterUpdate(
@@ -197,7 +200,7 @@ public static partial class LegacyVendorPurchasePersistence
                     buyerCharacterEncoding, buyerItemBytes),
                 new(sellerCharacterPath, sellerItemPath, updatedSeller, sellerCharacterLines,
                     sellerCharacterEncoding, sellerItemBytes),
-                normalizedPlayerItemsRoot, mode, out reason);
+                normalizedPlayerItemsRoot, mode, out reason, interruption);
         }
 
         var transactionId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);

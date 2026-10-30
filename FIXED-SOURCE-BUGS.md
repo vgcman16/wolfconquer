@@ -4,6 +4,82 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Transaction recovery and scoped warehouse qualification - 2026-10-30
+
+The preceding exact public full Windows41095165573 on e0f22c8b failed:
+Core31,632 passed/3 failed/152 existing NotExecuted; Updates446 passed. Later
+launcher/parser stages did not run. Matching logs/TRXs and all six managed
+outputs are retained. GitHub finalized the failure after a results-upload delay.
+
+Root's42-path successor compiled with zero errors. The wider focused run
+retained737 passes/two authored test-golden failures, zero skips. Correcting only
+the helper's old1009 expectation to the existing D13 opcode2137 produced a
+13/13 passing rerun, including both failures and all three preceding full-gate
+failure names. Production packet IDs, metadata, reserved bytes and counts were
+not changed. The exact public-commit full Windows gate is still required.
+
+## FSB-240: Recover recorded two-player trade intent before owned admission
+
+Source: LegacyTradeJournal.OwnedStartupItems and the genuine trade pair producer.
+Owned startup understood only single-owner v2 records, so a real interrupted
+v1 trade/refund could not reopen. A partial item replacement could also leave a
+physical UID temporarily present at both owners, blocking the ordinary raw scan.
+
+The existing exclusive UID custody now admits only exact complete four-target
+intent with unchanged owner mappings, conserved unique UID sets, canonical
+escrow exchange/refund arithmetic and lossless complete item closures. A closed
+logical view reconciles the two proven item targets; unrelated Items, mailbox
+and detained inputs remain checked. Current pending/stage/target bytes, original
+receiving capacity, static item restrictions, same-lease transfer and the normal
+post-recovery scan remain required. Recorded locked transfers retain original
+producer authorization; new actions still need the actual partner relationship.
+V1 custody is trusted recorded intent, not cryptographic producer authentication.
+
+Verification:97 actual owned trade outcomes and4 new managed Program-host
+raw/encrypted recovery/restart outcomes passed. This is managed process-restart
+file-WAL evidence; power loss, multi-process/SQL/global economy and client
+acceptance remain unproven.
+
+## FSB-241: Recover recorded booth purchases without consuming trade escrow
+
+Source: the genuine vendor Frame/Store producer and shared four-target v1 WAL.
+Its claim-free purchase deltas did not match the trade-only recovery validator,
+leaving legitimate interrupted sales fenced at startup.
+
+Recovery now validates the exact wallet-only Character projection, one conserved
+buyer-to-seller currency payment, one unchanged complete seller inventory closure
+appended to the buyer, original capacity, static vendor permissions and complete
+UID conservation. Active escrow cannot select this path. Actual new purchases
+still require their real listing, owner, catalog and funds. Existing v1 images
+derive the settlement amount/currency but do not independently attest original
+listing price or producer authenticity; zero-price/gift ambiguity is retained
+explicitly within trusted configured intent.
+
+Verification:90 genuine producer/owned-runtime cases passed, including every
+replacement/stage boundary, deposited/perfection data, restart without replay,
+corrupt intent and new-action refusals. No new schema, SQL, deployment, current
+client or power-loss claim.
+
+## FSB-242: Keep warehouse field validation scoped and persistence complete
+
+Source: LegacyWarehouseMoneyState.NativeValueProof and both bank plan builders.
+The new warehouse proof rejected unrelated DynamicID/dynamicid aliases while
+copying all fields case-insensitively, throwing before the drop-scope owner could
+reject that action. This was a clean-server regression, exposed by the full gate.
+
+The wallet reader now validates only its own two aliases; the native proof keeps
+every original ordinal row and detects value-only drift. Complete Character
+persistence separately refuses ambiguous case-insensitive field maps before
+bank WAL entry, resource debit, success output or pending-confirmation loss.
+No rows are silently merged or discarded. Invalid warehouse aliases still refuse.
+
+Verification:6 new scoped/bank controls and4 existing invalid-scope drop cases
+passed. The two older warehouse positives now use actual owned admission and a
+real journal, preserving original balances, UID, complete packet goldens and
+saved/native/Store convergence before every reply. The corrected13-case rerun
+passed. These are bounded source fixes, not a global parser-policy or full-parity
+change.
+
 Candidate source qualification for FSB-204 through FSB-225: Release build06 passed; focused05 510/510, native-broad04 13153/13153, zero failures/skips. The final public commit full Windows gate remains pending. These are offline component results, not SQL, deployment, new-client or full-parity acceptance. This note supersedes earlier authored/unrun labels in these entries.
 
 Earlier FSB-200 through FSB-203 were included in the separately verified full Windows gate 40958745483 on source731d8e54 / generated91040398: Core30175 passed/152 existing NotExecuted, Updates446 and Launcher57, zero failures. The new FSB-204..225 public-commit full gate remains pending.

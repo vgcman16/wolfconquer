@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "Sanitized legacy-server parity: client compatibility, corrected emulator defects (project planning)",
-  "reviewedAt": "2026-10-29",
+  "reviewedAt": "2026-10-30",
   "estimate": {
     "percent": 55,
     "low": 40,
@@ -27,7 +27,7 @@
       "id": "persistence",
       "title": "Shared player, items and persistence",
       "status": "partial",
-      "implemented": "Selected storage/mailbox/Trade/booth/equipment/learning/consumables have validated saved transactions. A common process-local Users journal gate now orders actual producers and recovery; version11 supports two genuine Character resource images. Full Windows50cf80fa passes. Native graph adoption, production SQL and broader recovery remain open.",
+      "implemented": "Selected storage/mailbox/Trade/booth/equipment/learning/consumables use real saved transactions. Existing configured UID custody now recovers exact conserved two-owner trade/refund and booth-purchase v1 intent before ordinary admission;97 trade/90 vendor and4 new managed Program-host controls passed. Native graph ownership, production SQL, retained producer work and broader recovery remain open.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
@@ -48,7 +48,7 @@
       "id": "social",
       "title": "Trade, social systems and events",
       "status": "partial",
-      "implemented": "Managed Trade and booth exchanges use ordered participant commits and a shared journal. Owned tests cover selected failure/retry, refund, disconnect and recovery paths. Performer learning binds the current session and saved spell image before commitment. Guild/clan projections and selected event/timer flows exist; broader native/social ownership and multiplayer acceptance remain open.",
+      "implemented": "Managed Trade/booth exchanges use ordered participant commits and a shared WAL. Owned startup recovery now reconciles exact recorded pair intent, including partial item swaps, real escrow refund/exchange and complete vendor closures. Source fixtures cover restart without replay; guild/clan/event/native ownership and multiplayer client acceptance remain open.",
       "remaining": "Complete native/social/event ownership and real-client multiplayer acceptance. Broader inventory/storage and booth raw-writer/delivery lifecycles, remaining guild/union actions, brackets, rewards, claims, reset, database parity and durable recovery remain open; scoped managed tests do not certify all transfers."
     },
     {
@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Exact50cf80fa/source30e793f0 passed full Windows40886558198: Core29,929 Passed/152 existing NotExecuted, Updates446, Launcher57; all8stages0. Matching World/DataTool files and actual logs/TRXs are retained. Current-main live-client acceptance remains open."
+      "detail": "Earlier2ff18f12/source133513eb passed full Windows41061642002 (Core31174/152existing NotExecuted, Updates446, Launcher57; all8stages passed). Latest prior e0f22c8b full41095165573 failed3 Core cases; successor corrections passed737 focused plus13 corrected controls. Its exact public-commit full gate and current-main live-client acceptance remain required."
     },
     {
       "id": "english",

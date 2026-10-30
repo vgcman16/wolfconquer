@@ -45,7 +45,8 @@ public static partial class WorldPacketHandlers
                             ValidateLegacyVendorDiskBaseline(seller, sellerItems, context.PlayerItemsRoot, out baselineReason) &&
                             ValidatePreparedLegacyVendorPair(context, buyerOwner, sellerOwner,
                                 updatedBuyer, updatedSeller, buyerItems, sellerItems,
-                                preparedBuyerItems, preparedSellerItems, incoming, out baselineReason), out failure);
+                                preparedBuyerItems, preparedSellerItems, incoming, out baselineReason), out failure,
+                        context.VendorJournalInterruption);
                     if (!saved && baselineReason.Length != 0) failure = baselineReason;
                     return saved;
                 }, out finalBuyer, out finalSeller);

@@ -286,7 +286,7 @@ public sealed partial class LegacyOwnedStartupItemRecoveryTests
     });
 
     [Fact]
-    public Task GenuineVersionOneMultiOwnerWalRemainsOutsideSingleOwnerStartupCustody() => WithFixture(scope =>
+    public Task VersionOnePairWithUnrelatedCharacterAndItemChangesRemainsOutsideTradeStartupCustody() => WithFixture(scope =>
     {
         const long otherAccount = Uid + 1;
         var user = Path.Combine(scope.Data.Users, otherAccount.ToString(CultureInfo.InvariantCulture) + ".ini");

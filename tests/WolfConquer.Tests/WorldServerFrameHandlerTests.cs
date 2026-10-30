@@ -10924,107 +10924,12 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerItemUsageDepositWarehouseUpdatesMoneyAndSessionWarehouseMoney()
-    {
-        Directory.CreateDirectory(_usersRoot);
-        WriteSnapshot(1293600, uid: 1293600, warehouseMoney: 50, money: 1_000);
-        using var log = new StringWriter();
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), handoff, log);
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
-
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new InternalWorldEnterRequestPacket(ticket.Token).ToFrameBytes()));
-
-        var countBeforeRequest = sent.Count;
-        var request = new MsgItemUsagePacket(
-            Id: 12345,
-            DwParam: 300,
-            Action: MsgItemUsageAction.DepositWarehouse,
-            Timestamp: 112233,
-            DwParam2: 44,
-            DwParam3: 55,
-            DwParam4: 66);
-
-        await handler.HandleFrameAsync(connection, ReadFrame(request.ToFrameBytes()));
-
-        Assert.Equal(countBeforeRequest + 3, sent.Count);
-        AssertSingleUpdate(sent[countBeforeRequest], 1_293_600, LegacyMsgUpdateDataType.Money, 700);
-        AssertSingleUpdate(sent[countBeforeRequest + 1], 1_293_600, LegacyMsgUpdateDataType.Money, 700);
-        AssertItemUsage(sent[countBeforeRequest + 2], request);
-
-        var showCountBeforeRequest = sent.Count;
-        var showRequest = request with
-        {
-            DwParam = 0,
-            Action = MsgItemUsageAction.ShowWarehouseMoney,
-            Timestamp = 112244,
-        };
-        await handler.HandleFrameAsync(connection, ReadFrame(showRequest.ToFrameBytes()));
-
-        Assert.Equal(showCountBeforeRequest + 1, sent.Count);
-        AssertItemUsage(sent[^1], showRequest with { DwParam = 350 });
-        var persisted = new CharacterSnapshotLoader(_usersRoot).LoadByAccountId(1293600);
-        Assert.NotNull(persisted);
-        Assert.Equal(700, persisted.Money);
-        Assert.Equal("350", persisted.Attributes["WHMoney"]);
-        Assert.Contains("warehouse deposit", log.ToString());
-    }
+    public Task HandlerItemUsageDepositWarehouseUpdatesMoneyAndSessionWarehouseMoney() =>
+        AssertOwnedWarehouseMoneyMutationAsync(withdraw: false);
 
     [Fact]
-    public async Task HandlerItemUsageWarehouseWithdrawUpdatesMoneyAndWarehouseMoney()
-    {
-        Directory.CreateDirectory(_usersRoot);
-        WriteSnapshot(1293600, uid: 1293600, warehouseMoney: 350, money: 1_000);
-        using var log = new StringWriter();
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), handoff, log);
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
-
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new InternalWorldEnterRequestPacket(ticket.Token).ToFrameBytes()));
-
-        var countBeforeRequest = sent.Count;
-        var request = new MsgItemUsagePacket(
-            Id: 12345,
-            DwParam: 100,
-            Action: MsgItemUsageAction.WarehouseWithdraw,
-            Timestamp: 112233,
-            DwParam2: 44,
-            DwParam3: 55,
-            DwParam4: 66);
-
-        await handler.HandleFrameAsync(connection, ReadFrame(request.ToFrameBytes()));
-
-        Assert.Equal(countBeforeRequest + 4, sent.Count);
-        AssertSingleUpdate(sent[countBeforeRequest], 1_293_600, LegacyMsgUpdateDataType.Money, 1_100);
-        AssertSingleUpdate(sent[countBeforeRequest + 1], 1_293_600, LegacyMsgUpdateDataType.Money, 1_100);
-        AssertSingleUpdate(sent[countBeforeRequest + 2], 1_293_600, LegacyMsgUpdateDataType.WarehouseMoney, 250);
-        AssertItemUsage(sent[countBeforeRequest + 3], request);
-
-        var showCountBeforeRequest = sent.Count;
-        var showRequest = request with
-        {
-            DwParam = 0,
-            Action = MsgItemUsageAction.ShowWarehouseMoney,
-            Timestamp = 112244,
-        };
-        await handler.HandleFrameAsync(connection, ReadFrame(showRequest.ToFrameBytes()));
-
-        Assert.Equal(showCountBeforeRequest + 1, sent.Count);
-        AssertItemUsage(sent[^1], showRequest with { DwParam = 250 });
-        var persisted = new CharacterSnapshotLoader(_usersRoot).LoadByAccountId(1293600);
-        Assert.NotNull(persisted);
-        Assert.Equal(1_100, persisted.Money);
-        Assert.Equal("250", persisted.Attributes["WHMoney"]);
-        Assert.Contains("warehouse withdraw", log.ToString());
-    }
+    public Task HandlerItemUsageWarehouseWithdrawUpdatesMoneyAndWarehouseMoney() =>
+        AssertOwnedWarehouseMoneyMutationAsync(withdraw: true);
 
     [Fact]
     public async Task HandlerItemUsageWarehouseMutationSkipsWhenFundsAreInsufficient()

@@ -41,8 +41,11 @@ public static partial class WorldPacketHandlers
         catch (OverflowException) { reason = "bankCpsCapacityInvalid"; return false; }
         // Capture caller-map callbacks before actual Store preparation. The
         // writer uses only these prepared BCL maps; source rows stay witnessed.
-        var inputs = new LegacyWarehouseMoneyState.NativeValueProof(character);
-        var beforeFields = new Dictionary<string, string>(inputs.CapturedFields, StringComparer.OrdinalIgnoreCase);
+        LegacyWarehouseMoneyState.NativeValueProof inputs;
+        try { inputs = new(character); }
+        catch (InvalidOperationException) { reason = "bankCpsCharacterFieldsInvalid"; return false; }
+        if (!LegacyWarehouseMoneyState.TryCopyPersistenceFields(inputs.CapturedFields, out var beforeFields))
+        { reason = "bankCpsCharacterFieldsAmbiguous"; return false; }
         var persistenceBefore = current with { Character = character with { Attributes = beforeFields } };
         var attributes = new Dictionary<string, string>(beforeFields, StringComparer.OrdinalIgnoreCase)
         {

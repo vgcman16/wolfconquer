@@ -158,6 +158,8 @@ public sealed partial class WorldServerFrameHandler
                 Trades = _tradeStates,
                 TradeOperations = _worldOperations,
                 TradeRecovery = _tradeRecovery,
+                TradeJournalInterruption = TradeJournalInterruption,
+                VendorJournalInterruption = VendorJournalInterruption,
                 MailboxPackages = _mailboxPackages,
                 FrameOperationLease = frameOperation,
                 LocalServerIdentity = _runtimeUpdateLoop.LocalServerIdentity,

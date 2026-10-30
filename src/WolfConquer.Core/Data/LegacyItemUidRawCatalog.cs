@@ -66,6 +66,8 @@ internal static partial class LegacyItemUidRawCatalog
                 {
                     if (!CharacterSnapshotFileBaseline.TryReadBytes(input.Path, "itemUid", out var bytes, out var failure))
                         throw new IOException(failure);
+                    if (input.Kind == Kind.PlayerItems && recovery is not null)
+                        bytes = recovery.ReadOwnedStartupScanImage(input.Path, bytes);
                     total += bytes.Length;
                     if (total > MaximumTotalBytes) throw new FormatException("UID bootstrap input exceeds its bound.");
                     switch (input.Kind)

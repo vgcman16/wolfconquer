@@ -23,8 +23,9 @@ public static partial class WorldPacketHandlers
         }
         // Capture caller-map input before Store preparation. The real writer
         // receives only these prepared BCL maps, never a fresh wrapper callback.
-        var savedFields = new Dictionary<string, string>(inputs?.CapturedFields ?? current.Character.Attributes,
-            StringComparer.OrdinalIgnoreCase);
+        if (!LegacyWarehouseMoneyState.TryCopyPersistenceFields(inputs?.CapturedFields ?? current.Character.Attributes,
+                out var savedFields))
+        { reason = "warehouseMoneyCharacterFieldsAmbiguous"; return false; }
         if (!LegacyWarehouseMoneyState.TryRead(savedFields, out var warehouse)) return false;
         var persistenceBefore = current with { Character = current.Character with { Attributes = savedFields } };
         if (deposit ? current.Character.Money <= amount : warehouse < amount)

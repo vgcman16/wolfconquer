@@ -6,32 +6,36 @@ Observed live target: Chinese client7899 / VisibleDx8D13. The separate official
 
 ## Current source qualification
 
-The reviewed currency/CI correction batch compiled with zero errors and passed
-**387/387 focused outcomes**, zero failures/skips. It includes all4 names that
-failed actual Windows run41082514020 on a17e03c4:3 recovery reflection controls
-and1 old repair-material expectation. That failed run retained Core31,396 passed,
-4 failed and152 existing skips; Updates446 passed; later launcher/parser stages
-did not run. Its exact receipts and built outputs remain retained.
+The reviewed42-path transaction-recovery/currency correction batch compiled
+with zero errors. Its wider focused run retained737 passes/two authored test-
+golden failures; correcting only the helper's old1009 expectation to the existing
+D13 opcode2137 produced13/13 passing controls, including both failures and all
+three names that failed the preceding public full gate. Production wire IDs,
+complete packet metadata/tails and successful frame counts were preserved.
 
-This batch's own public-commit full Windows gate is still pending. Earlier full
-gates do not qualify these additions automatically. See
-[source-bug records237-239](../FIXED-SOURCE-BUGS.md).
+- 97 genuine trade recovery cases passed: exchange/refund, item-only/one-sided
+  offers, recorded locked intent and unrelated namespace refusal.
+- 90 booth-purchase recovery cases passed: exact conserved settlement and complete
+  deposited/perfection closures, stage/replacement boundaries and no replay.
+- Four new managed Program-host raw/encrypted restart cases passed. Recovery uses
+  the existing exclusive UID lease and exact configured recorded intent.
+- Six new scoped warehouse/bank controls passed. Warehouse projection preserves
+  unrelated fields; both bank writers reject ambiguous complete save maps before
+  WAL/debit/success or pending-confirmation consumption.
+- The two original warehouse positives now use genuine owned Runtime/Frame/Store
+  and real WAL, retaining balances, complete byte goldens and first-reply checks.
 
-- Actual native inventory CP, bound CP, bank CP and warehouse silver join real
-  Store admission/bound/deferred publication, including mailbox pre-reservation.
-- Wide CP pickup rewards conserve their whole value across inventory/bank;
-  overflow and stale or invalid ownership refuse before consumption.
-- Routed silver deposits/withdrawals and NPC CP-bank confirmations use genuine
-  Character + unchanged Items v2 journal commits before publication and replies.
-- Pending CP confirmation survives refusal and clears only on committed success.
-  Both NPC message formats retain their exact valid sequence and ownership checks.
-- Prepared input maps, current native proofs, real sharing/interruption/recovery
-  and bounded routing-race controls are included in the focused verification.
+Actual preceding full Windows41095165573 on e0f22c8b failed: Core31,632 passed,
+3 failed,152 existing NotExecuted; Updates446 passed. Later launcher/parser stages
+did not run. Its logs/TRXs and all six matching managed outputs are preserved.
+This successor's exact public-commit full Windows gate is still required.
+See [source-bug records240-242](../FIXED-SOURCE-BUGS.md).
 
-These source results establish neither deployment, SQL/global economy durability,
-raw-writer exclusion, current-client rendering, host trust nor complete parity.
-The legacy client/updater execution hold remains active. This section supersedes
-older currency/bank frontier notes in the historical family inventory below.
+These are source/owned managed-fixture results. V1 journal custody is trusted
+recorded intent, without cryptographic producer or independent listing-price
+metadata. Results do not prove deployment, SQL/global economy, power loss,
+raw-writer exclusion, current-client rendering, host trust or complete parity.
+The legacy client/updater execution hold remains active.
 
 ## Implemented source families
 

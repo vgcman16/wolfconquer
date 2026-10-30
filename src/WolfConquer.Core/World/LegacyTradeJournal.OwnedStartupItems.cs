@@ -32,15 +32,15 @@ internal static partial class LegacyTradeJournal
     {
         private readonly LegacyItemUidRegistry.OwnedStartupCustody custody;
         private readonly RecoveryCapture capture;
-        private readonly JournalTarget character;
-        private readonly JournalTarget items;
+        private readonly JournalTarget[] characters;
+        private readonly JournalTarget[] items;
 
         private OwnedStartupItemRecovery(LegacyItemUidRegistry.OwnedStartupCustody custody, RecoveryCapture capture)
         {
             this.custody = custody;
             this.capture = capture;
-            character = capture.Targets.Single(target => target.Change.Kind == LegacyTradeJournalFileKind.Character);
-            items = capture.Targets.Single(target => target.Change.Kind == LegacyTradeJournalFileKind.Items);
+            characters = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Character).ToArray();
+            items = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Items).ToArray();
         }
 
         internal static bool TryCapture(LegacyItemUidRegistry.OwnedStartupCustody custody,
@@ -65,6 +65,11 @@ internal static partial class LegacyTradeJournal
 
         private static void ValidateImages(RecoveryCapture captured, uint highWater)
         {
+            if (captured.Record.Version == 1)
+            {
+                ValidateOwnedStartupPairImages(captured, highWater);
+                return;
+            }
             if (captured.Record.Version != 2 || captured.Targets.Length != 2 ||
                 captured.Targets.Count(target => target.Change.Kind == LegacyTradeJournalFileKind.Character) != 1 ||
                 captured.Targets.Count(target => target.Change.Kind == LegacyTradeJournalFileKind.Items) != 1)
@@ -104,8 +109,8 @@ internal static partial class LegacyTradeJournal
             custody.RequireCurrent();
             custody.RequireRoots(capture.Roots.Users, capture.Roots.Items);
             RequirePendingIdentity();
-            ValidateStage(character);
-            ValidateStage(items);
+            EnsureTargetsMatch(capture.Targets, allowAfter: true);
+            foreach (var target in capture.Targets) ValidateStage(target);
             // An unrelated Character stage is evidence too; unlike PlayersItems,
             // Users is not otherwise part of the physical-UID directory scan.
             foreach (var path in Directory.EnumerateFileSystemEntries(capture.Roots.Users))
@@ -115,7 +120,7 @@ internal static partial class LegacyTradeJournal
                 if (SamePath(path, capture.Roots.Journal)) continue;
                 if (!Path.GetFileName(path).Contains(".managed-trade-", StringComparison.OrdinalIgnoreCase)) continue;
                 EnsureSafePath(path);
-                if (!SamePath(path, StagePath(character, capture.Record.TransactionId)))
+                if (!characters.Any(target => SamePath(path, StagePath(target, capture.Record.TransactionId))))
                     throw new InvalidDataException("Owned startup found a foreign Character staging entry.");
             }
             RequirePendingIdentity();
@@ -143,9 +148,23 @@ internal static partial class LegacyTradeJournal
 
         internal bool IsKnownItemStage(string path)
         {
-            if (!SamePath(path, StagePath(items, capture.Record.TransactionId))) return false;
+            if (!items.Any(target => SamePath(path, StagePath(target, capture.Record.TransactionId)))) return false;
             RequireCurrent();
             return File.Exists(path);
+        }
+
+        // Only the conserved v1 pair needs a logical view: its mixed physical
+        // prefix can contain the same transferred UID at both owners. V2 keeps
+        // its physical scan so a retiring before-UID cannot hide a collision.
+        internal byte[] ReadOwnedStartupScanImage(string path, byte[] physical)
+        {
+            if (capture.Record.Version != 1) return physical;
+            var target = items.SingleOrDefault(target => SamePath(path, target.Path));
+            if (target is null) return physical;
+            RequireCurrent();
+            if (!Matches(physical, target.Change.Before) && !Matches(physical, target.Change.After))
+                throw new InvalidDataException("Owned startup scan target differs from its captured images.");
+            return target.Change.After.ToArray();
         }
 
         internal void RequireExactJournal(IReadOnlyList<string> paths, IReadOnlyList<LegacyTradeJournalChange> changes)

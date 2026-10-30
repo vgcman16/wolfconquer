@@ -66,7 +66,7 @@ public static partial class WorldPacketHandlers
                   ValidateLegacyTradeItemGraphs(first, firstItems, updatedFirst, updatedFirstItems,
                       second, secondItems, updatedSecond, updatedSecondItems, out baselineReason) &&
                   ValidateLegacyTradeExchangeOffers(context, exchangeParty, first, firstItems, second, secondItems,
-                      out baselineReason), out reason);
+                      out baselineReason), out reason, context.TradeJournalInterruption);
         if (!persisted && baselineReason.Length != 0) reason = baselineReason;
         if (!persisted && IsLegacyTradeRecoveryRequired(reason)) context.TradeRecovery?.Block(reason);
         return persisted;
