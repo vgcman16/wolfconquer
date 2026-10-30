@@ -24,6 +24,11 @@ catch (FormatException)
 }
 RuntimeConsoleLog.ConfigureFromEnvironment(endpoint.Role);
 Console.Out.WriteLine($"Protocol profile: {protocolProfile}");
+if (!WorldPublicHeartbeatOptions.TryFromEnvironment(out var publicHeartbeat, out var publicHeartbeatReason))
+{
+    Console.Error.WriteLine("WorldServer public heartbeat configuration refused: " + publicHeartbeatReason + ".");
+    return 1;
+}
 var worldData = await WorldDataStartup.TryLoadAsync(Console.Out);
 var listenRequested = args.Any(argument =>
     string.Equals(argument, "--listen", StringComparison.OrdinalIgnoreCase));
@@ -193,11 +198,11 @@ Console.Out.WriteLine(ownedAdmission is null
 
 if (!listenRequested || Environment.GetEnvironmentVariable("WOLFCONQUER_OPERATOR_MAIL") != "1" &&
     Environment.GetEnvironmentVariable("WOLFCONQUER_RUNTIME_INSPECTOR") != "1")
-    return await ConquerServerRunner.RunAsync(endpoint, args, handler.HandleFrameAsync);
+    return await ConquerServerRunner.RunWorldAsync(endpoint, args, handler, publicHeartbeat);
 if (ownedAdmission is null || ownedAdmissionOptions is null)
 {
     Console.Error.WriteLine("Local operator endpoints require the actual owned runtime configuration.");
     return 1;
 }
 return await LocalOperatorMailHost.RunAsync(endpoint, args, handler, ownedAdmission,
-    ownedAdmissionOptions.ExpectedDomain);
+    ownedAdmissionOptions.ExpectedDomain, publicHeartbeat);

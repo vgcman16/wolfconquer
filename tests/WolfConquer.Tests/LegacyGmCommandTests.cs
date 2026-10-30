@@ -18,6 +18,8 @@ public sealed class LegacyGmCommandTests
         Assert.Null(command.Inspection);
         Assert.Null(command.KitName);
         Assert.Null(command.OperationId);
+        Assert.Null(command.ItemId);
+        Assert.Null(command.StackSize);
     }
 
     [Theory]
@@ -39,6 +41,8 @@ public sealed class LegacyGmCommandTests
         Assert.Equal(expected, command.Inspection);
         Assert.Null(command.KitName);
         Assert.Null(command.OperationId);
+        Assert.Null(command.ItemId);
+        Assert.Null(command.StackSize);
     }
 
     [Theory]
@@ -52,6 +56,8 @@ public sealed class LegacyGmCommandTests
         Assert.Null(command.Inspection);
         Assert.Equal(kit, command.KitName);
         Assert.Equal(Operation, command.OperationId);
+        Assert.Null(command.ItemId);
+        Assert.Null(command.StackSize);
         var request = LegacyOperatorTestKits.Create(command.OperationId!.Value,
             Guid.Parse("5ea475af-f3ef-48b1-848e-e29dd06bcb87"), 2, 1293600, command.KitName!);
         Assert.Equal(Operation, request.OperationId);

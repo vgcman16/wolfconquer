@@ -12,10 +12,12 @@ internal static partial class LegacyOrdinaryAdmissionMutationFence
     { lock (Gate) Owners[owner.Roots.Users] = owner; }
     private static LegacyOrdinaryAdmissionUidOwner[] Snapshot() { lock (Gate) return Owners.Values.ToArray(); }
 
-    internal static void RequireFileMutation(string path)
+    internal static void RequireFileMutation(string path) => RequireFileMutation(path, null);
+
+    private static void RequireFileMutation(string path, LegacyTradeJournal.OwnedStartupItemRecovery? recovery)
     {
         var absolute = Path.GetFullPath(path);
-        RequireConfiguredJournalWritable(absolute);
+        RequireConfiguredJournalWritable(absolute, recovery);
         foreach (var owner in Snapshot())
             foreach (var kind in owner.Roots.Kinds)
             {
@@ -24,7 +26,14 @@ internal static partial class LegacyOrdinaryAdmissionMutationFence
                 var name = Path.GetFileName(absolute);
                 if (!name.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ||
                     !uint.TryParse(name[..^extension.Length], NumberStyles.None, CultureInfo.InvariantCulture, out var account)) continue;
-                if (owner.IsPending(account) && (prepared is null || !prepared.PermitsOrdinaryPath(owner, account, absolute)))
+                if (recovery is not null)
+                {
+                    // A foreign live owner is not permission merely because it
+                    // currently reports no debt on a shared participant path.
+                    if (!recovery.PermitsOrdinaryOwner(owner, absolute))
+                        throw new IOException("ordinaryAdmissionRecoveryRequired:ownedStartupOwnerMismatch");
+                }
+                else if (owner.IsPending(account) && (prepared is null || !prepared.PermitsOrdinaryPath(owner, account, absolute)))
                     throw new IOException("ordinaryAdmissionRecoveryRequired:pendingSnapshotWrite");
             }
     }

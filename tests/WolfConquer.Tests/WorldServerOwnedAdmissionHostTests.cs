@@ -67,7 +67,7 @@ public sealed partial class WorldServerOwnedAdmissionHostTests
     [Theory]
     [InlineData("wrong-domain")]
     [InlineData("unconfigured-namespace")]
-    [InlineData("pending-journal")]
+    [InlineData("malformed-journal")]
     public Task ActualProgramRefusesUnownedOrUnreconciledStorageBeforeOpeningListener(string failure) =>
         OwnedHostScenario.RunAsync(async scenario =>
         {
@@ -80,7 +80,12 @@ public sealed partial class WorldServerOwnedAdmissionHostTests
                 json["ExpectedDomain"] = Guid.NewGuid().ToString("N");
                 File.WriteAllText(fixture.ConfigPath, json.ToJsonString());
             }
-            if (failure == "pending-journal") fixture.StagePendingSnapshotJournal();
+            if (failure == "malformed-journal")
+            {
+                fixture.StagePendingSnapshotJournal();
+                File.AppendAllText(Path.Combine(fixture.Users, ".managed-trade-journal", "pending.json"),
+                    "{", new UTF8Encoding(false));
+            }
             var before = fixture.Files();
             var host = scenario.Create(encrypted: false, configured: failure != "unconfigured-namespace");
             await host.StartToExitAsync();
@@ -89,7 +94,15 @@ public sealed partial class WorldServerOwnedAdmissionHostTests
             Assert.DoesNotContain(host.Lines, line => line.StartsWith("Listening on ", StringComparison.Ordinal));
             Assert.DoesNotContain(host.Lines, line => line.Contains("ordinary admission committed", StringComparison.Ordinal));
             fixture.AssertFiles(before);
-            if (failure != "pending-journal") AssertLeaseAvailable(fixture);
+            if (failure == "malformed-journal")
+            {
+                Assert.True(LegacyTradeJournal.HasPending(fixture.Users));
+                // Generic registry open correctly refuses the retained WAL;
+                // prove release with the actual OS lease instead.
+                using var lease = new FileStream(fixture.OwnerLease, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                Assert.Equal(0L, lease.Length);
+            }
+            else AssertLeaseAvailable(fixture);
         });
 
     [Fact]

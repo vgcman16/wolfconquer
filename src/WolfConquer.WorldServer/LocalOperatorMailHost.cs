@@ -4,8 +4,13 @@ using WolfConquer.Core.World;
 
 internal static class LocalOperatorMailHost
 {
+    internal static Task<int> RunAsync(ConquerEndpoint endpoint, string[] args,
+        WorldServerFrameHandler handler, LegacyOwnedAdmissionRuntime owner, Guid configuredDomain) =>
+        RunAsync(endpoint, args, handler, owner, configuredDomain, null);
+
     internal static async Task<int> RunAsync(ConquerEndpoint endpoint, string[] args,
-        WorldServerFrameHandler handler, LegacyOwnedAdmissionRuntime owner, Guid configuredDomain)
+        WorldServerFrameHandler handler, LegacyOwnedAdmissionRuntime owner, Guid configuredDomain,
+        WorldPublicHeartbeatOptions? publicHeartbeat)
     {
         using var stop = new CancellationTokenSource();
         var endpoints = new List<IAsyncDisposable>();
@@ -27,7 +32,7 @@ internal static class LocalOperatorMailHost
                 endpoints.Add(inspection); workers.Add(inspection.Completion);
                 Console.Out.WriteLine("Local runtime diagnostic enabled: " + inspection.PipeName + "; no atomic native tuple or file/runtime equality proof.");
             }
-            server = ConquerServerRunner.RunAsync(endpoint, args, handler.HandleFrameAsync, stop.Token);
+            server = ConquerServerRunner.RunWorldAsync(endpoint, args, handler, publicHeartbeat, stop.Token);
             var first = await Task.WhenAny(workers.Append(server));
             if (!ReferenceEquals(first, server) && !server.IsCompleted)
             {

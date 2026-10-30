@@ -19,6 +19,8 @@ internal static partial class Program
                 "inspect" => new[] { "inspect.self" },
                 "mail" => new[] { "mail.testkit.self" },
                 "both" => new[] { "inspect.self", "mail.testkit.self" },
+                "catalog" => new[] { "mail.catalogitem.self" },
+                "all" => new[] { "inspect.self", "mail.testkit.self", "mail.catalogitem.self" },
                 _ => throw new ArgumentException("A closed GM capability selection is required.")
             };
             var output = RequireGmPolicyOutput(args[1]);

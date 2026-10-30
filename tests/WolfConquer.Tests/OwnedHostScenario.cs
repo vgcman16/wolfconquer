@@ -28,8 +28,9 @@ internal sealed class OwnedHostScenario
         }
         if (scenario.children.All(child => child.Stopped))
         {
-            try { scenario.Data.Dispose(); }
-            catch (Exception error) { failures.Add(error); }
+            if (failures.Count == 0)
+                try { scenario.Data.Dispose(); }
+                catch (Exception error) { failures.Add(error); }
         }
         else failures.Add(new IOException("Owned server did not terminate; owned fixture retained: " + scenario.Data.Root));
         if (failures.Count == 1) ExceptionDispatchInfo.Capture(failures[0]).Throw();

@@ -7,7 +7,7 @@ namespace WolfConquer.Core.World;
 public sealed partial class WorldServerFrameHandler
 {
     private sealed record OperatorMailRequest(LegacyOperatorGearMailRequest Request,
-        LegacyMailboxPackageCatalog[] Catalogs, string Digest);
+        LegacyMailboxPackageCatalog[] Catalogs, LegacyOwnedNativeItemImage.CatalogEvidence NativeCatalog, string Digest);
 
     private bool TryPrepareOperatorMailRequest(LegacyOperatorGearMailRequest supplied,
         out OperatorMailRequest? prepared, out string reason)
@@ -43,6 +43,15 @@ public sealed partial class WorldServerFrameHandler
             catalogs[i] = catalog;
         }
         if (supplied.Items.Count != count || catalogs.Any(catalog => !catalog.IsCurrent())) return false;
+        LegacyOwnedNativeItemImage.CatalogEvidence nativeCatalog;
+        try
+        {
+            // Reuse the actual native constructor's required Rune evidence.
+            // No item UID, fake item or accepting metadata resolver is issued.
+            nativeCatalog = LegacyOwnedNativeItemImage.ValidateItemIds(_worldData, items.Select(item => item.ItemId), _protocolProfile);
+        }
+        catch (Exception error) when (IsOperatorMailPreparationFailure(error))
+        { reason = "operatorMailNativeCatalogInvalid"; return false; }
         var frozen = supplied with { Items = items };
         using var buffer = new MemoryStream();
         using (var writer = new BinaryWriter(buffer, new UTF8Encoding(false, true), leaveOpen: true))
@@ -57,7 +66,9 @@ public sealed partial class WorldServerFrameHandler
                 writer.Write(item.FirstSocket); writer.Write(item.SecondSocket); writer.Write(catalogs[i].Digest);
             }
         }
-        prepared = new(frozen, catalogs, Convert.ToHexString(SHA256.HashData(buffer.ToArray())).ToLowerInvariant());
+        if (catalogs.Any(catalog => !catalog.IsCurrent()) || !nativeCatalog.IsCurrentPlain())
+            return false;
+        prepared = new(frozen, catalogs, nativeCatalog, Convert.ToHexString(SHA256.HashData(buffer.ToArray())).ToLowerInvariant());
         reason = string.Empty;
         return true;
     }

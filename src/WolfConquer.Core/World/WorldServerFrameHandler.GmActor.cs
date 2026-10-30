@@ -8,9 +8,9 @@ public sealed partial class WorldServerFrameHandler
     // numeric IDs and a caller-created native object cannot issue this actor.
     private sealed record GmCommandActor(ConquerTcpConnection Connection, WorldSession Expected,
         LegacyOrdinarySpellBinding Binding, LegacyOwnedNativeItemImage ItemImage, object Identity,
-        LegacySecondaryPasswordState Pin, LegacyOwnedAdmissionOptions Routes);
+        LegacySecondaryPasswordState Pin, LegacyOwnedAdmissionOptions Routes, LegacyGmCapability? RequiredMailCapability);
 
-    private GmCommandActor? CaptureGmActor(ConquerTcpConnection connection)
+    private GmCommandActor? CaptureGmActor(ConquerTcpConnection connection, LegacyGmCommandKind kind)
     {
         if (_gmPolicy is not { } policy || _ownedAdmissionRuntime is not { } owner ||
             !ReferenceEquals(owner.Recovery, _tradeRecovery) ||
@@ -24,12 +24,18 @@ public sealed partial class WorldServerFrameHandler
             !LegacyNativeClientPublication.TryCaptureIdentity(_sessions, connection, session.Character.Uid, out var identity) ||
             !LegacySecondaryPasswordRuntime.TryGet(connection, session, out var pin, out var admitted) || !admitted)
             return null;
-        var actor = new GmCommandActor(connection, session, binding, binding.Items.Image, identity, pin, routes);
+        LegacyGmCapability? mailCapability = kind switch
+        {
+            LegacyGmCommandKind.Kit => LegacyGmCapability.MailTestKitSelf,
+            LegacyGmCommandKind.Item => LegacyGmCapability.MailCatalogItemSelf,
+            _ => null
+        };
+        var actor = new GmCommandActor(connection, session, binding, binding.Items.Image, identity, pin, routes, mailCapability);
         return GmActorCurrent(actor, requireOriginal: true, out _) ? actor : null;
     }
 
     private bool GmHasAnyCapability(WorldSession session) => GmAllows(session, LegacyGmCapability.InspectSelf) ||
-        GmAllows(session, LegacyGmCapability.MailTestKitSelf);
+        GmAllows(session, LegacyGmCapability.MailTestKitSelf) || GmAllows(session, LegacyGmCapability.MailCatalogItemSelf);
 
     private bool GmAllows(WorldSession session, LegacyGmCapability capability) =>
         _gmPolicy is { } policy && session.AccountId is > 0 and <= uint.MaxValue &&
@@ -88,6 +94,7 @@ public sealed partial class WorldServerFrameHandler
         ReferenceEquals(actor.Connection, owner.Connection) && ReferenceEquals(actor.Expected, owner.Expected) &&
         ReferenceEquals(actor.Binding, owner.Binding) && ReferenceEquals(actor.Identity, owner.Identity) &&
         actor.Pin == owner.Pin && actor.Routes == owner.Routes &&
-        GmAllows(owner.Expected, LegacyGmCapability.MailTestKitSelf) &&
+        (actor.RequiredMailCapability is LegacyGmCapability.MailTestKitSelf or LegacyGmCapability.MailCatalogItemSelf) &&
+        GmAllows(owner.Expected, actor.RequiredMailCapability.Value) &&
         GmActorCurrent(actor, requireOriginal: true, out _);
 }

@@ -1,6 +1,8 @@
 using System.Net;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.Packets;
+using WolfConquer.Core.World;
+using System.Runtime.ExceptionServices;
 
 namespace WolfConquer.Core.Runtime;
 
@@ -16,6 +18,18 @@ public static class ConquerServerRunner
         string[] args,
         Func<ConquerTcpConnection, PacketFrame, CancellationToken, ValueTask>? frameHandler,
         CancellationToken cancellationToken = default)
+        => await RunCoreAsync(endpoint, args, frameHandler, null, null, cancellationToken).ConfigureAwait(false);
+
+    public static Task<int> RunWorldAsync(ConquerEndpoint endpoint, string[] args, WorldServerFrameHandler handler,
+        WorldPublicHeartbeatOptions? heartbeatOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return RunCoreAsync(endpoint, args, handler.HandleFrameAsync, handler, heartbeatOptions, cancellationToken);
+    }
+
+    private static async Task<int> RunCoreAsync(ConquerEndpoint endpoint, string[] args,
+        Func<ConquerTcpConnection, PacketFrame, CancellationToken, ValueTask>? frameHandler,
+        WorldServerFrameHandler? worldFrame, WorldPublicHeartbeatOptions? heartbeatOptions, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentNullException.ThrowIfNull(args);
@@ -46,13 +60,13 @@ public static class ConquerServerRunner
         }
 
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        Console.CancelKeyPress += (_, eventArgs) =>
+        ConsoleCancelEventHandler onCancel = (_, eventArgs) =>
         {
             eventArgs.Cancel = true;
             stop.Cancel();
         };
 
-        await using var server = new ConquerTcpServer(
+        var server = new ConquerTcpServer(
             new ConquerTcpServerOptions(
                 endpoint,
                 IPAddress.Parse(runOptions.Address),
@@ -67,17 +81,44 @@ public static class ConquerServerRunner
                     : null),
             frameHandler ?? CreateDefaultFrameHandler(endpoint));
 
-        server.Start(stop.Token);
-        Console.WriteLine($"Listening on {server.BoundEndPoint}");
-
+        Console.CancelKeyPress += onCancel;
+        WorldPublicHeartbeatPublisher? heartbeat = null;
+        Exception? primary = null;
         try
         {
+            server.Start(stop.Token);
+            Console.WriteLine($"Listening on {server.BoundEndPoint}");
+            if (worldFrame is not null && heartbeatOptions is not null)
+            {
+                try { heartbeat = WorldPublicHeartbeatPublisher.StartIfEnabled(server, worldFrame, heartbeatOptions, Console.Error); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException or
+                    ArgumentException or InvalidOperationException or System.Security.SecurityException)
+                { Console.Error.WriteLine("Public game heartbeat disabled: " + error.GetType().Name + "."); }
+            }
             await Task.Delay(Timeout.InfiniteTimeSpan, stop.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
         }
-
+        catch (Exception error) { primary = error; }
+        Console.CancelKeyPress -= onCancel;
+        var cleanup = new List<Exception>();
+        if (heartbeat is not null)
+            try { await heartbeat.StopPollingAsync().ConfigureAwait(false); }
+            catch (Exception error) { cleanup.Add(error); }
+        try { await server.DisposeAsync().ConfigureAwait(false); }
+        catch (Exception error) { cleanup.Add(error); }
+        // Terminal status can only follow the real TCP producer/connection drain.
+        if (heartbeat is not null)
+            try { await heartbeat.DisposeAsync().ConfigureAwait(false); }
+            catch (Exception error) { cleanup.Add(error); }
+        if (primary is not null)
+        {
+            if (cleanup.Count != 0) throw new AggregateException("Server and shutdown failed.", new[] { primary }.Concat(cleanup));
+            ExceptionDispatchInfo.Capture(primary).Throw();
+        }
+        if (cleanup.Count == 1) ExceptionDispatchInfo.Capture(cleanup[0]).Throw();
+        if (cleanup.Count > 1) throw new AggregateException("Server shutdown failed.", cleanup);
         return 0;
     }
 

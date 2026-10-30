@@ -8,6 +8,66 @@ Candidate source qualification for FSB-204 through FSB-225: Release build06 pass
 
 Earlier FSB-200 through FSB-203 were included in the separately verified full Windows gate 40958745483 on source731d8e54 / generated91040398: Core30175 passed/152 existing NotExecuted, Updates446 and Launcher57, zero failures. The new FSB-204..225 public-commit full gate remains pending.
 
+## Qualification for FSB-232 through FSB-236
+
+The widened selection retained 1,356 passed and two new cold-client packet
+expectation failures, with no skips. After test-only phase corrections, the
+failed controls and affected neighbors passed **64/64**,
+zero failures/skips. Production behavior was unchanged by those corrections.
+The actual public-commit full Windows gate remains pending.
+
+## FSB-236 candidate: Publish real native Money with the owned session
+
+Qualification: Focused source verified under the combined qualification note above; the actual public-commit full Windows gate remains pending. The owned restart test correctly
+found saved and managed Money 700 while the actual native Player Money remained
+zero. Ordinary admission and subsequent Store publication had no Money bridge.
+
+The candidate adds one closed Money participant under the existing actual
+Store, client and player owners. It captures the private slot, verifies the
+expected managed baseline, checks callback and writer boundaries, and stores the
+prepared value only with the successful publication. Deferred mailbox claims
+prepare the final actual Money proposal. Hydration does not call the sending
+setter, spill to warehouse/poker, send chat or add Money packets.
+
+Direct bound or retired native setters refuse before effects. The native setter's
+only production-source callers are private, unregistered Hairface Buy/BuyColor;
+both charge before adding ownership. Valid unbound native output remains, while
+negative balances and overflowing required warehouse spill now refuse before any
+field, poker, packet or pool change. Three earlier bug-preserving rows are
+replaced with unchanged-state assertions; valid independent wire goldens remain.
+
+Source-authored controls cover actual Frame admission, paid/five-Meteor repair at
+first output, rejection, direct setter retirement, raw drift before the writer,
+drift after a genuine repair journal with retirement, and actual combined
+ordinary/mailbox deferred publication and retry. The original 700-versus-zero assertion is retained.
+
+Limits: only inventory Money is bridged. CP/bound-CP/warehouse projection, other
+native currency transactions and generic Set/CAS postpublication best-effort
+scalar persistence remain open. No SQL, general durability, raw-writer exclusion,
+power-loss, host-trust, new-7937 or live-client acceptance claim is added.
+
+## Superseding qualification for FSB-204 through FSB-231
+
+Full Windows CI [41061642002](https://github.com/vgcman16/wolfconquer/actions/runs/41061642002) passed all eight stages on exact commit `2ff18f1282d7f969d0533a8566ee5c08a28613eb`: Core 31,174 passed with 152 existing NotExecuted, Updates 446 passed and Launcher 57 passed. This supersedes earlier pending full-gate labels for those entries. It does not qualify this successor automatically.
+
+## FSB-232 candidate: Persist repair costs and durability together
+
+Qualification: Focused source verified under the combined qualification note above; the actual public-commit full Windows gate remains pending. Paid repair and zero-durability repair costing five Meteors/Tears use the actual single-owner journal instead of independent best-effort saves. Exact Character/Items preimages and allowed raw changes precede commitment; canonical Store/native publication and replies follow the persisted outcome. Uncertain outcomes retain recovery evidence rather than becoming refundable failures.
+
+## FSB-233 candidate: Validate Rune evidence before reservation
+
+Qualification: Focused source verified under the combined qualification note above; the actual public-commit full Windows gate remains pending. Operator item mail validates required native Rune columns 2/25 before reserving UIDs. Catalog-item GM mail reuses the actual mailbox pipeline and requires the new explicit `mail.catalogitem.self` capability. Existing default/both grants retain their previous scope; they do not gain item-mail authority.
+
+## FSB-234 candidate: Recover supported journals through actual owned startup
+
+Qualification: Focused source verified under the combined qualification note above; the actual public-commit full Windows gate remains pending. Runtime startup can acquire its existing exclusive namespace lease, prove domain/state/configuration, recover an exact complete v2 Character/Items journal, rescan and finish ordinary reconciliation before publication. No new physical UIDs are admitted. Retained producer work/history, ordinary allocation metadata, other journal versions and package-owner exceptions remain refused.
+
+## FSB-235 candidate: Replace Windows status files with readers present
+
+Qualification: Focused source verified under the combined qualification note above; the actual public-commit full Windows gate remains pending. Public heartbeat publication renames a completed, flushed temporary file using the Windows replacement mechanism that preserves existing readers' old image while subsequent opens resolve the new complete image. Failure preserves the previous publication; there is no truncate-and-rewrite fallback.
+
+These are bounded source changes, not SQL, live-client, 7937 integration, general recovery or power-loss guarantees.
+
 ## FSB-231 candidate: Remove saved-text admin NPC privileges
 
 Source: Stuff NPC77839 and Stuff12 NPC22224 in

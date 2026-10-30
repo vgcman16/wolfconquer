@@ -76,7 +76,7 @@ internal static partial class LegacyTradeJournal
         JournalTarget[] targets, LegacyJournalInterruption? interrupt, out string reason)
     {
         var paths = targets.Select(target => target.Path).ToArray();
-        interrupt?.Claim(targets.Length);
+        interrupt?.Claim(targets.Length, record.Version);
         // Permission checks may inspect higher package/admission owners. Keep
         // them before J, under the caller's complete existing file monitors.
         if (HasPending(roots.Users)) { reason = RecoveryRequired + ":pending"; return false; }
@@ -100,6 +100,7 @@ internal static partial class LegacyTradeJournal
     {
         reason = string.Empty;
         var published = false;
+        var retainStoppedStages = false;
         var pending = Path.Combine(roots.Journal, PendingName);
         var preparing = Path.Combine(roots.Journal, record.TransactionId + ".preparing");
         try
@@ -125,9 +126,20 @@ internal static partial class LegacyTradeJournal
             if (record.Version == 9) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
             else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
             else PrepareAdmissionDirectories(roots, record, targets);
-            foreach (var target in targets)
+            for (var index = 0; index < targets.Length; index++)
+            {
+                var target = targets[index];
                 if (!IsOrdinaryAdmissionVersion(record.Version) || !Matches(ReadTarget(target.Path), target.Change.After))
+                {
                     Stage(target, target.Change.After, record.TransactionId);
+                    if (interrupt?.AtStageFlushed(index + 1, paths, pending) == true)
+                    {
+                        retainStoppedStages = true;
+                        reason = RecoveryRequired + ":stageInterrupted";
+                        return false;
+                    }
+                }
+            }
             for (var index = 0; index < targets.Length; index++)
             {
                 if (!IsOrdinaryAdmissionVersion(record.Version) || !Matches(ReadTarget(targets[index].Path), targets[index].Change.After))
@@ -176,7 +188,8 @@ internal static partial class LegacyTradeJournal
         }
         finally
         {
-            foreach (var target in targets) TryDelete(StagePath(target, record.TransactionId));
+            if (!retainStoppedStages)
+                foreach (var target in targets) TryDelete(StagePath(target, record.TransactionId));
         }
     }
 

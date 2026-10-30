@@ -110,18 +110,24 @@ public sealed partial class LegacyOwnedAdmissionRuntimeTests
     }
 
     [Fact]
-    public void ARealPublishedPendingSnapshotJournalRemainsBlockedAndIsNotSilentlyReplayedAtStartup()
+    public void ARealCompleteSingleOwnerSnapshotJournalRecoversUnderActualStartupCustody()
     {
         using var fixture = new LegacyOwnedAdmissionRuntimeFixture();
         fixture.StagePendingSnapshotJournal();
-        var files = fixture.Files();
+        var state = File.ReadAllBytes(Path.Combine(fixture.Registry, "state.json"));
+        var items = File.ReadAllBytes(Path.Combine(fixture.Items, LegacyOwnedAdmissionRuntimeFixture.Uid + ".bin"));
+        var afterCharacter = System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.UTF8.GetString(
+            File.ReadAllBytes(fixture.UserPath)).Replace("Online=0\r\n", "Online=1\r\n", StringComparison.Ordinal));
 
-        Assert.False(LegacyOwnedAdmissionRuntime.TryOpen(fixture.Loader, fixture.Options(), out var runtime, out var reason));
+        using (var runtime = Open(fixture))
+            Assert.False(LegacyTradeJournal.HasPending(fixture.Users));
 
-        Assert.Null(runtime);
-        Assert.NotEmpty(reason);
-        Assert.True(LegacyTradeJournal.HasPending(fixture.Users));
-        fixture.AssertFiles(files);
+        Assert.Equal(state, File.ReadAllBytes(Path.Combine(fixture.Registry, "state.json")));
+        Assert.Equal(items, File.ReadAllBytes(Path.Combine(fixture.Items, LegacyOwnedAdmissionRuntimeFixture.Uid + ".bin")));
+        Assert.Equal(afterCharacter, File.ReadAllBytes(fixture.UserPath));
+        var recovered = fixture.Files();
+        using var reopened = Open(fixture);
+        fixture.AssertFiles(recovered);
     }
 
     [Fact]

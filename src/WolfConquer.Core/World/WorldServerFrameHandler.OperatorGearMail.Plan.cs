@@ -20,11 +20,13 @@ public sealed partial class WorldServerFrameHandler
         SnapshotFileLockCoordinator.ExecuteLocked(owner.Paths, () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
+            request.NativeCatalog.RequireCurrent();
             if (request.Catalogs.Any(catalog => !catalog.IsCurrent()) ||
                 !TryReadOperatorMailBaseline(runtime, owner, out var before, out reason) ||
                 !before!.Mail.TryAllocateMailIds(request.Request.Items.Count, out var mailIds) ||
                 !before.Graph.IsCurrent(owner.Expected.PlayerItems) ||
-                !OperatorMailOwnerCurrent(runtime, owner, owner.Expected)) return false;
+                !OperatorMailOwnerCurrent(runtime, owner, owner.Expected) ||
+                !request.NativeCatalog.IsCurrentPlain()) return false;
             var reservation = new LegacyItemUidReservationRequest(request.Request.OperationId,
                 LegacyOwnedAdmissionRuntime.OperatorGearMailWriter, request.Request.AccountId,
                 request.Request.CharacterUid, request.Digest, request.Request.Items.Count);

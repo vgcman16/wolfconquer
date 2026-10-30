@@ -814,7 +814,7 @@ internal static partial class Program
         Console.WriteLine("  WolfConquer.DataTool seed-owned-admission-fixture <NEW-absolute-wolf-owned-admission-GUID-dir> <account-key> <character-uid> <item-uid> [--profile RootD11_7899|VisibleDx8D13]");
         Console.WriteLine("  WolfConquer.DataTool send-operator-gear-mail <wolfconquer-operator-mail-domainN> <absolute-request.json>");
         Console.WriteLine("  WolfConquer.DataTool create-operator-test-kit <NEW-absolute-request.json> <domainN> <accountId> <characterUid> <basic-trojan|socket-materials|consumables>");
-        Console.WriteLine("  WolfConquer.DataTool create-gm-policy <NEW-absolute-policy.json> <existing-owned-admission.json> <accountId> <characterUid> [inspect|mail|both] (creates inert policy only)");
+        Console.WriteLine("  WolfConquer.DataTool create-gm-policy <NEW-absolute-policy.json> <existing-owned-admission.json> <accountId> <characterUid> [inspect|mail|both|catalog|all] (creates inert policy only)");
         Console.WriteLine("  WolfConquer.DataTool inspect-owned-player <absolute-owned-admission.json> <accountId>");
         Console.WriteLine("  WolfConquer.DataTool inspect-runtime-player <wolfconquer-runtime-inspect-domainN> <domainN> <accountId> <characterUid> (diagnostic only)");
         Console.WriteLine("  WolfConquer.DataTool seed-loot-roundtrip-fixture <NEW-absolute-DBServer-dir> <account-key> <character-uid> <item-uid>");

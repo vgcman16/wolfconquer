@@ -32,9 +32,9 @@ public sealed partial class WorldServerFrameHandler
         }
     }
 
-    private static string[] GmMailOutcomeLines(LegacyOperatorGearMailResult result) =>
+    private static string[] GmMailOutcomeLines(LegacyOperatorGearMailResult result, LegacyGmCommandKind kind) =>
     [
-        $"GM kit operation={result.OperationId:N} status={result.Status}.",
+        $"GM {(kind == LegacyGmCommandKind.Item ? "item" : "kit")} operation={result.OperationId:N} status={result.Status}.",
         $"Mailbox entries={result.MailIds.Length}; item UIDs={result.ItemUids.Length}. Keep the same operation ID for retry; never remint after an uncertain outcome."
     ];
 }

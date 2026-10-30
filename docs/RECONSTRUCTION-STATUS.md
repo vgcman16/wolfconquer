@@ -1,60 +1,65 @@
 # Reconstruction status
 
-Updated 2026-10-29. The proven live target remains Chinese client7899 /
-VisibleDx8D13. The separate official reference and complete staged copy are 7937.
+Updated 2026-10-30. The observed live target remains Chinese client7899 /
+VisibleDx8D13. The separate official reference and complete stage are 7937.
 Full English/gameplay reconstruction remains active.
 
-## Full CI boundary
+## Verified published checkpoint
 
-Source `a4380ba1c66621ef7e2a5c646035697789988dd4`, with generated tracker head
-`233bd0d0ffcbdf131c638dd03b9f49fff76a83de`, passed
-[Windows run 40945573643](https://github.com/vgcman16/wolfconquer/actions/runs/40945573643).
-All eight stages passed: Core 30,082 Passed / 152 existing NotExecuted, Updates
-446, Launcher 57, zero failures. The local run finished 2026-10-29 at 20:52:11Z.
-The full core TRX contains every outcome from the focused Echo 135, trade 117 and
-SQL 48 selections. Actual logs, all three TRXs and matching complete World/DataTool
-runtime closures are retained. This qualifies the source; deployment, actual SQL
-execution and current-source/new-client live acceptance remain open.
+Public source `133513eb6f9ccd1c0fa90618b791783e7bc9e2cc`, with reviewed generated
+tracker head `2ff18f1282d7f969d0533a8566ee5c08a28613eb`, passed
+[Windows run 41061642002](https://github.com/vgcman16/wolfconquer/actions/runs/41061642002).
+All eight stages passed: Core 31,174 Passed / 152 existing NotExecuted, Updates 446
+and Launcher 57, zero failures. All 359 focused GM outcomes were present and passed.
+Actual logs, three TRXs and matching complete unexecuted managed outputs are
+retained. This qualifies that source; deployment, SQL and current-client live
+acceptance remain separate.
 
-## Current focused successor batch
+## Current implementation batch
 
-The successor adds safe account-lookup failure propagation, synchronized native
-dictionary/item-bag ownership and Ninja persistence initial-registry retention.
-Release build02 passed with zero errors; all 2,657 combined focused/neighbor tests
-passed, zero failures/skips. Six corrected-failure/concurrency cases are included
-in that total. The original two-failure run is retained as pre-fix evidence.
+The combined successor's widened selection retained 1,356 passed and two new
+cold-client packet-expectation failures, with no skips. The corrected controls
+and affected neighbors then passed **64/64**,
+zero failures/skips, without changing production behavior. Together they cover
+the complete 1,358-outcome widened selection. It includes actual managed server-process controls
+for raw/encrypted login after supported journal recovery and a second restart
+without replay. Its own actual public-commit full Windows gate remains pending;
+the earlier checkpoint above does not qualify these additions automatically.
 
-The selected Echo Info API accepted 59 fields from pinned decoded data. The new
+- Paid and five-Meteor repair preserve raw saved data and commit Character/Items
+  through the real single-owner journal before canonical publication and replies.
+- Explicit catalog-item GM mail uses the real UID/mailbox transaction. Existing
+  grants do not gain that new permission. Required Rune metadata is checked
+  before reservation; no caller-selected UID or automatic remint is introduced.
+- Owned startup can finish complete v2 Character/Items journals under the real
+  namespace lease and exact captured-record proof. UID birth, retained producer
+  history and unsupported/multi-owner/mail journals remain refused.
+- Native inventory Money now publishes with the real owned session, including
+  deferred mailbox proposals. Negative values, overflowing warehouse spill and
+  direct bound-setter bypass refuse before effects. Valid wire goldens remain.
+- Optional public heartbeat comes from the actual listener/Frame lifecycle.
+  Windows publication retains old readers while fresh opens see complete new
+  data. It is a bounded status signal, not gameplay or SQL health proof.
+
+The original failed receipts remain retained. Tests that required negative gold
+or overflow wrap now require unchanged state on rejection. See
+[source-bug entries 232-236](../FIXED-SOURCE-BUGS.md).
+Only inventory Money is bridged; CP/bound-CP/warehouse projections and generic
+best-effort postpublication scalar saves remain unfinished. No live configuration,
+GM grants, client launch, original-save change or deployment is implied.
+
+## Current decoded-client evidence
+
+The selected Echo Info API accepted 59 fields from pinned decoded data. The
 explicit 7937 item decoder accepted all 57,093 main / 1,693 Sub rows with 67 fields,
-expected decoded hashes and exact inverse; original inputs were unchanged.
-Complete older65/current67 byte alignment remains incomplete: main 12 unmatched /
+expected decoded hashes and exact inverse. Original inputs stayed unchanged.
+Complete older 65/current 67 alignment is still incomplete: main 12 unmatched /
 5 ambiguous columns; Sub 5 unmatched / 53 ambiguous. No text roles, native text
-capacities or runtime mappings were inferred; the duplicated English65 source
-was refused without deduplication.
+capacities, costs or runtime mappings were invented.
 
-Mail/trade resource proposals passed 17 Python tests; column diagnostics passed
-13. Proposals remain unapplied/unrendered and actual client files, plans, keys and
-assets are excluded. This source batch still requires its own full Windows gate;
-the successful earlier gate above does not qualify these additions. No real SQL,
-live current-source/new-client acceptance or parity increase follows.
-
-## Previous fully qualified source batch
-
-- Encoded Echo intake: 135/135 focused C# tests passed. An actual 7937 API probe
-  decoded 85 rows, retained explicit transform provenance, refused the different
-  catalog and preserved selected inputs. No key or catalog payload is published.
-- Saved two-player trade tools: 117/117 focused tests passed, including 62 new
-  cases. Optional retained plans compare the pair's item/wallet/saved-state changes.
-  SavedTradeObserved remains exit 2; it is not live trade or atomicity acceptance.
-- Native SQL values use real typed provider parameters. Builder state resets,
-  required configuration and reader cleanup passed 48/48 offline tests. No database
-  connection was opened; SQL execution and transactional persistence remain unproven.
-- Portable named-resource proposal tools passed 14 synthetic Python tests. Operators
-  supply their own ignored inputs and reviewed plans. No actual resources, plans,
-  game assets or private configuration are included or applied.
-
-This published batch passed the full Windows gate above. Neither that result nor
-the focused checks establish new-client login, rendering, English or gameplay parity.
+Mail/trade resource proposals passed 17 Python tests and column diagnostics 13.
+English proposals remain unapplied/unrendered. Actual game resources, plans,
+keys, client assets and private configuration are excluded from this repository.
 
 ## Implemented source families
 

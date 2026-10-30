@@ -35,17 +35,27 @@ internal static partial class LegacyTradeJournal
         return true;
     }
 
-    private static bool RecoverCaptured(RecoveryCapture capture, out int recovered, out string reason)
+    private static bool RecoverCaptured(RecoveryCapture capture, out int recovered, out string reason,
+        OwnedStartupItemRecovery? ownedStartup = null)
     {
         recovered = 0; reason = string.Empty;
         var count = 0; var failure = string.Empty;
         var result = SnapshotFileLockCoordinator.ExecuteLocked(
             AdmissionLockPaths(capture.Roots, capture.Record, capture.Targets), () =>
             {
+                if (ownedStartup is not null)
+                {
+                    ownedStartup.RequireCurrent();
+                    LegacyMailboxPackageMutationFence.RequireOwnedStartupJournalMutation(ownedStartup,
+                        capture.Targets.Select(target => target.Path).ToArray(), capture.Record.Changes);
+                }
                 using var serialized = new JournalDomainScope(capture.Roots.Users, mutation: true);
+                ownedStartup?.RequireCurrent();
                 if (!TryCapturePendingImage(capture.Roots.Users, out var current, out failure)) return false;
                 if (current is null)
                 {
+                    if (ownedStartup is not null)
+                    { failure = RecoveryRequired + ":ownedCapturedRecordMissing"; return false; }
                     // Absence alone is not completion authority. A concurrent
                     // recovery must have left every exact afterimage/input and
                     // no stage evidence before this becomes a zero-count no-op.
@@ -68,7 +78,7 @@ internal static partial class LegacyTradeJournal
                 if (!JournalDomainComparer.Equals(current.Path, capture.Pending.Path) ||
                     !current.Bytes.AsSpan().SequenceEqual(capture.Pending.Bytes))
                 { failure = RecoveryRequired + ":pendingRecordChanged"; return false; }
-                var completed = RecoverLocked(capture.Roots, capture.Record, capture.Targets, current.Path, out failure);
+                var completed = RecoverLocked(capture.Roots, capture.Record, capture.Targets, current.Path, out failure, ownedStartup);
                 if (completed) count = 1;
                 return completed;
             });

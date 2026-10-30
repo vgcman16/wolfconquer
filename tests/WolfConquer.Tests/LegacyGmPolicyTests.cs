@@ -22,7 +22,8 @@ public sealed class LegacyGmPolicyTests
         Assert.False(policy.Allows(Domain, 0, 1293600, LegacyGmCapability.InspectSelf));
         Assert.False(policy.Allows(Domain, 2, 0, LegacyGmCapability.InspectSelf));
         Assert.False(policy.Allows(Domain, 2, 1293600, (LegacyGmCapability)0));
-        Assert.False(policy.Allows(Domain, 2, 1293600, (LegacyGmCapability)3));
+        Assert.False(policy.Allows(Domain, 2, 1293600, LegacyGmCapability.MailCatalogItemSelf));
+        Assert.False(policy.Allows(Domain, 2, 1293600, (LegacyGmCapability)4));
         Assert.False(policy.Allows(Domain, 2, 1293600, (LegacyGmCapability)(-1)));
     }
 
@@ -37,6 +38,31 @@ public sealed class LegacyGmPolicyTests
         Assert.True(policy.Allows(Domain, 2, 7, LegacyGmCapability.MailTestKitSelf));
         Assert.False(policy.Allows(Domain, 2, 7, LegacyGmCapability.InspectSelf));
         Assert.True(policy.Allows(Domain, uint.MaxValue, uint.MaxValue, LegacyGmCapability.InspectSelf));
+    }
+
+    [Fact]
+    public void CatalogCapabilityIsExplicitAndDoesNotAlsoGrantKitOrInspection()
+    {
+        var policy = Parse(Document("[" + Grant(capabilities: "[\"mail.catalogitem.self\"]") + "]"));
+        Assert.Equal(3, (int)LegacyGmCapability.MailCatalogItemSelf);
+        Assert.True(policy.Allows(Domain, 2, 1293600, LegacyGmCapability.MailCatalogItemSelf));
+        Assert.False(policy.Allows(Domain, 2, 1293600, LegacyGmCapability.InspectSelf));
+        Assert.False(policy.Allows(Domain, 2, 1293600, LegacyGmCapability.MailTestKitSelf));
+        Assert.False(policy.Allows(Domain, 3, 1293600, LegacyGmCapability.MailCatalogItemSelf));
+        Assert.False(policy.Allows(Domain, 2, 1293601, LegacyGmCapability.MailCatalogItemSelf));
+        Assert.False(policy.Allows(Guid.Empty, 2, 1293600, LegacyGmCapability.MailCatalogItemSelf));
+    }
+
+    [Fact]
+    public void AllThreeDistinctCapabilitiesAreAcceptedWithoutFlagsOrMutableBacking()
+    {
+        var policy = Parse(Document("[" + Grant(capabilities:
+            "[\"inspect.self\",\"mail.testkit.self\",\"mail.catalogitem.self\"]") + "]"));
+        var grant = Assert.Single(policy.Grants); Assert.Equal(3, grant.Capabilities.Count);
+        foreach (var capability in new[] { LegacyGmCapability.InspectSelf, LegacyGmCapability.MailTestKitSelf,
+            LegacyGmCapability.MailCatalogItemSelf }) Assert.True(policy.Allows(Domain, 2, 1293600, capability));
+        Assert.False(policy.Allows(Domain, 2, 1293600, (LegacyGmCapability)7));
+        Assert.Throws<NotSupportedException>(() => ((IList<LegacyGmCapability>)grant.Capabilities).Clear());
     }
 
     [Fact]
@@ -140,6 +166,11 @@ public sealed class LegacyGmPolicyTests
     [InlineData("[\"Inspect.Self\"]")]
     [InlineData("[\"*\"]")]
     [InlineData("[\"teleport.self\"]")]
+    [InlineData("[\"mail.catalogitem.self\",\"mail.catalogitem.self\"]")]
+    [InlineData("[\"mail.catalogitem.self\",\"mail.catalogitem.\\u0073elf\"]")]
+    [InlineData("[\"Mail.CatalogItem.Self\"]")]
+    [InlineData("[\"inspect.self\",\"mail.testkit.self\",\"mail.catalogitem.self\",\"teleport.self\"]")]
+    [InlineData("[\"inspect.self\",\"mail.testkit.self\",\"mail.catalogitem.self\",\"inspect.self\"]")]
     [InlineData("[0]")]
     [InlineData("[null]")]
     public void CapabilitiesAreClosedNonemptyAndDistinct(string capabilities) =>

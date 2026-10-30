@@ -7,7 +7,7 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyInventorySashUpgradeTests
 {
     private static void AssertPackageJoinFrames(Fixture fixture, PackageJoin join, PackageJoinBefore before,
-        bool claimAll, DateTime started, DateTime ended, int firstFrame, long job = 10)
+        bool claimAll, DateTime started, DateTime ended, int firstFrame, long job = 10, bool sendClassExperience = true)
     {
         var intent = AssertPackageJoinAllocation(fixture, join);
         var expectedItems = ExpectedPackageJoinItems(before, intent, claimAll);
@@ -24,8 +24,9 @@ public sealed partial class LegacyInventorySashUpgradeTests
         // Native Process(uint) grants the first four stacks, then class experience,
         // then the job reward (none for Other), and finally the two rank1 tail stacks.
         for (var index = 0; index < 4; index++) prefix.Add(PackageJoinGeneratedFrame(expectedItems, intent, index));
-        prefix.Add(new LegacyMsgUpdatePacket(Fixture.Uid,
-            [new(LegacyMsgUpdateDataType.ClassExperience, 1031)]).ToFrameBytes());
+        if (sendClassExperience)
+            prefix.Add(new LegacyMsgUpdatePacket(Fixture.Uid,
+                [new(LegacyMsgUpdateDataType.ClassExperience, 1031)]).ToFrameBytes());
         if (job == 5051) prefix.Add(PackageJoinNinjaPointsFrame());
         if (job == 7051) prefix.Add(Convert.FromHexString(
             "1E00A009080510A0FA4E18002210080710001800200028003000380040455451536572766572"));

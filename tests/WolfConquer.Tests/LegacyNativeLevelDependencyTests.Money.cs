@@ -5,12 +5,10 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeLevelDependencyTests
 {
     [Theory]
-    [InlineData(long.MinValue)]
-    [InlineData(-1L)]
     [InlineData(0L)]
     [InlineData(499999999999L)]
     [InlineData(500000000000L)]
-    public Task MoneyRetainsSignedValuesAtOrBelowCapAndAlwaysPublishesTheNativeUpdate(long value) =>
+    public Task MoneyRetainsNonnegativeValuesAtOrBelowCapAndPublishesTheNativeUpdate(long value) =>
         NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
@@ -38,7 +36,6 @@ public sealed partial class LegacyNativeLevelDependencyTests
     [Theory]
     [InlineData(500000000001L, 0L, 1L, false)]
     [InlineData(500000000100L, 7L, 107L, true)]
-    [InlineData(long.MaxValue, long.MaxValue, -500000000002L, true)]
     public Task OverflowGoldUsesActualWarehousePokerAndMessagePathsBeforeMoneyUpdate(long value,
         long beforeWarehouse, long expectedWarehouse, bool poker) => NativePacketTestThread.Run(() =>
     {
@@ -58,6 +55,54 @@ public sealed partial class LegacyNativeLevelDependencyTests
         Assert.Equal(0, scope.Borrowed[0].Position);
         Assert.Equal(0, scope.Borrowed[1].Position);
         Assert.Equal(6, WolfConquer.Core.Networking.LegacyNativePacketRecycle.Count);
+    });
+
+    [Theory]
+    [InlineData(long.MinValue)]
+    [InlineData(-1L)]
+    public Task NegativeMoneyRefusesBeforeAnySlotPokerPacketOrPoolChange(long value) => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope();
+        scope.Player.WHMoney = 77;
+        scope.Client.PokerPlayer = new LegacyNativePokerPlayer("Fixture", 17) { CurrentMoney = 42 };
+        Assert.Throws<ArgumentOutOfRangeException>(() => scope.Player.Money = value);
+        Assert.Equal(0L, scope.Player.Money); Assert.Equal(77L, scope.Player.WHMoney);
+        Assert.Equal(42L, scope.Client.PokerPlayer.CurrentMoney);
+        Assert.Empty(scope.Queue); Assert.Equal(8, WolfConquer.Core.Networking.LegacyNativePacketRecycle.Count);
+        Assert.All(scope.Borrowed, packet => { Assert.Equal(321, packet.Size); Assert.Equal(237, packet.Position); });
+    });
+
+    [Fact]
+    public Task OverflowingWarehouseSpillRefusesBeforeAnySlotPokerPacketOrPoolChange() => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope();
+        scope.Player.WHMoney = long.MaxValue;
+        scope.Client.PokerPlayer = new LegacyNativePokerPlayer("Fixture", 17) { CurrentMoney = 42 };
+        Assert.Throws<OverflowException>(() => scope.Player.Money = long.MaxValue);
+        Assert.Equal(0L, scope.Player.Money); Assert.Equal(long.MaxValue, scope.Player.WHMoney);
+        Assert.Equal(42L, scope.Client.PokerPlayer.CurrentMoney);
+        Assert.Empty(scope.Queue); Assert.Equal(8, WolfConquer.Core.Networking.LegacyNativePacketRecycle.Count);
+        Assert.All(scope.Borrowed, packet => { Assert.Equal(321, packet.Size); Assert.Equal(237, packet.Position); });
+    });
+
+    [Fact]
+    public Task OrdinaryUnboundMoneyDoesNotRequireAnUnusedWarehouseBalance() => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope();
+        scope.Player.WHMoney = long.MinValue;
+        scope.Player.Money = 99;
+        Assert.Equal(99L, scope.Player.Money); Assert.Equal(long.MinValue, scope.Player.WHMoney);
+        Assert.Equal(Update(4, 99), Assert.Single(scope.Queue));
+    });
+
+    [Fact]
+    public Task SpillRequiresAValidActualWarehouseBalanceBeforeAnyChange() => NativePacketTestThread.Run(() =>
+    {
+        using var scope = new Scope();
+        scope.Player.WHMoney = -1;
+        Assert.Throws<InvalidOperationException>(() => scope.Player.Money = 500000000001L);
+        Assert.Equal(0L, scope.Player.Money); Assert.Equal(-1L, scope.Player.WHMoney);
+        Assert.Empty(scope.Queue); Assert.Equal(8, WolfConquer.Core.Networking.LegacyNativePacketRecycle.Count);
     });
 
     [Fact]

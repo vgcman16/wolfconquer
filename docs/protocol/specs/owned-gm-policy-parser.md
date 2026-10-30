@@ -2,7 +2,8 @@
 
 ## Identity and scope
 
-- Revision 1, 2026-10-30. Root-approved pure foundation for the first GM toolkit.
+- Revision 2, 2026-10-30. Adds explicit catalog-item capability and grammar to the
+  Root-approved pure foundation; see owned-gm-catalog-mail.md for live-owner rules.
 - Target ingress is existing Chinese/English staged `VisibleDx8D13` chat parsing;
   this package does not register a dispatcher, change packets or run a client.
 - Policy and command values are immutable data. A matching policy predicate is
@@ -31,9 +32,9 @@ case-sensitive. All properties below are mandatory; property order is immaterial
 | root | grants | array of 0..32 grants |
 | grant | accountId | JSON integer 1..4294967295 |
 | grant | characterUid | JSON integer 1..4294967295 |
-| grant | capabilities | array of 1..2 distinct closed strings |
+| grant | capabilities | array of 1..3 distinct closed strings |
 
-Only `inspect.self` and `mail.testkit.self` are known capabilities. Duplicate
+Only `inspect.self`, `mail.testkit.self` and `mail.catalogitem.self` are known capabilities. Duplicate
 account/character pairs refuse even if their capability subsets differ. Empty
 grants is a valid non-granting policy. GUID hexadecimal case is immaterial; no
 braced, compact, zero or whitespace-padded domain forms. Numbers are not strings,
@@ -43,8 +44,10 @@ floats, exponents, booleans or signed negative values.
 immutable values. `ExpectedDomain`, `Grants` and each grant's `Capabilities` expose
 no mutable backing. `Allows(domain, accountId, characterUid, capability)` returns
 true only for the exact positive domain/account/character tuple and one single
-defined capability. Undefined enum values/composites, zero IDs and mismatches
+defined capability. Undefined enum values, zero IDs and mismatches
 return false. The predicate does not capture a live actor or issue a capability.
+The enum has no flags semantics: value3 names MailCatalogItemSelf, and requires
+that explicit string in the grant. Existing inspect/kit grants do not widen.
 Missing startup policy is disabled by Root's loader; malformed explicitly
 configured policy must fail startup, never fall back to a default grant.
 
@@ -75,6 +78,9 @@ Accepted forms:
 3. `@wolf kit <recipe> <retained-operation-id>`; recipes: basic-trojan,
    socket-materials, consumables. Operation ID is exactly 32 hexadecimal digits,
    nonzero GUID N syntax, parsed without regenerating or altering its value.
+4. `@wolf item <itemId> <stack> <retained-operation-id>`; itemId is positive uint
+   decimal, stack is1..65535 decimal, operation retains the same nonzero Guid N
+   contract. Parsed uint ItemId and ushort StackSize are null on all other kinds.
 
 Unknown commands/sections/recipes, missing arguments, extra target/UID arguments,
 bad or zero operation IDs and bare `@wolf` are `Rejected`. Errors carry no raw

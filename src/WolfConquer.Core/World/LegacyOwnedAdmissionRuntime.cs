@@ -38,9 +38,7 @@ public sealed partial class LegacyOwnedAdmissionRuntime : IDisposable, IAsyncDis
                 !MatchesMailboxRoute(actual))
             { reason = "ownedAdmissionRoutesMismatch"; return false; }
             LegacyTradeJournal.ValidateOwnedAdmissionRoutes(actual.Roots, actual.MailboxRoot, actual.RedeemFile, actual.ClaimFile);
-            if (LegacyTradeJournal.HasPending(actual.UsersRoot))
-            { reason = "ownedAdmissionJointJournalRecoveryRequired"; return false; }
-            if (!LegacyItemUidRegistry.TryOpen(actual.RegistryOptions, actual.ExpectedDomain, out acquired, out reason) || acquired is null)
+            if (!LegacyItemUidRegistry.TryOpenOwnedAdmission(actual, out acquired, out reason) || acquired is null)
                 return false;
             if (!LegacyOrdinaryAdmissionUidOwner.TryCreate(acquired, actual.ExpectedDomain, actual.Roots,
                     actual.MailboxRoot, out var ordinary, out reason) || ordinary is null) return false;
@@ -58,7 +56,13 @@ public sealed partial class LegacyOwnedAdmissionRuntime : IDisposable, IAsyncDis
         }
         catch (Exception error) when (LegacyOwnedAdmissionOptions.IsConfigurationFailure(error))
         { reason = "ownedAdmissionStartupRefused:" + error.GetType().Name; return false; }
-        finally { acquired?.Dispose(); }
+        finally
+        {
+            if (acquired is not null)
+                try { acquired.Dispose(); }
+                catch (Exception closeError) when (LegacyOwnedAdmissionOptions.IsConfigurationFailure(closeError))
+                { reason += ";leaseClose:" + closeError.GetType().Name; }
+        }
     }
 
     private static bool MatchesMailboxRoute(LegacyOwnedAdmissionOptions options)

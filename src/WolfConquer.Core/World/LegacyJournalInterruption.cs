@@ -1,7 +1,7 @@
 namespace WolfConquer.Core.World;
 
 internal enum LegacyJournalFault { Stop, TargetReadLease, TargetExclusiveLease, PendingReadLease,
-    ThrowIo, ThrowSecurity, ThrowInvalidOperation, Observe }
+    ThrowIo, ThrowSecurity, ThrowInvalidOperation, Observe, StopAfterStageFlushed }
 
 // Closed failure-only control for the real engine. A caller supplies no path,
 // delegate, saver or result; only the engine passes its validated target list.
@@ -25,6 +25,11 @@ internal sealed class LegacyJournalInterruption : IDisposable
     }
 
     internal static LegacyJournalInterruption StopAfter(int boundary) => new(LegacyJournalFault.Stop, boundary);
+    internal static LegacyJournalInterruption StopAfterStageFlushed(int ordinal)
+    {
+        if (ordinal is < 1 or > 2) throw new ArgumentOutOfRangeException(nameof(ordinal));
+        return new(LegacyJournalFault.StopAfterStageFlushed, ordinal);
+    }
     internal static LegacyJournalInterruption Observe() => new(LegacyJournalFault.Observe, 0);
     internal static LegacyJournalInterruption LeaseTargetAfter(int boundary, int ordinal, bool exclusive = false) =>
         new(exclusive ? LegacyJournalFault.TargetExclusiveLease : LegacyJournalFault.TargetReadLease, boundary, ordinal);
@@ -39,16 +44,33 @@ internal sealed class LegacyJournalInterruption : IDisposable
     internal int[] Visited { get { lock (gate) return visited.ToArray(); } }
     internal byte[]?[] BoundaryImages { get { lock (gate) return images.Select(image => image?.ToArray()).ToArray(); } }
 
-    internal void Claim(int targetCount)
+    internal void Claim(int targetCount, int journalVersion)
     {
         lock (gate)
         {
             if (disposed || consumed || targetCount is < 1 or > 4 || boundary > targetCount ||
                 (kind is LegacyJournalFault.TargetReadLease or LegacyJournalFault.TargetExclusiveLease) &&
                     (ordinal < 0 || ordinal >= targetCount) ||
+                kind == LegacyJournalFault.StopAfterStageFlushed && journalVersion != 2 ||
                 kind == LegacyJournalFault.PendingReadLease && boundary != targetCount)
                 throw new ArgumentException("Interruption boundary/target is invalid or already consumed.");
             consumed = true;
+        }
+    }
+
+    // A genuine engine-written/closed/flush-complete stage is retained only by
+    // this version-2 STOP control. It cannot supply bytes, paths or a writer.
+    internal bool AtStageFlushed(int count, IReadOnlyList<string> targets, string pending)
+    {
+        lock (gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (!consumed) throw new InvalidOperationException("Interruption has no engine invocation.");
+            if (kind != LegacyJournalFault.StopAfterStageFlushed || count != boundary) return false;
+            visited.Add(count);
+            PendingObserved = File.Exists(pending);
+            images = targets.Select(ReadImage).ToArray();
+            return true;
         }
     }
 
@@ -67,6 +89,7 @@ internal sealed class LegacyJournalInterruption : IDisposable
             switch (kind)
             {
                 case LegacyJournalFault.Stop: return true;
+                case LegacyJournalFault.StopAfterStageFlushed: return false;
                 case LegacyJournalFault.Observe: return false;
                 case LegacyJournalFault.TargetReadLease:
                     lease = new FileStream(targets[ordinal], FileMode.Open, FileAccess.Read, FileShare.Read); break;

@@ -24,6 +24,7 @@ which may differ from the text entered at login. A character name containing
 | `@wolf kit basic-trojan <operationGuidN>` | Mail the existing low-level gear, DragonBall and Meteor kit. |
 | `@wolf kit socket-materials <operationGuidN>` | Mail gems, drills, DragonBall and Meteor. |
 | `@wolf kit consumables <operationGuidN>` | Mail health, mana and FullRestore consumables. |
+| `@wolf item <itemId> <stack> <operationGuidN>` | Mail one validated catalog item/stack; requires the separate catalog-item grant. |
 
 `overview` is also accepted explicitly. Inspection is bounded to twelve private
 ASCII lines, with at most nine rows per collection. Counts can exceed the shown
@@ -48,7 +49,8 @@ The startup variable `WOLFCONQUER_GM_POLICY_FILE` names one explicit ordinary
 local policy file. A specified invalid file refuses startup. Missing configuration
 disables the toolkit; no default account is privileged. The strict policy binds
 one actual owned-admission domain to explicit positive account/character pairs
-and `inspect.self` and/or `mail.testkit.self`. It is loaded once at startup.
+and explicitly selected `inspect.self`, `mail.testkit.self` and/or
+`mail.catalogitem.self`. It is loaded once at startup.
 Changing it requires a reviewed staged-server restart; this document does not
 authorize restarting a preserved live session.
 
@@ -62,13 +64,22 @@ Replace the example paths and numeric placeholders with the actual owned fixture
 The tool checks the existing domain and saved character, creates a new file only,
 and leaves live permissions and environment unchanged. Use `inspect` or `mail`
 instead of `both` to restrict the grant. It never bootstraps a UID registry.
+The default and `both` still grant only inspection and the three predefined kits.
+Use explicit `catalog` to grant only the item command, or `all` for all three
+capabilities. Existing policy files gain no new permission automatically.
+
+For `@wolf item`, use a positive numeric catalog item ID, a stack1..65535 that the
+actual catalog permits, and one retained nonzero Guid N. Unsupported/missing or
+timed items, over-limit stacks and invalid required rune metadata refuse. The
+request has fixed title/content and no plus/bound/socket or target selectors.
+Delivery, claim, retry and recovery use the same real mailbox transaction as kits.
 
 The old Stuff/Stuff12 admin NPC privilege routes are disabled. Their nickname
 and saved-attribute checks are not an alternate authorization path. Ordinary
 Inner Power NPC behavior remains separate.
 
 Teleport, free healing, level/class changes, spell/quest mutation, event control
-and arbitrary rewards are not registered commands in this release. Their next
+and arbitrary currency rewards are not registered commands in this release. Their next
 implementation requires genuine transaction ownership and persistence rather
 than disguised potion consumption or raw saved-field edits.
 

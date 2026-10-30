@@ -19,6 +19,11 @@ internal static partial class LegacyMailboxPackageMutationFence
     internal static void RequireFileMutation(string path)
     {
         LegacyOrdinaryAdmissionMutationFence.RequireFileMutation(path);
+        RequirePackageFileMutation(path);
+    }
+
+    private static void RequirePackageFileMutation(string path)
+    {
         var absolute = Path.GetFullPath(path);
         foreach (var owner in Snapshot())
         {

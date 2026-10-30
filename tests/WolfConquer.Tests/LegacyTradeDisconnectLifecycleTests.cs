@@ -228,13 +228,10 @@ public sealed class LegacyTradeDisconnectLifecycleTests : IDisposable
     }
 
     [Fact]
-    public async Task TradeConfirmationWaitsForInFlightRepairThenCancelsChangedOfferWithoutDuplicatingItem()
+    public async Task ActiveTradeRepairRefusesAndQueuedItemMoveMakesConfirmationRefundWithoutDuplication()
     {
-        var repairPaused = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releaseRepair = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var pauseRepair = false;
-        var repairPauseCount = 0;
         const uint offeredUid = 20;
+        const uint bank = 8;
         var left = await Login(1_294_051, 1_000, 50, 10);
         var offered = new PlayerItemSnapshotItem
         {
@@ -245,88 +242,227 @@ public sealed class LegacyTradeDisconnectLifecycleTests : IDisposable
             Uid = checked((uint)uid), ItemId = 1_088_001, StackSize = 1,
         }).ToArray();
         var right = await Login(1_294_052, 2_000, 60, offeredUid,
-            inventoryItems: new[] { offered }.Concat(meteors).ToArray(),
-            beforeSendAsync: async (bytes, cancellationToken) =>
-            {
-                if (!pauseRepair || !LegacyGameItemPacket.TryParse(ReadFrame(bytes), out var item) ||
-                    item.Uid != offeredUid || item.Mode != LegacyGameItemPacket.UpdateItemMode ||
-                    item.Durability != 10 || Interlocked.Exchange(ref repairPauseCount, 1) != 0) return;
-                // The real final repair send follows canonical Store publication
-                // and its save callback. Frame still owns its Shared lease until
-                // this awaited send and the remaining ordinary handler finish.
-                repairPaused.TrySetResult();
-                await releaseRepair.Task.WaitAsync(cancellationToken);
-            });
+            inventoryItems: new[] { offered }.Concat(meteors).ToArray());
         await Trade(left, new(0) { UID = right.Uid });
         await Trade(right, new(1) { UID = left.Uid });
         await Trade(right, new(6) { ItemUID = offeredUid });
         await Trade(left, new(7) { Money = 300 });
         await Trade(right, new(12) { CPS = 10 });
         await Trade(right, new(9));
-        Assert.True(Current(left).LegacyTradeActive);
-        Assert.True(Current(right).LegacyTradeActive);
+        var operations = ActualOwner<WorldOperationBarrier>("_worldOperations");
+        var trades = ActualOwner<LegacyTradeStateStore>("_tradeStates");
+        var recovery = ActualOwner<LegacyTradeRecoveryState>("_tradeRecovery");
+        Assert.True(recovery.IsReadyFor(UsersRoot, ItemsRoot));
+        Assert.True(recovery.TryRequireLiveJournalClear(out var recoveryReason), recoveryReason);
+        Assert.Null(left.Connection.NativeGameClient);
+        Assert.Null(right.Connection.NativeGameClient);
+        var leftBefore = Current(left);
+        var rightBefore = Current(right);
+        Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(left.Connection, leftBefore));
+        Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(right.Connection, rightBefore));
+        Assert.True(leftBefore.LegacyTradeActive);
+        Assert.True(rightBefore.LegacyTradeActive);
         Assert.Contains(TradePackets(left), packet => packet.Action == 9);
+        var leftBeforeJson = System.Text.Json.JsonSerializer.Serialize(leftBefore);
+        var rightBeforeJson = System.Text.Json.JsonSerializer.Serialize(rightBefore);
+        var filesBefore = Files();
+        int leftFramesBefore = left.Sent.Count;
+        int rightFramesBefore = right.Sent.Count;
+        LegacyTradeParty leftParty;
+        LegacyTradeParty rightParty;
+        LegacyTradeOffer originalOffer;
+        lock (trades.SyncRoot)
+        {
+            Assert.True(trades.TryGet(left.Connection, out leftParty!));
+            Assert.True(trades.TryGet(right.Connection, out rightParty!));
+            originalOffer = Assert.Single(rightParty.Items).Value;
+        }
+        using var work = CancellationTokenSource.CreateLinkedTokenSource(left.Lifetime.Token, right.Lifetime.Token);
+        work.CancelAfter(TimeSpan.FromSeconds(30));
 
-        var pending = new List<Task>();
-        pauseRepair = true;
+        // An actual owned Shared operation blocks the repair's real Exclusive
+        // preflight. No response callback is used as an operation-lifetime proxy.
+        var repairPending = new List<Task>();
+        var repairHold = await operations.EnterSharedAsync(work.Token);
+        Exception? repairObservation = null;
         try
         {
             var repair = handler.HandleFrameAsync(right.Connection,
-                ReadFrame(new MsgItemUsagePacket(offeredUid, 0, MsgItemUsageAction.RepairItem, 123, 0, 0, 0).ToFrameBytes()),
-                right.Lifetime.Token).AsTask();
-            pending.Add(repair);
-            await repairPaused.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                ReadFrame(new MsgItemUsagePacket(offeredUid, 0, MsgItemUsageAction.RepairItem,
+                    123, 0, 0, 0).ToFrameBytes()), work.Token).AsTask();
+            repairPending.Add(repair);
             Assert.False(repair.IsCompleted);
-            var pausedRight = Current(right);
-            var pausedLeft = Current(left);
-            var pausedItem = Assert.Single(pausedRight.PlayerItems.InventoryItems);
-            Assert.Equal(offeredUid, pausedItem.Uid);
-            Assert.Equal((ushort)10, pausedItem.Durability);
-            Assert.Equal((ushort)10, pausedItem.MaximumDurability);
-            Assert.DoesNotContain(pausedRight.PlayerItems.InventoryItems,
-                item => meteors.Any(meteor => meteor.Uid == item.Uid));
-            Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(pausedRight.PlayerItems), File.ReadAllBytes(ItemPath(right)));
-            Assert.True(pausedLeft.LegacyTradeActive); Assert.True(pausedRight.LegacyTradeActive);
-
-            var confirmation = Trade(left, new(9));
-            pending.Add(confirmation);
-            Assert.False(confirmation.IsCompleted,
-                "Trade must wait for the in-flight ordinary frame, not commit against its stale pre-repair snapshot.");
-            Assert.False(repair.IsCompleted);
-            Assert.Same(pausedRight, Current(right)); Assert.Same(pausedLeft, Current(left));
-            Assert.DoesNotContain(Current(left).PlayerItems.InventoryItems, item => item.Uid == offeredUid);
-            AssertPersistedWallet(left, 700, 50);
-            AssertPersistedWallet(right, 2_000, 50);
+            RequireUnchangedActiveTrade();
         }
-        finally
+        catch (Exception error) { repairObservation = error; }
+        await FinishBlockedPhase(repairHold, repairPending, repairObservation);
+        work.Token.ThrowIfCancellationRequested();
+
+        // Required real owner/PIN/roots/materials are present. Active trade and
+        // escrow refuse before repair costs, item changes, files or success output.
+        RequireUnchangedActiveTrade();
+        var moved = Assert.Single(rightBefore.PlayerItems.InventoryItems,
+            item => item.Uid == offeredUid).WithWarehouseId(bank, 0);
+        var expectedRightItems = rightBefore.PlayerItems with
         {
-            releaseRepair.TrySetResult();
-            await Task.WhenAll(pending).WaitAsync(TimeSpan.FromSeconds(5));
-        }
+            InventoryItems = rightBefore.PlayerItems.InventoryItems.Where(item => item.Uid != offeredUid).ToArray(),
+            WarehouseItems = rightBefore.PlayerItems.WarehouseItems.Append(moved)
+                .OrderBy(item => item.WarehouseId).ThenBy(item => item.Uid).ToArray(),
+        };
 
-        Assert.Equal(1, Volatile.Read(ref repairPauseCount));
+        // Warehouse's existing coherent-trade route may move an offered item.
+        // Queue its real writer first, then confirmation: FIFO world admission
+        // must let confirmation validate the durable changed offer and refund it.
+        var movePending = new List<Task>();
+        var moveHold = await operations.EnterSharedAsync(work.Token);
+        Exception? moveObservation = null;
+        try
+        {
+            var move = handler.HandleFrameAsync(right.Connection,
+                ReadFrame(new LegacyWarehousePacket(bank, LegacyWarehouseAction.DepositItem,
+                    offeredUid, 0, []).ToFrameBytes()), work.Token).AsTask();
+            movePending.Add(move);
+            var confirmation = handler.HandleFrameAsync(left.Connection,
+                ReadFrame(new LegacyTradePacket(9).ToNativeFrameBytes()), work.Token).AsTask();
+            movePending.Add(confirmation);
+            Assert.False(move.IsCompleted);
+            Assert.False(confirmation.IsCompleted);
+            RequireUnchangedActiveTrade();
+        }
+        catch (Exception error) { moveObservation = error; }
+        await FinishBlockedPhase(moveHold, movePending, moveObservation);
+        work.Token.ThrowIfCancellationRequested();
+
         Assert.False(Current(left).LegacyTradeActive);
         Assert.False(Current(right).LegacyTradeActive);
         Assert.Equal(1_000, Current(left).Character.Money);
+        Assert.Equal(50, Current(left).Character.ConquerPoints);
+        Assert.Equal(2_000, Current(right).Character.Money);
         Assert.Equal(60, Current(right).Character.ConquerPoints);
         AssertPersistedWallet(left, 1_000, 50);
         AssertPersistedWallet(right, 2_000, 60);
         Assert.DoesNotContain(Current(left).PlayerItems.InventoryItems, item => item.Uid == offeredUid);
-        var repaired = Assert.Single(Current(right).PlayerItems.InventoryItems);
-        Assert.Equal(offeredUid, repaired.Uid);
-        Assert.Equal((ushort)10, repaired.Durability);
-        Assert.Equal((ushort)10, repaired.MaximumDurability);
-        Assert.DoesNotContain(Current(right).PlayerItems.InventoryItems, item => meteors.Any(meteor => meteor.Uid == item.Uid));
-        var allItems = Current(left).PlayerItems.InventoryItems.Concat(Current(left).PlayerItems.WarehouseItems)
-            .Concat(Current(right).PlayerItems.InventoryItems).Concat(Current(right).PlayerItems.WarehouseItems).ToArray();
-        Assert.Single(allItems, item => item.Uid == offeredUid);
-        Assert.Equal(allItems.Length, allItems.Select(item => item.Uid).Distinct().Count());
+        Assert.DoesNotContain(Current(right).PlayerItems.InventoryItems, item => item.Uid == offeredUid);
+        var retained = Assert.Single(Current(right).PlayerItems.WarehouseItems, item => item.Uid == offeredUid);
+        Assert.Equal(bank, retained.WarehouseId);
+        Assert.Equal((ushort)0, retained.Durability);
+        Assert.Equal((ushort)10, retained.MaximumDurability);
+        foreach (var meteor in meteors)
+        {
+            var actual = Assert.Single(Current(right).PlayerItems.InventoryItems, item => item.Uid == meteor.Uid);
+            Assert.Equal(meteor.ItemId, actual.ItemId);
+            Assert.Equal((ushort)1, actual.StackSize);
+        }
+        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(leftBefore.PlayerItems),
+            PlayerItemSnapshotLoader.ToLegacyBytes(Current(left).PlayerItems));
+        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(expectedRightItems),
+            PlayerItemSnapshotLoader.ToLegacyBytes(Current(right).PlayerItems));
         Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(Current(left).PlayerItems), File.ReadAllBytes(ItemPath(left)));
         Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(Current(right).PlayerItems), File.ReadAllBytes(ItemPath(right)));
+        var allItems = Current(left).PlayerItems.InventoryItems.Concat(Current(left).PlayerItems.WarehouseItems)
+            .Concat(Current(right).PlayerItems.InventoryItems).Concat(Current(right).PlayerItems.WarehouseItems).ToArray();
+        var originalItems = leftBefore.PlayerItems.InventoryItems.Concat(leftBefore.PlayerItems.WarehouseItems)
+            .Concat(rightBefore.PlayerItems.InventoryItems).Concat(rightBefore.PlayerItems.WarehouseItems).ToArray();
+        Assert.Equal(originalItems.Select(item => item.Uid).Order(), allItems.Select(item => item.Uid).Order());
+        Assert.Single(allItems, item => item.Uid == offeredUid);
+        Assert.Equal(allItems.Length, allItems.Select(item => item.Uid).Distinct().Count());
         Assert.Single(TradePackets(left), packet => packet.Action == 5);
         Assert.Single(TradePackets(right), packet => packet.Action == 5);
         Assert.DoesNotContain(TradePackets(left), packet => packet.Action == 4);
         Assert.DoesNotContain(TradePackets(right), packet => packet.Action == 4);
+        Assert.True(LegacyTradeEscrowClaims.TryRead(Current(left).Character.Attributes, out var leftClaim, out _));
+        Assert.True(LegacyTradeEscrowClaims.TryRead(Current(right).Character.Attributes, out var rightClaim, out _));
+        Assert.Null(leftClaim);
+        Assert.Null(rightClaim);
+        lock (trades.SyncRoot)
+        {
+            Assert.False(trades.Contains(left.Connection));
+            Assert.False(trades.Contains(right.Connection));
+        }
+        Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
+        Assert.False(recovery.IsBlocked);
+        var leftFinal = Current(left);
+        var rightFinal = Current(right);
+        var finalFiles = Files();
+        int leftFinalFrames = left.Sent.Count;
+        int rightFinalFrames = right.Sent.Count;
+
+        await Trade(left, new(2));
+        await Trade(right, new(2));
+
+        Assert.Same(leftFinal, Current(left));
+        Assert.Same(rightFinal, Current(right));
+        RequireFiles(finalFiles);
+        Assert.Equal(leftFinalFrames, left.Sent.Count);
+        Assert.Equal(rightFinalFrames, right.Sent.Count);
+        Assert.Single(TradePackets(left), packet => packet.Action == 5);
+        Assert.Single(TradePackets(right), packet => packet.Action == 5);
+
+        T ActualOwner<T>(string name) where T : class
+        {
+            var field = typeof(WorldServerFrameHandler).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(field);
+            return Assert.IsType<T>(field.GetValue(handler)); // Observe the existing real owner, never install one.
+        }
+
+        Dictionary<string, byte[]> Files() => Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+            .ToDictionary(path => path, File.ReadAllBytes, StringComparer.OrdinalIgnoreCase);
+
+        void RequireFiles(Dictionary<string, byte[]> expected)
+        {
+            var actual = Files();
+            Assert.Equal(expected.Keys.Order(StringComparer.OrdinalIgnoreCase), actual.Keys.Order(StringComparer.OrdinalIgnoreCase));
+            foreach (var pair in expected)
+                Assert.Equal(pair.Value, actual[pair.Key]);
+        }
+
+        void RequireUnchangedActiveTrade()
+        {
+            Assert.Same(leftBefore, Current(left));
+            Assert.Same(rightBefore, Current(right));
+            Assert.Equal(leftBeforeJson, System.Text.Json.JsonSerializer.Serialize(Current(left)));
+            Assert.Equal(rightBeforeJson, System.Text.Json.JsonSerializer.Serialize(Current(right)));
+            Assert.Equal(leftFramesBefore, left.Sent.Count);
+            Assert.Equal(rightFramesBefore, right.Sent.Count);
+            AssertPersistedWallet(left, 700, 50);
+            AssertPersistedWallet(right, 2_000, 50);
+            RequireFiles(filesBefore);
+            lock (trades.SyncRoot)
+            {
+                Assert.True(trades.TryGet(left.Connection, out var actualLeft));
+                Assert.True(trades.TryGet(right.Connection, out var actualRight));
+                Assert.Same(leftParty, actualLeft);
+                Assert.Same(rightParty, actualRight);
+                Assert.Same(leftParty, rightParty.Other);
+                Assert.Same(rightParty, leftParty.Other);
+                Assert.True(leftParty.WindowOpen);
+                Assert.True(rightParty.WindowOpen);
+                Assert.False(leftParty.Confirmed);
+                Assert.True(rightParty.Confirmed);
+                Assert.Equal((300L, 0u), (leftParty.Money, leftParty.ConquerPoints));
+                Assert.Equal((0L, 10u), (rightParty.Money, rightParty.ConquerPoints));
+                Assert.Empty(leftParty.Items);
+                Assert.Same(originalOffer, Assert.Single(rightParty.Items).Value);
+            }
+        }
+
+        static async Task FinishBlockedPhase(IDisposable held, List<Task> producers, Exception? primary)
+        {
+            var errors = new List<Exception>();
+            if (primary is not null)
+                errors.Add(primary);
+            try { held.Dispose(); }
+            catch (Exception cleanup) { errors.Add(cleanup); }
+            foreach (var producer in producers)
+            {
+                try { await producer; } // Actual bounded-token producers reach terminal before fixture deletion.
+                catch (Exception cleanup) { errors.Add(cleanup); }
+            }
+            if (errors.Count == 1)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+            if (errors.Count > 1)
+                throw new AggregateException("Trade/repair observations and owned producer cleanup failed.", errors);
+        }
     }
 
     public void Dispose()

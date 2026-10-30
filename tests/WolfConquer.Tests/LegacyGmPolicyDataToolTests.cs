@@ -12,6 +12,8 @@ public sealed class LegacyGmPolicyDataToolTests
     [InlineData("both", 2)]
     [InlineData("inspect", 1)]
     [InlineData("mail", 1)]
+    [InlineData("catalog", 1)]
+    [InlineData("all", 3)]
     public async Task ActualCommandCreatesOnlyReviewedPolicyFromExistingDomainAndSavedIdentity(string? selection, int count)
     {
         await WithFixtureAsync(async f =>
@@ -30,8 +32,9 @@ public sealed class LegacyGmPolicyDataToolTests
             Assert.Equal(options!.ExpectedDomain, policy.ExpectedDomain);
             var grant = Assert.Single(policy.Grants); Assert.Equal(LegacyOwnedAdmissionRuntimeFixture.Uid, grant.AccountId);
             Assert.Equal(LegacyOwnedAdmissionRuntimeFixture.Uid, grant.CharacterUid); Assert.Equal(count, grant.Capabilities.Count);
-            Assert.Equal(selection != "mail", grant.Capabilities.Contains(LegacyGmCapability.InspectSelf));
-            Assert.Equal(selection != "inspect", grant.Capabilities.Contains(LegacyGmCapability.MailTestKitSelf));
+            Assert.Equal(selection is not ("mail" or "catalog"), grant.Capabilities.Contains(LegacyGmCapability.InspectSelf));
+            Assert.Equal(selection is not ("inspect" or "catalog"), grant.Capabilities.Contains(LegacyGmCapability.MailTestKitSelf));
+            Assert.Equal(selection is "catalog" or "all", grant.Capabilities.Contains(LegacyGmCapability.MailCatalogItemSelf));
             var after = f.Files(); Assert.True(after.Remove("gm-policy.json")); AssertImages(before, after);
             var repeated = await RunAsync(args.ToArray());
             Assert.Equal(1, repeated.Code); Assert.Equal(bytes, File.ReadAllBytes(output));

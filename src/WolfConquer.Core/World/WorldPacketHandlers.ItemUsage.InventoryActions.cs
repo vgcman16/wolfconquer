@@ -1,4 +1,3 @@
-using System.Globalization;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Packets;
 
@@ -12,142 +11,31 @@ public static partial class WorldPacketHandlers
 
     private const ushort LegacyZeroDurabilityRepairMeteorCost = 5;
 
-    private static async ValueTask HandleRepairItemAsync(
+    private static ValueTask HandleRepairItemAsync(
             WorldPacketHandlerContext context,
             WorldSession session,
             MsgItemUsagePacket packet,
-            CancellationToken cancellationToken)
-    {
-        var equipmentItem = session.PlayerItems.EquipmentItems.FirstOrDefault(item => item.Uid == packet.Id);
-        var inventoryItem = session.PlayerItems.InventoryItems.FirstOrDefault(item => item.Uid == packet.Id);
-        var item = equipmentItem ?? inventoryItem;
-        if (item is null)
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage repair " +
-                    $"{FormatSession(context)} itemUid={packet.Id}; item was not found.")
-                .ConfigureAwait(false);
-            return;
-        }
+            CancellationToken cancellationToken) =>
+        HandleOwnedRepairAsync(context, packet, cancellationToken);
 
-        if (item.Durability == 0)
-        {
-            if (!TryConsumeLegacyMeteorRepairCost(
-                    session.PlayerItems,
-                    LegacyZeroDurabilityRepairMeteorCost,
-                    out var itemsAfterMeteorCost,
-                    out var meteorCostFrames))
-            {
-                await context.Log.WriteLineAsync(
-                        "WorldServer skipped MsgItemUsage repair " +
-                        $"{FormatSession(context)} itemUid={item.Uid}; zero-durability repair requires five meteors.")
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            var meteorRepaired = item.WithDurability(item.MaximumDurability);
-            var meteorRepairedItems = equipmentItem is not null
-                ? ReplaceEquipmentItem(itemsAfterMeteorCost, item, meteorRepaired)
-                : ReplaceInventoryItem(itemsAfterMeteorCost, item, meteorRepaired);
-            var meteorRepairedSession = session with { PlayerItems = meteorRepairedItems };
-
-            var repairFrame = LegacyGameItemPacket.FromSnapshotItem(
-                meteorRepaired, mode: LegacyGameItemPacket.UpdateItemMode).ToFrameBytes();
-            meteorRepairedSession = PublishLegacyItemUsageSession(context, meteorRepairedSession);
-            foreach (var frame in meteorCostFrames)
-            {
-                await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
-            }
-
-            await context.Connection.SendAsync(repairFrame, cancellationToken).ConfigureAwait(false);
-            await TryPersistLegacyItemUsageMutationAsync(
-                    context,
-                    meteorRepairedSession,
-                    "zero-durability repair",
-                    characterValues: null,
-                    persistItems: true)
-                .ConfigureAwait(false);
-            await context.Log.WriteLineAsync(
-                    "WorldServer handled MsgItemUsage zero-durability repair " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId}.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (item.Durability >= item.MaximumDurability || item.MaximumDurability == 0)
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage repair " +
-                    $"{FormatSession(context)} itemUid={item.Uid}; item does not need paid repair.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        if (!TryReadGoldWorth(context.WorldData, item.ItemId, out var goldWorth))
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage repair " +
-                    $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId}; itemtype gold worth was not loaded.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var repairCost = CalculateLegacyRepairCost(item.ItemId, goldWorth, item.Durability, item.MaximumDurability);
-        if (session.Character.Money < repairCost)
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage repair " +
-                    $"{FormatSession(context)} itemUid={item.Uid} cost={repairCost} money={session.Character.Money}.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var repaired = item.WithDurability(item.MaximumDurability);
-        var repairedItems = equipmentItem is not null
-            ? ReplaceEquipmentItem(session.PlayerItems, item, repaired)
-            : ReplaceInventoryItem(session.PlayerItems, item, repaired);
-        var repairedSession = session with { PlayerItems = repairedItems };
-        var updatedSession = UpdateSessionWallet(
-            context,
-            repairedSession,
-            session.Character.Money - repairCost,
-            ReadWarehouseMoney(session.Character));
-
-        await SendWalletMoneyUpdateAsync(context, updatedSession.Character, cancellationToken).ConfigureAwait(false);
-        await SendWalletMoneyUpdateAsync(context, updatedSession.Character, cancellationToken).ConfigureAwait(false);
-        await context.Connection.SendAsync(
-                LegacyGameItemPacket.FromSnapshotItem(
-                    repaired,
-                    mode: LegacyGameItemPacket.UpdateItemMode).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        await TryPersistLegacyItemUsageMutationAsync(
-                context,
-                updatedSession,
-                "paid repair",
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["Money"] = updatedSession.Character.Money.ToString(CultureInfo.InvariantCulture),
-                },
-                persistItems: true)
-            .ConfigureAwait(false);
-
-        await context.Log.WriteLineAsync(
-                "WorldServer handled MsgItemUsage paid repair " +
-                $"{FormatSession(context)} itemUid={item.Uid} itemId={item.ItemId} cost={repairCost}.")
-            .ConfigureAwait(false);
-    }
-
+    // Pure data-only compatibility entry; this helper issues no owner or commit authority.
     private static bool TryConsumeLegacyMeteorRepairCost(
             PlayerItemSnapshot items,
             ushort count,
             out PlayerItemSnapshot updatedItems,
+            out IReadOnlyList<byte[]> frames) =>
+        TryConsumeLegacyMeteorRepairCostForTarget(items, count, 0, out updatedItems, out frames);
+
+    private static bool TryConsumeLegacyMeteorRepairCostForTarget(
+            PlayerItemSnapshot items,
+            ushort count,
+            uint targetUid,
+            out PlayerItemSnapshot updatedItems,
             out IReadOnlyList<byte[]> frames)
     {
         var available = items.InventoryItems
-            .Where(IsLegacyMeteorRepairMaterial)
-            .Sum(item => item.StackSize);
+            .Where(item => item.Uid != targetUid && IsLegacyMeteorRepairMaterial(item))
+            .Sum(item => (long)item.StackSize);
         if (available < count)
         {
             updatedItems = items;
@@ -164,9 +52,17 @@ public static partial class WorldPacketHandlers
             for (var index = 0; index < inventoryItems.Count && remaining > 0; index++)
             {
                 var item = inventoryItems[index];
-                if (!IsLegacyMeteorRepairMaterial(item))
+                if (item.Uid == targetUid || item.StackSize == 0 || !IsLegacyMeteorRepairMaterial(item))
                 {
                     continue;
+                }
+
+                // Removing/decrementing a material root must never discard its children.
+                if (item.DepositedItems.Count != 0)
+                {
+                    updatedItems = items;
+                    frames = Array.Empty<byte[]>();
+                    return false;
                 }
 
                 if (item.StackSize > 1)

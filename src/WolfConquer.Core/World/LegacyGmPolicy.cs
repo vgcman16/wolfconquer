@@ -7,7 +7,8 @@ namespace WolfConquer.Core.World;
 public enum LegacyGmCapability
 {
     InspectSelf = 1,
-    MailTestKitSelf = 2
+    MailTestKitSelf = 2,
+    MailCatalogItemSelf = 3
 }
 
 public sealed class LegacyGmGrant
@@ -61,7 +62,7 @@ public sealed class LegacyGmPolicy
     public bool Allows(Guid domain, uint accountId, uint characterUid, LegacyGmCapability capability)
     {
         if (domain == Guid.Empty || domain != ExpectedDomain || accountId == 0 || characterUid == 0 ||
-            capability is not (LegacyGmCapability.InspectSelf or LegacyGmCapability.MailTestKitSelf))
+            capability is not (LegacyGmCapability.InspectSelf or LegacyGmCapability.MailTestKitSelf or LegacyGmCapability.MailCatalogItemSelf))
             return false;
         foreach (var grant in Grants)
         {
@@ -103,7 +104,7 @@ public sealed class LegacyGmPolicy
         var accountId = PositiveId(fields["accountId"]);
         var characterUid = PositiveId(fields["characterUid"]);
         var values = fields["capabilities"];
-        if (values.ValueKind != JsonValueKind.Array || values.GetArrayLength() is < 1 or > 2)
+        if (values.ValueKind != JsonValueKind.Array || values.GetArrayLength() is < 1 or > 3)
             throw Invalid("policyCapabilitiesInvalid");
 
         var capabilities = new LegacyGmCapability[values.GetArrayLength()];
@@ -115,6 +116,7 @@ public sealed class LegacyGmPolicy
             {
                 "inspect.self" => LegacyGmCapability.InspectSelf,
                 "mail.testkit.self" => LegacyGmCapability.MailTestKitSelf,
+                "mail.catalogitem.self" => LegacyGmCapability.MailCatalogItemSelf,
                 _ => throw Invalid("policyCapabilityUnknown")
             };
             if (!seen.Add(capability)) throw Invalid("policyCapabilityDuplicate");

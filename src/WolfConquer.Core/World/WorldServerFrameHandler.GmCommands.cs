@@ -25,7 +25,7 @@ public sealed partial class WorldServerFrameHandler
 
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, runtime.ShutdownToken);
         using var worker = runtime.EnterWorker();
-        var actor = CaptureGmActor(connection);
+        var actor = CaptureGmActor(connection, command.Kind);
         if (actor is null)
         {
             await SendGmRefusalAsync(connection, lifetime.Token).ConfigureAwait(false);
@@ -60,10 +60,10 @@ public sealed partial class WorldServerFrameHandler
                         }
                         break;
                     case LegacyGmCommandKind.Kit when GmAllows(actor.Expected, LegacyGmCapability.MailTestKitSelf):
+                    case LegacyGmCommandKind.Item when GmAllows(actor.Expected, LegacyGmCapability.MailCatalogItemSelf):
                         if (_mailboxes is null || _snapshotLoader is null || _worldData is null) break;
-                        var kit = LegacyOperatorTestKits.Create(command.OperationId!.Value, actor.Routes.ExpectedDomain,
-                            checked((uint)actor.Expected.AccountId), checked((uint)actor.Expected.Character.Uid), command.KitName!);
-                        if (!TryPrepareOperatorMailRequest(kit, out var prepared, out _)) break;
+                        var mailRequest = CreateGmMailRequest(actor, command);
+                        if (!TryPrepareOperatorMailRequest(mailRequest, out var prepared, out _)) break;
                         lock (_mailboxes.SyncRoot)
                         {
                             if (!GmActorCurrent(actor, requireOriginal: true, out _)) break;
@@ -77,7 +77,7 @@ public sealed partial class WorldServerFrameHandler
         {
             if (delivery is not null)
                 mail = await NotifyOperatorGearMailAsync(runtime, delivery, lifetime.Token).ConfigureAwait(false);
-            lines = GmMailOutcomeLines(mail);
+            lines = GmMailOutcomeLines(mail, command.Kind);
         }
         if (lines is null) await SendGmRefusalAsync(connection, lifetime.Token).ConfigureAwait(false);
         else await SendGmLinesAsync(actor, lines, lifetime.Token).ConfigureAwait(false);
@@ -97,6 +97,27 @@ public sealed partial class WorldServerFrameHandler
             lines.Add("@wolf kit <basic-trojan|socket-materials|consumables> <operationGuidN>");
             lines.Add("Gear arrives in the real mailbox. Retain one nonzero 32-hex operation ID per request and reuse it after uncertain transport.");
         }
+        if (GmAllows(session, LegacyGmCapability.MailCatalogItemSelf))
+        {
+            lines.Add("@wolf item <itemId> <stack> <operationGuidN>");
+            lines.Add("One validated catalog item arrives by real mailbox. Use the same operation ID and payload after uncertain transport.");
+        }
         return lines.ToArray();
+    }
+
+    private static LegacyOperatorGearMailRequest CreateGmMailRequest(GmCommandActor actor, LegacyGmCommand command)
+    {
+        var account = checked((uint)actor.Expected.AccountId);
+        var uid = checked((uint)actor.Expected.Character.Uid);
+        return command.Kind switch
+        {
+            LegacyGmCommandKind.Kit => LegacyOperatorTestKits.Create(command.OperationId!.Value,
+                actor.Routes.ExpectedDomain, account, uid, command.KitName!),
+            LegacyGmCommandKind.Item => new LegacyOperatorGearMailRequest(command.OperationId!.Value,
+                actor.Routes.ExpectedDomain, account, uid, "Catalog item test", "WolfConquer Operator",
+                "Disposable local catalog test item. Claim through the mailbox.",
+                new[] { new LegacyOperatorGearMailItem(command.ItemId!.Value, command.StackSize!.Value) }),
+            _ => throw new InvalidOperationException("gmMailCommandKindInvalid")
+        };
     }
 }

@@ -13,6 +13,7 @@ public sealed partial class WorldSessionStore
         private readonly LegacyOrdinarySpellBinding? binding;
         private readonly object finalIdentity;
         private readonly LegacyNativePlayerRuntime.OwnedHitpointsPublication? hitpoints;
+        private LegacyNativePlayerRuntime.OwnedMoneyPublication? money;
         internal LegacyBoundHitpointsScalarWrite? HitpointsWrite { get; }
         internal bool HasCommittedHitpoints => HitpointsWrite?.IsCommitted == true;
         private readonly SpellActorScope? actors;
@@ -41,7 +42,9 @@ public sealed partial class WorldSessionStore
                 if (connection.NativeGameClient?.OrdinarySpellBinding is not null ||
                     proposed.NativeGameClient?.OrdinarySpellBinding is not null ||
                     connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true ||
-                    proposed.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true) throw InvalidSpellPublication();
+                    proposed.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true ||
+                    connection.NativeGameClient?.Player?.HasOwnedMoneyAttachment == true ||
+                    proposed.NativeGameClient?.Player?.HasOwnedMoneyAttachment == true) throw InvalidSpellPublication();
                 FinalSession = proposed;
                 return;
             }
@@ -72,6 +75,7 @@ public sealed partial class WorldSessionStore
                     HitpointsWrite = (store.framePersistenceOwner ?? throw InvalidSpellPublication())
                         .PrepareNativeHitpointsWrite(store, connection, binding, expected, final, caprice);
                 FinalSession = HitpointsWrite?.Proposed ?? final;
+                money = LegacyNativePlayerRuntime.OwnedMoneyPublication.PrepareBound(binding, expected, FinalSession);
                 RequireCurrentBeforeWriter();
             }
             catch { items?.Dispose(); actors.Dispose(); throw; }
@@ -111,6 +115,7 @@ public sealed partial class WorldSessionStore
                 PrepareItems(proposed);
                 proposed = proposed with { PlayerItems = itemImage!.FinalSnapshot,
                     PlayerSpells = map!.FinalSnapshot, PlayerProficiencies = proficiencies!.FinalSnapshot };
+                money = LegacyNativePlayerRuntime.OwnedMoneyPublication.PrepareBound(binding, expected, proposed);
             }
             FinalSession = proposed;
             RequireCurrentBeforeWriter();
@@ -124,7 +129,8 @@ public sealed partial class WorldSessionStore
             map?.RequireCurrentBeforeWriter();
             proficiencies?.RequireCurrentBeforeWriter();
             items?.RequireCurrentBeforeWriter();
-            if (hitpoints is not null && !hitpoints.IsCurrentPlain()) throw InvalidSpellPublication();
+            if (hitpoints is not null && !hitpoints.IsCurrentPlain() || money is not null && !money.IsCurrentPlain())
+                throw InvalidSpellPublication();
             if (binding is not null && !store.BindingIsCurrentPlain(binding, holder, expected!)) throw InvalidSpellPublication();
         }
 
@@ -138,14 +144,14 @@ public sealed partial class WorldSessionStore
         }
         internal bool ConsumeBeforeWriterPlain() => ReferenceEquals(holder.Read(), expected) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeBeforeWriterPlain() &&
-                proficiencies!.ConsumeBeforeWriterPlain() && items!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() &&
+                proficiencies!.ConsumeBeforeWriterPlain() && items!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() && money!.IsCurrentPlain() &&
                 (HitpointsWrite is null || HitpointsWrite.Inputs.ConsumeBeforePlain()));
 
         // The raw map enumerator was allocated before the writer. Consume it
         // once, without a comparer or a fresh iterator at this final boundary.
         internal bool IsCurrentPlain() => ReferenceEquals(holder.Read(), expected) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeCurrentPlain() &&
-                proficiencies!.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() &&
+                proficiencies!.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() && money!.IsCurrentPlain() &&
                 (HitpointsWrite is null || HitpointsWrite.IsCommitted && HitpointsWrite.Inputs.ConsumeAfterPlain()));
 
         // Call only after the final plain proof and actual successful writer.
@@ -158,6 +164,7 @@ public sealed partial class WorldSessionStore
             binding.PublishSnapshots(FinalSession.PlayerSpells, FinalSession.PlayerProficiencies);
             binding.PublishItemSnapshot(FinalSession.PlayerItems);
             hitpoints!.PublishPrepared();
+            money!.PublishPrepared();
         }
 
         internal bool AcceptExternallyPersistedHitpoints() => HitpointsWrite is null || HitpointsWrite.RequireExternallyCommitted();

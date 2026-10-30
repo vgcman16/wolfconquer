@@ -1,4 +1,5 @@
 using System.Globalization;
+using WolfConquer.Core.World;
 
 namespace WolfConquer.Core.Data;
 
@@ -38,13 +39,25 @@ internal static partial class LegacyItemUidRawCatalog
     }
 
     internal static bool TryScan(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
-        out Observation observation, out string reason)
+        out Observation observation, out string reason) =>
+        TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile, null, out observation, out reason);
+
+    internal static bool TryScanOwnedStartup(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
+        LegacyTradeJournal.OwnedStartupItemRecovery recovery, out Observation observation, out string reason)
+    {
+        ArgumentNullException.ThrowIfNull(recovery);
+        return TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile, recovery, out observation, out reason);
+    }
+
+    private static bool TryScanCore(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
+        LegacyTradeJournal.OwnedStartupItemRecovery? recovery, out Observation observation, out string reason)
     {
         observation = default;
         reason = string.Empty;
         try
         {
-            var inputs = Discover(itemsRoot, mailboxRoot, redeemFile, claimFile);
+            recovery?.RequireScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
+            var inputs = Discover(itemsRoot, mailboxRoot, redeemFile, claimFile, recovery);
             var scan = new Scan();
             void ReadAll()
             {
@@ -62,7 +75,7 @@ internal static partial class LegacyItemUidRawCatalog
                         case Kind.Detained: ReadDetained(bytes, input.Path, scan); break;
                     }
                 }
-                var after = Discover(itemsRoot, mailboxRoot, redeemFile, claimFile);
+                var after = Discover(itemsRoot, mailboxRoot, redeemFile, claimFile, recovery);
                 if (inputs.Length != after.Length || inputs.Where((input, index) =>
                     input.Kind != after[index].Kind || !Paths.Equals(input.Path, after[index].Path)).Any())
                     throw new IOException("UID bootstrap file set changed.");
@@ -73,13 +86,15 @@ internal static partial class LegacyItemUidRawCatalog
             observation = new(scan.Maximum, scan.Physical.Count, scan.References);
             return true;
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or
-            NotSupportedException or FormatException or OverflowException or System.Security.SecurityException)
+        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or
+            NotSupportedException or FormatException or OverflowException or System.Text.Json.JsonException or System.Security.SecurityException)
         { reason = "itemUidCatalogInvalid:" + exception.GetType().Name; return false; }
     }
 
-    private static Input[] Discover(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile)
+    private static Input[] Discover(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
+        LegacyTradeJournal.OwnedStartupItemRecovery? recovery)
     {
+        recovery?.RequireCurrent();
         var result = new List<Input>();
         void DirectoryFiles(string directory, Kind kind)
         {
@@ -92,6 +107,7 @@ internal static partial class LegacyItemUidRawCatalog
                 EnsureOrdinary(entry);
                 if (kind == Kind.PlayerItems && Directory.Exists(entry) &&
                     Paths.Equals(Path.GetFileName(entry), ".managed-item-uids")) continue;
+                if (kind == Kind.PlayerItems && recovery?.IsKnownItemStage(entry) == true) continue;
                 if (Directory.Exists(entry) || !Path.GetExtension(entry).Equals(".bin", StringComparison.OrdinalIgnoreCase) ||
                     !uint.TryParse(Path.GetFileNameWithoutExtension(entry), NumberStyles.None, CultureInfo.InvariantCulture, out var owner) ||
                     owner == 0 || Path.GetFileNameWithoutExtension(entry) != owner.ToString(CultureInfo.InvariantCulture) ||
@@ -114,6 +130,7 @@ internal static partial class LegacyItemUidRawCatalog
         var ordered = result.OrderBy(input => input.Path, Paths).ToArray();
         if (ordered.Select(input => input.Path).Distinct(Paths).Count() != ordered.Length)
             throw new FormatException("UID source paths overlap.");
+        recovery?.RequireCurrent();
         return ordered;
     }
 

@@ -6,11 +6,14 @@ Character contract. Actual client command activation remains VisibleDx8D13 and
 requires the real owned Frame/runtime, PIN and policy checks in the GM spec.
 
 ```
-WolfConquer.DataTool create-gm-policy <NEW-absolute-policy.json> <existing-owned-admission.json> <accountId> <characterUid> [inspect|mail|both]
+WolfConquer.DataTool create-gm-policy <NEW-absolute-policy.json> <existing-owned-admission.json> <accountId> <characterUid> [inspect|mail|both|catalog|all]
 ```
 
-The optional selection defaults to both. All three selections are exact lowercase
-closed values. Account and character are explicit positive uint decimal values;
+The optional selection defaults to both, preserving exactly inspect.self and
+mail.testkit.self. inspect and mail retain their original single capabilities.
+Explicit catalog grants only mail.catalogitem.self; explicit all grants all three.
+Every selection is an exact lowercase closed value. Existing policies and the
+default are not widened. Account and character are explicit positive uint decimal values;
 names, prefixes, Discord state and saved Role attributes do not grant anything.
 The tool consumes the actual strict LegacyOwnedAdmissionOptions.TryReadFile
 configuration and its nonzero ExpectedDomain. It neither bootstraps nor opens a

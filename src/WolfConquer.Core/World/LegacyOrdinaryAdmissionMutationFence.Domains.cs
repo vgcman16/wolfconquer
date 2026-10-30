@@ -37,7 +37,7 @@ internal static partial class LegacyOrdinaryAdmissionMutationFence
         return result;
     }
 
-    private static void RequireConfiguredJournalWritable(string absolute)
+    private static void RequireConfiguredJournalWritable(string absolute, LegacyTradeJournal.OwnedStartupItemRecovery? recovery)
     {
         var directory = Path.GetDirectoryName(absolute);
         if (directory is null) return;
@@ -47,7 +47,7 @@ internal static partial class LegacyOrdinaryAdmissionMutationFence
         // Only matching configured domains perform filesystem inspection. An
         // unrelated world's retained binding cannot cause scans on this save.
         foreach (var root in users)
-            if (LegacyTradeJournal.HasPending(root))
+            if (LegacyTradeJournal.HasPending(root) && (recovery is null || !recovery.PermitsConfiguredPath(root, absolute)))
                 throw new IOException("ordinaryAdmissionRecoveryRequired:pendingConfiguredJournalWrite");
     }
 

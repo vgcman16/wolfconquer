@@ -39,12 +39,13 @@ internal static partial class LegacyTradeJournal
     }
 
     private static bool RecoverLocked(JournalRoots roots, JournalRecord record,
-        JournalTarget[] targets, string pending, out string reason)
+        JournalTarget[] targets, string pending, out string reason, OwnedStartupItemRecovery? ownedStartup = null)
     {
         reason = string.Empty;
         var validated = false;
         try
         {
+            ownedStartup?.RequireCurrent();
             // No target changes until every current image has passed validation.
             EnsureTargetsMatch(targets, allowAfter: true);
             EnsureAdmissionInputs(roots, record);
@@ -59,25 +60,34 @@ internal static partial class LegacyTradeJournal
                 return true;
             }
             validated = true;
-            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11)) Directory.CreateDirectory(roots.Items);
-            if (record.Version == 9) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
-            else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
-            else PrepareAdmissionDirectories(roots, record, targets);
+            if (ownedStartup is null)
+            {
+                if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11)) Directory.CreateDirectory(roots.Items);
+                if (record.Version == 9) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
+                else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
+                else PrepareAdmissionDirectories(roots, record, targets);
+            }
             foreach (var target in targets)
             {
+                ownedStartup?.RequireCurrent();
                 if (Matches(ReadTarget(target.Path), target.Change.After)) continue;
                 var staged = StagePath(target, record.TransactionId);
                 if (!TryDelete(staged)) throw new IOException("Cannot clear previous staging file.");
+                ownedStartup?.RequireCurrent();
                 Stage(target, target.Change.After, record.TransactionId);
             }
             foreach (var target in targets)
             {
+                ownedStartup?.RequireCurrent();
                 if (Matches(ReadTarget(target.Path), target.Change.After)) continue;
+                ownedStartup?.RequireCurrent();
                 ReplaceStaged(target, record.TransactionId);
             }
             EnsureAllAfter(targets);
             EnsureAdmissionInputs(roots, record);
             EnsureAdmissionStagesCleared(record, targets);
+            ownedStartup?.ClearStages();
+            ownedStartup?.RequireCurrent();
             DeleteRecord(pending);
             return true;
         }
@@ -89,7 +99,7 @@ internal static partial class LegacyTradeJournal
         }
         finally
         {
-            if (validated)
+            if (validated && ownedStartup is null)
                 foreach (var target in targets) TryDelete(StagePath(target, record.TransactionId));
         }
     }

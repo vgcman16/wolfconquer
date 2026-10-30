@@ -1,11 +1,13 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO.Pipelines;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using WolfConquer.Core.Accounts;
 using WolfConquer.Core.Packets;
+using WolfConquer.Core.Runtime;
 using WolfConquer.Core.World;
 
 namespace WolfConquer.Core.Networking;
@@ -23,6 +25,9 @@ public sealed class ConquerTcpServer : IAsyncDisposable
     private readonly object _gate = new();
     private CancellationTokenSource? _stop;
     private Task? _acceptTask;
+    private DateTimeOffset? _publicStartedAt;
+    private long _publicStartTimestamp, _publicStoppedTimestamp;
+    private bool _publicStopping, _publicStopped, _publicFaulted;
 
     public ConquerTcpServer(
         ConquerTcpServerOptions options,
@@ -49,6 +54,25 @@ public sealed class ConquerTcpServer : IAsyncDisposable
 
     public bool IsRunning => _acceptTask is { IsCompleted: false };
 
+    internal PublicListenerSnapshot ReadPublicHeartbeatLifecycle(WorldServerFrameHandler frame)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        Func<ConquerTcpConnection, PacketFrame, CancellationToken, ValueTask> expected = frame.HandleFrameAsync;
+        if (!_handleFrame.Equals(expected))
+            throw new InvalidOperationException("Public heartbeat requires the actual listener's Frame.");
+        lock (_gate)
+        {
+            var state = _publicFaulted || _acceptTask?.IsFaulted == true ? PublicListenerState.Faulted :
+                _publicStopped ? PublicListenerState.Stopped :
+                _publicStopping || _stop?.IsCancellationRequested == true ? PublicListenerState.Stopping :
+                _acceptTask is null ? PublicListenerState.Created :
+                _acceptTask.IsCompleted ? PublicListenerState.Faulted : PublicListenerState.Listening;
+            long uptime = _publicStartedAt is null ? 0 : Math.Max(0, (long)Stopwatch.GetElapsedTime(
+                _publicStartTimestamp, _publicStopped ? _publicStoppedTimestamp : Stopwatch.GetTimestamp()).TotalSeconds);
+            return new(state, _publicStartedAt, uptime);
+        }
+    }
+
     public void Start(CancellationToken cancellationToken = default)
     {
         lock (_gate)
@@ -61,7 +85,11 @@ public sealed class ConquerTcpServer : IAsyncDisposable
             _stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             if (_options.WireMode == ConquerTcpWireMode.LegacyGameServer)
                 LegacyNativePoolRandom.InitializeAtServerStartup();
-            _listener.Start();
+            try { _listener.Start(); }
+            catch { _publicFaulted = true; throw; }
+            _publicStartedAt = DateTimeOffset.UtcNow;
+            _publicStartTimestamp = Stopwatch.GetTimestamp();
+            _publicStopping = false; _publicStopped = false; _publicFaulted = false;
             _acceptTask = AcceptLoopAsync(_stop.Token);
         }
     }
@@ -75,10 +103,12 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         {
             acceptTask = _acceptTask;
             stop = _stop;
+            _publicStopping = true;
         }
 
         if (stop is null)
         {
+            lock (_gate) { _publicStopped = true; _publicStoppedTimestamp = Stopwatch.GetTimestamp(); }
             return;
         }
 
@@ -93,6 +123,7 @@ public sealed class ConquerTcpServer : IAsyncDisposable
             clientTasks = _clientTasks.ToArray();
         }
         await IgnoreShutdownExceptionAsync(Task.WhenAll(clientTasks)).ConfigureAwait(false);
+        lock (_gate) { _publicStopped = true; _publicStoppedTimestamp = Stopwatch.GetTimestamp(); }
         stop.Dispose();
     }
 
@@ -133,6 +164,7 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         }
         catch (Exception ex)
         {
+            lock (_gate) _publicFaulted = true;
             LogAcceptLoopException(ex);
         }
     }
