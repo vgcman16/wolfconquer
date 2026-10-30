@@ -41,9 +41,9 @@ public sealed partial class WorldServerFrameHandlerTests
     }
 
     [Fact]
-    public async Task NativeEquipmentRawLoadPreservesDepositRoutingKeyDistinctFromParentObject()
+    public async Task NativeEquipmentRawLoadKeepsParentRoutingKeyAndItsDistinctDepositObject()
     {
-        // Parent is stored at key20 by LAST deposit routing, but retains its own UID10/Position4.
+        // Parent key/UID/Position remain 10/10/4 despite the child UID20/Position54.
         var fixture = await EnterRawEquipmentAsync(RawItems(
             RawItem(10, 620_003, 4, depositCount: 1), RawItem(20, 410_003, 54)),
             topLevelCount: 1);
@@ -56,32 +56,32 @@ public sealed partial class WorldServerFrameHandlerTests
         Assert.Equal((ushort)4, parent.Position);
         Assert.Equal(620_003U, parent.ItemId);
         var entry = Assert.Single(observed.RawEntries);
-        Assert.Equal(20U, entry.Key);
+        Assert.Equal(10U, entry.Key);
         Assert.Same(parent, entry.Value);
         var deposit = Assert.Single(parent.Deposits);
         Assert.Equal(20U, deposit.Key);
         Assert.Equal(20U, deposit.Value.Uid);
         Assert.Equal((ushort)54, deposit.Value.Position);
         Assert.NotSame(parent, deposit.Value);
-        Assert.False(equipment.ObserveRawLoadedPosition(54).Found); // Not routing-position normalization.
+        Assert.False(equipment.ObserveRawLoadedPosition(54).Found); // Child is a deposit, not a root equipment entry.
         GC.KeepAlive(fixture);
     }
 
     [Fact]
-    public async Task NativeEquipmentRawLoadHasOwnDictionaryKeyspaceNotDtoGlobalUidDeduplication()
+    public async Task NativeEquipmentRawLoadRejectsDuplicateSerializedIdentityAsUnavailable()
     {
         var fixture = await EnterRawEquipmentAsync(RawItems(
             RawItem(50, 410_003, 0), RawItem(50, 620_439, 4), RawItem(50, 620_003, 4)));
         var equipment = Assert.IsType<LegacyNativeEquipmentRuntime>(fixture.Client.RawEquipmentObservation);
         var observed = equipment.ObserveRawLoadedPosition(4);
-        Assert.True(observed.Available);
-        Assert.True(observed.Found);
-        Assert.Equal(620_439U, Assert.IsType<LegacyNativeEquipmentRawItem>(observed.Item).ItemId);
-        Assert.Single(observed.RawEntries); // Equipment's first TryAdd wins, not DTO/global dedupe.
+        Assert.False(observed.Available); Assert.False(observed.Found); Assert.Null(observed.Item);
+        Assert.Empty(observed.RawEntries); Assert.NotNull(observed.UnavailableReason);
+        Assert.Empty(RawObservationItems(equipment)); // No first-TryAdd corrupted generation is published.
+        Assert.False(equipment.CanAuthorizeWeaponAdmission);
         var session = Assert.IsType<WorldSession>(
             fixture.Handler.ReadCurrentSessionForNativeOwnerObservation(fixture.Connection));
         Assert.Single(session.PlayerItems.InventoryItems);
-        Assert.Empty(session.PlayerItems.EquipmentItems); // DTO remains deliberately normalized separately.
+        Assert.Empty(session.PlayerItems.EquipmentItems); // DTO behavior remains separately owned, not native authority.
         GC.KeepAlive(fixture);
     }
 

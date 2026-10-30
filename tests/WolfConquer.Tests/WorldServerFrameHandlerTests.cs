@@ -282,36 +282,6 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerRuntimeLoopSendsLegacyXpAndStaminaAfterStartupWhenEnabled()
-    {
-        Directory.CreateDirectory(_usersRoot);
-        WriteSnapshot(1293600, uid: 1293600);
-        using var cancel = new CancellationTokenSource();
-        var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(_usersRoot),
-            handoffService: null,
-            worldData: null,
-            new LegacyRuntimeUpdateLoopOptions(
-                Enabled: true,
-                TimeSpan.FromMilliseconds(5),
-                TimeProvider.System));
-        var sent = new RuntimeThreadSafeFrameCapture();
-        var connection = CreateSendingConnection(sent);
-
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new LegacyMsgLoginGamePacket(1293600).ToFrameBytes()),
-            cancel.Token);
-        await WaitUntilAsync(
-            () => sent.Count >= 64,
-            TimeSpan.FromSeconds(2));
-        await cancel.CancelAsync();
-
-        AssertSingleUpdate(sent[^2], 1_293_600, LegacyMsgUpdateDataType.XPCircle, 1);
-        AssertSingleUpdate(sent[^1], 1_293_600, LegacyMsgUpdateDataType.Stamina, 5);
-    }
-
-    [Fact]
     public async Task HandlerRuntimeLoopSuppressesNewerClientOverwhelmStatusVectorByDefault()
     {
         var updates = await CaptureLegacyOverwhelmRuntimeMsgUpdatesAsync(

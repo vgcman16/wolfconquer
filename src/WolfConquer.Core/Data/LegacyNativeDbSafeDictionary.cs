@@ -9,7 +9,7 @@ internal partial class LegacyNativeDbSafeDictionary<T1, T2> : IDictionary<T1, T2
     IReadOnlyDictionary<T1, T2>, IDictionary
 {
     private readonly object syncRoot = new();
-    private readonly Dictionary<T1, T2> entries;
+    private Dictionary<T1, T2> entries;
     private T2[] cachedValues = [];
     private bool dirty;
     private long revision;

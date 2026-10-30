@@ -8,6 +8,66 @@ Candidate source qualification for FSB-204 through FSB-225: Release build06 pass
 
 Earlier FSB-200 through FSB-203 were included in the separately verified full Windows gate 40958745483 on source731d8e54 / generated91040398: Core30175 passed/152 existing NotExecuted, Updates446 and Launcher57, zero failures. The new FSB-204..225 public-commit full gate remains pending.
 
+## FSB-227: Reject native Champion Point overflow coherently
+
+Locally qualified; exact-commit fullCI pending. AddChampionPoints used unchecked uint +=
+for current and daily points, allowing awards to wrap valid balances. Its actual
+old overflow test required that corruption. The candidate prepares both checked
+sums and maxhistory before assigning any field, under the genuine player gate.
+The real ChampionPoints getter/setter cooperate with that gate; direct lowering
+still preserves maxhistory. Exact OverflowException refusal leaves balances and
+output unchanged. Accepted awards still send no packets, and acquire no unused
+UID/catalog/current-owner-slot/socket prerequisite.
+
+Five eligibility outcomes and the real strict >650 rejection/default Talk2179
+remain unchanged; their source-only rule is not newly client-confirmed. Native
+load/RoleInfo additive hydration, independent caller += operations and public
+raw Today/History writers remain separate boundaries. The target still lacks a
+production Add caller; this does not activate native load/transfer or SQL.
+Eight new overflow/boundary/retry/dependency/concurrency controls are authored,
+with genuine workers and primary/cleanup failure preservation. All227 outcomes
+are unrun pending Root's combined gate. No live or crash/global-atomicity claim.
+Spec: docs/protocol/specs/server-native-champion-awards.md.
+
+## FSB-226: Complete native item loading before real-owner publication
+
+Locally qualified; exact-commit fullCI pending. The old loader ignored physical short reads,
+published earlier rows before late conversion/perfection faults, reused the last
+child's UID/location to route its parent, stored ITEM_ID as the child's quest
+marker, and changed only the raw rune fallback row. Old tests explicitly required
+several of those defects. The raw equipment observer copied the parent/child
+routing fault and could expose an incomplete decoded prefix.
+
+The isolated candidate parses the complete184/80-byte envelope and canonical
+UID/perfection references before conversion; prepares genuine native items,
+deposits/perfections and all real-container changes detached; validates actual
+owner/membership/metadata evidence; then performs assignment-only cooperating
+publication. Parent routing, quest UID and actual rune fallback are corrected.
+Prelogin !Fake/!FullLoading is required; no active-world hydration authority is
+inferred. Raw observations use the same complete physical image and retain their
+explicit inability to authorize native weapon admission. Metadata-comparer
+callbacks finish before the final pure evidence checks.
+
+Tests are authored for valid mixed containers/aliases, late malformed/date and
+metadata failure, canonical duplicates, absent/foreign owners, comparer mutation,
+actual Rune reentrancy, marker/routing repair and retry. Root build/focused/broader
+qualification is pending; no passing or fixed claim yet. Existing independent
+184/80-byte layout goldens remain. No original save, live/client, SQL, deployment
+or crash/global-atomicity proof. Public raw writers remain noncooperating.
+205901 and outer normalization remain labeled legacy policies; filtered children
+or unsupported main perfection containers refuse without invented migration.
+Spec: docs/protocol/specs/server-native-item-load-publication.md.
+
+
+Root local qualification for the combined40-path candidate: Release build01
+passed with0errors/157existingwarnings and no new changed-path warnings. Actual
+focused01 passed423 with7existing skips; native-broad01 passed13278/13278 with
+0failures/skips. Selections overlap. Receipts are in root-native-item-load-next.
+The old public7bb fullrun failed one timing-sensitive startup test; its actual
+failedTRXs/logs remain. Exact-commit successor fullCI, SQL, deployment and live
+new-client/fullparity acceptance are pending. This note supersedes authored/unrun
+labels in this spec/entry without expanding the verification scope.
+
 ## FSB-225: Complete direct-pipe item and optional-extra preparation
 
 **Status:** source-only authored; Root review/integration/qualification pending.

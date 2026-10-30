@@ -2,15 +2,23 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class LegacyNativePlayerRuntime
 {
-    // Whole native Player3161..3170. Uses the genuine incoming ChampionPoints owner.
+    // Retain source eligibility/message defaults; prepare every balance before commit.
     public void AddChampionPoints(uint value, bool settodayvalue = true)
     {
-        if (settodayvalue && TodayChampionPoints > 650)
+        lock (SpellAdmissionSyncRoot)
         {
-            Owner.SendSysMesage("Your Champion Points have reached the maximum amount of 650 points. You can collect more points tomorrow.");
-            return;
+            if (settodayvalue && TodayChampionPoints > 650)
+            {
+                Owner.SendSysMesage("Your Champion Points have reached the maximum amount of 650 points. You can collect more points tomorrow.");
+                return;
+            }
+            uint current = checked(_ChampionPoints + value);
+            uint today = checked(TodayChampionPoints + value);
+            uint history = Math.Max(HistoryChampionPoints, current);
+            // No ordinary throwing work or output after the first field assignment.
+            _ChampionPoints = current;
+            TodayChampionPoints = today;
+            HistoryChampionPoints = history;
         }
-        ChampionPoints += value;
-        TodayChampionPoints += value;
     }
 }

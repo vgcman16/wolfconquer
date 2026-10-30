@@ -48,6 +48,8 @@ internal sealed partial class LegacyNativeRuneItemStorage
             lock (player.SpellAdmissionSyncRoot)
             lock (StorageSyncRoot)
             {
+                if (storagePreparationDepth != 0) return false;
+                using var preparation = BeginStoragePreparation();
                 var binding = new StorageBinding(client, player, player.UID);
                 if (!IsCurrent(binding) || !TryCaptureStorage(out var before)) return false;
                 var incoming = new StorageRow(item, item.Uid, item.Position, item.ITEM_ID);

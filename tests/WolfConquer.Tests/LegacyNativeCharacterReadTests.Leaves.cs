@@ -21,12 +21,19 @@ public sealed partial class LegacyNativeCharacterReadTests
     });
 
     [Fact]
-    public Task ChampionOverflowKeepsUncheckedWrapAndHistoricalMaximum() => NativePacketTestThread.Run(() =>
+    public Task ChampionOverflowRefusesWithoutChangingBalancesHistoryOrPriorQueue() => NativePacketTestThread.Run(() =>
     {
-        using var scope = new Scope(); scope.Player.ChampionPoints = uint.MaxValue; scope.Player.TodayChampionPoints = uint.MaxValue;
-        scope.Player.AddChampionPoints(2, false);
-        Assert.Equal(1u, scope.Player.ChampionPoints); Assert.Equal(1u, scope.Player.TodayChampionPoints);
-        Assert.Equal(uint.MaxValue, scope.Player.HistoryChampionPoints); Assert.Empty(scope.Queue);
+        using var scope = new Scope();
+        scope.Player.ChampionPoints = uint.MaxValue; scope.Player.TodayChampionPoints = uint.MaxValue;
+        byte[] prior = [0xD3, 0xE1]; scope.Queue.Enqueue(prior);
+
+        Assert.Throws<OverflowException>(() => scope.Player.AddChampionPoints(2, false));
+
+        Assert.Equal(uint.MaxValue, scope.Player.ChampionPoints);
+        Assert.Equal(uint.MaxValue, scope.Player.TodayChampionPoints);
+        Assert.Equal(uint.MaxValue, scope.Player.HistoryChampionPoints);
+        Assert.Same(prior, Assert.Single(scope.Queue));
+        Assert.Equal(new byte[] { 0xD3, 0xE1 }, prior);
     });
 
     [Theory]
