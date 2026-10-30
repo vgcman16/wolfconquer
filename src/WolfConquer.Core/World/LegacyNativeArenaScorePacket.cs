@@ -8,17 +8,24 @@ internal static class LegacyNativeArenaScorePacket
     public static LegacyNativePacket ArenaMatchScoreCreate(this LegacyNativePacket stream,
         uint UidOne, string nameone, uint damageone, uint UidTwo, string nametwo, uint damagetwo)
     {
-        stream.InitWriter();
-        stream.Write(UidOne);
-        stream.Write(LegacyNativeGroupServerList.MyServerInfo.ID);
-        stream.Write(nameone, 32);
-        stream.Write(damageone);
-        stream.Write(UidTwo);
-        stream.Write(LegacyNativeGroupServerList.MyServerInfo.ID);
-        stream.Write(nametwo, 32);
-        stream.Write(damagetwo);
-        stream.Write(uint.MaxValue);
-        stream.Finalize(2059);
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(nameone);
+        ArgumentNullException.ThrowIfNull(nametwo);
+        var server = LegacyNativeGroupServerList.MyServerInfo
+            ?? throw new InvalidOperationException("Arena score requires the configured server owner.");
+        uint serverId = server.ID;
+        stream.PrepareFrame(2059, prepared =>
+        {
+            prepared.Write(UidOne);
+            prepared.Write(serverId);
+            prepared.Write(nameone, 32);
+            prepared.Write(damageone);
+            prepared.Write(UidTwo);
+            prepared.Write(serverId);
+            prepared.Write(nametwo, 32);
+            prepared.Write(damagetwo);
+            prepared.Write(uint.MaxValue);
+        });
         return stream;
     }
 }

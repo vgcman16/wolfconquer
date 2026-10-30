@@ -79,15 +79,21 @@ public sealed partial class LegacyNativeDialogPacketTests
         });
 
     [Fact]
-    public Task StaticReaderAtStrictPhysicalBoundaryReturnsZeroWithoutAdvanceOrManagedSizeCheck() =>
+    public Task StaticReaderRequiresCapturedInputAndAllowsAnExactPhysicalEnd() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope(); scope.Packet.Size = 1; scope.Packet.Seek(LegacyNativePacket.MAX_SIZE - 4);
-            scope.Packet.GetStaticMessage(out uint rejected); Assert.Equal(0u, rejected);
+            uint rejected = 77;
+            Assert.Throws<EndOfStreamException>(() => scope.Packet.GetStaticMessage(out rejected)); Assert.Equal(77u, rejected);
             Assert.Equal(LegacyNativePacket.MAX_SIZE - 4, scope.Packet.Position);
-            scope.Packet.Seek(LegacyNativePacket.MAX_SIZE - 5); scope.Packet.GetStaticMessage(out uint accepted);
-            Assert.Equal(0xA5A5A5A5u, accepted); Assert.Equal(LegacyNativePacket.MAX_SIZE - 1, scope.Packet.Position);
-            Assert.Equal(1, scope.Packet.Size); Assert.Equal(new byte[] { 0xA5, 0xA5, 0xA5, 0xA5, 0xA5 }, scope.Raw(16379, 5));
+            Assert.Equal(1, scope.Packet.Size);
+            scope.Packet.Write(0xA5A5A5A5u); // Actual complete writer extent, not allocation-derived input.
+            scope.Packet.Size = scope.Packet.Position;
+            scope.Packet.Seek(LegacyNativePacket.MAX_SIZE - 4); scope.Packet.GetStaticMessage(out uint accepted);
+            Assert.Equal(0xA5A5A5A5u, accepted); Assert.Equal(LegacyNativePacket.MAX_SIZE, scope.Packet.Position);
+            Assert.Equal(LegacyNativePacket.MAX_SIZE, scope.Packet.Size);
+            Assert.Equal(new byte[] { 0xA5, 0xA5, 0xA5, 0xA5, 0xA5 }, scope.Raw(16379, 5));
+            Assert.Empty(scope.Native.Queue);
         });
 
     [Fact]

@@ -1,42 +1,29 @@
 using WolfConquer.Core.Networking;
-using MsgItemExtra = WolfConquer.Core.World.LegacyNativeItemExtra;
 
 namespace WolfConquer.Core.World;
 
 internal sealed partial class LegacyNativeGameItemRuntime
 {
-    // Complete native MsgGameItem201..231, including the native tointer:true
-    // refinery encoding and the empty-extra send when stored IDs are expired.
-    // Does not perform GameClient.Send normalization, item logging or locking.
+    // Complete direct-pipe item/optional-extra sequence. This route does not
+    // normalize items, unlock them or impose GameClient.Send's 1032-byte cap.
     public void Send(LegacyNativePipeClientRuntime user, LegacyNativePacket stream)
     {
-        user.Send(ItemCreate(stream, this));
-        if (Purification.ItemUID == 0 && Refinary.ItemUID == 0)
+        var socket = CaptureItemPipe(user);
+        if (socket is null) return;
+        lock (this)
         {
-            return;
+            if (!ItemPipeIsCurrent(user, socket)) return;
+            var target = new PipeItemTarget(stream);
+            using var plan = PreparePipeItem(stream.Capacity);
+            if (!ItemPipeIsCurrent(user, socket)) return;
+            plan.RequireCurrent();
+            plan.RequireCapacity(stream.Capacity);
+            target.RequireCurrent(stream);
+            // Every preparation/refusal precedes the single caller write and
+            // no-throw actual-extra commit. Later sends do not undo commitment.
+            target.Publish(stream, plan.FinalBytes);
+            plan.CommitExtras();
+            SendCommittedPipeItem(user, socket, plan);
         }
-        MsgItemExtra msgItemExtra = new MsgItemExtra();
-        if (Purification.InLife)
-        {
-            if (Purification.SecoundsLeft == 0)
-            {
-                Purification.Typ = MsgItemExtra.Typing.Stabilization;
-            }
-            else
-            {
-                Purification.Typ = MsgItemExtra.Typing.PurificationAdding;
-            }
-            msgItemExtra.Purifications.Add(Purification);
-        }
-        if (Refinary.InLife)
-        {
-            Refinary.Typ = MsgItemExtra.Typing.RefinaryAdding;
-            if (Refinary.EffectDuration == 0)
-            {
-                Refinary.Typ = MsgItemExtra.Typing.PermanentRefinery;
-            }
-            msgItemExtra.Refinerys.Add(Refinary);
-        }
-        user.Send(msgItemExtra.CreateArray(stream, tointer: true));
     }
 }

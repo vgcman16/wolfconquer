@@ -7,34 +7,39 @@ internal static class LegacyNativeStringPacket
 {
     public static void GetStringPacket(this LegacyNativePacket stream, out LegacyNativeMsgStringPacket str)
     {
-        str = new LegacyNativeMsgStringPacket();
-        str.UID = stream.ReadUInt32();
-        str.ID = (LegacyNativeMsgStringPacket.StringID)stream.ReadUInt8();
-        str.Strings = stream.ReadStringList();
+        ArgumentNullException.ThrowIfNull(stream);
+        var parsed = stream.ReadPrepared(packet => new LegacyNativeMsgStringPacket
+        {
+            UID = packet.ReadUInt32(),
+            ID = (LegacyNativeMsgStringPacket.StringID)packet.ReadUInt8(),
+            Strings = packet.ReadStringList()
+        });
+        str = parsed;
     }
 
     public static LegacyNativePacket StringPacketCreate(this LegacyNativePacket stream, LegacyNativeMsgStringPacket pac)
     {
-        stream.InitWriter();
-        if (pac.ID == LegacyNativeMsgStringPacket.StringID.LocationEffect)
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(pac);
+        uint uid = pac.UID;
+        var id = pac.ID;
+        ushort x = pac.X, y = pac.Y;
+        string[]? strings = pac.Strings is { } values ? (string[])values.Clone() : null;
+        stream.PrepareFrame(2036, prepared =>
         {
-            stream.Write(pac.X);
-            stream.Write(pac.Y);
-        }
-        else
-        {
-            stream.Write(pac.UID);
-        }
-        stream.Write((byte)pac.ID);
-        if (pac.Strings != null)
-        {
-            stream.Write(pac.Strings);
-        }
-        else
-        {
-            stream.ZeroFill(3);
-        }
-        stream.Finalize(2036);
+            if (id == LegacyNativeMsgStringPacket.StringID.LocationEffect)
+            {
+                prepared.Write(x);
+                prepared.Write(y);
+            }
+            else
+            {
+                prepared.Write(uid);
+            }
+            prepared.Write((byte)id);
+            if (strings is not null) prepared.Write(strings);
+            else prepared.ZeroFill(3);
+        });
         return stream;
     }
 }

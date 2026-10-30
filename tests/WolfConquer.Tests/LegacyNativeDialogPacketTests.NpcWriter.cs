@@ -36,19 +36,16 @@ public sealed partial class LegacyNativeDialogPacketTests
         });
 
     [Fact]
-    public Task ReplyKeepsWrappedUtf8LengthAndNativeStrictBufferLimitWithoutWritingLastAllocatedByte() =>
+    public Task UnrepresentableReplyTextRefusesWithoutPublishingAnyPrefixOrWrappedLength() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
-            // The entire MAX_SIZE allocation is initialized. This primitive is not sent to a client.
-            scope.Packet.NpcReplyCreate(Reply.InteractTypes.Dialog, new string('x', 65536), 0, 0);
-            Assert.Equal(LegacyNativePacket.MAX_SIZE - 1, scope.Packet.Size); Assert.Equal(4, scope.Packet.Position);
-            byte[] raw = scope.Raw(0, LegacyNativePacket.MAX_SIZE);
-            Assert.Equal((ushort)16383, BinaryPrimitives.ReadUInt16LittleEndian(raw));
-            Assert.Equal((ushort)2255, BinaryPrimitives.ReadUInt16LittleEndian(raw.AsSpan(2)));
-            Assert.Equal(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0 }, raw[4..15]);
-            Assert.All(raw[15..16383], value => Assert.Equal((byte)'x', value));
-            Assert.Equal((byte)0xA5, raw[16383]); Assert.Empty(scope.Native.Queue);
+            // Corrected-only: never run this input through the unsafe old builder.
+            byte[] before = scope.Raw(0, LegacyNativePacket.MAX_SIZE);
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                scope.Packet.NpcReplyCreate(Reply.InteractTypes.Dialog, new string('x', 65536), 0, 0));
+            scope.Untouched(); Assert.Equal(before, scope.Raw(0, LegacyNativePacket.MAX_SIZE));
+            Assert.Empty(scope.Native.Queue);
         });
 
     [Fact]
@@ -65,11 +62,11 @@ public sealed partial class LegacyNativeDialogPacketTests
         });
 
     [Fact]
-    public Task NullReplyStreamFaultsAtInitWriterWithoutTouchingAnyOwnedPacket() =>
+    public Task NullReplyStreamRefusesExplicitlyWithoutTouchingAnyOwnedPacket() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
-            Assert.Throws<NullReferenceException>(() => Reply.NpcReplyCreate(null!, Reply.InteractTypes.Dialog, "text", 0, 0));
+            Assert.Throws<ArgumentNullException>(() => Reply.NpcReplyCreate(null!, Reply.InteractTypes.Dialog, "text", 0, 0));
             scope.Untouched(); Assert.Empty(scope.Native.Queue);
         });
 }

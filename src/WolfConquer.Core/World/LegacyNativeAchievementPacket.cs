@@ -7,10 +7,18 @@ internal static class LegacyNativeAchievementPacket
 {
     public static void GetAchievement(this LegacyNativePacket stream, out LegacyNativeClientAchievement.TypeAchievement action, out uint UID, out uint Flag)
     {
-        action = (LegacyNativeClientAchievement.TypeAchievement)stream.ReadUInt32();
-        UID = stream.ReadUInt32();
-        stream.ReadUInt32();
-        Flag = stream.ReadUInt32();
+        ArgumentNullException.ThrowIfNull(stream);
+        var prepared = stream.ReadPrepared(static packet =>
+        {
+            var parsedAction = (LegacyNativeClientAchievement.TypeAchievement)packet.ReadUInt32();
+            uint parsedUid = packet.ReadUInt32();
+            packet.ReadUInt32();
+            uint parsedFlag = packet.ReadUInt32();
+            return (Action: parsedAction, Uid: parsedUid, Flag: parsedFlag);
+        });
+        action = prepared.Action;
+        UID = prepared.Uid;
+        Flag = prepared.Flag;
     }
 
     public static LegacyNativePacket AchievementCreate(this LegacyNativePacket stream,

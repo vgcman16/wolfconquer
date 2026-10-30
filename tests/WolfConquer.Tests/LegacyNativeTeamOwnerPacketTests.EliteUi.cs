@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using WolfConquer.Core.Networking;
 using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
@@ -26,10 +27,12 @@ public sealed partial class LegacyNativeTeamOwnerPacketTests
     });
 
     [Fact]
-    public Task NullEliteNameFaultPreservesNativeHeaderPrefixAndDoesNotFinalize()=>NativePacketTestThread.Run(()=>
+    public Task NullEliteNameRefusesWithoutAnyTargetOrQueueChange()=>NativePacketTestThread.Run(()=>
     {
-        using var scope=new Scope();Assert.Throws<NullReferenceException>(()=>scope.Packet.TeamEliteSetTeamName(2039,LegacyNativeMsgTeamEliteSetTeamName.State.Remove,91,null!));
-        Assert.Equal(12,scope.Packet.Position);Assert.Equal(321,scope.Packet.Size);Assert.Empty(scope.Queue);
+        using var scope=new Scope(); byte[] before=TeamUiAllocation(scope.Packet);
+        Assert.Throws<ArgumentNullException>(()=>scope.Packet.TeamEliteSetTeamName(2039,LegacyNativeMsgTeamEliteSetTeamName.State.Remove,91,null!));
+        Assert.Equal(237,scope.Packet.Position);Assert.Equal(321,scope.Packet.Size);Assert.Empty(scope.Queue);
+        Assert.Equal(before,TeamUiAllocation(scope.Packet));
     });
 
     [Theory]
@@ -43,10 +46,17 @@ public sealed partial class LegacyNativeTeamOwnerPacketTests
     });
 
     [Theory]
-    [InlineData((ushort)2270,24)] [InlineData((ushort)2283,20)]
-    public Task MatchUiNullNameFaultRetainsConditionalPrefixAndNoAcknowledgement(ushort opcode,int position)=>NativePacketTestThread.Run(()=>
+    [InlineData((ushort)2270)] [InlineData((ushort)2283)]
+    public Task MatchUiNullNameRefusesBeforeConditionalPrefixOrAcknowledgement(ushort opcode)=>NativePacketTestThread.Run(()=>
     {
-        using var scope=new Scope();Assert.Throws<NullReferenceException>(()=>scope.Packet.TeamElitePKMatchUICreate(opcode,(LegacyNativeMsgTeamElitePKMatchUI.State)uint.MaxValue,(LegacyNativeMsgTeamElitePKMatchUI.EffectTyp)uint.MaxValue,91,null!,30));
-        Assert.Equal(position,scope.Packet.Position);Assert.Equal(321,scope.Packet.Size);Assert.Empty(scope.Queue);
+        using var scope=new Scope(); byte[] before=TeamUiAllocation(scope.Packet);
+        Assert.Throws<ArgumentNullException>(()=>scope.Packet.TeamElitePKMatchUICreate(opcode,(LegacyNativeMsgTeamElitePKMatchUI.State)uint.MaxValue,(LegacyNativeMsgTeamElitePKMatchUI.EffectTyp)uint.MaxValue,91,null!,30));
+        Assert.Equal(237,scope.Packet.Position);Assert.Equal(321,scope.Packet.Size);Assert.Empty(scope.Queue);
+        Assert.Equal(before,TeamUiAllocation(scope.Packet));
     });
+
+    private static unsafe byte[] TeamUiAllocation(LegacyNativePacket packet)
+    {
+        var bytes=new byte[packet.Capacity]; Marshal.Copy((nint)packet.Memory,bytes,0,bytes.Length); return bytes;
+    }
 }

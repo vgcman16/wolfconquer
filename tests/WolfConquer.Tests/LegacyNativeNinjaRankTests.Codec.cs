@@ -58,7 +58,7 @@ public sealed partial class LegacyNativeNinjaRankTests
     });
 
     [Fact]
-    public Task NativeDecoderIgnoresCallerCursorSizeAndOpcodeAndCreatesFreshObjects() => NativePacketTestThread.Run(() =>
+    public Task NativeDecoderUsesCapturedFrameIgnoresCallerCursorAndOpcodeAndCreatesFreshObjects() => NativePacketTestThread.Run(() =>
     {
         using var state = new State();
         using var native = new NativeSpellTestFixture();
@@ -80,7 +80,7 @@ public sealed partial class LegacyNativeNinjaRankTests
         Assert.Equal("Hero", row.Name);
         Assert.Equal("Guild", row.GuildName);
         Assert.Equal(bytes.Length, native.Packet.Position);
-        Assert.Equal(321, native.Packet.Size);
+        Assert.Equal(bytes.Length, native.Packet.Size);
         Assert.Equal(99u, old.Type);
         Assert.Empty(native.Queue);
     });
@@ -118,7 +118,7 @@ public sealed partial class LegacyNativeNinjaRankTests
     });
 
     [Fact]
-    public Task ManagedNegativeLengthFaultStillPublishesFirstNewOutModelAndAdvancesFourBytes() => NativePacketTestThread.Run(() =>
+    public Task InvalidDeclaredLengthPreservesThePriorOutModelAndOriginalCursor() => NativePacketTestThread.Run(() =>
     {
         using var state = new State();
         using var native = new NativeSpellTestFixture();
@@ -126,12 +126,13 @@ public sealed partial class LegacyNativeNinjaRankTests
         PlaceBytes(native.Packet, [3, 0, 6, 8]);
         Model query = new() { Type = 77 };
         Model old = query;
-        Assert.Throws<OverflowException>(() => native.Packet.GetRankMemberShow(out query));
-        Assert.NotSame(old, query);
-        Assert.Equal(0u, query.Type);
+        Assert.Throws<InvalidDataException>(() => native.Packet.GetRankMemberShow(out query));
+        Assert.Same(old, query);
+        Assert.Equal(77u, query.Type);
         Assert.Null(query.Items);
-        Assert.Equal(4, native.Packet.Position);
-        Assert.Equal(321, native.Packet.Size);
+        Assert.Equal(237, native.Packet.Position);
+        Assert.Equal(4, native.Packet.Size);
+        Assert.Equal(new byte[] { 3, 0, 6, 8 }, NativeSpellTestFixture.Bytes(native.Packet));
         Assert.Empty(native.Queue);
     });
 
@@ -147,6 +148,7 @@ public sealed partial class LegacyNativeNinjaRankTests
     {
         Assert.InRange(bytes.Length, 4, 1024);
         Marshal.Copy(bytes, 0, (IntPtr)packet.Memory, bytes.Length);
+        packet.Size = bytes.Length;
     }
 
     private static unsafe byte ByteAt(LegacyNativePacket packet, int position) => packet.Memory[position];

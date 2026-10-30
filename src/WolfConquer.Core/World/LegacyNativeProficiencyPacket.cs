@@ -7,11 +7,15 @@ internal static class LegacyNativeProficiencyPacket
 {
     public static void GetProficiency(this LegacyNativePacket stream, out LegacyNativeMsgProficiency prof)
     {
-        prof = new LegacyNativeMsgProficiency();
-        prof.ID = stream.ReadUInt32();
-        prof.Level = stream.ReadUInt32();
-        prof.Experience = stream.ReadUInt32();
-        prof.NeededExperience = stream.ReadUInt32();
+        ArgumentNullException.ThrowIfNull(stream);
+        var prepared = stream.ReadPrepared(static packet => new LegacyNativeMsgProficiency
+        {
+            ID = packet.ReadUInt32(),
+            Level = packet.ReadUInt32(),
+            Experience = packet.ReadUInt32(),
+            NeededExperience = packet.ReadUInt32()
+        });
+        prof = prepared;
     }
 
     public static LegacyNativePacket ProficiencyCreate(this LegacyNativePacket stream,

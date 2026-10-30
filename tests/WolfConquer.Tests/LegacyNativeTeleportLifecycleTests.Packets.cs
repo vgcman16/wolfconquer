@@ -64,13 +64,13 @@ public sealed partial class LegacyNativeTeleportLifecycleTests
     }
 
     [Fact]
-    public Task TradeInfoToArrayPreservesAllTwentyRequiredFieldsAndNativeRecycledAlias()
+    public Task TradeInfoToArrayPreservesAllTwentyRequiredFieldsInAnOwnedPacket()
     {
         return NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
             var info = new LegacyNativeMsgTrade.TradeInfo { Name = "A" };
-            var packet = info.ToArray();
+            using var packet = info.ToArray();
             byte[] expected = {50,0,92,9,8,0,16,0,24,0,34,1,65,40,0,48,0,56,0,64,0,72,0,
                 80,0,88,0,96,0,104,0,112,0,120,0,128,1,0,136,1,0,144,1,0,152,1,0,160,1,0};
             Assert.Equal(expected, Bytes(packet));

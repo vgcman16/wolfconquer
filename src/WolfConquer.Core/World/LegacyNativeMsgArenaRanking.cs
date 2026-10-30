@@ -3,7 +3,8 @@ using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
 
-// Entire native physical owner/private receiver. No bounds repair or host registration.
+// Native private receiver; complete selected responses prepare before publication.
+// This remains unregistered and does not make Send a delivery transaction.
 [StructLayout(LayoutKind.Sequential, Size = 1)]
 internal struct LegacyNativeMsgArenaRanking
 {
@@ -11,51 +12,52 @@ internal struct LegacyNativeMsgArenaRanking
 
     private static void Handler(LegacyNativeGameClientRuntime user, LegacyNativePacket stream)
     {
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(stream);
         stream.GetArenaRanking(out var rank, out var PageNumber);
-        switch (rank)
+        if (rank is not (RankTyp.Today or RankTyp.History)) return;
+        if (PageNumber == 0) throw new ArgumentOutOfRangeException(nameof(PageNumber));
+
+        var source = rank == RankTyp.Today
+            ? LegacyNativeArenaRankings.Top1000Today
+            : LegacyNativeArenaRankings.Top1000;
+        ArgumentNullException.ThrowIfNull(source);
+        LegacyNativeArenaUser[] rows = source.Where(static row => row is not null).ToArray();
+        int start = (PageNumber - 1) * 8;
+        int count = Math.Min(8, Math.Max(0, rows.Length - start));
+        PreparedRow[] selected = CaptureRows(rows, start, count, rank == RankTyp.Today);
+
+        // The valid query is consumed. All response preparation failures retain
+        // that post-query packet state, including complete original input bytes.
+        stream.PrepareFrame(2093, prepared =>
         {
-            case RankTyp.Today:
-            {
-                LegacyNativeArenaUser[] array2 = LegacyNativeArenaRankings.Top1000Today.Where((LegacyNativeArenaUser p) => p != null).ToArray();
-                int num4 = (PageNumber - 1) * 8;
-                int num5 = Math.Min(8, Math.Max(0, array2.Length - num4));
-                stream.ArenaRankingCreate(RankTyp.Today, PageNumber, (uint)array2.Length, LegacyNativeArenaRuntime.ArenaIDs.ShowPlayerRankList);
-                for (int num6 = 0; num6 < num5; num6++)
-                {
-                    if (array2.Length > num4 + num6)
-                    {
-                        LegacyNativeArenaUser user3 = array2[num4 + num6];
-                        if (user3.Info.TodayRank < 1000)
-                        {
-                            stream.AddItemArenaRanking((ushort)(num4 + num6 + 1), user3.Name, 0,
-                                user3.Info.ArenaPoints, user3.Class, user3.Level, 1u, user3.Mesh);
-                        }
-                    }
-                }
-                user.Send(stream.ArenaRankingFinalize());
-                break;
-            }
-            case RankTyp.History:
-            {
-                LegacyNativeArenaUser[] array = LegacyNativeArenaRankings.Top1000.Where((LegacyNativeArenaUser p) => p != null).ToArray();
-                int num = (PageNumber - 1) * 8;
-                int num2 = Math.Min(8, Math.Max(0, array.Length - num));
-                stream.ArenaRankingCreate(RankTyp.History, PageNumber, (uint)array.Length, LegacyNativeArenaRuntime.ArenaIDs.ShowPlayerRankList);
-                for (int num3 = 0; num3 < num2; num3++)
-                {
-                    if (array.Length > num + num3)
-                    {
-                        LegacyNativeArenaUser user2 = array[num + num3];
-                        if (user2.Info.TodayRank < 1000)
-                        {
-                            stream.AddItemArenaRanking((ushort)(num + num3 + 1), user2.Name, 6004,
-                                user2.Info.HistoryHonor, user2.Class, user2.Level, 33942209u, user2.Mesh);
-                        }
-                    }
-                }
-                user.Send(stream.ArenaRankingFinalize());
-                break;
-            }
-        }
+            prepared.ArenaRankingCreate(rank, PageNumber, (uint)rows.Length,
+                LegacyNativeArenaRuntime.ArenaIDs.ShowPlayerRankList);
+            foreach (PreparedRow row in selected)
+                prepared.AddItemArenaRanking(row.Rank, row.Name, row.Unknown, row.Points,
+                    row.Class, row.Level, row.Marker, row.Mesh);
+        });
+        user.Send(stream);
     }
+
+    private static PreparedRow[] CaptureRows(LegacyNativeArenaUser[] rows, int start, int count, bool today)
+    {
+        var selected = new List<PreparedRow>(count);
+        for (int offset = 0; offset < count; offset++)
+        {
+            LegacyNativeArenaUser row = rows[start + offset];
+            var info = row.Info ?? throw new InvalidOperationException("Selected Arena ranking row has no Info.");
+            if (info.TodayRank >= 1000) continue;
+            string name = row.Name;
+            ArgumentNullException.ThrowIfNull(name);
+            selected.Add(new PreparedRow((ushort)(start + offset + 1), name,
+                today ? (ushort)0 : (ushort)6004,
+                today ? info.ArenaPoints : info.HistoryHonor,
+                row.Class, row.Level, today ? 1u : 33942209u, row.Mesh));
+        }
+        return selected.ToArray();
+    }
+
+    private readonly record struct PreparedRow(ushort Rank, string Name, ushort Unknown,
+        uint Points, uint Class, uint Level, uint Marker, uint Mesh);
 }

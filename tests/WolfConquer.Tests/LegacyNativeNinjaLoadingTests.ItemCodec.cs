@@ -53,18 +53,23 @@ public sealed partial class LegacyNativeNinjaLoadingTests
         });
 
     [Fact]
-    public Task ItemDecoderAssignsFreshOutObjectBeforeNullStreamOrHeaderUnderflowFaults() =>
+    public Task ItemDecoderPreservesTheOriginalObjectAndNestedRowsOnNullStreamOrHeaderFailure() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
-            ItemQuery parsed = null!;
-            Assert.Throws<NullReferenceException>(() => LegacyNativeMsgNinja.GetNinjaItem(null!, out parsed));
-            Assert.NotNull(parsed); Assert.Equal(ItemQuery.TypeID.Load, parsed.Type); Assert.Null(parsed.Items);
-            ItemQuery before = parsed;
-            CopyInto(scope, [3, 0, 89, 9]); // Header length3 yields native negative payload allocation.
-            Assert.Throws<OverflowException>(() => scope.Packet.GetNinjaItem(out parsed));
-            Assert.NotSame(before, parsed); Assert.NotNull(parsed); Assert.Null(parsed.Items);
-            Assert.Equal(4, scope.Packet.Position); Assert.Equal(12, scope.Available); Assert.Empty(scope.Queue);
+            var row = new ItemQuery.Item { ID = 91, Level = 92, Position = 93, Points = 94, UK = 95 };
+            var rows = new[] { row };
+            ItemQuery before = new() { Type = ItemQuery.TypeID.Update, UID = 97, Items = rows };
+            ItemQuery parsed = before;
+            Assert.Throws<ArgumentNullException>(() => LegacyNativeMsgNinja.GetNinjaItem(null!, out parsed));
+            Assert.Same(before, parsed);
+            CopyInto(scope, [3, 0, 89, 9]); scope.Packet.Seek(237);
+            Assert.Throws<InvalidDataException>(() => scope.Packet.GetNinjaItem(out parsed));
+            Assert.Same(before, parsed); Assert.Equal(ItemQuery.TypeID.Update, parsed.Type); Assert.Equal(97u, parsed.UID);
+            Assert.Same(rows, parsed.Items); Assert.Same(row, Assert.Single(parsed.Items));
+            Assert.Equal(new uint[] { 91, 92, 93, 94, 95 }, new[] { row.ID, row.Level, row.Position, row.Points, row.UK });
+            Assert.Equal(new byte[] { 3, 0, 89, 9 }, NativeSpellTestFixture.Bytes(scope.Packet));
+            Assert.Equal(237, scope.Packet.Position); Assert.Equal(12, scope.Available); Assert.Empty(scope.Queue); scope.Untaken(0);
         });
 
     [Fact]

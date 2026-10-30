@@ -63,7 +63,7 @@ public sealed partial class LegacyNativeGearReceiverTests
             Native.Packet.Seek(0);
             Native.Packet.ZeroFill(16383);
             Marshal.Copy(InputBytes, 0, (IntPtr)Native.Packet.Memory, InputBytes.Length);
-            Native.Packet.Size = 1; // Native deserialize ignores Size and starts at absolute zero.
+            Native.Packet.Size = InputBytes.Length; // Actual copied frame and seal, not spare allocation.
             Native.Packet.Seek(11);
         }
 
@@ -72,7 +72,7 @@ public sealed partial class LegacyNativeGearReceiverTests
             byte[] actual = new byte[InputBytes.Length];
             Marshal.Copy((IntPtr)Native.Packet.Memory, actual, 0, actual.Length);
             Assert.Equal(InputBytes, actual);
-            Assert.Equal(1, Native.Packet.Size);
+            Assert.Equal(InputBytes.Length, Native.Packet.Size);
             Assert.Equal(Declared, Native.Packet.Position);
         }
 

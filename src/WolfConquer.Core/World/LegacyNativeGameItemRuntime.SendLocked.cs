@@ -1,5 +1,4 @@
 using WolfConquer.Core.Networking;
-using Flags = WolfConquer.Core.World.LegacyNativeGameItemFlags;
 
 namespace WolfConquer.Core.World;
 
@@ -7,24 +6,18 @@ internal sealed partial class LegacyNativeGameItemRuntime
 {
     public void SendItemLocked(LegacyNativeGameClientRuntime client, LegacyNativePacket stream)
     {
-        if (Locked == 2 && client.Player.OnMyOwnServer)
+        // The real item remains the owner. Both the wire output and transition
+        // prepare before any visible mutation; Send is a post-commit notification.
+        lock (this)
         {
-            if (UnLockTimer == 0)
-            {
-                Locked = 0;
-                Mode = Flags.ItemMode.Update;
-                client.Send(ItemCreate(stream, this));
-            }
-            else if (DateTime.Now > LegacyNativeRoleCore.GetTimer(UnLockTimer))
-            {
-                Locked = 0;
-                Mode = Flags.ItemMode.Update;
-                client.Send(ItemCreate(stream, this));
-            }
-            else
-            {
-                client.Send(stream.ItemLockCreate(Uid, LegacyNativeItemLockPacket.TypeLock.UnlockDate, 0, (uint)UnLockTimer));
-            }
+            if (Locked != 2) return;
+            using var plan = PrepareLockedSend(client, stream);
+            if (plan is null) return;
+            ArgumentNullException.ThrowIfNull(stream);
+            if (!plan.IsCurrent()) throw new InvalidOperationException("Locked item ownership changed before commitment.");
+            plan.Output.PublishTo(stream);
+            plan.Commit();
+            plan.Output.Send(client);
         }
     }
 }

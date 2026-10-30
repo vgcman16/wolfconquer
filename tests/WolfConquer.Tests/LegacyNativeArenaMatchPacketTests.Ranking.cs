@@ -111,14 +111,13 @@ public sealed partial class LegacyNativeArenaMatchPacketTests
     [Theory]
     [InlineData((ushort)0)]
     [InlineData((ushort)1)]
-    public Task PageZeroRetainsNativeNegativeIndexFaultAfterWritingTheResponseHeader(ushort rank) => NativePacketTestThread.Run(() =>
+    public Task PageZeroRefusesWithoutPublishingAResponseHeader(ushort rank) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); RankingQuery(scope.Packet, rank, 0);
-        Assert.Throws<IndexOutOfRangeException>(() => InvokePrivate<LegacyNativeMsgArenaRanking>(scope.Client, scope.Packet));
-        Assert.Empty(scope.Queue); Assert.Equal(20, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
-        byte[] prefix = NativeSpellTestFixture.Bytes(scope.Packet);
-        Assert.Equal(rank, BitConverter.ToUInt16(prefix, 4)); Assert.Equal((ushort)0, BitConverter.ToUInt16(prefix, 6));
-        Assert.Equal(10u, BitConverter.ToUInt32(prefix, 12));
+        byte[] before = ArenaAllocation(scope.Packet);
+        Assert.Throws<ArgumentOutOfRangeException>(() => InvokePrivate<LegacyNativeMsgArenaRanking>(scope.Client, scope.Packet));
+        Assert.Empty(scope.Queue); Assert.Equal(8, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Equal(before, ArenaAllocation(scope.Packet));
     });
 
     [Fact]
@@ -133,27 +132,30 @@ public sealed partial class LegacyNativeArenaMatchPacketTests
     [Theory]
     [InlineData((ushort)0)]
     [InlineData((ushort)1)]
-    public Task NullInfoRankingFaultIsUncaughtAfterHeaderBeforeAnyItemPublication(ushort rank) => NativePacketTestThread.Run(() =>
+    public Task NullInfoRankingRefusesBeforeAnyResponsePublication(ushort rank) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var row = Row(1); row.Info = null!;
         LegacyNativeArenaRankings.Top1000Today[0] = row; LegacyNativeArenaRankings.Top1000[0] = row;
         RankingQuery(scope.Packet, rank, 1);
-        Assert.Throws<NullReferenceException>(() => InvokePrivate<LegacyNativeMsgArenaRanking>(scope.Client, scope.Packet));
-        Assert.Empty(scope.Queue); Assert.Equal(20, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        byte[] before = ArenaAllocation(scope.Packet);
+        Assert.Throws<InvalidOperationException>(() => InvokePrivate<LegacyNativeMsgArenaRanking>(scope.Client, scope.Packet));
+        Assert.Empty(scope.Queue); Assert.Equal(8, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Equal(before, ArenaAllocation(scope.Packet));
         Assert.Null(row.Info);
     });
 
     [Theory]
     [InlineData((ushort)0)]
     [InlineData((ushort)1)]
-    public Task NullNameRankingFaultOccursAfterWritingOnlyTheItemRank(ushort rank) => NativePacketTestThread.Run(() =>
+    public Task NullNameRankingRefusesWithoutPublishingEvenAnItemRank(ushort rank) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var row = Row(1); row.Name = null!;
         LegacyNativeArenaRankings.Top1000Today[0] = row; LegacyNativeArenaRankings.Top1000[0] = row;
         RankingQuery(scope.Packet, rank, 1);
-        Assert.Throws<NullReferenceException>(() => InvokePrivate<LegacyNativeMsgArenaRanking>(scope.Client, scope.Packet));
-        Assert.Empty(scope.Queue); Assert.Equal(22, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
-        Assert.Equal((ushort)1, BitConverter.ToUInt16(NativeSpellTestFixture.Bytes(scope.Packet), 20));
+        byte[] before = ArenaAllocation(scope.Packet);
+        Assert.Throws<ArgumentNullException>(() => InvokePrivate<LegacyNativeMsgArenaRanking>(scope.Client, scope.Packet));
+        Assert.Empty(scope.Queue); Assert.Equal(8, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Equal(before, ArenaAllocation(scope.Packet)); Assert.Null(row.Name);
     });
 
     [Theory]

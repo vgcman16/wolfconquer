@@ -14,30 +14,27 @@ public sealed partial class LegacyNativeGameClientRuntime
     public bool Fake = false;
 
     // Native GameClient1450..1475. Internal only because the real packet type is internal.
-    internal unsafe void Send(LegacyNativePacket? msg)
+    internal void Send(LegacyNativePacket? msg)
     {
         try
         {
-            if (Fake || !Socket!.Alive || msg == null)
+            var socket = Socket;
+            if (Fake || !socket!.Alive || msg == null)
             {
                 return;
             }
-            if (msg.Size > 1032)
+            var description = msg.DescribeSendStorage();
+            if (description.Length > 1032)
             {
-                byte[] array = new byte[msg.Size];
-                fixed (byte* dest = array)
-                {
-                    msg.memcpy(dest, msg.Memory, msg.Size);
-                }
                 LegacyNativeConsole.WriteLine("[WARNING]: Sending packet with a huge length. ID: " +
-                    BitConverter.ToUInt16(array, 2), ConsoleColor.DarkYellow);
+                    description.Opcode, ConsoleColor.DarkYellow);
             }
             else
             {
-                Socket.Send(msg);
+                socket!.TrySend(msg, 1032);
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not AccessViolationException)
         {
             LegacyNativeConsole.WriteException(e);
         }

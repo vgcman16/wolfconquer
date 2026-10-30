@@ -51,11 +51,11 @@ public sealed partial class LegacyNativeChiTests
         using var scope=new Scope();
         scope.Packet.Seek(23); scope.Packet.Write((byte)255); scope.Packet.Write(0xAABBCCDDu); scope.Packet.Write((ushort)0xBEEF);
         scope.Packet.Write((byte)254); scope.Packet.Write((byte)253); scope.Packet.Write(-7); scope.Packet.Write(0x12345678u);
-        scope.Packet.Size=1; scope.Packet.Seek(23);
+        int inputEnd=scope.Packet.Position; scope.Packet.Size=inputEnd; scope.Packet.Seek(23);
         scope.Packet.GetGenericRanking(out var mode,out var type,out var registered,out var page,out var count);
         Assert.Equal((Mode)255,mode); Assert.Equal((Ranking)0xAABBCCDD,type); Assert.Equal((ushort)0xBEEF,registered);
         Assert.Equal((ushort)254,page); Assert.Equal(-7,count); Assert.Equal(36,scope.Packet.Position);
-        Assert.Equal(0x12345678u,scope.Packet.ReadUInt32()); Assert.Equal(1,scope.Packet.Size);
+        Assert.Equal(0x12345678u,scope.Packet.ReadUInt32()); Assert.Equal(inputEnd,scope.Packet.Size);
     });
 
     [Fact]
@@ -82,27 +82,28 @@ public sealed partial class LegacyNativeChiTests
     });
 
     [Fact]
-    public Task ChiQueryNullPowerFaultsBeforeWriterButScoreFaultKeepsOnlyNativeHeaderPrefix() => NativePacketTestThread.Run(() =>
+    public Task ChiQueryMissingPowerOrScoreFailurePreservesTheCompleteTarget() => NativePacketTestThread.Run(() =>
     {
         using var scope=new Scope(); var chi=new Chi(7);
-        Assert.Throws<NullReferenceException>(()=>chi.SendQueryUpdate(scope.Client,null!,scope.Packet));
+        byte[] before=SnapshotChiPacket(scope.Packet);
+        Assert.Throws<ArgumentNullException>(()=>chi.SendQueryUpdate(scope.Client,null!,scope.Packet));
         Assert.Equal(237,scope.Packet.Position); Assert.Equal(321,scope.Packet.Size);
         var power=new Power(Kind.Dragon){UnLocked=true,Attributes=null!};
         Assert.Throws<ArgumentNullException>(()=>chi.SendQueryUpdate(scope.Client,power,scope.Packet));
-        Assert.Equal(21,scope.Packet.Position); Assert.Equal(321,scope.Packet.Size);
-        byte[] actual=NativeSpellTestFixture.Bytes(scope.Packet);
-        Assert.All(actual.Take(4),value=>Assert.Equal((byte)0xA5,value));
-        Assert.All(actual.Skip(21),value=>Assert.Equal((byte)0xA5,value));
+        Assert.Equal(237,scope.Packet.Position); Assert.Equal(321,scope.Packet.Size);
+        Assert.Equal(before,SnapshotChiPacket(scope.Packet));
         Assert.Empty(scope.Queue);
     });
 
     [Fact]
-    public Task ChiQueryNullUserFaultsAfterFinalizedWholeFrameInsteadOfInventingSendSuccess() => NativePacketTestThread.Run(() =>
+    public Task ChiQueryNullUserRefusesBeforeFramePublication() => NativePacketTestThread.Run(() =>
     {
         using var scope=new Scope(); var chi=new Chi(7); var power=MinimumPower(Kind.Phoenix,8,2);
-        Assert.Throws<NullReferenceException>(()=>chi.SendQueryUpdate(null!,power,scope.Packet));
-        Assert.Equal(RankingFrame(2,60000002,0,0,0,1,2,0,8,8,"ChiTester"),NativeSpellTestFixture.Bytes(scope.Packet));
-        Assert.Equal(4,scope.Packet.Position); Assert.Empty(scope.Queue);
+        byte[] before=SnapshotChiPacket(scope.Packet);
+        Assert.Throws<ArgumentNullException>(()=>chi.SendQueryUpdate(null!,power,scope.Packet));
+        Assert.Equal(before,SnapshotChiPacket(scope.Packet));
+        Assert.Equal(237,scope.Packet.Position); Assert.Equal(321,scope.Packet.Size); Assert.Empty(scope.Queue);
+        Assert.Equal(2,power.Rank); Assert.Equal(8u,power.UID); Assert.Equal("ChiTester",power.Name);
     });
 
     [Fact]
@@ -115,15 +116,13 @@ public sealed partial class LegacyNativeChiTests
     });
 
     [Fact]
-    public Task ChiMessageNullNameFaultLeavesTypeAndPackedUidPrefixWithoutFinalHeader() => NativePacketTestThread.Run(() =>
+    public Task ChiMessageNullNameRefusesWithoutChangingTargetOrQueue() => NativePacketTestThread.Run(() =>
     {
         using var scope=new Scope();
-        Assert.Throws<NullReferenceException>(()=>scope.Packet.ChiMessageCreate(Kind.Dragon,123,null!));
-        Assert.Equal(9,scope.Packet.Position); Assert.Equal(321,scope.Packet.Size);
-        byte[] partial=NativeSpellTestFixture.Bytes(scope.Packet);
-        Assert.All(partial.Take(4),value=>Assert.Equal((byte)0xA5,value));
-        Assert.Equal((byte)1,partial[4]); Assert.Equal(123u,BinaryPrimitives.ReadUInt32LittleEndian(partial.AsSpan(5,4)));
-        Assert.All(partial.Skip(9),value=>Assert.Equal((byte)0xA5,value));
+        byte[] before=SnapshotChiPacket(scope.Packet);
+        Assert.Throws<ArgumentNullException>(()=>scope.Packet.ChiMessageCreate(Kind.Dragon,123,null!));
+        Assert.Equal(237,scope.Packet.Position); Assert.Equal(321,scope.Packet.Size);
+        Assert.Equal(before,SnapshotChiPacket(scope.Packet));
         Assert.Empty(scope.Queue);
     });
 }

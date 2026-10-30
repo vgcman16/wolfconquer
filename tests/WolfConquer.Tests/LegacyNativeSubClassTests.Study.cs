@@ -10,7 +10,7 @@ public sealed partial class LegacyNativeSubClassTests
     public Task AddStudyClampsThenQueuesExactTalkEffectAndAnimationInNativeOrder(
         int before, int study, int expected, string messageAmount) => NativePacketTestThread.Run(() =>
         {
-            using var scope = new Scope();
+            using var scope = new Scope(bindStudy: true);
             scope.Runtime.StudyPoints = (ushort)before;
             scope.Runtime.AddStudyPoints(scope.Client, (ushort)study, scope.Packet);
             Assert.Equal((ushort)expected, scope.Runtime.StudyPoints);
@@ -28,7 +28,7 @@ public sealed partial class LegacyNativeSubClassTests
     public Task RemoveStudyUsesStrictGreaterThanIncludingEqualAndZeroCosts(
         int before, int cost, int expected, bool sends) => NativePacketTestThread.Run(() =>
         {
-            using var scope = new Scope();
+            using var scope = new Scope(bindStudy: true);
             scope.Runtime.StudyPoints = (ushort)before;
             scope.Runtime.RemoveStudy(scope.Client, (ushort)cost, scope.Packet);
             Assert.Equal((ushort)expected, scope.Runtime.StudyPoints);
@@ -43,7 +43,7 @@ public sealed partial class LegacyNativeSubClassTests
     [Fact]
     public Task UpdateStudyPacketUsesCurrentPlayerUidAndRetainedStudyWithoutMutatingEither() => NativePacketTestThread.Run(() =>
     {
-        using var scope = new Scope();
+        using var scope = new Scope(bindStudy: true);
         scope.Client.Player.UID = 0x12345678;
         scope.Runtime.StudyPoints = 65535;
         scope.Runtime.UpdateStudyPacket(scope.Client, scope.Packet);
@@ -56,21 +56,19 @@ public sealed partial class LegacyNativeSubClassTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public Task LateStudyFaultRetainsPointsAndAlreadyQueuedTalkBeforeEffectOrAnimation(bool nullView) => NativePacketTestThread.Run(() =>
+    public Task InvalidRequiredStudyStatePreservesPointsCallerAndQueue(bool nullView) => NativePacketTestThread.Run(() =>
     {
-        using var scope = new Scope();
+        using var scope = new Scope(bindStudy: true);
         scope.Runtime.StudyPoints = 1;
+        var original = StudyPhysicalBytes(scope.Packet);
         if (nullView) scope.Client.Player.View = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Runtime.AddStudyPoints(scope.Client, 17,
-            nullView ? scope.Packet : null!));
-        Assert.Equal((ushort)18, scope.Runtime.StudyPoints);
-        scope.Frames(StudyMessage("17"));
-        scope.ChatWasDisposed(StudyMessage("17"));
-        if (nullView) scope.CallerIs(Effect()); // Argument serialization precedes null receiver call.
+        if (nullView)
+            Assert.Throws<InvalidOperationException>(() => scope.Runtime.AddStudyPoints(scope.Client, 17, scope.Packet));
         else
-        {
-            Assert.Equal(321, scope.Packet.Size);
-            Assert.Equal(237, scope.Packet.Position);
-        }
+            Assert.Throws<ArgumentNullException>(() => scope.Runtime.AddStudyPoints(scope.Client, 17, null!));
+        Assert.Equal((ushort)1, scope.Runtime.StudyPoints);
+        scope.Unwritten();
+        Assert.Equal(original, StudyPhysicalBytes(scope.Packet));
+        Assert.Equal(2, WolfConquer.Core.Networking.LegacyNativePacketRecycle.Count);
     });
 }

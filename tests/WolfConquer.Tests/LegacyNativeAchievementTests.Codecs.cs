@@ -59,22 +59,22 @@ public sealed partial class LegacyNativeAchievementTests
     [InlineData(0)]
     [InlineData(4)]
     [InlineData(237)]
-    public Task ReaderUsesCurrentCursorIgnoresSizeOpcodeAndDiscardWord(int start) => NativePacketTestThread.Run(() =>
+    public Task ReaderUsesCapturedInputAtCurrentCursorAndDiscardsTheReservedWord(int start) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var packet = scope.Packet;
         packet.Seek(start); packet.Write(uint.MaxValue); packet.Write(0x80000000u); packet.Write(0x12345678u); packet.Write(0xF0000001u);
-        packet.Size = 0; packet.Seek(start);
+        int inputEnd = packet.Position; packet.Size = inputEnd; packet.Seek(start);
         packet.GetAchievement(out var action, out var uid, out var flag);
         Assert.Equal(uint.MaxValue, (uint)action); Assert.Equal(0x80000000u, uid); Assert.Equal(0xF0000001u, flag);
-        Assert.Equal(start + 16, packet.Position); Assert.Equal(0, packet.Size);
+        Assert.Equal(start + 16, packet.Position); Assert.Equal(inputEnd, packet.Size);
     });
 
     [Theory]
-    [InlineData(16380, 0u, 0u, 0u, 16380)]
-    [InlineData(16379, 0x11223344u, 0u, 0u, 16383)]
-    [InlineData(16375, 0x11223344u, 0xAABBCCDDu, 0u, 16383)]
-    [InlineData(16367, 0x11223344u, 0xAABBCCDDu, 0x87654321u, 16383)]
-    public Task ReaderRetainsStrictMaxSizeBoundaryAndIncrementalAssignments(int start, uint expectedAction, uint expectedUid, uint expectedFlag, int end) => NativePacketTestThread.Run(() =>
+    [InlineData(16380, true)]
+    [InlineData(16379, true)]
+    [InlineData(16375, true)]
+    [InlineData(16367, false)]
+    public Task ReaderPublishesAllFieldsOnlyAfterTheCompleteCapturedRecord(int start, bool rejected) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var packet = scope.Packet;
         // All physical writes remain within our MAX_SIZE allocation, including rejected final reads.
@@ -82,9 +82,14 @@ public sealed partial class LegacyNativeAchievementTests
         uint[] words = [0x11223344, 0xAABBCCDD, 0xDEADBEEF, 0x87654321];
         for (int i = 0; i < words.Length && start + 4 * (i + 1) <= buffer.Length; i++)
             BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(start + 4 * i), words[i]);
-        Copy(packet, buffer); packet.Seek(start); packet.Size = 1;
-        packet.GetAchievement(out var action, out var uid, out var flag);
-        Assert.Equal(expectedAction, (uint)action); Assert.Equal(expectedUid, uid); Assert.Equal(expectedFlag, flag);
-        Assert.Equal(end, packet.Position); Assert.Equal(1, packet.Size);
+        Copy(packet, buffer); packet.Seek(start);
+        var action = (Action)91; uint uid = 92, flag = 93;
+        if (rejected) Assert.Throws<EndOfStreamException>(() => packet.GetAchievement(out action, out uid, out flag));
+        else packet.GetAchievement(out action, out uid, out flag);
+        Assert.Equal(rejected ? 91u : 0x11223344u, (uint)action);
+        Assert.Equal(rejected ? 92u : 0xAABBCCDDu, uid);
+        Assert.Equal(rejected ? 93u : 0x87654321u, flag);
+        Assert.Equal(rejected ? start : start + 16, packet.Position); Assert.Equal(buffer.Length, packet.Size);
+        Assert.Equal(buffer, Bytes(packet));
     });
 }

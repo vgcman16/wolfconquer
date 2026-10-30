@@ -10,7 +10,7 @@ public sealed unsafe partial class LegacyNativePacketProtobufTests
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(3)]
-    public Task NegativeDeclaredPayloadLengthThrowsManagedExceptionAfterReadingHeaderOnly(int declaredLength) => NativePacketTestThread.Run(() =>
+    public Task DeclaredLengthBelowHeaderRefusesWithoutConsumingCursor(int declaredLength) => NativePacketTestThread.Run(() =>
     {
         byte[] original = new byte[] { 0, 0, 0xA1, 0x09 };
         BinaryPrimitives.WriteUInt16LittleEndian(original, (ushort)declaredLength);
@@ -18,24 +18,25 @@ public sealed unsafe partial class LegacyNativePacketProtobufTests
         packet.Seek(3);
         var supplied = new Dict { Type = 7 };
 
-        Assert.Throws<OverflowException>(() => packet.ProtoBufferDeserialize(supplied));
+        Assert.Throws<InvalidDataException>(() => packet.ProtoBufferDeserialize(supplied));
 
-        Assert.Equal(4, packet.Position); // Negative array allocation fails before any payload pointer read.
+        Assert.Equal(3, packet.Position);
         Assert.Equal(4, packet.Size);
         Assert.Equal(7u, supplied.Type);
         Assert.Equal(original, Copy(packet, original.Length));
     });
 
     [Fact]
-    public Task FramedTruncatedVarintThrowsAfterReadingOnlyDeclaredBackedPayload() => NativePacketTestThread.Run(() =>
+    public Task FramedTruncatedVarintThrowsWithoutConsumingCursor() => NativePacketTestThread.Run(() =>
     {
         byte[] original = Frame(5, 2465, 0x08); // Tag is backed; missing varint is managed stream EOF, not pointer EOF.
         using var packet = new Packet(original);
+        packet.Seek(11);
         var supplied = new Dict { Type = 7 };
 
         Assert.Throws<EndOfStreamException>(() => packet.ProtoBufferDeserialize(supplied));
 
-        Assert.Equal(5, packet.Position);
+        Assert.Equal(11, packet.Position);
         Assert.Equal(original.Length, packet.Size);
         Assert.Equal(7u, supplied.Type);
         Assert.Equal(original, Copy(packet, original.Length));

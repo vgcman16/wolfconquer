@@ -27,15 +27,18 @@ public sealed partial class LegacyNativeTeamPrerequisiteTests
     });
 
     [Fact]
-    public Task TeamReadUsesCurrentCursorAndNativeBoundaryZeroWithoutResetOrValidation() => NativePacketTestThread.Run(() =>
+    public Task TeamReadUsesCapturedInputAndRefusesIncompleteBodiesWithoutPartialValues() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         scope.Packet.Seek(100); scope.Packet.Write(77u); scope.Packet.Write(89u);
+        int inputEnd = scope.Packet.Position; scope.Packet.Size = inputEnd;
         scope.Packet.Seek(100); scope.Packet.GetTeamPacket(out var type, out uint uid);
         Assert.Equal((TeamType)77, type); Assert.Equal(89u, uid); Assert.Equal(108, scope.Packet.Position);
-        scope.Packet.Seek(16380); scope.Packet.GetTeamPacket(out type, out uid);
-        Assert.Equal(TeamType.Create, type); Assert.Equal(0u, uid); Assert.Equal(16380, scope.Packet.Position);
-        Assert.Equal(321, scope.Packet.Size);
+        byte[] before = NativeSpellTestFixture.Bytes(scope.Packet);
+        scope.Packet.Seek(16380);
+        Assert.Throws<EndOfStreamException>(() => scope.Packet.GetTeamPacket(out type, out uid));
+        Assert.Equal((TeamType)77, type); Assert.Equal(89u, uid); Assert.Equal(16380, scope.Packet.Position);
+        Assert.Equal(inputEnd, scope.Packet.Size); Assert.Equal(before, NativeSpellTestFixture.Bytes(scope.Packet));
     });
 
     [Theory]

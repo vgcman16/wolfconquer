@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.Runtime;
 
@@ -5,48 +6,41 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class LegacyNativeGameClientRuntime
 {
-    // Native GameClient1423..1448. Mutates the caller's byte[] before Packet copies it;
-    // does not own socket creation, a send pump, host binding, or Packet disposal.
+    // Preserve native byte transformation and1032 frontier, preparing an owned
+    // copy before queue admission. This owns only its temporary Packet, not a connection.
     internal void Send(byte[] buffer)
     {
         try
         {
-            if (Fake || !Socket!.Alive)
+            var socket = Socket;
+            if (Fake || !socket!.Alive)
             {
                 return;
             }
+            ArgumentNullException.ThrowIfNull(buffer);
             if (buffer.Length > 1032)
             {
                 LegacyNativeConsole.WriteLine("[WARNING]: Sending packet with a huge length. ID: " +
                     BitConverter.ToUInt16(buffer, 2), ConsoleColor.DarkYellow);
                 return;
             }
-            if (BitConverter.ToUInt16(buffer, 0) == 0)
+            if (buffer.Length < 12)
+                throw new ArgumentOutOfRangeException(nameof(buffer), "Byte sends require the four-byte header and eight-byte seal.");
+            byte[] prepared = (byte[])buffer.Clone();
+            ushort declaredLength = BinaryPrimitives.ReadUInt16LittleEndian(prepared);
+            ushort actualLength = checked((ushort)(prepared.Length - 8));
+            if (declaredLength != 0 && declaredLength != actualLength)
+                throw new InvalidDataException("Byte-send declared length does not match its actual frame excluding the seal.");
+            if (declaredLength == 0)
             {
-                // Literal reachable MsgServer.Packet.WriteUInt16 (32..39), offset 0.
-                ushort arg = (ushort)(buffer.Length - 8);
-                int offset = 0;
-                if (buffer != null && offset <= buffer.Length - 1 && buffer.Length >= offset + 2)
-                {
-                    buffer[offset] = (byte)arg;
-                    buffer[offset + 1] = (byte)(arg >> 8);
-                }
+                BinaryPrimitives.WriteUInt16LittleEndian(prepared, actualLength);
             }
-            // Literal reachable MsgServer.Packet.WriteString (5..14). In particular,
-            // the native guard does NOT reject a negative offset on short arrays.
-            string text = "TQServer";
-            int sealOffset = buffer!.Length - 8;
-            if (buffer != null && sealOffset <= buffer.Length - 1 && buffer.Length >= sealOffset + text.Length)
-            {
-                for (ushort num = 0; num < text.Length; num++)
-                {
-                    buffer[(ushort)(num + sealOffset)] = (byte)text[num];
-                }
-            }
-            LegacyNativePacket msg = new LegacyNativePacket(buffer!);
-            Socket.Send(msg);
+            "TQServer"u8.CopyTo(prepared.AsSpan(prepared.Length - 8));
+            using var msg = new LegacyNativePacket(prepared);
+            if (socket!.TrySend(msg, 1032) == LegacyNativeSecuritySocket.SendResult.Queued)
+                prepared.CopyTo(buffer, 0);
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not AccessViolationException)
         {
             LegacyNativeConsole.WriteException(e);
         }

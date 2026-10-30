@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.World;
 
@@ -33,15 +34,13 @@ public sealed partial class LegacyNativeClanTests
     });
 
     [Fact]
-    public Task EmptyMemberArrayAndLaterNullRowKeepNativeCountAndFaultOrder() => NativePacketTestThread.Run(() =>
+    public Task EmptyMemberArrayKeepsGoldenAndLaterNullRowLeavesTheCompleteTargetUnchanged() => NativePacketTestThread.Run(() =>
     {
         using var p = new Packets();
         p.Stream.ClanMembersCreate(Array.Empty<LegacyNativeClanMember>());
         Assert.Equal("1400010804000000000000000000000000000000", Convert.ToHexString(NativeSpellTestFixture.Bytes(p.Stream)));
-        Assert.Throws<NullReferenceException>(() => p.Stream.ClanMembersCreate(new[] { new LegacyNativeClanMember { Name = "A" }, null! }));
-        Assert.Equal(72, p.Stream.Position);
-        p.Stream.Seek(16);
-        Assert.Equal(2u, p.Stream.ReadUInt32());
+        AssertClanPacketRefusal<ArgumentException>(p.Stream, () =>
+            p.Stream.ClanMembersCreate(new[] { new LegacyNativeClanMember { Name = "A" }, null! }));
     });
 
     [Theory]
@@ -104,6 +103,7 @@ public sealed partial class LegacyNativeClanTests
         p.Stream.Write(9u);
         p.Stream.Write(11u);
         p.Stream.Write(new[] { "Tail" });
+        p.Stream.Size = p.Stream.Position; // Actual completed initialized fixture extent.
         p.Stream.Seek(8);
         p.Stream.GetClan(out var mode, out var uid, out var parameter, out var list);
         Assert.Equal((LegacyNativeMsgClan.Info)7, mode);
@@ -113,31 +113,32 @@ public sealed partial class LegacyNativeClanTests
     });
 
     [Fact]
-    public Task MissingMemberArrayFaultsAfterThreeFixedWordsButBeforeCount() => NativePacketTestThread.Run(() =>
+    public Task MissingMemberArrayPreservesTheCompleteTargetBeforePreparation() => NativePacketTestThread.Run(() =>
     {
         using var p = new Packets();
-        Assert.Throws<NullReferenceException>(() => p.Stream.ClanMembersCreate(null!));
-        Assert.Equal(16, p.Stream.Position);
-        p.Stream.Seek(4);
-        Assert.Equal(4u, p.Stream.ReadUInt32());
-        Assert.Equal(0u, p.Stream.ReadUInt32());
-        Assert.Equal(0u, p.Stream.ReadUInt32());
-        Assert.Equal(0, p.Stream.Size); // Faulted writer never finalized.
+        AssertClanPacketRefusal<ArgumentNullException>(p.Stream, () => p.Stream.ClanMembersCreate(null!));
     });
 
     [Fact]
-    public Task BulletinOwnerFaultsRetainTheOriginalFixedPrefix() => NativePacketTestThread.Run(() =>
+    public Task BulletinMissingOwnersPreserveTheCompleteTarget() => NativePacketTestThread.Run(() =>
     {
         using var p = new Packets();
-        Assert.Throws<NullReferenceException>(() => p.Stream.ClanBulletinCreate(null!, Clan(8, "Wolf")));
-        Assert.Equal(8, p.Stream.Position);
+        AssertClanPacketRefusal<ArgumentNullException>(p.Stream, () => p.Stream.ClanBulletinCreate(null!, Clan(8, "Wolf")));
         p.Client.Player.ClanUID = 7;
-        Assert.Throws<NullReferenceException>(() => p.Stream.ClanBulletinCreate(p.Client, null!));
-        Assert.Equal(16, p.Stream.Position);
-        p.Stream.Seek(4);
-        Assert.Equal(25u, p.Stream.ReadUInt32());
-        Assert.Equal(7u, p.Stream.ReadUInt32());
-        Assert.Equal(0u, p.Stream.ReadUInt32());
-        Assert.Equal(0, p.Stream.Size);
+        AssertClanPacketRefusal<ArgumentNullException>(p.Stream, () => p.Stream.ClanBulletinCreate(p.Client, null!));
     });
+
+    private static unsafe void AssertClanPacketRefusal<T>(LegacyNativePacket packet, Action action) where T : Exception
+    {
+        byte[] before = new byte[packet.Capacity];
+        Marshal.Copy((nint)packet.Memory, before, 0, before.Length);
+        nuint cursor = (nuint)packet.stream;
+        int size = packet.Size;
+        Assert.Throws<T>(action);
+        Assert.Equal(cursor, (nuint)packet.stream);
+        Assert.Equal(size, packet.Size);
+        byte[] after = new byte[before.Length];
+        Marshal.Copy((nint)packet.Memory, after, 0, after.Length);
+        Assert.Equal(before, after);
+    }
 }

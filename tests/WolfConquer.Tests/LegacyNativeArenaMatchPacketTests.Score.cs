@@ -34,23 +34,24 @@ public sealed partial class LegacyNativeArenaMatchPacketTests
     });
 
     [Fact]
-    public Task ScoreCodecDefaultNullServerFaultsAfterFirstUidAndDoesNotFinalizeOrRepairIdentity() => NativePacketTestThread.Run(() =>
+    public Task ScoreCodecMissingServerRefusesWithoutOutputOrPlaceholderIdentity() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); LegacyNativeGroupServerList.MyServerInfo = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Packet.ArenaMatchScoreCreate(0x1234, "A", 2, 3, "B", 4));
-        Assert.Equal(8, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
-        Assert.Equal(0x1234u, BitConverter.ToUInt32(NativeSpellTestFixture.Bytes(scope.Packet), 4));
+        byte[] before = ArenaAllocation(scope.Packet);
+        Assert.Throws<InvalidOperationException>(() => scope.Packet.ArenaMatchScoreCreate(0x1234, "A", 2, 3, "B", 4));
+        Assert.Equal(237, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Equal(before, ArenaAllocation(scope.Packet));
         Assert.Null(LegacyNativeGroupServerList.MyServerInfo); Assert.Empty(scope.Queue);
     });
 
     [Fact]
-    public Task ScoreCodecNullFirstNameFaultsAfterUidAndServerWithoutFinalization() => NativePacketTestThread.Run(() =>
+    public Task ScoreCodecNullFirstNameRefusesBeforeAnyUidOrServerPublication() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        Assert.Throws<NullReferenceException>(() => scope.Packet.ArenaMatchScoreCreate(1, null!, 2, 3, "B", 4));
-        Assert.Equal(12, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
-        byte[] prefix = NativeSpellTestFixture.Bytes(scope.Packet);
-        Assert.Equal(1u, BitConverter.ToUInt32(prefix, 4)); Assert.Equal(0x11223344u, BitConverter.ToUInt32(prefix, 8));
+        byte[] before = ArenaAllocation(scope.Packet);
+        Assert.Throws<ArgumentNullException>(() => scope.Packet.ArenaMatchScoreCreate(1, null!, 2, 3, "B", 4));
+        Assert.Equal(237, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Equal(before, ArenaAllocation(scope.Packet));
     });
 
     [Fact]

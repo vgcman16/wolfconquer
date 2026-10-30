@@ -7,13 +7,25 @@ internal static partial class LegacyNativeNpcServerReplay
     public static LegacyNativePacket NpcDialog(this LegacyNativePacket stream, out uint npcid, out ushort Mesh,
         out byte option, out byte type, out Mode Action, out string input)
     {
-        npcid = stream.ReadUInt32();
-        Mesh = stream.ReadUInt16();
-        option = stream.ReadUInt8();
-        type = stream.ReadUInt8();
-        Action = (Mode)stream.ReadUInt8();
-        int size = stream.ReadUInt16();
-        input = stream.ReadCString(size);
+        ArgumentNullException.ThrowIfNull(stream);
+        var prepared = stream.ReadPrepared(static packet =>
+        {
+            uint parsedNpcId = packet.ReadUInt32();
+            ushort parsedMesh = packet.ReadUInt16();
+            byte parsedOption = packet.ReadUInt8();
+            byte parsedType = packet.ReadUInt8();
+            var parsedAction = (Mode)packet.ReadUInt8();
+            int length = packet.ReadUInt16();
+            string parsedInput = packet.ReadCString(length);
+            return (NpcId: parsedNpcId, Mesh: parsedMesh, Option: parsedOption,
+                Type: parsedType, Action: parsedAction, Input: parsedInput);
+        });
+        npcid = prepared.NpcId;
+        Mesh = prepared.Mesh;
+        option = prepared.Option;
+        type = prepared.Type;
+        Action = prepared.Action;
+        input = prepared.Input;
         return stream;
     }
 

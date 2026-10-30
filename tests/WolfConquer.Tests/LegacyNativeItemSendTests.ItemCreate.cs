@@ -192,11 +192,11 @@ public sealed partial class LegacyNativeItemSendTests
         });
 
     [Theory]
-    [InlineData("item", 4)]
-    [InlineData("owner", 68)]
-    [InlineData("signature", 100)]
-    [InlineData("relics", 170)]
-    public Task NullInputsLeaveNativePartialWritesAndDoNotFinalize(string missing, int cursor) =>
+    [InlineData("item")]
+    [InlineData("owner")]
+    [InlineData("signature")]
+    [InlineData("relics")]
+    public Task NullRequiredItemMetadataPreservesTheCompleteOldTarget(string missing) =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
@@ -205,13 +205,12 @@ public sealed partial class LegacyNativeItemSendTests
             if (missing == "signature") item.Signature = null!;
             if (missing == "relics") item.RelicAttributes = null!;
 
-            Assert.Throws<NullReferenceException>(() => item.ItemCreate(scope.Packet, missing == "item" ? null! : item));
+            byte[] before = scope.Memory(LegacyNativePacket.MAX_SIZE);
+            Assert.Throws<ArgumentNullException>(() => item.ItemCreate(scope.Packet, missing == "item" ? null! : item));
 
-            Assert.Equal(cursor, scope.Packet.Position);
+            Assert.Equal(237, scope.Packet.Position);
             Assert.Equal(321, scope.Packet.Size);
-            byte[] expected = Enumerable.Repeat((byte)0xA5, cursor + 16).ToArray();
-            Array.Clear(expected, 4, cursor - 4);
-            Assert.Equal(expected, scope.Memory(cursor + 16));
+            Assert.Equal(before, scope.Memory(LegacyNativePacket.MAX_SIZE));
             Assert.Empty(scope.Queue);
         });
 
@@ -248,7 +247,7 @@ public sealed partial class LegacyNativeItemSendTests
     });
 
     [Fact]
-    public Task OversizedRelicArrayRetainsNativeSilentWriterBoundaryOnOwnedMaxBuffer() =>
+    public Task OversizedRelicArrayRefusesBeforeAnyTargetPublication() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
@@ -257,13 +256,12 @@ public sealed partial class LegacyNativeItemSendTests
                 RelicAttributes = new LegacyNativeRelicAttribute[5000],
                 AnimaItemID = 111, MythSoul = 222, MythSoulPoints = 333,
             };
-            item.ItemCreate(scope.Packet, item);
-            var expected = new byte[16382];
-            Put16(expected, 0, 16382);
-            Put16(expected, 2, 2116);
-            Assert.Equal(expected, NativeSpellTestFixture.Bytes(scope.Packet));
-            Assert.Equal(4, scope.Packet.Position);
-            Assert.Equal(new byte[] { 0xA5, 0xA5 }, scope.Memory(16384)[16382..]);
+            var relics = item.RelicAttributes;
+            byte[] before = scope.Memory(LegacyNativePacket.MAX_SIZE);
+            Assert.Throws<InvalidOperationException>(() => item.ItemCreate(scope.Packet, item));
+            Assert.Equal(before, scope.Memory(LegacyNativePacket.MAX_SIZE));
+            Assert.Equal(237, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+            Assert.Same(relics, item.RelicAttributes); Assert.Empty(scope.Queue);
             Assert.Equal(5000, item.RelicAttributes.Length);
         });
 }

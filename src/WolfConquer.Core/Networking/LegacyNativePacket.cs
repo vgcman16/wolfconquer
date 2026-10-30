@@ -83,14 +83,17 @@ internal partial class LegacyNativePacket : IDisposable
 
     public unsafe void Dispose()
     {
-        if (!IsDisposed)
+        lock (sendStorageGate)
         {
-            IsDisposed = true;
-            if (!((IntPtr)Memory == IntPtr.Zero))
+            if (!IsDisposed)
             {
-                Marshal.FreeHGlobal((IntPtr)Memory);
-                Memory = null;
-                GC.SuppressFinalize(this);
+                IsDisposed = true;
+                if (!((IntPtr)Memory == IntPtr.Zero))
+                {
+                    Marshal.FreeHGlobal((IntPtr)Memory);
+                    Memory = null;
+                    GC.SuppressFinalize(this);
+                }
             }
         }
     }
@@ -117,19 +120,13 @@ internal partial class LegacyNativePacket : IDisposable
 
     public void Finalize(ushort type)
     {
-        if (SealSize > 0)
-        {
-            WriteSeal();
-        }
-        Size = Position;
-        Seek(0);
-        Write((ushort)(Size - SealSize));
-        Write(type);
+        FinalizePhysicalFrame(type);
     }
 
     public void WriteSeal()
     {
-        Write(SealString, 8);
+        ValidatePhysicalWrite(TQ_SEALSIZE);
+        WritePhysicalBytes(CapturePhysicalSeal(required: true));
     }
 
     public unsafe void memcpy(void* dest, void* src, int size)

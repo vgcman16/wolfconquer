@@ -60,13 +60,16 @@ public sealed partial class LegacyNativeMentorShareTests
     });
 
     [Fact]
-    public Task SocialCodecFaultsRetainNativePrefixCursorAndOldSizeWithoutFinalizingOrNullRepair() => NativePacketTestThread.Run(() =>
+    public Task SocialCodecsRejectMissingTextWithoutChangingWholeTargetsOrQueue() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        Assert.Throws<NullReferenceException>(() => scope.Packet.KnowPersonsCreate(LegacyNativeKnowPersonsPacket.Action.AddFriend, 7, true, 9, 0, 0, 0, null!, "N"));
-        Assert.Equal(28, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
-        Assert.Throws<NullReferenceException>(() => scope.Packet.TradePartnerCreate(7, LegacyNativeTradePartnerPacket.Action.AddPartner, true, 1, 2, 3, 4, "B", null!));
-        Assert.Equal(96, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        byte[] before = NativeStringPacketTestScope.Bytes(scope.Packet, scope.Packet.Capacity);
+        Assert.Throws<ArgumentNullException>(() => scope.Packet.KnowPersonsCreate(LegacyNativeKnowPersonsPacket.Action.AddFriend, 7, true, 9, 0, 0, 0, null!, "N"));
+        Assert.Equal(237, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Equal(before, NativeStringPacketTestScope.Bytes(scope.Packet, scope.Packet.Capacity));
+        Assert.Throws<ArgumentNullException>(() => scope.Packet.TradePartnerCreate(7, LegacyNativeTradePartnerPacket.Action.AddPartner, true, 1, 2, 3, 4, "B", null!));
+        Assert.Equal(237, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Equal(before, NativeStringPacketTestScope.Bytes(scope.Packet, scope.Packet.Capacity));
         Assert.Empty(scope.Queue);
     });
 

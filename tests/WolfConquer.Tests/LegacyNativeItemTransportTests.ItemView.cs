@@ -63,31 +63,35 @@ public sealed partial class LegacyNativeItemTransportTests
     });
 
     [Fact]
-    public Task NullItemViewFaultOccursAfterInitWriterWithoutChangingSizeOrSending() => NativePacketTestThread.Run(() =>
+    public Task NullItemViewRefusesBeforeAnyTargetPublication() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        Assert.Throws<NullReferenceException>(() => scope.Packet.ItemViewCreate(1, 0, null!, LegacyNativeMsgItemView.ActionMode.Gold));
-        Assert.Equal(4, scope.Packet.Position); Assert.Equal(333, scope.Packet.Size); Assert.Empty(scope.Queue);
+        byte[] before = ItemViewAllocation(scope.Packet);
+        Assert.Throws<ArgumentNullException>(() => scope.Packet.ItemViewCreate(1, 0, null!, LegacyNativeMsgItemView.ActionMode.Gold));
+        Assert.Equal(211, scope.Packet.Position); Assert.Equal(333, scope.Packet.Size); Assert.Empty(scope.Queue);
+        Assert.Equal(before, ItemViewAllocation(scope.Packet));
     });
 
     [Theory]
-    [InlineData(true, 88)]
-    [InlineData(false, 120)]
-    public Task NullFixedStringFaultKeepsTheWholeNativePrefixAndDoesNotFinalize(bool ownerName, int position) => NativePacketTestThread.Run(() =>
+    [InlineData(true)]
+    [InlineData(false)]
+    public Task NullRequiredViewStringsPreserveTheCompleteOldTarget(bool ownerName) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var item = ViewItem();
         if (ownerName) item.OwnerName = null!; else item.Signature = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Packet.ItemViewCreate(1, 0, item, LegacyNativeMsgItemView.ActionMode.CPs));
-        Assert.Equal(position, scope.Packet.Position); Assert.Equal(333, scope.Packet.Size); Assert.Empty(scope.Queue);
+        byte[] before = ItemViewAllocation(scope.Packet);
+        Assert.Throws<ArgumentNullException>(() => scope.Packet.ItemViewCreate(1, 0, item, LegacyNativeMsgItemView.ActionMode.CPs));
+        Assert.Equal(211, scope.Packet.Position); Assert.Equal(333, scope.Packet.Size); Assert.Empty(scope.Queue);
+        Assert.Equal(before, ItemViewAllocation(scope.Packet));
     });
 
     [Fact]
-    public Task NullRelicArrayFaultComesAfterRuneExpWithoutWritingTailOrFinalizing() => NativePacketTestThread.Run(() =>
+    public Task NullViewRelicArrayRefusesWithoutWritingAnyEarlierFields() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); var item = ViewItem(); item.RelicAttributes = null!;
-        Assert.Throws<NullReferenceException>(() => scope.Packet.ItemViewCreate(1, 0, item, LegacyNativeMsgItemView.ActionMode.Rune));
-        Assert.Equal(188, scope.Packet.Position); Assert.Equal(333, scope.Packet.Size);
-        Assert.Equal(1000u, BitConverter.ToUInt32(NativeSpellTestFixture.Bytes(scope.Packet), 184));
-        Assert.Equal(0xA5A5A5A5u, BitConverter.ToUInt32(NativeSpellTestFixture.Bytes(scope.Packet), 188));
+        byte[] before = ItemViewAllocation(scope.Packet);
+        Assert.Throws<ArgumentNullException>(() => scope.Packet.ItemViewCreate(1, 0, item, LegacyNativeMsgItemView.ActionMode.Rune));
+        Assert.Equal(211, scope.Packet.Position); Assert.Equal(333, scope.Packet.Size);
+        Assert.Equal(before, ItemViewAllocation(scope.Packet)); Assert.Empty(scope.Queue);
     });
 }

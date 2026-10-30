@@ -7,11 +7,13 @@ namespace WolfConquer.Core.World;
 // This is not the gated Player.MessageBox owner or a host NPC dispatcher.
 internal partial class LegacyNativeDialog
 {
-    private LegacyNativeGameClientRuntime client;
+    private readonly LegacyNativeGameClientRuntime client;
     public LegacyNativePacket stream;
 
     public LegacyNativeDialog(LegacyNativeGameClientRuntime Client, LegacyNativePacket _stream)
     {
+        ArgumentNullException.ThrowIfNull(Client);
+        ArgumentNullException.ThrowIfNull(_stream);
         stream = _stream;
         client = Client;
     }

@@ -18,33 +18,51 @@ internal static class LegacyNativeWarehousePacket
     public static LegacyNativePacket WarehouseCreate(this LegacyNativePacket stream, uint NpcID,
         LegacyNativeMsgWarehouse.DepositActionID Action, uint ItemUID, int File_Size, int count)
     {
-        stream.InitWriter();
-        stream.Write(NpcID); stream.Write(0u); stream.Write((uint)Action);
-        stream.Write((ushort)File_Size); stream.Write(ItemUID); stream.Write((ushort)count);
+        ArgumentNullException.ThrowIfNull(stream);
+        if (File_Size < 0 || File_Size > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(File_Size));
+        if (count < 0 || count > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(count));
+        stream.PrepareWriteAt(4, prepared =>
+        {
+            prepared.Write(NpcID); prepared.Write(0u); prepared.Write((uint)Action);
+            prepared.Write((ushort)File_Size); prepared.Write(ItemUID); prepared.Write((ushort)count);
+        });
         return stream;
     }
 
     public static LegacyNativePacket AddItemWarehouse(this LegacyNativePacket stream, LegacyNativeGameItemRuntime item)
     {
-        stream.Write(item.Uid); stream.Write(item.ITEM_ID); stream.Write((byte)0);
-        stream.Write((byte)item.SocketOne); stream.Write((byte)item.SocketTwo); stream.Write(item.SpellID);
-        stream.Write((ushort)item.Effect); stream.Write(item.Plus); stream.Write(item.Bless);
-        stream.Write(item.Bound); stream.Write(item.Enchant); stream.Write((byte)item.ProgresGreen);
-        stream.Write((uint)item.Effect); stream.Write(item.Locked); stream.Write((byte)0);
-        stream.Write(item.SocketProgress); stream.Write(item.PlusProgress); stream.Write(item.TimeLeftInMinutes * 60);
-        stream.Write(0u); stream.Write(item.StackSize); stream.Write(item.Purification.PurificationItemID);
-        stream.Write((ushort)0); stream.Write(item.PerfectionLevel); stream.Write(item.PerfectionProgress);
-        stream.Write(item.OwnerUID); stream.Write(item.OwnerName, 32); stream.Write(item.Signature, 60);
-        stream.Write(item.RuneEXP);
-        for (int i=0;i<item.RelicAttributes.Length;i++) stream.Write(item.RelicAttributes[i]);
-        stream.Write(item.AnimaItemID); stream.ZeroFill(4); stream.Write(item.MythSoul);
-        stream.Write(item.MythSoulPoints); stream.ZeroFill(11); stream.Write((byte)0);
-        stream.Write(0u); stream.Write(0u); stream.Write(0u); stream.Write(0u);
+        ArgumentNullException.ThrowIfNull(stream);
+        var image = new LegacyNativeItemPacketSnapshot(item);
+        return stream.AddCapturedWarehouse(image);
+    }
+
+    internal static LegacyNativePacket AddCapturedWarehouse(this LegacyNativePacket stream, LegacyNativeItemPacketSnapshot image)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        if (!image.IsCurrent()) throw new InvalidOperationException("Warehouse item changed before row preparation.");
+        stream.PrepareAppend(prepared =>
+        {
+            prepared.Write(image.Uid); prepared.Write(image.ITEM_ID); prepared.Write((byte)0);
+            prepared.Write((byte)image.SocketOne); prepared.Write((byte)image.SocketTwo); prepared.Write(image.SpellID);
+            prepared.Write((ushort)image.Effect); prepared.Write(image.Plus); prepared.Write(image.Bless);
+            prepared.Write(image.Bound); prepared.Write(image.Enchant); prepared.Write((byte)image.ProgresGreen);
+            prepared.Write((uint)image.Effect); prepared.Write(image.Locked); prepared.Write((byte)0);
+            prepared.Write(image.SocketProgress); prepared.Write(image.PlusProgress); prepared.Write(image.TimeLeftInMinutes * 60);
+            prepared.Write(0u); prepared.Write(image.StackSize); prepared.Write(image.Purification.PurificationItemID);
+            prepared.Write((ushort)0); prepared.Write(image.PerfectionLevel); prepared.Write(image.PerfectionProgress);
+            prepared.Write(image.OwnerUID); prepared.Write(image.OwnerName, 32); prepared.Write(image.Signature, 60);
+            prepared.Write(image.RuneEXP);
+            for (int i=0;i<image.RelicCount;i++) prepared.Write(image.RelicWord(i));
+            prepared.Write(image.AnimaItemID); prepared.ZeroFill(4); prepared.Write(image.MythSoul);
+            prepared.Write(image.MythSoulPoints); prepared.ZeroFill(11); prepared.Write((byte)0);
+            prepared.Write(0u); prepared.Write(0u); prepared.Write(0u); prepared.Write(0u);
+        });
         return stream;
     }
 
     public static LegacyNativePacket FinalizeWarehouse(this LegacyNativePacket stream)
     {
+        ArgumentNullException.ThrowIfNull(stream);
         stream.Finalize(2080); return stream;
     }
 }

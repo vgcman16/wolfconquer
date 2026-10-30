@@ -14,7 +14,8 @@ internal static partial class LegacyNativeMsgTitleStorage
 
     public static void GetTitleStorage(this LegacyNativePacket stream, out TitleStorage pQuery)
     {
-        pQuery = new TitleStorage();
-        pQuery = stream.ProtoBufferDeserialize(pQuery);
+        ArgumentNullException.ThrowIfNull(stream);
+        var prepared = stream.ProtoBufferDeserialize(new TitleStorage());
+        pQuery = prepared;
     }
 }

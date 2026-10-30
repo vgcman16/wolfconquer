@@ -20,16 +20,15 @@ internal static partial class LegacyNativeNpcReply
     public static LegacyNativePacket NpcReplyCreate(this LegacyNativePacket stream, InteractTypes interactType,
         string text, ushort InputMaxLength, byte OptionID, bool display = true)
     {
-        stream.InitWriter();
-        stream.Write(0);
-        stream.Write(InputMaxLength);
-        stream.Write(OptionID);
-        stream.Write((byte)interactType);
-        if (display)
+        ArgumentNullException.ThrowIfNull(stream);
+        stream.PrepareFrame(2255, prepared =>
         {
-            stream.Write(text);
-        }
-        stream.Finalize(2255);
+            prepared.Write(0);
+            prepared.Write(InputMaxLength);
+            prepared.Write(OptionID);
+            prepared.Write((byte)interactType);
+            if (display) prepared.Write(text);
+        });
         return stream;
     }
 }

@@ -7,16 +7,16 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativePipeTransportTests
 {
     [Fact]
-    public Task NullPipeFaultOccursAfterItemEncodingButBeforeExpiryMutation() => NativePacketTestThread.Run(() =>
+    public Task NullPipeRefusesBeforeCallerOutputOrExpiryMutation() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         var item = PhysicalItem();
         item.Purification = Purification();
 
-        Assert.Throws<NullReferenceException>(() => item.Send((Pipe)null!, scope.Packet));
+        var before = new PipeItemOutputState(scope.Packet);
+        Assert.Throws<ArgumentNullException>(() => item.Send((Pipe)null!, scope.Packet));
 
-        Assert.Equal(ItemFrame(), NativeSpellTestFixture.Bytes(scope.Packet));
-        Assert.Equal(4, scope.Packet.Position);
+        before.AssertUnchanged(scope.Packet);
         Assert.Empty(scope.Queue);
         Assert.False(PurificationAvailable(item.Purification));
         Assert.Equal(Extra.Typing.ExpireTime, item.Purification.Typ);
@@ -30,7 +30,9 @@ public sealed partial class LegacyNativePipeTransportTests
         item.Purification = Purification();
         item.Refinary = Refinery();
 
-        Assert.Throws<NullReferenceException>(() => item.Send(scope.Pipe, null!));
+        var before = new PipeItemOutputState(scope.Packet);
+        Assert.Throws<ArgumentNullException>(() => item.Send(scope.Pipe, null!));
+        before.AssertUnchanged(scope.Packet);
 
         Assert.Equal(237, scope.Packet.Position);
         Assert.Equal(321, scope.Packet.Size);
@@ -40,16 +42,17 @@ public sealed partial class LegacyNativePipeTransportTests
     });
 
     [Fact]
-    public Task MissingSocketFaultOccursAfterItemEncodingButBeforeExtras() => NativePacketTestThread.Run(() =>
+    public Task MissingActiveSocketRefusesBeforeCallerOutputOrExtras() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         var item = PhysicalItem();
         item.Purification = Purification();
         scope.Pipe.Socket = null!;
 
-        Assert.Throws<NullReferenceException>(() => item.Send(scope.Pipe, scope.Packet));
+        var before = new PipeItemOutputState(scope.Packet);
+        Assert.Throws<InvalidOperationException>(() => item.Send(scope.Pipe, scope.Packet));
 
-        Assert.Equal(ItemFrame(), NativeSpellTestFixture.Bytes(scope.Packet));
+        before.AssertUnchanged(scope.Packet);
         Assert.Empty(scope.Queue);
         Assert.True(scope.Pipe.Alive);
         Assert.False(PurificationAvailable(item.Purification));
@@ -57,28 +60,24 @@ public sealed partial class LegacyNativePipeTransportTests
     });
 
     [Fact]
-    public Task NullRelicArrayPreservesNativeItemWritePrefixWithoutFinalHeaderOrSend() => NativePacketTestThread.Run(() =>
+    public Task NullRelicArrayPreservesCompleteTargetAndActualExtras() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         var item = PhysicalItem();
         item.RelicAttributes = null!;
         item.Purification = Purification();
+        var purification = item.Purification; var refinery = item.Refinary;
+        var before = new PipeItemOutputState(scope.Packet);
 
-        Assert.Throws<NullReferenceException>(() => item.Send(scope.Pipe, scope.Packet));
+        Assert.Throws<ArgumentNullException>(() => item.Send(scope.Pipe, scope.Packet));
 
-        Assert.Equal(170, scope.Packet.Position);
-        Assert.Equal(321, scope.Packet.Size);
-        byte[] partial = NativeSpellTestFixture.Bytes(scope.Packet);
-        Assert.All(partial.Take(4), value => Assert.Equal((byte)0xA5, value));
-        Assert.Equal(ItemFrame().AsSpan(4, 166).ToArray(), partial.AsSpan(4, 166).ToArray());
-        Assert.All(partial.Skip(170), value => Assert.Equal((byte)0xA5, value));
-        Assert.Empty(scope.Queue);
-        Assert.False(PurificationAvailable(item.Purification));
-        Assert.Equal(Extra.Typing.ExpireTime, item.Purification.Typ);
+        before.AssertUnchanged(scope.Packet); Assert.Empty(scope.Queue);
+        Assert.Equal(purification, item.Purification); Assert.Equal(refinery, item.Refinary);
+        Assert.Null(item.RelicAttributes);
     });
 
     [Fact]
-    public Task PurificationExpiryFaultLeavesAlreadyQueuedItemAndNoExtraWriteOrRefineryVisit() => NativePacketTestThread.Run(() =>
+    public Task PurificationExpiryFaultRefusesWholeItemAndExtraSequence() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         var item = PhysicalItem();
@@ -87,11 +86,12 @@ public sealed partial class LegacyNativePipeTransportTests
         item.Purification.PurificationDuration = 1;
         item.Refinary = Refinery();
 
+        var before = new PipeItemOutputState(scope.Packet);
+        var purification = item.Purification; var refinery = item.Refinary;
         Assert.Throws<ArgumentOutOfRangeException>(() => item.Send(scope.Pipe, scope.Packet));
 
-        Assert.Equal(ItemFrame(), Assert.Single(scope.Queue));
-        Assert.Equal(ItemFrame(), NativeSpellTestFixture.Bytes(scope.Packet));
-        Assert.Equal(4, scope.Packet.Position);
+        Assert.Empty(scope.Queue); before.AssertUnchanged(scope.Packet);
+        Assert.Equal(purification, item.Purification); Assert.Equal(refinery, item.Refinary);
         Assert.False(PurificationAvailable(item.Purification));
         Assert.False(item.Refinary.Available);
         Assert.Equal(Extra.Typing.ExpireTime, item.Purification.Typ);
@@ -99,7 +99,7 @@ public sealed partial class LegacyNativePipeTransportTests
     });
 
     [Fact]
-    public Task RefineryExpiryFaultRetainsEarlierActualPurificationMutationAndQueuedItemOnly() => NativePacketTestThread.Run(() =>
+    public Task RefineryExpiryFaultPreservesEarlierPurificationAndWholeOutputSequence() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         var item = PhysicalItem();
@@ -108,13 +108,14 @@ public sealed partial class LegacyNativePipeTransportTests
         item.Refinary.AddedOn = DateTime.MaxValue;
         item.Refinary.EffectDuration = 1;
 
+        var before = new PipeItemOutputState(scope.Packet);
+        var purification = item.Purification; var refinery = item.Refinary;
         Assert.Throws<ArgumentOutOfRangeException>(() => item.Send(scope.Pipe, scope.Packet));
 
-        Assert.Equal(ItemFrame(), Assert.Single(scope.Queue));
-        Assert.Equal(ItemFrame(), NativeSpellTestFixture.Bytes(scope.Packet));
-        Assert.Equal(4, scope.Packet.Position);
-        Assert.True(PurificationAvailable(item.Purification));
-        Assert.Equal(Extra.Typing.Stabilization, item.Purification.Typ);
+        Assert.Empty(scope.Queue); before.AssertUnchanged(scope.Packet);
+        Assert.Equal(purification, item.Purification); Assert.Equal(refinery, item.Refinary);
+        Assert.False(PurificationAvailable(item.Purification));
+        Assert.Equal(Extra.Typing.ExpireTime, item.Purification.Typ);
         Assert.False(item.Refinary.Available);
         Assert.Equal(Extra.Typing.StabilizationEffectRefined, item.Refinary.Typ);
         Assert.Equal(71u, item.Purification.ItemUID);

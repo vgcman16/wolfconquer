@@ -22,6 +22,7 @@ internal partial class LegacyNativeCMsgMailList
 
         public Mail(LegacyNativeMailList obj)
         {
+            ArgumentNullException.ThrowIfNull(obj);
             Id = obj.id;
             Money = obj.Money;
             EMoney = obj.EMoney;
@@ -31,6 +32,20 @@ internal partial class LegacyNativeCMsgMailList
             Flag = obj.Flag;
             Sender_Name = obj.Sender_name;
             Title = obj.title;
+        }
+
+        internal Mail(Mail source)
+        {
+            ArgumentNullException.ThrowIfNull(source);
+            Id = source.Id;
+            Money = source.Money;
+            EMoney = source.EMoney;
+            Expiration_Date = source.Expiration_Date;
+            Itemid = source.Itemid;
+            Emoney_Record_Type = source.Emoney_Record_Type;
+            Flag = source.Flag;
+            Title = source.Title;
+            Sender_Name = source.Sender_Name;
         }
     }
 

@@ -75,10 +75,12 @@ public sealed partial class LegacyNativeViewTableDependencyTests
         using var s = new Scope();
         byte[] frame = Frame(2048, w => { w.Write((byte)255); w.Write(0x12345678u); });
         Marshal.Copy(frame, 0, (IntPtr)s.Packet.Memory, frame.Length);
+        s.Packet.Size = frame.Length; // Actual copied input, not the spare owned allocation.
         s.Packet.Seek(4); s.Packet.GetRouletteSignUp(out var action, out uint uid);
         Assert.Equal((byte)255, (byte)action); Assert.Equal(0x12345678u, uid); Assert.Equal(9, s.Packet.Position);
         s.Packet.Seek(4); s.Packet.GetRouletteAction(out var mode);
         Assert.Equal((byte)255, (byte)mode); Assert.Equal(5, s.Packet.Position);
+        Assert.Equal(frame.Length, s.Packet.Size);
     });
 
     [Fact]

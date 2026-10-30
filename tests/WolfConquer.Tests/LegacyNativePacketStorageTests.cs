@@ -86,6 +86,7 @@ public sealed unsafe class LegacyNativePacketStorageTests
                 Bytes(packet, 0, 32));
             Assert.Equal(0, packet.Size);
 
+            packet.Size = packet.Position; // Capture the complete initialized writer extent.
             packet.Seek(0);
             Assert.Equal((byte)1, packet.ReadUInt8());
             Assert.Equal((byte)0, packet.ReadUInt8());
@@ -113,6 +114,7 @@ public sealed unsafe class LegacyNativePacketStorageTests
             packet.Write(value, length);
             Assert.Equal(length, packet.Position);
             Assert.Equal(Convert.FromHexString(hex), Bytes(packet, 0, length));
+            packet.Size = packet.Position;
             packet.Seek(0);
             Assert.Equal(decoded, packet.ReadCString(length));
             Assert.Equal(length, packet.Position);
@@ -128,6 +130,7 @@ public sealed unsafe class LegacyNativePacketStorageTests
             packet.Write(new[] { "éZ", "", "中" });
             Assert.Equal(Convert.FromHexString("030300C3A95A00000300E4B8AD"), Bytes(packet, 0, 13));
             Assert.Equal(13, packet.Position);
+            packet.Size = packet.Position;
             packet.Seek(0);
             Assert.Equal(new[] { "éZ", "", "中" }, packet.ReadStringList());
             Assert.Equal(13, packet.Position);
@@ -139,50 +142,56 @@ public sealed unsafe class LegacyNativePacketStorageTests
     [InlineData(2)]
     [InlineData(4)]
     [InlineData(8)]
-    public Task PrimitiveBoundaryRefusesAnExactMaxEndWithoutChangingBytesOrCursor(int width)
+    public Task PrimitiveBoundaryWritesAndReadsTheExactInitializedAllocationEnd(int width)
     {
         return NativePacketTestThread.Run(() =>
         {
             using var packet = new Packet(Packet.MAX_SIZE);
-            Marshal.Copy(Enumerable.Repeat((byte)0xCC, 8).ToArray(), 0,
-                (IntPtr)(packet.Memory + Packet.MAX_SIZE - 8), 8);
+            byte[] initialized = Enumerable.Repeat((byte)0xCC, Packet.MAX_SIZE).ToArray();
+            Marshal.Copy(initialized, 0, (IntPtr)packet.Memory, initialized.Length);
+            packet.Size = initialized.Length;
             packet.Seek(Packet.MAX_SIZE - width);
             WriteWidth(packet, width);
-            Assert.Equal(Packet.MAX_SIZE - width, packet.Position);
-            Assert.Equal(new byte[] { 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC },
+            Assert.Equal(Packet.MAX_SIZE, packet.Position);
+            Assert.Equal(Enumerable.Repeat((byte)0xCC, 8 - width)
+                    .Concat(Enumerable.Repeat((byte)0xA5, width)).ToArray(),
                 Bytes(packet, Packet.MAX_SIZE - 8, 8));
-            Assert.Equal(0UL, ReadWidth(packet, width));
-            Assert.Equal(Packet.MAX_SIZE - width, packet.Position);
-
-            packet.Seek(Packet.MAX_SIZE - width - 1);
-            WriteWidth(packet, width);
-            Assert.Equal(Packet.MAX_SIZE - 1, packet.Position);
-            packet.Seek(Packet.MAX_SIZE - width - 1);
-            var expected = width switch { 1 => 0xA5UL, 2 => 0xA5A5UL, 4 => 0xA5A5A5A5UL, _ => 0xA5A5A5A5A5A5A5A5UL };
+            packet.Seek(Packet.MAX_SIZE - width);
+            ulong expected = width == 8 ? 0xA5A5A5A5A5A5A5A5UL :
+                0xA5A5A5A5A5A5A5A5UL & ((1UL << (width * 8)) - 1);
             Assert.Equal(expected, ReadWidth(packet, width));
-            Assert.Equal(Packet.MAX_SIZE - 1, packet.Position);
-            Assert.Equal((byte)0xCC, packet.Memory[Packet.MAX_SIZE - 1]);
+            Assert.Equal(Packet.MAX_SIZE, packet.Position);
+            Assert.Throws<EndOfStreamException>(() => ReadWidth(packet, width));
+            Assert.Equal(Packet.MAX_SIZE, packet.Position);
         });
     }
 
     [Fact]
-    public Task BoundedBulkCopiesAndZeroFillRetainStrictMaxRefusalAndNulConsumesWholeCString()
+    public Task ExactBulkWritesReadsAndZeroFillUseTheirCompleteInitializedExtent()
     {
         return NativePacketTestThread.Run(() =>
         {
             using var packet = new Packet(Packet.MAX_SIZE);
-            Marshal.Copy(new byte[] { 0xCC, 0xCC, 0xCC, 0xCC }, 0,
-                (IntPtr)(packet.Memory + Packet.MAX_SIZE - 4), 4);
+            byte[] initialized = Enumerable.Repeat((byte)0xCC, Packet.MAX_SIZE).ToArray();
+            Marshal.Copy(initialized, 0, (IntPtr)packet.Memory, initialized.Length);
+            packet.Size = initialized.Length;
             byte* source = stackalloc byte[4] { 65, 66, 0, 68 };
             byte* destination = stackalloc byte[4] { 0xEE, 0xEE, 0xEE, 0xEE };
             packet.Seek(Packet.MAX_SIZE - 4);
             packet.WriteUnsafe(source, 4);
+            Assert.Equal(Packet.MAX_SIZE, packet.Position);
+            Assert.Equal(new byte[] { 65, 66, 0, 68 }, Bytes(packet, Packet.MAX_SIZE - 4, 4));
+            packet.Seek(Packet.MAX_SIZE - 4);
             packet.ReadUnsafe(destination, 4);
+            Assert.Equal(Packet.MAX_SIZE, packet.Position);
+            Assert.Equal(new byte[] { 65, 66, 0, 68 }, new ReadOnlySpan<byte>(destination, 4).ToArray());
+            packet.Seek(Packet.MAX_SIZE - 4);
+            Assert.Equal("AB", packet.ReadCString(4));
+            Assert.Equal(Packet.MAX_SIZE, packet.Position);
+            packet.Seek(Packet.MAX_SIZE - 4);
             packet.ZeroFill(4);
-            Assert.Equal("", packet.ReadCString(4));
-            Assert.Equal(Packet.MAX_SIZE - 4, packet.Position);
-            Assert.Equal(new byte[] { 0xCC, 0xCC, 0xCC, 0xCC }, Bytes(packet, Packet.MAX_SIZE - 4, 4));
-            Assert.Equal(new byte[] { 0xEE, 0xEE, 0xEE, 0xEE }, new ReadOnlySpan<byte>(destination, 4).ToArray());
+            Assert.Equal(Packet.MAX_SIZE, packet.Position);
+            Assert.Equal(new byte[4], Bytes(packet, Packet.MAX_SIZE - 4, 4));
 
             packet.Seek(Packet.MAX_SIZE - 5);
             packet.WriteUnsafe(source, 4);
@@ -198,22 +207,34 @@ public sealed unsafe class LegacyNativePacketStorageTests
             packet.ZeroFill(4);
             Assert.Equal(new byte[4], Bytes(packet, Packet.MAX_SIZE - 5, 4));
             Assert.Equal(Packet.MAX_SIZE - 1, packet.Position);
-            Assert.Equal((byte)0xCC, packet.Memory[Packet.MAX_SIZE - 1]);
+            Assert.Equal((byte)0, packet.Memory[Packet.MAX_SIZE - 1]);
         });
     }
 
     [Fact]
-    public Task CStringRefusesWholeBoundaryRequestWhereReadBytesReturnsPartialThenZero()
+    public Task CStringAndBytesConsumeExactInputEndAndRefuseTruncationWithoutPrefixConsumption()
     {
         return NativePacketTestThread.Run(() =>
         {
             using var packet = new Packet(Packet.MAX_SIZE);
-            Marshal.Copy(new byte[] { 65, 66 }, 0, (IntPtr)(packet.Memory + Packet.MAX_SIZE - 2), 2);
+            byte[] initialized = Enumerable.Repeat((byte)0xCC, Packet.MAX_SIZE).ToArray();
+            initialized[^2] = 65; initialized[^1] = 66;
+            Marshal.Copy(initialized, 0, (IntPtr)packet.Memory, initialized.Length);
+            packet.Size = initialized.Length;
             packet.Seek(Packet.MAX_SIZE - 2);
-            Assert.Equal("", packet.ReadCString(2));
+            Assert.Equal("AB", packet.ReadCString(2));
+            Assert.Equal(Packet.MAX_SIZE, packet.Position);
+            packet.Seek(Packet.MAX_SIZE - 2);
+            Assert.Equal(new byte[] { 65, 66 }, packet.ReadBytes(2));
+            Assert.Equal(Packet.MAX_SIZE, packet.Position);
+            packet.Size = initialized.Length - 1;
+            packet.Seek(Packet.MAX_SIZE - 2);
+            Assert.Throws<EndOfStreamException>(() => packet.ReadCString(2));
             Assert.Equal(Packet.MAX_SIZE - 2, packet.Position);
-            Assert.Equal(new byte[] { 65, 0 }, packet.ReadBytes(2));
-            Assert.Equal(Packet.MAX_SIZE - 1, packet.Position);
+            Assert.Throws<EndOfStreamException>(() => packet.ReadBytes(2));
+            Assert.Equal(Packet.MAX_SIZE - 2, packet.Position);
+            Assert.Equal(initialized.Length - 1, packet.Size);
+            Assert.Equal(initialized, Bytes(packet, 0, initialized.Length));
             Assert.Equal((byte)66, packet.Memory[Packet.MAX_SIZE - 1]);
         });
     }

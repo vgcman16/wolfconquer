@@ -54,25 +54,29 @@ public sealed partial class LegacyNativeProficiencyProgressionTests
         });
 
     [Fact]
-    public void NullProficiencyReaderPublishesNewZeroMessageBeforeFirstDereference()
+    public void MissingProficiencyPacketPreservesTheCallersExistingMessage()
     {
         var old = new LegacyNativeMsgProficiency { ID = 17, PreviouseLevel = 99 };
         var result = old;
-        Assert.Throws<NullReferenceException>(() => LegacyNativeProficiencyPacket.GetProficiency(null!, out result));
-        Assert.NotSame(old, result);
-        AssertRecord(result, 0, 0, 0, 0);
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeProficiencyPacket.GetProficiency(null!, out result));
+        Assert.Same(old, result);
+        AssertRecord(result, 17, 0, 0, 0, 99);
     }
 
     [Fact]
-    public Task EndOfNativeBufferReaderReturnsPartialFieldsWithoutAdvancingPastStrictBoundary() =>
+    public Task IncompleteProficiencyRecordPreservesTheWholeCallerMessageAndInput() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
-            scope.Place(16378, Convert.FromHexString("04030201"));
+            byte[] fragment = Convert.FromHexString("04030201");
+            scope.Place(16378, fragment); scope.Packet.Size = 16378 + fragment.Length;
             scope.Packet.Seek(16378);
-            scope.Packet.GetProficiency(out var read);
-            AssertRecord(read, 0x01020304, 0, 0, 0);
-            Assert.Equal(16382, scope.Packet.Position);
+            byte[] before = scope.Memory(scope.Packet.Capacity);
+            var old = new LegacyNativeMsgProficiency { ID = 17, PreviouseLevel = 99 }; var read = old;
+            Assert.Throws<EndOfStreamException>(() => scope.Packet.GetProficiency(out read));
+            Assert.Same(old, read); AssertRecord(read, 17, 0, 0, 0, 99);
+            Assert.Equal(16378, scope.Packet.Position); Assert.Equal(16382, scope.Packet.Size);
+            Assert.Equal(before, scope.Memory(scope.Packet.Capacity));
         });
 
     [Fact]

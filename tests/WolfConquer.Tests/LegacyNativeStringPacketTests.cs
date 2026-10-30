@@ -103,24 +103,38 @@ public sealed class LegacyNativeStringPacketTests
     });
 
     [Theory]
-    [InlineData(255, 255)]
-    [InlineData(256, 0)]
-    [InlineData(257, 1)]
-    public Task ByteCountWrapDoesNotStopWritingAllEntriesInsideOwned16Kb(int count, int advertised) => NativePacketTestThread.Run(() =>
+    [InlineData(255)]
+    [InlineData(256)]
+    [InlineData(257)]
+    public Task ByteCountBoundRetains255RowsAndRefusesUnrepresentableLists(int count) => NativePacketTestThread.Run(() =>
     {
         using var scope = new NativeStringPacketTestScope();
         var message = new LegacyNativeMsgStringPacket { ID = StringId.GuildList,
             Strings = Enumerable.Repeat("x", count).ToArray() };
+        if (count > byte.MaxValue)
+        {
+            byte[] rejected = NativeStringPacketTestScope.Bytes(scope.Packet, scope.Packet.Capacity);
+            int position = scope.Packet.Position, size = scope.Packet.Size;
+            Assert.Throws<ArgumentOutOfRangeException>(() => scope.Packet.StringPacketCreate(message));
+            Assert.Equal(rejected, NativeStringPacketTestScope.Bytes(scope.Packet, scope.Packet.Capacity));
+            Assert.Equal(position, scope.Packet.Position); Assert.Equal(size, scope.Packet.Size);
+            Assert.Throws<ArgumentOutOfRangeException>(() => scope.Packet.Write(message.Strings));
+            Assert.Equal(rejected, NativeStringPacketTestScope.Bytes(scope.Packet, scope.Packet.Capacity));
+            Assert.Equal(position, scope.Packet.Position); Assert.Equal(size, scope.Packet.Size);
+            Assert.Equal(count, message.Strings.Length);
+            Assert.All(message.Strings, text => Assert.Equal("x", text));
+            return;
+        }
         scope.Packet.StringPacketCreate(message);
         var bytes = NativeStringPacketTestScope.Bytes(scope.Packet);
         Assert.Equal(10 + count * 3, bytes.Length);
-        Assert.Equal((byte)advertised, bytes[9]);
+        Assert.Equal((byte)count, bytes[9]);
         for (int index = 0; index < count; index++)
             Assert.Equal(new byte[] { 1, 0, (byte)'x' }, bytes.AsSpan(10 + index * 3, 3).ToArray());
         scope.Packet.GetStringPacket(out var parsed);
-        Assert.Equal(advertised, parsed.Strings.Length);
+        Assert.Equal(count, parsed.Strings.Length);
         Assert.All(parsed.Strings, text => Assert.Equal("x", text));
-        Assert.Equal(10 + advertised * 3, scope.Packet.Position);
+        Assert.Equal(10 + count * 3, scope.Packet.Position);
     });
 
     [Fact]
@@ -143,7 +157,7 @@ public sealed class LegacyNativeStringPacketTests
     });
 
     [Fact]
-    public Task ReaderUsesCurrentCursorWithoutHeaderSizeOrEnumValidation() => NativePacketTestThread.Run(() =>
+    public Task ReaderUsesCapturedInputAtCurrentCursorWithoutHeaderOrEnumValidation() => NativePacketTestThread.Run(() =>
     {
         using var scope = new NativeStringPacketTestScope();
         var stream = scope.Packet;
@@ -151,20 +165,20 @@ public sealed class LegacyNativeStringPacketTests
         stream.Write(71u);
         stream.Write((byte)255);
         stream.Write(new[] { "z" });
-        stream.Size = 0;
+        int inputEnd = stream.Position; stream.Size = inputEnd;
         stream.Seek(40);
         stream.GetStringPacket(out var parsed);
         Assert.Equal(71u, parsed.UID);
         Assert.Equal((StringId)255, parsed.ID);
         Assert.Equal(new[] { "z" }, parsed.Strings);
         Assert.Equal(49, stream.Position);
-        Assert.Equal(0, stream.Size);
+        Assert.Equal(inputEnd, stream.Size);
         stream.StringPacketCreate(new LegacyNativeMsgStringPacket { UID = parsed.UID, ID = parsed.ID, Strings = [] });
         Assert.Equal((byte)255, NativeStringPacketTestScope.Bytes(stream)[8]);
     });
 
     [Fact]
-    public Task OversizedDeclaredCStringReturnsEmptyAfterPublishingFieldsWithoutUnsafeRead() => NativePacketTestThread.Run(() =>
+    public Task OversizedDeclaredStringListRefusesBeforeWholeMessagePublicationOrConsumption() => NativePacketTestThread.Run(() =>
     {
         using var scope = new NativeStringPacketTestScope();
         var stream = scope.Packet;
@@ -173,52 +187,65 @@ public sealed class LegacyNativeStringPacketTests
         stream.Write((byte)StringId.Sound);
         stream.Write((byte)1);
         stream.Write(ushort.MaxValue);
+        stream.Size = stream.Position;
+        byte[] input = NativeStringPacketTestScope.Bytes(stream);
         stream.Seek(4);
-        stream.GetStringPacket(out var parsed);
-        Assert.Equal(91u, parsed.UID);
-        Assert.Equal(StringId.Sound, parsed.ID);
-        Assert.Equal(new[] { "" }, parsed.Strings);
-        Assert.Equal(12, stream.Position); // Failed bounded CString read does not advance.
+        var before = new LegacyNativeMsgStringPacket { UID = 123, ID = StringId.GuildName, Strings = ["preserved"] };
+        var parsed = before;
+        Assert.Throws<EndOfStreamException>(() => stream.GetStringPacket(out parsed));
+        Assert.Same(before, parsed);
+        Assert.Equal(123u, parsed.UID);
+        Assert.Equal(StringId.GuildName, parsed.ID);
+        Assert.Equal(new[] { "preserved" }, parsed.Strings);
+        Assert.Equal(4, stream.Position);
+        Assert.Equal(12, stream.Size); Assert.Equal(input, NativeStringPacketTestScope.Bytes(stream));
     });
 
     [Fact]
-    public Task EndOfOwnedBufferReturnsPartialFieldsWithCountReadGuardHoldingCursor() => NativePacketTestThread.Run(() =>
+    public Task EndOfCapturedInputRefusesMissingCountWithoutFabricatingAnEmptyList() => NativePacketTestThread.Run(() =>
     {
         using var scope = new NativeStringPacketTestScope();
         var stream = scope.Packet;
         stream.Seek(16378);
         stream.Write(0x76543210u);
         stream.Write((byte)StringId.Spouse);
+        stream.Size = stream.Position;
+        byte[] input = NativeStringPacketTestScope.Bytes(stream);
         stream.Seek(16378);
-        stream.GetStringPacket(out var parsed);
-        Assert.Equal(0x76543210u, parsed.UID);
-        Assert.Equal(StringId.Spouse, parsed.ID);
-        Assert.Empty(parsed.Strings);
-        Assert.Equal(16383, stream.Position); // No read of the allocation's last byte.
+        var before = new LegacyNativeMsgStringPacket { UID = 123, ID = StringId.GuildName, Strings = ["preserved"] };
+        var parsed = before;
+        Assert.Throws<EndOfStreamException>(() => stream.GetStringPacket(out parsed));
+        Assert.Same(before, parsed);
+        Assert.Equal(123u, parsed.UID);
+        Assert.Equal(StringId.GuildName, parsed.ID);
+        Assert.Equal(new[] { "preserved" }, parsed.Strings);
+        Assert.Equal(16378, stream.Position); Assert.Equal(16383, stream.Size);
+        Assert.Equal(input, NativeStringPacketTestScope.Bytes(stream));
     });
 
     [Fact]
-    public Task NullMessageFaultsAfterWriterResetButBeforeSizeOrHeaderPublication() => NativePacketTestThread.Run(() =>
+    public Task NullMessageRefusesBeforeWriterOrFrameChanges() => NativePacketTestThread.Run(() =>
     {
         using var scope = new NativeStringPacketTestScope();
         var stream = scope.Packet;
         stream.Size = 123;
         stream.Seek(99);
-        Assert.Throws<NullReferenceException>(() => stream.StringPacketCreate(null!));
-        Assert.Equal(4, stream.Position);
+        byte[] before = NativeStringPacketTestScope.Bytes(stream, stream.Capacity);
+        Assert.Throws<ArgumentNullException>(() => stream.StringPacketCreate(null!));
+        Assert.Equal(99, stream.Position);
         Assert.Equal(123, stream.Size);
-        Assert.Equal(new byte[4], NativeStringPacketTestScope.Bytes(stream)[..4]);
+        Assert.Equal(before, NativeStringPacketTestScope.Bytes(stream, stream.Capacity));
     });
 
     [Fact]
-    public Task NullReaderPublishesANewMutableResultBeforeTheFirstNativeDereference() => NativePacketTestThread.Run(() =>
+    public Task NullReaderPreservesTheCallersExistingOutput() => NativePacketTestThread.Run(() =>
     {
         LegacyNativePacket stream = null!;
         var before = new LegacyNativeMsgStringPacket { UID = 123 };
         var result = before;
-        Assert.Throws<NullReferenceException>(() => stream.GetStringPacket(out result));
-        Assert.NotSame(before, result);
-        Assert.Equal(0u, result.UID);
+        Assert.Throws<ArgumentNullException>(() => stream.GetStringPacket(out result));
+        Assert.Same(before, result);
+        Assert.Equal(123u, result.UID);
         Assert.Null(result.Strings);
         Assert.Equal((StringId)0, result.ID);
     });
@@ -237,7 +264,7 @@ internal sealed class NativeStringPacketTestScope : IDisposable
     {
         priorSeal = SealField.GetValue(null);
         SealField.SetValue(null, sealedFrame ? "TQServer" : null);
-        Packet.ZeroFill(16383);
+        Packet.ZeroFill(Packet.Capacity);
         Packet.Seek(0);
     }
 
@@ -251,9 +278,9 @@ internal sealed class NativeStringPacketTestScope : IDisposable
         return new LegacyNativeGameClientRuntime { Socket = socket };
     }
 
-    internal static unsafe byte[] Bytes(LegacyNativePacket stream)
+    internal static unsafe byte[] Bytes(LegacyNativePacket stream, int? length = null)
     {
-        var bytes = new byte[stream.Size];
+        var bytes = new byte[length ?? stream.Size];
         Marshal.Copy((IntPtr)stream.Memory, bytes, 0, bytes.Length);
         return bytes;
     }

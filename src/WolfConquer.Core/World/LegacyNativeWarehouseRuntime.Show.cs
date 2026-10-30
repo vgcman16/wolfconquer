@@ -12,47 +12,30 @@ internal sealed partial class LegacyNativeWarehouseRuntime
             ID==LegacyNativeNpcID.PokerWarehouseman || ID==LegacyNativeNpcID.WHStone || ID==(LegacyNativeNpcID)65535u;
     }
 
-    // Whole native Warehouse.Show. The initial IsShow mutation and all full
-    // batching/extra/lock branches are retained, including mutation-before-fault.
+    // Prepare every actual frame before any shown marker, item change or Send.
     public void Show(uint NpcID, LegacyNativeMsgWarehouse.DepositActionID Action, LegacyNativePacket stream)
     {
-        if (!ClientItems.ContainsKey(NpcID) || IsShow.Contains(NpcID)) return;
-        IsShow.Add(NpcID);
-        Dictionary<int,List<LegacyNativeGameItemRuntime>> dictionary = new Dictionary<int,List<LegacyNativeGameItemRuntime>>();
-        dictionary.Add(0,new List<LegacyNativeGameItemRuntime>());
-        int num=0;
-        LegacyNativeGameItemRuntime[] array=ClientItems[NpcID].Values.ToArray();
-        for (uint num2=0u;num2<array.Length;num2++)
+        lock (this)
         {
-            if (num2%4==0 && num2!=0)
+            var banks = ClientItems ?? throw new InvalidOperationException("Warehouse banks are unavailable.");
+            if (!banks.TryGetValue(NpcID, out var bank)) return;
+            var shown = IsShow ?? throw new InvalidOperationException("Warehouse shown state is unavailable.");
+            if (shown.Contains(NpcID)) return;
+            ArgumentNullException.ThrowIfNull(stream);
+            var context = CaptureShow(NpcID, Action, banks, bank, shown);
+            // Serialize cooperating item lock transitions in a stable UID order.
+            var items = context.Entries.OrderBy(entry => entry.Key).Select(entry => entry.Value).ToArray();
+            int acquired = 0;
+            try
             {
-                num++; dictionary.Add(num,new List<LegacyNativeGameItemRuntime>());
+                for (; acquired < items.Length; acquired++) Monitor.Enter(items[acquired]);
+                using var plan = PrepareShow(context, stream);
+                CommitShow(plan, stream);
             }
-            dictionary[num].Add(array[num2]);
-        }
-        foreach (List<LegacyNativeGameItemRuntime> value in dictionary.Values)
-        {
-            LegacyNativeItemExtra msgItemExtra=new LegacyNativeItemExtra();
-            stream.WarehouseCreate(NpcID,Action,0u,(NpcID==User!.Player.UID)?User.Player.InventorySashCount:WHMaxSpace(),value.Count);
-            foreach (LegacyNativeGameItemRuntime item in value)
+            finally
             {
-                stream.AddItemWarehouse(item);
-                if (item.Refinary.InLife)
-                {
-                    item.Refinary.Typ=LegacyNativeItemExtra.Typing.RefinaryAdding;
-                    if (item.Refinary.EffectDuration==0) item.Refinary.Typ=LegacyNativeItemExtra.Typing.PermanentRefinery;
-                    msgItemExtra.Refinerys.Add(item.Refinary);
-                }
-                if (item.Purification.InLife)
-                {
-                    item.Purification.Typ=LegacyNativeItemExtra.Typing.PurificationAdding;
-                    msgItemExtra.Purifications.Add(item.Purification);
-                }
+                while (acquired > 0) Monitor.Exit(items[--acquired]);
             }
-            User!.Send(stream.FinalizeWarehouse());
-            foreach (LegacyNativeGameItemRuntime item2 in value) item2.SendItemLocked(User,stream);
-            if (msgItemExtra.Refinerys.Count!=0 || msgItemExtra.Purifications.Count!=0)
-                User.Send(msgItemExtra.CreateArray(stream));
         }
     }
 }

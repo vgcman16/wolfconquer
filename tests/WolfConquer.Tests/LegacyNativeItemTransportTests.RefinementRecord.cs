@@ -75,6 +75,7 @@ public sealed unsafe partial class LegacyNativeItemTransportTests
         byte[] frame = ProtoFrame(0x08,7,0x10,8,0x18,9,0x20,10,0x2A,15,
             0x08,1,0x10,2,0x18,3,0x20,4,0x28,5,0x30,6,0x3A,1,0x41);
         Marshal.Copy(frame, 0, (IntPtr)scope.Packet.Memory, frame.Length);
+        scope.Packet.Size = frame.Length;
         var previous = new Records.ItemRefineRecord { Type=99 }; var record = previous;
         scope.Packet.GetItemRefineRecord(out record);
         Assert.NotSame(previous, record); Assert.Equal(99u, previous.Type);
@@ -82,7 +83,8 @@ public sealed unsafe partial class LegacyNativeItemTransportTests
         var row = Assert.Single(record.msgs!); Assert.Equal(1u, row.Index); Assert.Equal(2u, row.ItemUID);
         Assert.Equal(3u, row.ItemID); Assert.Equal(4u, row.PurificationID); Assert.Equal(5u, row.OpenStars);
         Assert.Equal(6u, row.RequestStars); Assert.Equal("A", row.str);
-        Assert.Equal(frame.Length, scope.Packet.Position); Assert.Equal(333, scope.Packet.Size);
+        Assert.Equal(frame.Length, scope.Packet.Position); Assert.Equal(frame.Length, scope.Packet.Size);
+        Assert.Equal(frame, NativeSpellTestFixture.Bytes(scope.Packet)); Assert.Empty(scope.Queue);
     });
 
     [Fact]
@@ -90,20 +92,23 @@ public sealed unsafe partial class LegacyNativeItemTransportTests
     {
         using var scope = new Scope(); byte[] frame = ProtoFrame(0x08,1,0x18,2,0x98,0x06,123);
         U16(frame, 2, 7); Marshal.Copy(frame, 0, (IntPtr)scope.Packet.Memory, frame.Length);
+        scope.Packet.Size = frame.Length;
         scope.Packet.GetItemRefineRecord(out var record);
         Assert.Equal(1u, record.Type); Assert.Equal(2u, record.UnKnow); Assert.Equal(0u, record.Points);
         Assert.Null(record.msgs); Assert.Equal(frame.Length, scope.Packet.Position); Assert.Empty(scope.Queue);
     });
 
     [Fact]
-    public Task WholeRecordGetPublishesItsFirstNewObjectBeforeARealTruncatedPayloadFault() => NativePacketTestThread.Run(() =>
+    public Task WholeRecordGetRetainsThePriorObjectAndCursorOnTruncatedPayload() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); byte[] frame = ProtoFrame(0x08);
         Marshal.Copy(frame, 0, (IntPtr)scope.Packet.Memory, frame.Length);
+        scope.Packet.Size = frame.Length;
         var previous = new Records.ItemRefineRecord { Type=99 }; var record = previous;
         Assert.Throws<EndOfStreamException>(() => scope.Packet.GetItemRefineRecord(out record));
-        Assert.NotSame(previous, record); Assert.Equal(0u, record.Type); Assert.Null(record.msgs);
-        Assert.Equal(5, scope.Packet.Position); Assert.Equal(333, scope.Packet.Size);
+        Assert.Same(previous, record); Assert.Equal(99u, record.Type); Assert.Null(record.msgs);
+        Assert.Equal(211, scope.Packet.Position); Assert.Equal(frame.Length, scope.Packet.Size);
+        Assert.Equal(frame, NativeSpellTestFixture.Bytes(scope.Packet)); Assert.Empty(scope.Queue);
     });
 
     [Fact]

@@ -188,7 +188,7 @@ public sealed class LegacyNativePlayerSendStringTests
         var viewOwner = NativeStringPacketTestScope.Owner(viewQueue);
         var receiver = new LegacyNativePlayerRuntime(owner) { View = viewOwner.Player.View };
 
-        Assert.Throws<NullReferenceException>(() => Send(receiver, null!, false, screen, ["fx"]));
+        Assert.Throws<ArgumentNullException>(() => Send(receiver, null!, false, screen, ["fx"]));
 
         Assert.Empty(ownerQueue);
         Assert.Empty(viewQueue);

@@ -80,21 +80,23 @@ public sealed partial class LegacyNativePipeTransportTests
     });
 
     [Fact]
-    public Task DeadPipeStillEncodesWholeItemIntoCallerStreamButDoesNotQueue() => NativePacketTestThread.Run(() =>
+    public Task DeadPipeReturnsBeforeItemMetadataOrCallerOutputWork() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         var item = PhysicalItem();
+        item.OwnerName = null!; item.Signature = null!; item.RelicAttributes = null!;
         var dead = new Pipe();
+        var before = new PipeItemOutputState(scope.Packet);
 
         item.Send(dead, scope.Packet);
+        item.Send(dead, null!);
 
-        Assert.Equal(ItemFrame(), NativeSpellTestFixture.Bytes(scope.Packet));
-        Assert.Equal(206, scope.Packet.Size);
-        Assert.Equal(4, scope.Packet.Position);
+        before.AssertUnchanged(scope.Packet);
         Assert.Empty(scope.Queue);
         Assert.False(dead.Alive);
         Assert.Null(dead.Socket);
         Assert.Null(dead.Owner);
+        Assert.Null(item.OwnerName); Assert.Null(item.Signature); Assert.Null(item.RelicAttributes);
     });
 
     [Fact]

@@ -14,7 +14,8 @@ internal static partial class LegacyNativeMsgItemRefineRecord
 
     public static void GetItemRefineRecord(this LegacyNativePacket stream, out ItemRefineRecord pQuery)
     {
-        pQuery = new ItemRefineRecord();
-        pQuery = stream.ProtoBufferDeserialize(pQuery);
+        ArgumentNullException.ThrowIfNull(stream);
+        var prepared = stream.ProtoBufferDeserialize(new ItemRefineRecord());
+        pQuery = prepared;
     }
 }

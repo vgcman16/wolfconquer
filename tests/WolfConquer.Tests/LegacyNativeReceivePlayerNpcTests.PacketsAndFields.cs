@@ -47,22 +47,20 @@ public sealed partial class LegacyNativeReceivePlayerNpcTests
     });
 
     [Theory]
-    [InlineData(true, 12)]
-    [InlineData(false, 56)]
-    public Task TeamArenaScoreNullNameFaultRetainsNativeWrittenPrefixAndUnfinalizedSize(bool first, int position) => NativePacketTestThread.Run(() =>
+    [InlineData(true)]
+    [InlineData(false)]
+    public Task TeamArenaScoreNullNameRefusesWithoutAnyTargetPublication(bool first) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         scope.Packet.Size = 71;
-        Assert.Throws<NullReferenceException>(() => scope.Packet.TeamArenaMatchScoreCreate(17, 2, first ? null! : "First", 3,
+        byte[] before = NativeStringPacketTestScope.Bytes(scope.Packet, scope.Packet.Capacity);
+        int position = scope.Packet.Position;
+        Assert.Throws<ArgumentNullException>(() => scope.Packet.TeamArenaMatchScoreCreate(17, 2, first ? null! : "First", 3,
             18, 4, first ? "Second" : null!, 5));
         Assert.Equal(position, scope.Packet.Position);
         Assert.Equal(71, scope.Packet.Size);
-        unsafe
-        {
-            Assert.Equal(17u, *(uint*)(scope.Packet.Memory + 4));
-            Assert.Equal(2u, *(uint*)(scope.Packet.Memory + 8));
-            Assert.Equal(0u, *(uint*)scope.Packet.Memory); // Finalize did not run.
-        }
+        Assert.Equal(before, NativeStringPacketTestScope.Bytes(scope.Packet, scope.Packet.Capacity));
+        Assert.Empty(scope.Queue);
     });
 
     [Fact]

@@ -15,7 +15,8 @@ internal static partial class LegacyNativeMsgRankMemberShow
 
     public static void GetRankMemberShow(this LegacyNativePacket stream, out MsgRankMemberShowProto pQuery)
     {
-        pQuery = new MsgRankMemberShowProto();
-        pQuery = stream.ProtoBufferDeserialize(pQuery);
+        ArgumentNullException.ThrowIfNull(stream);
+        var prepared = stream.ProtoBufferDeserialize(new MsgRankMemberShowProto());
+        pQuery = prepared;
     }
 }

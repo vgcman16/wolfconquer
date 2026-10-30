@@ -59,7 +59,7 @@ public sealed partial class LegacyNativeItemSendTests
             var item = Item();
             item.Locked = 2;
             item.Mode = Flags.ItemMode.Trade;
-            Assert.Throws<NullReferenceException>(() => item.SendItemLocked(scope.Client, null!));
+            Assert.Throws<InvalidOperationException>(() => item.SendItemLocked(scope.Client, null!));
             Assert.Equal((byte)2, item.Locked);
             Assert.Equal(Flags.ItemMode.Trade, item.Mode);
             Assert.Empty(scope.Queue);
@@ -138,7 +138,7 @@ public sealed partial class LegacyNativeItemSendTests
         });
 
     [Fact]
-    public Task LateItemCreateFailureDoesNotRollBackUnlockAndModeButDoesNotQueueAFrame() =>
+    public Task RefusedItemOutputCannotUnlockOrChangeModeOrPublishAPrefix() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
@@ -147,15 +147,14 @@ public sealed partial class LegacyNativeItemSendTests
             item.Mode = Flags.ItemMode.View;
             item.OwnerName = null!;
 
-            Assert.Throws<NullReferenceException>(() => item.SendItemLocked(scope.Client, scope.Packet));
+            byte[] before = scope.Memory(16384);
+            Assert.Throws<ArgumentNullException>(() => item.SendItemLocked(scope.Client, scope.Packet));
 
-            Assert.Equal((byte)0, item.Locked);
-            Assert.Equal(Flags.ItemMode.Update, item.Mode);
-            Assert.Equal(68, scope.Packet.Position);
+            Assert.Equal((byte)2, item.Locked);
+            Assert.Equal(Flags.ItemMode.View, item.Mode);
+            Assert.Equal(237, scope.Packet.Position);
             Assert.Equal(321, scope.Packet.Size);
-            byte[] expected = Enumerable.Repeat((byte)0xA5, 84).ToArray();
-            PlainItemFrame(mode: 3).AsSpan(4, 64).CopyTo(expected.AsSpan(4));
-            Assert.Equal(expected, scope.Memory(84));
+            Assert.Equal(before, scope.Memory(16384));
             Assert.Empty(scope.Queue);
         });
 }

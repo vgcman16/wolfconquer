@@ -1,19 +1,20 @@
 using System.Collections.Concurrent;
 namespace WolfConquer.Core.World;
 
-// Complete native Trade physical state and constructor9..29, not an exchange facade.
+// Native trade state; currency admission requires a real durable escrow owner.
 internal partial class LegacyNativeTradeRuntime
 {
-    public LegacyNativeGameClientRuntime Owner;
+    public readonly LegacyNativeGameClientRuntime Owner;
     public LegacyNativeGameClientRuntime? Target;
     public uint ConquerPoints;
     public long Money;
     public bool WindowOpen;
     public bool Confirmed;
-    public ConcurrentDictionary<uint, LegacyNativeGameItemRuntime> Items;
+    public readonly ConcurrentDictionary<uint, LegacyNativeGameItemRuntime> Items;
 
     public LegacyNativeTradeRuntime(LegacyNativeGameClientRuntime _owner)
     {
+        ArgumentNullException.ThrowIfNull(_owner);
         Owner = _owner;
         Items = new ConcurrentDictionary<uint, LegacyNativeGameItemRuntime>();
     }

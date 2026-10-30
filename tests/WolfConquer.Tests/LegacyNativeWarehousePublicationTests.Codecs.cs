@@ -10,7 +10,7 @@ public sealed partial class LegacyNativeWarehousePublicationTests
     {
         using var scope=new Scope(); var packet=scope.Packet;
         Assert.Same(packet,packet.WarehouseCreate(0x11223344,(LegacyNativeMsgWarehouse.DepositActionID)0xFFFF,
-            0x55667788,-1,65537));
+            0x55667788,65535,1));
         Assert.Equal(24,packet.Position); Assert.Equal(321,packet.Size);
         packet.FinalizeWarehouse(); byte[] expected=new byte[24]; U16(expected,0,24); U16(expected,2,2080);
         U32(expected,4,0x11223344); U32(expected,12,0xFFFF); U16(expected,16,0xFFFF);

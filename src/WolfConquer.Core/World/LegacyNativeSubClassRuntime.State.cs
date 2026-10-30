@@ -10,7 +10,23 @@ internal partial class LegacyNativeSubClassRuntime
 {
     public LegacyNativeDbLevExp.Sort ActiveSubclass;
 
-    public ushort StudyPoints = 0;
+    private readonly object studyGate = new();
+    private ushort studyPoints;
+    private ulong studyRevision;
+
+    public ushort StudyPoints
+    {
+        get { lock (studyGate) return studyPoints; }
+        set
+        {
+            lock (studyGate)
+            {
+                ulong next = checked(studyRevision + 1);
+                studyPoints = value;
+                studyRevision = next;
+            }
+        }
+    }
 
     public ConcurrentDictionary<LegacyNativeDbLevExp.Sort, LegacyNativeMsgSubClass.SubClases> src;
 

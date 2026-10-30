@@ -6,7 +6,7 @@ using NativeSocket = WolfConquer.Core.Networking.LegacyNativeSecuritySocket;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LegacyNativeSecuritySocketQueueTests
+public sealed partial class LegacyNativeSecuritySocketQueueTests
 {
     private static readonly byte[] FirstFrame = Convert.FromHexString("0D00800808011205087910AC02");
     private static readonly byte[] SecondFrame = Convert.FromHexString("0A008008080012020879");
@@ -108,7 +108,7 @@ public sealed class LegacyNativeSecuritySocketQueueTests
     });
 
     [Fact]
-    public Task MissingQueueFaultIsSwallowedOnlyAfterNativeCipherStateHasAdvanced() => NativePacketTestThread.Run(() =>
+    public Task MissingQueueRefusesWithoutAdvancingTheActualNativeCipher() => NativePacketTestThread.Run(() =>
     {
         var socket = Socket();
         socket.Alive = true;
@@ -116,9 +116,8 @@ public sealed class LegacyNativeSecuritySocketQueueTests
         using var first = new LegacyNativePacket(FirstFrame);
         using var second = new LegacyNativePacket(SecondFrame);
         var control = new LegacyGameServerCipher(Key);
-        control.Encrypt(FirstFrame, new byte[FirstFrame.Length]);
-        var expectedContinuation = new byte[SecondFrame.Length];
-        control.Encrypt(SecondFrame, expectedContinuation);
+        var expectedFirstQueued = new byte[SecondFrame.Length];
+        control.Encrypt(SecondFrame, expectedFirstQueued);
         var resetOutput = new byte[SecondFrame.Length];
         new LegacyGameServerCipher(Key).Encrypt(SecondFrame, resetOutput);
 
@@ -129,8 +128,8 @@ public sealed class LegacyNativeSecuritySocketQueueTests
         var queue = SeedQueue(socket);
         socket.Send(second);
         var queued = Assert.Single(queue);
-        Assert.Equal(expectedContinuation, queued);
-        Assert.NotEqual(Convert.ToHexString(resetOutput), Convert.ToHexString(queued));
+        Assert.Equal(expectedFirstQueued, queued);
+        Assert.Equal(resetOutput, queued);
         Assert.Null(socket.Connection);
     });
 

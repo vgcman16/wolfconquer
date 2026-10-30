@@ -134,7 +134,7 @@ public sealed partial class LegacyNativePipeTransportTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public Task DeadPipeOrDeadSocketStillMutatesEffectsAndEncodesFinalExtra(bool alivePipe) => NativePacketTestThread.Run(() =>
+    public Task DeadPipeOrDeadSocketPreservesExtrasAndWholeCallerOutput(bool alivePipe) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         var pipe = alivePipe ? scope.Pipe : new Pipe();
@@ -142,18 +142,17 @@ public sealed partial class LegacyNativePipeTransportTests
         var item = PhysicalItem();
         item.Purification = Purification();
         item.Refinary = Refinery();
+        item.Purification.AddedOn = DateTime.MaxValue; item.Purification.PurificationDuration = 1;
+        item.Refinary.AddedOn = DateTime.MaxValue; item.Refinary.EffectDuration = 1;
+        var purification = item.Purification; var refinery = item.Refinary;
+        var before = new PipeItemOutputState(scope.Packet);
 
         item.Send(pipe, scope.Packet);
+        item.Send(pipe, null!);
 
-        Assert.Empty(scope.Queue);
-        Assert.Equal(ExtraFrame(2,
-            71, 8, 800001, 3, 23, 0, 0, 0,
-            82, 3, 724440, 5, 11, 22, 0), NativeSpellTestFixture.Bytes(scope.Packet));
-        Assert.True(PurificationAvailable(item.Purification));
-        Assert.True(item.Refinary.Available);
-        Assert.Equal(Extra.Typing.Stabilization, item.Purification.Typ);
-        Assert.Equal(Extra.Typing.PermanentRefinery, item.Refinary.Typ);
+        Assert.Empty(scope.Queue); before.AssertUnchanged(scope.Packet);
+        Assert.Equal(purification, item.Purification); Assert.Equal(refinery, item.Refinary);
+        Assert.False(PurificationAvailable(item.Purification)); Assert.False(item.Refinary.Available);
         Assert.Equal(alivePipe, pipe.Alive);
-        Assert.Equal(4, scope.Packet.Position);
     });
 }

@@ -50,7 +50,7 @@ public sealed partial class LegacyNativeQuestPacketTests
     });
 
     [Fact]
-    public Task EmptyArraysKeepDistinctOverloadTailsAndReaderStillAllocatesOneIntent() => NativePacketTestThread.Run(() =>
+    public Task EmptyArraysKeepDistinctOverloadTailsAndReaderRefusesAMissingIntentWord() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         scope.Packet.MsgQuestDataCreate(55, 17, Array.Empty<uint>());
@@ -58,32 +58,41 @@ public sealed partial class LegacyNativeQuestPacketTests
         scope.Packet.GetQuestData(out _, out _, out var first); Assert.Equal(new uint[] { 0 }, first);
         scope.Fill(); scope.Packet.MsgQuestDataCreate(55, 17, 9, Array.Empty<uint>());
         Assert.Equal(Convert.FromHexString("0C0058080000000011000000"), NativeSpellTestFixture.Bytes(scope.Packet));
-        scope.Packet.GetQuestData(out _, out _, out var second);
-        Assert.Equal(new[] { 0xA5A5A5A5u }, second); Assert.Equal(16, scope.Packet.Position);
+        uint unknown = 91, uid = 92; uint[] preserved = [93]; uint[] second = preserved;
+        byte[] before = scope.Raw(0, scope.Packet.Capacity);
+        Assert.Throws<EndOfStreamException>(() => scope.Packet.GetQuestData(out unknown, out uid, out second));
+        Assert.Equal(91u, unknown); Assert.Equal(92u, uid); Assert.Same(preserved, second);
+        Assert.Equal(new uint[] { 93 }, second); Assert.Equal(4, scope.Packet.Position); Assert.Equal(12, scope.Packet.Size);
+        Assert.Equal(before, scope.Raw(0, scope.Packet.Capacity));
     });
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public Task NullIntentsFaultAfterFirstZeroWordBeforeLengthUidOrFinalization(bool owner) => NativePacketTestThread.Run(() =>
+    public Task NullIntentsRefuseBeforeChangingAnyTargetBytesOrMetadata(bool owner) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        if (owner) Assert.Throws<NullReferenceException>(() => scope.Packet.MsgQuestDataCreate(1, 2, 3, null!));
-        else Assert.Throws<NullReferenceException>(() => scope.Packet.MsgQuestDataCreate(1, 2, (uint[])null!));
-        Assert.Equal(6, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
-        Assert.Equal(Convert.FromHexString("A5A5A5A50000A5A5A5A5A5A5"), NativeSpellTestFixture.Bytes(scope.Packet).Take(12));
+        byte[] before = scope.Raw(0, scope.Packet.Capacity);
+        if (owner) Assert.Throws<ArgumentNullException>(() => scope.Packet.MsgQuestDataCreate(1, 2, 3, null!));
+        else Assert.Throws<ArgumentNullException>(() => scope.Packet.MsgQuestDataCreate(1, 2, (uint[])null!));
+        Assert.Equal(237, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Equal(before, scope.Raw(0, scope.Packet.Capacity));
     });
 
     [Fact]
-    public Task DataGetterHonorsOnlyCurrentPhysicalCursorAndScalarBoundaryNotDeclaredPacketSize() => NativePacketTestThread.Run(() =>
+    public Task DataGetterUsesCapturedInputAndPreservesAllOutputsWhenTheBodyIsIncomplete() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        scope.Input(Frame(9999, 1, 2, 3, 4)); scope.Packet.Size = 4; scope.Packet.Seek(8);
+        byte[] input = Frame(9999, 1, 2, 3, 4); scope.Input(input); scope.Packet.Seek(8);
         scope.Packet.GetQuestData(out var unknown, out var uid, out var intents);
         Assert.Equal(2u, unknown); Assert.Equal(3u, uid); Assert.Equal(new uint[] { 4 }, intents);
-        Assert.Equal(20, scope.Packet.Position); Assert.Equal(4, scope.Packet.Size);
-        scope.Packet.Seek(16383); scope.Packet.GetQuestData(out unknown, out uid, out intents);
-        Assert.Equal(0u, unknown); Assert.Equal(0u, uid); Assert.Equal(new uint[] { 0 }, intents); Assert.Equal(16383, scope.Packet.Position);
+        Assert.Equal(20, scope.Packet.Position); Assert.Equal(input.Length, scope.Packet.Size);
+        uint[] beforeIntents = intents; byte[] before = scope.Raw(0, scope.Packet.Capacity);
+        scope.Packet.Seek(16383);
+        Assert.Throws<EndOfStreamException>(() => scope.Packet.GetQuestData(out unknown, out uid, out intents));
+        Assert.Equal(2u, unknown); Assert.Equal(3u, uid); Assert.Same(beforeIntents, intents);
+        Assert.Equal(new uint[] { 4 }, intents); Assert.Equal(16383, scope.Packet.Position); Assert.Equal(input.Length, scope.Packet.Size);
+        Assert.Equal(before, scope.Raw(0, scope.Packet.Capacity));
     });
 
     [Fact]

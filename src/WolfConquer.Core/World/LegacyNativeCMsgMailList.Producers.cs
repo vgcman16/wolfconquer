@@ -1,4 +1,5 @@
 #nullable disable
+using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
@@ -7,58 +8,39 @@ internal partial class LegacyNativeCMsgMailList
 {
     public static void Loading(LegacyNativeGameClientRuntime client)
     {
-        using LegacyNativeRecycledPacket recycledPacket = new LegacyNativeRecycledPacket();
-        LegacyNativePacket stream = recycledPacket.GetStream();
-        List<LegacyNativeMailList> list = client.MailList.Values.ToList();
-        if (list.Count == 0)
+        var mail = RequireMailMap(client);
+        lock (mail.SyncRoot)
         {
-            return;
-        }
-        LegacyNativeCMsgMailList cMsgMailList = new LegacyNativeCMsgMailList();
-        cMsgMailList.Type = 0;
-        cMsgMailList.Count = 1;
-        int num = list.Count;
-        for (int i = 0; i < list.Count / 10 + 1; i++)
-        {
-            cMsgMailList.MailList = new Mail[(num > 10) ? 10 : num];
-            for (int j = 0; j < cMsgMailList.MailList.Length; j++)
-            {
-                if (num <= 0)
-                {
-                    break;
-                }
-                cMsgMailList.MailList[j] = new Mail(list[num - 1]);
-                num--;
-            }
-            client.Send(stream.CreateMailList(cMsgMailList));
+            if (mail.Count == 0) return;
+            var prepared = PreparedMailPages.Create(client, mail, sortById: false);
+            prepared.RequireCurrent(client);
+            // The real pool dequeues/rewinds on Take and cannot reserve or roll
+            // back a rental. Touch it only after every actual page prepares.
+            using var rental = new LegacyNativeRecycledPacket();
+            var target = rental.GetStream();
+            var witness = new MailOutputTarget(target);
+            PublishMailPages(client, target, prepared, witness);
         }
     }
 
     // Whole native Process body only: no Packet attribute or dispatcher registration.
     private static void Process(LegacyNativeGameClientRuntime user, LegacyNativePacket stream)
     {
-        List<LegacyNativeMailList> list = user.MailList.Values.OrderByDescending((LegacyNativeMailList p) => p.id).ToList();
-        if (list.Count == 0)
+        var mail = RequireMailMap(user);
+        lock (mail.SyncRoot)
         {
-            return;
+            if (mail.Count == 0) return;
+            ArgumentNullException.ThrowIfNull(stream);
+            var witness = new MailOutputTarget(stream);
+            var prepared = PreparedMailPages.Create(user, mail, sortById: true);
+            PublishMailPages(user, stream, prepared, witness);
         }
-        LegacyNativeCMsgMailList cMsgMailList = new LegacyNativeCMsgMailList();
-        cMsgMailList.Type = 0;
-        cMsgMailList.Count = 1;
-        int num = list.Count;
-        for (int num2 = 0; num2 < list.Count / 10 + 1; num2++)
-        {
-            cMsgMailList.MailList = new Mail[(num > 10) ? 10 : num];
-            for (int num3 = 0; num3 < cMsgMailList.MailList.Length; num3++)
-            {
-                if (num <= 0)
-                {
-                    break;
-                }
-                cMsgMailList.MailList[num3] = new Mail(list[num - 1]);
-                num--;
-            }
-            user.Send(stream.CreateMailList(cMsgMailList));
-        }
+    }
+
+    private static LegacyNativeDbSafeDictionary<uint, LegacyNativeMailList> RequireMailMap(
+        LegacyNativeGameClientRuntime client)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        return client.MailList ?? throw new ArgumentException("Client mail map is unavailable.", nameof(client));
     }
 }

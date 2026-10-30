@@ -55,22 +55,29 @@ public sealed partial class LegacyNativeDialogPacketTests
         });
 
     [Fact]
-    public Task NullClientSendCallFaultsOnlyAfterWholeReplyWasEncodedAndFinalized() =>
+    public Task MissingDialogClientRefusesBeforeEncodingOrSendingAnyReply() =>
         NativePacketTestThread.Run(() =>
         {
-            using var scope = new Scope(); var dialog = new LegacyNativeDialog(null!, scope.Packet);
-            Assert.Throws<NullReferenceException>(() => dialog.AddText("encoded before call"));
-            Assert.Equal(Npc(Reply.InteractTypes.Dialog, "encoded before call"), NativeSpellTestFixture.Bytes(scope.Packet));
-            Assert.Equal(4, scope.Packet.Position); Assert.Empty(scope.Native.Queue);
+            using var scope = new Scope();
+            byte[] before = scope.Raw(0, scope.Packet.Capacity);
+            Assert.Throws<ArgumentNullException>(() => new LegacyNativeDialog(null!, scope.Packet));
+            scope.Untouched(); Assert.Empty(scope.Native.Queue);
+            Assert.Equal(before, scope.Raw(0, scope.Packet.Capacity));
         });
 
     [Fact]
-    public Task NullHandlesAreRetainedAndMessageBoxFinalizeDoesNotReadEitherHandle() =>
+    public Task DialogRequiresBothInitialHandlesAndMessageBoxFinalizationRemainsANoOp() =>
         NativePacketTestThread.Run(() =>
         {
-            using var scope = new Scope(); var dialog = new LegacyNativeDialog(null!, null!);
-            Assert.Null(dialog.stream); dialog.FinalizeDialog(messagebox: true);
-            Assert.Throws<NullReferenceException>(() => dialog.FinalizeDialog()); scope.Untouched(); Assert.Empty(scope.Native.Queue);
+            using var scope = new Scope();
+            byte[] before = scope.Raw(0, scope.Packet.Capacity);
+            Assert.Throws<ArgumentNullException>(() => new LegacyNativeDialog(scope.Native.Owner, null!));
+            Assert.Throws<ArgumentNullException>(() => new LegacyNativeDialog(null!, null!));
+            var dialog = new LegacyNativeDialog(scope.Native.Owner, scope.Packet);
+            dialog.stream = null!; dialog.FinalizeDialog(messagebox: true);
+            Assert.Throws<ArgumentNullException>(() => dialog.FinalizeDialog());
+            scope.Untouched(); Assert.Empty(scope.Native.Queue);
+            Assert.Equal(before, scope.Raw(0, scope.Packet.Capacity));
         });
 
     [Fact]
@@ -79,7 +86,7 @@ public sealed partial class LegacyNativeDialogPacketTests
         {
             using var scope = new Scope(); var dialog = new LegacyNativeDialog(scope.Native.Owner, scope.Packet);
             dialog.Text("first"); dialog.stream = null!;
-            Assert.Throws<NullReferenceException>(() => dialog.AddOption("later", 3));
+            Assert.Throws<ArgumentNullException>(() => dialog.AddOption("later", 3));
             scope.Sent(Npc(Reply.InteractTypes.Dialog, "first"));
             Assert.Equal(Npc(Reply.InteractTypes.Dialog, "first"), NativeSpellTestFixture.Bytes(scope.Packet)); Assert.Null(dialog.stream);
         });

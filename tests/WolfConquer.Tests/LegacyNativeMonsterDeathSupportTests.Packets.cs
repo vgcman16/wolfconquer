@@ -74,6 +74,11 @@ public sealed partial class LegacyNativeMonsterDeathSupportTests
     [Fact]
     public Task MapEffectNullStreamFaultsBeforeAnyOwnerPacket() => NativePacketTestThread.Run(() =>
     {
-        using var p = new Packets(); Assert.Throws<NullReferenceException>(() => p.Client.Player.AddMapEffect(null!, 1, 2, "A")); Assert.Empty(p.Queue);
+        using var p = new Packets();
+        byte[] before = NativeStringPacketTestScope.Bytes(p.Stream, p.Stream.Capacity);
+        int position = p.Stream.Position, size = p.Stream.Size;
+        Assert.Throws<ArgumentNullException>(() => p.Client.Player.AddMapEffect(null!, 1, 2, "A"));
+        Assert.Empty(p.Queue); Assert.Equal(position, p.Stream.Position); Assert.Equal(size, p.Stream.Size);
+        Assert.Equal(before, NativeStringPacketTestScope.Bytes(p.Stream, p.Stream.Capacity));
     });
 }

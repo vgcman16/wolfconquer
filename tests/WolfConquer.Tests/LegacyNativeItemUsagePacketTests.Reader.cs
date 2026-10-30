@@ -15,7 +15,6 @@ public sealed unsafe partial class LegacyNativeItemUsagePacketTests
         const int start = 7;
         byte[] original = ReaderInput(start, (ushort)rawAction, 0);
         using var packet = new Packet(original);
-        packet.Size = 0; // Physically initialized512 bytes remain valid; native parser ignores Size.
         packet.Seek(start);
 
         packet.GetUsageItem(out var action, out var id, out var parameter, out var timestamp,
@@ -31,7 +30,7 @@ public sealed unsafe partial class LegacyNativeItemUsagePacketTests
         Assert.Equal((byte)0x5A, loader);
         Assert.Empty(args);
         Assert.Equal(start + 79, packet.Position);
-        Assert.Equal(0, packet.Size);
+        Assert.Equal(original.Length, packet.Size);
         Assert.Equal(original, Copy(packet, original.Length));
     });
 

@@ -41,14 +41,14 @@ public sealed unsafe partial class LegacyNativePacketProtobufTests
     [Theory]
     [InlineData(null)]
     [InlineData("TQServer")]
-    public Task FramedDeserializeStartsAtZeroIgnoresOpcodeSealSizeAndSuppliedObject(string? seal) => NativePacketTestThread.Run(() =>
+    public Task FramedDeserializeStartsAtZeroWithActualSizeAndIgnoresOpcodeSealAndSuppliedObject(string? seal) => NativePacketTestThread.Run(() =>
     {
         using var savedSeal = new SealScope(seal);
         byte[] original = Frame(8, ushort.MaxValue, 0x08, 0x01, 0x10, 0x11);
         var supplied = new Dict { Type = 9, Done = 23 };
         var retained = supplied.Items2;
         using var packet = new Packet(original);
-        packet.Size = 1; // Native parser ignores Size; all declared8 bytes are physically backed.
+        packet.Size = 8 + Packet.SealSize; // Actual input owns the declared frame; spare allocation does not.
         packet.Seek(12);
 
         Dict actual = packet.ProtoBufferDeserialize(supplied);
@@ -61,7 +61,7 @@ public sealed unsafe partial class LegacyNativePacketProtobufTests
         Assert.Equal(23u, supplied.Done);
         Assert.Same(retained, supplied.Items2);
         Assert.Equal(8, packet.Position);
-        Assert.Equal(1, packet.Size);
+        Assert.Equal(8 + Packet.SealSize, packet.Size);
         Assert.Equal(original, Copy(packet, original.Length));
         Assert.Equal(seal is null ? 0 : 8, Packet.SealSize);
     });

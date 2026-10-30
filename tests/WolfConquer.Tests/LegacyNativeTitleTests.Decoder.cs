@@ -6,7 +6,7 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeTitleTests
 {
     [Fact]
-    public Task TitleDecoderRewindsCallerCursorUsesHeaderLengthIgnoresOpcodeAndDoesNotUseSize() =>
+    public Task TitleDecoderUsesTheCapturedHeaderFrameRegardlessOfCallerCursorAndOpcode() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
@@ -28,27 +28,24 @@ public sealed partial class LegacyNativeTitleTests
             Assert.Equal(100u, result.Title.dwparam1);
             Assert.Equal(8u, result.Title.dwparam2);
             Assert.Equal(24, scope.Packet.Position);
-            Assert.Equal(321, scope.Packet.Size);
+            Assert.Equal(input.Length, scope.Packet.Size);
             Assert.Equal(input, scope.Memory(input.Length));
             Assert.Empty(scope.Queue);
         });
 
     [Fact]
-    public void TitleDecoderPublishesNewDefaultOuterBeforeNullStreamFault()
+    public void TitleDecoderNullStreamRefusesWithoutReplacingTheCallerModel()
     {
         var old = new Message.TitleStorage { dwparam1 = 999, Title = new Message.Title { ID = 17 } };
         var result = old;
-        Assert.Throws<NullReferenceException>(() => Message.GetTitleStorage(null!, out result));
-        Assert.NotSame(old, result);
-        Assert.Equal(Message.Action.UpdateScore, result.ActionID);
-        Assert.Equal(0u, result.dwparam1);
-        Assert.Equal(0u, result.dwparam2);
-        Assert.Equal(0u, result.dwparam3);
-        Assert.Null(result.Title);
+        Assert.Throws<ArgumentNullException>(() => Message.GetTitleStorage(null!, out result));
+        Assert.Same(old, result);
+        Assert.Equal(999u, result.dwparam1);
+        Assert.Equal(17u, result.Title.ID);
     }
 
     [Fact]
-    public Task InvalidShortDeclaredLengthFaultsAfterHeaderReadBeforePayloadOrModelRead() =>
+    public Task InvalidShortDeclaredLengthPreservesTheCallerModelAndOriginalCursor() =>
         NativePacketTestThread.Run(() =>
         {
             using var scope = new Scope();
@@ -57,12 +54,12 @@ public sealed partial class LegacyNativeTitleTests
                 scope.Input([length, 0, 9, 9]);
                 var old = new Message.TitleStorage { dwparam1 = 999 };
                 var result = old;
-                Assert.Throws<OverflowException>(() => scope.Packet.GetTitleStorage(out result));
-                Assert.NotSame(old, result);
-                Assert.Equal(0u, result.dwparam1);
+                Assert.Throws<InvalidDataException>(() => scope.Packet.GetTitleStorage(out result));
+                Assert.Same(old, result);
+                Assert.Equal(999u, result.dwparam1);
                 Assert.Null(result.Title);
-                Assert.Equal(4, scope.Packet.Position);
-                Assert.Equal(321, scope.Packet.Size);
+                Assert.Equal(237, scope.Packet.Position);
+                Assert.Equal(4, scope.Packet.Size);
                 Assert.Equal(new byte[] { length, 0, 9, 9 }, scope.Memory(4));
                 Assert.Empty(scope.Queue);
             }

@@ -81,7 +81,8 @@ internal static partial class LegacyNativeMsgNinja
 
     public static void GetNinjaItem(this LegacyNativePacket stream, out MsgNinjaItem pQuery)
     {
-        pQuery = new MsgNinjaItem();
-        pQuery = stream.ProtoBufferDeserialize(pQuery);
+        ArgumentNullException.ThrowIfNull(stream);
+        var decoded = stream.ProtoBufferDeserialize(new MsgNinjaItem());
+        pQuery = decoded;
     }
 }

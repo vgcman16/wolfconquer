@@ -28,12 +28,12 @@ public sealed partial class LegacyNativeNpcServerReplayTests
             Packet.Size = 321; Packet.Seek(237);
         }
 
-        internal unsafe void Seed(byte[] input, int position, int managedSize = 1)
+        internal unsafe void Seed(byte[] input, int position)
         {
             Assert.InRange(position, 0, LegacyNativePacket.MAX_SIZE);
             Assert.InRange(input.Length, 0, LegacyNativePacket.MAX_SIZE - position);
             Fill(); Marshal.Copy(input, 0, (IntPtr)(Packet.Memory + position), input.Length);
-            Packet.Size = managedSize; Packet.Seek(position);
+            Packet.Size = position + input.Length; Packet.Seek(position);
         }
 
         internal unsafe byte[] Raw(int offset, int count)

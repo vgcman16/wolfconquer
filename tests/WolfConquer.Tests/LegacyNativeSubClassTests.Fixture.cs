@@ -72,13 +72,14 @@ public sealed partial class LegacyNativeSubClassTests
         internal LegacyNativePacket Packet => Native.Packet;
         internal Queue<byte[]> Queue => Native.Queue;
 
-        internal Scope()
+        internal Scope(bool bindStudy = false, int chatCapacity = LegacyNativePacket.MAX_SIZE)
         {
             Client.Status = new LegacyNativeMsgStatus();
+            if (bindStudy) Client.Player.SubClass = Runtime;
             var bin = new ConcurrentQueue<LegacyNativePacket>();
             for (int index = 0; index < 2; index++)
             {
-                var packet = new LegacyNativePacket(LegacyNativePacket.MAX_SIZE);
+                var packet = new LegacyNativePacket(chatCapacity);
                 Fill(packet);
                 chatPackets.Add(packet);
                 bin.Enqueue(packet);
@@ -89,11 +90,16 @@ public sealed partial class LegacyNativeSubClassTests
 
         private static unsafe void Fill(LegacyNativePacket packet)
         {
-            Marshal.Copy(Enumerable.Repeat((byte)0xA5, LegacyNativePacket.MAX_SIZE).ToArray(),
-                0, (IntPtr)packet.Memory, LegacyNativePacket.MAX_SIZE);
-            packet.Size = 321;
-            packet.Seek(237);
+            Marshal.Copy(Enumerable.Repeat((byte)0xA5, packet.Capacity).ToArray(),
+                0, (IntPtr)packet.Memory, packet.Capacity);
+            packet.Size = Math.Min(321, packet.Capacity);
+            packet.Seek(Math.Min(237, packet.Capacity));
         }
+
+        internal void PoolContains(params LegacyNativePacket[] packets) =>
+            Bin.SetValue(null, new ConcurrentQueue<LegacyNativePacket>(packets));
+
+        internal void MissingPool() => Bin.SetValue(null, null);
 
         internal void Frames(params byte[][] expected)
         {

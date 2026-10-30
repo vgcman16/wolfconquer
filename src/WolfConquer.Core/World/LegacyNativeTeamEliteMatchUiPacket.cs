@@ -15,20 +15,20 @@ internal static class LegacyNativeTeamEliteMatchUiPacket
     // Whole native MsgBuilder3187..3204, including the ID2270-only extra word.
     public static LegacyNativePacket TeamElitePKMatchUICreate(this LegacyNativePacket stream, ushort ID, LegacyNativeMsgTeamElitePKMatchUI.State state, LegacyNativeMsgTeamElitePKMatchUI.EffectTyp effect, uint OpponentUID, string OpponentName, uint TimeLeft)
     {
-        stream.InitWriter();
-        stream.Write((uint)state);
-        stream.Write((uint)effect);
-        if (ID == 2270)
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(OpponentName);
+        stream.PrepareFrame(ID, prepared =>
         {
-            stream.Write(0);
-        }
-        stream.Write(OpponentUID);
-        stream.Write(0u);
-        stream.Write(OpponentName, 32);
-        stream.ZeroFill(8);
-        stream.Write(TimeLeft);
-        stream.Write(0u);
-        stream.Finalize(ID);
+            prepared.Write((uint)state);
+            prepared.Write((uint)effect);
+            if (ID == 2270) prepared.Write(0);
+            prepared.Write(OpponentUID);
+            prepared.Write(0u);
+            prepared.Write(OpponentName, 32);
+            prepared.ZeroFill(8);
+            prepared.Write(TimeLeft);
+            prepared.Write(0u);
+        });
         return stream;
     }
 }

@@ -22,7 +22,8 @@ public sealed partial class LegacyNativeMailTests
         Assert.Equal(expected, scope.Queue.Count);
         for (int page = 0; page < expected; page++)
             Assert.Equal(MailFrame(0, 1, live.Skip(page * 10).Take(10).ToArray()), scope.Queue.Dequeue());
-        Assert.Equal(11, scope.Available); Assert.Equal(0, scope.Recycled(0).Position);
+        Assert.Equal(count == 0 ? 12 : 11, scope.Available);
+        Assert.Equal(count == 0 ? 237 : 0, scope.Recycled(0).Position);
     });
 
     [Theory]
@@ -30,7 +31,7 @@ public sealed partial class LegacyNativeMailTests
     [InlineData(1)]
     [InlineData(10)]
     [InlineData(11)]
-    public Task RequestIgnoresSuppliedPacketAndSendsAscendingPhysicalIdsWithSamePageQuirk(int count) => NativePacketTestThread.Run(() =>
+    public Task RequestUsesSuppliedPacketAndSendsAscendingPhysicalIdsWithSamePageQuirk(int count) => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         for (uint i = 1; i <= count; i++) scope.Client.MailList.Add(i, Row((uint)count + 1 - i));
@@ -69,35 +70,63 @@ public sealed partial class LegacyNativeMailTests
     });
 
     [Fact]
-    public Task LoadingCanSendFirstTenBeforeNullLastPageFaultButRequestSortFaultsBeforeWriting() => NativePacketTestThread.Run(() =>
+    public Task LateMissingRowRefusesEveryPageBeforeRentalOrTargetWriteAndRepairCanRetry() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); scope.Client.MailList.Add(1, null!);
         for (uint i = 2; i <= 11; i++) scope.Client.MailList.Add(i, Row(i));
         var snapshot = scope.Client.MailList.Values.ToArray();
-        Assert.Null(snapshot[0]); // Fixture's actual, observed enumeration precondition.
-        Assert.Throws<NullReferenceException>(() => ListMessage.Loading(scope.Client));
-        Assert.Equal(MailFrame(0, 1, snapshot.Skip(1).Reverse().ToArray()), Assert.Single(scope.Queue));
-        Assert.Equal(0, scope.Recycled(0).Position);
-        scope.Queue.Clear();
-        Assert.Throws<NullReferenceException>(() => Process(scope.Client, scope.Packet));
-        Assert.Empty(scope.Queue); Assert.Equal(237, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Null(snapshot[0]); // Actual Loading order would encounter this after its first ten.
+        byte[] prior = [0xD3, 0xA1]; scope.Queue.Enqueue(prior);
+        var output = new MailOutputState(scope.Packet);
+        var rental = new MailOutputState(scope.Recycled(0));
+        long revision = scope.Client.MailList.Revision;
+        Assert.Throws<ArgumentException>(() => ListMessage.Loading(scope.Client));
+        Assert.Throws<ArgumentException>(() => Process(scope.Client, scope.Packet));
+        Assert.Same(prior, Assert.Single(scope.Queue));
+        output.AssertUnchanged(scope.Packet); rental.AssertUnchanged(scope.Recycled(0));
+        Assert.Equal(12, scope.Available); Assert.Equal(revision, scope.Client.MailList.Revision);
+        Assert.Null(scope.Client.MailList[1]);
+        for (int index = 1; index < snapshot.Length; index++)
+            Assert.Same(snapshot[index], scope.Client.MailList[(uint)index + 1]);
+
+        scope.Client.MailList[1] = Row(1); scope.Queue.Clear();
+        var repaired = scope.Client.MailList.Values.Reverse().ToArray();
+        ListMessage.Loading(scope.Client);
+        Assert.Equal(MailFrame(0, 1, repaired.Take(10).ToArray()), scope.Queue.Dequeue());
+        Assert.Equal(MailFrame(0, 1, repaired.Skip(10).ToArray()), scope.Queue.Dequeue());
+        Process(scope.Client, scope.Packet);
+        var ascending = scope.Client.MailList.Values.OrderBy(row => row.id).ToArray();
+        Assert.Equal(MailFrame(0, 1, ascending.Take(10).ToArray()), scope.Queue.Dequeue());
+        Assert.Equal(MailFrame(0, 1, ascending.Skip(10).ToArray()), scope.Queue.Dequeue());
+        Assert.Empty(scope.Queue);
     });
 
     [Fact]
-    public Task RequestWithNullPacketReturnsForEmptyButFaultsOnlyWhenFirstPageMustSerialize() => NativePacketTestThread.Run(() =>
+    public Task RequestWithNullPacketIsOptionalOnlyForEmptyAndRejectsBeforeAnyMailPublication() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); Process(scope.Client, null!); Assert.Empty(scope.Queue);
-        scope.Client.MailList.Add(1, Row());
-        Assert.Throws<NullReferenceException>(() => Process(scope.Client, null!));
-        Assert.Single(scope.Client.MailList); Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available);
+        var row = Row(); scope.Client.MailList.Add(900, row); // Key is intentionally not row.id.
+        byte[] prior = [0xD3, 0xA2]; scope.Queue.Enqueue(prior);
+        var output = new MailOutputState(scope.Packet);
+        var rental = new MailOutputState(scope.Recycled(0));
+        long revision = scope.Client.MailList.Revision;
+        Assert.Throws<ArgumentNullException>(() => Process(scope.Client, null!));
+        Assert.Same(row, scope.Client.MailList[900]); Assert.Same(prior, Assert.Single(scope.Queue));
+        output.AssertUnchanged(scope.Packet); rental.AssertUnchanged(scope.Recycled(0));
+        Assert.Equal(revision, scope.Client.MailList.Revision); Assert.Equal(12, scope.Available);
     });
 
     [Fact]
-    public Task EmptyLoadingStillTakesPacketBeforeInspectingMailWhereasRequestNeverTakesOne() => NativePacketTestThread.Run(() =>
+    public Task EmptyProducersDoNotRequireUnusedPoolOrSuppliedPacket() => NativePacketTestThread.Run(() =>
     {
-        using var scope = new Scope(); scope.NullBin();
-        Assert.Throws<NullReferenceException>(() => ListMessage.Loading(scope.Client));
-        Process(scope.Client, scope.Packet); Assert.Empty(scope.Queue);
+        using var scope = new Scope();
+        var output = new MailOutputState(scope.Packet);
+        var rental = new MailOutputState(scope.Recycled(0));
+        scope.NullBin();
+        ListMessage.Loading(scope.Client);
+        Process(scope.Client, null!); Process(scope.Client, scope.Packet);
+        Assert.Empty(scope.Queue);
+        output.AssertUnchanged(scope.Packet); rental.AssertUnchanged(scope.Recycled(0));
         scope.RestoreBin(); Assert.Equal(12, scope.Available);
     });
 

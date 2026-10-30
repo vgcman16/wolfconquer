@@ -45,8 +45,21 @@ internal partial class LegacyNativeChiRuntime
 
 	public void SendQueryUpdate(LegacyNativeGameClientRuntime user, ChiPower MyPower, LegacyNativePacket stream)
 	{
-		stream.GenericRankingCreate(LegacyNativeMsgGenericRanking.Action.QueryCount, (LegacyNativeMsgGenericRanking.RankType)(60000000u + (uint)MyPower.Type), 0, 0, 1, 0);
-		stream.AddItemGenericRankingCreate(MyPower.Rank, (uint)MyPower.Score, MyPower.UID, MyPower.Name);
-		user.Send(stream.GenericRankingFinalize());
+		ArgumentNullException.ThrowIfNull(user);
+		ArgumentNullException.ThrowIfNull(MyPower);
+		ArgumentNullException.ThrowIfNull(stream);
+		var type = MyPower.Type;
+		int rank = MyPower.Rank;
+		uint score = (uint)MyPower.Score;
+		uint uid = MyPower.UID;
+		string name = MyPower.Name;
+		ArgumentNullException.ThrowIfNull(name);
+		stream.PrepareFrame(2165, prepared =>
+		{
+			prepared.GenericRankingCreate(LegacyNativeMsgGenericRanking.Action.QueryCount,
+				(LegacyNativeMsgGenericRanking.RankType)(60000000u + (uint)type), 0, 0, 1, 0);
+			prepared.AddItemGenericRankingCreate(rank, score, uid, name);
+		});
+		user.Send(stream);
 	}
 }

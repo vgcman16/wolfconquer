@@ -119,9 +119,11 @@ public sealed partial class LegacyNativeGearReceiverTests
         using var s = new Scope();
         s.Gear.AirPowers.Points = 91;
         s.Input(negative ? "" : "08", declared: negative ? 3 : 5);
-        if (negative) Assert.Throws<OverflowException>(() => Receive(method, null, s.Native.Packet));
+        if (negative) Assert.Throws<InvalidDataException>(() => Receive(method, null, s.Native.Packet));
         else Assert.Throws<EndOfStreamException>(() => Receive(method, null, s.Native.Packet));
-        Assert.Equal(negative ? 4 : 5, s.Native.Packet.Position);
+        Assert.Equal(11, s.Native.Packet.Position);
+        Assert.Equal(s.InputBytes.Length, s.Native.Packet.Size);
+        Assert.Equal(s.InputBytes, NativeSpellTestFixture.Bytes(s.Native.Packet));
         Assert.Equal(91u, s.Gear.AirPowers.Points);
         Assert.Empty(s.Queue); Assert.Empty(s.Native.Storage.ClientSpells);
         Assert.All(Rank.Ranks.Values, rank => Assert.Empty(rank.RankingList));

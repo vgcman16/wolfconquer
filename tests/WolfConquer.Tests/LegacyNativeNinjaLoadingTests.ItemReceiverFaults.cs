@@ -112,11 +112,11 @@ public sealed partial class LegacyNativeNinjaLoadingTests
             CopyInto(scope, input);
             scope.Packet.Seek(237);
 
-            if (negativeLength) Assert.Throws<OverflowException>(() => NinjaItemReceiver()(null!, scope.Packet));
+            if (negativeLength) Assert.Throws<InvalidDataException>(() => NinjaItemReceiver()(null!, scope.Packet));
             else Assert.Throws<EndOfStreamException>(() => NinjaItemReceiver()(null!, scope.Packet));
 
             Assert.Equal(input, NativeSpellTestFixture.Bytes(scope.Packet));
-            Assert.Equal(negativeLength ? 4 : 5, scope.Packet.Position);
+            Assert.Equal(237, scope.Packet.Position);
             Assert.Null(LegacyNativePoolClients.GamePoll);
             Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available); scope.Untaken(0);
         });
@@ -128,7 +128,7 @@ public sealed partial class LegacyNativeNinjaLoadingTests
             using var scope = new Scope();
             using var poll = new NinjaItemPoll();
             LegacyNativePoolClients.GamePoll = null;
-            Assert.Throws<NullReferenceException>(() => NinjaItemReceiver()(null!, null!));
+            Assert.Throws<ArgumentNullException>(() => NinjaItemReceiver()(null!, null!));
             Assert.Null(LegacyNativePoolClients.GamePoll);
             Assert.Empty(scope.Queue); Assert.Equal(12, scope.Available); scope.Untaken(0);
         });

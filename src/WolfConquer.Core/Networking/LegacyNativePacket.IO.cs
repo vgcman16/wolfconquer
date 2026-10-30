@@ -9,41 +9,13 @@ internal partial class LegacyNativePacket
         Write((byte)(value ? 1u : 0u));
     }
 
-    public unsafe void Write(byte value)
-    {
-        if (Position + 1 < 16384)
-        {
-            *stream = value;
-            stream++;
-        }
-    }
+    public void Write(byte value) => WritePhysicalScalar(value, 1);
 
-    public unsafe void Write(ushort value)
-    {
-        if (Position + 2 < 16384)
-        {
-            *(ushort*)stream = value;
-            stream += 2;
-        }
-    }
+    public void Write(ushort value) => WritePhysicalScalar(value, 2);
 
-    public unsafe void Write(uint value)
-    {
-        if (Position + 4 < 16384)
-        {
-            *(uint*)stream = value;
-            stream += 4;
-        }
-    }
+    public void Write(uint value) => WritePhysicalScalar(value, 4);
 
-    public unsafe void Write(ulong value)
-    {
-        if (Position + 8 < 16384)
-        {
-            *(ulong*)stream = value;
-            stream += 8;
-        }
-    }
+    public void Write(ulong value) => WritePhysicalScalar(value, 8);
 
     public void Write(sbyte value)
     {
@@ -67,138 +39,94 @@ internal partial class LegacyNativePacket
 
     public void Write(string value, int length)
     {
-        int num = Math.Min(value.Length, length);
-        byte[] bytes = Encoding.UTF8.GetBytes(value);
-        for (int i = 0; i < num; i++)
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+        ValidatePhysicalWrite(length);
+        var prepared = new byte[length];
+        var copied = Math.Min(value.Length, length);
+        if (copied > 0)
         {
-            Write(bytes[i]);
+            // Retain native character-count truncation of UTF8 bytes. Include
+            // the next character so a boundary surrogate keeps its original pair.
+            var characters = copied < value.Length ? copied + 1 : copied;
+            var encoded = Encoding.UTF8.GetBytes(value[..characters]);
+            encoded.AsSpan(0, copied).CopyTo(prepared);
         }
-        ZeroFill(length - num);
+        WritePhysicalBytes(prepared);
     }
 
     public void Write(params string[] value)
     {
-        Write((byte)value.Length);
-        foreach (string text in value)
+        ArgumentNullException.ThrowIfNull(value);
+        if (value.Length > byte.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(value), "String-list count exceeds its byte representation.");
+        var position = ValidatePhysicalWrite(1);
+        var snapshot = (string[])value.Clone();
+        var lengths = new int[snapshot.Length];
+        long total = 1;
+        for (var index = 0; index < snapshot.Length; index++)
         {
-            if (string.IsNullOrEmpty(text))
-            {
-                Write((ushort)0);
-                continue;
-            }
-            byte[] bytes = Encoding.UTF8.GetBytes(text);
-            Write((ushort)bytes.Length);
-            for (int j = 0; j < bytes.Length; j++)
-            {
-                Write(bytes[j]);
-            }
+            var text = snapshot[index];
+            var length = string.IsNullOrEmpty(text) ? 0 : Encoding.UTF8.GetByteCount(text);
+            if (length > ushort.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(value), "String-list entry exceeds its UInt16 byte length.");
+            lengths[index] = length;
+            total += 2 + length;
+            if (total > Capacity - position)
+                throw new InvalidOperationException("String list exceeds the packet allocation.");
         }
+        var prepared = new byte[(int)total];
+        prepared[0] = (byte)snapshot.Length;
+        var offset = 1;
+        for (var index = 0; index < snapshot.Length; index++)
+        {
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(prepared.AsSpan(offset), (ushort)lengths[index]);
+            offset += 2;
+            if (lengths[index] > 0)
+                Encoding.UTF8.GetBytes(snapshot[index].AsSpan(), prepared.AsSpan(offset, lengths[index]));
+            offset += lengths[index];
+        }
+        WritePhysicalBytes(prepared);
     }
 
     public unsafe void WriteUnsafe(void* buf, int length)
     {
-        if (Position + length < 16384)
-        {
-            memcpy(stream, buf, length);
-            stream += length;
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+        ValidatePhysicalWrite(length);
+        if (buf == null && length > 0) throw new ArgumentNullException(nameof(buf));
+        var prepared = new byte[length];
+        // Source extent/lifetime remains caller-owned; snapshot before changing
+        // the validated destination, including for valid overlapping spans.
+        if (length > 0) System.Runtime.InteropServices.Marshal.Copy((nint)buf, prepared, 0, length);
+        WritePhysicalBytes(prepared);
     }
 
     public unsafe void ZeroFill(int amount)
     {
-        if (Position + amount < 16384)
-        {
-            if (amount > 0)
-            {
-                memset(stream, 0, amount);
-            }
-            stream += amount;
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        var position = ValidatePhysicalWrite(amount);
+        new Span<byte>(Memory + position, amount).Clear();
+        stream = Memory + position + amount;
     }
 
-    public string[] ReadStringList()
-    {
-        string[] array = new string[ReadUInt8()];
-        for (int i = 0; i < array.Length; i++)
-        {
-            array[i] = ReadCString(ReadUInt16());
-        }
-        return array;
-    }
+    public string[] ReadStringList() => ReadPhysicalStringList();
 
     public unsafe void ReadUnsafe(void* buf, int length)
     {
-        if (Position + length < 16384)
-        {
-            memcpy(buf, stream, length);
-            stream += length;
-        }
+        ReadPhysicalInto(buf, length);
     }
 
-    public byte[] ReadBytes(int size)
-    {
-        byte[] array = new byte[size];
-        for (int i = 0; i < array.Length; i++)
-        {
-            array[i] = ReadUInt8();
-        }
-        return array;
-    }
+    public byte[] ReadBytes(int size) => ReadPhysicalBytes(size);
 
-    public string ReadCString(int size)
-    {
-        if (Position + size >= 16384)
-        {
-            return "";
-        }
-        string text = Encoding.UTF8.GetString(ReadBytes(size));
-        int num = text.IndexOf('\0');
-        return (num > -1) ? text.Substring(0, num) : text;
-    }
+    public string ReadCString(int size) => ReadPhysicalCString(size);
 
-    public unsafe byte ReadUInt8()
-    {
-        if (Position + 1 >= 16384)
-        {
-            return 0;
-        }
-        byte result = *stream;
-        stream++;
-        return result;
-    }
+    public byte ReadUInt8() => (byte)ReadPhysicalScalar(1);
 
-    public unsafe ushort ReadUInt16()
-    {
-        if (Position + 2 >= 16384)
-        {
-            return 0;
-        }
-        ushort result = *(ushort*)stream;
-        stream += 2;
-        return result;
-    }
+    public ushort ReadUInt16() => (ushort)ReadPhysicalScalar(2);
 
-    public unsafe uint ReadUInt32()
-    {
-        if (Position + 4 >= 16384)
-        {
-            return 0u;
-        }
-        uint result = *(uint*)stream;
-        stream += 4;
-        return result;
-    }
+    public uint ReadUInt32() => (uint)ReadPhysicalScalar(4);
 
-    public unsafe ulong ReadUInt64()
-    {
-        if (Position + 8 >= 16384)
-        {
-            return 0uL;
-        }
-        ulong result = *(ulong*)stream;
-        stream += 8;
-        return result;
-    }
+    public ulong ReadUInt64() => ReadPhysicalScalar(8);
 
     public sbyte ReadInt8()
     {
@@ -222,20 +150,35 @@ internal partial class LegacyNativePacket
 
     public void CreateProtocolBuffer(params uint[] values)
     {
-        Write((byte)8);
-        for (int i = 0; i < values.Length; i++)
+        ArgumentNullException.ThrowIfNull(values);
+        var position = ValidatePhysicalWrite(0);
+        var available = Capacity - position;
+        if (1L + 2L * values.Length > available)
+            throw new InvalidOperationException("Protocol helper output exceeds the packet allocation.");
+        var snapshot = (uint[])values.Clone();
+        long total = 1;
+        foreach (var value in snapshot)
         {
-            uint num;
-            for (num = values[i]; num > 127; num >>= 7)
-            {
-                Write((byte)((num & 0x7F) | 0x80));
-            }
-            Write((byte)(num & 0x7F));
-            Write((byte)(8 * (i + 2)));
-            if (i + 1 == values.Length)
-            {
-                break;
-            }
+            total += 2;
+            for (var remaining = value; remaining > 127; remaining >>= 7) total++;
+            if (total > available)
+                throw new InvalidOperationException("Protocol helper output exceeds the packet allocation.");
         }
+        var prepared = new byte[(int)total];
+        prepared[0] = 8;
+        var offset = 1;
+        for (var index = 0; index < snapshot.Length; index++)
+        {
+            var remaining = snapshot[index];
+            while (remaining > 127)
+            {
+                prepared[offset++] = (byte)((remaining & 0x7f) | 0x80);
+                remaining >>= 7;
+            }
+            prepared[offset++] = (byte)remaining;
+            // Preserve the opaque helper's existing single low-byte next token.
+            prepared[offset++] = unchecked((byte)(8 * (index + 2)));
+        }
+        WritePhysicalBytes(prepared);
     }
 }

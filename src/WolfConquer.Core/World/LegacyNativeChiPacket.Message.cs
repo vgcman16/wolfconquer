@@ -8,11 +8,14 @@ internal static partial class LegacyNativeChiPacket
     // conversion is deliberately consumed by the caller, not normalized here.
 	public static LegacyNativePacket ChiMessageCreate(this LegacyNativePacket stream, LegacyNativeMsgChiInfo.ChiPowerType Typ, int UID, string Name)
 	{
-		stream.InitWriter();
-		stream.Write((byte)Typ);
-		stream.Write(UID);
-		stream.Write(Name, 32);
-		stream.Finalize(2276);
+		ArgumentNullException.ThrowIfNull(stream);
+		ArgumentNullException.ThrowIfNull(Name);
+		stream.PrepareFrame(2276, prepared =>
+		{
+			prepared.Write((byte)Typ);
+			prepared.Write(UID);
+			prepared.Write(Name, 32);
+		});
 		return stream;
 	}
 }

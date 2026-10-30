@@ -111,7 +111,7 @@ public sealed partial class LegacyNativeMsgMessageBehaviorTests
     });
 
     [Fact]
-    public Task DeserializeCopiesScalarsAndOnlyPresentStringSlotsWithoutUsingCountOpcodeSizeOrCallerCursor() => NativePacketTestThread.Run(() =>
+    public Task DeserializeCopiesScalarsAndOnlyPresentStringSlotsUsingActualInputWithoutCountOpcodeOrCallerCursorAdmission() => NativePacketTestThread.Run(() =>
     {
         foreach (int count in Enumerable.Range(1, 8))
         {
@@ -121,7 +121,7 @@ public sealed partial class LegacyNativeMsgMessageBehaviorTests
             int length = scope.Packet.Size;
             scope.Packet.Seek(2); scope.Packet.Write((ushort)0xBEEF); // MsgMessage has no opcode check.
             var before = Bytes(scope.Packet, 1024);
-            scope.Packet.Size = 17; scope.Packet.Seek(700);
+            scope.Packet.Seek(700); // Generic framed decoding begins at its own header.
             var message = RetainedMessage();
             var old = message.proto;
             message.Deserialize(scope.Packet);
@@ -132,13 +132,13 @@ public sealed partial class LegacyNativeMsgMessageBehaviorTests
             Assert.Equal(count > 1 ? content[1] : "old-to", message._To);
             Assert.Equal(count > 3 ? content[3] : "old-message", message.__Message);
             Assert.Equal(count > 6 ? content[6] : "old-server", message.ServerName);
-            Assert.Equal(length, scope.Packet.Position); Assert.Equal(17, scope.Packet.Size);
+            Assert.Equal(length, scope.Packet.Position); Assert.Equal(length, scope.Packet.Size);
             Assert.Equal(before, Bytes(scope.Packet, 1024));
         }
     });
 
     [Fact]
-    public Task NullOrEmptySerializedContentFaultsOnlyAfterAllScalarAssignmentsAndRetainsOldStrings() => NativePacketTestThread.Run(() =>
+    public Task AbsentSerializedContentCopiesScalarsAndRetainsAllPreviousStringSlots() => NativePacketTestThread.Run(() =>
     {
         foreach (string[]? content in new string[]?[] { null, [] })
         {
@@ -147,7 +147,7 @@ public sealed partial class LegacyNativeMsgMessageBehaviorTests
             int length = scope.Packet.Size;
             var message = RetainedMessage();
             var old = message.proto;
-            Assert.Throws<NullReferenceException>(() => message.Deserialize(scope.Packet));
+            message.Deserialize(scope.Packet);
             Assert.NotSame(old, message.proto); Assert.Null(message.proto.Content);
             AssertScalarsCopied(message);
             Assert.Equal("old-from", message._From); Assert.Equal("old-to", message._To);
@@ -157,22 +157,23 @@ public sealed partial class LegacyNativeMsgMessageBehaviorTests
     });
 
     [Fact]
-    public Task FailedDeserializePublishesAFreshDefaultProtoBeforeChangingAnyOuterScalarOrString() => NativePacketTestThread.Run(() =>
+    public Task FailedDeserializePreservesThePriorProtoAndEveryOuterScalarAndString() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
         foreach (bool nullStream in new[] { true, false })
         {
             var message = RetainedMessage();
             var old = message.proto;
-            if (nullStream) Assert.Throws<NullReferenceException>(() => message.Deserialize(null!));
+            if (nullStream) Assert.Throws<ArgumentNullException>(() => message.Deserialize(null!));
             else
             {
                 scope.Packet.Seek(0); scope.Packet.Write((ushort)3); scope.Packet.Write((ushort)2179);
+                scope.Packet.Size = scope.Packet.Position; // Actual completed header, not spare allocation.
                 scope.Packet.Seek(700);
-                Assert.Throws<OverflowException>(() => message.Deserialize(scope.Packet));
-                Assert.Equal(4, scope.Packet.Position); // Managed negative allocation, no payload read.
+                Assert.Throws<InvalidDataException>(() => message.Deserialize(scope.Packet));
+                Assert.Equal(700, scope.Packet.Position); Assert.Equal(4, scope.Packet.Size);
             }
-            Assert.NotSame(old, message.proto); Assert.Equal(777u, old.Count);
+            Assert.Same(old, message.proto); Assert.Equal(777u, old.Count);
             Assert.Null(message.proto.Content); Assert.Equal(0u, message.proto.Color); Assert.Equal(0u, message.proto.Mesh);
             Assert.Equal(91u, message.Color); Assert.Equal(Msg.ChatMode.World, message.ChatType);
             Assert.Equal(92u, message.MessageUID1); Assert.Equal(93u, message.MessageUID2);

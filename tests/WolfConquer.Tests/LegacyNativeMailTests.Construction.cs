@@ -39,7 +39,7 @@ public sealed partial class LegacyNativeMailTests
         Assert.Equal((ulong)uint.MaxValue, message.EMoney); Assert.Equal(71ul, message.Expiration_Date);
         Assert.Equal(72ul, message.Itemid); Assert.Equal(73ul, message.Emoney_Record_Type); Assert.Equal(74ul, message.Flag);
         Assert.Equal("T", message.Title); Assert.Equal("S", message.Sender_Name);
-        Assert.Throws<NullReferenceException>(() => new ListMessage.Mail(null!));
+        Assert.Throws<ArgumentNullException>(() => new ListMessage.Mail((Mail)null!));
     });
 
     [Fact]

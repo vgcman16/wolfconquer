@@ -14,8 +14,11 @@ internal static class LegacyNativeTeamPacket
 
     public static void GetTeamPacket(this LegacyNativePacket stream, out TeamTypes Typ, out uint UID)
     {
-        Typ = (TeamTypes)stream.ReadUInt32();
-        UID = stream.ReadUInt32();
+        ArgumentNullException.ThrowIfNull(stream);
+        var prepared = stream.ReadPrepared(static packet =>
+            (Type: (TeamTypes)packet.ReadUInt32(), Uid: packet.ReadUInt32()));
+        Typ = prepared.Type;
+        UID = prepared.Uid;
     }
 
     public static LegacyNativePacket TeamCreate(this LegacyNativePacket stream, TeamTypes Typ, uint UID)

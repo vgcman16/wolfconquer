@@ -4,6 +4,716 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+Candidate source qualification for FSB-204 through FSB-225: Release build06 passed; focused05 510/510, native-broad04 13153/13153, zero failures/skips. The final public commit full Windows gate remains pending. These are offline component results, not SQL, deployment, new-client or full-parity acceptance. This note supersedes earlier authored/unrun labels in these entries.
+
+Earlier FSB-200 through FSB-203 were included in the separately verified full Windows gate 40958745483 on source731d8e54 / generated91040398: Core30175 passed/152 existing NotExecuted, Updates446 and Launcher57, zero failures. The new FSB-204..225 public-commit full gate remains pending.
+
+## FSB-225: Complete direct-pipe item and optional-extra preparation
+
+**Status:** source-only authored; Root review/integration/qualification pending.
+
+- **Unsafe source:** GameItem.Send(Pipe, Packet) wrote and queued the item before visiting actual extras. A later invalid expiry date could leave the item queued and purification availability/type mutated while refinery failed. Null pipe/socket and dead transport paths also dirtied caller output or extras; six fault and three dead-transport outcomes explicitly enforced these defects.
+- **Corrected invariant:** validate actual live pipe/socket with the constructor-established socket.Client binding, and skip dead branches before unrelated metadata or target requirements. Hold the actual item monitor, capture the actual source item/array image and original target witness, evaluate extra expiry/types on actual value copies, and prepare/validate every owned item/optional-extra frame before any caller output, actual extra mutation or Send. Preserve both-zero-UID bypass, expired zero-count extra, tointer:true raw EffectID, conditional timers and genuine aliases. One final caller-frame copy precedes no-throw actual extra assignments, then real ordered owned-frame Pipe.Send calls.
+- **Wire boundary:** no GameClient 1032 limit was introduced; the existing independent 1386-byte/300-relic positive remains unchanged. Actual capacity, UInt16 headers and each frame's original captured trailing seal are checked.
+- **Coverage authored:** 21 existing outcomes retained, correcting all six unsafe faults and all three dead-transport outcomes while preserving positive regions/goldens. New ItemPreparation partial adds 22 unrun controls for late expiry/repair, capacity/exact fit, UInt16 overflow, seals and tampering, actual item/array snapshots, true socket rebind/optional Owner, real aliases, invalid/disposed target, null required text and typed postcommit failure.
+- **Limits:** helper ran no build/test/native/live/process/SQL/Git and changed no Root candidate/transport or packet owner. Real Send may filter/swallow failures, so no all-output delivery or rollback claim. Observable errors after commitment are PipeItemPublicationException, not uncommitted refusal. Actual item monitor/bounded revalidation require cooperating writers and exclusive packet/transport lifetime; arbitrary public-field/array/socket/seal changes and ABA are not atomically fenced. No SQL, crash-safe queue, full Pipe lifecycle or live client/new-patch acceptance claim.
+- **Spec:** docs/protocol/specs/server-native-pipe-item-preparation.md.
+
+## FSB-224 — Native sends trust unbounded storage and mutate rejected byte frames/cipher state
+
+Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
+Base91040398 plus captured147 Root overlays. Current Packet(byte[]) already
+allocates max(1024,input.Length) and copies safely; its stale1025..1032 warning
+was corrected, and the constructor bytes are unchanged. Production changes are
+focused Packet send bounds/Dispose cooperation, both GameClient send overloads
+and actual SecuritySocket queue admission. Crypto implementation is unchanged.
+
+Old packet send/warning paths read public Size bytes without checking Capacity
+or disposal. Byte send changed caller bytes before short/constructor/queue refusal,
+leaked its temporary native Packet and let8..10-byte trailers overwrite the header.
+It also accepted inconsistent nonzero declared lengths (for example3412 on20bytes).
+Missing queue consumed actual cipher state before failing; tests enforced these bugs.
+
+The candidate validates/captures live actual native storage under a private gate
+shared with real Dispose, before using managed owned plaintext for encryption.
+The actual Socket gate preflights queue/output/reserved queue capacity before
+cipher advancement. Real TrySend reports Refused/Queued/CipherStateIndeterminate;
+Queued means queue admission only. Unexpected ordinary Encrypt failure permanently
+fences that socket, even after Crypto replacement, without pretending rollback or
+safe retry. Real new connection ownership is needed for recovery; no implicit OS
+Disconnect/lifecycle or guessed accepting callback is added.
+
+Byte sends privately prepare a real complete4-byte-header+8-byte-trailer frame,
+reject length<12 and inconsistent nonzero declared length before mutation, retain
+zero-header fill and valid TQServer bytes, and dispose their actual temporary Packet.
+Caller bytes commit only after Queued. GameClient1032 filtering stays; huge warnings
+use a bounded prefix. No new raw Socket/Packet framing rule or automatic cap raise.
+
+Existing genuine cipher continuation/valid-byte goldens, Fake/dead/null filters
+and case counts remain. Tiny overlap and mismatched-header requirements become
+safe refusal/correct-header controls. Two new Safety partials author20 unrun cases:
+11/12 and mismatched length, actual1025/1032 copy/disposal, invalid/disposed Size,
+huge GameClient versus raw Socket bounds, managed-IV partial cipher progress and
+permanent fence, and genuine async capture/Dispose cooperation. The deliberate
+cipher fault uses only checked managed array indexing and valid owned plaintext;
+no invalid native pointers, AccessViolation catch or old-code crash baseline is used.
+
+Other public pointer/writer/connection lifecycle actors remain noncooperating;
+this is not whole-Packet concurrency, crash safety, network delivery, broader1032
+acceptance,7937/live-client or full parity proof. Source-only helper did not execute
+C# tests/builds/native/live/SQL/Git actions. Root must review and qualify the batch.
+See `docs/protocol/specs/server-native-send-memory-safety.md`.
+
+## FSB-223: Native mail producers prepare the complete page sequence
+
+**Status:** authored source-only; Root integration and managed qualification pending.
+
+- **Source defect:** CMsgMailList.Loading rented before even knowing whether mail existed and serialized/sent each page incrementally. A missing row or oversized later page could leave the first ten mails published and the real rental dirty. Request Process also prepared and published pages incrementally, and a nonempty null target previously trapped only at serialization.
+- **Corrected invariant:** bind the actual client/map and hold its real SyncRoot; snapshot actual keys/rows and all nine wire values; preserve actual Loading reversal and stable-descending-then-reverse request order, ten-row/trailing-empty sequence, key/id independence and aliases. Prepare every page through the genuine DTO/serializer/native codec in owned sender-bounded buffers before any target write or send. Empty producers require neither a pool nor unused target. Loading touches the actual rental last; request retains its actual supplied packet and original full-width target witness. Revalidate map/revision/membership/wire values and target lifetime/metadata/capacity before the first complete byte copy.
+- **Coverage authored:** all 16 existing ListAndNotify outcomes retained, including independent valid bytes and unchanged notification suffix; 23 new unrun controls cover late-row/oversized-page rejection and repair, all-page capacity refusal/exact fit, genuine undersized/exact rental identity, required client/map, invalid full-width target metadata/disposal, aliases/equal-id order, unused fields, real snapshot mutation and configured seal.
+- **Qualification limits:** helper did not compile, restore, build, test, execute native/client/process/SQL/Git actions or alter Root's candidate. Source component wire quirks are not client-confirmed 7937 support. Native Send may filter/catch/drop after publication, so complete delivery/rollback is not claimed. Real pool Take/dequeue/rewind and Dispose/rewind are not reversible reservation; incompatible late rental preserves its bytes/Size/queue but can consume the pool entry and reset cursor. Exclusive packet lifetime and cooperating map writers are required; public row/map/ABA/seal concurrency, cross-owner authority, SQL and crash-safe atomicity remain outside this fix.
+- **Spec:** docs/protocol/specs/server-native-mail-producer-preparation.md.
+
+## FSB-222: Prepare native study awards and notifications before point commit
+
+**Candidate source only; Root managed qualification pending.** AddStudyPoints previously committed the capped points and queued Talk before discovering missing required stream/view state. Two old tests required those partial results. Active remove/update also serialized directly into caller storage before complete notification preparation.
+
+The component now validates the actual client/player owner, genuine Player.SubClass identity and required view/map-view graph. The existing client/player gates precede a stable runtime study gate; a UInt16 StudyPoints property serializes existing persistence setters and tracks a checked revision. Actual Talk2179/effect2036/animation2033 encoders prepare complete prospective frames and all owned plaintext storage before a point commit. The real chat rental occurs last, retains successful native identity/Dispose/Reuse, rejects short/disposed/caller-alias storage, and restores an alias rental's incidental caller cursor movement without copying payload or inventing a pool API. Caller bytes/Size/full-width cursor and bindings are revalidated before commit and caller frame publication.
+
+Successful sends retain Talk, self/actual visible-role effect, self animation order; requested-amount text,65535 cap, native duplicate recipients, custom seal and independent goldens remain. Distinct observable postcommit notification errors state ResourceCommitted and before/after/phase; they do not pretend rollback or delivery. Native Send's silent transport drop remains an explicit observability limit. A bad actual rented pool slot may be consumed internally; unchanged pool count is outside the gameplay/caller/network-queue refusal guarantee.
+
+The existing eleven Study case outcomes are retained, including four strict-greater Remove cases whose intended gameplay rule remains unverified. Both old partial-commit tests now require complete point/caller/queue preservation. Twenty-six new authored, unrun outcomes cover actual owner bindings, capacity/physical state, native rentals and aliases, revision exhaustion, sealed bytes, real duplicate visibility recipients, cooperating award batches and a real sender-gate postcommit rebind. Fixtures bind only a genuinely constructed runtime; other subclass fixture default birth remains unchanged. The three concurrency methods genuinely await actual fresh-stack workers and finite worker-held monitor handshakes; terminal cleanup preserves primary and cleanup failures without blocking Task APIs.
+
+No handler activation/caller widening, whole persistence transaction, global graph/lifetime atomicity, SQL durability, receiver delivery, current7937/client acceptance or full parity is claimed. Packet ownership is exclusive; public noncooperating graph/membership changes remain limited to revalidation detection. Spec: [native study preparation](docs/protocol/specs/server-native-study-preparation.md).
+
+## FSB-221: Complete Team UI/social frames and reader outputs before publication
+
+**Candidate source only; managed qualification pending.** TeamElite name/match,
+TeamArena score and KnowPersons/TradePartner builders wrote live target prefixes
+before missing required text failed. Six native-broad02 outcomes exposed those
+expectations; the social case also contained a second dirty-prefix assertion.
+The corresponding getters could publish earlier scalar outputs before a tail
+failed.
+
+Five builders now validate required handles/text and use genuine owned scratch
+frame preparation. Three getters prepare local tuples before publishing outputs.
+Native opcodes, caller-selected IDs,2270's extra word, fixed-string encoding,
+raw enum/online rules and the asymmetric TradePartner hours contract remain.
+No transport/authority/owner substitute or fabricated response is supplied.
+
+The existing six outcomes retain coverage and require unchanged complete target,
+cursor, Size and queues on refusal. Twenty-two new corrected-only outcomes cover
+missing record tails, null input, independent exact-input records and whole-frame
+capacity refusal for all five builders. All are uncompiled/unrun in this successor;
+no unsafe old small-buffer control is executed. Source/bounded preparation does
+not establish concurrent lifetime, persistence, delivery or current7937 gameplay.
+Spec: [server-native-team-social-codec-preparation](docs/protocol/specs/server-native-team-social-codec-preparation.md).
+
+## FSB-220: Complete Quest, Team and Proficiency input/output preparation
+
+**Candidate source only; managed qualification pending Root's combined gate.**
+The fixed native getters sequentially assigned caller fields, allocated/published
+arrays or a Proficiency object before a later read could fail. Older tests
+required fabricated zeros/partial fields at EOF, reads beyond a false logical
+Size and spare-allocation intent values. Quest writers also allowed partial
+target prefixes on missing arrays or physical row overflow.
+
+Four body readers now prepare real local scalars/arrays/DTOs through the shared
+ReadPrepared contract, assigning outs only after complete success. QuestData's
+two full builders snapshot real intent arrays, reject unrepresentable UInt16
+counts and use PrepareFrame2136 before target publication. The existing ignored
+parameters,35024/35007 tails and reader's fixed one-intent grammar are retained.
+QuestList Create/Append use complete explicit-header/raw-row preparation while
+preserving Size and the Create->12-byte rows->Finalize2120 sequence. No Count
+normalization, protocol field meaning, owner or host route is invented.
+
+Four existing test files retain all50 authored outcomes and independent valid
+goldens, with unsafe acceptance assertions replaced by complete refusal and
+actual captured-input invariants. One new corrected-only suite authors51 unrun
+outcomes: malformed fixed-record tails, null/disposed readers, independent exact
+tiny input ends, complete header/row capacity, count representation, sealed and
+unsealed exact full frames/short refusals, and missing/disposed builder targets.
+No unsafe old capacity control or native binary was executed.
+
+Source map found no production invocation of these native getters/append methods;
+the separate existing PrepareQuestAcceptanceFrame owner remains unchanged.
+Supplied Size remains caller metadata, not capture/authentication proof. Shared
+packet lifetime is caller-exclusive; concurrency, resource acceptance/transactions,
+persistence, transport delivery, live/current7937 behavior and full parity remain
+outside this candidate claim. Spec:
+[server-native-quest-team-proficiency-preparation](docs/protocol/specs/server-native-quest-team-proficiency-preparation.md).
+
+## FSB-219 candidate: Prepare item/warehouse state and complete outputs coherently
+
+**Source candidate only; uncompiled and unexecuted.** Native ItemCreate/ItemView
+and warehouse rows wrote prefixes before null names/relic/capacity refusal.
+SendItemLocked cleared Locked and changed Mode before the update could serialize.
+Warehouse.Show marked the bank shown before any complete output; a later failure
+could leave prior rows/locks/extras published and make repair/retry silently skip.
+
+Immutable wire images now derive from actual item scalars/names, copied relic
+values and real timers. They retain actual item/array aliases and raw-state
+witnesses, never replacement domain items/owners. ItemCreate2116 and View2275
+prepare complete scratch frames; receiver timer ownership, view's two time reads,
+conditional Activate word, variable relic count, field order/widths, fixed-string
+UTF8 behavior, independent valid goldens and actual seal rules are retained.
+
+Warehouse2080 retains incremental header24 -> append actual rows -> finalize and
+four-item batch geometry. Header/rows prepare complete segments. Unrepresentable
+UInt16 capacity/count refuse instead of wrapping; equivalent valid inputs retain
+the exact existing header golden. Warehouse request parsing remains unchanged.
+
+Locked sends bind the real client/player/configured server and original item/
+server/player identity before preparation. Inactive/foreign branches retain their
+early returns and future unlock-date output does not require unrelated item
+strings/relics. A genuine prepared frame with local Update/unlocked wire values
+precedes actual Locked/Mode commitment; the timer and unrelated state remain.
+A newer matching server-ID pair cannot become the original witness.
+
+Show captures actual owner/player/Warehouse/map/bank/key-UID/item/WH_ID state and
+bank order. All warehouse, optional lock/update and extra frames prepare before
+any target, marker, queue or source item change. Mutable extra expiry/type work
+runs on local real value copies. Commitment revalidates the captured real graph,
+publishes the final caller target, applies prepared lock/extra changes and shown
+membership, then uses actual Send in warehouse -> locks -> extra order per batch.
+Valid missing/already-shown returns stay optional; bad bank data does not acquire
+a shown marker, and repair/retry uses the same actual item/bank.
+
+The actual native sender caps at1032 bytes. Unchanged four-row source geometry
+with64 relics per row encodes1864 bytes; this package refuses that undeliverable
+batch before mutations. It does not shrink rows, invent a different batch or
+claim client/persistence acceptance of that relic count. Post-commit filtered or
+failed Send is not reported as an uncommitted rollback or acknowledged delivery.
+
+Five existing test files keep their case counts and valid independent bytes;
+old dirty-prefix/unlock/shown-marker requirements now assert safe state. Three
+new partials author25 unrun outcomes covering exact/short and oversize/sender
+bounds, optional future lock metadata, retained original identity, late second-
+batch date/lock failure, actual membership/owner invalidation, no false shown
+marker, retry and whole owned-buffer/item/array/queue preservation. No old unsafe
+native/OOB baseline or execution was performed; Root must qualify the source.
+
+Actual owner/item monitors serialize cooperating Show/SendLocked calls. Public
+field/map mutation, ABA, global ownership exclusivity, crash/SQL/durability and
+post-commit delivery remain unproved; source rechecks are not a transaction
+certificate. Native handlers remain unactivated; no new7937/full parity claim.
+Spec: [server-native-item-warehouse-preparation](docs/protocol/specs/server-native-item-warehouse-preparation.md).
+
+## FSB-218 — Message and Ninja protobuf getters publish replacement owners before decode succeeds
+
+Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
+Base91040398 plus the captured73-path Root source. Scope is MsgMessage.Deserialize,
+GetNinjaInfo and GetNinjaItem; their writer and receiver regions remain unchanged.
+
+The old methods assign fresh proto/out references before generic decode can reject,
+discarding prior owner identity even for a null packet, invalid declared frame or
+malformed managed payload. MsgMessage also assigns scalars before dereferencing
+absent repeated Content. Actual binary70 broad02 contains9 relevant failed
+outcomes:4 NinjaInfo short lengths,2 MsgMessage Size/publication controls,
+1 NinjaItem publication control and2 receiver malformed decode boundaries.
+Root's missing-PS7 environment failures are unrelated evidence.
+
+The candidate decodes a local genuine existing DTO before publishing owner/output
+references. MsgMessage prepares every scalar/enum and present-or-retained string
+slot before the commit region. Missing Content is a valid absent repeated field:
+new decoded scalars/proto publish while prior strings remain, with no invented
+empty array/string or required-field rule. Independent Count, raw enums, opcode
+tolerance and pinned null-entry wire omission/index-shift behavior remain.
+
+The generic decoder retains absolute-header reset and permits an initial cursor
+beyond supplied Size but inside actual Capacity. No ReadPrepared wrapper changes
+that contract. Failure retains the original cursor, prior proto/reference/contents
+and every outer value. GetNinjaItem still decodes before requester/pool/response
+consumption; no receiver registration or new authority is introduced.
+
+Four existing test paths keep their outcome counts, genuine client/queue/recycle
+controls and independent valid goldens while correcting false Size and early
+default/dirty-cursor expectations. Three new corrected-only partials author16
+unrun outcomes for malformed/declared-window failure, disposal, prior object/array
+alias preservation and genuine header-only defaults from beyond-Size cursors.
+No unsafe old-code failure baseline or C# execution occurred.
+
+This is exclusive-caller ordinary publication safety, not concurrent object/native
+lifetime ownership, SQL/persistence, transport or current7937/client/full-parity
+proof. MsgMessage send/build, Ninja resource/ranking flows and unrelated gaps stay
+open. Root must review/compose and run actual managed qualification.
+See `docs/protocol/specs/server-native-protobuf-owner-publication.md`.
+
+## FSB-217: Reject missing dialog client/stream before creating an unusable owner
+
+**Candidate source only; combined managed qualification pending.** Dialog accepted
+null client/stream handles, and a passing test required a complete encoded reply
+before the missing recipient failed. Combined02 also recorded two old null-stream
+exception expectations after FSB213 made reply rejection explicit.
+
+The constructor now requires both actual handles before assignment and retains a
+readonly client binding. Existing2255 bytes, successful method aliases/order and
+messagebox-finalization no-op remain. A later null stream is rejected by the
+prepared reply codec before queuing that call; packets individually committed by
+earlier valid calls remain intact. No placeholder owner, fallback stream, fake
+Finish message or fictional rollback of earlier sends is supplied.
+
+Three existing cases now require constructor refusal/full owned packet and queue
+preservation, or preservation of an earlier valid queued reply on a later refusal.
+No extra test count is used as parity evidence. New source is unbuilt/unrun;
+actual caller map found only GameClientRuntime.BoxDialog's real this/packet pair.
+This is required-handle safety, not all-dialog transaction/delivery, current7937
+rendering, SQL or gameplay acceptance. Spec:
+[server-native-dialog-required-handles](docs/protocol/specs/server-native-dialog-required-handles.md).
+
+## FSB-216 candidate: Failed outer protobuf getters retain the caller model
+
+**Source candidate only; uncompiled and unexecuted.** GetItemRefineRecord,
+GetTitleStorage and GetRankMemberShow assigned a new default DTO directly to the
+caller out parameter before the actual generic decode. FSB-206 now bounds and
+prepares the native protobuf read before cursor commitment, but these outer
+assignments still leaked a replacement model on parse/framing/storage failure.
+Earlier tests required that default object, consumed cursor4/5 and OverflowException.
+
+Each getter now rejects a null required packet, creates its actual local DTO,
+calls the actual bounded generic deserializer, and assigns the out parameter
+only after success. A rejected frame/payload retains the original caller
+reference, including null, its nested aliases/values, original raw cursor,
+actual supplied Size and input bytes. Creators, protobuf schemas/tags, model
+defaults, valid null/empty behavior and independent wire goldens are unchanged;
+no required-field admission or placeholder nested graph is added.
+
+The associated direct-copy fixtures now capture bytes.Length immediately after
+their actual Marshal.Copy: all three refinement decoder copies, Title.Input and
+NinjaRank.PlaceBytes. Their previous reset Size321/333 or spare allocation was
+not the supplied frame. Failure assertions now preserve real211/237 caller
+cursors, exact input, original model and empty queues. Existing test counts and
+valid schema/frame checks remain intact.
+
+A new corrected-only suite authors21 unrun outcomes: twelve short-header,
+declared-tail, truncated-scalar and truncated-nested controls across the three
+real getters, plus three null-packet, three null-prior-output and three disposed
+storage cases. Owned initialized byte arrays, prior real DTO/nested aliases and
+metadata are the oracles. No unsafe old native/OOB execution or test baseline
+was run. Root must review/compose and run actual combined qualification.
+
+Mutable Size is still caller metadata, not independent capture or authentication
+proof. Generic/public packet lifetime concurrency limits remain. No receiver
+activation, transport, gameplay/SQL, client7937 acceptance or full parity proof.
+Spec: [server-native-protobuf-model-publication](docs/protocol/specs/server-native-protobuf-model-publication.md).
+
+## FSB-215 — Native Mail codecs allocate from unbounded counts and publish partial frames
+
+Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
+Base91040398 plus captured70 Root overlays and existing shared packet APIs.
+Production scope: LegacyNativeMail primitive/list codecs and actual
+LegacyNativeCMsgMailList.Mail DTO copy/null validation support only.
+
+The old primitive reader allocated directly from a received count and assigned
+out fields/items before later bounds failure. Mode writers partially emitted a
+prefix before null/short item-array faults; list writers reset/serialized directly
+into the target and accepted a missing DTO as a successful empty frame. A real
+copied-input test also falsely replaced Size with5, and a separate roulette
+readback fixture omitted actual input Size.
+
+The candidate bounds the complete item count by genuine remaining supplied input
+before allocation, parses a local tuple under ReadPrepared and publishes all outs
+only on complete success. Positive writer count requires actual selected items;
+count0 retains optional null Items and ignores extras. Actual owned scratch
+PrepareFrame commits only a complete mode/list frame. The existing Mail DTO is
+copied through its own internal constructor with all seven ulong fields and both
+strings intact, avoiding a duplicated schema. Type/Count remain independent of
+row-array length; absent/empty repeated arrays and existing nullable text remain
+valid. Null required DTOs/rows/projection sources reject explicitly.
+
+Existing independent2183/2264 wire goldens, widths/enum narrowing, selected-prefix,
+count0 and full owner/model/queue assertions remain. The two corrected-only
+partials author18 unrun outcomes, covering prefix/item truncation, excessive count,
+disposed state, exact capacity with/without seal, whole-target oversized/null-row
+refusal, absent repeated arrays and full-width DTO copies. Only the approved
+roulette Marshal.Copy fixture gains actual frame.Length input metadata.
+
+No generic protobuf outer getter is wrapped or edited here; its original-cursor
+header-reset contract is separate. No runtime mail construction, persistence,
+inventory/claim authority, retained mail kit, receiver activation or SQL changes
+are inferred. Other Mail/roulette defects remain OPEN. Root must review/compose
+and run actual managed qualification; no live/client7937/full-parity proof follows.
+See `docs/protocol/specs/server-native-mail-codec-preparation.md`.
+
+## FSB-214 — Message-box responses replay throwing callbacks and erase replacement state
+
+Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
+Base public91040398 plus the captured70-path Root packet candidate. Only the native
+static-message consumer and Player MessageBoxState production partials change.
+
+The old2320 consumer invokes MessageOK/Cancel before clearing them, so a throw or
+reentrant response can replay the same authorization. Its later blanket clear
+also erases newly installed callback state. Existing StaticResponse tests required
+both defects. Production caller mapping found these names only in the assigned
+two files; no reflection/ref field users or real installer are fabricated.
+
+The candidate deliberately converts the three raw public fields to gated named
+properties over private per-player backing state, preserving null/null/default
+birth. Atomic SetMessageBox installs a real callback pair/deadline. After complete
+response parsing and actual user/player ownership checks, the consumer validates
+the blocked map/window under the same gate and removes the current pair before
+invoking its selected delegate outside the gate. There is no post-invoke cleanup.
+Throws retain the original exception and consumed authorization; replacements
+remain installed. Nonaccepted/blocked/malformed responses preserve applicable state;
+expiry clears only the current pair under the gate and retains the deadline.
+
+Existing genuine positive2320/current-cursor, OK priority/Cancel fallback, blocked
+maps, nonaccept/timewindow and Root capturedSize/truncated-input controls remain.
+Two bug-preserving tests now assert safe invariants. Ten new authored outcomes use
+real owned native clients/initialized replies and actual SetMessageBox for
+reentrant, replacement/throw, parallel once-only and concurrent installation cases.
+No live OS send, unsafe old baseline or C# execution occurred in the helper.
+
+This is in-process cooperative claiming, not crash-safe callback action delivery,
+durable economy/persistence or whole-player graph synchronization. Separate
+property assignments do not atomically install a pair; future real producers must
+use SetMessageBox. Reflection/native/noncooperating graph writes remain outside
+the gate. The wire has no box ID, so delayed-response/new-box correlation is not
+proved or invented. No receiver activation, current7937/client acceptance or
+full parity follows. Root must review/build/test the separate successor.
+See `docs/protocol/specs/server-native-messagebox-consumption.md`.
+
+## FSB-213 candidate: Complete Arena/NPC frames and incremental ranking segments
+
+**Source candidate only; uncompiled and unexecuted.** Arena score, ranking and
+NPC reply builders wrote UID/server/rank/header prefixes before required metadata,
+complete capacity or string-length checks could fail. The ranking receiver wrote
+a response header and earlier rows before inspecting a later selected Info/name.
+An old NPC test required65536-byte text length wrapping and truncated output.
+
+Score and NPC replies now use FSB-209 PrepareFrame to prepare a complete genuine
+scratch frame and commit only its final validated bytes. Score captures one
+actual configured server ID for both player fields; missing server/name state
+rejects without a placeholder. NPC displayfalse omission, displayed-null empty
+slot, InputMaxLength semantics and actual seal/length behavior remain unchanged.
+
+Ranking's real create -> append56-byte rows -> finalize sequence is preserved.
+A focused PreparedAppend partial prepares complete unframed segments with actual
+scratch capacity. PrepareWriteAt validates its explicit destination independently
+of the old cursor; PrepareAppend uses the actual current cursor. Both retain raw
+cursor/Memory/Size witnesses, snapshot genuine sequentially written bytes and
+recheck complete bounds before one target copy. Size is preserved and cursor
+advances only on success. The helper is a controlled codec facility, not an
+authorization callback or a shared lifetime guard.
+
+The sole ranking Handler now captures actual selected row/Info/name/scalar values
+before PrepareFrame2093 builds the complete response. Nonnull-row count, paging,
+array order/duplicates, global row positions, TodayRank filtering and Today/History
+field choices remain. Page0 rejects explicitly instead of negative indexing; it
+is not clamped. Unknown rank remains a consumed query with no response. Ranking
+query parsing also prepares both UInt16 outputs before publication. Successful
+independent ranking/score/NPC goldens, fixed marker10 and native name truncation
+are retained.
+
+Existing test case counts are retained while dirty-prefix/old null-trap assertions
+are replaced with full owned-buffer/cursor/Size preservation. Two focused test
+partials author28 unrun outcomes: five complete query controls; incremental header
+and exact/short row bounds; null name/server state; later invalid selected rows;
+whole response capacity; tiny score/NPC frames and actual seal room; optional
+hidden oversized text; null/disposed targets. No unsafe old oversized/OOB execution
+was performed. Root must review and run actual combined qualification.
+
+Response refusal preserves the post-query packet state; a valid request already
+consumed before later row/page failure is not rolled back. Post-commit Send is
+not delivery or crash atomicity. Public packet lifetime/metadata changes lack a
+common guard, and public ranking writes lack a source-wide snapshot lock. No
+global ranking atomicity, transport/client, SQL, new7937 or full parity proof is
+claimed. Spec: [server-native-arena-npc-frame-preparation](docs/protocol/specs/server-native-arena-npc-frame-preparation.md).
+
+## FSB-212: Prepare Chi messages and actual query values before target publication
+
+**Candidate source only; combined managed qualification pending.** ChiMessage
+wrote type/packed-attribute bytes before dereferencing a missing name. The query
+builder wrote its header before evaluating actual Score, and built a complete
+frame before dereferencing a missing recipient. Earlier tests required these
+dirty target states. Neighbors01 retained the actual null-name exception mismatch.
+
+Required arguments now reject before publication. Actual power type/rank/Score/
+UID/name are captured before output preparation; FSB-209 PrepareFrame creates
+the complete genuine2276/2165 frame on owned scratch storage before copying it
+to the real target. Query sends only after frame commit. Existing independent
+successful packet bytes, rank narrowing, score width, repeated UID/name fields,
+native UTF8 name behavior and optional seal are preserved.
+
+Three prior defect assertions now require complete physical target/cursor/Size
+and queue preservation. Four corrected-only exact/short-capacity cases cover
+sealed and unsealed ChiMessage frames. These new controls are uncompiled/unrun.
+No unsafe old small-buffer baseline is executed. Notification failure after
+frame commit is not rollback or delivery proof; concurrent power/packet mutation,
+gameplay accounting, persistence, live/current7937 acceptance and full parity
+remain outside this guarantee. Spec:
+[server-native-chi-packet-preparation](docs/protocol/specs/server-native-chi-packet-preparation.md).
+
+## FSB-211 candidate: Whole native readers must not publish partial records
+
+**Source candidate only; uncompiled and unexecuted.** The sequential native
+`GetAchievement`, `NpcDialog` and `GetArenaSignup` readers assigned caller output
+parameters and consumed earlier fields before a later bounded read could reject.
+FSB-208 removed fabricated missing zero/empty values, but did not make those
+outer multi-field operations coherent. Earlier tests required partial results.
+
+Each reader now rejects a null required packet explicitly, runs the actual
+bounded read sequence through the shared FSB-209 `ReadPrepared<T>` helper, and
+prepares a local tuple. Caller outputs are assigned only after the complete
+tuple returns. Ordinary read rejection retains all original outputs and the
+initial raw cursor, input bytes and supplied Size. This does not fabricate
+default fields, add an opcode/enum validation rule or activate any receiver.
+
+Successful little-endian layouts are unchanged: Achievement consumes four
+UInt32 words while discarding the reserved third word; NPC dialog consumes its
+UInt32/UInt16/byte fields, byte mode, unaligned UInt16 byte length and complete
+UTF8/CString field; Arena consumes exactly two UInt32 words. Unknown enum values,
+NPC replacement/NUL rules, same-packet return and creator/reader asymmetry remain.
+All three creator/builder regions are byte-exact, including their separate open
+failure-side-effect issues.
+
+Existing physical/malformed tests retain their cases and valid independent
+goldens; partial-output assertions are replaced with complete refusal invariants.
+The new corrected-only suite authors 30 outcomes: 23 finite truncated records,
+3 null packets, 3 disposed packets and one combined independent tiny-allocation
+golden. Every native test byte is owned and initialized. No unsafe old-code OOB
+baseline, restore, build, test, native/client execution or live change was run.
+
+Root must compose FSB-209's shared helper and run the actual combined qualification
+before a fixed claim. Mutable Size remains caller metadata rather than independent
+capture/authentication proof. There is no shared lifetime gate against foreign
+pointer/Size changes, Seek or Dispose; this remains an exclusive-caller component
+guarantee. Other codecs/builders, transport, gameplay state, SQL, 7937/client
+acceptance and full parity are not qualified by this source package.
+Spec: [server-native-codec-read-publication](docs/protocol/specs/server-native-codec-read-publication.md).
+
+## FSB-210 — Native Clan codecs publish partial frames and caller outputs on failure
+
+Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
+Baseline public91040398 plus the captured40-path Root candidate; shared Packet
+PrepareFrame/ReadPrepared APIs are the separately authored FSB-209 dependency.
+Scope: `World/LegacyNativeClanPacket.cs`, associated packet tests and two focused
+corrected-only test partials. No Clan runtime/Guild or Networking file is changed.
+
+All five builders previously changed target cursor/bytes before required owner,
+member/name/list and full-capacity validation. A missing late row, invalid list
+or insufficient capacity could leave an incomplete frame and stale Size. GetClan
+assigned early out words before a late field/list failure. FSB-208 bounded the
+primitive reads but explicitly left those whole-codec defects OPEN.
+
+The candidate snapshots/validates real required owners and captures immutable
+member/name/scalar/list values before calling PrepareFrame. Only a complete
+prepared2049 frame reaches the target. GetClan prepares a full tuple through
+ReadPrepared and assigns all outs after success. Ordinary refusal preserves the
+entire target bytes, raw cursor, Size and original out values. No surrogate owner,
+ClanID authority, partial successful result or new profile is invented.
+
+Existing independent2049 member/fixed32-byte UTF8/list/callback goldens remain.
+Optional null bulletin still encodes one empty entry; null callback list still
+omits count, and an empty array writes0. Required names/null rows reject early.
+Authored corrected-only controls cover every builder's insufficient/exact
+capacity with/without seal, valid late member capacity failure, null/foreign
+owners, malformed late names/lists, representation bounds and complete reader
+output/cursor rollback. No unsafe old-code baseline or helper execution occurred.
+
+Root must review/compose shared APIs and this consumer, then build/test the full
+coherent batch. Source snapshots and owner checks are not concurrent graph/lifetime
+or crash-safe transaction proof. Transport/client/7937 gameplay, SQL/persistence,
+other packet codecs and full parity remain separate. See
+`docs/protocol/specs/server-native-clan-codec-preparation.md` and the helper handoff.
+
+## FSB-209 — prepared native StringPacket and whole-codec failure safety
+
+**Status: implemented in isolated source; Root managed qualification pending.**
+
+- Source: decompiled `GameServer/MrRayzo.Game.MsgServer/MsgBuilder.cs:2790–2821`
+  and `World/LegacyNativeStringPacket.cs`. The former publishes a new reader model
+  before its first read; the latter retained partial fields/cursor on later parse
+  failure and reset/wrote the target prefix before a null or oversized builder
+  could be rejected. FSB207/208 fixed primitive bounds but not whole-codec safety.
+- Change: explicit required-input validation; controlled `ReadPrepared<T>` holds
+  returned-model publication until the complete parse succeeds and rolls back
+  the initial raw cursor/captured Size on ordinary failures while the same
+  allocation remains live. `PrepareFrame` builds a complete genuine owned scratch
+  frame using actual target Capacity and actual InitWriter/body/Finalize, captures
+  complete managed bytes, checks target and seal witnesses, then copies the frame
+  and publishes Size/cursor4. StringPacket snapshots mutable fields/array first.
+- Retained: successful2036 goldens, UID/LocationEffect packing, unknown StringID,
+  UTF8/embedded-NUL/null-entry behavior, null Strings' three zero bytes versus
+  empty's single count, optional native eight-byte seal semantics and reader
+  current-cursor behavior. No clamp, fake owner/transport or packet registration.
+- Verification: existing15 StringPacket outcomes were retained/adapted and25
+  corrected-only focused outcomes authored. **No restore/build/test was run by
+  this helper.** Root must record actual results before calling this fixed.
+- Limits: controlled internal callbacks and exclusive caller ownership are
+  prerequisites. Public pointer/Size mutation, concurrent disposal/foreign access,
+  callback side effects, crash atomicity, actual sendability (separate1032 cap),
+  current-client traffic and7937 acceptance are not established. Frame/header
+  selection and genuine input-window provenance remain receive-caller duties.
+
+Spec: `docs/protocol/specs/server-native-prepared-string-codec.md`.
+
+## FSB-208 — Native packet reads ignore actual input bounds and fabricate missing fields
+
+Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
+Base public731d8e54/generated91040398 plus the24 reviewed FSB-204..207 paths.
+Production scope is the read region in `Networking/LegacyNativePacket.IO.cs`
+and the focused `LegacyNativePacket.ReadBounds.cs` partial.
+
+Old primitive reads use a strict16KiB constant, ignore actual Capacity/Size,
+silently return zero/empty at valid physical ends and can access smaller native
+allocations beyond their extent. Composite byte/list reads can advance partway,
+fabricate missing data and accept malformed tails. Unsafe old OOB cases were not run.
+
+The candidate validates liveness, full-width cursor, complete nonnegative counts,
+actual Capacity and supplied input Size before native access. Exact complete ends
+succeed; missing input refuses explicitly. Scalar/byte/CString results and the
+entire list prepare before cursor/output publication. The foreign-destination
+copy validates/copies its source first and supports valid overlap via a snapshot;
+arbitrary destination extent/lifetime is still the caller's obligation.
+
+Authored corrected-only controls cover independent little-endian/signed and
+UTF8/NUL/list goldens, tiny/default exact ends, spare allocation, malformed tails,
+negative/oversize counts, invalid/full-width cursors/Size, disposal and preserved
+bytes/cursors/owned foreign outputs on ordinary refusal. The13 approved legacy
+test paths now use actual copied/initialized/written input extents and explicit
+EOF errors. Independent valid wire goldens and existing outcomes remain; no
+Capacity-derived input or unsafe old-code red execution was introduced.
+
+No build/restore/test/dotnet, SQL, runtime/client/process or actual checkout/Git
+mutation occurred here. Root must review and run the combined build/focused/full
+gate. Supplied mutable Size is metadata, not independent capture/auth authority;
+concurrent foreign mutation/disposal and arbitrary pointers are unproved.
+Sequential whole-codec partial assignments and Clan/StringPacket builder partial
+output remain OPEN, separate defects. Their tests do not require particular dirty
+prefix bytes as successful behavior. No new profile, live transport,7937 login or
+full parity follows. See `docs/protocol/specs/server-native-packet-physical-read-bounds.md`.
+
+## FSB-207 — Native packet writes ignore real storage and can partially publish frames
+
+Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
+Baseline public 731d8e54 / generated 91040398. Locations:
+`Networking/LegacyNativePacket.IO.cs`, `LegacyNativePacket.cs:Finalize/WriteSeal`
+and the focused `LegacyNativePacket.WriteBounds.cs` partial.
+
+Old writes compare an int-narrowed cursor plus width with the default 16 KiB
+constant. They silently drop physically fitting exact-end writes and can exceed
+genuine smaller allocations. Negative/bad cursors and counts are not rejected
+before access. Composite strings/lists/helper output can be partly emitted;
+Finalize appends seal and changes header/Size without complete physical/UInt16
+preflight and with repeated mutable seal reads. Unsafe old OOB cases were not run.
+
+The candidate validates live storage, full-width cursor, immutable Capacity and
+complete counts before destination access, allows exact physical ends, and
+prepares composite bytes before committing. It retains valid little-endian wire
+bytes, native fixed-string UTF8 truncation and the opaque protocol helper's
+trailing token. Actual byte/UInt16 list representation overflows reject. Finalize
+captures the seal once, checks the full frame and declared length, and publishes
+Size including seal with cursor 4; its header excludes seal length.
+
+Authored corrected-only controls use real allocations and owned inputs for exact
+boundaries, refusal preservation, disposal, invalid/full-width cursors, count and
+length bounds, composite preparation and independent byte/frame goldens. Only
+two storage methods that required exact-end write loss were adapted; their
+read-boundary evidence remains separate. No C# tests were executed by the helper.
+Root must qualify the combined FSB-205/206/207 source and retained neighbors.
+Reads, general memcpy, arbitrary foreign source validity, concurrent foreign
+mutation/disposal, transport/client acceptance and runtime activation remain open.
+
+## FSB-206: Bound generic native protobuf memory access (candidate, unqualified)
+
+`Networking/LegacyNativePacket.Protobuf.cs` previously copied the serialized body
+through an unchecked native memcpy and decoded a declared frame using raw reads
+without actual Size/allocation bounds. Spare allocation could be consumed as input,
+and malformed managed payloads left a consumed native cursor. The isolated candidate
+validates live allocation, full-width cursor and Size; prepares managed bytes before
+checking payload plus current seal against immutable Capacity; and parses only a
+declared-length/Size-bounded managed copy before committing the decode cursor.
+Refusals preserve this operation's native bytes, Size, original cursor and supplied
+model. Writers retain fresh Size0/cursor4 admission, successful append semantics and
+the pinned protobuf-net2.0.0.668 wire; the fully managed byte[] overload is unchanged.
+
+Existing tests that required Size1 decoding and dirty malformed-decode cursors now
+assert actual input ownership and unchanged refusal state. Source-authored controls
+retain Dict/Gear goldens and real source aliases, add exact-capacity finalized Dict
+bytes with/without the existing seal, real oversized MsgTalkProto content, physically
+short headers, truncated Size, impossible declared lengths, invalid full-width
+cursors/Size, disposal and independent raw managed decode. No unsafe old-case red
+baseline was executed. No build/restore/test execution occurred in this helper;
+Root integration and focused/full qualification remain required before a fixed claim.
+
+Scope/limits: this bounds the generic protobuf entry points in their existing
+single-owner use. Public pointer/Size writes, Dispose, general IO and later Finalize
+share no lifetime gate; noncooperating concurrent disposal/writes and subsequent
+global-seal changes remain outside the guarantee. It does not replace a complete
+bounded frame owner (FSB-205 separately owns TradeInfo), validate every native packet,
+change schemas or establish live acceptance. See
+`docs/protocol/specs/server-native-protobuf-bounds.md` and the owned helper handoff.
+
+## FSB-205 — Native TradeInfo unchecked copy exceeds its packet allocation
+
+Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
+Baseline public 731d8e54 / generated 91040398. Location:
+`World/LegacyNativeMsgTrade.Contracts.cs:TradeInfo.ToArray`; unchanged copy
+primitive: `Networking/LegacyNativePacket.Protobuf.cs:ProtoBufferSerialize`.
+
+The old method serializes an unbounded public Name through unchecked unmanaged
+memcpy into 16,384-byte storage. Payload/seal preparation can cross the allocation
+before return. The unsafe oversized baseline was not executed. The initial
+lifetime hypothesis is not claimed: current Reuse only seeks to 0, with no
+enqueue/free, and the caller retains the packet object.
+
+The candidate snapshots data and seal, serializes and prepares bounded managed
+bytes, then copies into genuinely owned native storage. It retains opcode 2396,
+all twenty required fields/order/defaults, framing, native UTF8 seal truncation
+and cursor 0. It disposes failed result preparation; the caller disposes success.
+No arbitrary gameplay Name limit, fake pool/transport/owner or registration is
+introduced.
+
+Authored corrected-only controls cover independent wire goldens, UTF8/signed
+defaults, captured seals, real packet/recycle/disposal/alias behavior, exact
+allocation bounds and null/oversize refusal. They are not executed helper results.
+Root must qualify with retained packet/codec neighbors after the shared gate.
+Large-frame transport delivery, client acceptance, complete trade transactions,
+SQL and whole-receiver activation remain open. See the native TradeInfo owned
+packet specification for the evidence boundary.
+
+## FSB-204: Native trade identity queries and unbound currency admission
+
+**Authored in an isolated candidate; compilation and qualification pending. Native
+exchange activation remains OPEN.** The constructor accepted a null Owner;
+ItemInTrade queried ITEM_ID despite real reference insertion/settlement using UID;
+ValidItems accepted a different physical inventory object with the same UID and
+malformed escrow keys. AddMoney credited negative amounts, could overflow escrow,
+and invoked the real wallet setter before complete admission or packet failure.
+Earlier lifecycle tests explicitly required those defects, including a null owner,
+item-type lookup, substituted ownership, negative credit and debit before a final
+packet fault. They are replaced by safe actual-object controls; existing valid
+native2119 protobuf goldens and all six required fields remain unchanged.
+
+Construction now requires a real owner and keeps owner/collection references
+readonly. UID membership distinguishes valid absence from malformed offer state.
+ValidItems requires real Player/Inventory ownership, canonical positive UID keys,
+exact physical inventory rows and unchanged recaptured bindings/snapshots. It
+returns false for missing/malformed state without repairing or allocating owners.
+These are read-only observations; raw mutable row changes after return or unseen
+ABA are not inventory transfer authority or an atomicity guarantee.
+
+The native trade has no binding to the managed World trade's persisted wallet
+claim, Character/Items pair journal, recovery owner or coordinator. AddMoney now
+validates null arguments then explicitly refuses the entire unbound path before
+wallet access, escrow arithmetic, confirmations, request fields, packet memory or
+sends. Reciprocal-looking native windows and transport references cannot authorize
+a partial exchange. No accepting bridge, fake durable owner or managed trade
+behavior is introduced. The native MsgTrade receiver remains HELD/unregistered.
+
+Authored currency cases cover the original negative-offer counterexample, a
+positive offer against a populated reciprocal-looking pair and null request/packet.
+The unconditional fence does not implement arithmetic or pair admission rules;
+those remain unimplemented with full native currency. Tests use actual socketless
+native objects and preserve both
+wallet/warehouse balances, escrow/confirmation/window/pair references, item rows,
+all request fields and the entire packet allocation/cursor/size on refusal.
+Root must compile and run the native trade/lifecycle and managed trade neighbors
+after its current full Windows lane is terminal. This helper ran no build, test,
+restore, SQL, client or process operation. Full native trade, durable native escrow,
+live protocol acceptance, SQL and crash/cross-process safety are not verified.
+
 ## FSB-203: Retain Ninja persistence's actual initial registry through publication
 
 **Implemented and focused offline qualified; full gate pending.** Root's compiled80

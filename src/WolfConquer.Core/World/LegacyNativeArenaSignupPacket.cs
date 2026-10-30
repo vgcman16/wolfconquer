@@ -28,7 +28,14 @@ internal static class LegacyNativeArenaSignupPacket
     public static void GetArenaSignup(this LegacyNativePacket stream,
         out LegacyNativeMsgArenaSignup.DialogType DialogID, out LegacyNativeMsgArenaSignup.DialogButton OptionID)
     {
-        DialogID = (LegacyNativeMsgArenaSignup.DialogType)stream.ReadUInt32();
-        OptionID = (LegacyNativeMsgArenaSignup.DialogButton)stream.ReadUInt32();
+        ArgumentNullException.ThrowIfNull(stream);
+        var prepared = stream.ReadPrepared(static packet =>
+        {
+            var parsedDialog = (LegacyNativeMsgArenaSignup.DialogType)packet.ReadUInt32();
+            var parsedOption = (LegacyNativeMsgArenaSignup.DialogButton)packet.ReadUInt32();
+            return (Dialog: parsedDialog, Option: parsedOption);
+        });
+        DialogID = prepared.Dialog;
+        OptionID = prepared.Option;
     }
 }

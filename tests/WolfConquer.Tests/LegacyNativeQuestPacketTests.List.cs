@@ -48,15 +48,16 @@ public sealed partial class LegacyNativeQuestPacketTests
     });
 
     [Fact]
-    public Task ListReaderKeepsAllUnknownEnumBitsAndCurrentCursorIgnoringHeaderAndLogicalSize() => NativePacketTestThread.Run(() =>
+    public Task ListReaderKeepsUnknownEnumBitsWithinCapturedInputAndLeavesTheActualTail() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        scope.Input(Frame(9999, 0xFFFEFFFF, uint.MaxValue, 0xDEADBEEF, 0x12345678, 71)); scope.Packet.Size = 4;
+        byte[] input = Frame(9999, 0xFFFEFFFF, uint.MaxValue, 0xDEADBEEF, 0x12345678, 71); scope.Input(input);
         scope.Packet.GetQuestList(out var mode, out var count, out var id, out var status, out var timer);
         Assert.Equal((Mode)ushort.MaxValue, mode); Assert.Equal((ushort)65534, count); Assert.Equal(uint.MaxValue, id);
         Assert.Equal((Status)0xDEADBEEF, status); Assert.Equal(0x12345678u, timer); Assert.Equal(20, scope.Packet.Position);
-        Assert.Equal(4, scope.Packet.Size);
-        scope.Packet.GetQuestData(out var remaining, out _, out _); Assert.Equal(71u, remaining);
+        Assert.Equal(input.Length, scope.Packet.Size);
+        Assert.Equal(71u, scope.Packet.ReadUInt32()); Assert.Equal(input.Length, scope.Packet.Position);
+        Assert.Throws<EndOfStreamException>(() => scope.Packet.ReadUInt32()); Assert.Equal(input.Length, scope.Packet.Position);
     });
 
     [Fact]
@@ -72,10 +73,10 @@ public sealed partial class LegacyNativeQuestPacketTests
     });
 
     [Fact]
-    public Task AppendUsesCurrentCursorAndNullItemFaultDoesNotResetAnything() => NativePacketTestThread.Run(() =>
+    public Task AppendUsesCurrentCursorAndMissingItemRefusesWithoutChangingAnything() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        Assert.Throws<NullReferenceException>(() => scope.Packet.AddItemQuestList(null!));
+        Assert.Throws<ArgumentNullException>(() => scope.Packet.AddItemQuestList(null!));
         Assert.Equal(237, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size); Assert.Equal(Enumerable.Repeat((byte)0xA5, 12), scope.Raw(237, 12));
         scope.Packet.AddItemQuestList(new Message.QuestListItem { UID = 1, Status = Status.Available, Time = 3, Intentions = new uint[] { 999 } });
         Assert.Equal(249, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
@@ -84,15 +85,18 @@ public sealed partial class LegacyNativeQuestPacketTests
     });
 
     [Fact]
-    public Task ScalarPhysicalBoundaryCanLeavePartialAppendWhileGettersReturnZeroWithoutAdvancing() => NativePacketTestThread.Run(() =>
+    public Task IncompleteAppendOrReaderCannotPublishPartialWordsOrDefaultFields() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); scope.Packet.Seek(16375);
-        scope.Packet.AddItemQuestList(new Message.QuestListItem { UID = 1, Status = (Status)uint.MaxValue, Time = 3 });
-        Assert.Equal(16383, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
-        Assert.Equal(Convert.FromHexString("01000000FFFFFFFFA5"), scope.Raw(16375, 9));
-        scope.Packet.GetQuestList(out var mode, out var count, out var id, out var status, out var timer);
-        Assert.Equal((Mode)0, mode); Assert.Equal((ushort)0, count); Assert.Equal(0u, id); Assert.Equal((Status)0, status); Assert.Equal(0u, timer);
-        Assert.Equal(16383, scope.Packet.Position);
+        byte[] before = scope.Raw(0, scope.Packet.Capacity);
+        Assert.Throws<InvalidOperationException>(() => scope.Packet.AddItemQuestList(
+            new Message.QuestListItem { UID = 1, Status = (Status)uint.MaxValue, Time = 3 }));
+        Assert.Equal(16375, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        var mode = (Mode)91; ushort count = 92; uint id = 93, timer = 94; var status = (Status)95;
+        Assert.Throws<EndOfStreamException>(() => scope.Packet.GetQuestList(out mode, out count, out id, out status, out timer));
+        Assert.Equal((Mode)91, mode); Assert.Equal((ushort)92, count); Assert.Equal(93u, id);
+        Assert.Equal((Status)95, status); Assert.Equal(94u, timer); Assert.Equal(16375, scope.Packet.Position);
+        Assert.Equal(321, scope.Packet.Size); Assert.Equal(before, scope.Raw(0, scope.Packet.Capacity));
     });
 
     [Fact]
@@ -107,12 +111,12 @@ public sealed partial class LegacyNativeQuestPacketTests
     public Task EveryPrimitiveOwnerDereferencesRealPacketRatherThanUsingFallbackOrDefaultBytes() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope();
-        Assert.Throws<NullReferenceException>(() => LegacyNativeQuestPacket.GetQuestData(null!, out _, out _, out _));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeQuestPacket.MsgQuestDataCreate(null!, 0, 0, Array.Empty<uint>()));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeQuestPacket.MsgQuestDataCreate(null!, 0, 0, 0, Array.Empty<uint>()));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeQuestPacket.GetQuestList(null!, out _, out _, out _, out _, out _));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeQuestPacket.QuestListCreate(null!, Mode.Review, 0));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeQuestPacket.AddItemQuestList(null!, new Message.QuestListItem()));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeQuestPacket.QuestListFinalize(null!));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeQuestPacket.GetQuestData(null!, out _, out _, out _));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeQuestPacket.MsgQuestDataCreate(null!, 0, 0, Array.Empty<uint>()));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeQuestPacket.MsgQuestDataCreate(null!, 0, 0, 0, Array.Empty<uint>()));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeQuestPacket.GetQuestList(null!, out _, out _, out _, out _, out _));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeQuestPacket.QuestListCreate(null!, Mode.Review, 0));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeQuestPacket.AddItemQuestList(null!, new Message.QuestListItem()));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeQuestPacket.QuestListFinalize(null!));
     });
 }

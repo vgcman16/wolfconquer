@@ -53,6 +53,7 @@ public sealed partial class LegacyNativeTitleTests
         {
             Reset();
             Marshal.Copy(bytes, 0, (IntPtr)Packet.Memory, bytes.Length);
+            Packet.Size = bytes.Length;
         }
 
         internal unsafe byte[] Memory(int length)

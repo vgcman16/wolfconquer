@@ -81,20 +81,26 @@ public sealed partial class LegacyNativeArenaMatchPacketTests
     public Task WholeSignupReaderConsumesExactlyTwoUIntWordsAndDoesNotValidateUnknownValues() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); scope.Packet.InitWriter();
-        scope.Packet.Write(0xFEDCBA98u); scope.Packet.Write(0x87654321u); scope.Packet.Write(0x11223344u); scope.Packet.Seek(4);
+        scope.Packet.Write(0xFEDCBA98u); scope.Packet.Write(0x87654321u); scope.Packet.Write(0x11223344u);
+        int inputEnd = scope.Packet.Position; scope.Packet.Size = inputEnd; scope.Packet.Seek(4);
         scope.Packet.GetArenaSignup(out var dialog, out var option);
         Assert.Equal(0xFEDCBA98u, (uint)dialog); Assert.Equal(0x87654321u, (uint)option);
-        Assert.Equal(12, scope.Packet.Position); Assert.Equal(321, scope.Packet.Size);
+        Assert.Equal(12, scope.Packet.Position); Assert.Equal(inputEnd, scope.Packet.Size);
         Assert.Equal(0x11223344u, scope.Packet.ReadUInt32()); Assert.Empty(scope.Queue);
     });
 
     [Fact]
-    public Task SignupReaderRetainsTheNativeReadBoundaryZeroWithoutAdvancing() => NativePacketTestThread.Run(() =>
+    public Task SignupReaderRefusesAnUncapturedTailWithoutAssigningDialogOrOption() => NativePacketTestThread.Run(() =>
     {
         using var scope = new Scope(); scope.Packet.Seek(LegacyNativePacket.MAX_SIZE - 4);
-        scope.Packet.GetArenaSignup(out var dialog, out var option);
-        Assert.Equal(0u, (uint)dialog); Assert.Equal(0u, (uint)option);
+        byte[] before = NativeSpellTestFixture.Bytes(scope.Packet);
+        var dialog = (LegacyNativeMsgArenaSignup.DialogType)91;
+        var option = (LegacyNativeMsgArenaSignup.DialogButton)92;
+        Assert.Throws<EndOfStreamException>(() => scope.Packet.GetArenaSignup(out dialog, out option));
+        Assert.Equal(91u, (uint)dialog); Assert.Equal(92u, (uint)option);
         Assert.Equal(LegacyNativePacket.MAX_SIZE - 4, scope.Packet.Position);
+        Assert.Equal(321, scope.Packet.Size); Assert.Empty(scope.Queue);
+        Assert.Equal(before, NativeSpellTestFixture.Bytes(scope.Packet));
     });
 
     [Fact]

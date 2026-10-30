@@ -56,14 +56,18 @@ public sealed partial class LegacyNativeWarehousePublicationTests
     });
 
     [Fact]
-    public Task FullShowFaultKeepsTheNativeShownMarkerAndDoesNotPublishOrRetryTheBadBank() => NativePacketTestThread.Run(() =>
+    public Task RefusedShowLeavesNoMarkerAndARepairedBankCanBeRetried() => NativePacketTestThread.Run(() =>
     {
         using var scope=new Scope(); var item=Item(1); item.OwnerName=null!; scope.Warehouse.AddItem(item,8);
-        Assert.Throws<NullReferenceException>(()=>scope.Warehouse.Show(8,LegacyNativeMsgWarehouse.DepositActionID.Show,scope.Packet));
-        Assert.Empty(scope.Queue); Assert.Equal(new uint[] {8},scope.Warehouse.IsShow);
-        Assert.Equal(88,scope.Packet.Position); Assert.Equal(321,scope.Packet.Size);
+        byte[] before=WarehouseAllocation(scope.Packet);
+        Assert.Throws<ArgumentNullException>(()=>scope.Warehouse.Show(8,LegacyNativeMsgWarehouse.DepositActionID.Show,scope.Packet));
+        Assert.Empty(scope.Queue); Assert.Empty(scope.Warehouse.IsShow);
+        Assert.Equal(237,scope.Packet.Position); Assert.Equal(321,scope.Packet.Size);
+        Assert.Equal(before,WarehouseAllocation(scope.Packet));
         item.OwnerName="Repaired fixture name";
-        scope.Warehouse.Show(8,LegacyNativeMsgWarehouse.DepositActionID.Show,null!); Assert.Empty(scope.Queue);
+        scope.Warehouse.Show(8,LegacyNativeMsgWarehouse.DepositActionID.Show,scope.Packet);
+        Assert.Single(scope.Queue); Assert.Equal(new uint[] {8},scope.Warehouse.IsShow);
+        Assert.Same(item,scope.Warehouse.ClientItems[8][1]);
     });
 
     [Fact]

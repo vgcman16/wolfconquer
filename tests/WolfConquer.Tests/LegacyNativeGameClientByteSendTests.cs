@@ -9,7 +9,7 @@ using NativeSocket = WolfConquer.Core.Networking.LegacyNativeSecuritySocket;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LegacyNativeGameClientByteSendTests
+public sealed partial class LegacyNativeGameClientByteSendTests
 {
     private static readonly byte[] Unsealed = Convert.FromHexString("000080080102030405060708CCCCCCCCCCCCCCCC");
     private static readonly byte[] Sealed = Convert.FromHexString("0C00800801020304050607085451536572766572");
@@ -76,15 +76,15 @@ public sealed class LegacyNativeGameClientByteSendTests
 
     [Theory]
     [InlineData(false, "0C00800801020304050607085451536572766572")]
-    [InlineData(true, "3412800801020304050607085451536572766572")]
-    public Task HeaderAndTrailingSealMutateTheOriginalBeforeTheRealSocketCopiesIt(
+    [InlineData(true, "0C00800801020304050607085451536572766572")]
+    public Task HeaderAndTrailingSealCommitToTheOriginalAfterRealQueueAdmission(
         bool nonzeroHeader, string expectedHex) => NativePacketTestThread.Run(() =>
     {
         using var logs = new OwnedLogScope();
         var queue = new Queue<byte[]>();
         var owner = Owner(queue);
         var source = Unsealed.ToArray();
-        if (nonzeroHeader) { source[0] = 0x34; source[1] = 0x12; }
+        if (nonzeroHeader) { source[0] = 0x0C; source[1] = 0; }
         var player = owner.Player;
 
         owner.Send(source);
@@ -135,7 +135,7 @@ public sealed class LegacyNativeGameClientByteSendTests
     });
 
     [Fact]
-    public Task MissingModelQueueIsSwallowedBySocketAfterSourceMutationAndCipherAdvance() => NativePacketTestThread.Run(() =>
+    public Task MissingActualQueueRefusesBeforeSourceMutationOrCipherAdvance() => NativePacketTestThread.Run(() =>
     {
         using var logs = new OwnedLogScope();
         var socket = new NativeSocket(null!, null!) { Alive = true, Crypto = Cipher() };
@@ -143,19 +143,18 @@ public sealed class LegacyNativeGameClientByteSendTests
         var first = Unsealed.ToArray();
         var second = Unsealed.ToArray();
         var control = new LegacyGameServerCipher(Key);
-        control.Encrypt(Sealed, new byte[Sealed.Length]);
-        var expectedContinuation = new byte[Sealed.Length];
-        control.Encrypt(Sealed, expectedContinuation);
+        var expectedFirstQueued = new byte[Sealed.Length];
+        control.Encrypt(Sealed, expectedFirstQueued);
 
         owner.Send(first);
 
-        Assert.Equal(Sealed, first);
+        Assert.Equal(Unsealed, first);
         Assert.Null(QueueField.GetValue(socket));
         var queue = new Queue<byte[]>();
         QueueField.SetValue(socket, queue); // MODEL prestate only; no Create/pump/socket binding.
         owner.Send(second);
         Assert.Equal(Sealed, second);
-        Assert.Equal(expectedContinuation, Assert.Single(queue));
+        Assert.Equal(expectedFirstQueued, Assert.Single(queue));
         Assert.True(socket.Alive);
         Assert.Null(socket.Connection);
         logs.AssertNoErrors();
@@ -166,20 +165,13 @@ public sealed class LegacyNativeGameClientByteSendTests
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(7)]
-    public Task ShortBufferFaultIsLoggedAfterAnyNativeHeaderPublication(int length) => NativePacketTestThread.Run(() =>
+    public Task ShortBufferRefusalIsLoggedWithoutAnyCallerHeaderPublication(int length) => NativePacketTestThread.Run(() =>
     {
         using var logs = new OwnedLogScope();
         var queue = new Queue<byte[]>();
         var owner = Owner(queue);
         var source = new byte[length];
         var expected = source.ToArray();
-        if (length >= 2)
-        {
-            var nativeLength = unchecked((ushort)(length - 8));
-            expected[0] = (byte)nativeLength;
-            expected[1] = (byte)(nativeLength >> 8);
-        }
-
         owner.Send(source);
 
         Assert.Equal(expected, source);
@@ -189,23 +181,25 @@ public sealed class LegacyNativeGameClientByteSendTests
     });
 
     [Theory]
-    [InlineData(8, "5451536572766572")]
-    [InlineData(9, "015451536572766572")]
-    [InlineData(10, "02005451536572766572")]
-    public Task NativeSealCanOverwriteTheHeaderOfTinyButAcceptedBuffers(int length, string expectedHex) => NativePacketTestThread.Run(() =>
+    [InlineData(8)]
+    [InlineData(9)]
+    [InlineData(10)]
+    public Task TrailerMustNotOverwriteTheFourByteHeaderOnRejectedTinyBuffers(int length) => NativePacketTestThread.Run(() =>
     {
         using var logs = new OwnedLogScope();
         var queue = new Queue<byte[]>();
         var owner = Owner(queue);
+        owner.Socket!.Crypto = Cipher();
         var source = new byte[length];
 
         owner.Send(source);
 
-        var expected = Convert.FromHexString(expectedHex);
-        Assert.Equal(expected, source);
-        Assert.Equal(expected, Assert.Single(queue));
+        Assert.Equal(new byte[length], source); Assert.Empty(queue);
+        var next = Unsealed.ToArray(); owner.Send(next);
+        var expected = new byte[Sealed.Length]; new LegacyGameServerCipher(Key).Encrypt(Sealed, expected);
+        Assert.Equal(Sealed, next); Assert.Equal(expected, Assert.Single(queue));
         Assert.Null(owner.Socket!.Connection);
-        logs.AssertNoErrors();
+        logs.AssertOneError("LegacyNativeGameClientRuntime.Send");
     });
 
     [Fact]
@@ -230,7 +224,7 @@ public sealed class LegacyNativeGameClientByteSendTests
     });
 
     [Fact]
-    public Task ActualFixed1024BytePacketAllocationHasABoundedPositiveControl() => NativePacketTestThread.Run(() =>
+    public Task Actual1024ByteInputHasABoundedAllocationAndCopyControl() => NativePacketTestThread.Run(() =>
     {
         using var logs = new OwnedLogScope();
         var queue = new Queue<byte[]>();
@@ -248,22 +242,26 @@ public sealed class LegacyNativeGameClientByteSendTests
         Assert.Equal(expected, Assert.Single(queue));
         Assert.Null(owner.Socket!.Connection);
         logs.AssertNoErrors();
-        // Native Send accepts up to 1032, but Packet(byte[]) only allocates 1024.
-        // Do NOT execute the unsafe 1025..1032 range in these in-process tests.
+        // The current constructor reserves the actual input length. Separate
+        // corrected-only controls cover1025/1032 without executing old unsafe code.
     });
 
     [Fact]
-    public Task PacketConstructorStackFaultIsLoggedAfterCallerBytesAreAlreadyMutated() => NativePacketTestThread.Run(() =>
+    public Task PacketConstructorRefusalIsLoggedBeforeCallerBytesOrCipherCanChange() => NativePacketTestThread.Run(() =>
     {
         using var logs = new OwnedLogScope();
         var queue = new Queue<byte[]>();
         var owner = Owner(queue);
+        owner.Socket!.Crypto = Cipher();
         var source = Unsealed.ToArray();
 
         DeepCall(85, () => owner.Send(source));
 
-        Assert.Equal(Sealed, source);
+        Assert.Equal(Unsealed, source);
         Assert.Empty(queue);
+        var later = Unsealed.ToArray(); owner.Send(later);
+        var expected = new byte[Sealed.Length]; new LegacyGameServerCipher(Key).Encrypt(Sealed, expected);
+        Assert.Equal(Sealed, later); Assert.Equal(expected, Assert.Single(queue));
         Assert.Null(owner.Socket!.Connection);
         logs.AssertOneError("frame count excceeded 70");
     });

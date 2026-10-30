@@ -8,31 +8,40 @@ internal static class LegacyNativeArenaRankingPacket
     public static LegacyNativePacket ArenaRankingCreate(this LegacyNativePacket stream,
         LegacyNativeMsgArenaRanking.RankTyp rank, ushort page, uint Count, LegacyNativeArenaRuntime.ArenaIDs ArenaID)
     {
-        stream.InitWriter();
-        stream.Write((ushort)rank);
-        stream.Write(page);
-        stream.Write(Count);
-        stream.Write(10);
-        stream.Write((uint)ArenaID);
+        ArgumentNullException.ThrowIfNull(stream);
+        stream.PrepareWriteAt(4, prepared =>
+        {
+            prepared.Write((ushort)rank);
+            prepared.Write(page);
+            prepared.Write(Count);
+            prepared.Write(10);
+            prepared.Write((uint)ArenaID);
+        });
         return stream;
     }
 
     public static LegacyNativePacket AddItemArenaRanking(this LegacyNativePacket stream,
         ushort Rank, string Name, ushort UnKnow, uint Points, uint Class, uint level, uint unknow2, uint Mesh)
     {
-        stream.Write(Rank);
-        stream.Write(Name, 32);
-        stream.Write(UnKnow);
-        stream.Write(Points);
-        stream.Write(Class);
-        stream.Write(level);
-        stream.Write(unknow2);
-        stream.Write(Mesh);
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(Name);
+        stream.PrepareAppend(prepared =>
+        {
+            prepared.Write(Rank);
+            prepared.Write(Name, 32);
+            prepared.Write(UnKnow);
+            prepared.Write(Points);
+            prepared.Write(Class);
+            prepared.Write(level);
+            prepared.Write(unknow2);
+            prepared.Write(Mesh);
+        });
         return stream;
     }
 
     public static LegacyNativePacket ArenaRankingFinalize(this LegacyNativePacket stream)
     {
+        ArgumentNullException.ThrowIfNull(stream);
         stream.Finalize(2093);
         return stream;
     }
@@ -40,7 +49,14 @@ internal static class LegacyNativeArenaRankingPacket
     public static void GetArenaRanking(this LegacyNativePacket stream,
         out LegacyNativeMsgArenaRanking.RankTyp rank, out ushort PageNumber)
     {
-        rank = (LegacyNativeMsgArenaRanking.RankTyp)stream.ReadUInt16();
-        PageNumber = stream.ReadUInt16();
+        ArgumentNullException.ThrowIfNull(stream);
+        var prepared = stream.ReadPrepared(static packet =>
+        {
+            var parsedRank = (LegacyNativeMsgArenaRanking.RankTyp)packet.ReadUInt16();
+            ushort parsedPage = packet.ReadUInt16();
+            return (Rank: parsedRank, Page: parsedPage);
+        });
+        rank = prepared.Rank;
+        PageNumber = prepared.Page;
     }
 }
