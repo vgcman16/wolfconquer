@@ -62,7 +62,10 @@ try {
     $launcher = Join-Path $root 'tests/WolfConquer.Launcher.Tests/WolfConquer.Launcher.Tests.csproj'
     if (-not (Test-Path -LiteralPath $launcher -PathType Leaf)) { throw 'Windows checks require the separate launcher test project.' }
     $dotnet = Resolve-Application $DotNetPath @('dotnet.exe', 'dotnet')
-    $pwsh = Resolve-Application $PowerShellPath @('pwsh.exe', 'pwsh')
+    # Resolve the actual engine hosting this script, not a PATH app-execution
+    # alias such as WindowsApps\pwsh.exe (whose file has no engine metadata).
+    $engine = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
+    $pwsh = Resolve-Application $(if ($PowerShellPath) { $PowerShellPath } else { $engine }) @()
     $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($pwsh)
     if ($version.ProductMajorPart -ne 7 -or $version.ProductName -notmatch '^PowerShell(?: Core)?$') {
         throw 'The native test probe requires a measured PowerShell 7 executable.'

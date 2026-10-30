@@ -30,9 +30,13 @@ Both scripts default to the checkout two directories above their own location,
 not the current working directory. Supply `-RepositoryRoot 'D:/work/wolf checkout'`
 to select another root containing `WolfConquer.sln`, `Directory.Build.targets`, and
 the separate Windows launcher test project. The check runner also accepts
-`-DotNetPath` and `-PowerShellPath` as explicit executable paths. Otherwise it uses
-the first application found by `Get-Command` (`dotnet.exe`/`dotnet`,
-`pwsh.exe`/`pwsh`). PS7 file metadata and a freshly measured SHA256 supply the native
+`-DotNetPath` and `-PowerShellPath` as explicit executable paths. By default,
+.NET uses the first application found by `Get-Command` (`dotnet.exe`/`dotnet`),
+while PowerShell uses the actual executable under the running engine's `$PSHOME`.
+This avoids treating the Windows Store app-execution alias as an engine file.
+An explicitly supplied PowerShell path is still measured and rejected if invalid;
+there is no silent fallback from an invalid explicit selection. PS7 file metadata
+and a freshly measured SHA256 supply the native
 probe variables `WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH` and
 `WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH_SHA256` to child check processes only.
 
