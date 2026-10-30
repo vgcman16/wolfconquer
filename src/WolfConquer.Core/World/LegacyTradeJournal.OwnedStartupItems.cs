@@ -43,7 +43,7 @@ internal static partial class LegacyTradeJournal
             this.capture = capture;
             characters = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Character).ToArray();
             items = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Items).ToArray();
-            if (capture.Record.Version is 2 or 9 or 12 or 13 or 14 or 15)
+            if (capture.Record.Version is 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17)
             {
                 var target = items.Single();
                 protectedPhysicalBefore = LegacyItemUidRawCatalog.ReadAdmissionPlayerItemUids(target.Change.Before!).ToHashSet();
@@ -73,6 +73,16 @@ internal static partial class LegacyTradeJournal
 
         private static void ValidateImages(RecoveryCapture captured, uint highWater)
         {
+            if (captured.Record.Version == 17)
+            {
+                ValidateRecordedRuneChanceImages(captured.Record, highWater);
+                return;
+            }
+            if (captured.Record.Version == 16)
+            {
+                ValidateRecordedRuneComposeImages(captured.Record, highWater);
+                return;
+            }
             if (captured.Record.Version is 13 or 15)
             {
                 ValidateRecordedRuneContainerImages(captured.Record, highWater);
@@ -179,7 +189,7 @@ internal static partial class LegacyTradeJournal
 
         // Only the conserved v1 pair needs a logical view: its mixed physical
         // prefix can contain the same transferred UID at both owners. Single-
-        // owner v2/v9/v12 keep their physical scan and captured BEFORE custody.
+        // owner versions keep their physical scan and captured BEFORE custody.
         internal byte[] ReadOwnedStartupScanImage(string path, byte[] physical)
         {
             if (capture.Record.Version != 1) return physical;

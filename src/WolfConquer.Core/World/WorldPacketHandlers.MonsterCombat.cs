@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.Packets;
+using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
@@ -755,7 +756,8 @@ public static partial class WorldPacketHandlers
             refineLevel.Level,
             combatGear,
             alternateEquipmentActive: session.AlternateEquipmentActive,
-            playerSpells: session.PlayerSpells);
+            playerSpells: session.PlayerSpells,
+            protocolProfile: GetLegacyRuntimeItemProfile(session, worldData));
         ApplyLegacyRuntimeStatusFieldOverrides(session.Character, fields);
         var overlay = LegacyPhysicalStatusOverlay.ForOwner(session);
         if (overlay.Breakthrough is { } breakthrough)
@@ -773,6 +775,17 @@ public static partial class WorldPacketHandlers
         }
 
         return fields;
+    }
+
+    private static ConquerProtocolProfile? GetLegacyRuntimeItemProfile(WorldSession session, WorldDataCatalog? worldData)
+    {
+        // Existing projections without this exact passive retain their prior
+        // behavior; a stale owner cannot silently downgrade an applicable buff.
+        if (!session.PlayerItems.RuneItems.Any(item => item.ItemId is >= 4_020_201 and <= 4_020_227)) return null;
+        if (session.NativeGameClient?.OrdinarySpellBinding is not { } binding) return null;
+        if (!ReferenceEquals(binding.ItemCatalog, worldData) || !binding.Store.IsBoundSpellOwnerCurrent(binding))
+            throw new InvalidOperationException("Runtime status requires the current adopted item owner.");
+        return binding.ItemProfile;
     }
 
 

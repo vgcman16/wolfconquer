@@ -319,6 +319,7 @@ public sealed partial class WorldDataCatalog
         AddCountDiagnostics(manifest, diagnostics, "quizQuestions", quizQuestions.Count);
         AddCountDiagnostics(manifest, diagnostics, "magic", magic.Count);
         AddCountDiagnostics(manifest, diagnostics, "magicEffects", magicEffects.Count);
+        diagnostics.AddRange(MagicEffectRuneClassificationDecoder.Warnings(magicEffects));
         AddCountDiagnostics(manifest, diagnostics, "magicTypeOperations", magicTypeOperations.Count);
         AddCountDiagnostics(manifest, diagnostics, "titleTypes", titleTypes.Count);
         AddCountDiagnostics(manifest, diagnostics, "combatGear", combatGear.Count);

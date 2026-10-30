@@ -21,7 +21,8 @@ internal static class NativeCallerWorldDataFixture
         IReadOnlyList<PrestigeRankEntry>? prestigeRanks = null, IReadOnlyList<MagicType>? magic = null,
         IReadOnlyList<TransformInfo>? transformInfo = null,
         IReadOnlyList<BeastAttribute>? beastAttributes = null, IReadOnlyList<MagicEffect>? magicEffects = null,
-        IReadOnlyList<RuneRankingRecord>? runeRankings = null)
+        IReadOnlyList<RuneRankingRecord>? runeRankings = null,
+        IReadOnlyList<RuneLevelExperience>? runeLevelExperience = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -33,7 +34,7 @@ internal static class NativeCallerWorldDataFixture
             items: items,
             itemAddBonuses: [],
             levelExperience: [],
-            runeLevelExperience: [],
+            runeLevelExperience: runeLevelExperience ?? [],
             runeStorageAttributes: [],
             itemRefineEffects: [],
             itemRefineEffectEx: [],

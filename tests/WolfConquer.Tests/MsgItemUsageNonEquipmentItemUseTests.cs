@@ -1238,99 +1238,43 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
     [Fact]
     public async Task HandlerItemUsageComposeRuneConsumesMaterialLevelsTargetAndPersists()
     {
-        const uint targetRuneUid = 5_337_610;
-        const uint materialRuneUid = 5_337_611;
-        const uint targetRuneItemId = 4_020_501;
-        const uint materialRuneItemId = 4_040_001;
-        var worldData = CreateWorldDataCatalogWithRuneLevelExperience(
-            [
-                new RuneLevelExperience(
-                    1,
-                    RuneType: 402,
-                    Level: 1,
-                    Experience: 100,
-                    SourceFile: "rune_levexp.txt",
-                    LineNumber: 1,
-                    RawLine: "1@@402@@1@@100@@",
-                    Fields: ["1", "402", "1", "100", ""]),
-                new RuneLevelExperience(
-                    2,
-                    RuneType: 402,
-                    Level: 2,
-                    Experience: 300,
-                    SourceFile: "rune_levexp.txt",
-                    LineNumber: 2,
-                    RawLine: "2@@402@@2@@300@@",
-                    Fields: ["2", "402", "2", "300", ""]),
-                new RuneLevelExperience(
-                    3,
-                    RuneType: 402,
-                    Level: 3,
-                    Experience: 600,
-                    SourceFile: "rune_levexp.txt",
-                    LineNumber: 3,
-                    RawLine: "3@@402@@3@@600@@",
-                    Fields: ["3", "402", "3", "600", ""]),
-                new RuneLevelExperience(
-                    4,
-                    RuneType: 404,
-                    Level: 1,
-                    Experience: 250,
-                    SourceFile: "rune_levexp.txt",
-                    LineNumber: 4,
-                    RawLine: "4@@404@@1@@250@@",
-                    Fields: ["4", "404", "1", "250", ""]),
-            ],
-            CreateItemType(targetRuneItemId, "BlueRune", durability: 1),
-            CreateItemType(targetRuneItemId + 1, "BlueRuneLevel2", durability: 1),
-            CreateItemType(materialRuneItemId, "BlueRuneEssence", durability: 1));
+        const uint targetRuneUid = 5_337_610, materialRuneUid = 5_337_611;
+        const uint targetRuneItemId = 4_020_501, materialRuneItemId = 4_040_001;
+        var catalog = CreateWorldDataCatalogWithRuneLevelExperience([],
+            CreateItemType(targetRuneItemId, "BlueRune", 1), CreateItemType(targetRuneItemId + 1, "BlueRuneLevel2", 1),
+            CreateItemType(materialRuneItemId, "BlueRuneEssence", 1));
         WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565);
-        WriteItems(
-            1_293_600,
+        WriteItems(1_293_600,
             PlayerItemSnapshotLoaderTests.DbItem(targetRuneUid, targetRuneItemId, position: 102),
-            PlayerItemSnapshotLoaderTests.DbItem(materialRuneUid, materialRuneItemId, position: 211));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log, worldData);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(CreateRuneComposeDeclaredCountUse(
-                targetRuneUid,
-                declaredCount: 1,
-                materialRuneUid)));
-
-        Assert.Equal(countBeforeRequest + 2, sent.Count);
-        AssertItemUsage(
-            sent[countBeforeRequest],
-            new MsgItemUsagePacket(materialRuneUid, DwParam: 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
-        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + 1]), out var updatedRunePacket));
-        Assert.Equal(targetRuneUid, updatedRunePacket.Uid);
-        Assert.Equal(targetRuneItemId + 1, updatedRunePacket.ItemId);
-        Assert.Equal((uint)50, updatedRunePacket.RuneExperience);
-        Assert.Equal(LegacyGameItemPacket.UpdateItemMode, updatedRunePacket.Mode);
-
-        var session = GetSession(handler, connection);
-        Assert.Contains(session.PlayerItems.RuneItems, item =>
-            item.Uid == targetRuneUid &&
-            item.ItemId == targetRuneItemId + 1 &&
-            item.RuneExperience == 50);
-        Assert.DoesNotContain(session.PlayerItems.RuneItems, item => item.Uid == materialRuneUid);
-
-        var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.Contains(persistedItems.RuneItems, item =>
-            item.Uid == targetRuneUid &&
-            item.ItemId == targetRuneItemId + 1 &&
-            item.RuneExperience == 50);
-        Assert.DoesNotContain(persistedItems.RuneItems, item => item.Uid == materialRuneUid);
-
-        var output = log.ToString();
-        Assert.Contains("handled MsgItemUsage compose rune", output);
-        Assert.Contains("oldItemId=4020501", output);
-        Assert.Contains("newItemId=4020502", output);
-        Assert.Contains("newRuneExp=50", output);
-        Assert.Contains("persisted MsgItemUsage compose rune items", output);
-        Assert.DoesNotContain("PARITY-GAP MsgItemUsage compose rune", output);
+            PlayerItemSnapshotLoaderTests.DbItem(materialRuneUid, materialRuneItemId, position: 211, stackSize: 45));
+        await WithOwnedRuneComposeAsync(catalog, async f =>
+        {
+            const uint actor = 1_293_600; var before = f.Current(actor);
+            var originalBytes = File.ReadAllBytes(f.ItemPath(actor));
+            var target = Assert.Single(before.PlayerItems.RuneItems, row => row.Uid == targetRuneUid);
+            var expectedTarget = target.WithItemId(targetRuneItemId + 1).WithRuneExperience(50);
+            var expected = before.PlayerItems with { RuneItems = before.PlayerItems.RuneItems.Where(row => row.Uid != materialRuneUid)
+                .Select(row => row.Uid == targetRuneUid ? expectedTarget : row).ToArray() };
+            var expectedBytes = PlayerItemSnapshotLoader.ToLegacyBytes(expected);
+            var files = OwnedComposeExpectedFiles(f, actor, expectedBytes); int first = f.Frames(actor).Count, observed = 0;
+            f.BeforeSend = (uid, _) => { Assert.Equal(actor, uid); AssertOwnedComposeConverged(f, actor, files); observed++; };
+            try { await f.SendAsync(actor, CreateRuneComposeDeclaredCountUse(targetRuneUid, 1, materialRuneUid)); }
+            finally { f.BeforeSend = null; }
+            var sent = f.Frames(actor); Assert.Equal(2, observed); Assert.Equal(first + 2, sent.Count);
+            Assert.Equal(OwnedComposeRemoveGolden(materialRuneUid), sent[first]);
+            AssertItemUsage(sent[first], new MsgItemUsagePacket(materialRuneUid, 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
+            Assert.Equal(OwnedComposeUpdateGolden(expectedTarget), sent[first + 1]);
+            Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[first + 1]), out var update));
+            Assert.Equal(targetRuneUid, update.Uid); Assert.Equal(targetRuneItemId + 1, update.ItemId);
+            Assert.Equal(50U, update.RuneExperience); Assert.Equal(LegacyGameItemPacket.UpdateItemMode, update.Mode);
+            AssertOwnedComposeConverged(f, actor, files); AssertRuneUntouchedSessionFields(before, f.Current(actor));
+            Assert.DoesNotContain(f.Current(actor).PlayerItems.RuneItems, row => row.Uid == materialRuneUid);
+            var reloaded = new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(actor);
+            Assert.Equal(expectedBytes, PlayerItemSnapshotLoader.ToLegacyBytes(reloaded));
+            Assert.Equal(originalBytes, PlayerItemSnapshotLoader.ToLegacyBytes(before.PlayerItems));
+            AssertOwnedComposeUidRetirement(originalBytes, expectedBytes, [materialRuneUid]);
+            Assert.Contains("committed ComposeRune", f.Log.ToString(), StringComparison.Ordinal);
+        }, 1_293_600);
     }
 
     [Fact]
@@ -1338,73 +1282,48 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
     {
         const uint runeUid = 5_337_620;
         const uint runeItemId = 4_020_501;
-        var worldData = CreateWorldDataCatalogWithRuneLevelExperience(
-            [
-                new RuneLevelExperience(
-                    1,
-                    RuneType: 402,
-                    Level: 1,
-                    Experience: 100,
-                    SourceFile: "rune_levexp.txt",
-                    LineNumber: 1,
-                    RawLine: "1@@402@@1@@100@@",
-                    Fields: ["1", "402", "1", "100", ""]),
-                new RuneLevelExperience(
-                    2,
-                    RuneType: 402,
-                    Level: 2,
-                    Experience: 300,
-                    SourceFile: "rune_levexp.txt",
-                    LineNumber: 2,
-                    RawLine: "2@@402@@2@@300@@",
-                    Fields: ["2", "402", "2", "300", ""]),
-            ],
-            CreateItemType(runeItemId, "BlueRune", durability: 1),
+        const uint actor = 1_293_600;
+        // Retain the complete static request codec image independently. This
+        // is serialization evidence, not D11 owned admission; the action below
+        // uses the actual current D13 Runtime/native/Frame/Store route.
+        var request = CreateRuneEquipmentUse(runeUid, 0, MsgItemUsageAction.ChanceRune);
+        var requestGolden = new byte[91];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(requestGolden, 91);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(requestGolden.AsSpan(2), 2137);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(requestGolden.AsSpan(4), runeUid);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(requestGolden.AsSpan(16), 64);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(requestGolden.AsSpan(18), 511_043_495);
+        Assert.Equal(requestGolden, request);
+        Assert.True(MsgItemUsagePacket.TryParse(ReadFrame(requestGolden), out var decodedRequest));
+        Assert.Equal(new MsgItemUsagePacket(runeUid, 0, MsgItemUsageAction.ChanceRune, 511_043_495, 0, 0, 0), decodedRequest);
+        var source = CreateWorldDataCatalogWithRuneLevelExperience([], CreateItemType(runeItemId, "BlueRune", durability: 1),
             CreateItemType(runeItemId + 1, "BlueRuneLevel2", durability: 1));
-        WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565);
-        WriteItems(
-            1_293_600,
-            PlayerItemSnapshotLoaderTests.DbItem(
-                runeUid,
-                runeItemId,
-                position: 102,
-                runeExperience: 200));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log, worldData);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(CreateRuneEquipmentUse(
-                runeUid,
-                dwParam: 0,
-                MsgItemUsageAction.ChanceRune)));
-
-        Assert.Equal(countBeforeRequest + 1, sent.Count);
-        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest]), out var updatedRunePacket));
-        Assert.Equal(runeUid, updatedRunePacket.Uid);
-        Assert.Equal(runeItemId + 1, updatedRunePacket.ItemId);
-        Assert.Equal((uint)0, updatedRunePacket.RuneExperience);
-        Assert.Equal(LegacyGameItemPacket.UpdateItemMode, updatedRunePacket.Mode);
-
-        var session = GetSession(handler, connection);
-        Assert.Contains(session.PlayerItems.RuneItems, item =>
-            item.Uid == runeUid &&
-            item.ItemId == runeItemId + 1 &&
-            item.RuneExperience == 0);
-
-        var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.Contains(persistedItems.RuneItems, item =>
-            item.Uid == runeUid &&
-            item.ItemId == runeItemId + 1 &&
-            item.RuneExperience == 0);
-
-        var output = log.ToString();
-        Assert.Contains("handled MsgItemUsage chance rune", output);
-        Assert.Contains("chanceRate=100", output);
-        Assert.Contains("chancePassed=True", output);
-        Assert.Contains("persisted MsgItemUsage chance rune items", output);
-        Assert.DoesNotContain("PARITY-GAP MsgItemUsage chance rune", output);
+        WriteSnapshot(accountId: actor, uid: actor, mapId: 1_015, x: 826, y: 565);
+        // Actual cumulative402 L1=100,L2=500 needs400, replacing the old
+        // synthetic100->300/XP200 input without changing its successful result.
+        WriteItems(actor, PlayerItemSnapshotLoaderTests.DbItem(runeUid, runeItemId, position: 102, runeExperience: 400));
+        await WithOwnedRuneComposeAsync(source, async f =>
+        {
+            var before = f.Current(actor); var original = before.PlayerItems;
+            var oldRune = Assert.Single(original.RuneItems); Assert.Equal(400U, oldRune.RuneExperience);
+            var target = oldRune.WithItemId(runeItemId + 1).WithRuneExperience(0);
+            var expectedItems = PlayerItemSnapshotLoader.ToLegacyBytes(original with { RuneItems = [target] });
+            var beforeItems = File.ReadAllBytes(f.ItemPath(actor)); var files = OwnedComposeExpectedFiles(f, actor, expectedItems);
+            int first = f.ActorFrames.Count;
+            f.BeforeSend = (uid, _) => { Assert.Equal(actor, uid); AssertOwnedComposeConverged(f, actor, files); };
+            try { await f.SendAsync(actor, request); } finally { f.BeforeSend = null; }
+            Assert.Equal(first + 1, f.ActorFrames.Count); Assert.Equal(OwnedComposeUpdateGolden(target), f.ActorFrames[first]);
+            Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(f.ActorFrames[first]), out var update));
+            Assert.Equal(runeUid, update.Uid); Assert.Equal(runeItemId + 1, update.ItemId);
+            Assert.Equal(0U, update.RuneExperience); Assert.Equal(LegacyGameItemPacket.UpdateItemMode, update.Mode);
+            Assert.Equal(expectedItems, PlayerItemSnapshotLoader.ToLegacyBytes(f.Current(actor).PlayerItems));
+            Assert.Equal(expectedItems, PlayerItemSnapshotLoader.ToLegacyBytes(new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(actor)));
+            Assert.Equal(beforeItems, PlayerItemSnapshotLoader.ToLegacyBytes(original));
+            Assert.Equal(LegacyItemUidRawCatalog.ReadAdmissionPlayerItemUids(beforeItems).Order(), LegacyItemUidRawCatalog.ReadAdmissionPlayerItemUids(expectedItems).Order());
+            AssertRuneUntouchedSessionFields(before, f.Current(actor)); AssertOwnedComposeConverged(f, actor, files);
+            var output = f.Log.ToString(); Assert.Contains("committed ChanceRune", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("PARITY-GAP MsgItemUsage chance rune", output, StringComparison.Ordinal);
+        }, actor);
     }
 
 

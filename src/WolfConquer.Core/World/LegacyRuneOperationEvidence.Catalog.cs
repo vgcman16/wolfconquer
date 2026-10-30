@@ -28,7 +28,7 @@ internal sealed partial class LegacyRuneOperationEvidence
         }
     }
 
-    private sealed class CatalogWitness
+    internal sealed class CatalogWitness
     {
         private readonly WorldDataCatalog catalog;
         private readonly PlainRows<ItemType> raw;

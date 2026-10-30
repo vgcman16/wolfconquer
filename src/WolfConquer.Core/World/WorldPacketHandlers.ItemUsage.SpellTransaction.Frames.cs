@@ -33,6 +33,8 @@ public static partial class WorldPacketHandlers
     private static bool ItemSpellProjectionMatches(ItemSpellProjection first, ItemSpellProjection second) =>
         first.UpdateRank == second.UpdateRank && RuneOperationsEqual(first.Rune?.Operation, second.Rune?.Operation) &&
         RuneContainerOperationsEqual(first.Container?.Operation, second.Container?.Operation) &&
+        RuneComposeOperationsEqual(first.Compose?.Operation, second.Compose?.Operation) &&
+        RuneChanceOperationsEqual(first.Chance?.Operation, second.Chance?.Operation) &&
         FullAccountCharacterScalarsEqual(first.Updated.Character, second.Updated.Character) &&
         FullAccountStoredFieldsMatch(first.Updated.Character.Attributes, second.Updated.Character.Attributes) &&
         FullAccountStoredFieldsMatch(second.Updated.Character.Attributes, first.Updated.Character.Attributes) &&

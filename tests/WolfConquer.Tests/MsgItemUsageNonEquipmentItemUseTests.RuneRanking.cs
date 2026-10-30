@@ -58,61 +58,64 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
     private async Task AssertRuneRankingComposeAndOtherPlayerQueryAsync(
         IReadOnlyList<RuneRankingRecord> seed, int beforeRank, int? afterRank)
     {
-        WriteRuneRankingPlayer(RuneRankPlayerA, targetLevel: 14, material: true);
-        WriteRuneRankingPlayer(RuneRankPlayerB, targetLevel: 15, material: false);
-        var catalog = CreateRuneRankingCatalog(seed);
-        using var log = new StringWriter();
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(_usersRoot, _itemsRoot), handoff, catalog, log);
-        var (connectionA, sentA) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerA);
-        var (connectionB, sentB) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerB);
-        AssertRuneRankingStartup(sentA, rank: null, score: 9_700);
-        AssertRuneRankingStartup(sentB, rank: beforeRank, score: 10_000);
-        var originalA = GetSession(handler, connectionA).PlayerItems;
-        var originalB = GetSession(handler, connectionB).PlayerItems;
-        Assert.Equal(9_700U, LegacyRuneStoragePacket.ComputeStorageScore(originalA));
-        Assert.Equal(10_000U, LegacyRuneStoragePacket.ComputeStorageScore(originalB));
-        var originalABytes = PlayerItemSnapshotLoader.ToLegacyBytes(originalA);
-        Assert.Equal(originalABytes, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerA)));
-        var originalBBytes = File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerB));
-        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(originalB), originalBBytes);
-        await AssertRuneRankingQueryAsync(
-            handler, connectionB, sentB, RuneRankPlayerB, rank: beforeRank, score: 10_000);
-        var beforeComposeA = sentA.Count;
-        var beforeComposeB = sentB.Count;
-
-        await handler.HandleFrameAsync(connectionA, ReadFrame(CreateRuneRankingComposeUse()));
-
-        // Native ComposeRune sends the material removal and target UPDATE, but no rank text.
-        Assert.Equal(beforeComposeA + 2, sentA.Count);
-        Assert.Equal(beforeComposeB, sentB.Count);
-        AssertItemUsage(sentA[beforeComposeA], new MsgItemUsagePacket(
-            RuneRankMaterialUid, 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
-        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sentA[beforeComposeA + 1]), out var update));
-        Assert.Equal(RuneRankTargetUid, update.Uid);
-        Assert.Equal(RuneRankTargetId + 2, update.ItemId);
-        Assert.Equal(0U, update.RuneExperience);
-        Assert.Equal(LegacyGameItemPacket.UpdateItemMode, update.Mode);
-        var changedA = GetSession(handler, connectionA).PlayerItems;
-        Assert.Equal(10_300U, LegacyRuneStoragePacket.ComputeStorageScore(changedA));
-        Assert.Empty(changedA.InventoryItems);
-        Assert.Equal(RuneRankTargetId + 2,
-            Assert.Single(changedA.RuneItems, item => item.Uid == RuneRankTargetUid).ItemId);
-        Assert.Equal(originalABytes, PlayerItemSnapshotLoader.ToLegacyBytes(originalA));
-        var reloadedA = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerA);
-        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(changedA),
-            PlayerItemSnapshotLoader.ToLegacyBytes(reloadedA));
-        Assert.Equal(10_300U, LegacyRuneStoragePacket.ComputeStorageScore(reloadedA));
-
-        await AssertRuneRankingQueryAsync(
-            handler, connectionB, sentB, RuneRankPlayerB, rank: afterRank, score: 10_000);
-        await AssertRuneRankingQueryAsync(
-            handler, connectionA, sentA, RuneRankPlayerA, rank: afterRank is null ? 100 : 1, score: 10_300);
-        Assert.Same(originalB, GetSession(handler, connectionB).PlayerItems);
-        Assert.Equal(originalBBytes, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerB)));
-        Assert.Contains("handled MsgItemUsage compose rune", log.ToString());
-        Assert.DoesNotContain("PARITY-GAP MsgItemUsage compose rune", log.ToString());
+        WriteOwnedRuneComposeRankingPlayer(RuneRankPlayerA, targetLevel: 14, material: true);
+        WriteOwnedRuneComposeRankingPlayer(RuneRankPlayerB, targetLevel: 15, material: false);
+        await WithOwnedRuneComposeAsync(CreateRuneRankingCatalog(seed), async f =>
+        {
+            const uint actor = 1_293_600, peer = 1_293_601;
+            var sentA = f.Frames(actor); var sentB = f.Frames(peer);
+            AssertRuneRankingStartup(sentA, rank: null, score: 9_700);
+            AssertRuneRankingStartup(sentB, rank: beforeRank, score: 10_000);
+            var originalSessionA = f.Current(actor); var originalSessionB = f.Current(peer);
+            var originalA = originalSessionA.PlayerItems; var originalB = originalSessionB.PlayerItems;
+            Assert.Equal(9_700U, LegacyRuneStoragePacket.ComputeStorageScore(originalA));
+            Assert.Equal(10_000U, LegacyRuneStoragePacket.ComputeStorageScore(originalB));
+            var originalABytes = File.ReadAllBytes(f.ItemPath(actor)); var originalBBytes = File.ReadAllBytes(f.ItemPath(peer));
+            Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(originalA), originalABytes);
+            Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(originalB), originalBBytes);
+            await AssertRuneRankingQueryAsync(f.Handler, f.Connection(peer), sentB, RuneRankPlayerB, rank: beforeRank, score: 10_000);
+            // Establish the exact transaction baseline after this independent
+            // query has refreshed the peer's outer session/query caches.
+            var queriedPeer = f.Current(peer);
+            AssertRuneUntouchedSessionFields(originalSessionB, queriedPeer);
+            Assert.Same(originalB, queriedPeer.PlayerItems);
+            originalSessionB = queriedPeer;
+            var target = Assert.Single(originalA.RuneItems, row => row.Uid == RuneRankTargetUid);
+            var expectedTarget = target.WithItemId(RuneRankTargetId + 2).WithRuneExperience(0);
+            var expected = originalA with { InventoryItems = [], RuneItems = originalA.RuneItems.Select(row =>
+                row.Uid == RuneRankTargetUid ? expectedTarget : row).ToArray() };
+            var expectedBytes = PlayerItemSnapshotLoader.ToLegacyBytes(expected);
+            var files = OwnedComposeExpectedFiles(f, actor, expectedBytes); int firstA = sentA.Count, firstB = sentB.Count, observed = 0;
+            f.BeforeSend = (uid, _) =>
+            {
+                Assert.Equal(actor, uid); AssertOwnedComposeConverged(f, actor, files); AssertOwnedComposeConverged(f, peer, files);
+                Assert.Same(originalSessionB, f.Current(peer)); observed++;
+            };
+            try { await f.SendAsync(actor, CreateRuneRankingComposeUse()); } finally { f.BeforeSend = null; }
+            Assert.Equal(2, observed); Assert.Equal(firstA + 2, sentA.Count); Assert.Equal(firstB, sentB.Count);
+            Assert.Equal(OwnedComposeRemoveGolden(RuneRankMaterialUid), sentA[firstA]);
+            AssertItemUsage(sentA[firstA], new MsgItemUsagePacket(RuneRankMaterialUid, 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
+            Assert.Equal(OwnedComposeUpdateGolden(expectedTarget), sentA[firstA + 1]);
+            Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sentA[firstA + 1]), out var update));
+            Assert.Equal(RuneRankTargetUid, update.Uid); Assert.Equal(RuneRankTargetId + 2, update.ItemId);
+            Assert.Equal(0U, update.RuneExperience); Assert.Equal(LegacyGameItemPacket.UpdateItemMode, update.Mode);
+            var currentA = f.Current(actor); AssertRuneUntouchedSessionFields(originalSessionA, currentA);
+            Assert.Equal(10_300U, LegacyRuneStoragePacket.ComputeStorageScore(currentA.PlayerItems));
+            Assert.Empty(currentA.PlayerItems.InventoryItems); Assert.Equal(expectedBytes, PlayerItemSnapshotLoader.ToLegacyBytes(currentA.PlayerItems));
+            Assert.Equal(originalABytes, PlayerItemSnapshotLoader.ToLegacyBytes(originalA));
+            var reloaded = new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(actor);
+            Assert.Equal(expectedBytes, PlayerItemSnapshotLoader.ToLegacyBytes(reloaded)); Assert.Equal(10_300U, LegacyRuneStoragePacket.ComputeStorageScore(reloaded));
+            AssertOwnedComposeUidRetirement(originalABytes, expectedBytes, [RuneRankMaterialUid]);
+            await AssertRuneRankingQueryAsync(f.Handler, f.Connection(peer), sentB, RuneRankPlayerB, rank: afterRank, score: 10_000);
+            await AssertRuneRankingQueryAsync(f.Handler, f.Connection(actor), sentA, RuneRankPlayerA, rank: afterRank is null ? 100 : 1, score: 10_300);
+            // Compose left this exact peer session unchanged before any reply.
+            // Subsequent explicit queries may refresh the outer session only.
+            AssertRuneUntouchedSessionFields(originalSessionB, f.Current(peer)); Assert.Same(originalB, f.Current(peer).PlayerItems);
+            Assert.Equal(originalBBytes, File.ReadAllBytes(f.ItemPath(peer)));
+            Assert.Equal(originalBBytes, PlayerItemSnapshotLoader.ToLegacyBytes(new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(peer)));
+            AssertOwnedComposeConverged(f, actor, files); AssertOwnedComposeConverged(f, peer, files);
+            Assert.Contains("committed ComposeRune", f.Log.ToString(), StringComparison.Ordinal);
+        }, 1_293_600, 1_293_601);
     }
 
     private void WriteRuneRankingPlayer(long uid, uint targetLevel, bool material)

@@ -1,5 +1,6 @@
 using System.Globalization;
 using WolfConquer.Core.Data;
+using WolfConquer.Core.Runtime;
 
 namespace WolfConquer.Core.World;
 
@@ -73,7 +74,8 @@ public static partial class LegacyPlayerStatusCalculator
         uint prestigeLevel,
         CombatGearSnapshot? combatGear = null,
         bool alternateEquipmentActive = false,
-        PlayerSpellSnapshot? playerSpells = null)
+        PlayerSpellSnapshot? playerSpells = null,
+        ConquerProtocolProfile? protocolProfile = null)
     {
         var fields = CalculateFields(
             snapshot,
@@ -83,7 +85,8 @@ public static partial class LegacyPlayerStatusCalculator
             prestigeLevel,
             combatGear,
             alternateEquipmentActive,
-            playerSpells);
+            playerSpells,
+            protocolProfile);
         return new LegacyPlayerStatusPacket(fields);
     }
 
@@ -95,7 +98,8 @@ public static partial class LegacyPlayerStatusCalculator
         uint prestigeLevel,
         CombatGearSnapshot? combatGear = null,
         bool alternateEquipmentActive = false,
-        PlayerSpellSnapshot? playerSpells = null)
+        PlayerSpellSnapshot? playerSpells = null,
+        ConquerProtocolProfile? protocolProfile = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(playerItems);
@@ -204,6 +208,7 @@ public static partial class LegacyPlayerStatusCalculator
         }
 
         ApplyActiveRuneAttackAttributes(fields, playerItems, catalog?.ItemsById, alternateEquipmentActive);
+        ApplyAllRoundRuneAttributes(fields, snapshot, playerItems, catalog, alternateEquipmentActive, playerSpells, protocolProfile);
         Add(fields, LegacyPlayerStatusPacket.MagicAttackIndex, 1);
         Add(fields, LegacyPlayerStatusPacket.MagicDefenceIndex, gemValues[NormalGloryGem / 10]);
         Add(fields, LegacyPlayerStatusPacket.PhysicalDamageDecreaseIndex, gemValues[NormalGloryGem / 10]);

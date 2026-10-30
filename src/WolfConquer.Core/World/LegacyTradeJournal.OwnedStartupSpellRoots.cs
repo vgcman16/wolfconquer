@@ -8,7 +8,7 @@ internal static partial class LegacyTradeJournal
     {
         private void RequireConfiguredSpellsRoot()
         {
-            if (capture.Record.Version is not (9 or 12 or 13 or 14 or 15)) return;
+            if (capture.Record.Version is not (9 or 12 or 13 or 14 or 15 or 16 or 17)) return;
             var configured = custody.Configuration;
             if (capture.Roots.Spells is not { } spells || !SamePath(spells, configured.SpellsRoot))
                 throw new InvalidDataException("Owned item/spell recovery differs from its configured Spells root.");
@@ -38,7 +38,7 @@ internal static partial class LegacyTradeJournal
         internal void PrepareDirectories()
         {
             RequireCurrent();
-            if (capture.Record.Version is 9 or 12 or 13 or 14 or 15)
+            if (capture.Record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17)
                 PrepareCharacterItemsSpellsDirectories(capture.Roots, capture.Record, capture.Targets);
             RequireCurrent();
         }

@@ -4,112 +4,49 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    private const string LegacyRuneChanceSource = "MsgItemUsuagePacket.ChanceRune";
-    private const string LegacyRuneChanceLines = "2130-2155";
-
-    private static async ValueTask HandleLegacyChanceRuneAsync(
-        WorldPacketHandlerContext context,
-        WorldSession session,
-        MsgItemUsagePacket packet,
-        CancellationToken cancellationToken)
+    private static async ValueTask HandleLegacyChanceRuneAsync(WorldPacketHandlerContext context,
+        WorldSession session, MsgItemUsagePacket packet, CancellationToken cancellationToken)
     {
-        if (!TryGetRuneItem(session.PlayerItems, packet.Id, out var rune))
+        if (!TryGetRuneItem(session.PlayerItems, packet.Id, out _))
         {
+            // Preserve the source's read-only refresh through the actual
+            // current ranking owner; no intent, draw or success frame exists.
             UpdateLegacyRuneRanking(context, session);
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped MsgItemUsage chance rune " +
-                    $"{FormatSession(context)} source={LegacyRuneChanceSource} " +
-                    $"sourceLines={LegacyRuneChanceLines} itemUid={packet.Id}; rune item was not found.")
-                .ConfigureAwait(false);
+            await context.Log.WriteLineAsync($"WorldServer skipped ChanceRune itemUid={packet.Id}; Rune was not found.").ConfigureAwait(false);
             return;
         }
-
-        var updatedRune = rune;
-        var chanceRate = 0;
-        var chancePassed = false;
-        if (rune.ItemId % 100 < GetLegacyMaxRuneLevel(rune.ItemId) &&
-            rune.RuneExperience != 0)
+        LegacyRuneChanceEvidence? issued = null;
+        if (!TryCommitLegacyItemSpell(context, session, (stable, _, before) =>
+            {
+                issued ??= LegacyRuneChanceEvidence.Capture(context, stable, packet.Id, before);
+                if (!issued.IsCurrent()) throw InvalidSpellMutation();
+                return PrepareOwnedRuneChanceProjection(context, stable, issued);
+            }, cancellationToken, out var updated, out var frames, out var identity, out var reason))
         {
-            if (!TryGetLegacyRuneLevelRequiredProgress(
-                    context.WorldData,
-                    GetLegacyRuneDecomposeFamily(rune.ItemId),
-                    rune.ItemId % 100,
-                    out var currentRequiredProgress) ||
-                !TryGetLegacyRuneLevelRequiredProgress(
-                    context.WorldData,
-                    GetLegacyRuneDecomposeFamily(rune.ItemId),
-                    rune.ItemId % 100 + 1,
-                    out var nextRequiredProgress) ||
-                nextRequiredProgress <= currentRequiredProgress)
-            {
-                await LogParityGapAsync(
-                        context,
-                        LegacyParityGapDiagnostics.UnsupportedItemUse(
-                            rune.ItemId,
-                            action: (uint)packet.Action,
-                            actionName: packet.Action.ToString(),
-                            itemUid: rune.Uid,
-                            source: LegacyRuneChanceSource,
-                            reason: "rune chance level experience metadata is missing"))
-                    .ConfigureAwait(false);
-                await context.Log.WriteLineAsync(
-                        "PARITY-GAP MsgItemUsage chance rune missing level experience " +
-                        $"{FormatSession(context)} source={LegacyRuneChanceSource} " +
-                        $"sourceLines={LegacyRuneChanceLines} itemUid={rune.Uid} itemId={rune.ItemId}.")
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            var requiredDelta = checked(nextRequiredProgress - currentRequiredProgress);
-            chanceRate = unchecked((byte)((double)rune.RuneExperience / requiredDelta * 100.0));
-            chancePassed = CheckLegacyRuneChanceRate(chanceRate);
-            updatedRune = rune.WithRuneExperience(0);
-            if (chancePassed)
-            {
-                updatedRune = updatedRune.WithItemId(checked(rune.ItemId + 1));
-            }
+            await context.Log.WriteLineAsync($"WorldServer held ChanceRune reason={reason}; no success was published.").ConfigureAwait(false);
+            return;
         }
-
-        var updatedSession = session with
-        {
-            PlayerItems = ReplaceRuneItem(session.PlayerItems, rune, updatedRune),
-        };
-        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
-        var updatedContext = context with { Session = updatedSession };
-
-        await TryPersistLegacyItemUsageMutationAsync(
-                updatedContext,
-                updatedSession,
-                "chance rune",
-                characterValues: null,
-                persistItems: true)
-            .ConfigureAwait(false);
-
-        await context.Connection.SendAsync(
-                LegacyGameItemPacket
-                    .FromSnapshotItem(
-                        updatedRune,
-                        LegacyGameItemPacket.CreateRuneSpellOverride(updatedRune, context.WorldData?.ItemsById),
-                        LegacyGameItemPacket.UpdateItemMode)
-                    .ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        UpdateLegacyRuneRanking(updatedContext, updatedSession);
-
-        await context.Log.WriteLineAsync(
-                "WorldServer handled MsgItemUsage chance rune " +
-                $"{FormatSession(updatedContext)} source={LegacyRuneChanceSource} " +
-                $"sourceLines={LegacyRuneChanceLines} itemUid={rune.Uid} oldItemId={rune.ItemId} " +
-                $"newItemId={updatedRune.ItemId} oldRuneExp={rune.RuneExperience} " +
-                $"newRuneExp={updatedRune.RuneExperience} chanceRate={chanceRate} " +
-                $"chancePassed={chancePassed}.")
-            .ConfigureAwait(false);
+        await PublishItemSpellFramesAsync(context, updated, frames, identity, cancellationToken).ConfigureAwait(false);
+        await context.Log.WriteLineAsync($"WorldServer committed ChanceRune itemUid={packet.Id}.").ConfigureAwait(false);
     }
 
-    private static bool CheckLegacyRuneChanceRate(int ratePercent)
+    private static ItemSpellProjection PrepareOwnedRuneChanceProjection(WorldPacketHandlerContext context,
+        WorldSession stable, LegacyRuneChanceEvidence evidence)
     {
-        return ratePercent >= 100 ||
-            (ratePercent > 0 && Random.Shared.Next(0, 100) < ratePercent);
+        var projected = ProjectRecordedRuneChance(stable.Character, stable.PlayerItems, stable.PlayerSpells, evidence.Operation);
+        if (projected.Character.MinHitPoints != stable.Character.MinHitPoints || !evidence.IsCurrent()) throw InvalidSpellMutation();
+        var output = new List<byte[]>();
+        foreach (var id in projected.RemovedSpells)
+            output.Add(new MsgActionPacket
+            { ObjId = CheckedUInt32(stable.Character.Uid, nameof(stable.Character.Uid)), DwParam = id, Type = (MsgActionType)109 }.ToFrameBytes());
+        output.Add(LegacyGameItemPacket.FromSnapshotItem(projected.Target,
+            LegacyGameItemPacket.CreateRuneSpellOverride(projected.Target, context.WorldData!.ItemsById),
+            LegacyGameItemPacket.UpdateItemMode).ToFrameBytes());
+        var changed = stable with { Character = projected.Character, PlayerItems = projected.Items, PlayerSpells = projected.Spells };
+        return new(changed, output.ToArray(), Refresh: null, UpdateRank: context.RuneRankings is not null, Chance: evidence);
     }
+
+    private static bool RuneChanceOperationsEqual(LegacyRuneChanceOperation? first, LegacyRuneChanceOperation? second) =>
+        first is null ? second is null : second is not null && first.SelectedUid == second.SelectedUid && first.Roll == second.Roll &&
+        first.Metadata.SequenceEqual(second.Metadata) && first.Progress.SequenceEqual(second.Progress);
 }

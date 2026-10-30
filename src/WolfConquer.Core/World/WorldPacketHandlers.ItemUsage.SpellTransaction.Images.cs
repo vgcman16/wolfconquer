@@ -6,57 +6,48 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private static LegacyTradeJournalChange[] PrepareItemSpellImages(LegacySpellMutationInputs inputs,
-        WorldSession updated, string characterPath, string itemPath, LegacyPreparedSpellFileWrite spellWrite,
-        LegacyRuneOperation? rune = null, LegacyRuneContainerOperation? container = null)
+        WorldSession updated, ItemSpellBeforeImages beforeImages, LegacyPreparedSpellFileWrite spellWrite,
+        LegacyRuneOperation? rune = null, LegacyRuneContainerOperation? container = null, LegacyRuneComposeOperation? compose = null,
+        LegacyRuneChanceOperation? chance = null)
     {
-        if (!CharacterSnapshotFileBaseline.TryRead(characterPath, "itemSpell", out var baseline, out var reason) || baseline is null)
-            throw new LegacySpellMutationRefusalException(reason);
-        var text = CharacterSnapshotFileEncoding.Decode(baseline.Bytes, out var encoding);
-        if (!encoding.GetPreamble().Concat(encoding.GetBytes(text)).SequenceEqual(baseline.Bytes))
-            throw new LegacySpellMutationRefusalException("itemSpellCharacterEncodingUnproven");
-        var disk = CharacterSnapshotParser.ParseText(text);
+        var characterBefore = beforeImages.CopyCharacter();
         var current = inputs.Stable.Character;
-        if (!FullAccountCharacterScalarsEqual(disk, current) || !FullAccountStoredFieldsMatch(disk.Attributes, current.Attributes) ||
-            !FullAccountStoredFieldsMatch(disk.PaidNobility, current.PaidNobility))
-            throw new LegacySpellMutationRefusalException("itemSpellCharacterBaselineStale");
-        if (!ItemSpellAttributesMatch(updated.Character.Attributes, current.Attributes, rune is not null || container is not null) ||
-            !ItemSpellAttributesMatch(current.Attributes, updated.Character.Attributes, rune is not null || container is not null) ||
+        if (!ItemSpellAttributesMatch(updated.Character.Attributes, current.Attributes, rune is not null || container is not null || compose is not null || chance is not null) ||
+            !ItemSpellAttributesMatch(current.Attributes, updated.Character.Attributes, rune is not null || container is not null || compose is not null || chance is not null) ||
             !FullAccountStoredFieldsMatch(updated.Character.PaidNobility, current.PaidNobility) ||
             !FullAccountStoredFieldsMatch(current.PaidNobility, updated.Character.PaidNobility))
             throw new LegacySpellMutationRefusalException("itemSpellUnexpectedCharacterFields");
-        var characterAfter = baseline.Bytes;
-        if (rune is not null || container is not null)
+        var characterAfter = characterBefore;
+        if (rune is not null || container is not null || compose is not null || chance is not null)
         {
-            if (rune is not null && container is not null) throw InvalidSpellMutation();
-            var projected = rune is not null
-                ? ProjectRecordedRuneOperation(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, rune)
-                : ProjectRecordedRuneContainer(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, container!);
-            if (!FullAccountCharacterScalarsEqual(projected.Character, updated.Character) ||
-                !FullAccountStoredFieldsMatch(projected.Character.Attributes, updated.Character.Attributes) ||
-                !FullAccountStoredFieldsMatch(updated.Character.Attributes, projected.Character.Attributes)) throw InvalidSpellMutation();
-            characterAfter = LegacyRuneSpellOrigins.ProjectCharacterImage(baseline.Bytes, projected.Character);
+            if ((rune is not null ? 1 : 0) + (container is not null ? 1 : 0) + (compose is not null ? 1 : 0) + (chance is not null ? 1 : 0) != 1) throw InvalidSpellMutation();
+            var projected = chance is not null
+                ? ProjectRecordedRuneChance(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, chance).Character
+                : compose is not null
+                ? ProjectRecordedRuneCompose(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, compose).Character
+                : rune is not null
+                ? ProjectRecordedRuneOperation(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, rune).Character
+                : ProjectRecordedRuneContainer(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, container!).Character;
+            if (!FullAccountCharacterScalarsEqual(projected, updated.Character) ||
+                !FullAccountStoredFieldsMatch(projected.Attributes, updated.Character.Attributes) ||
+                !FullAccountStoredFieldsMatch(updated.Character.Attributes, projected.Attributes)) throw InvalidSpellMutation();
+            characterAfter = LegacyRuneSpellOrigins.ProjectCharacterImage(characterBefore, projected);
             LegacyRuneSpellOrigins.RequireSavedRows(current, spellWrite.CopyBeforeImage());
         }
         else if (updated.Character.MinHitPoints != current.MinHitPoints)
         {
-            characterAfter = LegacyBoundHitpointsScalarWrite.ProjectAfterImage(baseline.Bytes, updated.Character);
+            characterAfter = LegacyBoundHitpointsScalarWrite.ProjectAfterImage(characterBefore, updated.Character);
             var afterText = CharacterSnapshotFileEncoding.Decode(characterAfter, out _);
             if (!FullAccountCharacterScalarsEqual(CharacterSnapshotParser.ParseText(afterText), updated.Character))
                 throw new LegacySpellMutationRefusalException("itemSpellCharacterAfterMismatch");
         }
-        if (!CharacterSnapshotFileBaseline.TryReadBytes(itemPath, "itemSpell", out var itemBefore, out reason))
-            throw new LegacySpellMutationRefusalException(reason);
-        LegacyItemUidRawCatalog.ValidateAdmissionPlayerItems(itemBefore);
-        var modeledBefore = PlayerItemSnapshotLoader.ToLegacyBytes(inputs.Stable.PlayerItems);
-        var parsedBefore = PlayerItemSnapshotLoader.Parse(itemBefore);
-        if (!PlayerItemSnapshotLoader.ToLegacyBytes(parsedBefore).AsSpan().SequenceEqual(modeledBefore) ||
-            !ItemSpellRawRecordsMatch(itemBefore, modeledBefore))
-            throw new LegacySpellMutationRefusalException("itemSpellItemBaselineStaleOrUnrepresentable");
+        var itemBefore = beforeImages.CopyItems();
         var itemAfter = PlayerItemSnapshotLoader.ToLegacyBytes(updated.PlayerItems);
         LegacyItemUidRawCatalog.ValidateAdmissionPlayerItems(itemAfter);
         var spellBefore = spellWrite.CopyBeforeImage();
+        if (!SpellMutationImagesEqual(spellBefore, beforeImages.CopySpells())) throw InvalidSpellMutation();
         var spellAfter = spellWrite.CopyAfterImage();
-        return [new(LegacyTradeJournalFileKind.Character, inputs.Stable.AccountId, baseline.Bytes, characterAfter),
+        return [new(LegacyTradeJournalFileKind.Character, inputs.Stable.AccountId, characterBefore, characterAfter),
             new(LegacyTradeJournalFileKind.Items, inputs.Stable.Character.Uid, itemBefore, itemAfter),
             new(LegacyTradeJournalFileKind.Spells, inputs.Stable.Character.Uid, spellBefore, spellAfter)];
     }

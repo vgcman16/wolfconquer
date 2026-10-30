@@ -2,30 +2,29 @@
 
 ## Current source checkpoint - 2026-10-30
 
-The reviewed130-path Rune/item/spell batch is integrated as source. It adds
-bounded recorded item/spell recovery, actual Rune grant/provider ownership,
-native alternate mode publication, atomic storage/drop, raw-self passive identity
-and exact joint-writer Character publication. New specs and FSB243-250 document
-the real owners, historical-record semantics and remaining gaps.
+The preceding exact published `046110e52f22b057a6af55653f09fd2d6ba4d07e`
+passed all eight stages of [Windows41134500138](https://github.com/vgcman16/wolfconquer/actions/runs/41134500138):
+Core **32,209 Passed / 152 existing NotExecuted**, Updates446 and Launcher57,
+zero failures. This qualifies that published source/tooling checkpoint.
 
-Release build09 passed with zero errors and existing warnings. The combined
-selection passed457 cases with zero failures/four preserved public-fixture skips.
-Source review then corrected an introduced unsupported Drop HP clamp;67/67
-post-correction controls passed with zero failures/skips, including both exposed
-Drop failures. Drop preserves HP with no invented HP frames; Rune unequip and
-storage keep their established query behavior. Sets overlap and are not added.
-The existing sparseHP/opaque/UID/full-image/rank/wire checks remain meaningful.
+The next reviewed82-path batch adds owned Rune composition and chance decisions,
+selected7899 All-round status and read-only classification diagnostics. It retains
+actual Frame/native/Store owners, complete Character/Items/Spells images, strict
+recorded recovery and meaningful packet/UID/opaque-byte controls. FSB251-254 and
+the new specs distinguish corrected behavior from unresolved client evidence.
 
-The preceding exact public6cb2babc passed all eight stages of
-[Windows41106500544](https://github.com/vgcman16/wolfconquer/actions/runs/41106500544):
-Core31,832 Passed/152 existing NotExecuted, Updates446 and Launcher57 Passed.
+Solution build02 passed with zero errors and171 existing warnings; no C# warning
+was reported in the changed paths. The combined focused gate passed **1,238/1,238**, zero failures/skips,
+in11m6s. It covers the new Rune actions and ordinary spell/coherence, journal,
+startup UID, native HP/vitals, selected status and catalog neighbors. All29
+previous Root fixture failure names pass in this same run; no production source
+changed after the successful build. Earlier overlapping runs are not added.
 This successor still requires its own exact-public full Windows gate.
 
-These are owned managed-fixture/source results, not current-client gameplay,
-7937 activation, full Rune/English completion, SQL, power-loss or host cleanliness.
-Compose ownership, remaining passive effects/resources and broader recovery stay
-active. The legacy client/updater execution hold remains in force.
-
+These are owned managed-fixture/source checks, not current-client gameplay,
+7937 activation, full Rune/English completion, SQL, physical power-loss safety or
+host cleanliness. Decompose reward UID issuance, remaining passives/resources
+and broader persistence remain active. The legacy execution hold is unchanged.
 
 ## Earlier full Windows and local client checkpoint
 

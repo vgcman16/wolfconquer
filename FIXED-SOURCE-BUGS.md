@@ -4,6 +4,80 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Rune composition, chance and selected passive qualification - 2026-10-30
+
+The combined focused gate passed **1,238/1,238**, zero failures/skips,
+in11m6s. It covers the new Rune actions and ordinary spell/coherence, journal,
+startup UID, native HP/vitals, selected status and catalog neighbors. All29
+previous Root fixture failure names pass in this same run; no production source
+changed after the successful build. Earlier overlapping runs are not added.
+
+The exact-public successor full Windows gate remains pending. The preceding
+046110e5 passed all eight stages of Windows41134500138: Core32,209 Passed/152
+existing NotExecuted, Updates446 and Launcher57. These are source/tooling
+checks; no new live-client, SQL, power-loss or full parity claim follows.
+
+### FSB-251: Commit Rune composition and its real consumed costs together
+
+The earlier handler could consume a valid prefix before rejecting later material,
+award progress from repeated/self identities, and publish before best-effort
+Items-only saving. The owned producer now validates selected identities and the
+complete consumed plan before effects, including actual adopted stack caps and
+used cumulative progress rows. Maximum-level stopping remains explicit; unused
+tail metadata is not invented as a cost. Malformed or over-cap consumed inputs
+refuse without consumption, output or dirty state.
+
+Actual Frame/native/Store ownership, configured UID custody and the prepared
+writer commit complete Character/Items/Spells images through strict version16
+before publication. Only consumed physical UIDs retire; only exact proven lost
+temporary spell origins retire. HP and source-retained learned levels remain
+unchanged. Recovery validates captured inputs, images, stages, physical ownership
+and an ordinary raw rescan without allocating or replaying rewards. Intended
+client spell-level refresh, SQL and live acceptance remain unproved.
+
+### FSB-252: Diagnose ambiguous Rune classification without guessing authority
+
+Catalog ingestion now reports explicit ambiguous/malformed Rune flags while
+retaining every raw declaration. The live classifier and profile activation are
+unchanged. All24 diagnostic/owned-temp-INI cases passed the earlier Root focused
+run; observations show Windows first-section behavior, not a server policy.
+Selected7899's actual file has one814000/IsRuneSkill1, unlike the emulator's
+duplicate. The main8140 gameplay/classification issue remains OPEN until actual
+configured file/profile ownership is joined; no first/last or merge fallback is
+silently enabled.
+
+### FSB-253: Apply the exact selected7899 All-round passive through owned status
+
+The managed status path omitted All-round, and the community formula differs
+from all27 selected7899 rows and the matching official2024 table. The bounded
+correction uses an explicit27-row table, current D13 profile/catalog ownership,
+actual shield/alternate selection and the original pre-gem stat phase. Invalid
+applicable state refuses; old pure callers and other profiles retain their
+behavior. It creates no spell, origin, HP change or UID.
+
+All27 owned status and shared damage-calculation controls passed the earlier
+corrected focused run. This does not prove the complete native equipment/attack/
+death lifecycle, the conflicting7937 tooltip profile, rendering or live gameplay.
+
+### FSB-254: Persist one bounded Rune chance decision before publication
+
+The earlier handler acknowledged a gamble before best-effort saving and wrapped
+unchecked percentage arithmetic. The real producer now captures complete saved
+before-images before projection/draw, validates current owners and both possible
+outcomes, and issues one private server roll only for rates1..99. Checked wide
+arithmetic refuses overfilled/malformed progress; valid0/100/no-op/max behavior
+is retained. Final reprojection and recovery reuse that exact decision.
+
+Strict version17 binds exact selected UID, metadata, progress, nullable decision
+and complete three-file images under actual configured custody. The fourth typed
+Character publication requires the real prepared writer's committed afterimage.
+UID sets, wallets, HP, unrelated bytes and legitimate shared/permanent spell rows
+remain preserved. Probabilistic interruption/restart tests use actual producer
+records and independently calculate the captured outcome; no injected RNG or
+accepting persistence substitute is used. SQL, full Rune and7937 live activation
+remain OPEN.
+
+
 ## Rune ownership and recovery qualification - 2026-10-30
 
 The preceding exact public6cb2babc passed all eight stages of Windows41106500544:

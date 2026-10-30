@@ -5,6 +5,8 @@ namespace WolfConquer.Tests;
 
 public sealed partial class MsgItemUsageNonEquipmentItemUseTests
 {
+    // These original count goldens now reach the same actual owned D13 Frame
+    // fixture as the nonempty prefix cases; they are not owner-refusal controls.
     [Fact]
     public async Task HandlerRuneComposeZeroCountIgnoresTrailingMaterialsAndReloadsUnchanged()
     {

@@ -8,16 +8,19 @@ internal sealed partial class LegacyPreparedSpellFileWrite
 
     internal RuneCharacterPublication PrepareRuneCharacterPublication(WorldSession proposed,
         IReadOnlyList<LegacyTradeJournalChange> changes, LegacyRuneOperationEvidence? rune,
-        LegacyRuneContainerEvidence? container) => RuneCharacterPublication.Capture(this, proposed, changes, rune, container);
+        LegacyRuneContainerEvidence? container, LegacyRuneComposeEvidence? compose = null, LegacyRuneChanceEvidence? chance = null) =>
+        RuneCharacterPublication.Capture(this, proposed, changes, rune, container, compose, chance);
 
     internal sealed partial class RuneCharacterPublication
     {
         internal static RuneCharacterPublication Capture(LegacyPreparedSpellFileWrite writer, WorldSession proposed,
             IReadOnlyList<LegacyTradeJournalChange> changes, LegacyRuneOperationEvidence? rune,
-            LegacyRuneContainerEvidence? container)
+            LegacyRuneContainerEvidence? container, LegacyRuneComposeEvidence? compose, LegacyRuneChanceEvidence? chance)
         {
-            if (writer.binding is null || (rune is null) == (container is null) ||
-                rune is not null && !rune.IsCurrent() || container is not null && !container.IsCurrent()) throw Unavailable();
+            if (writer.binding is null ||
+                (rune is not null ? 1 : 0) + (container is not null ? 1 : 0) + (compose is not null ? 1 : 0) + (chance is not null ? 1 : 0) != 1 ||
+                rune is not null && !rune.IsCurrent() || container is not null && !container.IsCurrent() ||
+                compose is not null && !compose.IsCurrent() || chance is not null && !chance.IsCurrent()) throw Unavailable();
             var owned = writer.ValidateChanges(changes);
             if (owned.Length != 3 || owned[0].Kind != LegacyTradeJournalFileKind.Character ||
                 owned[1].Kind != LegacyTradeJournalFileKind.Items || owned[2].Kind != LegacyTradeJournalFileKind.Spells ||
@@ -30,9 +33,7 @@ internal sealed partial class LegacyPreparedSpellFileWrite
             var items = PlayerItemSnapshotLoader.Parse(owned[1].Before!);
             var spells = owned[2].Before is null ? PlayerSpellSnapshot.Empty : PlayerSpellSnapshotLoader.Parse(owned[2].Before!);
             LegacyRuneSpellOrigins.RequireSavedRows(character, owned[2].Before);
-            var projected = rune is not null
-                ? WorldPacketHandlers.ProjectRecordedRuneOperation(character, items, spells, rune.Operation)
-                : WorldPacketHandlers.ProjectRecordedRuneContainer(character, items, spells, container!.Operation);
+            var projected = ProjectRecordedImages(character, items, spells, rune, container, compose, chance);
             if (!WorldPacketHandlers.BoundHitpointsInputs.ScalarsEqual(character, writer.expected.Character) ||
                 !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(character, writer.expected.Character) ||
                 !LegacyRuneSpellOrigins.Read(character).SequenceEqual(LegacyRuneSpellOrigins.Read(writer.expected.Character)) ||
@@ -46,7 +47,7 @@ internal sealed partial class LegacyPreparedSpellFileWrite
                 !LegacyRuneSpellOrigins.ProjectSpellImage(owned[2].Before, projected.Spells).AsSpan().SequenceEqual(owned[2].After) ||
                 !LegacyRuneSpellOrigins.ProjectSpellImage(owned[2].Before, proposed.PlayerSpells).AsSpan().SequenceEqual(owned[2].After))
                 throw Unavailable();
-            return new(writer, proposed.Character, owned, rune, container);
+            return new(writer, proposed.Character, owned, rune, container, compose, chance);
         }
     }
 }

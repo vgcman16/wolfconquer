@@ -38,6 +38,10 @@ internal static partial class LegacyTradeJournal
         public LegacyRuneOperation? RuneOperation { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public LegacyRuneContainerOperation? RuneContainer { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public LegacyRuneComposeOperation? RuneCompose { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public LegacyRuneChanceOperation? RuneChance { get; init; }
     }
 
     private sealed record JournalTarget(string Path, LegacyTradeJournalChange Change);
@@ -76,7 +80,7 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(copied, version);
         // The single-owner API's failpoint contract is character first, then items.
         // Do not reorder v1: its established four-target contract remains unchanged.
-        if (version is 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 12 or 13 or 14 or 15) copied = copied.OrderBy(change => change.Kind).ToArray();
+        if (version is 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 12 or 13 or 14 or 15 or 16 or 17) copied = copied.OrderBy(change => change.Kind).ToArray();
         if (version == 11) copied = copied.OrderBy(change => change.FileId).ToArray();
         return new(version, Guid.NewGuid().ToString("N"), copied);
     }
@@ -90,7 +94,7 @@ internal static partial class LegacyTradeJournal
         5 => 4,
         6 or 7 => 4, // Variable1..4; admission validates its exact configured membership.
         8 => 2,
-        9 or 12 or 13 or 14 or 15 => 3,
+        9 or 12 or 13 or 14 or 15 or 16 or 17 => 3,
         11 => 2,
         _ => throw new ArgumentException("Unsupported journal version."),
     };
@@ -99,7 +103,7 @@ internal static partial class LegacyTradeJournal
     {
         if (IsOrdinaryAdmissionVersion(version)) { ValidateAdmissionChanges(changes); return; }
         if (version == 8) { ValidateCharacterSpellsChanges(changes); return; }
-        if (version is 9 or 12 or 13 or 14 or 15) { ValidateCharacterItemsSpellsChanges(changes); return; }
+        if (version is 9 or 12 or 13 or 14 or 15 or 16 or 17) { ValidateCharacterItemsSpellsChanges(changes); return; }
         if (version == 11) { ValidateCharacterResourcesChanges(changes); return; }
         if (version == 5)
         {
@@ -138,7 +142,7 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 5) return GetMailboxGearTargets(roots, record);
         if (IsOrdinaryAdmissionVersion(record.Version)) return GetAdmissionTargets(roots, record);
         if (record.Version == 8) return GetCharacterSpellsTargets(roots, record);
-        if (record.Version is 9 or 12 or 13 or 14 or 15) return GetCharacterItemsSpellsTargets(roots, record);
+        if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17) return GetCharacterItemsSpellsTargets(roots, record);
         if (record.Version == 11) return GetCharacterResourcesTargets(roots, record);
         var targets = record.Changes.Select(change => new JournalTarget(Path.Combine(
             change.Kind == LegacyTradeJournalFileKind.Character ? roots.Users : roots.Items,

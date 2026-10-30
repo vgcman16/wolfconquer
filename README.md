@@ -41,6 +41,9 @@ download feed or game-client assets are included or published by this snapshot.
 The current target is Chinese client7899 / cached DX8 D13. English resource
 tools and [configuration-decoding prerequisites](docs/CLIENT-RESOURCE-TOOLS.md)
 remain separate from complete English or portable-client acceptance.
+The separate 7937 catalog and packet components remain experimental; no complete
+newer feature has passed end-to-end live acceptance. The planning bar above is
+not a 7937 completion percentage.
 
 A downloadable [Windows launcher/updater tooling preview](https://github.com/vgcman16/wolfconquer/releases/tag/launcher-preview-20261028) is available.
 It contains no game client, configuration or feed. See

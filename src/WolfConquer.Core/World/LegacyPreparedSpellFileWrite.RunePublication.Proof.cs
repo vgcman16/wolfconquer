@@ -14,10 +14,13 @@ internal sealed partial class LegacyPreparedSpellFileWrite
         private readonly LegacyTradeJournalChange[] changes;
         private readonly LegacyRuneOperationEvidence? rune;
         private readonly LegacyRuneContainerEvidence? container;
+        private readonly LegacyRuneComposeEvidence? compose;
+        private readonly LegacyRuneChanceEvidence? chance;
 
         private RuneCharacterPublication(LegacyPreparedSpellFileWrite writer, CharacterSnapshot character,
-            LegacyTradeJournalChange[] changes, LegacyRuneOperationEvidence? rune, LegacyRuneContainerEvidence? container)
-        { this.writer = writer; this.character = character; this.changes = changes; this.rune = rune; this.container = container; }
+            LegacyTradeJournalChange[] changes, LegacyRuneOperationEvidence? rune, LegacyRuneContainerEvidence? container,
+            LegacyRuneComposeEvidence? compose, LegacyRuneChanceEvidence? chance)
+        { this.writer = writer; this.character = character; this.changes = changes; this.rune = rune; this.container = container; this.compose = compose; this.chance = chance; }
 
         internal void RequireCurrent(WorldSessionStore store, ConquerTcpConnection connection,
             WorldSession expected, WorldSession proposed)
@@ -29,7 +32,8 @@ internal sealed partial class LegacyPreparedSpellFileWrite
                 !PlayerItemSnapshotLoader.ToLegacyBytes(proposed.PlayerItems).AsSpan().SequenceEqual(changes[1].After) ||
                 !LegacyRuneSpellOrigins.ProjectSpellImage(changes[2].Before, proposed.PlayerSpells).AsSpan().SequenceEqual(changes[2].After) ||
                 !writer.OwnerIsCurrentPlain() || rune is not null && !rune.IsCurrent() ||
-                container is not null && !container.IsCurrent()) throw Unavailable();
+                container is not null && !container.IsCurrent() || compose is not null && !compose.IsCurrent() ||
+                chance is not null && !chance.IsCurrent()) throw Unavailable();
         }
 
         internal byte[] RequireAfterImage(LegacyOrdinarySpellBinding binding, WorldSession expected,
@@ -44,12 +48,16 @@ internal sealed partial class LegacyPreparedSpellFileWrite
         }
 
         internal void RequireBeforeCommit(LegacyPreparedSpellFileWrite actual,
-            IReadOnlyList<LegacyTradeJournalChange> owned, LegacyRuneOperation? operation, LegacyRuneContainerOperation? containerOperation)
+            IReadOnlyList<LegacyTradeJournalChange> owned, LegacyRuneOperation? operation, LegacyRuneContainerOperation? containerOperation,
+            LegacyRuneComposeOperation? composeOperation, LegacyRuneChanceOperation? chanceOperation)
         {
             if (!ReferenceEquals(writer, actual) || !writer.OwnerIsCurrentPlain() ||
                 !ReferenceEquals(rune?.Operation, operation) || !ReferenceEquals(container?.Operation, containerOperation) ||
+                !ReferenceEquals(compose?.Operation, composeOperation) ||
+                !ReferenceEquals(chance?.Operation, chanceOperation) ||
                 rune is not null && !rune.IsCurrent() || container is not null && !container.IsCurrent() || owned.Count != changes.Length)
                 throw Unavailable();
+            if (compose is not null && !compose.IsCurrent() || chance is not null && !chance.IsCurrent()) throw Unavailable();
             for (var index = 0; index < changes.Length; index++)
             {
                 var captured = changes[index]; var current = owned[index];

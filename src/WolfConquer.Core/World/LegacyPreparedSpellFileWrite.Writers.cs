@@ -21,7 +21,8 @@ internal sealed partial class LegacyPreparedSpellFileWrite
 
     internal bool TryCommitCharacterItemsSpells(string itemsRoot, IReadOnlyList<LegacyTradeJournalChange> changes, out string reason,
         LegacyJournalInterruption? interruption = null, LegacyRuneOperation? runeOperation = null,
-        LegacyRuneContainerOperation? runeContainer = null, RuneCharacterPublication? runePublication = null)
+        LegacyRuneContainerOperation? runeContainer = null, RuneCharacterPublication? runePublication = null,
+        LegacyRuneComposeOperation? runeCompose = null, LegacyRuneChanceOperation? runeChance = null)
     {
         var owned = ValidateChanges(changes);
         var items = owned.Where(change => change.Kind == LegacyTradeJournalFileKind.Items).ToArray();
@@ -34,10 +35,14 @@ internal sealed partial class LegacyPreparedSpellFileWrite
             Path.Combine(itemsRoot, expected.Character.Uid.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin"), SpellsPath], () =>
         {
             if (!RequireReady(out failure)) return false;
-            if (runeOperation is not null && runeContainer is not null) throw Unavailable();
-            if ((runeOperation is not null || runeContainer is not null) != (runePublication is not null)) throw Unavailable();
-            runePublication?.RequireBeforeCommit(this, owned, runeOperation, runeContainer);
-            var committed = runeContainer is not null
+            if ((runeOperation is not null ? 1 : 0) + (runeContainer is not null ? 1 : 0) + (runeCompose is not null ? 1 : 0) + (runeChance is not null ? 1 : 0) > 1) throw Unavailable();
+            if ((runeOperation is not null || runeContainer is not null || runeCompose is not null || runeChance is not null) != (runePublication is not null)) throw Unavailable();
+            runePublication?.RequireBeforeCommit(this, owned, runeOperation, runeContainer, runeCompose, runeChance);
+            var committed = runeChance is not null
+                ? LegacyTradeJournal.TryCommitRuneChance(UsersRoot, itemsRoot, SpellsRoot, owned, runeChance, interruption, out failure)
+                : runeCompose is not null
+                ? LegacyTradeJournal.TryCommitRuneCompose(UsersRoot, itemsRoot, SpellsRoot, owned, runeCompose, interruption, out failure)
+                : runeContainer is not null
                 ? LegacyTradeJournal.TryCommitRuneContainer(UsersRoot, itemsRoot, SpellsRoot, owned, runeContainer, interruption, out failure)
                 : runeOperation is null
                 ? LegacyTradeJournal.TryCommitCharacterItemsSpells(UsersRoot, itemsRoot, SpellsRoot, owned, interruption, out failure)
