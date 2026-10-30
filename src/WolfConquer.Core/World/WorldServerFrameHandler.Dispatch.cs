@@ -160,6 +160,7 @@ public sealed partial class WorldServerFrameHandler
                 TradeRecovery = _tradeRecovery,
                 TradeJournalInterruption = TradeJournalInterruption,
                 VendorJournalInterruption = VendorJournalInterruption,
+                ItemSpellJournalInterruption = ItemSpellJournalInterruption,
                 MailboxPackages = _mailboxPackages,
                 FrameOperationLease = frameOperation,
                 LocalServerIdentity = _runtimeUpdateLoop.LocalServerIdentity,

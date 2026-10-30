@@ -17,16 +17,15 @@ public sealed class LegacyNativeRuneSpellLookupTests
     }
 
     [Theory]
-    [InlineData(0u, (ushort)0, (ushort)0)]
     [InlineData(1234599u, (ushort)12345, (ushort)99)]
-    [InlineData(uint.MaxValue, (ushort)23592, (ushort)95)]
-    public void GetSkillUsesTheLiveRuneMetadataWithNativeNarrowing(uint encoded, ushort id, ushort level)
+    [InlineData(6553599u, ushort.MaxValue, (ushort)99)]
+    public void GetSkillUsesTheLiveRuneMetadataWithoutNarrowing(uint encoded, ushort id, ushort level)
     {
         using var scope = new MetadataScope();
         scope.Items[1_000_000] = new() { ID = 42, RuneSpellID = encoded };
         var item = new LegacyNativeGameItemRuntime { ITEM_ID = 1_000_000 };
-        var first = LegacyNativeRuneItemStorage.GetSkillForRune(item);
-        var second = LegacyNativeRuneItemStorage.GetSkillForRune(item);
+        var first = Assert.IsType<LegacyNativeMsgSpell>(LegacyNativeRuneItemStorage.GetSkillForRune(item));
+        var second = Assert.IsType<LegacyNativeMsgSpell>(LegacyNativeRuneItemStorage.GetSkillForRune(item));
         Assert.NotSame(first, second);
         Assert.Equal(id, first.ID);
         Assert.Equal(level, first.Level);
@@ -34,18 +33,47 @@ public sealed class LegacyNativeRuneSpellLookupTests
         Assert.Equal((byte)0, first.SoulLevel);
         Assert.Equal(0u, item.SpellID);
         scope.Items[1_000_000].RuneSpellID = 800123;
-        Assert.Equal((ushort)8001, LegacyNativeRuneItemStorage.GetSkillForRune(item).ID);
+        Assert.Equal((ushort)8001, Assert.IsType<LegacyNativeMsgSpell>(LegacyNativeRuneItemStorage.GetSkillForRune(item)).ID);
     }
 
     [Fact]
-    public void GetSkillMissingMetadataAndNullArgumentsKeepNativeFailures()
+    public void ZeroMetadataIsExplicitlyNoSkillRatherThanAPhysicalZeroSpell()
+    {
+        using var scope = new MetadataScope();
+        scope.Items[1_000_000] = new() { ID = 42, RuneSpellID = 0 };
+        var item = new LegacyNativeGameItemRuntime { ITEM_ID = 1_000_000 };
+        Assert.Null(LegacyNativeRuneItemStorage.GetSkillForRune(item));
+        Assert.Equal(0u, item.SpellID);
+    }
+
+    [Theory]
+    [InlineData(1u)]
+    [InlineData(99u)]
+    [InlineData(6553600u)]
+    [InlineData(6553700u)]
+    [InlineData(uint.MaxValue)]
+    public void UnrepresentableMetadataNeverWrapsOntoAnotherNativeSpell(uint encoded)
+    {
+        using var scope = new MetadataScope();
+        var metadata = new LegacyNativeItemRuneMetadata { ID = 42, RuneSpellID = encoded };
+        scope.Items[1_000_000] = metadata;
+        var item = new LegacyNativeGameItemRuntime { ITEM_ID = 1_000_000 };
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeRuneItemStorage.GetSkillForRune(item));
+        Assert.Equal(encoded, metadata.RuneSpellID);
+        Assert.Equal(0u, item.SpellID);
+    }
+
+    [Fact]
+    public void GetSkillMissingMetadataAndNullArgumentsFailExplicitly()
     {
         using var scope = new MetadataScope();
         var item = new LegacyNativeGameItemRuntime { ITEM_ID = 1_000_000 };
-        Assert.Throws<KeyNotFoundException>(() => LegacyNativeRuneItemStorage.GetSkillForRune(item));
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeRuneItemStorage.GetSkillForRune(item));
         scope.Items[1_000_000] = null!;
-        Assert.Throws<NullReferenceException>(() => LegacyNativeRuneItemStorage.GetSkillForRune(item));
-        Assert.Throws<NullReferenceException>(() => LegacyNativeRuneItemStorage.GetSkillForRune(null!));
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeRuneItemStorage.GetSkillForRune(item));
+        LegacyNativePoolItems.ItemsBase = null;
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeRuneItemStorage.GetSkillForRune(item));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeRuneItemStorage.GetSkillForRune(null!));
     }
 
     [Fact]
@@ -62,32 +90,54 @@ public sealed class LegacyNativeRuneSpellLookupTests
         first.RuneSpellID = 1;
         Assert.Equal(33u, LegacyNativeRuneItemStorage.GetRuneFromSkill(spell));
         spell.Level = 100;
-        Assert.Equal(0u, LegacyNativeRuneItemStorage.GetRuneFromSkill(spell));
+        Assert.Throws<ArgumentOutOfRangeException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(spell));
     }
 
     [Fact]
-    public void ReverseLookupRetainsFullUshortLevelAndReReadsThePoolOwner()
+    public void ReverseLookupSupportsMaximumPackedIdentityAndReadsTheCurrentPoolOwner()
     {
         using var scope = new MetadataScope();
-        var spell = new LegacyNativeMsgSpell { ID = ushort.MaxValue, Level = ushort.MaxValue };
-        scope.Items[9] = new() { ID = 99, RuneSpellID = 6_619_035 };
+        var spell = new LegacyNativeMsgSpell { ID = ushort.MaxValue, Level = 99 };
+        scope.Items[9] = new() { ID = 99, RuneSpellID = 6_553_599 };
         Assert.Equal(99u, LegacyNativeRuneItemStorage.GetRuneFromSkill(spell));
-        LegacyNativePoolItems.ItemsBase = new() { [10] = new() { ID = 101, RuneSpellID = 6_619_035 } };
+        LegacyNativePoolItems.ItemsBase = new() { [10] = new() { ID = 101, RuneSpellID = 6_553_599 } };
         Assert.Equal(101u, LegacyNativeRuneItemStorage.GetRuneFromSkill(spell));
         Assert.Equal(99u, scope.Items[9].ID);
     }
 
     [Fact]
-    public void ReverseLookupEmptyTableDoesNotDereferenceSkillButNullRowsAndOwnersFail()
+    public void ReverseLookupRejectsMissingRequiredStateWithoutIncidentalNullTraps()
     {
         using var scope = new MetadataScope();
-        Assert.Equal(0u, LegacyNativeRuneItemStorage.GetRuneFromSkill(null!));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(null!));
+        var spell = new LegacyNativeMsgSpell { ID = 1, Level = 0 };
+        Assert.Equal(0u, LegacyNativeRuneItemStorage.GetRuneFromSkill(spell));
         scope.Items[1] = null!;
-        Assert.Throws<NullReferenceException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(new()));
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(spell));
         scope.Items[1] = new();
-        Assert.Throws<NullReferenceException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(null!));
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(null!));
         LegacyNativePoolItems.ItemsBase = null;
-        Assert.Throws<NullReferenceException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(new()));
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(spell));
+    }
+
+    [Theory]
+    [InlineData((ushort)0, (ushort)0)]
+    [InlineData((ushort)1, (ushort)100)]
+    [InlineData(ushort.MaxValue, ushort.MaxValue)]
+    public void ReverseLookupNeverCarriesAnInvalidLevelIntoAnotherRuneIdentity(ushort id, ushort level)
+    {
+        using var scope = new MetadataScope();
+        scope.Items[9] = new() { ID = 99, RuneSpellID = (uint)id * 100 + level };
+        Assert.Throws<ArgumentOutOfRangeException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(new() { ID = id, Level = level }));
+    }
+
+    [Fact]
+    public void ReverseLookupDoesNotAcceptAPartialMatchBeforeANullTail()
+    {
+        using var scope = new MetadataScope();
+        scope.Items[1] = new() { ID = 42, RuneSpellID = 100 };
+        scope.Items[2] = null!;
+        Assert.Throws<InvalidOperationException>(() => LegacyNativeRuneItemStorage.GetRuneFromSkill(new() { ID = 1, Level = 0 }));
     }
 
     private sealed class MetadataScope : IDisposable

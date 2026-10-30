@@ -2,6 +2,7 @@ using System.Net;
 using System.Runtime.ExceptionServices;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
+using WolfConquer.Core.Packets;
 using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
@@ -11,10 +12,10 @@ public sealed partial class WorldServerFrameHandlerTests
     internal static async Task WithNativeItemSpellCallerAsync(bool rune, Func<NativeItemSpellCallerFixture, Task> body,
         IReadOnlyList<TransformInfo>? transformInfo = null, IReadOnlyList<string>? characterLines = null,
         PlayerItemSnapshot? playerItems = null, IReadOnlyList<ItemType>? additionalItems = null,
-        IReadOnlyList<Npc>? npcs = null, PlayerQuestSnapshot? playerQuests = null)
+        IReadOnlyList<Npc>? npcs = null, PlayerQuestSnapshot? playerQuests = null, bool ownedRuneOrigin = false)
     {
         var f = new NativeItemSpellCallerFixture(); Exception? primary = null;
-        try { f.Initialize(rune, transformInfo, characterLines, playerItems, additionalItems, npcs, playerQuests); await body(f); } catch (Exception error) { primary = error; }
+        try { f.Initialize(rune, transformInfo, characterLines, playerItems, additionalItems, npcs, playerQuests, ownedRuneOrigin); await body(f); } catch (Exception error) { primary = error; }
         try { await f.DisposeAsync(); }
         catch (Exception cleanup)
         {
@@ -46,17 +47,28 @@ public sealed partial class WorldServerFrameHandlerTests
         internal LegacyTradeRecoveryState Recovery => Actual<LegacyTradeRecoveryState>("_tradeRecovery");
         internal WorldSession Current => Assert.IsType<WorldSession>(Store.TryGet(Connection, out var current) ? current : null);
         private OrdinaryLoginFixture? admission; private NativeLoginBeastMetadataScope? beasts; private bool owned;
+        private bool preparesOwnedRuneOrigin;
+        private CancellationTokenSource? connectionLifetime;
+        private Exception? observationFailure;
         private T Actual<T>(string name) where T : class => Assert.IsType<T>(typeof(WorldServerFrameHandler)
             .GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(Handler));
         internal void Initialize(bool rune, IReadOnlyList<TransformInfo>? transformInfo = null, IReadOnlyList<string>? characterLines = null,
             PlayerItemSnapshot? playerItems = null, IReadOnlyList<ItemType>? additionalItems = null,
-            IReadOnlyList<Npc>? npcs = null, PlayerQuestSnapshot? playerQuests = null)
+            IReadOnlyList<Npc>? npcs = null, PlayerQuestSnapshot? playerQuests = null, bool ownedRuneOrigin = false)
         {
+            if (ownedRuneOrigin && !rune) throw new ArgumentException("An owned Rune origin requires the real Rune input.", nameof(ownedRuneOrigin));
+            preparesOwnedRuneOrigin = ownedRuneOrigin;
             Guard(); Assert.False(Directory.Exists(Root)); Directory.CreateDirectory(Users); owned = true;
             Directory.CreateDirectory(Items); Directory.CreateDirectory(Spells);
             WriteSnapshot(Users, Uid, uid: Uid, classCode: rune ? 6000 : 7051, level: 140,
                 reborn: rune ? 2 : 0, secondClass: 0, money: 1000, conquerPoints: 200, boundConquerPoints: 300,
                 minHitPoints: 1000, name: "OwnedItemSpellOwner");
+            if (ownedRuneOrigin)
+            {
+                Assert.True(CharacterSnapshotFileCoordinator.TryUpdateCharacterAttributes(CharacterPath, Uid,
+                    new Dictionary<string, string> { ["TailedBeastActivated"] = "true", ["TailedBeastTotalPoints"] = "0" },
+                    detailedIoFailures: true, out var beastReason), beastReason);
+            }
             // Pure input preparation precedes the real issuer's baseline capture.
             if (characterLines is { Count: > 0 })
             {
@@ -69,11 +81,11 @@ public sealed partial class WorldServerFrameHandlerTests
                 File.WriteAllBytes(CharacterPath, encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray());
             }
             var item = new PlayerItemSnapshotItem { Uid = ItemUid, ItemId = rune ? 4020517U : 725016U,
-                Position = rune ? (ushort)102 : (ushort)0, Durability = 1, MaximumDurability = 1, StackSize = 1 };
+                Position = rune ? ownedRuneOrigin ? (ushort)212 : (ushort)102 : (ushort)0, Durability = 1, MaximumDurability = 1, StackSize = 1 };
             var rankKeeper = new PlayerItemSnapshotItem { Uid = ItemUid + 1, ItemId = 4020515, Position = 212, Durability = 1, MaximumDurability = 1, StackSize = 1 };
             var items = rune ? new PlayerItemSnapshot([], [], [], [], [item, rankKeeper]) : new PlayerItemSnapshot([item], [], [], [], []);
             File.WriteAllBytes(ItemsPath, PlayerItemSnapshotLoader.ToLegacyBytes(playerItems ?? items));
-            var rows = rune ? new[] { new PlayerSpellSnapshotEntry(14160, 16, 0, 0, 0, 0), new PlayerSpellSnapshotEntry(6001, 4, 1111, 2, 3, 2) }
+            var rows = rune && !ownedRuneOrigin ? new[] { new PlayerSpellSnapshotEntry(14160, 16, 0, 0, 0, 0), new PlayerSpellSnapshotEntry(6001, 4, 1111, 2, 3, 2) }
                 : new[] { new PlayerSpellSnapshotEntry(6001, 4, 1111, 2, 3, 2) };
             var spellBytes = PlayerSpellSnapshotLoader.ToLegacyBytes(new PlayerSpellSnapshot(rows)); spellBytes[^1] = 0xA5;
             File.WriteAllBytes(SpellsPath, spellBytes);
@@ -89,20 +101,107 @@ public sealed partial class WorldServerFrameHandlerTests
             fields[1] = "OwnedFixtureItem"; fields[ItemType.DurabilityFieldIndex] = "1"; fields[ItemType.StackSizeFieldIndex] = "1";
             if (rune) { fields[ItemType.RequiredClassFieldIndex] = "6000"; fields[ItemType.RuneSpellIdFieldIndex] = "1416016"; }
             var itemTypes = baseline.Items.Append(new ItemType(rune ? 4020517 : 725016, fields[1], fields)).ToList();
-            if (rune) { var extra = (string[])fields.Clone(); extra[0] = "4020515"; extra[1] = "OwnedRankKeeper"; extra[ItemType.RuneSpellIdFieldIndex] = "0"; itemTypes.Add(new ItemType(4020515, extra[1], extra)); }
+            if (rune) { var extra = (string[])fields.Clone(); extra[0] = "4020515"; extra[1] = "OwnedRankKeeper"; extra[ItemType.RuneSpellIdFieldIndex] = "1416014"; itemTypes.Add(new ItemType(4020515, extra[1], extra)); }
             if (additionalItems is not null) itemTypes.AddRange(additionalItems);
             var catalog = NativeCallerWorldDataFixture.Create(itemTypes, [], npcs: npcs,
                 classLevelStats: baseline.ClassLevelStats, magicTypeOperations: baseline.MagicTypeOperations,
-                magic: [new MagicType(1360, 1360, "OwnedBookSpell", [])], transformInfo: transformInfo);
+                magic: [new MagicType(1360, 1360, "OwnedBookSpell", [])], transformInfo: transformInfo,
+                magicEffects: rune ? MagicEffectParser.Parse("[1416000]\r\nIsRuneSkill=1\r\n", "owned-MagicEffect.ini") : null);
             Catalog = catalog;
             beasts = new NativeLoginBeastMetadataScope(1000);
             admission = new OrdinaryLoginFixture(new CharacterSnapshotLoader(Users), catalog);
-            Handler = admission.CreateHandler(Log); Native = new LegacyNativeGameClientRuntime();
-            Connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
-                (frame, _) => { byte[] bytes = frame.ToArray(); OnSend?.Invoke(bytes); Sent.Add(bytes); return ValueTask.CompletedTask; }, _ => ValueTask.CompletedTask, Native);
+            Handler = admission.CreateHandler(Log); CreateConnection();
         }
-        internal async Task Login() => await Handler.HandleFrameAsync(Connection, ReadFrame(new LegacyMsgLoginGamePacket(Uid).ToFrameBytes()));
-        internal async Task Send(byte[] frame) => await Handler.HandleFrameAsync(Connection, ReadFrame(frame));
+        private void CreateConnection()
+        {
+            var lifetime = new CancellationTokenSource(); connectionLifetime = lifetime;
+            Native = new LegacyNativeGameClientRuntime();
+            Connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
+                (frame, token) =>
+                {
+                    token.ThrowIfCancellationRequested(); byte[] bytes = frame.ToArray();
+                    try { OnSend?.Invoke(bytes); }
+                    catch (Xunit.Sdk.XunitException error) { observationFailure ??= error; throw; }
+                    Sent.Add(bytes); return ValueTask.CompletedTask;
+                },
+                _ => { lifetime.Cancel(); return ValueTask.CompletedTask; }, Native);
+        }
+        internal async Task Login() => await Send(new LegacyMsgLoginGamePacket(Uid).ToFrameBytes());
+        internal async Task Send(byte[] frame)
+        {
+            await Handler.HandleFrameAsync(Connection, ReadFrame(frame), connectionLifetime!.Token);
+            if (observationFailure is { } error) ExceptionDispatchInfo.Capture(error).Throw();
+        }
+        internal async Task EstablishOwnedRuneOriginAsync()
+        {
+            Assert.True(preparesOwnedRuneOrigin);
+            Assert.DoesNotContain(Current.PlayerSpells.Spells, row => row.Id == 14160);
+            Assert.Equal((ushort)212, Assert.Single(Current.PlayerItems.RuneItems, row => row.Uid == ItemUid).Position);
+            var beast = Assert.IsType<LegacyNativeBeastsRuntime>(Native.Beasts);
+            Assert.Same(Native, beast.Owner); Assert.True(beast.Activated); Assert.Equal((byte)1, beast.Level);
+            var oldSpells = File.ReadAllBytes(SpellsPath);
+            await Send(new MsgItemUsagePacket(ItemUid, 102, MsgItemUsageAction.EquipRune, 511043494, 0, 0, 0).ToFrameBytes());
+            Assert.Equal("14160:16", Current.Character.Attributes["ManagedRuneSpellOrigins"]);
+            Assert.Equal((ushort)102, Assert.Single(Current.PlayerItems.RuneItems, row => row.Uid == ItemUid).Position);
+            Assert.Equal(new PlayerSpellSnapshotEntry(14160, 16, 0, 0, 0, 0), Assert.Single(Current.PlayerSpells.Spells, row => row.Id == 14160));
+            Assert.Equal(Convert.FromHexString("02000000").Concat(oldSpells.Skip(4))
+                .Concat(Convert.FromHexString("503710000000000000000000")).ToArray(), File.ReadAllBytes(SpellsPath));
+            Assert.False(LegacyTradeJournal.HasPending(Users));
+        }
+        internal async Task<byte[]> ReopenWithUnsortedRuneRecordsAsync()
+        {
+            Assert.True(preparesOwnedRuneOrigin); Assert.Equal("14160:16", Current.Character.Attributes["ManagedRuneSpellOrigins"]);
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(Native.OrdinarySpellBinding);
+            var priorStore = Store; var priorConnection = Connection;
+            var character = File.ReadAllBytes(CharacterPath);
+            var spells = File.ReadAllBytes(SpellsPath);
+            var statePath = Path.Combine(Items, ".managed-item-uids", "state.json");
+            var uidState = File.ReadAllBytes(statePath);
+            var raw = File.ReadAllBytes(ItemsPath); var changed = raw.ToArray();
+            Assert.Equal(2, PlayerItemSnapshotLoader.Parse(raw).RuneItems.Count);
+            const int width = PlayerItemSnapshotLoader.LegacyDbItemSize;
+            raw.AsSpan(4 + width, width).CopyTo(changed.AsSpan(4, width));
+            raw.AsSpan(4, width).CopyTo(changed.AsSpan(4 + width, width));
+            Assert.False(changed.AsSpan().SequenceEqual(PlayerItemSnapshotLoader.ToLegacyBytes(PlayerItemSnapshotLoader.Parse(changed))));
+            await priorConnection.CompleteTransportCloseAsync();
+            Assert.False(priorStore.TryGet(priorConnection, out _)); Assert.True(binding.IsRetired);
+            connectionLifetime!.Dispose(); connectionLifetime = null;
+            admission!.Dispose(); admission = null;
+            // The configured production writer remains fenced after disposal.
+            // These exact owned fixture inputs are prepared while quiescent,
+            // after independently acquiring the released real owner.lock.
+            Guard();
+            using (new FileStream(Path.Combine(Items, ".managed-item-uids", "owner.lock"),
+                       FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                Assert.False(priorStore.TryGet(priorConnection, out _)); Assert.True(binding.IsRetired);
+                Assert.False(LegacyTradeJournal.HasPending(Users));
+                Assert.Equal(character, File.ReadAllBytes(CharacterPath)); Assert.Equal(raw, File.ReadAllBytes(ItemsPath));
+                Assert.Equal(spells, File.ReadAllBytes(SpellsPath)); Assert.Equal(uidState, File.ReadAllBytes(statePath));
+                foreach (var path in new[] { CharacterPath, ItemsPath, SpellsPath })
+                    Assert.True(CharacterSnapshotFileBaseline.TryValidateSafePath(path, "ownedOfflineRuneFixture", out var reason), reason);
+                var text = CharacterSnapshotFileEncoding.Decode(character, out var encoding);
+                Assert.Equal(character, encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray());
+                Assert.Single(text.Split('\n'), line => line.TrimEnd('\r') == "Online=1");
+                var offlineText = text.Replace("\r\nOnline=1\r\n", "\r\nOnline=0\r\n", StringComparison.Ordinal);
+                Assert.NotEqual(text, offlineText);
+                var offline = CharacterSnapshotParser.ParseText(offlineText);
+                Assert.Equal(Uid, offline.Uid); Assert.Equal(0, offline.Online);
+                Assert.Equal("14160:16", offline.Attributes["ManagedRuneSpellOrigins"]);
+                File.WriteAllBytes(CharacterPath, encoding.GetPreamble().Concat(encoding.GetBytes(offlineText)).ToArray());
+                File.WriteAllBytes(ItemsPath, changed);
+                Assert.Equal(spells, File.ReadAllBytes(SpellsPath)); Assert.Equal(uidState, File.ReadAllBytes(statePath));
+            }
+            Assert.Equal(spells, File.ReadAllBytes(SpellsPath));
+            var domain = Guid.ParseExact(System.Text.Json.Nodes.JsonNode.Parse(uidState)!["Domain"]!.GetValue<string>(), "N");
+            admission = new OrdinaryLoginFixture(new CharacterSnapshotLoader(Users), Catalog, existingDomain: domain);
+            Handler = admission.CreateHandler(Log); CreateConnection(); await Login();
+            Assert.Equal("14160:16", Current.Character.Attributes["ManagedRuneSpellOrigins"]);
+            Assert.Equal(changed, File.ReadAllBytes(ItemsPath)); Assert.Equal(spells, File.ReadAllBytes(SpellsPath));
+            var beast = Assert.IsType<LegacyNativeBeastsRuntime>(Native.Beasts);
+            Assert.True(beast.Activated); Assert.Equal((byte)1, beast.Level);
+            return changed;
+        }
         internal Dictionary<string, byte[]> Files()
         {
             var lease = Path.Combine(Items, ".managed-item-uids", "owner.lock");
@@ -124,6 +223,7 @@ public sealed partial class WorldServerFrameHandlerTests
         {
             var errors = new List<Exception>();
             try { if (Connection is not null) await Connection.CompleteTransportCloseAsync(); } catch (Exception e) { errors.Add(e); }
+            try { connectionLifetime?.Dispose(); } catch (Exception e) { errors.Add(e); }
             try { admission?.Dispose(); } catch (Exception e) { errors.Add(e); }
             try { beasts?.Dispose(); } catch (Exception e) { errors.Add(e); }
             try { Log.Dispose(); } catch (Exception e) { errors.Add(e); }

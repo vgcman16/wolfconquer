@@ -4,6 +4,106 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Rune ownership and recovery qualification - 2026-10-30
+
+The preceding exact public6cb2babc passed all eight stages of Windows41106500544:
+Core31,832 Passed/152 existing NotExecuted, Updates446 and Launcher57 Passed.
+The source batch below requires its own exact-public full gate. Earlier dated
+sections retain historical qualification, not current deployment claims.
+
+Root reviewed and integrated130 finite code/test/spec paths. The combined run
+passed457 cases with zero failures/four preserved public-fixture skips, including
+all14 preceding failure names and ordinary owned HP/mana controls. Source review
+then corrected an introduced unsupported Drop HP effect; the final affected
+selection passed67/67 with zero failures/skips after build09 passed with zero
+errors and existing warnings. The215-case pre-caller correction retained213
+passes/two Drop failures; both are in the corrected67. No packet ID or
+successful established frame sequence was changed to silence a test.
+
+### FSB-243: Recover bounded recorded item/spell transactions before admission
+
+Owned startup previously rejected genuine interrupted v9 skill-book/default-
+learning and unchanged-spell Rune item transactions. Recovery now derives exact
+supported outcomes under existing exclusive UID custody and configured roots.
+Actual absent Spells/directory creation is distinct from a lost existing target.
+Captured-BEFORE retiring UIDs cannot reappear in unrelated physical sources.
+Opaque spell bytes, item closures, exact stages and second-restart behavior stay
+checked. The precursor corrected160-case selection passed; full current-source
+qualification remains the exact-public gate, not a claim of general v9 recovery.
+
+### FSB-244: Validate Rune spell identities before narrowing or removal
+
+Unchecked RuneSpellID/100 narrowing could target an unrelated learned spell.
+Nonzero mapped IDs now require the real ushort domain; zero remains no-skill.
+Native reverse lookup validates its two-decimal-digit level and captures one
+actual pool; missing/null required state fails explicitly. Earlier bug-enforcing
+wrap/null tests were replaced with preserved-state and valid-boundary controls.
+
+### FSB-245: Own Rune grants, active providers and recorded item transitions
+
+Real Equip creates an absent default grant and its exact origin atomically with
+Character/Items/Spells. Last-provider retirement removes only unchanged owned
+rows; permanent/unmarked/shared rows are retained. Actual adopted MagicEffect,
+native normal/alternate worn items and admission-published Beast state gate
+Rune casts before costs. Current records derive exact item/spell outcomes;
+old records keep separately declared semantics. Native twelve yellow slots,
+shared-provider and no-Rune-XP behavior have focused source coverage.
+
+### FSB-246: Publish native and managed alternate equipment mode together
+
+The handler changed the managed mode while native WornObjects kept the old set,
+rejecting valid alternate Rune casts. A closed prepared publication proves the
+actual native equipment owner/old mode and publishes both modes coherently.
+Roundtrip, drift refusal and normal/alternate cast costs are retained. Complete
+QueryEquipment/stat/HP/refresh lifecycle remains a separate unfinished horizon.
+
+### FSB-247: Commit Rune storage and destruction with their spell ownership
+
+Storage/Bag/Drop formerly moved or destroyed items without the same durable
+spell/origin transition. Real admitted actions now use the joint writer, exact
+recorded dependencies, no-new-UID ownership and startup recovery. Storage keeps
+its own Reborn/capacity policy instead of importing Equip restrictions. Only a
+proven last-provider default grant is retired; missing/unowned state never gets
+an accepting fallback. Fifty-six dedicated lifecycle cases passed in the broad
+selection; this is not global SQL, delivery or complete container ownership.
+
+### FSB-248: Keep passive raw-self Rune identities out of learned spells
+
+Original display normalization makes higher-level raw-self Runes look like a
+mapped ability. Current capture/projectors/native lookups/caster providers use
+the actual raw RuneSpellID==ItemID relationship; display base01/Effect1 stays.
+The source audit found619 raw-self rows, including550 affected higher levels.
+Canonical trusted old phantom rows can be retired by a real current action;
+unmarked/permanent/changed/unmatched history is not claimed. Thirteen native
+query and eight pure mapping controls passed; passive stat effects,4035009 and
+ambiguous8140 resources remain open. Those counts are not client parity.
+
+### FSB-249: Record real transient dependencies without inventing action effects
+
+Rune unequip could derive HP3000 from current transient state while replay saw
+only a sparse saved Character and refused. Current14/15 capture exact closed
+transform presence/text, derive applicable effects and preserve sparse/opaque
+saved bytes. Raw recovery is checked before a separate ordinary login projection.
+Review also caught an introduced Drop clamp: native Drop has no HP query/frame.
+Current Drop therefore preserves HP/nativeHP/savedHP exactly; Store/Bag and Rune
+unequip retain their established query/clamp behavior. Old13 replay is not
+silently reinterpreted. No hidden Drop HP mutation or arbitrary after-HP claim.
+
+### FSB-250: Publish the actual joint-writer Character afterimage
+
+Ordinary HP serialization inserted missing scalar defaults and kept old Rune
+origins, disagreeing with a valid joint Rune commit. A sealed proof from the
+actual prepared spell writer now binds all three exact images, real operation,
+owner and proposed item/spell outcomes. Only that matching writer's successful
+journal can complete publication, with full Character afterimage/journal-clear
+proof even when HP is unchanged. Ordinary scalar saving stays unchanged; no
+second save or HP-only acceptance. Four genuine-owner negatives reject wrong
+images, wrong proposals and a callback that did not run the actual writer.
+
+These are bounded source/managed-file results, not current-client gameplay,
+7937 profile activation, complete English, SQL, power-loss or raw-writer exclusion.
+Original data/routes/restore points and held unrelated source remain unchanged.
+
 ## Transaction recovery and scoped warehouse qualification - 2026-10-30
 
 The preceding exact public full Windows41095165573 on e0f22c8b failed:

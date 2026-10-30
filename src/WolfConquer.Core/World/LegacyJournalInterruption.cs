@@ -51,7 +51,7 @@ internal sealed class LegacyJournalInterruption : IDisposable
             if (disposed || consumed || targetCount is < 1 or > 4 || boundary > targetCount ||
                 (kind is LegacyJournalFault.TargetReadLease or LegacyJournalFault.TargetExclusiveLease) &&
                     (ordinal < 0 || ordinal >= targetCount) ||
-                kind == LegacyJournalFault.StopAfterStageFlushed && journalVersion is not (1 or 2) ||
+                kind == LegacyJournalFault.StopAfterStageFlushed && journalVersion is not (1 or 2 or 9 or 12 or 13 or 14 or 15) ||
                 kind == LegacyJournalFault.PendingReadLease && boundary != targetCount)
                 throw new ArgumentException("Interruption boundary/target is invalid or already consumed.");
             consumed = true;
@@ -59,7 +59,7 @@ internal sealed class LegacyJournalInterruption : IDisposable
     }
 
     // A genuine engine-written/closed/flush-complete stage is retained only by
-    // this v1/v2 STOP control. It cannot supply bytes, paths or a writer.
+    // this v1/v2/v9/v12 STOP control. It cannot supply bytes, paths or a writer.
     internal bool AtStageFlushed(int count, IReadOnlyList<string> targets, string pending)
     {
         lock (gate)

@@ -6,7 +6,8 @@ public sealed partial class WorldSessionStore
 {
     internal bool TryCommitClassicBuffCosts(ConquerTcpConnection connection, WorldSession expected,
         object identity, WorldSession candidate, ProcParticipant? peer,
-        MonsterRuntimeStateStore.ClassicBuffTarget? monster, out MagicCostOutputReceipt? receipt, out string reason)
+        MonsterRuntimeStateStore.ClassicBuffTarget? monster, out MagicCostOutputReceipt? receipt, out string reason,
+        LegacyRuneCastEligibility? runeEligibility = null)
     {
         receipt = null; reason = "classicTargetOwnerChanged";
         RefuseBoundSpellReentry(connection);
@@ -47,9 +48,10 @@ public sealed partial class WorldSessionStore
                         if (!publication.ConsumeBeforeWriterPlain() || observation is not null && !observation.ConsumeBeforeWriterPlain() ||
                             !publication.IsCurrentPlain() || observation is not null && !observation.IsCurrentPlain() ||
                             lease is not null && !lease.IsCurrentPlain()) throw InvalidSpellPublication();
+                        if (runeEligibility is not null && !runeEligibility.IsCurrentPlain()) return false;
                         receipt = prepared; reason = string.Empty; return true;
                     }
-                    if (!TryPublishFrameOwnedHitpoints(publication, holder, out reason, observation, peerHolder, monster)) return false;
+                    if (!TryPublishFrameOwnedHitpoints(publication, holder, out reason, observation, peerHolder, monster, runeEligibility)) return false;
                 }
                 final = publication.FinalSession; finalIdentity = publication.PublishedIdentity; binding = publication.Binding;
                 observation?.Dispose(); publication.Dispose();

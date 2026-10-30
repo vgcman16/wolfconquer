@@ -6,7 +6,8 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private static LegacyTradeJournalChange[] PrepareItemSpellImages(LegacySpellMutationInputs inputs,
-        WorldSession updated, string characterPath, string itemPath, LegacyPreparedSpellFileWrite spellWrite)
+        WorldSession updated, string characterPath, string itemPath, LegacyPreparedSpellFileWrite spellWrite,
+        LegacyRuneOperation? rune = null, LegacyRuneContainerOperation? container = null)
     {
         if (!CharacterSnapshotFileBaseline.TryRead(characterPath, "itemSpell", out var baseline, out var reason) || baseline is null)
             throw new LegacySpellMutationRefusalException(reason);
@@ -18,13 +19,25 @@ public static partial class WorldPacketHandlers
         if (!FullAccountCharacterScalarsEqual(disk, current) || !FullAccountStoredFieldsMatch(disk.Attributes, current.Attributes) ||
             !FullAccountStoredFieldsMatch(disk.PaidNobility, current.PaidNobility))
             throw new LegacySpellMutationRefusalException("itemSpellCharacterBaselineStale");
-        if (!ItemSpellAttributesMatch(updated.Character.Attributes, current.Attributes) ||
-            !ItemSpellAttributesMatch(current.Attributes, updated.Character.Attributes) ||
+        if (!ItemSpellAttributesMatch(updated.Character.Attributes, current.Attributes, rune is not null || container is not null) ||
+            !ItemSpellAttributesMatch(current.Attributes, updated.Character.Attributes, rune is not null || container is not null) ||
             !FullAccountStoredFieldsMatch(updated.Character.PaidNobility, current.PaidNobility) ||
             !FullAccountStoredFieldsMatch(current.PaidNobility, updated.Character.PaidNobility))
             throw new LegacySpellMutationRefusalException("itemSpellUnexpectedCharacterFields");
         var characterAfter = baseline.Bytes;
-        if (updated.Character.MinHitPoints != current.MinHitPoints)
+        if (rune is not null || container is not null)
+        {
+            if (rune is not null && container is not null) throw InvalidSpellMutation();
+            var projected = rune is not null
+                ? ProjectRecordedRuneOperation(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, rune)
+                : ProjectRecordedRuneContainer(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, container!);
+            if (!FullAccountCharacterScalarsEqual(projected.Character, updated.Character) ||
+                !FullAccountStoredFieldsMatch(projected.Character.Attributes, updated.Character.Attributes) ||
+                !FullAccountStoredFieldsMatch(updated.Character.Attributes, projected.Character.Attributes)) throw InvalidSpellMutation();
+            characterAfter = LegacyRuneSpellOrigins.ProjectCharacterImage(baseline.Bytes, projected.Character);
+            LegacyRuneSpellOrigins.RequireSavedRows(current, spellWrite.CopyBeforeImage());
+        }
+        else if (updated.Character.MinHitPoints != current.MinHitPoints)
         {
             characterAfter = LegacyBoundHitpointsScalarWrite.ProjectAfterImage(baseline.Bytes, updated.Character);
             var afterText = CharacterSnapshotFileEncoding.Decode(characterAfter, out _);
@@ -52,7 +65,7 @@ public static partial class WorldPacketHandlers
     // identity instead of their order, retaining each deposited row's exact
     // parent identity. Perfection records remain full-byte proofs.
     // The catalog validates both images' complete bounds and unique identities.
-    private static bool ItemSpellRawRecordsMatch(byte[] saved, byte[] modeled)
+    internal static bool ItemSpellRawRecordsMatch(byte[] saved, byte[] modeled)
     {
         LegacyItemUidRawCatalog.ValidateAdmissionPlayerItems(modeled);
         var left = ItemSpellRawSections(saved);
@@ -114,8 +127,10 @@ public static partial class WorldPacketHandlers
         return (items, perfections);
     }
 
-    private static bool ItemSpellAttributesMatch(IReadOnlyDictionary<string, string> first, IReadOnlyDictionary<string, string> second) =>
-        first.Where(pair => !pair.Key.Equals("MinHitPoints", StringComparison.OrdinalIgnoreCase))
+    private static bool ItemSpellAttributesMatch(IReadOnlyDictionary<string, string> first, IReadOnlyDictionary<string, string> second,
+        bool rune = false) =>
+        first.Where(pair => !pair.Key.Equals("MinHitPoints", StringComparison.OrdinalIgnoreCase) &&
+            (!rune || !pair.Key.Equals(LegacyRuneSpellOrigins.Key, StringComparison.OrdinalIgnoreCase)))
             .All(pair => second.TryGetValue(pair.Key, out var value) && value == pair.Value);
 
     private static bool ItemSpellBeforeImagesMatch(string[] paths, LegacyTradeJournalChange[] changes)

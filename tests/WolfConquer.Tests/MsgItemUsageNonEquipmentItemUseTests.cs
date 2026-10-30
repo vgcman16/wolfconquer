@@ -966,164 +966,6 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerItemUsageEquipRuneMovesBagRuneToSlotEchoesAndPersists()
-    {
-        const uint runeUid = 5_337_530;
-        const uint runeItemId = 4_010_501;
-        var worldData = CreateWorldDataCatalog(CreateItemType(runeItemId, "RedRune", durability: 1));
-        WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565);
-        WriteItems(
-            1_293_600,
-            PlayerItemSnapshotLoaderTests.DbItem(runeUid, runeItemId, position: 211));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log, worldData);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(CreateRuneEquipmentUse(
-                runeUid,
-                dwParam: 101,
-                MsgItemUsageAction.EquipRune,
-                8_888)));
-
-        Assert.True(sent.Count >= countBeforeRequest + 1, log.ToString());
-        Assert.True(MsgItemUsagePacket.TryParse(ReadFrame(sent[countBeforeRequest]), out var echoPacket));
-        Assert.Equal(
-            new MsgItemUsagePacket(
-                runeUid,
-                DwParam: 101,
-                MsgItemUsageAction.EquipRune,
-                511_043_495,
-                0,
-                0,
-                0),
-            echoPacket);
-        Assert.True(PacketReader.TryRead(sent[countBeforeRequest], out var echoReader));
-        Assert.Equal(8_888U, echoReader.ReadUInt32(MsgItemUsagePacket.PayloadLength));
-
-        var session = GetSession(handler, connection);
-        Assert.Contains(session.PlayerItems.RuneItems, item => item.Uid == runeUid && item.Position == 101);
-
-        var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.Contains(persistedItems.RuneItems, item => item.Uid == runeUid && item.Position == 101);
-
-        var output = log.ToString();
-        Assert.Contains("committed MsgItemUsage equip rune", output);
-        Assert.DoesNotContain("PARITY-GAP MsgItemUsage equip rune", output);
-    }
-
-    [Fact]
-    public async Task HandlerItemUsageEquipRuneUnequipsSameRuneAndOccupiedSlotBeforeEquipping()
-    {
-        const uint sameRuneUid = 5_337_540;
-        const uint slotRuneUid = 5_337_541;
-        const uint selectedRuneUid = 5_337_542;
-        const uint selectedRuneItemId = 4_010_501;
-        const uint slotRuneItemId = 4_010_502;
-        var worldData = CreateWorldDataCatalog(
-            CreateItemType(selectedRuneItemId, "RedRune", durability: 1),
-            CreateItemType(slotRuneItemId, "OtherRedRune", durability: 1));
-        WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565);
-        WriteItems(
-            1_293_600,
-            PlayerItemSnapshotLoaderTests.DbItem(sameRuneUid, selectedRuneItemId, position: 121),
-            PlayerItemSnapshotLoaderTests.DbItem(slotRuneUid, slotRuneItemId, position: 101),
-            PlayerItemSnapshotLoaderTests.DbItem(selectedRuneUid, selectedRuneItemId, position: 211));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log, worldData);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(CreateRuneEquipmentUse(
-                selectedRuneUid,
-                dwParam: 101,
-                MsgItemUsageAction.EquipRune)));
-
-        Assert.True(sent.Count >= countBeforeRequest + 3, log.ToString());
-        AssertItemUsage(
-            sent[countBeforeRequest],
-            new MsgItemUsagePacket(sameRuneUid, DwParam: 121, MsgItemUsageAction.UnequipRune, 0, 0, 0, 0));
-        AssertItemUsage(
-            sent[countBeforeRequest + 1],
-            new MsgItemUsagePacket(slotRuneUid, DwParam: 101, MsgItemUsageAction.UnequipRune, 0, 0, 0, 0));
-        AssertItemUsage(
-            sent[countBeforeRequest + 2],
-            new MsgItemUsagePacket(
-                selectedRuneUid,
-                DwParam: 101,
-                MsgItemUsageAction.EquipRune,
-                511_043_495,
-                0,
-                0,
-                0));
-
-        var session = GetSession(handler, connection);
-        Assert.Contains(session.PlayerItems.RuneItems, item => item.Uid == sameRuneUid && item.Position == 212);
-        Assert.Contains(session.PlayerItems.RuneItems, item => item.Uid == slotRuneUid && item.Position == 212);
-        Assert.Contains(session.PlayerItems.RuneItems, item => item.Uid == selectedRuneUid && item.Position == 101);
-
-        var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.Contains(persistedItems.RuneItems, item => item.Uid == sameRuneUid && item.Position == 212);
-        Assert.Contains(persistedItems.RuneItems, item => item.Uid == slotRuneUid && item.Position == 212);
-        Assert.Contains(persistedItems.RuneItems, item => item.Uid == selectedRuneUid && item.Position == 101);
-
-        var output = log.ToString();
-        Assert.Contains("committed MsgItemUsage equip rune", output);
-    }
-
-    [Fact]
-    public async Task HandlerItemUsageUnequipRuneMovesWornRuneToStorageEchoesAndPersists()
-    {
-        const uint runeUid = 5_337_550;
-        const uint runeItemId = 4_020_501;
-        var worldData = CreateWorldDataCatalog(CreateItemType(runeItemId, "OwnedRune", durability: 1));
-        WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565);
-        WriteItems(
-            1_293_600,
-            PlayerItemSnapshotLoaderTests.DbItem(runeUid, runeItemId, position: 102));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log, worldData);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(CreateRuneEquipmentUse(
-                runeUid,
-                dwParam: 102,
-                MsgItemUsageAction.UnequipRune)));
-
-        Assert.True(sent.Count == countBeforeRequest + 5, log.ToString());
-        Assert.Equal(countBeforeRequest + 5, sent.Count);
-        AssertItemUsage(
-            sent[countBeforeRequest],
-            new MsgItemUsagePacket(
-                runeUid,
-                DwParam: 102,
-                MsgItemUsageAction.UnequipRune,
-                511_043_495,
-                0,
-                0,
-                0));
-        Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[countBeforeRequest + 1]), out var maxHp));
-        Assert.Equal(LegacyMsgUpdateDataType.MaxHitpoints, Assert.Single(maxHp.Updates).Type);
-        Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[countBeforeRequest + 2]), out var hp));
-        Assert.Equal([LegacyMsgUpdateDataType.MaxHitpoints, LegacyMsgUpdateDataType.Hitpoints], hp.Updates.Select(x => x.Type));
-        Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(sent[countBeforeRequest + 3]), out LegacyPlayerStatusPacket _));
-        Assert.True(LegacyUserTotalRefineLevPacket.TryParse(ReadFrame(sent[countBeforeRequest + 4]), out _));
-
-        var session = GetSession(handler, connection);
-        Assert.Contains(session.PlayerItems.RuneItems, item => item.Uid == runeUid && item.Position == 212);
-
-        var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.Contains(persistedItems.RuneItems, item => item.Uid == runeUid && item.Position == 212);
-
-        var output = log.ToString();
-        Assert.Contains("committed MsgItemUsage unequip rune", output);
-    }
-
-    [Fact]
     public async Task HandlerItemUsageRedRuneProgressControlMapsComprehensionOptionAndPersists()
     {
         const uint runeUid = 5_337_560;
@@ -1353,33 +1195,44 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
         WriteItems(
             1_293_600,
             PlayerItemSnapshotLoaderTests.DbItem(runeUid, runeItemId, position: 211));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(CreateRuneEquipmentUse(
-                runeUid,
-                dwParam: 0,
-                MsgItemUsageAction.DropRune)));
-
-        Assert.Equal(countBeforeRequest + 1, sent.Count);
-        AssertItemUsage(
-            sent[countBeforeRequest],
-            new MsgItemUsagePacket(runeUid, DwParam: 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
-
-        var session = GetSession(handler, connection);
-        Assert.DoesNotContain(session.PlayerItems.RuneItems, item => item.Uid == runeUid);
-
-        var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.DoesNotContain(persistedItems.RuneItems, item => item.Uid == runeUid);
-
-        var output = log.ToString();
-        Assert.Contains("handled MsgItemUsage drop rune", output);
-        Assert.Contains("position=211", output);
-        Assert.Contains("persisted MsgItemUsage drop rune items", output);
-        Assert.DoesNotContain("PARITY-GAP MsgItemUsage drop rune", output);
+        var catalog = CreateWorldDataCatalog(CreateItemType(runeItemId, "OwnedYellowRune", durability: 1));
+        await WithOwnedRuneDropAsync(catalog, async f =>
+        {
+            const uint actor = 1_293_600;
+            var sent = f.Frames(actor); var before = f.Current(actor);
+            var character = File.ReadAllBytes(f.CharacterPath(actor));
+            var spells = File.ReadAllBytes(Path.Combine(f.Data.Spells, actor + ".bin"));
+            var uidState = File.ReadAllBytes(f.Data.State);
+            var expected = PlayerItemSnapshotLoader.ToLegacyBytes(before.PlayerItems with
+                { RuneItems = before.PlayerItems.RuneItems.Where(item => item.Uid != runeUid).ToArray() });
+            var countBeforeRequest = sent.Count; bool observed = false;
+            f.BeforeSend = (uid, _) =>
+            {
+                Assert.Equal(actor, uid); observed = true;
+                Assert.Equal(expected, File.ReadAllBytes(f.ItemPath(actor)));
+                Assert.Equal(character, File.ReadAllBytes(f.CharacterPath(actor)));
+                Assert.Equal(spells, File.ReadAllBytes(Path.Combine(f.Data.Spells, actor + ".bin")));
+                Assert.Equal(uidState, File.ReadAllBytes(f.Data.State));
+                Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
+            };
+            await f.SendAsync(actor, CreateRuneEquipmentUse(runeUid, dwParam: 0, MsgItemUsageAction.DropRune));
+            f.BeforeSend = null;
+            Assert.True(observed);
+            Assert.Equal(countBeforeRequest + 1, sent.Count);
+            AssertItemUsage(sent[countBeforeRequest],
+                new MsgItemUsagePacket(runeUid, DwParam: 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
+            var session = f.Current(actor);
+            Assert.DoesNotContain(session.PlayerItems.RuneItems, item => item.Uid == runeUid);
+            var persistedItems = new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(actor);
+            Assert.DoesNotContain(persistedItems.RuneItems, item => item.Uid == runeUid);
+            Assert.Equal(expected, PlayerItemSnapshotLoader.ToLegacyBytes(session.PlayerItems));
+            Assert.Equal(before.Character.Money, session.Character.Money);
+            Assert.Equal(before.Character.ConquerPoints, session.Character.ConquerPoints);
+            var output = f.Log.ToString();
+            Assert.Contains("committed MsgItemUsage drop rune", output);
+            Assert.Contains("position=211", output);
+            Assert.DoesNotContain("PARITY-GAP MsgItemUsage drop rune", output);
+        }, 1_293_600);
     }
 
     [Fact]

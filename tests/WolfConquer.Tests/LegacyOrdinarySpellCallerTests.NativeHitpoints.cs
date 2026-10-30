@@ -18,6 +18,7 @@ public sealed partial class LegacyOrdinarySpellCallerTests
         await WorldServerFrameHandlerTests.WithNativeItemSpellCallerAsync(true, async f =>
         {
             await f.Login();
+            await f.EstablishOwnedRuneOriginAsync();
             Assert.DoesNotContain("PARITY-BUG", f.Log.ToString(), StringComparison.Ordinal);
             Assert.DoesNotContain("runtime-exception", f.Log.ToString(), StringComparison.Ordinal);
             var binding = Assert.IsType<LegacyOrdinarySpellBinding>(f.Native.OrdinarySpellBinding);
@@ -75,11 +76,14 @@ public sealed partial class LegacyOrdinarySpellCallerTests
                 expectedItems, before.CombatGear ?? CombatGearSnapshot.Empty, f.Catalog, before.AlternateEquipmentActive);
             Assert.Equal(3000U, expectedHp);
             Assert.InRange(expectedHp, 1U, 99999U);
-            var expectedCharacter = LegacyBoundHitpointsScalarWrite.ProjectAfterImage(sparse,
-                before.Character with { MinHitPoints = expectedHp });
+            var expectedText = sparseText.Replace("MinHitPoints=100000", "MinHitPoints=" + expectedHp.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+            Assert.NotEqual(sparseText, expectedText);
+            Assert.Contains("ManagedRuneSpellOrigins=14160:16", expectedText);
+            expectedText = expectedText.Replace("ManagedRuneSpellOrigins=14160:16", "ManagedRuneSpellOrigins=", StringComparison.Ordinal);
+            var expectedCharacter = encoding.GetPreamble().Concat(encoding.GetBytes(expectedText)).ToArray();
             var expectedItemImage = PlayerItemSnapshotLoader.ToLegacyBytes(expectedItems);
             var oldSpells = File.ReadAllBytes(f.SpellsPath);
-            var expectedSpellImage = Convert.FromHexString("01000000").Concat(oldSpells.Skip(16)).ToArray();
+            var expectedSpellImage = Convert.FromHexString("01000000").Concat(oldSpells.Skip(4).Take(12)).ToArray();
             int first = f.Sent.Count; bool observed = false;
             f.OnSend = sentFrame =>
             {
@@ -101,9 +105,10 @@ public sealed partial class LegacyOrdinarySpellCallerTests
                 Assert.False(LegacyTradeJournal.HasPending(f.Users)); CheckItemNative(f);
                 var savedText = CharacterSnapshotFileEncoding.Decode(File.ReadAllBytes(f.CharacterPath), out _);
                 Assert.Contains(opaqueComment, savedText); Assert.Contains(opaqueAttribute, savedText);
-                Assert.Contains("ExpBallUsed=0", savedText);
+                Assert.DoesNotContain("ExpBallUsed=", savedText);
                 Assert.Equal((ushort)212, Assert.Single(committed.PlayerItems.RuneItems, row => row.Uid == ItemFixture.ItemUid).Position);
                 Assert.DoesNotContain(committed.PlayerSpells.Spells, row => row.Id == 14160);
+                Assert.Equal("", committed.Character.Attributes["ManagedRuneSpellOrigins"]);
             };
             await f.Send(RuneRequest()); f.OnSend = null;
             Assert.True(observed, f.Log.ToString());
@@ -130,6 +135,6 @@ public sealed partial class LegacyOrdinarySpellCallerTests
             Assert.Equal(before.Character.Money, f.Current.Character.Money);
             Assert.Equal(before.Character.ConquerPoints, f.Current.Character.ConquerPoints);
             Assert.Equal(0xA5, File.ReadAllBytes(f.SpellsPath)[15]);
-        }, transformInfo: [transform], characterLines: [opaqueComment, opaqueAttribute]);
+        }, transformInfo: [transform], characterLines: [opaqueComment, opaqueAttribute], ownedRuneOrigin: true);
     }
 }

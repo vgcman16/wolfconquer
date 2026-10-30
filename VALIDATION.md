@@ -1,6 +1,33 @@
 # Publication validation
 
-## Latest full Windows and local client checkpoint
+## Current source checkpoint - 2026-10-30
+
+The reviewed130-path Rune/item/spell batch is integrated as source. It adds
+bounded recorded item/spell recovery, actual Rune grant/provider ownership,
+native alternate mode publication, atomic storage/drop, raw-self passive identity
+and exact joint-writer Character publication. New specs and FSB243-250 document
+the real owners, historical-record semantics and remaining gaps.
+
+Release build09 passed with zero errors and existing warnings. The combined
+selection passed457 cases with zero failures/four preserved public-fixture skips.
+Source review then corrected an introduced unsupported Drop HP clamp;67/67
+post-correction controls passed with zero failures/skips, including both exposed
+Drop failures. Drop preserves HP with no invented HP frames; Rune unequip and
+storage keep their established query behavior. Sets overlap and are not added.
+The existing sparseHP/opaque/UID/full-image/rank/wire checks remain meaningful.
+
+The preceding exact public6cb2babc passed all eight stages of
+[Windows41106500544](https://github.com/vgcman16/wolfconquer/actions/runs/41106500544):
+Core31,832 Passed/152 existing NotExecuted, Updates446 and Launcher57 Passed.
+This successor still requires its own exact-public full Windows gate.
+
+These are owned managed-fixture/source results, not current-client gameplay,
+7937 activation, full Rune/English completion, SQL, power-loss or host cleanliness.
+Compose ownership, remaining passive effects/resources and broader recovery stay
+active. The legacy client/updater execution hold remains in force.
+
+
+## Earlier full Windows and local client checkpoint
 
 Exact public source `be2740aea8f3295b57901fcd64d58a5e9cfc11c8` passed
 [Windows run 40742984664](https://github.com/vgcman16/wolfconquer/actions/runs/40742984664):

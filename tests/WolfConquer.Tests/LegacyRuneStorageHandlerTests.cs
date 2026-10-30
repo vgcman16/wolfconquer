@@ -10,7 +10,8 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-public sealed class LegacyRuneStorageHandlerTests : IDisposable
+[Collection("NativeItemCounterSourcePrerequisite")]
+public sealed partial class LegacyRuneStorageHandlerTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "wolf-rune-storage-handler-" + Guid.NewGuid());
     private readonly string _usersRoot;
@@ -25,64 +26,10 @@ public sealed class LegacyRuneStorageHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerMovesRuneBagItemToStorageSlotAndPersists()
-    {
-        const uint runeUid = 5_450_001;
-        WriteSnapshot(reborn: 2);
-        WriteItems(PlayerItemSnapshotLoaderTests.DbItem(runeUid, 4_010_501, position: 211));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new LegacyRuneStoragePacket(0, runeUid, 0).ToFrameBytes()));
-
-        Assert.Equal(countBeforeRequest + 11, sent.Count);
-        AssertRuneStorage(sent[countBeforeRequest], type: 0, itemUid: runeUid, hpAdd: 0);
-        LegacySelectedEquipmentQueryAssertions.NeutralQuery(sent, countBeforeRequest + 1, 1_293_600U);
-
-        var session = GetSession(handler, connection);
-        Assert.Contains(session.PlayerItems.RuneItems, item => item.Uid == runeUid && item.Position == 212);
-        var persisted = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.Contains(persisted.RuneItems, item => item.Uid == runeUid && item.Position == 212);
-
-        var output = log.ToString();
-        Assert.Contains("handled LegacyRuneStorage", output);
-        Assert.Contains("type=0", output);
-        Assert.Contains("changed=True", output);
-        Assert.Contains("persisted MsgItemUsage rune storage items", output);
-    }
+    public Task HandlerMovesRuneBagItemToStorageSlotAndPersists() => AssertOwnedStorageMoveAsync(0, 5_450_001, 4_010_501, 211, 212, 7000, 1425000);
 
     [Fact]
-    public async Task HandlerMovesStorageRuneBackToBagAndPersists()
-    {
-        const uint runeUid = 5_450_010;
-        WriteSnapshot(reborn: 2);
-        WriteItems(PlayerItemSnapshotLoaderTests.DbItem(runeUid, 4_020_501, position: 212));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new LegacyRuneStoragePacket(1, runeUid, 0).ToFrameBytes()));
-
-        Assert.Equal(countBeforeRequest + 11, sent.Count);
-        AssertRuneStorage(sent[countBeforeRequest], type: 1, itemUid: runeUid, hpAdd: 0);
-        LegacySelectedEquipmentQueryAssertions.NeutralQuery(sent, countBeforeRequest + 1, 1_293_600U);
-
-        var session = GetSession(handler, connection);
-        Assert.Contains(session.PlayerItems.RuneItems, item => item.Uid == runeUid && item.Position == 211);
-        var persisted = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.Contains(persisted.RuneItems, item => item.Uid == runeUid && item.Position == 211);
-
-        var output = log.ToString();
-        Assert.Contains("handled LegacyRuneStorage", output);
-        Assert.Contains("type=1", output);
-        Assert.Contains("changed=True", output);
-        Assert.Contains("persisted MsgItemUsage rune storage items", output);
-    }
+    public Task HandlerMovesStorageRuneBackToBagAndPersists() => AssertOwnedStorageMoveAsync(1, 5_450_010, 4_020_501, 212, 211, 6000, 1416000);
 
     [Fact]
     public async Task HandlerMovesInventoryRuneIntoStorageAndPersists()

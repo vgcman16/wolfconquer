@@ -29,6 +29,8 @@ internal static partial class LegacyTradeJournal
         if (!TryCapturePendingImage(usersRoot, out var pending, out reason)) return false;
         if (pending is null) return true;
         var record = ParseRecord(pending.Bytes);
+        if (record.Version is 12 or 14) ValidateRecordedRuneImages(record, uint.MaxValue);
+        if (record.Version is 13 or 15) ValidateRecordedRuneContainerImages(record, uint.MaxValue);
         if (!TryResolveRecoveryRoots(usersRoot, itemsRoot, questsRoot, mailboxRoot, combatGearRoot,
             admissionRoots, record, out var roots, out reason)) return false;
         capture = new(roots, record, GetTargets(roots, record), pending);

@@ -58,6 +58,9 @@ public sealed partial record WorldPacketHandlerContext(
     internal LegacyJournalInterruption? VendorJournalInterruption { get; init; }
 
     [System.Text.Json.Serialization.JsonIgnore]
+    internal LegacyJournalInterruption? ItemSpellJournalInterruption { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
     internal LegacyMailboxPackageProducer? MailboxPackages { get; init; }
 
     [System.Text.Json.Serialization.JsonIgnore]

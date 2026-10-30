@@ -97,27 +97,9 @@ public static partial class WorldPacketHandlers
         var requestEcho = CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame));
         if (!TryCommitLegacyItemSpell(context, session, (stable, identity) =>
             {
-                if (stable.Character.Reborn < 2 || stable.Character.Level < 15 || packet.DwParam > ushort.MaxValue ||
-                    !TryGetRuneItem(stable.PlayerItems, packet.Id, out var owned) || owned.ItemId != selectedRune.ItemId ||
-                    owned.Locked != 0 || owned.StackSize > 1 || owned.DepositedItems.Count != 0 ||
-                    !IsLegacyRuneEquipSlot(owned.ItemId, requestedPosition) ||
-                    !TryReadItemType(context.WorldData, owned.ItemId, out var metadata) ||
-                    !PassesLegacyItemClassRequirement(stable.Character, metadata) || !PassesLegacyItemLevelRequirement(stable.Character, metadata))
+                if (!TryGetRuneItem(stable.PlayerItems, packet.Id, out var owned) || owned.ItemId != selectedRune.ItemId)
                     throw InvalidSpellMutation();
-                if (stable.PlayerItems.RuneItems.Any(row => row.Locked != 0 && row.Position != LegacyRuneBagPosition &&
-                    (row.ItemId == owned.ItemId || row.Position == requestedPosition))) throw InvalidSpellMutation();
-                var items = stable.PlayerItems; var output = new List<byte[]>();
-                if (TryUnequipFirstMatchingRune(items, row => row.ItemId == owned.ItemId && row.Position != LegacyRuneBagPosition,
-                    out items, out var same)) output.Add(same);
-                if (TryUnequipFirstMatchingRune(items, row => row.Position == requestedPosition && row.Position != LegacyRuneBagPosition,
-                    out items, out var slot)) output.Add(slot);
-                var chosen = items.RuneItems.Single(row => row.Uid == owned.Uid);
-                items = ReplaceRuneItem(items, chosen, chosen.WithPosition(requestedPosition));
-                var changed = ClampLegacyEquipmentRuntimeHitpoints(stable with { PlayerItems = items }, context.WorldData);
-                changed = NormalizeItemSpellHitpoints(stable, changed);
-                var refresh = BuildItemSpellRefresh(context, changed, identity);
-                output.Add(requestEcho); output.AddRange(refresh);
-                return new ItemSpellProjection(changed, output.ToArray(), refresh);
+                return PrepareOwnedRuneProjection(context, stable, identity, true, packet.Id, requestedPosition, requestEcho);
             }, cancellationToken, out var updatedSession, out var preparedFrames, out var publicationIdentity, out var reason))
         {
             await context.Log.WriteLineAsync($"WorldServer held MsgItemUsage equip rune reason={reason}; no success was published.").ConfigureAwait(false);
@@ -193,27 +175,9 @@ public static partial class WorldPacketHandlers
         var requestEcho = CreateLegacyItemUsageFrameWithArgs(packet, ReadLegacyItemUsageArgs(frame));
         if (!TryCommitLegacyItemSpell(context, session, (stable, identity) =>
             {
-                if (stable.Character.Reborn < 2 || stable.Character.Level < 15 || !HasLegacyInventorySpace(stable.PlayerItems, 1) ||
-                    TryReadLegacyVendorState(stable.Character, out _) || !TryGetRuneItem(stable.PlayerItems, packet.Id, out var owned) ||
-                    owned.ItemId != rune.ItemId || owned.Locked != 0 || owned.StackSize > 1 || owned.DepositedItems.Count != 0 ||
-                    !TryReadItemType(context.WorldData, owned.ItemId, out _))
+                if (!TryGetRuneItem(stable.PlayerItems, packet.Id, out var owned) || owned.ItemId != rune.ItemId)
                     throw InvalidSpellMutation();
-                var currentRank = stable;
-                var updateRank = context.RuneRankings is not null &&
-                    TryRefreshLegacyPlayerMagicResourceSession(context, stable.Character.Uid, ref currentRank) &&
-                    currentRank.Character.Reborn >= 2 && currentRank.Character.Level >= 15 &&
-                    HasLegacyInventorySpace(currentRank.PlayerItems, 1) && !TryReadLegacyVendorState(currentRank.Character, out _) &&
-                    TryGetRuneItem(currentRank.PlayerItems, packet.Id, out _);
-                var items = ReplaceRuneItem(stable.PlayerItems, owned, owned.WithPosition(LegacyRuneStoragePosition));
-                var spells = RemoveLegacyUnequippedRuneSpell(context, stable.PlayerSpells, owned, out var removed);
-                var changed = ClampLegacyEquipmentRuntimeHitpoints(stable with { PlayerItems = items, PlayerSpells = spells }, context.WorldData);
-                var output = new List<byte[]>();
-                if (removed is { } id) output.Add(new MsgActionPacket { ObjId = CheckedUInt32(changed.Character.Uid, nameof(changed.Character.Uid)),
-                    DwParam = id, Type = (MsgActionType)109 }.ToFrameBytes());
-                changed = NormalizeItemSpellHitpoints(stable, changed);
-                var refresh = BuildItemSpellRefresh(context, changed, identity);
-                output.Add(requestEcho); output.AddRange(refresh);
-                return new ItemSpellProjection(changed, output.ToArray(), refresh, updateRank);
+                return PrepareOwnedRuneProjection(context, stable, identity, false, packet.Id, LegacyRuneStoragePosition, requestEcho);
             }, cancellationToken, out var updatedSession, out var preparedFrames, out var publicationIdentity, out var reason))
         {
             await context.Log.WriteLineAsync($"WorldServer held MsgItemUsage unequip rune reason={reason}; no success was published.").ConfigureAwait(false);
@@ -249,13 +213,5 @@ public static partial class WorldPacketHandlers
     }
 
     private static bool IsLegacyRuneEquipSlot(uint itemId, ushort position)
-    {
-        return (itemId / 10_000) switch
-        {
-            401 => position is 101 or 121,
-            402 => position is 102 or 122,
-            403 => position is (>= 103 and <= 111) or (>= 123 and <= 131),
-            _ => false,
-        };
-    }
+        => LegacyNativeItemTypeRuneMetadata.isRuneCheck(itemId, position);
 }

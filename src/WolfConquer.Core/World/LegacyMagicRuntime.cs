@@ -98,7 +98,8 @@ public sealed record LegacyMagicRuntimeSpell(
     uint DamageOnMonster = 0,
     bool AttackInFly = false,
     uint GDamage = 0,
-    uint RawDamage = 0);
+    uint RawDamage = 0,
+    bool? IsRuneSkill = null);
 
 public readonly record struct LegacyMagicCooldownResult(
     bool Ready,
@@ -190,7 +191,8 @@ public static partial class LegacyMagicRuntime
         {
             if (TryReadByte(row.Fields, LevelField, out var rowLevel) && rowLevel == spellLevel)
             {
-                return TryCreate(row, out runtimeSpell);
+                if (!TryCreate(row, out runtimeSpell)) return false;
+                runtimeSpell = WithRuneClassification(worldData, runtimeSpell); return true;
             }
         }
 
@@ -205,9 +207,12 @@ public static partial class LegacyMagicRuntime
         ArgumentNullException.ThrowIfNull(worldData);
 
         runtimeSpell = default!;
-        return worldData.MagicById.TryGetValue(rowId, out var row) &&
-            TryCreate(row, out runtimeSpell);
+        if (!worldData.MagicById.TryGetValue(rowId, out var row) || !TryCreate(row, out runtimeSpell)) return false;
+        runtimeSpell = WithRuneClassification(worldData, runtimeSpell); return true;
     }
+
+    private static LegacyMagicRuntimeSpell WithRuneClassification(WorldDataCatalog data, LegacyMagicRuntimeSpell spell) =>
+        spell with { IsRuneSkill = LegacyRuneSpellClassification.TryCapture(data, spell.Id, out var proof) ? proof!.IsRuneSkill : null };
 
     public static bool IsSupportedVisibleMonsterAttack(LegacyMagicRuntimeSpell spell)
     {

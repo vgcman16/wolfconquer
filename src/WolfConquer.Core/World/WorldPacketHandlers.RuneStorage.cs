@@ -60,6 +60,12 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (packet.Type is 0 or 1 && TryGetRuneItem(session.PlayerItems, packet.ItemUID, out _))
+        {
+            await HandleOwnedRuneContainerStorageAsync(context, session, packet, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         var beforeItems = session.PlayerItems;
         var updatedSession = session;
         var changed = false;
@@ -67,32 +73,9 @@ public static partial class WorldPacketHandlers
         switch (packet.Type)
         {
             case 0:
-                if (TryGetRuneItem(session.PlayerItems, packet.ItemUID, out var runeToStore) &&
-                    !HasRuneStorageSameBase(session.PlayerItems, runeToStore))
-                {
-                    updatedSession = session with
-                    {
-                        PlayerItems = ReplaceRuneItem(
-                            session.PlayerItems,
-                            runeToStore,
-                            runeToStore.WithPosition(LegacyRuneStoragePosition)),
-                    };
-                    changed = true;
-                }
-                break;
-
             case 1:
-                if (TryGetRuneItem(session.PlayerItems, packet.ItemUID, out var runeToBag))
-                {
-                    updatedSession = session with
-                    {
-                        PlayerItems = ReplaceRuneItem(
-                            session.PlayerItems,
-                            runeToBag,
-                            runeToBag.WithPosition(LegacyRuneBagPosition)),
-                    };
-                    changed = true;
-                }
+                // Known absence remains the original read-only response/query.
+                // Every existing-row mutation above requires the real v13 owner.
                 break;
 
             case LegacyRuneStoragePacket.StartupType:

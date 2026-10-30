@@ -42,6 +42,7 @@ public static partial class LegacyMagicRuntime
             unchecked((uint)human), unchecked((uint)damage2), unchecked((uint)damage3),
             unchecked((uint)monster), IsLegacyAttackInFly(native.Id, attackInFly),
             unchecked((uint)native.GDamage), unchecked((uint)native.GDamage));
+        spell = WithRuneClassification(data, spell);
         return true;
     }
 

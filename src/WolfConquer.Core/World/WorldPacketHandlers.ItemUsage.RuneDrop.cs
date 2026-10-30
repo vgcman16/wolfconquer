@@ -13,6 +13,8 @@ public static partial class WorldPacketHandlers
     {
         if (!TryGetRuneItem(session.PlayerItems, packet.Id, out var rune))
         {
+            // The original missing-UID request still refreshes the actual
+            // ranking cache; it changes no files, resources or outgoing frames.
             UpdateLegacyRuneRanking(context, session);
             await context.Log.WriteLineAsync(
                     "WorldServer skipped MsgItemUsage drop rune " +
@@ -22,38 +24,19 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        var updatedSession = session with
+        if (!TryCommitLegacyItemSpell(context, session,
+                (stable, identity) => PrepareOwnedRuneContainerProjection(context, stable, identity,
+                    LegacyRuneContainerKind.Drop, packet.Id, storageType: null),
+                cancellationToken, out var updatedSession, out var frames, out var publicationIdentity, out var reason))
         {
-            PlayerItems = RemoveLegacyRuneItem(session.PlayerItems, rune),
-        };
-        updatedSession = PublishLegacyItemUsageSession(context, updatedSession);
-        var updatedContext = context with { Session = updatedSession };
-
-        await TryPersistLegacyItemUsageMutationAsync(
-                updatedContext,
-                updatedSession,
-                "drop rune",
-                characterValues: null,
-                persistItems: true)
-            .ConfigureAwait(false);
-
-        await context.Connection.SendAsync(
-                new MsgItemUsagePacket(
-                    rune.Uid,
-                    DwParam: 0,
-                    MsgItemUsageAction.RemoveInventory,
-                    Timestamp: 0,
-                    DwParam2: 0,
-                    DwParam3: 0,
-                    DwParam4: 0).ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        UpdateLegacyRuneRanking(updatedContext, updatedSession);
+            await context.Log.WriteLineAsync($"WorldServer held MsgItemUsage drop rune reason={reason}; no success was published.").ConfigureAwait(false);
+            return;
+        }
+        await PublishItemSpellFramesAsync(context, updatedSession, frames, publicationIdentity, cancellationToken).ConfigureAwait(false);
 
         await context.Log.WriteLineAsync(
-                "WorldServer handled MsgItemUsage drop rune " +
-                $"{FormatSession(updatedContext)} source={LegacyRuneDropSource} " +
+                "WorldServer committed MsgItemUsage drop rune " +
+                $"{FormatSession(context with { Session = updatedSession })} source={LegacyRuneDropSource} " +
                 $"sourceLines={LegacyRuneDropLines} itemUid={rune.Uid} itemId={rune.ItemId} " +
                 $"position={rune.Position}.")
             .ConfigureAwait(false);

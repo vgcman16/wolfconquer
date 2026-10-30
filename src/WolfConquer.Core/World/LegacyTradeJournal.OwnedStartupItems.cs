@@ -28,12 +28,14 @@ internal static partial class LegacyTradeJournal
 
     // Only an actual captured record and the existing exclusive namespace lease
     // can issue this context. No caller can supply target paths or ignored files.
-    internal sealed class OwnedStartupItemRecovery
+    internal sealed partial class OwnedStartupItemRecovery
     {
         private readonly LegacyItemUidRegistry.OwnedStartupCustody custody;
         private readonly RecoveryCapture capture;
         private readonly JournalTarget[] characters;
         private readonly JournalTarget[] items;
+        private readonly HashSet<uint>? protectedPhysicalBefore;
+        private readonly string? protectedItemPath;
 
         private OwnedStartupItemRecovery(LegacyItemUidRegistry.OwnedStartupCustody custody, RecoveryCapture capture)
         {
@@ -41,6 +43,12 @@ internal static partial class LegacyTradeJournal
             this.capture = capture;
             characters = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Character).ToArray();
             items = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Items).ToArray();
+            if (capture.Record.Version is 2 or 9 or 12 or 13 or 14 or 15)
+            {
+                var target = items.Single();
+                protectedPhysicalBefore = LegacyItemUidRawCatalog.ReadAdmissionPlayerItemUids(target.Change.Before!).ToHashSet();
+                protectedItemPath = target.Path;
+            }
         }
 
         internal static bool TryCapture(LegacyItemUidRegistry.OwnedStartupCustody custody,
@@ -65,6 +73,21 @@ internal static partial class LegacyTradeJournal
 
         private static void ValidateImages(RecoveryCapture captured, uint highWater)
         {
+            if (captured.Record.Version is 13 or 15)
+            {
+                ValidateRecordedRuneContainerImages(captured.Record, highWater);
+                return;
+            }
+            if (captured.Record.Version is 12 or 14)
+            {
+                ValidateRecordedRuneImages(captured.Record, highWater);
+                return;
+            }
+            if (captured.Record.Version == 9)
+            {
+                ValidateOwnedStartupItemSpellImages(captured, highWater);
+                return;
+            }
             if (captured.Record.Version == 1)
             {
                 ValidateOwnedStartupPairImages(captured, highWater);
@@ -108,6 +131,7 @@ internal static partial class LegacyTradeJournal
         {
             custody.RequireCurrent();
             custody.RequireRoots(capture.Roots.Users, capture.Roots.Items);
+            RequireConfiguredSpellsRoot();
             RequirePendingIdentity();
             EnsureTargetsMatch(capture.Targets, allowAfter: true);
             foreach (var target in capture.Targets) ValidateStage(target);
@@ -154,8 +178,8 @@ internal static partial class LegacyTradeJournal
         }
 
         // Only the conserved v1 pair needs a logical view: its mixed physical
-        // prefix can contain the same transferred UID at both owners. V2 keeps
-        // its physical scan so a retiring before-UID cannot hide a collision.
+        // prefix can contain the same transferred UID at both owners. Single-
+        // owner v2/v9/v12 keep their physical scan and captured BEFORE custody.
         internal byte[] ReadOwnedStartupScanImage(string path, byte[] physical)
         {
             if (capture.Record.Version != 1) return physical;
@@ -165,6 +189,16 @@ internal static partial class LegacyTradeJournal
             if (!Matches(physical, target.Change.Before) && !Matches(physical, target.Change.After))
                 throw new InvalidDataException("Owned startup scan target differs from its captured images.");
             return target.Change.After.ToArray();
+        }
+
+        // Pure closed BCL proof in the physical-row loop. Capture and scan
+        // boundaries still validate custody/current targets/pending/stages.
+        // A retired BEFORE UID cannot borrow a new physical owner elsewhere.
+        internal void RequirePhysicalUidInput(string path, LegacyItemUidRawCatalog.Kind kind, uint uid)
+        {
+            if (protectedPhysicalBefore?.Contains(uid) == true &&
+                (kind != LegacyItemUidRawCatalog.Kind.PlayerItems || !JournalDomainComparer.Equals(path, protectedItemPath)))
+                throw new InvalidDataException("Captured BEFORE physical UID is owned by an unrelated physical input.");
         }
 
         internal void RequireExactJournal(IReadOnlyList<string> paths, IReadOnlyList<LegacyTradeJournalChange> changes)

@@ -13,6 +13,8 @@ public static partial class WorldPacketHandlers
               IsLegacyNativeRiseOfTaoismRootSpell(selected)) && context.Sessions is null) ||
             !TryCaptureLegacyRootAdmissionOwner(context, session, null, out var owner)) return null;
         session = owner.Expected;
+        if (!LegacyRuneCastEligibility.TryCapture(context, session, selected, out var runeEligibility)) return null;
+        owner.RuneEligibility = runeEligibility;
         LegacyRootEntryPreparation plan = null!;
         string reason;
         bool prepared;

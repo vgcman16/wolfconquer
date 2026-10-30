@@ -5,11 +5,11 @@ namespace WolfConquer.Core.World;
 public sealed partial class WorldSessionStore
 {
     internal bool TryCommitMagicCosts(ConquerTcpConnection connection, WorldSession expected,
-        object identity, WorldSession candidate, out MagicCostOutputReceipt? receipt)
+        object identity, WorldSession candidate, out MagicCostOutputReceipt? receipt, LegacyRuneCastEligibility? runeEligibility = null)
     {
         if (!ReferenceEquals(expected, candidate))
             return TryCompareAndSetCore(connection, expected, candidate, identity,
-                out _, captureMagicCosts: true, out receipt);
+                out _, captureMagicCosts: true, out receipt, runeEligibility);
 
         // A genuinely unchanged admission needs a current holder proof, not a
         // redundant writer/observer merely to manufacture publication history.
@@ -27,6 +27,7 @@ public sealed partial class WorldSessionStore
                 ? !BindingIsCurrentPlain(binding, holder, expected)
                 : connection.NativeGameClient?.OrdinarySpellBinding is not null ||
                   connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true) return false;
+            if (runeEligibility is not null && !runeEligibility.IsCurrentPlain()) return false;
             receipt = new(this, connection, identity, holder.SpellBinding, expected, expected);
             return true;
         }

@@ -17,8 +17,10 @@ public static partial class WorldPacketHandlers
     }
 
     private static bool PassesLegacyItemClassRequirement(CharacterSnapshot character, ItemType itemType)
+        => PassesLegacyItemClassRequirement(character, itemType.RequiredClass);
+
+    private static bool PassesLegacyItemClassRequirement(CharacterSnapshot character, uint requiredClass)
     {
-        var requiredClass = itemType.RequiredClass;
         if (requiredClass == 0)
         {
             return true;
@@ -44,9 +46,10 @@ public static partial class WorldPacketHandlers
     }
 
     private static bool PassesLegacyItemLevelRequirement(CharacterSnapshot character, ItemType itemType)
-    {
-        return itemType.RequiredLevel == 0 || character.Level >= itemType.RequiredLevel;
-    }
+        => PassesLegacyItemLevelRequirement(character, itemType.RequiredLevel);
+
+    private static bool PassesLegacyItemLevelRequirement(CharacterSnapshot character, uint requiredLevel)
+        => requiredLevel == 0 || character.Level >= requiredLevel;
 
     private static bool PassesLegacyItemStatRequirement(CharacterSnapshot character, ItemType itemType)
     {

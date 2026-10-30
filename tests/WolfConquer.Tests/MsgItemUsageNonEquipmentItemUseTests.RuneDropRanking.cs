@@ -13,12 +13,12 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         WriteRuneRankingPlayer(RuneRankPlayerB, targetLevel: 15, material: false);
         var catalog = CreateRuneRankingCatalog(
             [RuneRankSeed(RuneRankPlayerA, 10_300), RuneRankSeed(RuneRankPlayerB, 10_000)]);
-        using var log = new StringWriter();
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(_usersRoot, _itemsRoot), handoff, catalog, log);
-        var (connectionA, sentA) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerA);
-        var (connectionB, sentB) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerB);
+        await WithOwnedRuneDropAsync(catalog, async f =>
+        {
+        var log = f.Log; var handler = f.Handler;
+        var connectionA = f.Connection((uint)RuneRankPlayerA); var sentA = f.Frames((uint)RuneRankPlayerA);
+        var connectionB = f.Connection((uint)RuneRankPlayerB); var sentB = f.Frames((uint)RuneRankPlayerB);
+        string RuneRankingItemsPath(long uid) => f.ItemPath(checked((uint)uid));
         AssertRuneRankingStartup(sentA, rank: 1, score: 10_300);
         AssertRuneRankingStartup(sentB, rank: 2, score: 10_000);
 
@@ -55,12 +55,13 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
             RuneRankTargetUid, 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
         var changedA = GetSession(handler, connectionA).PlayerItems;
         Assert.DoesNotContain(changedA.RuneItems, item => item.Uid == RuneRankTargetUid);
-        Assert.Equal(storedRune, Assert.Single(changedA.RuneItems));
+        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(new([], [], [], [], [storedRune])),
+            PlayerItemSnapshotLoader.ToLegacyBytes(new([], [], [], [], [Assert.Single(changedA.RuneItems)])));
         Assert.Equal(5_000U, LegacyRuneStoragePacket.ComputeStorageScore(changedA));
         Assert.Equal(expectedABytes, PlayerItemSnapshotLoader.ToLegacyBytes(changedA));
         Assert.Equal(expectedABytes, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerA)));
         Assert.Equal(originalABytes, PlayerItemSnapshotLoader.ToLegacyBytes(originalA));
-        var reloadedA = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerA);
+        var reloadedA = new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(RuneRankPlayerA);
         Assert.Equal(expectedABytes, PlayerItemSnapshotLoader.ToLegacyBytes(reloadedA));
         Assert.Equal(5_000U, LegacyRuneStoragePacket.ComputeStorageScore(reloadedA));
         Assert.DoesNotContain(reloadedA.RuneItems, item => item.Uid == RuneRankTargetUid);
@@ -76,8 +77,10 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(originalABytes, PlayerItemSnapshotLoader.ToLegacyBytes(originalA));
         Assert.Same(originalB, GetSession(handler, connectionB).PlayerItems);
         Assert.Equal(originalBBytes, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerB)));
-        Assert.Contains("handled MsgItemUsage drop rune", log.ToString());
+        Assert.Contains("committed MsgItemUsage drop rune", log.ToString());
         Assert.DoesNotContain("PARITY-GAP MsgItemUsage drop rune", log.ToString());
+        Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
+        }, (uint)RuneRankPlayerA, (uint)RuneRankPlayerB);
     }
 
     [Fact]
@@ -89,12 +92,12 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         // The persisted rank score is older than A's live rune state, a valid loaded-history case.
         var catalog = CreateRuneRankingCatalog(
             [RuneRankSeed(RuneRankPlayerA, 10_300), RuneRankSeed(RuneRankPlayerB, 10_000)]);
-        using var log = new StringWriter();
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(_usersRoot, _itemsRoot), handoff, catalog, log);
-        var (connectionA, sentA) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerA);
-        var (connectionB, sentB) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerB);
+        await WithOwnedRuneDropAsync(catalog, async f =>
+        {
+        var log = f.Log; var handler = f.Handler;
+        var connectionA = f.Connection((uint)RuneRankPlayerA); var sentA = f.Frames((uint)RuneRankPlayerA);
+        var connectionB = f.Connection((uint)RuneRankPlayerB); var sentB = f.Frames((uint)RuneRankPlayerB);
+        string RuneRankingItemsPath(long uid) => f.ItemPath(checked((uint)uid));
         AssertRuneRankingStartup(sentA, rank: 1, score: 9_700);
         AssertRuneRankingStartup(sentB, rank: 2, score: 10_000);
 
@@ -127,7 +130,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(originalBBytes, PlayerItemSnapshotLoader.ToLegacyBytes(originalB));
         Assert.Equal(originalABytes, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerA)));
         Assert.Equal(originalBBytes, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerB)));
-        var reloadedA = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerA);
+        var reloadedA = new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(RuneRankPlayerA);
         Assert.Equal(originalABytes, PlayerItemSnapshotLoader.ToLegacyBytes(reloadedA));
         Assert.Equal(9_700U, LegacyRuneStoragePacket.ComputeStorageScore(reloadedA));
 
@@ -141,7 +144,9 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(originalABytes, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerA)));
         Assert.Equal(originalBBytes, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerB)));
         Assert.Contains("skipped MsgItemUsage drop rune", log.ToString());
-        Assert.DoesNotContain("handled MsgItemUsage drop rune", log.ToString());
+        Assert.DoesNotContain("committed MsgItemUsage drop rune", log.ToString());
         Assert.DoesNotContain("PARITY-GAP MsgItemUsage drop rune", log.ToString());
+        Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
+        }, (uint)RuneRankPlayerA, (uint)RuneRankPlayerB);
     }
 }

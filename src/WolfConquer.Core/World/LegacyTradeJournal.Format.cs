@@ -43,10 +43,14 @@ internal static partial class LegacyTradeJournal
             8 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterSpellsDomain"),
             9 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain"),
             11 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterResourcesDomain"),
+            12 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "RuneOperation"),
+            13 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "RuneContainer"),
+            14 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "RuneOperation"),
+            15 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "RuneContainer"),
             _ => GetProperties(rootElement, "Version", "TransactionId", "Changes"),
         };
         if (root["Version"].ValueKind != JsonValueKind.Number ||
-            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 11) ||
+            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 11 or 12 or 13 or 14 or 15) ||
             root["TransactionId"].ValueKind != JsonValueKind.String)
             throw new JsonException("Unsupported journal version or identity.");
         var transactionId = root["TransactionId"].GetString();
@@ -70,7 +74,7 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(result, version);
         if (version == 5) RequireMailboxGearOrder(result);
         if (version == 8) RequireCharacterSpellsOrder(result);
-        if (version == 9) RequireCharacterItemsSpellsOrder(result);
+        if (version is 9 or 12 or 13 or 14 or 15) RequireCharacterItemsSpellsOrder(result);
         return new(version, transactionId!, result)
         {
             Domain = version == 3 ? ReadQuestDomain(root["Domain"]) : null,
@@ -80,8 +84,10 @@ internal static partial class LegacyTradeJournal
             AdmissionInputs = IsOrdinaryAdmissionVersion(version) ? ReadAdmissionInputs(root["AdmissionInputs"]) : null,
             AdmissionPreparedAt = version == 7 ? ReadAdmissionTime(root["AdmissionPreparedAt"]) : null,
             CharacterSpellsDomain = version == 8 ? ReadCharacterSpellsDomain(root["CharacterSpellsDomain"]) : null,
-            CharacterItemsSpellsDomain = version == 9 ? ReadCharacterItemsSpellsDomain(root["CharacterItemsSpellsDomain"]) : null,
+            CharacterItemsSpellsDomain = version is 9 or 12 or 13 or 14 or 15 ? ReadCharacterItemsSpellsDomain(root["CharacterItemsSpellsDomain"]) : null,
             CharacterResourcesDomain = version == 11 ? ReadCharacterResourcesDomain(root["CharacterResourcesDomain"]) : null,
+            RuneOperation = version is 12 or 14 ? ReadRuneOperation(root["RuneOperation"], version == 14) : null,
+            RuneContainer = version is 13 or 15 ? ReadRuneContainer(root["RuneContainer"], version == 15) : null,
         };
     }
 

@@ -6,12 +6,14 @@ public sealed partial class WorldSessionStore
     // observation adds no saver or external validator to this boundary.
     private bool TryPublishFrameOwnedHitpoints(PreparedSessionSpellPublication publication,
         SessionHolder holder, out string reason, PreparedSessionSpellPublication? observedPeer = null,
-        SessionHolder? peerHolder = null, MonsterRuntimeStateStore.ClassicBuffTarget? monster = null)
+        SessionHolder? peerHolder = null, MonsterRuntimeStateStore.ClassicBuffTarget? monster = null,
+        LegacyRuneCastEligibility? runeEligibility = null)
     {
         reason = string.Empty;
         publication.ArmFinalProof(); observedPeer?.ArmFinalProof();
         if (!publication.ConsumeBeforeWriterPlain() || observedPeer is not null && !observedPeer.ConsumeBeforeWriterPlain())
             throw InvalidSpellPublication();
+        if (runeEligibility is not null && !runeEligibility.IsCurrentPlain()) return false;
         MonsterRuntimeStateStore.ClassicBuffLease? lease = null;
         try
         {
@@ -33,7 +35,7 @@ public sealed partial class WorldSessionStore
             }
             else if (monster is not null && !monster.TryEnter(out lease, out reason)) return false;
             if (!publication.IsCurrentPlain() || observedPeer is not null && !observedPeer.IsCurrentPlain() ||
-                lease is not null && !lease.IsCurrentPlain())
+                lease is not null && !lease.IsCurrentPlain() || runeEligibility is not null && !runeEligibility.IsCurrentPlain())
             {
                 lease?.Dispose(); lease = null;
                 if (publication.HasCommittedHitpoints && observedPeer is not null)

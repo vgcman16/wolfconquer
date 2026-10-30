@@ -6,36 +6,29 @@ Observed live target: Chinese client7899 / VisibleDx8D13. The separate official
 
 ## Current source qualification
 
-The reviewed42-path transaction-recovery/currency correction batch compiled
-with zero errors. Its wider focused run retained737 passes/two authored test-
-golden failures; correcting only the helper's old1009 expectation to the existing
-D13 opcode2137 produced13/13 passing controls, including both failures and all
-three names that failed the preceding public full gate. Production wire IDs,
-complete packet metadata/tails and successful frame counts were preserved.
+The reviewed130-path Rune/item/spell batch is integrated as source. It adds
+bounded recorded item/spell recovery, actual Rune grant/provider ownership,
+native alternate mode publication, atomic storage/drop, raw-self passive identity
+and exact joint-writer Character publication. New specs and FSB243-250 document
+the real owners, historical-record semantics and remaining gaps.
 
-- 97 genuine trade recovery cases passed: exchange/refund, item-only/one-sided
-  offers, recorded locked intent and unrelated namespace refusal.
-- 90 booth-purchase recovery cases passed: exact conserved settlement and complete
-  deposited/perfection closures, stage/replacement boundaries and no replay.
-- Four new managed Program-host raw/encrypted restart cases passed. Recovery uses
-  the existing exclusive UID lease and exact configured recorded intent.
-- Six new scoped warehouse/bank controls passed. Warehouse projection preserves
-  unrelated fields; both bank writers reject ambiguous complete save maps before
-  WAL/debit/success or pending-confirmation consumption.
-- The two original warehouse positives now use genuine owned Runtime/Frame/Store
-  and real WAL, retaining balances, complete byte goldens and first-reply checks.
+Release build09 passed with zero errors and existing warnings. The combined
+selection passed457 cases with zero failures/four preserved public-fixture skips.
+Source review then corrected an introduced unsupported Drop HP clamp;67/67
+post-correction controls passed with zero failures/skips, including both exposed
+Drop failures. Drop preserves HP with no invented HP frames; Rune unequip and
+storage keep their established query behavior. Sets overlap and are not added.
+The existing sparseHP/opaque/UID/full-image/rank/wire checks remain meaningful.
 
-Actual preceding full Windows41095165573 on e0f22c8b failed: Core31,632 passed,
-3 failed,152 existing NotExecuted; Updates446 passed. Later launcher/parser stages
-did not run. Its logs/TRXs and all six matching managed outputs are preserved.
-This successor's exact public-commit full Windows gate is still required.
-See [source-bug records240-242](../FIXED-SOURCE-BUGS.md).
+The preceding exact public6cb2babc passed all eight stages of
+[Windows41106500544](https://github.com/vgcman16/wolfconquer/actions/runs/41106500544):
+Core31,832 Passed/152 existing NotExecuted, Updates446 and Launcher57 Passed.
+This successor still requires its own exact-public full Windows gate.
 
-These are source/owned managed-fixture results. V1 journal custody is trusted
-recorded intent, without cryptographic producer or independent listing-price
-metadata. Results do not prove deployment, SQL/global economy, power loss,
-raw-writer exclusion, current-client rendering, host trust or complete parity.
-The legacy client/updater execution hold remains active.
+These are owned managed-fixture/source results, not current-client gameplay,
+7937 activation, full Rune/English completion, SQL, power-loss or host cleanliness.
+Compose ownership, remaining passive effects/resources and broader recovery stay
+active. The legacy client/updater execution hold remains in force.
 
 ## Implemented source families
 

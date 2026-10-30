@@ -51,6 +51,7 @@ public sealed partial class WorldSessionStore
                     WolfConquer.Core.Data.PlayerSpellSnapshotLoader.ToLegacyBytes(FinalSession.PlayerSpells))) throw InvalidSpellPublication();
             binding = new(store, connection, holder.NativeClientIdentity, FinalSession, client, player,
                 detached.Storage, detachedProficiencies.Storage, recovery, canonicalSpells, savedSpellImage);
+            binding.InitializePreparedBeasts(admissionOwner);
             hitpoints = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareAdmission(binding, admissionOwner, FinalSession);
             money = LegacyNativePlayerRuntime.OwnedMoneyPublication.PrepareAdmission(binding, admissionOwner, FinalSession);
             cps = LegacyNativePlayerRuntime.OwnedCpsPublication.PrepareAdmission(binding, admissionOwner, FinalSession);

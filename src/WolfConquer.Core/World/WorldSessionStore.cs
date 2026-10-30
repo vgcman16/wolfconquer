@@ -93,7 +93,7 @@ public sealed partial class WorldSessionStore
 
     private bool TryCompareAndSetCore(ConquerTcpConnection connection, WorldSession expectedSession, WorldSession session,
         object? expectedNativeIdentity, out WorldSession? final, bool captureMagicCosts,
-        out MagicCostOutputReceipt? costOutput)
+        out MagicCostOutputReceipt? costOutput, LegacyRuneCastEligibility? runeEligibility = null)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(expectedSession);
@@ -120,7 +120,7 @@ public sealed partial class WorldSessionStore
                 if (captureMagicCosts)
                     preparedCostOutput = new(this, connection, publication.PublishedIdentity,
                         publication.Binding, expectedSession, publication.FinalSession);
-                if (!TryPublishFrameOwnedHitpoints(publication, holder, out _)) return false;
+                if (!TryPublishFrameOwnedHitpoints(publication, holder, out _, runeEligibility: runeEligibility)) return false;
                 final = publication.FinalSession;
                 publishedIdentity = publication.PublishedIdentity;
                 publishedBinding = publication.Binding;

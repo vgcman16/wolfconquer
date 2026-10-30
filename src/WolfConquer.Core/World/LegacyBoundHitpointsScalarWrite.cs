@@ -14,26 +14,35 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
     private readonly WorldSession expected;
     private readonly string path;
     private readonly byte[] before, after;
+    private readonly LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication;
     internal WorldPacketHandlers.BoundHitpointsInputs Inputs { get; }
     internal WorldSession Proposed { get; }
     internal bool IsCommitted { get; private set; }
     private LegacyBoundHitpointsScalarWrite(WorldServerFrameHandler owner, WorldSessionStore store,
         ConquerTcpConnection connection, LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed,
-        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice)
+        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice,
+        LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication)
     {
         this.owner = owner; this.store = store; this.connection = connection; this.binding = binding; this.expected = expected;
+        this.runePublication = runePublication;
+        if (runePublication is not null)
+        {
+            if (caprice is not null) throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignRunePublication");
+            runePublication.RequireCurrent(store, connection, expected, proposed);
+        }
         if (caprice is not null && !caprice.Matches(expected.Character, proposed.Character))
             throw new LegacyNativeHitpointsRefusalException("capricePreparedResourcesInvalid");
         if (!OwnerIsCurrent()) throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsOwnerUnavailable");
         Inputs = new(expected.Character, proposed.Character);
         Proposed = proposed with { Character = Inputs.After };
-        (path, before, after) = PrepareImages(binding, expected, Inputs, caprice);
+        (path, before, after) = PrepareImages(binding, expected, Inputs, caprice, runePublication);
         if (!OwnerIsCurrent()) throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsOwnerChanged");
     }
     internal static LegacyBoundHitpointsScalarWrite Prepare(WorldServerFrameHandler owner, WorldSessionStore store,
         ConquerTcpConnection connection, LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed,
-        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null) =>
-        new(owner, store, connection, binding, expected, proposed, caprice);
+        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null,
+        LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication = null) =>
+        new(owner, store, connection, binding, expected, proposed, caprice, runePublication);
     internal byte[] CopyBeforeImage() => before.ToArray();
     internal byte[] CopyAfterImage() => after.ToArray();
     private bool OwnerIsCurrent() => store.IsFramePersistenceCurrent(owner, connection, expected) &&
@@ -42,6 +51,8 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
 
     internal Outcome TryCommit(out string reason)
     {
+        if (runePublication is not null)
+        { reason = "ordinaryHitpointsRuneRequiresJointWriter"; return Outcome.Rejected; }
         var failure = "ordinaryHitpointsOwnerChanged"; var phase = Outcome.Rejected;
         try
         {
@@ -86,7 +97,8 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
         {
             return SnapshotFileLockCoordinator.ExecuteLocked(path, () =>
             {
-                if (!OwnerIsCurrent() || LegacyTradeJournal.HasPending(binding.UsersRoot) ||
+                if (!OwnerIsCurrent() || runePublication is not null && !runePublication.RequireCommittedCharacter() ||
+                    LegacyTradeJournal.HasPending(binding.UsersRoot) ||
                     !CharacterSnapshotFileBaseline.TryReadBytes(path, "ordinaryHitpoints", out var actual, out _) ||
                     !actual.AsSpan().SequenceEqual(after)) return false;
                 IsCommitted = true; return true;

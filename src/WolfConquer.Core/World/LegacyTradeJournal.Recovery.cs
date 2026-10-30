@@ -62,11 +62,12 @@ internal static partial class LegacyTradeJournal
             validated = true;
             if (ownedStartup is null)
             {
-                if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11)) Directory.CreateDirectory(roots.Items);
-                if (record.Version == 9) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
+                if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11 or 12 or 13 or 14 or 15)) Directory.CreateDirectory(roots.Items);
+                if (record.Version is 9 or 12 or 13 or 14 or 15) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
                 else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
                 else PrepareAdmissionDirectories(roots, record, targets);
             }
+            else ownedStartup.PrepareDirectories();
             foreach (var target in targets)
             {
                 ownedStartup?.RequireCurrent();
@@ -85,8 +86,8 @@ internal static partial class LegacyTradeJournal
             }
             EnsureAllAfter(targets);
             EnsureAdmissionInputs(roots, record);
-            EnsureAdmissionStagesCleared(record, targets);
-            ownedStartup?.ClearStages();
+            if (ownedStartup is null) EnsureAdmissionStagesCleared(record, targets);
+            else ownedStartup.ClearStages();
             ownedStartup?.RequireCurrent();
             DeleteRecord(pending);
             return true;

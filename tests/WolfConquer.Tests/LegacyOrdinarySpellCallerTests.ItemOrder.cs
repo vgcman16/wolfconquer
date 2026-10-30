@@ -8,12 +8,12 @@ namespace WolfConquer.Tests;
 
 public sealed partial class LegacyOrdinarySpellCallerTests
 {
-    private static byte[] UnsortedItemImage(bool rune)
+    private static byte[] UnsortedItemImage(bool rune, bool storedRune = false)
     {
         if (rune)
             return PlayerItemSnapshotLoaderTests.BuildPlayerItems(
                 [PlayerItemSnapshotLoaderTests.DbItem(ItemFixture.ItemUid + 1, 4020515, 212, stackSize: 1),
-                 PlayerItemSnapshotLoaderTests.DbItem(ItemFixture.ItemUid, 4020517, 102, stackSize: 1)], []);
+                 PlayerItemSnapshotLoaderTests.DbItem(ItemFixture.ItemUid, 4020517, storedRune ? (ushort)212 : (ushort)102, stackSize: 1)], []);
         return PlayerItemSnapshotLoaderTests.BuildPlayerItems(
             [PlayerItemSnapshotLoaderTests.DbItem(ItemFixture.ItemUid, 725016, 0, stackSize: 1),
              PlayerItemSnapshotLoaderTests.DbItem(ItemFixture.ItemUid + 3, 4020515, 212, stackSize: 1),
@@ -26,11 +26,16 @@ public sealed partial class LegacyOrdinarySpellCallerTests
     {
         await WorldServerFrameHandlerTests.WithNativeItemSpellCallerAsync(rune, async f =>
         {
-            var raw = UnsortedItemImage(rune);
-            Assert.False(raw.AsSpan().SequenceEqual(PlayerItemSnapshotLoader.ToLegacyBytes(PlayerItemSnapshotLoader.Parse(raw))));
+            var raw = UnsortedItemImage(rune, storedRune: rune);
             File.WriteAllBytes(f.ItemsPath, raw);
             await f.Login();
             Assert.Equal(raw, File.ReadAllBytes(f.ItemsPath));
+            if (rune)
+            {
+                await f.EstablishOwnedRuneOriginAsync();
+                raw = await f.ReopenWithUnsortedRuneRecordsAsync();
+            }
+            Assert.False(raw.AsSpan().SequenceEqual(PlayerItemSnapshotLoader.ToLegacyBytes(PlayerItemSnapshotLoader.Parse(raw))));
             var beforeCharacter = File.ReadAllBytes(f.CharacterPath);
             var before = f.Current; int first = f.Sent.Count; bool observed = false;
             f.OnSend = _ =>
@@ -55,6 +60,7 @@ public sealed partial class LegacyOrdinarySpellCallerTests
             {
                 Assert.Equal((ushort)212, Assert.Single(f.Current.PlayerItems.RuneItems, r => r.Uid == ItemFixture.ItemUid).Position);
                 Assert.DoesNotContain(f.Current.PlayerSpells.Spells, s => s.Id == 14160);
+                Assert.Equal("", f.Current.Character.Attributes["ManagedRuneSpellOrigins"]);
                 Assert.True(MsgActionPacket.TryParse(Frame(f.Sent[first]), out var removal));
                 Assert.Equal((MsgActionType)109, removal.Type);
                 Assert.Equal(RuneRequest(), f.Sent[first + 1]);
@@ -68,7 +74,7 @@ public sealed partial class LegacyOrdinarySpellCallerTests
                 Assert.Equal(ItemFixture.ItemUid, consume.Id);
             }
         }, additionalItems: rune ? null :
-            [OwnedEquipmentBehaviorFixture.Item(4020515, "OwnedRankKeeper")]);
+            [OwnedEquipmentBehaviorFixture.Item(4020515, "OwnedRankKeeper")], ownedRuneOrigin: rune);
     }
 
     [Fact]
@@ -105,8 +111,14 @@ public sealed partial class LegacyOrdinarySpellCallerTests
     {
         await WorldServerFrameHandlerTests.WithNativeItemSpellCallerAsync(rune, async f =>
         {
-            File.WriteAllBytes(f.ItemsPath, UnsortedItemImage(rune));
-            await f.Login(); var current = f.Current;
+            File.WriteAllBytes(f.ItemsPath, UnsortedItemImage(rune, storedRune: rune));
+            await f.Login();
+            if (rune)
+            {
+                await f.EstablishOwnedRuneOriginAsync();
+                await f.ReopenWithUnsortedRuneRecordsAsync();
+            }
+            var current = f.Current;
             var bytes = File.ReadAllBytes(f.ItemsPath);
             bytes[4 + 14] ^= 0x40; // Unmodeled DBItem padding, not a modeled property.
             File.WriteAllBytes(f.ItemsPath, bytes);
@@ -117,7 +129,7 @@ public sealed partial class LegacyOrdinarySpellCallerTests
             Assert.Contains("itemSpellItemBaselineStaleOrUnrepresentable", f.Log.ToString());
             Assert.False(LegacyTradeJournal.HasPending(f.Users));
         }, additionalItems: rune ? null :
-            [OwnedEquipmentBehaviorFixture.Item(4020515, "OwnedRankKeeper")]);
+            [OwnedEquipmentBehaviorFixture.Item(4020515, "OwnedRankKeeper")], ownedRuneOrigin: rune);
     }
 
     [Fact]

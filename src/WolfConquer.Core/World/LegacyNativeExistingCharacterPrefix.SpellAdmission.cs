@@ -20,6 +20,12 @@ internal sealed partial class LegacyNativeExistingCharacterPrefix
         private readonly LegacyNativeExistingCharacterPrefix prefix;
         private bool armed;
         internal uint PreparedUid => prefix.playerLoad.PreparedUid;
+        internal LegacyNativeBeastsRuntime PreparedBeastsForBinding(LegacyNativeGameClientRuntime client, LegacyNativePlayerRuntime player)
+        {
+            if (!BeforeOwnerIsCurrentPlain(client, player))
+                throw new InvalidOperationException("Rune Beast binding requires the actual prepared admission prefix.");
+            return prefix.beasts.Target;
+        }
         private SpellAdmissionOwner(LegacyNativeExistingCharacterPrefix prefix) => this.prefix = prefix;
         internal static SpellAdmissionOwner Capture(LegacyNativeExistingCharacterPrefix prefix)
         {

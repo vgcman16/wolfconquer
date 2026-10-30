@@ -49,7 +49,6 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
 
     private async Task AssertRuneDropLearnedBookAsync(ConquerProtocolProfile profile, RuneDropLearnedCase scenario)
     {
-        var drops = scenario != RuneDropLearnedCase.MissingUid;
         WriteSnapshot(RuneRankPlayerA, RuneRankPlayerA, mapId: 1_015, x: 826, y: 565);
         SetRuneUnequipSpellFixtureClass(RuneRankPlayerA);
         WriteItems(RuneRankPlayerA,
@@ -85,14 +84,39 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(1_416_016U, metadata.RuneSpellId);
         Assert.Equal(14_160U, metadata.RuneSpellId / 100);
         Assert.Equal(16U, metadata.RuneSpellId % 100);
-        using var log = new StringWriter();
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var loader = new CharacterSnapshotLoader(_usersRoot, _itemsRoot);
-        Assert.Equal(spellsRoot, loader.PlayerSpellsRoot);
-        var handler = new WorldServerFrameHandler(loader, handoff, catalog,
-            LegacyRuntimeUpdateLoopOptions.Disabled, log, protocolProfile: profile);
-        var (connectionA, sentA) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerA);
-        var (connectionB, sentB) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerB);
+        if (profile == ConquerProtocolProfile.VisibleDx8D13)
+        {
+            await WithOwnedRuneDropAsync(catalog, f => ExerciseAsync(f.Handler,
+                f.Connection((uint)RuneRankPlayerA), f.Frames((uint)RuneRankPlayerA),
+                f.Connection((uint)RuneRankPlayerB), f.Frames((uint)RuneRankPlayerB),
+                f.Data.Users, f.Data.Items, f.Data.Spells, f.Log, nativeOwned: true),
+                (uint)RuneRankPlayerA, (uint)RuneRankPlayerB);
+        }
+        else
+        {
+            // This remains the real managed-file D11 fixture. D11 has no joined
+            // native item dependency owner; its old successful mutation is not
+            // authority to fabricate that owner or broaden the D13 binding.
+            using var log = new StringWriter();
+            var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
+            var loader = new CharacterSnapshotLoader(_usersRoot, _itemsRoot);
+            Assert.Equal(spellsRoot, loader.PlayerSpellsRoot);
+            var handler = new WorldServerFrameHandler(loader, handoff, catalog,
+                LegacyRuntimeUpdateLoopOptions.Disabled, log, protocolProfile: profile);
+            var (connectionA, sentA) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerA);
+            var (connectionB, sentB) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerB);
+            await ExerciseAsync(handler, connectionA, sentA, connectionB, sentB,
+                _usersRoot, _itemsRoot, spellsRoot, log, nativeOwned: false);
+        }
+
+        async Task ExerciseAsync(WorldServerFrameHandler handler,
+            ConquerTcpConnection connectionA, List<byte[]> sentA, ConquerTcpConnection connectionB, List<byte[]> sentB,
+            string userRoot, string itemRoot, string spellRoot, TextWriter log, bool nativeOwned)
+        {
+        var drops = nativeOwned && scenario != RuneDropLearnedCase.MissingUid;
+        string RuneRankingItemsPath(long uid) => Path.Combine(itemRoot, uid.ToString(CultureInfo.InvariantCulture) + ".bin");
+        string RuneUnequipSpellFile(long uid) => Path.Combine(spellRoot, uid.ToString(CultureInfo.InvariantCulture) + ".bin");
+        string RuneDropLearnedCharacterFile(long uid) => Path.Combine(userRoot, uid.ToString(CultureInfo.InvariantCulture) + ".ini");
         AssertRuneRankingStartup(sentA, rank: null, score: 10_600);
         AssertRuneRankingStartup(sentB, rank: 1, score: 10_000);
 
@@ -122,6 +146,10 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
             await StartRuneDropLearnedVendorAsync(handler, connectionA, sentA, sentB);
         var beforeSessionA = ReadRuneDropLearnedSession(handler, connectionA);
         var beforeSessionB = ReadRuneDropLearnedSession(handler, connectionB);
+        var nativeRowsBefore = nativeOwned
+            ? Assert.IsType<LegacyNativeSpellStorage>(Assert.IsType<LegacyNativeGameClientRuntime>(connectionA.NativeGameClient).MySpells)
+                .ClientSpells.ToDictionary(pair => pair.Key, pair => pair.Value)
+            : null;
         Assert.Same(entryA.PlayerItems, beforeSessionA.PlayerItems);
         Assert.Same(entryA.PlayerSpells, beforeSessionA.PlayerSpells);
         Assert.Same(entryB, beforeSessionB);
@@ -136,9 +164,23 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         var userBytesB = File.ReadAllBytes(RuneDropLearnedCharacterFile(RuneRankPlayerB));
         var beforeA = sentA.Count;
         var beforeB = sentB.Count;
+        var root = Path.GetDirectoryName(userRoot)!;
+        var lease = Path.Combine(itemRoot, ".managed-item-uids", "owner.lock");
+        var beforeFiles = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+            .Where(path => !StringComparer.OrdinalIgnoreCase.Equals(path, lease))
+            .ToDictionary(path => path, File.ReadAllBytes, StringComparer.OrdinalIgnoreCase);
+        if (!nativeOwned)
+        {
+            Assert.Null(connectionA.NativeGameClient); Assert.Null(beforeSessionA.NativeGameClient);
+            // Preserve the independent D11 wire/parser golden as serialization
+            // evidence, without pretending it was emitted by a refused action.
+            AssertRuneDropLearnedRemovalFrame(new MsgItemUsagePacket(
+                RuneRankTargetUid, 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0).ToFrameBytes());
+        }
         // Ordinary complete87-byte body, declared0/empty tail; no needless offered UID or injected timestamp.
         await handler.HandleFrameAsync(connectionA, ReadFrame(new MsgItemUsagePacket(
-            drops ? RuneRankTargetUid : missingUid, 0, MsgItemUsageAction.DropRune, 0, 0, 0, 0).ToFrameBytes()));
+            scenario == RuneDropLearnedCase.MissingUid ? missingUid : RuneRankTargetUid,
+            0, MsgItemUsageAction.DropRune, 0, 0, 0, 0).ToFrameBytes()));
 
         Assert.Equal(beforeA + (drops ? 1 : 0), sentA.Count);
         Assert.Equal(beforeB, sentB.Count);
@@ -148,22 +190,33 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
             Assert.False(MsgActionPacket.TryParse(ReadFrame(sentA[beforeA]), out _)); // No109 removal packet.
         }
         var afterA = ReadRuneDropLearnedSession(handler, connectionA);
-        Assert.Equal(drops ? beforeSessionA with { PlayerItems = afterA.PlayerItems } : beforeSessionA, afterA);
+        Assert.Equal(drops ? beforeSessionA with { Character = afterA.Character, PlayerItems = afterA.PlayerItems,
+            PlayerSpells = afterA.PlayerSpells } : beforeSessionA, afterA);
         if (!drops)
+        {
             Assert.Same(beforeSessionA, afterA);
-        Assert.Same(beforeSessionA.Character, afterA.Character);
-        Assert.Same(beforeSessionA.PlayerSpells, afterA.PlayerSpells);
+            Assert.Same(beforeSessionA.Character, afterA.Character);
+            Assert.Same(beforeSessionA.PlayerSpells, afterA.PlayerSpells);
+        }
+        var empty = new Dictionary<string, string>();
+        Assert.Equal(beforeSessionA.Character with { Attributes = empty, PaidNobility = empty },
+            afterA.Character with { Attributes = empty, PaidNobility = empty });
+        Assert.Equal(beforeSessionA.Character.Attributes.OrderBy(pair => pair.Key), afterA.Character.Attributes.OrderBy(pair => pair.Key));
+        Assert.Equal(beforeSessionA.Character.PaidNobility.OrderBy(pair => pair.Key), afterA.Character.PaidNobility.OrderBy(pair => pair.Key));
         Assert.Same(beforeSessionA.LegacyVendorListings, afterA.LegacyVendorListings);
         Assert.Equal(expectedItemBytesA, PlayerItemSnapshotLoader.ToLegacyBytes(afterA.PlayerItems));
-        Assert.Same(stored, Assert.Single(afterA.PlayerItems.RuneItems, item => item.Uid == RuneRankStoredUid));
+        var retained = Assert.Single(afterA.PlayerItems.RuneItems, item => item.Uid == RuneRankStoredUid);
+        if (!drops) Assert.Same(stored, retained);
+        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(new([], [], [], [], [stored])),
+            PlayerItemSnapshotLoader.ToLegacyBytes(new([], [], [], [], [retained])));
         Assert.Equal(drops, !afterA.PlayerItems.RuneItems.Any(item => item.Uid == RuneRankTargetUid));
         Assert.Equal(drops ? 5_000U : 10_600U, LegacyRuneStoragePacket.ComputeStorageScore(afterA.PlayerItems));
         AssertRuneDropLearnedBook(afterA.PlayerSpells, mapped, unrelated, spellBytesA);
         Assert.Equal(expectedItemBytesA, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerA)));
         Assert.Equal(expectedItemBytesA, PlayerItemSnapshotLoader.ToLegacyBytes(
-            new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerA)));
+            new PlayerItemSnapshotLoader(itemRoot).LoadByCharacterUid(RuneRankPlayerA)));
         Assert.Equal(spellBytesA, File.ReadAllBytes(RuneUnequipSpellFile(RuneRankPlayerA)));
-        AssertRuneDropLearnedBook(new PlayerSpellSnapshotLoader(spellsRoot).LoadByCharacterUid(RuneRankPlayerA),
+        AssertRuneDropLearnedBook(new PlayerSpellSnapshotLoader(spellRoot).LoadByCharacterUid(RuneRankPlayerA),
             mapped, unrelated, spellBytesA);
         Assert.Same(beforeSessionB, ReadRuneDropLearnedSession(handler, connectionB));
         Assert.Equal(userBytesA, File.ReadAllBytes(RuneDropLearnedCharacterFile(RuneRankPlayerA)));
@@ -171,12 +224,37 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(itemBytesA, PlayerItemSnapshotLoader.ToLegacyBytes(entryA.PlayerItems));
         Assert.Equal(spellBytesA, PlayerSpellSnapshotLoader.ToLegacyBytes(entryA.PlayerSpells));
 
-        // B FIRST: missingUID refreshes eligibleA; successful drop removesA below10000. No A query can repair this.
+        var actualFiles = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+            .Where(path => !StringComparer.OrdinalIgnoreCase.Equals(path, lease)).Order().ToArray();
+        Assert.Equal(beforeFiles.Keys.Order(), actualFiles);
+        foreach (var pair in beforeFiles)
+            Assert.Equal(drops && StringComparer.OrdinalIgnoreCase.Equals(pair.Key, RuneRankingItemsPath(RuneRankPlayerA))
+                ? expectedItemBytesA : pair.Value, File.ReadAllBytes(pair.Key));
+        if (nativeOwned)
+        {
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(connectionA.NativeGameClient!.OrdinarySpellBinding);
+            Assert.True(binding.Store.IsBoundSpellOwnerCurrent(binding));
+            var rows = Assert.IsType<LegacyNativeSpellStorage>(connectionA.NativeGameClient.MySpells).ClientSpells;
+            Assert.Equal(afterA.PlayerSpells.Spells.Select(row => row.Id).Order(), rows.Keys.Order());
+            foreach (var row in afterA.PlayerSpells.Spells)
+            {
+                // PreparedSessionSpellMap deliberately reuses unchanged native rows.
+                Assert.Same(nativeRowsBefore![row.Id], rows[row.Id]);
+                Assert.Equal(row.Level, rows[row.Id].Level); Assert.Equal(row.Experience, rows[row.Id].Experience);
+                Assert.Equal(row.PreviousLevel, rows[row.Id].PreviousLevel); Assert.Equal(row.SoulLevel, rows[row.Id].SoulLevel);
+                Assert.Equal(row.UseSpellSoul, rows[row.Id].UseSpellSoul);
+            }
+        }
+        else if (scenario != RuneDropLearnedCase.MissingUid)
+            Assert.Contains("held MsgItemUsage drop rune reason=itemSpellPreparation:InvalidOperationException", log.ToString());
+        // B FIRST: a missing UID refreshes eligible A; a successful D13 drop
+        // removes A. A refused D11 mutation does neither. No A query repairs B.
+        bool refreshed = nativeOwned || scenario == RuneDropLearnedCase.MissingUid;
         await AssertRuneRankingQueryAsync(handler, connectionB, sentB, RuneRankPlayerB,
-            rank: drops ? 1 : 2, score: 10_000);
+            rank: drops || !refreshed ? 1 : 2, score: 10_000);
         await AssertRuneRankingQueryAsync(handler, connectionA, sentA, RuneRankPlayerA,
-            rank: drops ? null : 1, score: drops ? 5_000U : 10_600U);
-        Assert.Same(beforeSessionA.PlayerSpells, ReadRuneDropLearnedSession(handler, connectionA).PlayerSpells);
+            rank: drops || !refreshed ? null : 1, score: drops ? 5_000U : 10_600U);
+        Assert.Same(afterA.PlayerSpells, ReadRuneDropLearnedSession(handler, connectionA).PlayerSpells);
         Assert.Same(beforeSessionB.PlayerSpells, ReadRuneDropLearnedSession(handler, connectionB).PlayerSpells);
         Assert.Equal(itemBytesA, PlayerItemSnapshotLoader.ToLegacyBytes(entryA.PlayerItems));
         Assert.Equal(itemBytesB, PlayerItemSnapshotLoader.ToLegacyBytes(entryB.PlayerItems));
@@ -187,11 +265,14 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(spellBytesA, File.ReadAllBytes(RuneUnequipSpellFile(RuneRankPlayerA)));
         Assert.Equal(spellBytesB, File.ReadAllBytes(RuneUnequipSpellFile(RuneRankPlayerB)));
         Assert.Equal(itemBytesB, PlayerItemSnapshotLoader.ToLegacyBytes(
-            new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerB)));
+            new PlayerItemSnapshotLoader(itemRoot).LoadByCharacterUid(RuneRankPlayerB)));
         Assert.Equal(spellBytesB, PlayerSpellSnapshotLoader.ToLegacyBytes(
-            new PlayerSpellSnapshotLoader(spellsRoot).LoadByCharacterUid(RuneRankPlayerB)));
-        Assert.Contains(drops ? "handled MsgItemUsage drop rune" : "skipped MsgItemUsage drop rune", log.ToString());
+            new PlayerSpellSnapshotLoader(spellRoot).LoadByCharacterUid(RuneRankPlayerB)));
+        Assert.Contains(drops ? "committed MsgItemUsage drop rune" : scenario == RuneDropLearnedCase.MissingUid
+            ? "skipped MsgItemUsage drop rune" : "held MsgItemUsage drop rune", log.ToString());
         Assert.DoesNotContain("PARITY-GAP MsgItemUsage drop rune", log.ToString());
+        Assert.False(LegacyTradeJournal.HasPending(userRoot));
+        }
     }
 
     private string RuneDropLearnedCharacterFile(long uid) =>

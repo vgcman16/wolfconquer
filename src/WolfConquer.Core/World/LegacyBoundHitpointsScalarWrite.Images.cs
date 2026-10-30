@@ -7,7 +7,8 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
 {
     private static (string Path, byte[] Before, byte[] After) PrepareImages(LegacyOrdinarySpellBinding binding,
         WorldSession expected, WorldPacketHandlers.BoundHitpointsInputs inputs,
-        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null)
+        WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null,
+        LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication = null)
     {
         var path = Path.Combine(binding.UsersRoot, expected.AccountId.ToString(CultureInfo.InvariantCulture) + ".ini");
         return SnapshotFileLockCoordinator.ExecuteLocked(path, () =>
@@ -25,7 +26,8 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
                 !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(disk, inputs.Before) ||
                 !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(inputs.Before, inputs.After))
                 throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsCharacterBaselineStale");
-            var bytes = ProjectAfterImage(baseline.Bytes, inputs.After, caprice);
+            var bytes = runePublication is null ? ProjectAfterImage(baseline.Bytes, inputs.After, caprice)
+                : runePublication.RequireAfterImage(binding, expected, inputs.After, baseline.Bytes);
             return (path, baseline.Bytes, bytes);
         });
     }

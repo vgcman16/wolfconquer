@@ -12,6 +12,7 @@ public sealed partial class WorldServerFrameHandler
     // configuration/packet binding and cannot choose images, paths or a saver.
     internal LegacyJournalInterruption? TradeJournalInterruption { get; set; }
     internal LegacyJournalInterruption? VendorJournalInterruption { get; set; }
+    internal LegacyJournalInterruption? ItemSpellJournalInterruption { get; set; }
     private readonly ConditionalWeakTable<ConquerTcpConnection, TradeDisconnectRegistration> _tradeLifetimes = new();
 
     private void RegisterTradeDisconnect(ConquerTcpConnection connection, CancellationToken connectionLifetime)

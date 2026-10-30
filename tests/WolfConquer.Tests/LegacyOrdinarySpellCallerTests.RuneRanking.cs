@@ -51,7 +51,8 @@ public sealed partial class LegacyOrdinarySpellCallerTests
     {
         await WorldServerFrameHandlerTests.WithNativeItemSpellCallerAsync(true, async f =>
         {
-            await f.Login(); var before = f.Current; int first = f.Sent.Count;
+            await f.Login(); await f.EstablishOwnedRuneOriginAsync();
+            var before = f.Current; int first = f.Sent.Count;
             var context = new WorldPacketHandlerContext(f.Connection, f.Log, Session: before, WorldData: f.Catalog,
                 Sessions: f.Store, PlayerSpellsRoot: f.Spells, PlayerItemsRoot: f.Items,
                 ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13)
@@ -62,8 +63,9 @@ public sealed partial class LegacyOrdinarySpellCallerTests
             Assert.NotSame(before, f.Current);
             Assert.Equal((ushort)212, Assert.Single(f.Current.PlayerItems.RuneItems, row => row.Uid == WorldServerFrameHandlerTests.NativeItemSpellCallerFixture.ItemUid).Position);
             Assert.DoesNotContain(f.Current.PlayerSpells.Spells, row => row.Id == 14160);
+            Assert.Equal("", f.Current.Character.Attributes["ManagedRuneSpellOrigins"]);
             Assert.False(LegacyTradeJournal.HasPending(f.Users)); Assert.True(f.Sent.Count > first);
             Assert.Equal(f.Current.PlayerSpells.Spells, new PlayerSpellSnapshotLoader(f.Spells).LoadByCharacterUid(WorldServerFrameHandlerTests.NativeItemSpellCallerFixture.Uid).Spells);
-        });
+        }, ownedRuneOrigin: true);
     }
 }

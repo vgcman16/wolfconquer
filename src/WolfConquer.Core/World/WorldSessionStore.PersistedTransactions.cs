@@ -20,6 +20,19 @@ public sealed partial class WorldSessionStore
 
     internal bool TryCommitSession(ConquerTcpConnection connection, WorldSession expected,
         WorldSession updated, Func<bool> persist, out WorldSession? final)
+        => TryCommitSessionCore(connection, expected, updated, persist, null, out final);
+
+    internal bool TryCommitRuneItemSpellSession(ConquerTcpConnection connection, WorldSession expected,
+        WorldSession updated, LegacyPreparedSpellFileWrite.RuneCharacterPublication runePublication,
+        Func<bool> persist, out WorldSession? final)
+    {
+        ArgumentNullException.ThrowIfNull(runePublication);
+        return TryCommitSessionCore(connection, expected, updated, persist, runePublication, out final);
+    }
+
+    private bool TryCommitSessionCore(ConquerTcpConnection connection, WorldSession expected,
+        WorldSession updated, Func<bool> persist, LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication,
+        out WorldSession? final)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(expected);
@@ -34,7 +47,8 @@ public sealed partial class WorldSessionStore
             using var scope = EnterNativeConnectionGate();
             if (!_sessions.TryGetValue(connection, out var holder) || !ReferenceEquals(holder.Read(), expected) ||
                 !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expected, updated)) return false;
-            using var publication = new PreparedSessionSpellPublication(this, connection, holder, expected, updated);
+            using var publication = new PreparedSessionSpellPublication(this, connection, holder, expected, updated,
+                runePublication: runePublication);
             publication.ArmFinalProof();
             if (!publication.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
             bool persisted;

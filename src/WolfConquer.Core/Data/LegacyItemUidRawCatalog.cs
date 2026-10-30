@@ -8,7 +8,7 @@ namespace WolfConquer.Core.Data;
 internal static partial class LegacyItemUidRawCatalog
 {
     internal readonly record struct Observation(uint Maximum, int PhysicalCount, int ReferenceCount);
-    private enum Kind { PlayerItems, Mailbox, Detained }
+    internal enum Kind { PlayerItems, Mailbox, Detained }
     private sealed record Input(string Path, Kind Kind);
     private const int MaximumFiles = 65535;
     private const int MaximumPhysicalRows = 2_000_000;
@@ -18,13 +18,21 @@ internal static partial class LegacyItemUidRawCatalog
 
     private sealed class Scan
     {
+        private readonly LegacyTradeJournal.OwnedStartupItemRecovery? recovery;
+        private string inputPath = string.Empty;
+        private Kind inputKind;
         internal readonly HashSet<uint> Physical = [];
         internal readonly Dictionary<uint, (string Path, byte[] Bytes)> Escrow = [];
         internal uint Maximum;
         internal int References;
 
+        internal Scan(LegacyTradeJournal.OwnedStartupItemRecovery? recovery = null) => this.recovery = recovery;
+
+        internal void BeginInput(string path, Kind kind) { inputPath = path; inputKind = kind; }
+
         internal void AddPhysical(uint uid)
         {
+            recovery?.RequirePhysicalUidInput(inputPath, inputKind, uid);
             if (uid == 0 || Physical.Count == MaximumPhysicalRows || !Physical.Add(uid))
                 throw new FormatException("Zero, duplicate or oversized physical UID catalog.");
             Maximum = Math.Max(Maximum, uid);
@@ -58,12 +66,13 @@ internal static partial class LegacyItemUidRawCatalog
         {
             recovery?.RequireScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
             var inputs = Discover(itemsRoot, mailboxRoot, redeemFile, claimFile, recovery);
-            var scan = new Scan();
+            var scan = new Scan(recovery);
             void ReadAll()
             {
                 long total = 0;
                 foreach (var input in inputs)
                 {
+                    scan.BeginInput(input.Path, input.Kind);
                     if (!CharacterSnapshotFileBaseline.TryReadBytes(input.Path, "itemUid", out var bytes, out var failure))
                         throw new IOException(failure);
                     if (input.Kind == Kind.PlayerItems && recovery is not null)

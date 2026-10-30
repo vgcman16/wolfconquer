@@ -12,51 +12,51 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
     private const ushort RuneUnequipSpellId = 14_160;
 
     [Fact]
-    public async Task HandlerRuneUnequipRemovesLoadedSpellBeforeEchoAndPersistsBothFiles()
+    public async Task HandlerRuneUnequipPreservesUnmarkedLearnedSpellAndPersistsBothFiles()
     {
-        await AssertRuneUnequipSpellRemovalAsync(RuneUnequipSpellCase.Present);
+        await AssertRuneUnequipLegacySpellRetentionAsync(RuneUnequipSpellCase.Present);
     }
 
     [Fact]
     public async Task HandlerRuneUnequipWithoutMappedLearnedSpellKeepsFiveFrameTail()
     {
-        await AssertRuneUnequipSpellRemovalAsync(RuneUnequipSpellCase.Absent);
+        await AssertRuneUnequipLegacySpellRetentionAsync(RuneUnequipSpellCase.Absent);
     }
 
     [Fact]
-    public async Task HandlerRuneUnequipRemovesMappedIdDespiteDifferentLearnedLevel()
+    public async Task HandlerRuneUnequipPreservesUnmarkedDifferentLearnedLevel()
     {
-        await AssertRuneUnequipSpellRemovalAsync(RuneUnequipSpellCase.DifferentLevel);
+        await AssertRuneUnequipLegacySpellRetentionAsync(RuneUnequipSpellCase.DifferentLevel);
     }
 
     [Fact]
-    public async Task HandlerRuneUnequipAlreadyStoredRemovesSpellOnceAcrossRepeatedRequests()
+    public async Task HandlerRuneUnequipKeepsUnmarkedSpellAcrossRepeatedStoredRequests()
     {
-        await AssertRuneUnequipSpellRemovalAsync(RuneUnequipSpellCase.AlreadyStoredRepeat);
+        await AssertRuneUnequipLegacySpellRetentionAsync(RuneUnequipSpellCase.AlreadyStoredRepeat);
     }
 
     [Fact]
     public async Task HandlerRuneUnequipMissingUidPreservesLoadedSpellAndFiles()
     {
-        await AssertRuneUnequipSpellRemovalAsync(RuneUnequipSpellCase.MissingUid);
+        await AssertRuneUnequipLegacySpellRetentionAsync(RuneUnequipSpellCase.MissingUid);
     }
 
     [Fact]
     public async Task HandlerRuneUnequipUnderLevelPreservesLoadedSpellAndFiles()
     {
-        await AssertRuneUnequipSpellRemovalAsync(RuneUnequipSpellCase.UnderLevel);
+        await AssertRuneUnequipLegacySpellRetentionAsync(RuneUnequipSpellCase.UnderLevel);
     }
 
     [Fact]
     public async Task HandlerRuneUnequipFullInventoryPreservesLoadedSpellAndFiles()
     {
-        await AssertRuneUnequipSpellRemovalAsync(RuneUnequipSpellCase.FullInventory);
+        await AssertRuneUnequipLegacySpellRetentionAsync(RuneUnequipSpellCase.FullInventory);
     }
 
     [Fact]
     public async Task HandlerRuneUnequipActiveVendorPreservesLoadedSpellAndFiles()
     {
-        await AssertRuneUnequipSpellRemovalAsync(RuneUnequipSpellCase.ActiveVendor);
+        await AssertRuneUnequipLegacySpellRetentionAsync(RuneUnequipSpellCase.ActiveVendor);
     }
 
     private enum RuneUnequipSpellCase
@@ -64,12 +64,11 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Present, Absent, DifferentLevel, AlreadyStoredRepeat, MissingUid, UnderLevel, FullInventory, ActiveVendor,
     }
 
-    private async Task AssertRuneUnequipSpellRemovalAsync(RuneUnequipSpellCase scenario)
+    private async Task AssertRuneUnequipLegacySpellRetentionAsync(RuneUnequipSpellCase scenario)
     {
         var succeeds = scenario is RuneUnequipSpellCase.Present or RuneUnequipSpellCase.Absent
             or RuneUnequipSpellCase.DifferentLevel or RuneUnequipSpellCase.AlreadyStoredRepeat;
         var hasMappedSpell = scenario != RuneUnequipSpellCase.Absent;
-        var removesSpell = succeeds && hasMappedSpell;
         var position = (ushort)(scenario == RuneUnequipSpellCase.AlreadyStoredRepeat ? 212 : 102);
         WriteSnapshot(accountId: RuneRankPlayerA, uid: RuneRankPlayerA, mapId: 1_015, x: 826, y: 565,
             level: scenario == RuneUnequipSpellCase.UnderLevel ? 14 : 140);
@@ -113,13 +112,13 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(6_000U, itemType.RequiredClass);
         Assert.Equal(1_416_016U, itemType.RuneSpellId);
         Assert.Equal(1U, itemType.LegacyDurability);
-        using var log = new StringWriter();
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var loader = new CharacterSnapshotLoader(_usersRoot, _itemsRoot);
-        Assert.Equal(spellsRoot, loader.PlayerSpellsRoot);
-        var handler = new WorldServerFrameHandler(loader, handoff, catalog, log);
-        var (connectionA, sentA) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerA);
-        var (connectionB, sentB) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerB);
+        await WithOwnedRuneDropAsync(catalog, async f =>
+        {
+        var handler = f.Handler; var log = f.Log;
+        var connectionA = f.Connection(checked((uint)RuneRankPlayerA)); var sentA = f.Frames(checked((uint)RuneRankPlayerA));
+        var connectionB = f.Connection(checked((uint)RuneRankPlayerB)); var sentB = f.Frames(checked((uint)RuneRankPlayerB));
+        string RuneRankingItemsPath(long uid) => Path.Combine(f.Data.Items, uid.ToString(CultureInfo.InvariantCulture) + ".bin");
+        string RuneUnequipSpellFile(long uid) => Path.Combine(f.Data.Spells, uid.ToString(CultureInfo.InvariantCulture) + ".bin");
         AssertRuneRankingStartup(sentA, rank: null, score: 10_600);
         AssertRuneRankingStartup(sentB, rank: 1, score: 10_000);
 
@@ -182,13 +181,6 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         } : originalA;
         var expectedItemBytesA = PlayerItemSnapshotLoader.ToLegacyBytes(expectedItemsA);
         var expectedSpellBytesA = initialSpellBytesA;
-        if (removesSpell)
-        {
-            // Independent count1 + untouched original unrelated12B record, not the production serializer.
-            expectedSpellBytesA = new byte[16];
-            BinaryPrimitives.WriteInt32LittleEndian(expectedSpellBytesA.AsSpan(0, 4), 1);
-            initialSpellBytesA.AsSpan(initialSpellBytesA.Length - 12, 12).CopyTo(expectedSpellBytesA.AsSpan(4));
-        }
         const uint absentUid = 5_349_999;
         Assert.DoesNotContain(originalA.RuneItems, item => item.Uid == absentUid);
         var request = CreateRuneEquipmentUse(
@@ -199,8 +191,8 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
 
         await handler.HandleFrameAsync(connectionA, ReadFrame(request));
 
-        // First RED boundary: three removal cases require six frames, future600 alone emits five.
-        var expectedFrames = succeeds ? removesSpell ? 6 : 5
+        // Unmarked legacy rows are retained; successful moves keep the five-frame tail.
+        var expectedFrames = succeeds ? 5
             : scenario == RuneUnequipSpellCase.MissingUid ? 0 : 1;
         Assert.Equal(beforeA + expectedFrames, sentA.Count);
         Assert.Equal(beforeB, sentB.Count);
@@ -209,8 +201,6 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         if (succeeds)
         {
             var echoIndex = beforeA;
-            if (removesSpell)
-                AssertRuneUnequipSpellRemovalFrame(sentA[echoIndex++], RuneRankPlayerA);
             Assert.Equal(request, sentA[echoIndex]);
             AssertItemUsage(sentA[echoIndex], new MsgItemUsagePacket(
                 RuneRankTargetUid, 102, MsgItemUsageAction.UnequipRune, 511_043_495, 0, 0, 0));
@@ -233,12 +223,10 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
                     "You need to be a second reborn hero to interact with rune system!").ToFrameBytes(), sentA[beforeA]);
         }
 
-        if (removesSpell)
-        {
-            Assert.NotSame(originalSpellsA, afterSessionA.PlayerSpells);
-            Assert.DoesNotContain(afterSessionA.PlayerSpells.Spells, entry => entry.Id == RuneUnequipSpellId);
-        }
-        else if (!succeeds)
+        if (hasMappedSpell)
+            Assert.Equal(mapped, Assert.Single(afterSessionA.PlayerSpells.Spells, entry => entry.Id == RuneUnequipSpellId));
+        Assert.False(afterSessionA.Character.Attributes.ContainsKey("ManagedRuneSpellOrigins"));
+        if (!succeeds)
             Assert.Same(originalSpellsA, afterSessionA.PlayerSpells);
         else
             Assert.Equal(initialSpellBytesA, PlayerSpellSnapshotLoader.ToLegacyBytes(afterSessionA.PlayerSpells));
@@ -248,9 +236,9 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(expectedItemBytesA, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerA)));
         Assert.Equal(expectedSpellBytesA, File.ReadAllBytes(RuneUnequipSpellFile(RuneRankPlayerA)));
         Assert.Equal(expectedItemBytesA, PlayerItemSnapshotLoader.ToLegacyBytes(
-            new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerA)));
+            new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(RuneRankPlayerA)));
         Assert.Equal(expectedSpellBytesA, PlayerSpellSnapshotLoader.ToLegacyBytes(
-            new PlayerSpellSnapshotLoader(spellsRoot).LoadByCharacterUid(RuneRankPlayerA)));
+            new PlayerSpellSnapshotLoader(f.Data.Spells).LoadByCharacterUid(RuneRankPlayerA)));
         Assert.Same(originalSessionB, GetSession(handler, connectionB));
         Assert.Same(originalB, GetSession(handler, connectionB).PlayerItems);
         Assert.Same(originalSpellsB, GetSession(handler, connectionB).PlayerSpells);
@@ -284,11 +272,13 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Equal(expectedItemBytesA, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerA)));
         Assert.Equal(expectedSpellBytesA, File.ReadAllBytes(RuneUnequipSpellFile(RuneRankPlayerA)));
         Assert.Equal(initialSpellBytesB, PlayerSpellSnapshotLoader.ToLegacyBytes(
-            new PlayerSpellSnapshotLoader(spellsRoot).LoadByCharacterUid(RuneRankPlayerB)));
+            new PlayerSpellSnapshotLoader(f.Data.Spells).LoadByCharacterUid(RuneRankPlayerB)));
         Assert.Equal(originalItemBytesB, PlayerItemSnapshotLoader.ToLegacyBytes(
-            new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerB)));
+            new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(RuneRankPlayerB)));
         Assert.Contains(succeeds ? "committed MsgItemUsage unequip rune" : "skipped MsgItemUsage unequip rune",
             log.ToString());
+        Assert.True(f.Store.IsBoundSpellOwnerCurrent(f.Current(checked((uint)RuneRankPlayerA)).NativeGameClient!.OrdinarySpellBinding!));
+        }, checked((uint)RuneRankPlayerA), checked((uint)RuneRankPlayerB));
     }
 
     private void SetRuneUnequipSpellFixtureClass(long uid)
@@ -302,6 +292,13 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
 
     private string RuneUnequipSpellFile(long uid) =>
         Path.Combine(_root, "PlayersSpells", uid.ToString(CultureInfo.InvariantCulture) + ".bin");
+
+    [Fact]
+    public void RuneSpellRemovalCodecRetainsTheKnownAction109Envelope()
+    {
+        var packet = new MsgActionPacket { ObjId = checked((uint)RuneRankPlayerA), DwParam = RuneUnequipSpellId, Type = (MsgActionType)109 };
+        AssertRuneUnequipSpellRemovalFrame(packet.ToFrameBytes(), RuneRankPlayerA);
+    }
 
     private static void AssertRuneUnequipSpellRemovalFrame(byte[] frame, long uid)
     {

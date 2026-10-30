@@ -14,31 +14,37 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         var data = CreateWorldDataCatalog(CreateItemType(itemId, "SinglePhysicalRune", durability: 1));
         WriteSnapshot(1_293_600, 1_293_600, 1_015, 826, 565, minHitPoints: 10_000);
         WriteItems(1_293_600, PlayerItemSnapshotLoaderTests.DbItem(uid, itemId, 211, stackSize: stack));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log, data);
-        var before = GetSession(handler, connection);
-        var itemPath = Path.Combine(_itemsRoot, "1293600.bin");
-        var initialItems = File.ReadAllBytes(itemPath);
-        var characterPath = Path.Combine(_usersRoot, "1293600.ini");
-        var initialCharacter = File.ReadAllBytes(characterPath);
-        Assert.Equal(stack, Assert.Single(before.PlayerItems.RuneItems).StackSize);
-        var first = sent.Count;
-        await handler.HandleFrameAsync(connection, ReadFrame(CreateRuneEquipmentUse(uid, 101, MsgItemUsageAction.EquipRune)));
-        var current = GetSession(handler, connection);
-        Assert.Equal(initialCharacter, File.ReadAllBytes(characterPath));
-        var row = Assert.Single(current.PlayerItems.RuneItems);
-        Assert.Equal(stack, row.StackSize);
-        if (accepted)
+        await WithOwnedRuneDropAsync(data, async f =>
         {
-            Assert.Equal(5, sent.Count - first); Assert.Equal((ushort)101, row.Position);
-            Assert.Equal(stack, Assert.Single(new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600).RuneItems).StackSize);
-            Assert.Contains("committed MsgItemUsage equip rune", log.ToString());
-        }
-        else
-        {
-            Assert.Same(before, current); Assert.Equal(first, sent.Count);
-            Assert.Equal((ushort)211, row.Position); Assert.Equal(initialItems, File.ReadAllBytes(itemPath));
-            Assert.Contains("held MsgItemUsage equip rune", log.ToString());
-        }
+            const uint actor = 1_293_600;
+            var before = f.Current(actor); var initial = f.Data.Files();
+            var initialItems = File.ReadAllBytes(f.ItemPath(actor));
+            var initialCharacter = File.ReadAllBytes(f.CharacterPath(actor));
+            Assert.Equal(stack, Assert.Single(before.PlayerItems.RuneItems).StackSize);
+            int first = f.Frames(actor).Count;
+            await f.SendAsync(actor, CreateRuneEquipmentUse(uid, 101, MsgItemUsageAction.EquipRune));
+            var current = f.Current(actor);
+            Assert.Equal(initialCharacter, File.ReadAllBytes(f.CharacterPath(actor)));
+            var row = Assert.Single(current.PlayerItems.RuneItems); Assert.Equal(stack, row.StackSize);
+            Assert.Equal(before.PlayerSpells.Spells, current.PlayerSpells.Spells);
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(current.NativeGameClient!.OrdinarySpellBinding!));
+            Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
+            if (accepted)
+            {
+                Assert.Equal(5, f.Frames(actor).Count - first); Assert.Equal((ushort)101, row.Position);
+                var expected = PlayerItemSnapshotLoader.ToLegacyBytes(before.PlayerItems with
+                    { RuneItems = new[] { Assert.Single(before.PlayerItems.RuneItems).WithPosition(101) } });
+                initial[Path.GetRelativePath(f.Data.Root, f.ItemPath(actor))] = expected;
+                f.Data.AssertFiles(initial);
+                Assert.Equal(stack, Assert.Single(new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(actor).RuneItems).StackSize);
+                Assert.Contains("committed MsgItemUsage equip rune", f.Log.ToString());
+            }
+            else
+            {
+                Assert.Same(before, current); Assert.Equal(first, f.Frames(actor).Count);
+                Assert.Equal((ushort)211, row.Position); Assert.Equal(initialItems, File.ReadAllBytes(f.ItemPath(actor)));
+                f.Data.AssertFiles(initial); Assert.Contains("held MsgItemUsage equip rune", f.Log.ToString());
+            }
+        }, 1_293_600);
     }
 }

@@ -1,23 +1,25 @@
 # Development checklist
 
-Updated2026-10-26. The full English client/server reconstruction remains active.
+Updated2026-10-30. Full English client/server reconstruction remains active.
 
-- [x] Sanitized C#/.NET9 source, updater/launcher tools and synthetic tests published.
-- [x] Last accepted full public Windows sourcef21e2a11: all8stages passed;
-  core26,306passes/165existing exclusions, updater434,launcher57,parsers20+13.
-- [x] Reviewed saved-admission, spell and managed purchase safety corrections have
-  focused component proof; exact wire and complete persisted images stay checked.
-- [x] Real configured saved-state startup and a separate disposable fixture CLI
-  have API/process/command coverage, without inventing account authentication.
-- [x] Downloaded/extracted official patches through7935 privately; added separate
-  known-schema packet/catalog prerequisites with no runtime/default activation.
-- [ ] Run this source successor's exact full Windows integration gate.
-- [ ] Complete native authentication/loader/shared ownership and SQL/load-save joins.
-- [ ] Complete native economy, trade/social/event/housing and remaining gameplay.
-- [ ] Triage actionable CodeFactor findings in behavior-preserving batches.
-- [ ] Verify the current source using the actual client and authorized data.
-- [ ] Finish complete English, portable configuration and a tested full-client feed.
+- [x] Sanitized C#/.NET9 source and updater/launcher tooling published.
+- [x] Prior exact public6cb2babc full Windows41106500544 passed all8 stages:
+  Core31,832/152 existing NotExecuted, Updates446 and Launcher57 passed.
+- [x] Reviewed130-path Rune/item/spell source batch:457 broad passes/4baseline
+  skips, then67/67 corrected Drop controls; zero failures in those passing runs.
+- [x] Real saved/native/Store ownership, exact bytes, UID custody and recovery
+  assertions retained; unknown/permanent spells are not claimed as Rune grants.
+- [ ] Run this successor's exact-public full Windows gate.
+- [ ] Complete Rune Compose/progression/passive effects and remaining resources.
+- [ ] Complete native authentication/loader/shared ownership and SQL/load-save.
+- [ ] Complete economy, trade/social/events/housing and broader durable recovery.
+- [ ] Triage actionable CodeFactor findings without weakening behavior tests.
+- [ ] Verify current source with a controlled actual client when the hold clears.
+- [ ] Finish complete English,7937 runtime/profile activation and full-client feed.
 
-Focused passes, a static grade and an earlier live milestone do not prove the
-current public source is deployed or complete. See [status](RECONSTRUCTION-STATUS.md),
-[validation](../VALIDATION.md) and the unchanged [planning estimate](PARITY.md).
+The separate complete official7937 reference/stage and selected catalog/packet
+codecs do not establish live feature support. Original saves/routes/restore points
+remain preserved; legacy client/updater execution stays on hold.
+
+See [status](RECONSTRUCTION-STATUS.md), [validation](../VALIDATION.md) and the
+unchanged low-confidence [planning estimate](PARITY.md).

@@ -63,6 +63,9 @@ public static partial class WorldPacketHandlers
         if (HasPreparedLegacyRootFirstFamilyInvocation(context, session, spell))
             return RefreshLegacyRootAcceptedOwner(context, owner, ref session) ? session : null;
 
+        if (!LegacyRuneCastEligibility.TryCapture(context, session, spell, out var runeEligibility)) return null;
+        owner.RuneEligibility = runeEligibility;
+
         LegacyGenericMagicAdmissionPlan plan;
         string reason;
         bool prepared;

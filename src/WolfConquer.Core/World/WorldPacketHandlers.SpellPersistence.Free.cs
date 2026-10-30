@@ -14,7 +14,8 @@ public static partial class WorldPacketHandlers
 
     private static bool TryCommitLegacyFreeSpellsCore(WorldPacketHandlerContext context, WorldSession expected,
         PlayerSpellSnapshot proposed, object? expectedIdentity, LegacyShockCasterOwner? expectedCaster,
-        CancellationToken cancellationToken, out WorldSession final, out string reason)
+        CancellationToken cancellationToken, out WorldSession final, out string reason,
+        LegacyRuneSpellClassification? progressionClassification = null)
     {
         final = expected; reason = "spellMutationOwnerUnavailable";
         var result = expected; var failure = reason;
@@ -39,7 +40,8 @@ public static partial class WorldPacketHandlers
             var committed = context.Sessions!.TryCommitSession(context.Connection, expected, changed, () =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!owner.IsCurrent() || !source.IsCurrent() || !inputs.ConsumeCurrentPlain())
+                if (!owner.IsCurrent() || !source.IsCurrent() || !inputs.ConsumeCurrentPlain() ||
+                    progressionClassification is not null && (progressionClassification.IsRuneSkill || !progressionClassification.IsCurrent()))
                 { failure = "spellMutationInputsChanged"; return false; }
                 return spellWrite.TryReplaceSpellsAtomically(out failure);
             }, out var published);
@@ -82,6 +84,6 @@ public static partial class WorldPacketHandlers
     }
 
     private static bool IsSpellMutationPreparationFailure(Exception error) => error is not WorldSessionPublicationException &&
-        error is (IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or
+        error is (IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or NotSupportedException or
             InvalidOperationException or FormatException or OverflowException or System.Security.SecurityException);
 }

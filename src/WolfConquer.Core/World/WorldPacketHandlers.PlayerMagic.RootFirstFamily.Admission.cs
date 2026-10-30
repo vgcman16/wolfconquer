@@ -13,6 +13,7 @@ public static partial class WorldPacketHandlers
         internal object? Identity { get; } = identity;
         internal WorldSessionStore.MagicCostOutputReceipt? CostOutput { get; set; }
         internal LegacyClassicBuffAdmissionRequest? ClassicTarget { get; set; }
+        internal LegacyRuneCastEligibility? RuneEligibility { get; set; }
         // Diagnostics only, never authorization or a reusable admission token.
         internal bool CommitAttempted { get; set; }
         internal bool Committed { get; set; }
@@ -43,6 +44,7 @@ public static partial class WorldPacketHandlers
         LegacyRootAdmissionOwner owner, WorldSession candidate, out WorldSession session)
     {
         session = owner.Expected;
+        if (owner.RuneEligibility is { } rune && !rune.IsCurrentPlain()) return false;
         if (owner.Store is not { } world)
         {
             owner.Committed = true;
@@ -53,7 +55,7 @@ public static partial class WorldPacketHandlers
         // The issued identity and exact record are checked together under the
         // real Store gate. This is not a nested writer inside an identity query.
         var committed = owner.ClassicTarget is { } target ? TryCommitLegacyClassicBuffAdmission(owner, target, candidate, out var output) : world.TryCommitMagicCosts(owner.Connection, owner.Expected,
-            owner.Identity!, candidate, out output);
+            owner.Identity!, candidate, out output, owner.RuneEligibility);
         owner.Committed = committed;
         if (committed) { owner.CostOutput = output; session = output!.Published; }
         return committed;

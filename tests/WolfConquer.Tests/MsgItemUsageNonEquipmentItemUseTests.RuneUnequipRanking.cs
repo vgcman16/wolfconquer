@@ -7,7 +7,7 @@ namespace WolfConquer.Tests;
 public sealed partial class MsgItemUsageNonEquipmentItemUseTests
 {
     [Fact]
-    public async Task HandlerRuneUnequipPublishesStaleRankAfterExistingManagedRefresh()
+    public async Task HandlerRuneUnequipPublishesCommittedRankAfterOwnedTransfer()
     {
         await AssertGuardedRuneUnequipRankingAsync(missingUid: false, activeVendor: false);
     }
@@ -30,14 +30,15 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.False(stopVendor && (!activeVendor || missingUid));
         WriteRuneRankingPlayer(RuneRankPlayerA, targetLevel: 16, material: false);
         WriteRuneRankingPlayer(RuneRankPlayerB, targetLevel: 15, material: false);
+        SetRuneUnequipSpellFixtureClass(RuneRankPlayerA); SetRuneUnequipSpellFixtureClass(RuneRankPlayerB);
         // A's live 10300 is newer than the loaded table, which contains only B10000.
         var catalog = CreateRuneRankingCatalog([RuneRankSeed(RuneRankPlayerB, 10_000)]);
-        using var log = new StringWriter();
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(_usersRoot, _itemsRoot), handoff, catalog, log);
-        var (connectionA, sentA) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerA);
-        var (connectionB, sentB) = await EnterRuneRankingPlayerAsync(handler, handoff, RuneRankPlayerB);
+        await WithOwnedRuneDropAsync(catalog, async f =>
+        {
+        var handler = f.Handler; var log = f.Log;
+        var connectionA = f.Connection(checked((uint)RuneRankPlayerA)); var sentA = f.Frames(checked((uint)RuneRankPlayerA));
+        var connectionB = f.Connection(checked((uint)RuneRankPlayerB)); var sentB = f.Frames(checked((uint)RuneRankPlayerB));
+        string RuneRankingItemsPath(long uid) => Path.Combine(f.Data.Items, uid.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin");
         AssertRuneRankingStartup(sentA, rank: null, score: 10_300);
         AssertRuneRankingStartup(sentB, rank: 1, score: 10_000);
 
@@ -156,8 +157,8 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         Assert.Same(originalSessionB, GetSession(handler, connectionB));
         Assert.Same(originalB, GetSession(handler, connectionB).PlayerItems);
         Assert.Equal(originalBBytes, File.ReadAllBytes(RuneRankingItemsPath(RuneRankPlayerB)));
-        var reloadedA = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerA);
-        var reloadedB = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(RuneRankPlayerB);
+        var reloadedA = new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(RuneRankPlayerA);
+        var reloadedB = new PlayerItemSnapshotLoader(f.Data.Items).LoadByCharacterUid(RuneRankPlayerB);
         Assert.Equal(expectedABytes, PlayerItemSnapshotLoader.ToLegacyBytes(reloadedA));
         Assert.Equal(originalBBytes, PlayerItemSnapshotLoader.ToLegacyBytes(reloadedB));
         if (vendorBlocked)
@@ -193,6 +194,8 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
             Assert.DoesNotContain("persisted MsgItemUsage unequip rune", output);
         }
         Assert.DoesNotContain("PARITY-GAP MsgItemUsage unequip rune", output);
+        Assert.True(f.Store.IsBoundSpellOwnerCurrent(f.Current(checked((uint)RuneRankPlayerA)).NativeGameClient!.OrdinarySpellBinding!));
+        }, checked((uint)RuneRankPlayerA), checked((uint)RuneRankPlayerB));
     }
 
     private static void AssertRuneUnequipManagedRefresh(

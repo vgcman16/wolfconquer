@@ -13,6 +13,8 @@ public sealed partial class WorldSessionStore
         private readonly LegacyOrdinarySpellBinding? binding;
         private readonly object finalIdentity;
         private readonly LegacyNativePlayerRuntime.OwnedHitpointsPublication? hitpoints;
+        private readonly LegacyNativeEquipItemStorage.OwnedAlternatePublication? alternateEquipment;
+        private readonly LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication;
         private LegacyNativePlayerRuntime.OwnedMoneyPublication? money;
         private LegacyNativePlayerRuntime.OwnedCpsPublication? cps;
         private LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication? warehouseMoney;
@@ -31,10 +33,17 @@ public sealed partial class WorldSessionStore
 
         internal PreparedSessionSpellPublication(WorldSessionStore store, ConquerTcpConnection connection,
             SessionHolder holder, WorldSession? expected, WorldSession proposed,
-            WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null, bool deferItems = false)
+            WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null, bool deferItems = false,
+            LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication = null)
         {
             this.store = store; this.connection = connection; this.holder = holder; this.expected = expected;
             this.deferItems = deferItems;
+            this.runePublication = runePublication;
+            if (runePublication is not null)
+            {
+                if (expected is null || caprice is not null || deferItems) throw InvalidSpellPublication();
+                runePublication.RequireCurrent(store, connection, expected, proposed);
+            }
             binding = holder.SpellBinding;
             finalIdentity = expected is not null && expected.AccountId == proposed.AccountId &&
                 expected.Character.Uid == proposed.Character.Uid ? holder.NativeClientIdentity : new object();
@@ -62,6 +71,7 @@ public sealed partial class WorldSessionStore
             try
             {
                 binding.Items.RequireCurrentBeforePreparation();
+                alternateEquipment = LegacyNativeEquipItemStorage.OwnedAlternatePublication.PrepareBound(binding, expected, proposed);
                 map = LegacyNativeSpellStorage.PrepareSessionSnapshot(binding.Client, binding.Player,
                     expected.PlayerSpells, proposed.PlayerSpells);
                 proficiencies = LegacyNativeProficiencyStorage.PrepareSessionSnapshot(binding.Client, binding.Player,
@@ -79,7 +89,7 @@ public sealed partial class WorldSessionStore
                 if (expected.Character.MinHitPoints != final.Character.MinHitPoints ||
                     expected.Character.MinMana != final.Character.MinMana || caprice is not null)
                     HitpointsWrite = (store.framePersistenceOwner ?? throw InvalidSpellPublication())
-                        .PrepareNativeHitpointsWrite(store, connection, binding, expected, final, caprice);
+                        .PrepareNativeHitpointsWrite(store, connection, binding, expected, final, caprice, runePublication);
                 FinalSession = HitpointsWrite?.Proposed ?? final;
                 money = LegacyNativePlayerRuntime.OwnedMoneyPublication.PrepareBound(binding, expected, FinalSession);
                 cps = LegacyNativePlayerRuntime.OwnedCpsPublication.PrepareBound(binding, expected, FinalSession);
@@ -160,7 +170,8 @@ public sealed partial class WorldSessionStore
             proficiencies?.RequireCurrentBeforeWriter();
             items?.RequireCurrentBeforeWriter();
             if (hitpoints is not null && !hitpoints.IsCurrentPlain() || money is not null && !money.IsCurrentPlain() ||
-                cps is not null && !cps.IsCurrentPlain() || warehouseMoney is not null && !warehouseMoney.IsCurrentPlain())
+                cps is not null && !cps.IsCurrentPlain() || warehouseMoney is not null && !warehouseMoney.IsCurrentPlain() ||
+                alternateEquipment is not null && !alternateEquipment.IsCurrentPlain(FinalSession.AlternateEquipmentActive))
                 throw InvalidSpellPublication();
             if (binding is not null && !store.BindingIsCurrentPlain(binding, holder, expected!)) throw InvalidSpellPublication();
         }
@@ -176,7 +187,7 @@ public sealed partial class WorldSessionStore
         internal bool ConsumeBeforeWriterPlain() => ReferenceEquals(holder.Read(), expected) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeBeforeWriterPlain() &&
                 proficiencies!.ConsumeBeforeWriterPlain() && items!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() &&
-                money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() &&
+                money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) &&
                 (HitpointsWrite is null || HitpointsWrite.Inputs.ConsumeBeforePlain()));
 
         // The raw map enumerator was allocated before the writer. Consume it
@@ -184,7 +195,7 @@ public sealed partial class WorldSessionStore
         internal bool IsCurrentPlain() => ReferenceEquals(holder.Read(), expected) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeCurrentPlain() &&
                 proficiencies!.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() &&
-                money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() &&
+                money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) &&
                 (HitpointsWrite is null || HitpointsWrite.IsCommitted && HitpointsWrite.Inputs.ConsumeAfterPlain()));
 
         // Call only after the final plain proof and actual successful writer.
@@ -194,6 +205,7 @@ public sealed partial class WorldSessionStore
             map!.PublishPreparedMap();
             proficiencies!.PublishPreparedMap();
             items!.PublishPrepared();
+            alternateEquipment!.PublishPrepared();
             binding.PublishSnapshots(FinalSession.PlayerSpells, FinalSession.PlayerProficiencies);
             binding.PublishItemSnapshot(FinalSession.PlayerItems);
             hitpoints!.PublishPrepared();
@@ -202,7 +214,8 @@ public sealed partial class WorldSessionStore
             warehouseMoney!.PublishPrepared();
         }
 
-        internal bool AcceptExternallyPersistedHitpoints() => HitpointsWrite is null || HitpointsWrite.RequireExternallyCommitted();
+        internal bool AcceptExternallyPersistedHitpoints() => HitpointsWrite is not null
+            ? HitpointsWrite.RequireExternallyCommitted() : runePublication?.RequireCommittedCharacter() ?? true;
 
         internal void PublishHolder() => holder.PublishPrepared(FinalSession, finalIdentity);
 

@@ -27,7 +27,8 @@ public sealed partial class WorldServerFrameHandlerTests
         private int commitObservations;
         internal WorldDataCatalog WorldData { get; }
 
-        internal OrdinaryLoginFixture(CharacterSnapshotLoader loader, WorldDataCatalog? worldData = null)
+        internal OrdinaryLoginFixture(CharacterSnapshotLoader loader, WorldDataCatalog? worldData = null,
+            Guid? existingDomain = null)
         {
             this.loader = loader;
             roots = LegacyOrdinaryAdmissionRoots.FromLoader(loader);
@@ -49,7 +50,12 @@ public sealed partial class WorldServerFrameHandlerTests
             var options = new LegacyItemUidRegistryOptions(roots.Users, roots.Items!, mailbox,
                 Path.Combine(parent, "RedeemContainer.bin"), Path.Combine(parent, "ClaimContainer.bin"), Floor,
                 "owned synthetic fixture: quiescent historical floor");
-            if (!LegacyItemUidRegistry.TryBootstrap(options, out var actual, out var reason) || actual is null)
+            LegacyItemUidRegistry? actual;
+            string reason;
+            var acquired = existingDomain is { } expectedDomain
+                ? LegacyItemUidRegistry.TryOpen(options, expectedDomain, out actual, out reason)
+                : LegacyItemUidRegistry.TryBootstrap(options, out actual, out reason);
+            if (!acquired || actual is null)
                 throw new InvalidOperationException(reason);
             registry = actual;
             try

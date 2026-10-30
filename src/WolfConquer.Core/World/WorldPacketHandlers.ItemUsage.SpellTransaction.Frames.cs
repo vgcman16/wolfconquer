@@ -31,7 +31,11 @@ public static partial class WorldPacketHandlers
         first.Length == second.Length && first.Where((frame, index) => !frame.AsSpan().SequenceEqual(second[index])).Any() == false;
 
     private static bool ItemSpellProjectionMatches(ItemSpellProjection first, ItemSpellProjection second) =>
-        first.UpdateRank == second.UpdateRank && FullAccountCharacterScalarsEqual(first.Updated.Character, second.Updated.Character) &&
+        first.UpdateRank == second.UpdateRank && RuneOperationsEqual(first.Rune?.Operation, second.Rune?.Operation) &&
+        RuneContainerOperationsEqual(first.Container?.Operation, second.Container?.Operation) &&
+        FullAccountCharacterScalarsEqual(first.Updated.Character, second.Updated.Character) &&
+        FullAccountStoredFieldsMatch(first.Updated.Character.Attributes, second.Updated.Character.Attributes) &&
+        FullAccountStoredFieldsMatch(second.Updated.Character.Attributes, first.Updated.Character.Attributes) &&
         PlayerItemSnapshotLoader.ToLegacyBytes(first.Updated.PlayerItems).AsSpan().SequenceEqual(PlayerItemSnapshotLoader.ToLegacyBytes(second.Updated.PlayerItems)) &&
         first.Updated.PlayerSpells.Spells.SequenceEqual(second.Updated.PlayerSpells.Spells) &&
         ItemSpellFramesEqual(first.Frames, second.Frames) &&

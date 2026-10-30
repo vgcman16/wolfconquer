@@ -6,7 +6,8 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     // Project is a local, deterministic game transition, never a persistence or acceptance callback.
-    private sealed record ItemSpellProjection(WorldSession Updated, byte[][] Frames, byte[][]? Refresh = null, bool UpdateRank = false);
+    private sealed record ItemSpellProjection(WorldSession Updated, byte[][] Frames, byte[][]? Refresh = null,
+        bool UpdateRank = false, LegacyRuneOperationEvidence? Rune = null, LegacyRuneContainerEvidence? Container = null);
 
     private static bool TryCommitLegacyItemSpell(WorldPacketHandlerContext context, WorldSession expected,
         Func<WorldSession, object, ItemSpellProjection> project, CancellationToken cancellationToken,
@@ -35,6 +36,7 @@ public static partial class WorldPacketHandlers
                 if (!LegacyNativeClientPublication.TryCaptureIdentity(context.Sessions!, context.Connection, expected.Character.Uid, out var identity))
                 { reason = "itemSpellOwnerChanged"; return false; }
                 var prepared = project(inputs.Stable, identity);
+                if (prepared.Rune is not null && prepared.Container is not null) throw InvalidSpellMutation();
                 if (!FullAccountCharacterScalarsEqual(prepared.Updated.Character with { MinHitPoints = inputs.Stable.Character.MinHitPoints }, inputs.Stable.Character) ||
                     !LegacyItemSaveGraph.TryCapture(prepared.Updated.PlayerItems, out var afterGraph)) throw InvalidSpellMutation();
                 var candidate = afterGraph.WithOwnedItemsForPersistence(prepared.Updated);
@@ -51,9 +53,12 @@ public static partial class WorldPacketHandlers
                 LegacyTradeJournalChange[]? changes = null;
                 SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>
                 {
-                    changes = PrepareItemSpellImages(inputs, candidate, characterPath, itemPath, spellWrite);
+                    changes = PrepareItemSpellImages(inputs, candidate, characterPath, itemPath, spellWrite,
+                        prepared.Rune?.Operation, prepared.Container?.Operation);
                     return true;
                 });
+                var runePublication = prepared.Rune is not null || prepared.Container is not null
+                    ? spellWrite.PrepareRuneCharacterPublication(candidate, changes!, prepared.Rune, prepared.Container) : null;
                 if (!owner.IsCurrent()) { reason = "itemSpellOwnerChanged"; return false; }
                 inputs.ArmPlainProof();
                 bool Writer()
@@ -66,6 +71,8 @@ public static partial class WorldPacketHandlers
                             cancellationToken.ThrowIfCancellationRequested();
                             if (!owner.IsCurrent() || !owner.Recovery.IsReadyForCharacterItemsSpells(owner.UsersRoot, itemRoot, owner.SpellsRoot) ||
                                 !owner.Recovery.TryRequireLiveJournalClear(out failure) || context.PlayerItemsRoot != itemRoot ||
+                                prepared.Rune is { } rune && !rune.IsCurrent() ||
+                                prepared.Container is { } container && !container.IsCurrent() ||
                                 prepared.Refresh is not null && !ItemSpellFramesEqual(prepared.Refresh, BuildItemSpellRefresh(context, candidate, identity)) ||
                                 !ItemSpellBeforeImagesMatch(paths, changes!) ||
                                 !ItemSpellProjectionMatches(prepared, project(inputs.Stable, identity)))
@@ -75,9 +82,12 @@ public static partial class WorldPacketHandlers
                                 if (context.RuneRankings is not { } ranks) { failure = "itemSpellRankingOwnerChanged"; return false; }
                                 rankLease = ranks.PrepareUpdate(candidate.Character, candidate.PlayerItems);
                             }
-                            if (rankLease is not null && !rankLease.IsCurrentPlain() || !inputs.ConsumeCurrentPlain())
+                            if (rankLease is not null && !rankLease.IsCurrentPlain() || !inputs.ConsumeCurrentPlain() ||
+                                prepared.Rune is { } finalRune && !finalRune.IsCurrent() ||
+                                prepared.Container is { } finalContainer && !finalContainer.IsCurrent())
                             { failure = "itemSpellBeforeImageChanged"; return false; }
-                            if (!spellWrite.TryCommitCharacterItemsSpells(itemRoot, changes!, out failure))
+                            if (!spellWrite.TryCommitCharacterItemsSpells(itemRoot, changes!, out failure,
+                                    context.ItemSpellJournalInterruption, prepared.Rune?.Operation, prepared.Container?.Operation, runePublication))
                             {
                                 if (failure.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal)) owner.Recovery.Block(failure);
                                 return false;
@@ -89,7 +99,10 @@ public static partial class WorldPacketHandlers
                     lock (native.SpellAdmissionSyncRoot)
                     lock (owner.Player!.SpellAdmissionSyncRoot) return Locked();
                 }
-                bool committed = context.Sessions!.TryCommitSession(context.Connection, expected, candidate, Writer, out var published);
+                WorldSession? published;
+                bool committed = runePublication is null
+                    ? context.Sessions!.TryCommitSession(context.Connection, expected, candidate, Writer, out published)
+                    : context.Sessions!.TryCommitRuneItemSpellSession(context.Connection, expected, candidate, runePublication, Writer, out published);
                 if (!committed) { reason = failure; return false; }
                 if (published is null) { owner.Recovery.Block("ordinarySpellRecoveryRequired:itemSpellPublicationUnproven"); throw new LegacyCommittedSpellPublicationException(); }
                 rankLease?.Publish();

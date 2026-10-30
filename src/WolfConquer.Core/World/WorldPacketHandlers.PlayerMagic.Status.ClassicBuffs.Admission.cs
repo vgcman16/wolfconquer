@@ -57,7 +57,7 @@ public static partial class WorldPacketHandlers
         out WorldSessionStore.MagicCostOutputReceipt? output)
     {
         return owner.Store!.TryCommitClassicBuffCosts(owner.Connection, owner.Expected, owner.Identity!, candidate,
-            target.Peer, target.Monster, out output, out var reason) ? true : Refused(target, reason);
+            target.Peer, target.Monster, out output, out var reason, owner.RuneEligibility) ? true : Refused(target, reason);
     }
 
     private static bool Refused(LegacyClassicBuffAdmissionRequest target, string reason)

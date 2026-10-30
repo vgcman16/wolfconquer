@@ -20,6 +20,17 @@ public static partial class WorldPacketHandlers
         }
         if (capturedOwner is not null && !capturedOwner.IsCurrent(context, session)) return session;
 
+        // Original UpdateSpell checks the actual ID00 IsRuneSkill metadata
+        // before changing spell XP. Keep Rune-origin grants at their exact row;
+        // a later unequip refusal is too late to protect that invariant.
+        if (spell.IsRuneSkill == true) return session;
+        LegacyRuneSpellClassification? classification = null;
+        if (LegacyRuneSpellClassification.TryCapture(worldData, spell.Id, out classification))
+        {
+            if (classification!.IsRuneSkill || !classification.IsCurrent()) return session;
+        }
+        else if (LegacyRuneSpellClassification.HasExplicitEntry(worldData, spell.Id)) return session;
+
         var availableLevelCount = worldData.MagicByTypeId.TryGetValue(spell.Id, out var rows)
             ? rows.Count
             : 0;
@@ -30,7 +41,8 @@ public static partial class WorldPacketHandlers
             damageForExperience,
             experienceRate: 1,
             availableLevelCount,
-            CheckedInt32(session.Character.Level, nameof(session.Character.Level)));
+            CheckedInt32(session.Character.Level, nameof(session.Character.Level)),
+            isRuneSkill: classification?.IsRuneSkill == true);
         if (!result.Updated)
         {
             return session;
@@ -61,7 +73,7 @@ public static partial class WorldPacketHandlers
 
         if (!TryCommitLegacyFreeSpellsCore(context, session, updatedSession.PlayerSpells,
                 capturedOwner?.Identity, capturedOwner, cancellationToken,
-                out updatedSession, out var reason))
+                out updatedSession, out var reason, classification))
         {
             await context.Log.WriteLineAsync("WorldServer refused spell experience persistence before commitment; spell unchanged. reason=" + reason)
                 .ConfigureAwait(false);

@@ -12,6 +12,8 @@ public static partial class WorldPacketHandlers
         if (!TryCaptureLegacyRootAdmissionOwner(
                 context, session, expectedNativeClientIdentity, out var owner)) return null;
         session = owner.Expected;
+        if (!LegacyRuneCastEligibility.TryCapture(context, session, spell, out var runeEligibility)) return null;
+        owner.RuneEligibility = runeEligibility;
         LegacyRootPreparedCosts plan = null!;
         string reason;
         bool prepared;

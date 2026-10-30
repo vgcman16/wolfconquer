@@ -19,7 +19,9 @@ internal static class NativeCallerWorldDataFixture
         IReadOnlyList<MagicTypeOperationEntry>? magicTypeOperations = null,
         IReadOnlyList<ClientConfigRecord>? clientConfigs = null,
         IReadOnlyList<PrestigeRankEntry>? prestigeRanks = null, IReadOnlyList<MagicType>? magic = null,
-        IReadOnlyList<TransformInfo>? transformInfo = null)
+        IReadOnlyList<TransformInfo>? transformInfo = null,
+        IReadOnlyList<BeastAttribute>? beastAttributes = null, IReadOnlyList<MagicEffect>? magicEffects = null,
+        IReadOnlyList<RuneRankingRecord>? runeRankings = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -49,7 +51,7 @@ internal static class NativeCallerWorldDataFixture
             christmasNpcs: [],
             tutorTypes: [],
             tutorBattleLimitTypes: [],
-            beastAttributes: [],
+            beastAttributes: beastAttributes ?? [],
             fateExperience: [],
             spiritRates: [],
             hundredWeapons: [],
@@ -86,7 +88,7 @@ internal static class NativeCallerWorldDataFixture
             combatGearRanks: [],
             prestigeRanks: prestigeRanks ?? [],
             innerPowerRanks: [],
-            runeRankings: [],
+            runeRankings: runeRankings ?? [],
             staticStatues: [],
             newPlayerRewards: [],
             votes: [],
@@ -103,7 +105,7 @@ internal static class NativeCallerWorldDataFixture
             questMissions: [],
             quizQuestions: [],
             magic: magic ?? [],
-            magicEffects: [],
+            magicEffects: magicEffects ?? [],
             magicTypeOperations: magicTypeOperations ?? [],
             titleTypes: [],
             combatGear: [],

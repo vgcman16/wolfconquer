@@ -28,7 +28,9 @@ public sealed partial class LegacyOrdinarySpellCallerTests
     {
         await WorldServerFrameHandlerTests.WithNativeItemSpellCallerAsync(rune, async f =>
         {
-            await f.Login(); var before = f.Current; CheckItemNative(f);
+            await f.Login();
+            if (rune) await f.EstablishOwnedRuneOriginAsync();
+            var before = f.Current; CheckItemNative(f);
             Assert.True(f.Recovery.IsReadyForCharacterItemsSpells(f.Users, f.Items, f.Spells));
             byte[] oldCharacter = File.ReadAllBytes(f.CharacterPath), oldSpells = File.ReadAllBytes(f.SpellsPath);
             int first = f.Sent.Count; bool firstObserved = false;
@@ -48,6 +50,7 @@ public sealed partial class LegacyOrdinarySpellCallerTests
                 {
                     Assert.Equal((ushort)212, Assert.Single(itemDisk.RuneItems, x => x.Uid == ItemFixture.ItemUid).Position);
                     Assert.DoesNotContain(spellDisk.Spells, s => s.Id == 14160);
+                    Assert.Equal("", characterDisk.Attributes["ManagedRuneSpellOrigins"]);
                     var ranking = Assert.IsType<LegacyRuneRankingState>(typeof(WorldServerFrameHandler)
                         .GetField("_runeRankings", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(f.Handler));
                     Assert.Equal(10600U, Assert.Single(ranking.Snapshot(), row => row.CharacterUid == ItemFixture.Uid).Score);
@@ -66,7 +69,8 @@ public sealed partial class LegacyOrdinarySpellCallerTests
                 Assert.Equal((ushort)212, Assert.Single(after.PlayerItems.RuneItems, x => x.Uid == ItemFixture.ItemUid).Position);
                 Assert.Equal((ushort)212, Assert.Single(persistedItems.RuneItems, x => x.Uid == ItemFixture.ItemUid).Position);
                 Assert.DoesNotContain(after.PlayerSpells.Spells, s => s.Id == 14160);
-                Assert.Equal(Convert.FromHexString("01000000").Concat(oldSpells.Skip(16)).ToArray(), File.ReadAllBytes(f.SpellsPath));
+                Assert.Equal(Convert.FromHexString("01000000").Concat(oldSpells.Skip(4).Take(12)).ToArray(), File.ReadAllBytes(f.SpellsPath));
+                Assert.Equal("", after.Character.Attributes["ManagedRuneSpellOrigins"]);
                 Assert.True(MsgActionPacket.TryParse(Frame(f.Sent[first]), out var removal));
                 Assert.Equal((MsgActionType)109, removal.Type); Assert.Equal(14160U, removal.DwParam);
                 Assert.Equal(RuneRequest(), f.Sent[first + 1]);
@@ -84,7 +88,7 @@ public sealed partial class LegacyOrdinarySpellCallerTests
             Assert.Equal(0xA5, File.ReadAllBytes(f.SpellsPath)[15]);
             if (!rune) Assert.Equal(oldCharacter, File.ReadAllBytes(f.CharacterPath));
             Assert.True(f.Sent.Count > first + 1);
-        });
+        }, ownedRuneOrigin: rune);
     }
 
     [Theory]
