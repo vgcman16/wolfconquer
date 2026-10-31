@@ -27,7 +27,7 @@
       "id": "persistence",
       "title": "Shared player, items and persistence",
       "status": "partial",
-      "implemented": "Selected storage/mailbox/Trade/booth/equipment/learning/consumables use owned saved transactions. Owned Rune composition, chance and decomposition retain exact complete images, real reward UID issuance and captured recovery. New creator v19 and known completed-history joins survive later gameplay without repeat starter grants; finished/EOF references retire without forgiving issued debt. The first 1,858-case run retained 1,809 passes / 49 fixture failures; corrected 81 creator controls pass after test-only fixes. Exact-public full gate, direct RuneBag, remaining producers, native graph and SQL remain open.",
+      "implemented": "Selected storage/mail/Trade/booth/equipment and learning use owned saves. Rune compose/chance/decompose retain full images, registered UIDs and recovery. Creator v19 and completed history allow later gameplay while denying repeat starter grants; EOF cleanup preserves debt. First run: 1,809 passed / 49 fixture failures; corrected 81 creator controls passed. Full public CI, RuneBag, remaining producers, native graph and SQL remain open.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
