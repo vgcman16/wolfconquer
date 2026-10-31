@@ -18,6 +18,7 @@ public sealed partial class RemainingXpAdmissionOwnedTests
     {
         var binding = Assert.IsType<LegacyOrdinarySpellBinding>(f.Current().NativeGameClient!.OrdinarySpellBinding);
         Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); Assert.False(binding.IsRetired);
+        Assert.Equal(LegacyStaminaState.RequireCurrent(f.Current().Character), binding.Player.Stamina);
         Assert.False(f.Recovery.IsBlocked); return binding;
     }
     private static void Unchanged(OwnedEquipmentBehaviorFixture f, WorldSession actor, WorldSession peer,

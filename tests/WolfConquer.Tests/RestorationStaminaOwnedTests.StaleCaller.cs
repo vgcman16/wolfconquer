@@ -17,37 +17,46 @@ public sealed partial class RestorationStaminaOwnedTests
     [InlineData((ushort)11960, false)]
     [InlineData((ushort)12890, true)]
     [InlineData((ushort)12890, false)]
-    public Task RestorationStaminaActualAdmissionOwnerRefusesInvalidCurrentDespiteValidRetainedCaller(
+    public Task RestorationStaminaRejectsMalformedReplacementAndUsesTheLegitimateCurrentMaximumInsteadOfItsRetainedCaller(
         ushort id, bool callerOmnipotence) => F.RestorationStaminaRun(id, "93", false, callerOmnipotence, 0, 7, async f =>
         {
             var caller = f.Current(); var binding = Owner(f);
-            RestorationStaminaPublishCurrent(f, "not-a-number", id == 12890 ? true : null);
+            var before = f.Data.Files();
+            Assert.Throws<InvalidOperationException>(() => RestorationStaminaPublishCurrent(f, "not-a-number", id == 12890 ? true : null));
+            Assert.Same(caller, f.Current()); Assert.Equal((ushort)93, binding.Player.Stamina); f.Data.AssertFiles(before);
+            RestorationStaminaPublishCurrent(f, "65535", id == 12890 ? true : null);
             var expected = f.Current(); Assert.NotSame(caller, expected);
             Assert.Equal("93", caller.Character.Attributes["Stamina"]);
-            Assert.Equal("not-a-number", expected.Character.Attributes["Stamina"]);
+            Assert.Equal("65535", expected.Character.Attributes["Stamina"]); Assert.Equal(ushort.MaxValue, binding.Player.Stamina);
             if (id == 12890 && !callerOmnipotence)
             {
                 Assert.False(caller.Character.Attributes.ContainsKey("StatusFlags"));
                 Assert.Equal(RestorationStaminaOmnipotence, expected.Character.Attributes["StatusFlags"]);
             }
-            var files = f.Data.Files(); var start = f.ActorFrames.Count;
+            f.Data.AssertFiles(before); var start = f.ActorFrames.Count;
 
             Assert.True(await RestorationStaminaInvokeRetainedHandler(f, caller, id));
 
-            Assert.Same(expected, f.Current()); Assert.Same(binding, Owner(f));
-            Assert.Equal(500L, f.Current().Character.MinMana); Assert.Equal(500U, binding.Player.Mana);
-            Assert.Equal(500L, Saved(f).MinMana); Assert.Null(f.Current().MagicCooldowns);
-            Assert.Equal(start, f.ActorFrames.Count); f.Data.AssertFiles(files);
-            Assert.Equal(0, Assert.Single(f.Current().PlayerSpells.Spells, row => row.Id == id).Experience);
-            Assert.Contains("requiredStaminaInvalidBeforeAdmission", f.Log.ToString(), StringComparison.Ordinal);
+            Assert.Same(binding, Owner(f)); Assert.Equal("65535", f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal(ushort.MaxValue, binding.Player.Stamina);
+            Assert.Equal(493L, f.Current().Character.MinMana); Assert.Equal(493U, binding.Player.Mana);
+            Assert.Equal(493L, Saved(f).MinMana); Assert.True(f.Current().MagicCooldowns!.ContainsKey(id));
+            Assert.Equal(new[] { (LegacyMsgUpdateDataType.Mana, 493UL) }, Resources(f, start));
+            Assert.Single(f.ActorFrames.Skip(start), bytes => LegacySpellAnimationPacket.TryParse(
+                OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var animation) && animation.SpellId == id);
             Assert.DoesNotContain("restoration after accepted admission", f.Log.ToString(), StringComparison.Ordinal);
             Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
         });
 
     [Theory]
     [InlineData((ushort)11960)] [InlineData((ushort)12890)]
-    public Task RestorationStaminaValidCurrentOwnerIsNotVetoedByAnInvalidRetainedCaller(ushort id) =>
-        F.RestorationStaminaRun(id, "not-a-number", false, id == 12890, 0, 7, async f =>
+    public Task RestorationStaminaMalformedSavedCallerNeverObtainsABindingForALaterReplacement(ushort id) =>
+        F.RestorationStaminaRejected(id, "not-a-number", omnipotence: id == 12890);
+
+    [Theory]
+    [InlineData((ushort)11960)] [InlineData((ushort)12890)]
+    public Task RestorationStaminaValidCurrentOwnerIsNotVetoedByAGenuinelyAdmittedRetainedZeroBalanceCaller(ushort id) =>
+        F.RestorationStaminaRun(id, "0", false, id == 12890, 0, 7, async f =>
         {
             var caller = f.Current(); RestorationStaminaPublishCurrent(f, "93", null);
             var start = f.ActorFrames.Count;
@@ -56,7 +65,8 @@ public sealed partial class RestorationStaminaOwnedTests
 
             var expected = id == 11960 ? 100UL : 103UL;
             Assert.Equal(expected.ToString(System.Globalization.CultureInfo.InvariantCulture), f.Current().Character.Attributes["Stamina"]);
-            Assert.Equal("not-a-number", caller.Character.Attributes["Stamina"]);
+            Assert.Equal("0", caller.Character.Attributes["Stamina"]);
+            Assert.Equal(checked((ushort)expected), Owner(f).Player.Stamina);
             Assert.Equal(493L, f.Current().Character.MinMana); Assert.Equal(493L, Saved(f).MinMana); Owner(f);
             Assert.Equal(new[] { (LegacyMsgUpdateDataType.Mana, 493UL), (LegacyMsgUpdateDataType.Stamina, expected) }, Resources(f, start));
             Assert.Single(f.ActorFrames.Skip(start), bytes => LegacySpellAnimationPacket.TryParse(
@@ -65,17 +75,21 @@ public sealed partial class RestorationStaminaOwnedTests
         });
 
     [Fact]
-    public Task RestorationStaminaCurrentOmnipotenceRemovalKeepsUnusedMalformedStateOptional() =>
-        F.RestorationStaminaRun(12890, "not-a-number", false, true, 0, 7, async f =>
+    public Task RestorationStaminaMalformedOmnipotenceSavedInputCannotObtainAnOwnerForAnUnusedRefill() =>
+        F.RestorationStaminaRejected(12890, "not-a-number", omnipotence: true);
+
+    [Fact]
+    public Task RestorationStaminaActualOmnipotenceRemovalKeepsGenuineNativeZeroWithoutARefill() =>
+        F.RestorationStaminaRun(12890, "0", false, true, 0, 7, async f =>
         {
             var caller = f.Current(); Assert.Equal(RestorationStaminaOmnipotence, caller.Character.Attributes["StatusFlags"]);
-            RestorationStaminaPublishCurrent(f, "not-a-number", false);
+            RestorationStaminaPublishCurrent(f, "0", false);
             Assert.False(f.Current().Character.Attributes.ContainsKey("StatusFlags"));
             var start = f.ActorFrames.Count;
 
             Assert.True(await RestorationStaminaInvokeRetainedHandler(f, caller, 12890));
 
-            Assert.Equal("not-a-number", f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal("0", f.Current().Character.Attributes["Stamina"]); Assert.Equal((ushort)0, Owner(f).Player.Stamina);
             Assert.Equal(493L, f.Current().Character.MinMana); Assert.Equal(493L, Saved(f).MinMana); Owner(f);
             Assert.Equal(new[] { (LegacyMsgUpdateDataType.Mana, 493UL) }, Resources(f, start));
             Assert.Single(f.ActorFrames.Skip(start), bytes => LegacySpellAnimationPacket.TryParse(

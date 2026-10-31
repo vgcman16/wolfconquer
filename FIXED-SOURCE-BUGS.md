@@ -4,6 +4,64 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Open full-gate stamina repair - 2026-10-31
+
+### FSB-261: Scope native stamina parsing and retain truthful admission fixtures
+
+Bounded offline repair qualified; new exact-public full gate remains pending.
+Actual publicb8 replacement full run
+41234349476 ended with32700CorePassed/88Failed/152existingNotExecuted,
+Updates446Passed; restore/build passed and later stages were not reached.
+Actual receipt/logs/TRXs and six complete managed outputs are preserved.
+
+The stamina native witness incorrectly case-folded EVERY Character key and
+refused unrelated case-distinct DynamicID/TestMarker rows. It now uniquely
+validates Stamina while preserving all other raw rows and the actual supported
+BCL comparer. Every raw value remains witnessed; complete-file persistence
+retains its stricter ambiguity checks. Unsupported/split-index wrapper backings
+still refuse before writes; actual known-BCL repair/bank positives remain.
+
+Older tests also assumed malformed/UInt64 stamina could survive native admission,
+accepted invalid Store publications, or used100/150 fallback for true absence.
+Their original invalid inputs are retained as genuine cold-admission refusals,
+with actual valid counterpart ownership and all saved files retained. Valid
+UInt16, native-zero absence, actual cast/resource/wire and recovery coverage
+must remain. These migrations are not new gameplay feature implementation.
+
+Current source is isolated in `.artifacts/root-stamina-full-repair-next`.
+Corebuild01 passed0errors/59existingwarnings. Combined testsBuild01 passed
+0errors/157historicalwarnings, none on changed paths. Focused01 passed3364/3364
+across13 complete affected/neighbor families,0failed/0skipped (7m12). It includes
+all repaired families plus independent native/slot/foreign-source/zero/max controls.
+Original full88 failures remain. Full exact-public qualification and deployment,
+SQL, live-client or7937 acceptance do not follow from this focused result.
+
+### FSB-262: Rebuild captured gear without granting stale completion
+
+Bounded offline correction, included in3364/3364 focused results. Actual full
+b8 DirectQueryCapturedAlternate failed
+its original maximumHP100000 oracle with0. The real AppendItems callback toggled
+from captured alternate gear to normal before stats. New epoch admission wrongly
+required current selection to equal that intentionally captured source, aborting
+after prefix maximum reset. The repaired begin retains actual UID/account/native
+identity, class and shield-spell membership while permitting captured gear
+computation. WindWalker/Monk completion still needs exact current gear and slot
+fields; changed selection cannot mint a fresh completed capability. Independent
+100000/60/50 oracles remain; component probes do not fabricate admitted owners.
+
+### FSB-263: Reject unfunded Caprice before preparing its transfer cooldown
+
+Bounded offline correction, included in3364/3364 focused results. Native
+admission absence0 exposed a retained source
+ordering defect: target stamina below20 could refuse transfer AFTER preparing
+the actor cooldown. The complete stamina-branch funds, arithmetic and actual
+attached native-width validation now precede that stamp. Valid40/80 transfers
+retain exact60/60 replies and durable pair semantics. Independent XP/chance
+rules remain separate; inert unbound arithmetic is not native-owner authority.
+Genuine zero-funds,65515→65535 success and65516/65535 gain-overflow controls
+passed alongside actual outer damage/mana and exact native/saved/stamp assertions.
+The new full public gate, deployment and live acceptance remain separate.
+
 ## Owned stamina qualification - 2026-10-31
 
 ### FSB-259: Join native stamina and commit regeneration before resource replies
@@ -26,7 +84,7 @@ Root's isolated151-path candidate built with0errors/no changed-path warnings.
 Stamina02 passed75/75 (67new/eight migrated), zero skips. Wider neighbors01 retained
 1,260Passed/20Failed; all20 were older tests requiring malformed-input admission,
 absent100/150 fallback or UInt64 funds beyond native width. Four test-only paths
-retain all24 original inputs and add two real65535→65525 positives. Admission02
+retain all24 original inputs and add two real65535â†’65525 positives. Admission02
 passed26/26, zero skips, with real earlier-gate refusal, actual valid-peer retention,
 native0 absence, current/native/saved funds and independent wire goldens. Original
 red receipts remain; sets overlap and no single combined green is claimed.
@@ -59,7 +117,7 @@ typed receipt without regrant. HP and Character stay unchanged by the bag move.
 The subsequent actual equipment query/rank is a separate committed phase.
 
 Actual evidence includes all59 owned bag,34 pure planner and one signed
-creator→bag-v6→decomposition/recovery outcome, plus retained neighbors. Four
+creatorâ†’bag-v6â†’decomposition/recovery outcome, plus retained neighbors. Four
 phase fixtures needed complete declared Character input; the creator observer
 now validates real peer spawns as well as self output. Production parsing was
 not relaxed. Full SQL, power-loss, protected native authentication and live
@@ -76,7 +134,7 @@ uses the same configured clock as ordinary death, and three revive Store writers
 retain their canonical out-result for later spawn publication.
 
 All34 authored controls passed, including genuine query/equipment, expiry,
-transport/EOF and death-publication→delayed-revive paths. Corrected independent
+transport/EOF and death-publicationâ†’delayed-revive paths. Corrected independent
 49/51-byte goldens retain FineRain; raw equipment saves retain physical order and
 every unrelated byte while complete logical rows match managed/native snapshots.
 No production ordering was changed to satisfy an oracle. This does not prove
@@ -417,7 +475,7 @@ Candidate source qualification for FSB-204 through FSB-225: Release build06 pass
 
 Earlier FSB-200 through FSB-203 were included in the separately verified full Windows gate 40958745483 on source731d8e54 / generated91040398: Core30175 passed/152 existing NotExecuted, Updates446 and Launcher57, zero failures. The new FSB-204..225 public-commit full gate remains pending.
 
-## Currency and CI qualification — 2026-10-30
+## Currency and CI qualification â€” 2026-10-30
 
 This note supersedes older pending full-gate labels. Actual Windows run
 41082514020 on a17e03c4 failed: Core31,396 passed /4 failed /152 existing skips;
@@ -750,7 +808,7 @@ labels in this spec/entry without expanding the verification scope.
 - **Limits:** helper ran no build/test/native/live/process/SQL/Git and changed no Root candidate/transport or packet owner. Real Send may filter/swallow failures, so no all-output delivery or rollback claim. Observable errors after commitment are PipeItemPublicationException, not uncommitted refusal. Actual item monitor/bounded revalidation require cooperating writers and exclusive packet/transport lifetime; arbitrary public-field/array/socket/seal changes and ABA are not atomically fenced. No SQL, crash-safe queue, full Pipe lifecycle or live client/new-patch acceptance claim.
 - **Spec:** docs/protocol/specs/server-native-pipe-item-preparation.md.
 
-## FSB-224 — Native sends trust unbounded storage and mutate rejected byte frames/cipher state
+## FSB-224 â€” Native sends trust unbounded storage and mutate rejected byte frames/cipher state
 
 Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
 Base91040398 plus captured147 Root overlays. Current Packet(byte[]) already
@@ -930,7 +988,7 @@ post-commit delivery remain unproved; source rechecks are not a transaction
 certificate. Native handlers remain unactivated; no new7937/full parity claim.
 Spec: [server-native-item-warehouse-preparation](docs/protocol/specs/server-native-item-warehouse-preparation.md).
 
-## FSB-218 — Message and Ninja protobuf getters publish replacement owners before decode succeeds
+## FSB-218 â€” Message and Ninja protobuf getters publish replacement owners before decode succeeds
 
 Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
 Base91040398 plus the captured73-path Root source. Scope is MsgMessage.Deserialize,
@@ -1028,7 +1086,7 @@ proof. Generic/public packet lifetime concurrency limits remain. No receiver
 activation, transport, gameplay/SQL, client7937 acceptance or full parity proof.
 Spec: [server-native-protobuf-model-publication](docs/protocol/specs/server-native-protobuf-model-publication.md).
 
-## FSB-215 — Native Mail codecs allocate from unbounded counts and publish partial frames
+## FSB-215 â€” Native Mail codecs allocate from unbounded counts and publish partial frames
 
 Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
 Base91040398 plus captured70 Root overlays and existing shared packet APIs.
@@ -1066,7 +1124,7 @@ are inferred. Other Mail/roulette defects remain OPEN. Root must review/compose
 and run actual managed qualification; no live/client7937/full-parity proof follows.
 See `docs/protocol/specs/server-native-mail-codec-preparation.md`.
 
-## FSB-214 — Message-box responses replay throwing callbacks and erase replacement state
+## FSB-214 â€” Message-box responses replay throwing callbacks and erase replacement state
 
 Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
 Base public91040398 plus the captured70-path Root packet candidate. Only the native
@@ -1213,7 +1271,7 @@ guarantee. Other codecs/builders, transport, gameplay state, SQL, 7937/client
 acceptance and full parity are not qualified by this source package.
 Spec: [server-native-codec-read-publication](docs/protocol/specs/server-native-codec-read-publication.md).
 
-## FSB-210 — Native Clan codecs publish partial frames and caller outputs on failure
+## FSB-210 â€” Native Clan codecs publish partial frames and caller outputs on failure
 
 Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
 Baseline public91040398 plus the captured40-path Root candidate; shared Packet
@@ -1248,11 +1306,11 @@ or crash-safe transaction proof. Transport/client/7937 gameplay, SQL/persistence
 other packet codecs and full parity remain separate. See
 `docs/protocol/specs/server-native-clan-codec-preparation.md` and the helper handoff.
 
-## FSB-209 — prepared native StringPacket and whole-codec failure safety
+## FSB-209 â€” prepared native StringPacket and whole-codec failure safety
 
 **Status: implemented in isolated source; Root managed qualification pending.**
 
-- Source: decompiled `GameServer/MrRayzo.Game.MsgServer/MsgBuilder.cs:2790–2821`
+- Source: decompiled `GameServer/MrRayzo.Game.MsgServer/MsgBuilder.cs:2790â€“2821`
   and `World/LegacyNativeStringPacket.cs`. The former publishes a new reader model
   before its first read; the latter retained partial fields/cursor on later parse
   failure and reset/wrote the target prefix before a null or oversized builder
@@ -1279,7 +1337,7 @@ other packet codecs and full parity remain separate. See
 
 Spec: `docs/protocol/specs/server-native-prepared-string-codec.md`.
 
-## FSB-208 — Native packet reads ignore actual input bounds and fabricate missing fields
+## FSB-208 â€” Native packet reads ignore actual input bounds and fabricate missing fields
 
 Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
 Base public731d8e54/generated91040398 plus the24 reviewed FSB-204..207 paths.
@@ -1315,7 +1373,7 @@ output remain OPEN, separate defects. Their tests do not require particular dirt
 prefix bytes as successful behavior. No new profile, live transport,7937 login or
 full parity follows. See `docs/protocol/specs/server-native-packet-physical-read-bounds.md`.
 
-## FSB-207 — Native packet writes ignore real storage and can partially publish frames
+## FSB-207 â€” Native packet writes ignore real storage and can partially publish frames
 
 Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
 Baseline public 731d8e54 / generated 91040398. Locations:
@@ -1376,7 +1434,7 @@ bounded frame owner (FSB-205 separately owns TradeInfo), validate every native p
 change schemas or establish live acceptance. See
 `docs/protocol/specs/server-native-protobuf-bounds.md` and the owned helper handoff.
 
-## FSB-205 — Native TradeInfo unchecked copy exceeds its packet allocation
+## FSB-205 â€” Native TradeInfo unchecked copy exceeds its packet allocation
 
 Status: corrected candidate source, unbuilt/unexecuted; Root qualification pending.
 Baseline public 731d8e54 / generated 91040398. Location:
@@ -2535,7 +2593,7 @@ reissue, a legitimate same-issuance change and postcommit sender loss. Other
 retaliation branches, nested helpers, proficiency/final-animation internals,
 whole-cast atomicity, SQL and live client acceptance remain OPEN.
 
-## Native spell/proficiency integration — focused qualification
+## Native spell/proficiency integration â€” focused qualification
 
 2026-10-28: isolated clean-public-base candidate **2405 passed, zero failures,
 two existing skipped teleport cases**. Final opened-file refinement **81 passed,
@@ -2593,7 +2651,7 @@ bug-preserving tests now enforce safe invariants and positive numerical/goldens.
 independently calculated widened remainders. **Boundary:** every progression
 rule, wider cast transactions and live gameplay remain unproven.
 
-## FullAccount class-reset transaction — focused qualification
+## FullAccount class-reset transaction â€” focused qualification
 
 ### FSB-158: Class reset saved before current ownership and erased untouched spell bytes
 
@@ -2624,9 +2682,9 @@ equipment adoption, other producers and live acceptance remain open. Exact publi
 164 existing NotExecuted, Updater 434, Launcher 57, synthetic parsers 20+13;
 all eight steps exited 0. This remains source evidence within the stated limits.
 
-## Ordinary physical identity and persistence — focused qualification
+## Ordinary physical identity and persistence â€” focused qualification
 
-FSB-154–157 share the same focused batch qualification; these are not four
+FSB-154â€“157 share the same focused batch qualification; these are not four
 independent runs. Public corrected: **524/524 passed, zero failures/skips**.
 Private corrected: **524/524 passed, zero failures/skips**. Exact-public full
 Windows40569779073 on source8e8ff83f completed SUCCESS: Core28,974 passed/164
@@ -2722,7 +2780,7 @@ errors, other learning producers and native/session spell authority remain open.
 
 ## Ninja and spell component safety
 
-FSB-147–153 share one focused public qualification: **1,082 passed, zero failures
+FSB-147â€“153 share one focused public qualification: **1,082 passed, zero failures
 or skips**, comprising 1,067 Ninja/caller cases plus 15 LocalDevelopmentTools cases.
 Private v2 passed the same **1,067 common Ninja cases**, zero failures/skips.
 All 814 public baseline names remain; that tests-only baseline was 279 failed /
@@ -2898,9 +2956,9 @@ other diagnostics are not retroactively sanitized. See
 
 ## Current target-class qualification
 
-Nine production files and37 test files correct confirmed target stages52–57 in
+Nine production files and37 test files correct confirmed target stages52â€“57 in
 shared class/stat selection, HP/mana, guild permission queries, configured boss
-package rewards and Trojan-lineage login spells (FSB-141–145). Public and private
+package rewards and Trojan-lineage login spells (FSB-141â€“145). Public and private
 focused selections each pass **2,006/2,006**, zero failures/skips. Every exact
 public baseline name is retained; that baseline was335 failures/1,671 passes.
 See [the qualification guide](docs/JOB-FAMILY-TARGET-QUALIFICATION.md) for actual
@@ -2916,7 +2974,7 @@ acceptance, full English, SQL ownership, distribution or full-parity claim follo
 **Source:** `LegacyNativeAtributesStatus.JobFamilies.cs` and
 `LegacyNativeAtributesStatus.State.cs` PositionArray.
 
-**Defect:** family cutoffs at suffix 51 rejected confirmed target stages 52–57;
+**Defect:** family cutoffs at suffix 51 rejected confirmed target stages 52â€“57;
 duplicated stat selectors could route them to fallback despite corrected callers.
 
 **Correction:** extend the eleven existing families through confirmed suffix 57
@@ -2925,7 +2983,7 @@ keys, fallback, broad Taoist compatibility and the separate Lee 8049 gate. No
 mapping or permission is invented for unmodeled jobs.
 
 **Verification:** shared public baseline 335 failed/1,671 passed/0 skipped;
-corrected 2,006/2,006, retaining every exact baseline name. Private selection40466 also passed2,006/2,006, zero failures/skips. This shared result also supports FSB-142–145; it is not five separate
+corrected 2,006/2,006, retaining every exact baseline name. Private selection40466 also passed2,006/2,006, zero failures/skips. This shared result also supports FSB-142â€“145; it is not five separate
 2,006-case runs. State table APIs have direct coverage, without a production
 adoption claim. Other direct bounds and the byte-class InfoStr defect remain open.
 
@@ -2952,7 +3010,7 @@ claimed.
 **Source:** `LegacyNativeGuildRuntime.AdmissionPolicy.cs` Profession.
 
 **Defect:** a guild carrying the correct existing class bit still rejected
-confirmed stages 52–57 because the classifier stopped at 51.
+confirmed stages 52â€“57 because the classifier stopped at 51.
 
 **Correction:** extend the eleven known bands only. Preserve the flag enum,
 Full mask, missing-Info/missing-bit refusals, funds and membership/success gates.
@@ -2986,7 +3044,7 @@ claim compensation remain open. See the [qualification guide](docs/JOB-FAMILY-TA
 **Source:** `LegacyClassOwnedSpellGrantProfile.cs` IsTrojanFamily and its existing
 ordinary-admission, spell-image, normalization and startup consumers.
 
-**Defect:** current/first/second Trojan stages 52–57 omitted the existing
+**Defect:** current/first/second Trojan stages 52â€“57 omitted the existing
 missing-only Cyclone grant.
 
 **Correction:** extend only the Trojan upper bound to 1057. Preserve lineage OR,
@@ -3044,14 +3102,14 @@ Older status sections retain their historical outcomes.
 badge consumers.
 
 **Defects:** global family predicates stopped at suffix 51 although the selected
-D13 primary contains suffixes 52–57 for all eleven existing prestige families.
+D13 primary contains suffixes 52â€“57 for all eleven existing prestige families.
 Unrecognized classes defaulted to Water, giving unsupported IDs incorrect class
 publication, badge lookup and destructive historical-cleanup authority.
 
 **Correction:** a prestige-specific resolver covers the 634 confirmed IDs through
 57. Strict GetIndex refuses nonclass/unsupported inputs; TryGetIndex supplies no
 category. The 17 observed unmodeled IDs receive no invented prestige mapping.
-Only exact 10000–10002 retains World-only behavior; 10002 is an absent-table
+Only exact 10000â€“10002 retains World-only behavior; 10002 is an absent-table
 compatibility literal. Rebuild and publisher validate the real Class/category/
 includeClass disposition before outputs. Spawn class badges use rank zero when
 there is no class category. Unknown IDs cannot select Water for cleanup.
@@ -3076,7 +3134,7 @@ live-client proof or exact-source full-CI acceptance is claimed.
 **Source:** `LegacyNativePrestigeRanking.Queries.cs` CheckReborn and the focused
 `Reborn.cs` helper. Reference RebornInfomations stores historical/new classes,
 refreshes equipment at 447 and calls CheckReborn at 448. Equipment's
-QueryEquipment → OnDequeue → UpdateStats → CreatePrestigePoints chain can
+QueryEquipment â†’ OnDequeue â†’ UpdateStats â†’ CreatePrestigePoints chain can
 publish a fresh current-family entry immediately before cleanup.
 
 **Defects:** raw removal could delete that freshly rebuilt same-family entry,
@@ -3094,7 +3152,7 @@ Preserve escaped maps/entries, valid shared Items, caps, stable ties and genuine
 absence; do not invent backfill or repair unrelated owners.
 
 **Verification:** the shared 843-case baseline and corrected 932/932 result above
-include genuine CreatePrestigePoints → CheckReborn preservation at class 1001 and
+include genuine CreatePrestigePoints â†’ CheckReborn preservation at class 1001 and
 1052, selected malformed tails, aliases, current/prior class admission, full
 UInt32 UID, cached-only target champions and unchanged client/rank outputs.
 
@@ -3294,7 +3352,7 @@ a3cb full CI and focused selections do not validate the complete successor or
 prove actual-client acceptance, full English, distribution, deployment or parity.
 Game/client processes, original saves, routes and restore points are preserved.
 
-## Latest accepted public CI — recoverable mailbox owners
+## Latest accepted public CI â€” recoverable mailbox owners
 
 Exact publica3cb2624592efdc8a17ae7f01e814c442c124fd7 passed
 [Windows40321922059](https://github.com/vgcman16/wolfconquer/actions/runs/40321922059),
@@ -3304,7 +3362,7 @@ updater434/434, launcher57/57, synthetic parsers20+13, build157warnings/0errors
 (103.14s). Actual terminal receipt/TRX and GitHub conclusion were read. This
 supersedes the pending checkpoint status, not the client/Host/parity limits.
 
-## Earlier accepted public CI — Ninja safety and import tooling
+## Earlier accepted public CI â€” Ninja safety and import tooling
 
 Exact public42b0f6e29244ae2b5b1237d9487931643e254b01 passed
 [Windows40313587063](https://github.com/vgcman16/wolfconquer/actions/runs/40313587063):
@@ -3314,7 +3372,7 @@ launcher57/57, synthetic parsers20+13, build157warnings/0errors. Receipt
 Python tests ran standalone. The later mailbox transaction source below has focused
 proof; its full successor CI is pending. No client/deployment/parity claim follows.
 
-## Earlier accepted public CI — exact native asset reviews
+## Earlier accepted public CI â€” exact native asset reviews
 
 Exact public816f3a20d872aa6af4a877e6eb2145ff2b9577d7 passed
 [Windows40304697861](https://github.com/vgcman16/wolfconquer/actions/runs/40304697861):
@@ -3326,7 +3384,7 @@ review/pipeline checks were measured separately, not invoked by this CI.
 No actual assets are approved; full-client distribution, current-public client
 acceptance, complete English and gameplay parity remain unfinished.
 
-## Earlier accepted public CI — publisher filename admission
+## Earlier accepted public CI â€” publisher filename admission
 
 Exact public98be3f410a68272b53c170abe25d5fb8c182b4a3 passed Windows40297219885:
 all8stages0, actual TRX25299core passed+165unchanged NotExecuted, updater357/357,
@@ -3336,7 +3394,7 @@ outcomes pass in the full run. This supersedes the older CI summaries, not their
 historical provenance. Package payout, actual-client acceptance and deployment
 remain OPEN; no live process/data changed.
 
-## Latest accepted LOCAL integration gate — standalone package admission GREEN
+## Latest accepted LOCAL integration gate â€” standalone package admission GREEN
 
 Tracked-only public base6bde6187 plus the eight reviewed package source/test paths
 passed all8sequential LOCAL stages, receipt20261026T064543721Z-2f26492d,
@@ -3346,7 +3404,7 @@ existing NotExecuted rows; updater305/305 and launcher57/57. Build157warnings,
 are the two explicitly replaced unsafe grant oracles. Full package payout and
 current actual-client acceptance remain OPEN. No live processes/data were changed.
 
-## Earlier accepted LOCAL integration gate — equipped sigil ownership GREEN
+## Earlier accepted LOCAL integration gate â€” equipped sigil ownership GREEN
 
 Exact public `1e042149367ae8f784bb88825844d31884b07d7a` was extracted from a
 tracked-only git archive (5434files) into a fresh owned Temp workspace. Local
@@ -3362,7 +3420,7 @@ CI, current actual-client acceptance, full Ninja/cast/mailbox transactions,
 complete English, deployment or full parity. Running sessions, original saves,
 protected clients, endpoints and60held Guild/Union paths remain unchanged.
 
-## Previous accepted LOCAL integration gate — coherent mailbox parsing GREEN
+## Previous accepted LOCAL integration gate â€” coherent mailbox parsing GREEN
 
 Exact public `e9f472f338400f6d501146e664a32a253d8bcd09` was extracted from a
 tracked-only git archive (5427files) into a fresh owned Temp workspace. Local
@@ -3378,7 +3436,7 @@ mailbox business-transaction completion, complete English, deployment or full
 parity. Original saves, running sessions, protected clients, endpoints and the
 60held Guild/Union paths remain unchanged.
 
-## Previous accepted LOCAL integration gate — combat owners and empty warehouse GREEN
+## Previous accepted LOCAL integration gate â€” combat owners and empty warehouse GREEN
 
 Exact public `f3bfae4aae83cf2409e86827d7a55ce6685d9fa3` was extracted from a
 tracked-only git archive (5424files) into a fresh owned Temp workspace. Local
@@ -3395,7 +3453,7 @@ NOT GitHub CI, current game-client acceptance, complete English, deployment, ful
 cast/warehouse transactions or full parity. Running sessions, original saves,
 protected clients, endpoints and the60held Guild/Union paths remain unchanged.
 
-## Previous accepted LOCAL integration gate — house saves and account rejection GREEN
+## Previous accepted LOCAL integration gate â€” house saves and account rejection GREEN
 
 Exact public `c1ee382d7669189037fd7d22618c283e7537ee38` was extracted from a
 tracked-only git archive (5410files) into a fresh owned Temp workspace. Local
@@ -3410,7 +3468,7 @@ This is Windows LOCAL proof, NOT GitHub CI, actual game-client login, complete
 English, housing/authenticated world-handoff completion, deployment or full parity.
 No running process/configuration, original save, protected client or endpoint changed.
 
-## Previous accepted LOCAL integration gate — durable warehouse locks GREEN
+## Previous accepted LOCAL integration gate â€” durable warehouse locks GREEN
 
 Exact public `0dda74102c9ebdba590eee0823227922961d2bf1` was extracted from a
 tracked-only git archive (5398files) into a fresh owned Temp workspace. Local
@@ -3424,7 +3482,7 @@ This is Windows LOCAL verification, NOT GitHub CI, running-game acceptance,
 complete English, full warehouse/game parity, deployment or a cleared backlog.
 No replacement listener/manual GitHub status was used to claim CI success.
 
-## Previous accepted LOCAL integration gate — warehouse Show GREEN
+## Previous accepted LOCAL integration gate â€” warehouse Show GREEN
 
 Exact public `5d78a448cb18e4eef20eab3688691b77c1e5ba50` was extracted from a
 tracked-only git archive (5393files) into a fresh owned Temp workspace. Local
@@ -3438,7 +3496,7 @@ complete English, deployment, full warehouse/game parity or a cleared backlog.
 Runner2 remained offline/idle at the preflight; no Windows job or replacement
 listener was launched and no manual green GitHub status was written.
 
-## Previous accepted LOCAL integration gate — warehouse and house-load GREEN
+## Previous accepted LOCAL integration gate â€” warehouse and house-load GREEN
 
 Exact public `50d1a22b27d6d65329ba020d9cd6235e247b8400` was extracted from a
 tracked-only git archive into a fresh owned Temp workspace outside the original
@@ -3455,7 +3513,7 @@ complete English, deployment, global UID safety or full gameplay parity.
 The trusted runner remains unavailable; no replacement launcher or manual green
 GitHub status was used to misrepresent a CI result.
 
-## Latest accepted GitHub CI gate — player-booth full Windows CI GREEN
+## Latest accepted GitHub CI gate â€” player-booth full Windows CI GREEN
 
 [Windows40051408447](https://github.com/vgcman16/wolfconquer/actions/runs/40051408447)
 passed exact public `b8cc5cfa12e1fa60c8a61b4478d12e5631309341`; job120744692469
@@ -3469,7 +3527,7 @@ pass alongside the retained24528core baseline. This is offline source integratio
 not all-transfer/global UID safety, live-client acceptance, complete English,
 deployment, full gameplay parity or a cleared CodeFactor backlog.
 
-## Previous accepted gate — Trade closure full Windows CI GREEN
+## Previous accepted gate â€” Trade closure full Windows CI GREEN
 
 [Windows40048716539](https://github.com/vgcman16/wolfconquer/actions/runs/40048716539)
 passed exact public `3f7a5a9f2d915e282b11cac0ff5e50f0fdef1634`; job120736279115
@@ -3483,7 +3541,7 @@ are retained alongside the earlier24470core passes. This is offline source
 integration proof, not all-transfer safety, live-client, complete English,
 deployment, full gameplay parity or a cleared CodeFactor backlog.
 
-## Previous accepted gate — magic admission full Windows CI GREEN
+## Previous accepted gate â€” magic admission full Windows CI GREEN
 
 [Windows40046944516](https://github.com/vgcman16/wolfconquer/actions/runs/40046944516)
 passed exact public `781cdf227e249744b068f06bab1adec1e6dad7ed`; job120730744913
@@ -3497,7 +3555,7 @@ Build191warnings/0errors. This accepts shared/root/basic eligibility and the
 generic/Recruit/Pounce behavioral batch offline, not live-client, deployment,
 complete English, full gameplay parity or a cleared CodeFactor backlog.
 
-## Previous accepted gate — quest/updater full Windows CI GREEN
+## Previous accepted gate â€” quest/updater full Windows CI GREEN
 
 [Windows40041857100](https://github.com/vgcman16/wolfconquer/actions/runs/40041857100)
 passed exact public `999ce3262dcf5d6ac9c365af3670b542a7339952`; job120714544998
@@ -3509,7 +3567,7 @@ updater305/305; launcher57/57; synthetic parser20+13 (no HTTP/service probes).
 Build190warnings/0errors. This verifies the quest-loader/Frame and updater-pin
 batch in offline CI, not live-client, deployment, complete English or full parity.
 
-## Previous integration gate — runtime full Windows CI GREEN
+## Previous integration gate â€” runtime full Windows CI GREEN
 
 [Windows40036685838](https://github.com/vgcman16/wolfconquer/actions/runs/40036685838)
 passed exact public `c90122abc1961cef8c8f4a90f6dec623a3ddbaf8`; job120697981313
@@ -3954,7 +4012,7 @@ prove full native Loading, SQL, power-loss durability or live-client acceptance.
 
 ### FSB-112: Respect actual guild recruitment class permissions
 
-- Source Guild.cs286â€“377 and local AdmissionPolicy used a complement comparison
+- Source Guild.cs286Ã¢â‚¬â€œ377 and local AdmissionPolicy used a complement comparison
   that admitted unselected classes; Windwalker queried Fire, and missing Info
   threw. Require every requested known nonzero class bit, reject missing state,
   and preserve all eleven class ranges and existing bit values.
@@ -4003,7 +4061,7 @@ prove full native Loading, SQL, power-loss durability or live-client acceptance.
 ### FSB-110: Prepare the existing-character native prefix before publication
 
 - Owners: the actual existing-character Frame prefix and sourceLoadCharacter
-  lines758–788. The old path wrote Online and native fields before validating
+  lines758â€“788. The old path wrote Online and native fields before validating
   Hairface/Beast state; malformed input could leave partial saved/native state.
 - Correction: capture the genuine native owners before snapshot/INI callbacks,
   validate the complete Character image and prepare every prefix participant.
@@ -4360,7 +4418,7 @@ prove full native Loading, SQL, power-loss durability or live-client acceptance.
   caller-buffer validation failed. Prepare the complete genuine animation and
   status frames, distinct real loans and caller preimage before opaque typed
   acceptance. New Stigma90/MagicShield40 and duplicate empty-target behavior stay.
-- Successful operations retain caller2239 bytes/Size/cursor4 and2176→2239 order.
+- Successful operations retain caller2239 bytes/Size/cursor4 and2176â†’2239 order.
   Rejection preserves complete caller/state/XP/prior queues; accepted transport
   loss never refunds the grant or creates a retryable false result.
 - Verification: private/public Release **2392/2392** each,0failed/0skipped;
@@ -5038,7 +5096,7 @@ controls are synthetic only. This does not close the explicit gameplay limits.
 
 ### FSB-060: Refuse full-bag Vote item claims before spending points
 
-- Owner: `RealmTransferServices.MiscServices` Vote item rewards, options43–46.
+- Owner: `RealmTransferServices.MiscServices` Vote item rewards, options43â€“46.
   The old path could deduct VotePoints without granting an item when the bag was
   full. Capacity now rejects before persistence, session mutation or success.
 - Preserve all four costs/rewards, metadata validation and successful frames.
@@ -5079,11 +5137,11 @@ controls are synthetic only. This does not close the explicit gameplay limits.
   controls preserve Rare stock and consume Epic stock for either genuine random
   item payout or200,000CP. The old unsafe mixed-key fact is corrected; wire
   layouts, rates and successful packet ordering are unchanged.
-- Catalog provenance: `.setup_work/seed-json/items.json` rows2373051–55 and
-  2373123–27 name RareChestKey/EpicChestKey. Its `manifest.json` identifies a
+- Catalog provenance: `.setup_work/seed-json/items.json` rows2373051â€“55 and
+  2373123â€“27 name RareChestKey/EpicChestKey. Its `manifest.json` identifies a
   2026-07-19 export from original `lqtxfwd/GameServer/DBServer`: SERVER catalog
   evidence, not independent client-table/binary proof.
-- Shared tests-first evidence for FSB060–063:50 cases=37pass/13fail and26 cases=
+- Shared tests-first evidence for FSB060â€“063:50 cases=37pass/13fail and26 cases=
   15pass/11fail; combined76=52pass/24fail. Added43 net new cases and corrected
   four unsafe old test methods. Private widened Release selection passed
   **326/326**, zero failed/skipped (`claim-chest-green.trx`, terminal exit0).

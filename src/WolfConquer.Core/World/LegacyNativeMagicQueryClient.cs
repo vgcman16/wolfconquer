@@ -65,7 +65,10 @@ internal static partial class LegacyNativeMagicQueryClient
             entry.Initialized = false;
             entry.Monk = null;
             var source = new QueryState(world, connection, originalUid, identity, entry, capturedSource ?? owner);
-            if (!source.InputsMatch(owner)) return;
+            // The actual execution captured gear BEFORE AppendItems can
+            // reenter a legitimate toggle/equip. Compute that captured gear;
+            // exact current gear is still required to complete a capability.
+            if (!source.CanBeginCapturedComputation(owner)) return;
             entry.Fields = new(unchecked((uint)owner.Character.Spirit), 0, 0, 0);
             issued = new QueryEpoch();
             Queries.Add(issued, source);

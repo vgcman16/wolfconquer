@@ -23,6 +23,7 @@ public sealed partial class CapricePairCommitOwnedTests
         var attributes = new Dictionary<string, string>(current.Character.Attributes, StringComparer.OrdinalIgnoreCase)
             { ["Stamina"] = value };
         f.Store.Set(f.Connection(uid), current with { Character = current.Character with { Attributes = attributes } });
+        Assert.Equal(ushort.Parse(value, CultureInfo.InvariantCulture), f.Current(uid).NativePlayer!.Stamina);
     }
     private static bool StaminaFrame(byte[] bytes, ulong value) =>
         LegacyMsgUpdatePacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var update) &&
@@ -37,27 +38,21 @@ public sealed partial class CapricePairCommitOwnedTests
             Assert.Equal(current.Character.MinMana, (long)binding.Player.Mana);
             Assert.Equal(current.Character.MinHitPoints, (long)binding.Player.HitPoints);
             Assert.Equal(current.Character.MinHitPoints, Saved(f, uid).MinHitPoints);
+            Assert.Equal(LegacyStaminaState.RequireCurrent(current.Character), binding.Player.Stamina);
         }
         Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
     }
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public Task CapricePairPersistsBothCompleteImagesBeforeFirstSuccessIncludingPreviouslyTransientUnsignedBalances(bool transient) =>
-        F.CapricePairRunAsync(async (f, world) =>
+    public Task CapricePairCommitsNativeBalancesOrRefusesTheOriginalOutOfWidthSavedInputs(bool outOfWidthSaved) =>
+        outOfWidthSaved ? F.CapricePairRejectedSavedBalancesAsync("70000", "80000") : F.CapricePairRunAsync(async (f, world) =>
         {
             await F.CapricePairPrepareQueriesAsync(f, world);
             File.AppendAllText(f.CharacterPath(Actor), "; CapricePairOpaque actor\r\n");
             File.AppendAllText(f.CharacterPath(Peer), "; CapricePairOpaque peer\r\n");
-            if (transient)
-            {
-                SetRuntimeStamina(f, Actor, "70000"); SetRuntimeStamina(f, Peer, "80000");
-                Assert.Equal("40", Saved(f, Actor).Attributes["Stamina"]);
-                Assert.Equal("80", Saved(f, Peer).Attributes["Stamina"]);
-            }
             var actor = Binding(f, Actor); var peer = Binding(f, Peer);
-            var nativeActorStamina = actor.Player.Stamina; var nativePeerStamina = peer.Player.Stamina;
-            var actorAfter = transient ? "70020" : "60"; var peerAfter = transient ? "79980" : "60";
+            const string actorAfter = "60", peerAfter = "60";
             bool observed = false;
             f.BeforeSend = (uid, bytes) =>
             {
@@ -73,7 +68,7 @@ public sealed partial class CapricePairCommitOwnedTests
             Assert.Contains(f.Frames(Peer), bytes => StaminaFrame(bytes, ulong.Parse(peerAfter, CultureInfo.InvariantCulture)));
             Assert.Contains("; CapricePairOpaque actor", File.ReadAllText(f.CharacterPath(Actor)), StringComparison.Ordinal);
             Assert.Contains("; CapricePairOpaque peer", File.ReadAllText(f.CharacterPath(Peer)), StringComparison.Ordinal);
-            Assert.Equal(nativeActorStamina, actor.Player.Stamina); Assert.Equal(nativePeerStamina, peer.Player.Stamina);
+            Assert.Equal((ushort)60, actor.Player.Stamina); Assert.Equal((ushort)60, peer.Player.Stamina);
             Assert.False(f.Recovery.IsBlocked);
         });
 }

@@ -47,5 +47,17 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, DirectOverlayFrontBreakFlag));
         Assert.False(HasLegacyStatusFlag(fixture.Owner.Character.Attributes, FineRain1StatusFlag));
         Assert.Equal(0, LegacyFineRainEquipmentAdmission.ForOwner(fixture.Owner).StampMilliseconds);
+        fixture.AssertCapturedQueryCannotCompleteCurrentEquipmentCaches();
+    }
+
+    [Theory]
+    [InlineData("uid")]
+    [InlineData("account")]
+    [InlineData("native-client")]
+    public async Task DirectQueryRejectsForeignCapturedSourceAndRetiresItsPreviousEpoch(string foreignField)
+    {
+        using var fixture = new DirectQueryStagesFixture("append-alt");
+        await fixture.QueryEquipmentAsync();
+        fixture.AssertForeignCapturedSourceRefused(foreignField);
     }
 }

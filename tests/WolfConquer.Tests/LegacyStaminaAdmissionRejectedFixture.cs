@@ -43,7 +43,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         if (errors.Count > 1) throw new AggregateException(errors);
     }
 
-    private sealed class RejectedSavedStaminaFixture
+    private sealed partial class RejectedSavedStaminaFixture
     {
         internal readonly LegacyOwnedAdmissionRuntimeFixture Data = new(bootstrap: false);
         private readonly Dictionary<uint, ConquerTcpConnection> connections = [];

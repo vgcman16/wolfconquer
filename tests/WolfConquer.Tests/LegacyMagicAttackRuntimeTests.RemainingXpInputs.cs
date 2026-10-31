@@ -20,6 +20,28 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Func<OwnedEquipmentBehaviorFixture, Task> body, byte staminaCost = 5,
         int classCode = 142, long map = 1000, bool blessed = false)
     {
+        var input = RemainingXpInputs(id, stamina, xpList, staminaCost, classCode, map, blessed);
+        var clock = new ManualRuntimeTimeProvider(new DateTimeOffset(2026, 10, 29, 15, 0, 0, TimeSpan.Zero));
+        return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(input.Actor, input.World,
+            new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), clock), async f =>
+            {
+                foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
+                    await f.SendAsync(uid, new MsgActionPacket { ObjId = uid, Type = MsgActionType.AllowAnimation }.ToFrameBytes());
+                f.Frames(PlayerUid).Clear(); f.Frames(TargetPlayerUid).Clear();
+                await body(f);
+            }, input.Peer);
+    }
+
+    internal static Task RemainingXpRejected(ushort id, string raw, bool xpList, byte staminaCost = 0,
+        int classCode = 142, long map = 1000, bool blessed = false)
+    {
+        var input = RemainingXpInputs(id, raw, xpList, staminaCost, classCode, map, blessed);
+        return RunRejectedStaminaParticipants(input.Actor, input.Peer, input.World, id);
+    }
+
+    private static (OwnedEquipmentBehaviorInput Actor, OwnedEquipmentBehaviorInput Peer, WorldDataCatalog World)
+        RemainingXpInputs(ushort id, string? stamina, bool xpList, byte staminaCost, int classCode, long map, bool blessed)
+    {
         var sort = id switch { 12860 => (byte)85, 15780 => (byte)94, _ => (byte)6 };
         var row = CreateMagicRow(id, sort: sort, useMana: 7, useStamina: staminaCost,
             damage: 100, duration: 60, range: 18, coolDown: 0, coldTime: 1500);
@@ -49,14 +71,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 attributes: attributes, playerItems: items);
             return new(source.Character, items, source.PlayerSpells, source.PlayerProficiencies);
         }
-        var clock = new ManualRuntimeTimeProvider(new DateTimeOffset(2026, 10, 29, 15, 0, 0, TimeSpan.Zero));
-        return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(Input(PlayerUid), world,
-            new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), clock), async f =>
-            {
-                foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
-                    await f.SendAsync(uid, new MsgActionPacket { ObjId = uid, Type = MsgActionType.AllowAnimation }.ToFrameBytes());
-                f.Frames(PlayerUid).Clear(); f.Frames(TargetPlayerUid).Clear();
-                await body(f);
-            }, Input(TargetPlayerUid));
+        return (Input(PlayerUid), Input(TargetPlayerUid), world);
     }
 }

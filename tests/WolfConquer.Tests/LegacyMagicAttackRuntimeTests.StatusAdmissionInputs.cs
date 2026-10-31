@@ -23,6 +23,30 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Func<OwnedEquipmentBehaviorFixture, Task> body, string? block = null, long map = 1000,
         string rawStamina = "100")
     {
+        var input = StatusAdmissionInputs(id, xpList, block, map, rawStamina);
+        var clock = new ManualRuntimeTimeProvider(new DateTimeOffset(2026, 10, 29, 16, 0, 0, TimeSpan.Zero));
+        return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(input.Actor, input.World,
+            new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), clock), async f =>
+            {
+                foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
+                    await f.SendAsync(uid, new MsgActionPacket { ObjId = uid, Type = MsgActionType.AllowAnimation }.ToFrameBytes());
+                Assert.Equal(500U, f.Current().NativePlayer!.Mana); Assert.True(f.Current().NativePlayer!.Alive);
+                f.ActorFrames.Clear(); f.Frames(TargetPlayerUid).Clear(); await body(f);
+            }, input.Peer);
+    }
+
+    internal static Task StatusAdmissionRunRejectedAsync(ushort id, long map, string rawStamina)
+    {
+        var input = StatusAdmissionInputs(id, xpList: true, block: null, map, rawStamina);
+        Assert.True(LegacyPlayerDeathState.HasStatusFlag(input.Actor.Character.Attributes, LegacyXpListFlag));
+        Assert.Equal(rawStamina, input.Actor.Character.Attributes["Stamina"]);
+        Assert.Equal("100", input.Peer.Character.Attributes["Stamina"]);
+        return RunRejectedStaminaParticipants(input.Actor, input.Peer, input.World, id, allowAnimation: true);
+    }
+
+    private static (OwnedEquipmentBehaviorInput Actor, OwnedEquipmentBehaviorInput Peer, WorldDataCatalog World)
+        StatusAdmissionInputs(ushort id, bool xpList, string? block, long map, string rawStamina)
+    {
         var row = id == 8003
             ? CreateMagicRow(id, sort: 6, level: 2, useMana: 7, useStamina: 4, duration: 55, coldTime: 0)
             : CreateAttachStatusXpBuffSourceRow(id, observableResourceCosts: true);
@@ -57,15 +81,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     { ["Stamina"] = rawStamina } } };
             return new(source.Character, source.PlayerItems, source.PlayerSpells, source.PlayerProficiencies);
         }
-        var clock = new ManualRuntimeTimeProvider(new DateTimeOffset(2026, 10, 29, 16, 0, 0, TimeSpan.Zero));
-        return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(Input(PlayerUid), world,
-            new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), clock), async f =>
-            {
-                foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
-                    await f.SendAsync(uid, new MsgActionPacket { ObjId = uid, Type = MsgActionType.AllowAnimation }.ToFrameBytes());
-                Assert.Equal(500U, f.Current().NativePlayer!.Mana); Assert.True(f.Current().NativePlayer!.Alive);
-                f.ActorFrames.Clear(); f.Frames(TargetPlayerUid).Clear(); await body(f);
-            }, Input(TargetPlayerUid));
+        return (Input(PlayerUid), Input(TargetPlayerUid), world);
     }
 
     internal static WorldSession StatusAdmissionInstallShield(WorldSession source, string expiry) => source with

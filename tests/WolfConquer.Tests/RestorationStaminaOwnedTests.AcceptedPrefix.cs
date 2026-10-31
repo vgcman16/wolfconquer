@@ -8,7 +8,7 @@ public sealed partial class RestorationStaminaOwnedTests
     [Theory]
     [InlineData((ushort)11960, "93", 88UL)]
     [InlineData((ushort)12890, "104", 99UL)]
-    public Task RestorationStaminaLaterIndependentInvalidPublicationStopsOnlyUnperformedContinuation(
+    public Task RestorationStaminaRejectsAnIndependentMalformedPublicationAndContinuesFromItsRealAcceptedOwner(
         ushort id, string raw, ulong spent) => F.RestorationStaminaRun(id, raw, false, id == 12890, 5, 7, async f =>
         {
             var binding = Owner(f); var start = f.ActorFrames.Count;
@@ -27,24 +27,31 @@ public sealed partial class RestorationStaminaOwnedTests
                 Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
                 var attributes = new Dictionary<string, string>(accepted.Character.Attributes, StringComparer.OrdinalIgnoreCase)
                     { ["Stamina"] = "not-a-number" };
-                // A genuine independently accepted Store publication at the real
-                // sender, not a replacement saver or fabricated native owner.
-                f.Store.Set(f.Connection(uid), accepted with { Character = accepted.Character with { Attributes = attributes } });
+                var files = f.Data.Files();
+                // Declared invalid replacement, never an admitted malformed
+                // owner. The actual joint physical participant refuses it.
+                Assert.Throws<InvalidOperationException>(() => f.Store.Set(f.Connection(uid), accepted with
+                    { Character = accepted.Character with { Attributes = attributes } }));
+                Assert.Same(accepted, f.Current()); Assert.Equal(checked((ushort)spent), binding.Player.Stamina);
+                f.Data.AssertFiles(files);
             };
 
-            await Cast(f, id); f.BeforeSend = null;
+            try { await Cast(f, id); } finally { f.BeforeSend = null; }
 
             Assert.True(published); Assert.Same(binding, Owner(f));
-            Assert.Equal("not-a-number", f.Current().Character.Attributes["Stamina"]);
+            ulong restored = id == 11960 ? 100UL : spent + 10;
+            Assert.Equal(restored.ToString(System.Globalization.CultureInfo.InvariantCulture), f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal(checked((ushort)restored), binding.Player.Stamina);
             Assert.Equal(493L, f.Current().Character.MinMana); Assert.Equal(493U, binding.Player.Mana);
             Assert.Equal(493L, Saved(f).MinMana); Assert.True(f.Current().MagicCooldowns!.ContainsKey(id));
-            Assert.Equal(new[] { (LegacyMsgUpdateDataType.Stamina, spent), (LegacyMsgUpdateDataType.Mana, 493UL) }, Resources(f, start));
-            Assert.DoesNotContain(f.ActorFrames.Skip(start), bytes =>
-                LegacySpellAnimationPacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out _) ||
-                LegacySpellPacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out _));
-            Assert.Equal(bookBefore, File.ReadAllBytes(spellPath));
-            Assert.Contains("restoration after accepted admission", f.Log.ToString(), StringComparison.Ordinal);
-            Assert.Contains("accepted accounting retained, no refund or retry authorization", f.Log.ToString(), StringComparison.Ordinal);
+            Assert.Equal(new[] { (LegacyMsgUpdateDataType.Stamina, spent), (LegacyMsgUpdateDataType.Mana, 493UL),
+                (LegacyMsgUpdateDataType.Stamina, restored) }, Resources(f, start));
+            Assert.Single(f.ActorFrames.Skip(start), bytes => LegacySpellAnimationPacket.TryParse(
+                OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var animation) && animation.SpellId == id);
+            var expectedBook = bookBefore.ToArray();
+            if (id == 11960) System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(expectedBook.AsSpan(8), 1000);
+            Assert.Equal(expectedBook, File.ReadAllBytes(spellPath));
+            Assert.DoesNotContain("requiredStaminaInvalid", f.Log.ToString(), StringComparison.Ordinal);
             Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
         });
 }

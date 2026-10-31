@@ -6,6 +6,11 @@ namespace WolfConquer.Tests;
 public sealed partial class StatusAdmissionOwnedTests
 {
     [Theory]
+    [InlineData((ushort)1015)] [InlineData((ushort)1020)] [InlineData((ushort)8002)]
+    public Task MalformedSavedStaminaRefusesAdmissionBeforeAnyMapCostBypass(ushort id) =>
+        F.StatusAdmissionRunRejectedAsync(id, map: 1039, rawStamina: "not-a-balance");
+
+    [Theory]
     [InlineData((ushort)1015, 1000L)] [InlineData((ushort)1020, 1000L)] [InlineData((ushort)8002, 1000L)]
     [InlineData((ushort)1015, 1039L)] [InlineData((ushort)1020, 1039L)] [InlineData((ushort)8002, 1039L)]
     public Task MissingActualXpListPreservesPaidAndBypassedResourcesBeforeAnySuccess(ushort id, long map) =>

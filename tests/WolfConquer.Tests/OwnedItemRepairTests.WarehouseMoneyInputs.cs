@@ -9,7 +9,7 @@ namespace WolfConquer.Tests;
 public sealed partial class OwnedItemRepairTests
 {
     [Fact]
-    public Task ReadonlyWarehouseInputEnumerationCallbackCannotHideNativeDriftBeforeTheActualStoreWriter() =>
+    public Task ReadonlyWarehouseOpaqueInputRefusesBeforeEnumerationOrTheActualStoreWriter() =>
         WithWarehouseRepair(false, async f =>
         {
             await f.Login(); var before = f.Current; var paid = PaidProposal(before);
@@ -35,9 +35,9 @@ public sealed partial class OwnedItemRepairTests
                 Assert.Throws<InvalidOperationException>(() =>
                     f.Store.TryCommitSession(f.Connection, before, proposal, UnexpectedWriter));
 
-                Assert.True(callback); Assert.Equal(1, probe.Enumerations);
+                Assert.False(callback); Assert.Equal(0, probe.Enumerations);
                 Assert.Equal(0, writes); Assert.Same(before, f.Current);
-                Assert.Equal(556L, f.Native.Player.WHMoney); Assert.Equal(1000L, f.Native.Player.Money);
+                Assert.Equal(555L, f.Native.Player.WHMoney); Assert.Equal(1000L, f.Native.Player.Money);
                 Assert.Equal((ushort)5, RepairedTarget(f.Current).Durability);
                 Assert.Equal(first, f.Sent.Count); f.CheckFiles(files);
                 Assert.False(LegacyTradeJournal.HasPending(f.Users));
@@ -80,7 +80,7 @@ public sealed partial class OwnedItemRepairTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public Task ActualRepairAcceptsBclReadonlyWarehouseMapsAndDoesNotEnumerateTheirWrapperAfterTheWriter(bool forwardingDictionary) =>
+    public Task ActualRepairRequiresKnownReadonlyBackingAndRetainsTheGenuineBclPositive(bool forwardingDictionary) =>
         WithWarehouseRepair(false, async f =>
         {
             await f.Login(); var before = f.Current; var paid = PaidProposal(before);
@@ -102,6 +102,22 @@ public sealed partial class OwnedItemRepairTests
             }
             try
             {
+                if (forwardingDictionary)
+                {
+                    // The old forwarding probe is not an actual BCL backing.
+                    // The joint native stamina proof must reject it before a
+                    // custom indexed view can acquire publication authority.
+                    var files = f.Files();
+                    Assert.Throws<InvalidOperationException>(() =>
+                        f.Store.TryCommitSession(f.Connection, before, proposal, ActualWriter));
+                    Assert.Null(outcome); Assert.Equal(-1, enumerationsAtWriter);
+                    Assert.Equal(0, probe.Enumerations); Assert.Same(before, f.Current);
+                    Assert.Equal(555L, f.Native.Player.WHMoney); Assert.Equal(1000L, f.Native.Player.Money);
+                    Assert.Equal((ushort)5, RepairedTarget(f.Current).Durability);
+                    Assert.Equal(first, f.Sent.Count); f.CheckFiles(files);
+                    Assert.False(f.Recovery.IsBlocked); Assert.False(LegacyTradeJournal.HasPending(f.Users));
+                    return;
+                }
                 Assert.True(f.Store.TryCommitSession(f.Connection, before, proposal, ActualWriter, out var final), reason);
 
                 Assert.Equal(LegacyItemRepairOutcome.Committed, outcome);
@@ -110,7 +126,6 @@ public sealed partial class OwnedItemRepairTests
                 Assert.Equal("555", f.Current.Character.Attributes["WHMoney"]);
                 Assert.Equal("555", f.Current.Character.Attributes["WarehouseMoney"]);
                 Assert.Equal(enumerationsAtWriter, probe.Enumerations);
-                if (forwardingDictionary) Assert.True(enumerationsAtWriter > 0);
                 Assert.Equal(first, f.Sent.Count); // This actual Store capability itself emits no repair reply.
                 Assert.False(LegacyTradeJournal.HasPending(f.Users));
                 AssertPersistedWarehouseRepair(f);
@@ -128,9 +143,8 @@ public sealed partial class OwnedItemRepairTests
             .LoadByCharacterUid(Fixture.Uid).InventoryItems).Durability);
     }
 
-    // This is only a caller-input fault probe. Its enumerator is the real BCL
-    // Dictionary struct required by the closed native participant; no owner,
-    // saver, validator, UID reservation or native queue is substituted.
+    // Hostile caller-input probe, never an owner. Its BCL-shaped enumerator
+    // cannot authorize the custom backing for joint native publication.
     private sealed class WarehouseInputDictionary(Dictionary<string, string> values) : IDictionary<string, string>
     {
         internal Action? OnEnumeration { get; set; }

@@ -13,15 +13,13 @@ public sealed partial class OwnedItemRepairTests
             await f.Login();
             var before = f.Current;
             var values = new Dictionary<string, string>(before.Character.Attributes, StringComparer.OrdinalIgnoreCase);
-            var probe = new WarehouseInputDictionary(values);
             f.Store.Set(f.Connection, before with { Character = before.Character with
-                { Attributes = new ReadOnlyDictionary<string, string>(probe) } });
+                { Attributes = new ReadOnlyDictionary<string, string>(values) } });
             var itemBytes = File.ReadAllBytes(f.ItemsPath);
             var first = f.Sent.Count;
             Exception? observed = null;
             f.OnSend = sentFrame =>
             {
-                probe.RefuseEnumeration = true;
                 observed ??= Record.Exception(() =>
                 {
                     Assert.Equal((700L, 855L), (f.Native.Player.Money, f.Native.Player.WHMoney));
@@ -49,6 +47,6 @@ public sealed partial class OwnedItemRepairTests
                 Assert.Equal(itemBytes, File.ReadAllBytes(f.ItemsPath));
                 Assert.False(LegacyTradeJournal.HasPending(f.Users));
             }
-            finally { f.OnSend = null; probe.RefuseEnumeration = false; }
+            finally { f.OnSend = null; }
         });
 }

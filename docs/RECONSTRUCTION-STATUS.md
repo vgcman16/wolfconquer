@@ -6,31 +6,29 @@ Observed live target: Chinese client7899 / VisibleDx8D13. The separate official
 
 ## Current source qualification
 
-The last complete qualified published `f6e00659` passed all eight stages of
+Last fully qualified published source remains `f6e00659`, all eight stages of
 [Windows41161576312](https://github.com/vgcman16/wolfconquer/actions/runs/41161576312):
-Core32,591 Passed /152 existing NotExecuted, Updates446 and Launcher57. All81
-corrected creator controls are present in the actual full Core result. Earlier
-failed runs remain retained; passing source checks are not live-client proof.
+Core32,591Passed/152existingNotExecuted, Updates446, Launcher57.
 
-This reviewed successor adds durable direct RuneBag transfer/return, complete
-item preservation and real registered return UIDs. WindWalker194 joins completed
-equipment queries, current native/Store status, expiry and death/revive. Native
-stamina joins the existing HP/Mana publication; normal/fan regeneration and
-accepted costs/refills commit before resource replies. Missing stamina starts0;
-malformed/out-of-UInt16 saved state refuses admission instead of becoming funds.
+The later exactb8 Windows41234349476 failed: restore/build passed,
+Core32,700Passed/88Failed/152existingNotExecuted, Updates446Passed; later checks
+were not reached. Earlier infrastructure interruption and actual failures remain
+retained. This checkpoint repairs the scoped stamina parser, captured-gear query
+and rejected Caprice cooldown. It preserves invalid saved inputs as genuine
+admission refusals and retains/adds actual valid cast, zero/max, native, packet,
+economy and recovery controls rather than manufacturing malformed live owners.
 
-Actual focused results: all128 new RuneBag/WindWalker outcomes have passing
-evidence; stamina75/75 and admission26/26 passed with zero failures/skips. The
-broader run retained1,260Passed/20Failed; those20 old admission expectations are
-addressed by the corrected26-case selection, preserving24 original inputs and
-adding two real65535 boundaries. Initial failures and exact test-only corrections
-remain recorded. Sets overlap; no single combined rerun is claimed. Builds have
-zero errors and no changed-path warnings. The new exact-public full gate is pending.
+The combined test build passed0errors/157historicalwarnings, none in changed
+paths. One focused run passed **3,364/3,364**, zero failures/skips, across13
+complete affected/neighbor families (7m12). Its original88-failure evidence is
+not retroactively green. This reviewed repair requires a new exact-public full
+Windows gate. Source/tests/specs are integrated; no current-source deployment,
+SQL,7937/English or live-client acceptance is implied.
 
-Protected native D13 ticket binding, account registration/SQL, production power
-loss, native Action/auto-attack/equipment and unjoined stamina modifiers remain
-open. Current source deployment,7937 and complete English/live acceptance remain
-unproven. The legacy execution hold remains active.
+The prior RuneBag/WindWalker and owned stamina work remains. Full native Action,
+auto-attack, remaining status/modifier callers and shared persistence remain
+active. Legacy client/updater execution remains held; original saves/routes and
+restore material are preserved.
 
 ## Implemented source families
 

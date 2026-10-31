@@ -48,13 +48,19 @@ public static partial class WorldPacketHandlers
         var targetStamina = 0UL;
         var attackerStamina = 0UL;
         // Validate the complete transfer before preparing even its cooldown.
-        // Other branches and legitimate chance failures keep their old stamp.
-        if (branch == 1 && !consolidationBlocked &&
-            (!TryReadLegacyRuntimeStamina(target, out targetStamina) ||
-             !TryReadLegacyRuntimeStamina(attacker, out attackerStamina) ||
-             attackerStamina > ulong.MaxValue - 20))
+        // Non-transfer branches retain their independent handling below.
+        if (branch == 1 && !consolidationBlocked)
         {
-            return default;
+            // A native participant narrows the arithmetic domain; this is a
+            // denial check, never an owner or permission to publish either half.
+            var nativeResource = attackerSession.NativePlayer?.HasOwnedVitalsAttachment == true ||
+                targetSession.NativePlayer?.HasOwnedVitalsAttachment == true ||
+                attackerSession.NativeGameClient?.OrdinarySpellBinding is not null || targetSession.NativeGameClient?.OrdinarySpellBinding is not null;
+            var maximum = nativeResource ? ushort.MaxValue : ulong.MaxValue;
+            if (!TryReadLegacyRuntimeStamina(target, out targetStamina) ||
+                !TryReadLegacyRuntimeStamina(attacker, out attackerStamina) ||
+                targetStamina < 20 || targetStamina > maximum || attackerStamina > maximum - 20)
+                return default;
         }
 
         updatedAttacker = WithCharacterAttribute(
@@ -69,11 +75,6 @@ public static partial class WorldPacketHandlers
         if (branch == 1)
         {
             if (consolidationBlocked)
-            {
-                return default;
-            }
-
-            if (targetStamina < 20)
             {
                 return default;
             }

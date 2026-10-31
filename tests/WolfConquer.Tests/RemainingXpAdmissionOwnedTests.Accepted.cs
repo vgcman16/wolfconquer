@@ -35,35 +35,47 @@ public sealed partial class RemainingXpAdmissionOwnedTests
     [Theory]
     [InlineData((ushort)11970, false)] [InlineData((ushort)12860, false)] [InlineData((ushort)15780, false)]
     [InlineData((ushort)11970, true)] [InlineData((ushort)12860, true)] [InlineData((ushort)15780, true)]
-    public Task ActualActivationAbsentBalanceKeepsTheExistingBlessingDefault(ushort id, bool blessed) =>
+    public Task ActualActivationAbsentBalanceStartsAtNativeZeroAndRestoresTheSourceBlessingMaximum(ushort id, bool blessed) =>
         F.RemainingXpRun(id, null, true, async f =>
         {
-            Assert.False(f.Current().Character.Attributes.ContainsKey("Stamina"));
+            Assert.Equal("0", f.Current().Character.Attributes["Stamina"]); Assert.Equal((ushort)0, Owner(f).Player.Stamina);
+            Assert.False(f.Data.Loader.LoadByAccountId(Actor)!.Attributes.ContainsKey("Stamina"));
             await Cast(f, id); Owner(f);
             Assert.Equal(493L, f.Current().Character.MinMana);
-            Assert.False(f.Current().Character.Attributes.ContainsKey("Stamina"));
-            Assert.DoesNotContain(Resources(f), resource => resource.Type == LegacyMsgUpdateDataType.Stamina);
+            ushort expected = blessed ? (ushort)150 : (ushort)100;
+            Assert.Equal(expected.ToString(System.Globalization.CultureInfo.InvariantCulture), f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal(expected, Owner(f).Player.Stamina);
+            Assert.Equal(new[] { (LegacyMsgUpdateDataType.Mana, 493UL), (LegacyMsgUpdateDataType.Stamina, (ulong)expected) }, Resources(f));
+            Assert.False(f.Data.Loader.LoadByAccountId(Actor)!.Attributes.ContainsKey("Stamina"));
             Assert.False(Flag(f.Current().Character, LegacyRuntimeUpdateTicker.XpListFlag));
         }, staminaCost: 0, classCode: id == 15780 ? 9000 : 142, blessed: blessed);
 
     [Fact]
-    public Task NonRestoringMap1039ActivationKeepsUnusedMalformedStaminaOptional() =>
-        F.RemainingXpRun(1110, "not-a-number", true, async f =>
+    public Task NonRestoringMap1039ActivationCannotAdmitMalformedPhysicalStamina() =>
+        F.RemainingXpRejected(1110, "not-a-number", true, staminaCost: 5, map: 1039);
+
+    [Fact]
+    public Task NonRestoringMap1039ActivationPreservesActualAbsentNativeZeroAndTheRealCostBypass() =>
+        F.RemainingXpRun(1110, null, true, async f =>
         {
             await Cast(f, 1110); Owner(f);
-            Assert.Equal("not-a-number", f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal("0", f.Current().Character.Attributes["Stamina"]); Assert.Equal((ushort)0, Owner(f).Player.Stamina);
             Assert.Equal(500L, f.Current().Character.MinMana); Assert.Empty(Resources(f));
             Assert.False(Flag(f.Current().Character, LegacyRuntimeUpdateTicker.XpListFlag));
             Assert.Single(Animations(f), animation => animation.SpellId == 1110);
         }, map: 1039);
 
     [Fact]
-    public Task OmnipotenceWithoutXpListKeepsItsIndependentRealDamagePathAndUnusedStamina() =>
-        F.RemainingXpRun(12860, "not-a-number", false, async f =>
+    public Task OmnipotenceWithoutXpListCannotAdmitTheOriginallyMalformedSavedBalance() =>
+        F.RemainingXpRejected(12860, "not-a-number", false, staminaCost: 0);
+
+    [Fact]
+    public Task OmnipotenceWithoutXpListKeepsItsIndependentRealDamagePathAtActualNativeZero() =>
+        F.RemainingXpRun(12860, null, false, async f =>
         {
             var hp = f.Current(Peer).Character.MinHitPoints;
             await Cast(f, 12860); Owner(f);
-            Assert.Equal("not-a-number", f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal("0", f.Current().Character.Attributes["Stamina"]); Assert.Equal((ushort)0, Owner(f).Player.Stamina);
             Assert.Equal(493L, f.Current().Character.MinMana);
             Assert.DoesNotContain(Resources(f), resource => resource.Type == LegacyMsgUpdateDataType.Stamina);
             var animation = Assert.Single(Animations(f), packet => packet.SpellId == 12860);

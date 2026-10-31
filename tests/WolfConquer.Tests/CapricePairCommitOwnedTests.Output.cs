@@ -21,6 +21,7 @@ public sealed partial class CapricePairCommitOwnedTests
             await F.CapricePairAttackAsync(f); f.BeforeSend = null;
             Assert.True(changed); RequireDurablePair(f, "60", "60");
             Assert.Equal("70", f.Current(changePendingTarget ? Peer : Actor).Character.Attributes["Stamina"]);
+            Assert.Equal((ushort)70, Binding(f, changePendingTarget ? Peer : Actor).Player.Stamina);
             if (changePendingTarget) Assert.DoesNotContain(f.Frames(Peer), bytes => StaminaFrame(bytes, 60));
             else Assert.Contains(f.Frames(Peer), bytes => StaminaFrame(bytes, 60));
             Assert.False(f.Recovery.IsBlocked); Binding(f, Actor); Binding(f, Peer);

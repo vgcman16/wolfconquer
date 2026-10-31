@@ -7,8 +7,10 @@ public sealed partial class RemainingXpAdmissionOwnedTests
     [Theory]
     [InlineData("50", (byte)5)]
     [InlineData("not-a-number", (byte)0)]
-    public Task UnsupportedAttachStatusRefusesBeforeAnyOwnedCostOrCooldown(string raw, byte staminaCost) =>
-        F.RemainingXpRun(9999, raw, false, async f =>
+    public Task UnsupportedAttachStatusRefusesAtPhysicalAdmissionOrItsActualHandlerBeforeAnyCost(string raw, byte staminaCost)
+    {
+        if (raw == "not-a-number") return F.RemainingXpRejected(9999, raw, false, staminaCost: staminaCost);
+        return F.RemainingXpRun(9999, raw, false, async f =>
         {
             var actor = f.Current(); var peer = f.Current(Peer); var files = f.Data.Files(); Owner(f);
             int ownFrames = f.ActorFrames.Count, peerFrames = f.Frames(Peer).Count;
@@ -17,4 +19,5 @@ public sealed partial class RemainingXpAdmissionOwnedTests
             Assert.Equal(raw, f.Current().Character.Attributes["Stamina"]);
             Assert.Contains("unsupported attach status spell", f.Log.ToString(), StringComparison.Ordinal);
         }, staminaCost: staminaCost);
+    }
 }

@@ -4,6 +4,9 @@ namespace WolfConquer.Tests;
 
 public sealed partial class LegacyMagicAttackRuntimeTests
 {
+    internal static Task CapricePairRejectedSavedBalancesAsync(string actorRaw, string targetRaw) =>
+        ReceiveStaminaRejectedSavedAsync(actorRaw, targetRaw, caprice: true);
+
     // Actual existing numeric preparation over the genuine admitted records.
     internal static (WorldSession Actor, WorldSession Peer, WorldPacketHandlers.LegacyCapricePairIntent Intent)
         CapricePairDraft(OwnedEquipmentBehaviorFixture f)

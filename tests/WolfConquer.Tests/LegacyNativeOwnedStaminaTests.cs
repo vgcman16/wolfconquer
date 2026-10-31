@@ -6,7 +6,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LegacyNativeOwnedStaminaTests
+public sealed partial class LegacyNativeOwnedStaminaTests
 {
     // DATA ONLY: admission projection does not create an owner or save a file.
     [Theory]

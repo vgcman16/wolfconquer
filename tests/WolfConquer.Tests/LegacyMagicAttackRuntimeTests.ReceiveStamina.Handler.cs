@@ -14,7 +14,21 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     public Task ReceiveStaminaOwnedCapriceKeepsSuccessfulTransferWireAndOuterDamage() =>
         ReceiveStaminaOwnedAsync("40", "80", true, async (f, world) =>
         {
-            await ReceiveStaminaAttackAsync(f, world);
+            bool committed = false;
+            f.BeforeSend = (uid, bytes) =>
+            {
+                if (uid != PlayerUid || Convert.ToHexString(bytes) != ReceiveStaminaActor60) return;
+                committed = true;
+                foreach (uint participant in new[] { PlayerUid, TargetPlayerUid })
+                {
+                    Assert.Equal("60", f.Current(participant).Character.Attributes["Stamina"]);
+                    Assert.Equal((ushort)60, f.Current(participant).NativePlayer!.Stamina);
+                    Assert.Equal("60", f.Data.Loader.LoadByAccountId(participant)!.Attributes["Stamina"]);
+                }
+            };
+            try { await ReceiveStaminaAttackAsync(f, world); }
+            finally { f.BeforeSend = null; }
+            Assert.True(committed);
             Assert.Equal("60", f.Current(PlayerUid).Character.Attributes["Stamina"]);
             Assert.Equal("60", f.Current(TargetPlayerUid).Character.Attributes["Stamina"]);
             Assert.Contains(f.Frames(PlayerUid), bytes => Convert.ToHexString(bytes) == ReceiveStaminaActor60);
@@ -24,27 +38,22 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
     [Theory]
     [InlineData("-1")] [InlineData("not-a-number")] [InlineData("18446744073709551616")] [InlineData("")]
-    public Task ReceiveStaminaOwnedInvalidTargetRejectsTransferButKeepsIndependentAcceptedAttack(string raw) =>
-        ReceiveStaminaOwnedAsync("40", raw, true, async (f, world) =>
-        {
-            var originalStamp = f.Current(PlayerUid).Character.Attributes["LegacyCapriceStampUtc"];
-            await ReceiveStaminaAttackAsync(f, world);
-            Assert.Equal("40", f.Current(PlayerUid).Character.Attributes["Stamina"]);
-            Assert.Equal(raw, f.Current(TargetPlayerUid).Character.Attributes["Stamina"]);
-            Assert.Equal(raw, f.Data.Loader.LoadByAccountId(TargetPlayerUid)!.Attributes["Stamina"]);
-            Assert.Equal(originalStamp, f.Current(PlayerUid).Character.Attributes["LegacyCapriceStampUtc"]);
-            Assert.DoesNotContain(ParseMsgUpdates(f.Frames(PlayerUid).Concat(f.Frames(TargetPlayerUid)))
-                .SelectMany(update => update.Updates), update => update.Type == LegacyMsgUpdateDataType.Stamina);
-            ReceiveStaminaOuterAttack(f); Assert.False(f.Recovery.IsBlocked);
-        });
+    public Task ReceiveStaminaInvalidSavedTargetCannotAcquireAReceiveParticipant(string raw) =>
+        ReceiveStaminaRejectedSavedAsync("40", raw, caprice: true);
 
     [Fact]
-    public Task ReceiveStaminaOwnedLightRestoresAndKeepsLiteralEffectAndStaminaWire() =>
-        ReceiveStaminaOwnedAsync("35", "not-a-number", false, async (f, world) =>
+    public Task ReceiveStaminaLightCannotUseTheOriginalMalformedSavedPeer() =>
+        ReceiveStaminaRejectedSavedAsync("35", "not-a-number", caprice: false);
+
+    [Fact]
+    public Task ReceiveStaminaOwnedLightRestoresWithAValidPeerAndKeepsLiteralEffectAndStaminaWire() =>
+        ReceiveStaminaOwnedAsync("35", "80", false, async (f, world) =>
         {
             await ReceiveStaminaAttackAsync(f, world);
             Assert.Equal("100", f.Current(PlayerUid).Character.Attributes["Stamina"]);
-            Assert.Equal("not-a-number", f.Current(TargetPlayerUid).Character.Attributes["Stamina"]);
+            Assert.Equal("80", f.Current(TargetPlayerUid).Character.Attributes["Stamina"]);
+            Assert.Equal((ushort)100, f.Current(PlayerUid).NativePlayer!.Stamina);
+            Assert.Equal((ushort)80, f.Current(TargetPlayerUid).NativePlayer!.Stamina);
             Assert.Contains(f.Frames(PlayerUid), bytes => Convert.ToHexString(bytes) == ReceiveStaminaActor100);
             Assert.Contains(f.Frames(PlayerUid), bytes => Convert.ToHexString(bytes) == ReceiveStaminaLightEffect);
             Assert.Contains(f.Frames(TargetPlayerUid), bytes => Convert.ToHexString(bytes) == ReceiveStaminaLightEffect);
@@ -53,14 +62,19 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public Task ReceiveStaminaLightAbsentBalanceKeepsExistingDefaultWithoutInventingRestore(bool blessing) =>
-        ReceiveStaminaOwnedAsync(null, "80", false, (f, _) =>
+    public Task ReceiveStaminaLightRestoresActualAdmittedAbsenceZeroWithoutBlessingFallback(bool blessing) =>
+        ReceiveStaminaOwnedAsync(null, "80", false, async (f, world) =>
         {
-            var actor = f.Current(PlayerUid); var peer = f.Current(TargetPlayerUid); var files = ProcFiles(f);
-            int a = f.Frames(PlayerUid).Count, p = f.Frames(TargetPlayerUid).Count;
-            var prepared = ReceiveStaminaPrepare(f, false);
-            Assert.True(prepared.Applied); Assert.False(prepared.Restored); Assert.Same(actor.Character, prepared.Actor);
-            ReceiveStaminaUnchanged(f, actor, peer, files, a, p); return Task.CompletedTask;
+            Assert.False(f.Data.Loader.LoadByAccountId(PlayerUid)!.Attributes.ContainsKey("Stamina"));
+            Assert.Equal("0", f.Current(PlayerUid).Character.Attributes["Stamina"]);
+            Assert.Equal((ushort)0, f.Current(PlayerUid).NativePlayer!.Stamina);
+            await ReceiveStaminaAttackAsync(f, world);
+            Assert.Equal("100", f.Current(PlayerUid).Character.Attributes["Stamina"]);
+            Assert.Equal((ushort)100, f.Current(PlayerUid).NativePlayer!.Stamina);
+            Assert.Contains(f.Frames(PlayerUid), bytes => Convert.ToHexString(bytes) == ReceiveStaminaActor100);
+            Assert.Contains(f.Frames(PlayerUid), bytes => Convert.ToHexString(bytes) == ReceiveStaminaLightEffect);
+            Assert.Contains(f.Frames(TargetPlayerUid), bytes => Convert.ToHexString(bytes) == ReceiveStaminaLightEffect);
+            ReceiveStaminaOuterAttack(f); Assert.False(f.Recovery.IsBlocked);
         }, blessing);
 
     private static void ReceiveStaminaOuterAttack(OwnedEquipmentBehaviorFixture f)

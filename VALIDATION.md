@@ -1,6 +1,26 @@
 # Publication validation
 
-## Current source checkpoint - 2026-10-30
+## Current repair qualification - 2026-10-31
+
+Last fully qualified publicf6e00659 passed all8 stages of Windows41161576312
+(Core32591/152existingNotExecuted, Updates446, Launcher57). Exact laterb8 full
+Windows41234349476 FAILED88Core cases, with32700Core and446Updates passed;
+restore/build passed, later checks not reached. Actual failed receipts/TRXs and
+complete managed outputs remain retained.
+
+This reviewed repair builds with0errors/157historicalwarnings, none on changed
+paths. One focused13-family run passed3364/3364,0failures/skips,7m12. It retains
+all original invalid inputs at their real admission boundary, actual valid
+counterparts, paid/wire controls and genuine native zero/max/overflow behavior.
+Three source defects are corrected: unrelated field case folding in the stamina
+projection, captured-gear query abort and cooldown preparation before Caprice
+funds validation. See FSB261-263 and their versioned specifications.
+
+This is owned managed source qualification. A new exact-public full Windows
+gate, deployment, SQL, live current-client and7937/English acceptance remain
+separate. No original save/route/client/restore material is changed.
+
+## Earlier source checkpoint - 2026-10-30
 
 The preceding exact published `046110e52f22b057a6af55653f09fd2d6ba4d07e`
 passed all eight stages of [Windows41134500138](https://github.com/vgcman16/wolfconquer/actions/runs/41134500138):

@@ -45,20 +45,30 @@ public sealed partial class StatusAdmissionOwnedTests
 
     [Theory]
     [InlineData((ushort)1015, 7)] [InlineData((ushort)1020, 8)] [InlineData((ushort)8002, 27)]
-    public Task MapCostBypassKeepsAnUnusedMalformedBalanceWhileValidXpStatusStillWorks(ushort id, int flag) =>
+    public Task ValidOwnedMapCostBypassRetainsResourcesAndSuccessfulStatusWire(ushort id, int flag) =>
         F.StatusAdmissionRunAsync(id, true, async f =>
         {
-            Assert.Equal("not-a-balance", f.Current().Character.Attributes["Stamina"]);
-            await Cast(f, id); Owner(f);
-            Assert.Equal(500L, f.Current().Character.MinMana); Assert.Equal(500U, f.Current().NativePlayer!.Mana);
+            var peer = f.Current(Peer);
+            var peerImage = File.ReadAllBytes(f.CharacterPath(Peer));
+            var binding = Owner(f);
+            Assert.Equal((ushort)100, binding.Player.Stamina);
+            await Cast(f, id);
+            Assert.Same(binding, Owner(f));
+            Assert.Equal(500L, f.Current().Character.MinMana); Assert.Equal(500U, binding.Player.Mana);
             Assert.Equal(500L, f.Data.Loader.LoadByAccountId(Actor)!.MinMana);
-            Assert.Equal("not-a-balance", f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal("100", f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal((ushort)100, binding.Player.Stamina);
             Assert.True(Flag(f.Current().Character, flag)); Assert.False(Flag(f.Current().Character, LegacyRuntimeUpdateTicker.XpListFlag));
+            Assert.True(Flag(f.Current().Character, 0x1FF)); Assert.Equal("37", f.Current().Character.Attributes["XPCount"]);
             Assert.DoesNotContain(f.ActorFrames, bytes => LegacyMsgUpdatePacket.TryParse(
                 OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var update) &&
                 update.Updates.Any(row => row.Type is LegacyMsgUpdateDataType.Stamina or LegacyMsgUpdateDataType.Mana));
-            Assert.Single(Animations(f), packet => packet.SpellId == id);
-        }, map: 1039, rawStamina: "not-a-balance");
+            var animation = Assert.Single(Animations(f), packet => packet.SpellId == id);
+            Assert.Equal(Actor, animation.AttackerUid); Assert.Equal(0U, animation.AttackedUid);
+            Assert.Equal((ushort)832, animation.X); Assert.Equal((ushort)587, animation.Y);
+            var target = Assert.Single(animation.Targets); Assert.Equal(Actor, target.Uid); Assert.True(target.Hit);
+            Assert.Same(peer, f.Current(Peer)); Assert.Equal(peerImage, File.ReadAllBytes(f.CharacterPath(Peer)));
+        }, map: 1039);
 
     [Fact]
     public Task ShieldPreservesAnActualLaterXpScalarCallbackGrantAndItsExistingTimerPolicy() =>

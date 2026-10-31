@@ -34,7 +34,7 @@
       "id": "combat",
       "title": "Combat, monsters and death",
       "status": "partial",
-      "implemented": "Selected combat/status/death paths have source proof. Completed fan queries own native WindWalker194, timer, expiry and death/revive projection. Admitted native stamina now shares Store HP/Mana publication; normal/fan regeneration and accepted costs/refills commit before replies. Full native equipment/Action/auto-attack, unjoined modifiers and7937 activation remain open.",
+      "implemented": "Selected combat/status/death paths have source proof. WindWalker194 and native stamina have owned lifecycle/resource publication. A later full gate exposed88Core regressions; reviewed parser/query/Caprice repairs passed3364focused cases across13families,0failures/skips. Full native Action/auto-attack, remaining modifiers, SQL and7937 activation remain open; the new full gate is pending.",
       "remaining": "Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios."
     },
     {
@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Last full qualified f6e00659 passed8stages of Windows41161576312:Core32591/Updates446/Launcher57,152existingCoreNotExecuted. New RuneBag/WindWalker128, stamina75 and admission26 controls pass in overlapping sets. Broader1260pass/20old-admission failures is retained; all20 are addressed by the corrected26passing. New exact-public full gate and live acceptance remain pending."
+      "detail": "Last full qualified f6e00659 passed8stages of Windows41161576312:Core32591/Updates446/Launcher57,152existingCoreNotExecuted. Laterb8 full41234349476 failed88Core cases. Reviewed stamina/query/Caprice repair passed3364/3364 across13 complete affected/neighbor families,0failures/skips; build0errors/no changed-path warnings. New exact-public full gate and live acceptance remain pending."
     },
     {
       "id": "english",

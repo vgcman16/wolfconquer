@@ -42,17 +42,8 @@ public sealed partial class RemainingXpAdmissionOwnedTests
     [InlineData((ushort)11970, "bad")] [InlineData((ushort)12860, "bad")] [InlineData((ushort)15780, "bad")]
     [InlineData((ushort)11970, "18446744073709551616")] [InlineData((ushort)12860, "18446744073709551616")] [InlineData((ushort)15780, "18446744073709551616")]
     [InlineData((ushort)11970, "")] [InlineData((ushort)12860, "")] [InlineData((ushort)15780, "")]
-    public Task ActivationRequiresValidSavedRestoreBalanceBeforeManaEvenAtZeroPricedStamina(ushort id, string raw) =>
-        F.RemainingXpRun(id, raw, true, async f =>
-        {
-            var actor = f.Current(); var peer = f.Current(Peer); var files = f.Data.Files(); Owner(f);
-            Assert.Equal(raw, actor.Character.Attributes["Stamina"]);
-            Assert.Equal(raw, f.Data.Loader.LoadByAccountId(Actor)!.Attributes["Stamina"]);
-            int a = f.ActorFrames.Count, p = f.Frames(Peer).Count;
-            await Cast(f, id);
-            Unchanged(f, actor, peer, files, a, p); Assert.True(Flag(f.Current().Character, LegacyRuntimeUpdateTicker.XpListFlag));
-            Assert.Contains("xpAdmissionRejected=xpRestorationStaminaInvalid", f.Log.ToString(), StringComparison.Ordinal);
-        }, staminaCost: 0, classCode: id == 15780 ? 9000 : 142);
+    public Task ActivationMalformedSavedRestoreBalanceRefusesAdmissionBeforeManaEvenAtZeroPricedStamina(ushort id, string raw) =>
+        F.RemainingXpRejected(id, raw, true, staminaCost: 0, classCode: id == 15780 ? 9000 : 142);
 
     [Fact]
     public Task Map1039CostBypassDoesNotGrantMissingXpListEntitlement() =>

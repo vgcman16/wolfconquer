@@ -17,6 +17,7 @@ public sealed partial class RestorationStaminaOwnedTests
         var binding = Assert.IsType<LegacyOrdinarySpellBinding>(f.Current().NativeGameClient!.OrdinarySpellBinding);
         Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); Assert.False(binding.IsRetired);
         Assert.Same(f.Current().NativePlayer, binding.Player); Assert.False(f.Recovery.IsBlocked);
+        Assert.Equal(LegacyStaminaState.RequireCurrent(f.Current().Character), binding.Player.Stamina);
         return binding;
     }
     private static CharacterSnapshot Saved(OwnedEquipmentBehaviorFixture f) => Assert.IsType<CharacterSnapshot>(
@@ -37,25 +38,8 @@ public sealed partial class RestorationStaminaOwnedTests
     [InlineData((ushort)12890, "not-a-number")]
     [InlineData((ushort)12890, "18446744073709551616")]
     [InlineData((ushort)12890, "")]
-    public Task RestorationStaminaInvalidSavedInputRefusesBeforeAnyRequiredActionPrefix(ushort id, string raw) =>
-        // Zero priced stamina makes these independent restoration-input tests:
-        // the shared positive-cost guard cannot make the old handlers pass.
-        F.RestorationStaminaRun(id, raw, false, id == 12890, 0, 7, async f =>
-        {
-            var before = f.Current(); var binding = Owner(f); var files = f.Data.Files(); var count = f.ActorFrames.Count;
-            Assert.Equal(raw, before.Character.Attributes["Stamina"]); Assert.Equal(raw, Saved(f).Attributes["Stamina"]);
-            Assert.Equal(500U, binding.Player.Mana); Assert.Null(before.MagicCooldowns);
-
-            await Cast(f, id);
-
-            Assert.Same(before, f.Current()); Assert.Same(binding, Owner(f));
-            Assert.Equal(raw, f.Current().Character.Attributes["Stamina"]);
-            Assert.Equal(500L, f.Current().Character.MinMana); Assert.Equal(500U, binding.Player.Mana);
-            Assert.Null(f.Current().MagicCooldowns); Assert.Equal(count, f.ActorFrames.Count);
-            Assert.Equal(0, Assert.Single(f.Current().PlayerSpells.Spells, row => row.Id == id).Experience);
-            f.Data.AssertFiles(files); Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
-            Assert.Contains("requiredStaminaInvalidBeforeAdmission", f.Log.ToString(), StringComparison.Ordinal);
-        });
+    public Task RestorationStaminaInvalidSavedInputRefusesAdmissionBeforeAnyActionPrefix(ushort id, string raw) =>
+        F.RestorationStaminaRejected(id, raw, omnipotence: id == 12890);
 
     [Theory]
     [InlineData((ushort)11960, "93", false, 88UL, 100UL)]
@@ -89,38 +73,51 @@ public sealed partial class RestorationStaminaOwnedTests
         });
 
     [Theory]
-    [InlineData((ushort)11960, false, 100UL)] [InlineData((ushort)11960, true, 150UL)]
-    [InlineData((ushort)12890, false, 100UL)] [InlineData((ushort)12890, true, 150UL)]
-    public Task RestorationStaminaAbsentSavedValueRetainsExistingDefaults(ushort id, bool blessed, ulong expected) =>
+    [InlineData((ushort)11960, false, 12UL)] [InlineData((ushort)11960, true, 12UL)]
+    [InlineData((ushort)12890, false, 10UL)] [InlineData((ushort)12890, true, 10UL)]
+    public Task RestorationStaminaAbsentSavedValueStartsAtNativeZeroAndReceivesOnlyTheActualRefill(ushort id, bool blessed, ulong expected) =>
         F.RestorationStaminaRun(id, null, blessed, id == 12890, 0, 7, async f =>
         {
-            Assert.False(f.Current().Character.Attributes.ContainsKey("Stamina")); Assert.False(Saved(f).Attributes.ContainsKey("Stamina"));
+            Assert.Equal("0", f.Current().Character.Attributes["Stamina"]); Assert.Equal((ushort)0, Owner(f).Player.Stamina);
+            Assert.False(Saved(f).Attributes.ContainsKey("Stamina"));
             var start = f.ActorFrames.Count; await Cast(f, id); Owner(f);
-            Assert.DoesNotContain(Resources(f, start), row => row.Type == LegacyMsgUpdateDataType.Stamina);
+            Assert.Equal(new[] { (LegacyMsgUpdateDataType.Mana, 493UL), (LegacyMsgUpdateDataType.Stamina, expected) }, Resources(f, start));
             Assert.Equal(493L, f.Current().Character.MinMana);
             Assert.Single(f.ActorFrames.Skip(start), bytes => LegacySpellAnimationPacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var packet) && packet.SpellId == id);
-            Assert.False(f.Current().Character.Attributes.ContainsKey("Stamina"));
+            Assert.Equal(expected.ToString(CultureInfo.InvariantCulture), f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal(checked((ushort)expected), Owner(f).Player.Stamina); Assert.False(Saved(f).Attributes.ContainsKey("Stamina"));
             Assert.Contains(id == 11960 ? $"stamina={expected} progressDamage=1000" : "WorldServer handled legacy SwirlingStorm magic", f.Log.ToString(), StringComparison.Ordinal);
         });
 
     [Theory]
     [InlineData((ushort)11960)] [InlineData((ushort)12890)]
-    public Task RestorationStaminaValidUnsignedMaximumIsNotNewlyCapped(ushort id) =>
-        F.RestorationStaminaRun(id, ulong.MaxValue.ToString(CultureInfo.InvariantCulture), false, id == 12890, 0, 7, async f =>
+    public Task RestorationStaminaUInt64MaximumCannotBeAdmittedAsTheNativeUInt16Balance(ushort id) =>
+        F.RestorationStaminaRejected(id, ulong.MaxValue.ToString(CultureInfo.InvariantCulture), omnipotence: id == 12890);
+
+    [Theory]
+    [InlineData((ushort)11960)] [InlineData((ushort)12890)]
+    public Task RestorationStaminaRealUInt16MaximumIsPreservedWithoutOverflowOrAnInventedRefill(ushort id) =>
+        F.RestorationStaminaRun(id, ushort.MaxValue.ToString(CultureInfo.InvariantCulture), false, id == 12890, 0, 7, async f =>
         {
+            Assert.Equal(ushort.MaxValue, Owner(f).Player.Stamina);
             var start = f.ActorFrames.Count; await Cast(f, id); Owner(f);
-            Assert.Equal(ulong.MaxValue.ToString(CultureInfo.InvariantCulture), f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal(ushort.MaxValue.ToString(CultureInfo.InvariantCulture), f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal(ushort.MaxValue, Owner(f).Player.Stamina);
             Assert.DoesNotContain(Resources(f, start), row => row.Type == LegacyMsgUpdateDataType.Stamina);
             Assert.Equal(493L, f.Current().Character.MinMana);
             Assert.Single(f.ActorFrames.Skip(start), bytes => LegacySpellAnimationPacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var packet) && packet.SpellId == id);
         });
 
     [Fact]
-    public Task RestorationStaminaUnusedSwirlingStormStateDoesNotBecomeAZeroCostPrerequisite() =>
-        F.RestorationStaminaRun(12890, "not-a-number", false, false, 0, 7, async f =>
+    public Task RestorationStaminaMalformedSwirlingStormInputCannotBypassPhysicalAdmissionWhenTheRefillIsUnused() =>
+        F.RestorationStaminaRejected(12890, "not-a-number");
+
+    [Fact]
+    public Task RestorationStaminaAbsentSwirlingStormBalanceRemainsNativeZeroWithoutOmnipotence() =>
+        F.RestorationStaminaRun(12890, null, false, false, 0, 7, async f =>
         {
             var start = f.ActorFrames.Count; await Cast(f, 12890); Owner(f);
-            Assert.Equal("not-a-number", f.Current().Character.Attributes["Stamina"]);
+            Assert.Equal("0", f.Current().Character.Attributes["Stamina"]); Assert.Equal((ushort)0, Owner(f).Player.Stamina);
             Assert.Equal(493L, f.Current().Character.MinMana);
             Assert.DoesNotContain(Resources(f, start), row => row.Type == LegacyMsgUpdateDataType.Stamina);
             Assert.Single(f.ActorFrames.Skip(start), bytes => LegacySpellAnimationPacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var packet) && packet.SpellId == 12890);

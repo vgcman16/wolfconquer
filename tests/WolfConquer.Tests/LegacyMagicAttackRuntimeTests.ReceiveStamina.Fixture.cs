@@ -15,37 +15,48 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Func<OwnedEquipmentBehaviorFixture, WorldDataCatalog, Task> body,
         bool blessing = false, int branch = 1)
     {
-        var world = CreateMagicCatalogWithItems(CreateMonsterFamily(), [],
+        var world = ReceiveStaminaWorld();
+        var clock = new ManualRuntimeTimeProvider(new DateTimeOffset(2026, 10, 29, 12, 0, 0, TimeSpan.Zero));
+        return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(
+            ReceiveStaminaInput(PlayerUid, actorRaw, caprice, blessing, branch), world,
+            new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), clock), f => body(f, world),
+            ReceiveStaminaInput(TargetPlayerUid, targetRaw, caprice, blessing, branch));
+    }
+
+    private static WorldDataCatalog ReceiveStaminaWorld() => CreateMagicCatalogWithItems(CreateMonsterFamily(), [],
             [CreateRetainedNativeMagic421Helmet(),
              OwnedEquipmentBehaviorFixture.Item(LegacyCapriceLevelTwentySevenItemId, "ReceiveStaminaCaprice")],
             CreateMagicRow(ThunderSpellId, sort: 1, useMana: 7, damage: 541, coldTime: 0));
-        OwnedEquipmentBehaviorInput Input(uint uid, string? raw)
+
+    private static OwnedEquipmentBehaviorInput ReceiveStaminaInput(uint uid, string? raw, bool caprice,
+        bool blessing = false, int branch = 1)
+    {
+        var attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            var attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["PkMode"] = "0", ["PrestigeLevel"] = "5", ["LegacyConsolidationRoll"] = "99",
-                ["LegacyCapriceRoll"] = "0", ["LegacyCapriceBranch"] = branch.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                ["LegacyCapriceStampUtc"] = "2026-01-01T00:00:00.0000000+00:00",
-            };
-            if (raw is not null) attributes["Stamina"] = raw;
-            if (blessing) attributes["HeavenBlessing"] = "1";
-            if (!caprice && uid == PlayerUid)
-            { attributes["PerfectionStatus.LightOfStamina"] = "100"; attributes["LegacyLightOfStaminaRoll"] = "0"; }
-            if (branch == 2 && uid == TargetPlayerUid) attributes["StatusFlags"] = BuildStatusFlags(LegacyXpListFlag);
-            var items = caprice && uid == PlayerUid
-                ? CreatePlayerItems(new PlayerItemSnapshotItem
-                { Uid = LegacyCapriceLevelTwentySevenItemId, ItemId = LegacyCapriceLevelTwentySevenItemId, Position = 101 })
-                : PlayerItemSnapshot.Empty;
-            var input = CreateRetainedNativeMagic421Input(CreateSession(uid: uid,
-                name: uid == PlayerUid ? "ReceiveStaminaActor" : "ReceiveStaminaPeer", x: uid == PlayerUid ? 830 : 832,
-                y: 584, attributes: attributes, playerItems: items));
-            return new(input.Character, input.PlayerItems, input.PlayerSpells);
-        }
-        var clock = new ManualRuntimeTimeProvider(new DateTimeOffset(2026, 10, 29, 12, 0, 0, TimeSpan.Zero));
-        return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(Input(PlayerUid, actorRaw), world,
-            new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), clock),
-            f => body(f, world), Input(TargetPlayerUid, targetRaw));
+            ["PkMode"] = "0", ["PrestigeLevel"] = "5", ["LegacyConsolidationRoll"] = "99",
+            ["LegacyCapriceRoll"] = "0", ["LegacyCapriceBranch"] = branch.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["LegacyCapriceStampUtc"] = "2026-01-01T00:00:00.0000000+00:00",
+        };
+        if (raw is not null) attributes["Stamina"] = raw;
+        if (blessing) attributes["HeavenBlessing"] = "1";
+        if (!caprice && uid == PlayerUid)
+        { attributes["PerfectionStatus.LightOfStamina"] = "100"; attributes["LegacyLightOfStaminaRoll"] = "0"; }
+        if (branch == 2 && uid == TargetPlayerUid) attributes["StatusFlags"] = BuildStatusFlags(LegacyXpListFlag);
+        var items = caprice && uid == PlayerUid
+            ? CreatePlayerItems(new PlayerItemSnapshotItem
+            { Uid = LegacyCapriceLevelTwentySevenItemId, ItemId = LegacyCapriceLevelTwentySevenItemId, Position = 101 })
+            : PlayerItemSnapshot.Empty;
+        var input = CreateRetainedNativeMagic421Input(CreateSession(uid: uid,
+            name: uid == PlayerUid ? "ReceiveStaminaActor" : "ReceiveStaminaPeer", x: uid == PlayerUid ? 830 : 832,
+            y: 584, attributes: attributes, playerItems: items));
+        return new(input.Character, input.PlayerItems, input.PlayerSpells);
     }
+
+    private static Task ReceiveStaminaRejectedSavedAsync(string actorRaw, string targetRaw, bool caprice,
+        bool blessing = false, int branch = 1) => RunRejectedStaminaParticipants(
+            ReceiveStaminaInput(PlayerUid, actorRaw, caprice, blessing, branch),
+            ReceiveStaminaInput(TargetPlayerUid, targetRaw, caprice, blessing, branch), ReceiveStaminaWorld(), ThunderSpellId,
+            actorAttemptsUnavailablePeer: true);
 
     private static (bool Applied, bool Restored, CharacterSnapshot Actor, CharacterSnapshot Peer)
         ReceiveStaminaPrepare(OwnedEquipmentBehaviorFixture f, bool caprice)
@@ -91,6 +102,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.False(f.Recovery.IsBlocked); Assert.Null(actor.MagicCooldowns); Assert.Null(peer.MagicCooldowns);
         Assert.Equal(actor.Character.MinMana, actor.NativePlayer!.Mana);
         Assert.Equal(peer.Character.MinMana, peer.NativePlayer!.Mana);
+        Assert.Equal(LegacyStaminaState.RequireCurrent(actor.Character), actor.NativePlayer.Stamina);
+        Assert.Equal(LegacyStaminaState.RequireCurrent(peer.Character), peer.NativePlayer.Stamina);
         ProcFilesUnchanged(f, files);
     }
 }

@@ -130,7 +130,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }
     }
 
-    private sealed class DirectQueryStagesFixture : IDisposable
+    private sealed partial class DirectQueryStagesFixture : IDisposable
     {
         private const uint HelmetId = 111_099, ArmorId = 130_099, ReplacementId = 111_100, DummyHelmetId = 111_101;
         private const uint CircleId = 4_036_006, FuryZeroId = 4_020_100;
@@ -276,6 +276,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         public ConcurrentQueue<(uint Recipient, byte[] Bytes)> Order { get; } = new();
         public ConcurrentQueue<(uint Maximum, long Hitpoints)> HpObservations { get; } = new();
         public WorldSession Owner => Current(PlayerUid);
+
         private WorldSession Current(uint uid)
         {
             Assert.True(_sessions.TryGet(_connections[uid], out var current));

@@ -22,7 +22,7 @@ internal static class LegacyStaminaState
     {
         ArgumentNullException.ThrowIfNull(session);
         var proof = new NativeValueProof(session.Character, allowAbsent: true);
-        var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var fields = new Dictionary<string, string>(proof.CapturedComparer);
         foreach (var pair in proof.CapturedFields)
             if (!string.Equals(pair.Key, "Stamina", StringComparison.OrdinalIgnoreCase)) fields.Add(pair.Key, pair.Value);
         // Native birth is zero. Keeping a valid present saved value is the
@@ -50,6 +50,7 @@ internal static class LegacyStaminaState
         internal bool HasValue { get; }
         internal string? Text { get; }
         internal IReadOnlyDictionary<string, string> CapturedFields { get; }
+        internal IEqualityComparer<string> CapturedComparer => comparer;
 
         internal NativeValueProof(CharacterSnapshot character, bool allowAbsent = false)
         {
@@ -66,15 +67,23 @@ internal static class LegacyStaminaState
                 !ReferenceEquals(comparer, EqualityComparer<string>.Default)) throw Invalid();
             witness = backing.GetEnumerator();
             var captured = new List<KeyValuePair<string, string>>();
-            var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            // This native projection owns Stamina, not the complete saved
+            // Character schema. Retain unrelated case-distinct rows verbatim;
+            // complete-file writers still enforce their own ambiguity rules.
+            var fields = new Dictionary<string, string>(comparer);
+            bool found = false;
+            string? text = null;
             var iterator = witness;
             while (iterator.MoveNext())
             {
                 var pair = iterator.Current;
                 if (string.IsNullOrEmpty(pair.Key) || pair.Value is null || !fields.TryAdd(pair.Key, pair.Value)) throw Invalid();
                 captured.Add(pair);
+                if (!string.Equals(pair.Key, "Stamina", StringComparison.OrdinalIgnoreCase)) continue;
+                if (found) throw Invalid();
+                found = true; text = pair.Value;
             }
-            HasValue = fields.TryGetValue("Stamina", out var text);
+            HasValue = found;
             ushort value = 0;
             if (!HasValue && !allowAbsent || HasValue &&
                 !ushort.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value)) throw Invalid();

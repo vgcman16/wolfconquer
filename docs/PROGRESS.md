@@ -10,7 +10,11 @@ Updated2026-10-31. Full English client/server reconstruction remains active.
 - [x] Reviewed RuneBag/WindWalker128, stamina75 and admission26 controls pass in
   overlapping sets; initial failures remain retained. Builds have0errors and no
   changed-path warnings. These are source/fixture results, not client acceptance.
-- [ ] Verify this successor's exact-public full Windows gate.
+- [x] Repair the later full-b8 stamina/query/Caprice regressions: combined
+  build0errors/no changed-path warnings and3364/3364 focused,0failures/skips.
+  Genuine malformed-admission refusals and successful gameplay/wire controls stay.
+- [ ] Verify this repair's new exact-public full Windows gate. Originalb8 full
+  failed88Core cases; the focused result does not make that old run green.
 - [ ] Finish native authentication/loader/shared ownership and real SQL/load-save.
 - [ ] Complete native Action/auto-attack, remaining status/passive/resource owners.
 - [ ] Complete economy, trade/social/events/housing and broader durable recovery.

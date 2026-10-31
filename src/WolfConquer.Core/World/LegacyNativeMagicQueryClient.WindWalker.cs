@@ -18,6 +18,8 @@ internal static partial class LegacyNativeMagicQueryClient
         internal readonly WorldSessionStore World;
         internal readonly ConquerTcpConnection Connection;
         internal readonly long Uid, Class;
+        private readonly long capturedUid, accountId;
+        private readonly object? nativeClient;
         internal readonly object Identity;
         internal readonly Entry Entry;
         internal readonly byte[] Items;
@@ -27,6 +29,7 @@ internal static partial class LegacyNativeMagicQueryClient
             object identity, Entry entry, WorldSession source)
         {
             World = world; Connection = connection; Uid = uid; Identity = identity; Entry = entry;
+            capturedUid = source.Character.Uid; accountId = source.AccountId; nativeClient = source.NativeGameClient;
             Class = source.Character.Class; Alternate = source.AlternateEquipmentActive;
             ShieldSpell = source.PlayerSpells.ContainsSpell(10_311);
             Items = PlayerItemSnapshotLoader.ToLegacyBytes(source.PlayerItems);
@@ -38,9 +41,13 @@ internal static partial class LegacyNativeMagicQueryClient
             object identity, Entry entry) => ReferenceEquals(World, world) && ReferenceEquals(Connection, connection) &&
             uid == Uid && ReferenceEquals(Identity, identity) && ReferenceEquals(Entry, entry) &&
             entry.Initialized && entry.Epoch is { } epoch && Queries.TryGetValue(epoch, out var current) && ReferenceEquals(current, this);
-        internal bool InputsMatch(WorldSession current) => current.Character.Uid == Uid && current.Character.Class == Class &&
-            current.AlternateEquipmentActive == Alternate && current.PlayerSpells.ContainsSpell(10_311) == ShieldSpell &&
+        internal bool InputsMatch(WorldSession current) => CanBeginCapturedComputation(current) &&
+            current.AlternateEquipmentActive == Alternate &&
             PlayerItemSnapshotLoader.ToLegacyBytes(current.PlayerItems).AsSpan().SequenceEqual(Items);
+        internal bool CanBeginCapturedComputation(WorldSession current) => capturedUid == Uid &&
+            current.Character.Uid == Uid && current.AccountId == accountId &&
+            ReferenceEquals(current.NativeGameClient, nativeClient) && current.Character.Class == Class &&
+            current.PlayerSpells.ContainsSpell(10_311) == ShieldSpell;
     }
     private sealed record CompletedQuery(QueryEpoch Epoch, QueryState Source, LegacyNativeMagicQueryFields Fields,
         PlayerItemSnapshot Items, CharacterSnapshot Character, PlayerSpellSnapshot Spells);
@@ -85,8 +92,7 @@ internal static partial class LegacyNativeMagicQueryClient
         if (!Completed.TryGetValue(token, out var completed) ||
             !completed.Source.Matches(world, connection, current.Character.Uid, identity, completed.Source.Entry) ||
             !ReferenceEquals(completed.Source.Entry.Epoch, completed.Epoch) || completed.Source.Entry.Fields != completed.Fields ||
-            current.Character.Class != completed.Source.Class || current.AlternateEquipmentActive != completed.Source.Alternate ||
-            current.PlayerSpells.ContainsSpell(10_311) != completed.Source.ShieldSpell ||
+            !completed.Source.CanBeginCapturedComputation(current) || current.AlternateEquipmentActive != completed.Source.Alternate ||
             !ReferenceEquals(current.PlayerItems, completed.Items)) return false;
         desired = IsFan(completed.Source.Right) && IsFan(completed.Source.Left);
         return true;
