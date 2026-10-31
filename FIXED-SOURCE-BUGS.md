@@ -4,7 +4,15 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Open full-gate stamina repair - 2026-10-31
+## Qualified stamina/query repair - 2026-10-31
+
+Exact publicc271eec1 passed all8stages of Windows41243428459/job124661847443:
+Core32810Passed/152existingNotExecuted, Updates446, Launcher57,0failures. Actual
+local receipt finished22:37:52.5893368Z; logs/3TRXs/SIXoutputs retained. This
+supersedes older pending-full labels below for FSB261-263. Earlierb8's88failures
+remain failed evidence. New Action/range/derived-ownership code is separate and
+unbuilt/unrun; no deployment/SQL/current7937/English/gameplay acceptance claim.
+
 
 ### FSB-261: Scope native stamina parsing and retain truthful admission fixtures
 

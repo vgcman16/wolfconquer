@@ -6,29 +6,20 @@ Observed live target: Chinese client7899 / VisibleDx8D13. The separate official
 
 ## Current source qualification
 
-Last fully qualified published source remains `f6e00659`, all eight stages of
-[Windows41161576312](https://github.com/vgcman16/wolfconquer/actions/runs/41161576312):
-Core32,591Passed/152existingNotExecuted, Updates446, Launcher57.
+Exact published `c271eec1dcaef0f11995b1c3a11272bb92e69ad9` passed all eight stages of
+[Windows41243428459](https://github.com/vgcman16/wolfconquer/actions/runs/41243428459): **32,810 Core Passed / 152 existing
+NotExecuted**, Updates446, Launcher57, zero failures. Actual local receipt ended
+2026-10-31T22:37:52.5893368Z; logs/threeTRXs and six complete managed output
+closures are retained outside the runner. Source repair f0893adf and its
+reviewed generated-only c271eec1 child contain the scoped stamina, captured-gear
+query and rejected-Caprice cooldown corrections. Focused3364/3364 also passed.
+Earlier fullb8's88failures remain preserved failed evidence.
 
-The later exactb8 Windows41234349476 failed: restore/build passed,
-Core32,700Passed/88Failed/152existingNotExecuted, Updates446Passed; later checks
-were not reached. Earlier infrastructure interruption and actual failures remain
-retained. This checkpoint repairs the scoped stamina parser, captured-gear query
-and rejected Caprice cooldown. It preserves invalid saved inputs as genuine
-admission refusals and retains/adds actual valid cast, zero/max, native, packet,
-economy and recovery controls rather than manufacturing malformed live owners.
-
-The combined test build passed0errors/157historicalwarnings, none in changed
-paths. One focused run passed **3,364/3,364**, zero failures/skips, across13
-complete affected/neighbor families (7m12). Its original88-failure evidence is
-not retroactively green. This reviewed repair requires a new exact-public full
-Windows gate. Source/tests/specs are integrated; no current-source deployment,
-SQL,7937/English or live-client acceptance is implied.
-
-The prior RuneBag/WindWalker and owned stamina work remains. Full native Action,
-auto-attack, remaining status/modifier callers and shared persistence remain
-active. Legacy client/updater execution remains held; original saves/routes and
-restore material are preserved.
+The next offline Action/combat/range/derived-ownership candidate is separate,
+unbuilt and unrun. Full persistence/SQL, remaining native/status/modifier callers,
+automatic combat, multiplayer and current7937/English live acceptance remain
+active. Source checks are not deployment or gameplay certification. Original
+saves/routes/restore material and the legacy execution hold remain preserved.
 
 ## Implemented source families
 

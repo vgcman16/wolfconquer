@@ -2,23 +2,24 @@
 
 ## Current repair qualification - 2026-10-31
 
-Last fully qualified publicf6e00659 passed all8 stages of Windows41161576312
-(Core32591/152existingNotExecuted, Updates446, Launcher57). Exact laterb8 full
-Windows41234349476 FAILED88Core cases, with32700Core and446Updates passed;
-restore/build passed, later checks not reached. Actual failed receipts/TRXs and
-complete managed outputs remain retained.
+Exact public `c271eec1dcaef0f11995b1c3a11272bb92e69ad9` passed all eight stages of
+[Windows41243428459](https://github.com/vgcman16/wolfconquer/actions/runs/41243428459), job124661847443. Actual local
+20261031T212432348Z-56afebd7 finished2026-10-31T22:37:52.5893368Z:
+Core **32,810 Passed / 152 existing NotExecuted**, Updates446, Launcher57,
+zero failures. Receipt/logs/threeTRXs and six complete matching managed outputs
+are preserved outside the runner. The published code repair is f0893adf; c271eec1
+is its reviewed generated-only tracker child.
 
-This reviewed repair builds with0errors/157historicalwarnings, none on changed
-paths. One focused13-family run passed3364/3364,0failures/skips,7m12. It retains
-all original invalid inputs at their real admission boundary, actual valid
-counterparts, paid/wire controls and genuine native zero/max/overflow behavior.
-Three source defects are corrected: unrelated field case folding in the stamina
-projection, captured-gear query abort and cooldown preparation before Caprice
-funds validation. See FSB261-263 and their versioned specifications.
+The reviewed stamina/query/Caprice repair also passed3364/3364 focused cases
+across13completefamilies,0failures/skips; build0errors/no changed-path warnings.
+Original malformed-input negatives, actual valid peers/native/wire/economy and
+restart controls remain. Actual earlierb8 full41234349476 FAILED88Core cases;
+its receipts/TRXs/outputs remain failed evidence, not retroactively green.
 
-This is owned managed source qualification. A new exact-public full Windows
-gate, deployment, SQL, live current-client and7937/English acceptance remain
-separate. No original save/route/client/restore material is changed.
+This qualifies the published managed source/tooling checkpoint. Separate new
+combat/range/derived-ownership work remains unbuilt/unrun. Deployment, SQL,
+current-client and7937/English gameplay acceptance remain open. The execution
+hold and original-save/route/client/restore preservation remain unchanged.
 
 ## Earlier source checkpoint - 2026-10-30
 
