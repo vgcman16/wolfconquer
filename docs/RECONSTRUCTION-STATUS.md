@@ -6,29 +6,33 @@ Observed live target: Chinese client7899 / VisibleDx8D13. The separate official
 
 ## Current source qualification
 
-The preceding exact published `046110e52f22b057a6af55653f09fd2d6ba4d07e`
-passed all eight stages of [Windows41134500138](https://github.com/vgcman16/wolfconquer/actions/runs/41134500138):
-Core **32,209 Passed / 152 existing NotExecuted**, Updates446 and Launcher57,
-zero failures. This qualifies that published source/tooling checkpoint.
+The last complete qualified published `046110e5` passed all eight stages of
+[Windows41134500138](https://github.com/vgcman16/wolfconquer/actions/runs/41134500138):
+Core 32,209 Passed / 152 existing NotExecuted, Updates 446 and Launcher 57.
+The later `60ab2d8e` full [Windows41147388998](https://github.com/vgcman16/wolfconquer/actions/runs/41147388998)
+failed five obsolete unowned Compose fixture setups; Core 32,372 passed and
+Updates 446 passed, while Launcher/later stages were not reached. Results are retained.
 
-The next reviewed82-path batch adds owned Rune composition and chance decisions,
-selected7899 All-round status and read-only classification diagnostics. It retains
-actual Frame/native/Store owners, complete Character/Items/Spells images, strict
-recorded recovery and meaningful packet/UID/opaque-byte controls. FSB251-254 and
-the new specs distinguish corrected behavior from unresolved client evidence.
+This reviewed successor includes owned Rune decomposition with real registered
+rewards and authenticated internal NewRole/starter creation with completed-history
+recovery joins. Actual signed account handoff, same-connection single-use permits,
+complete name/seven-leaf checks and a six-file v19 journal precede native output.
+Completed/ended permit references retire exactly; durable history denies a second
+starter grant after saved leaves disappear. Issued uncertain ranges stay fenced.
 
-Solution build02 passed with zero errors and171 existing warnings; no C# warning
-was reported in the changed paths. The combined focused gate passed **1,238/1,238**, zero failures/skips,
-in11m6s. It covers the new Rune actions and ordinary spell/coherence, journal,
-startup UID, native HP/vitals, selected status and catalog neighbors. All29
-previous Root fixture failure names pass in this same run; no production source
-changed after the successful build. Earlier overlapping runs are not added.
-This successor still requires its own exact-public full Windows gate.
+Decomposition passed 1,596 focused outcomes, including all five migrated owned
+Compose publication controls. The creator successor production passed 1,809
+neighbor/data outcomes in its first 1,858 selection; 49 new fixtures failed at an
+incorrect endpoint expectation before their genuine bodies. Only two test
+expectations changed. Corrected creator selection passed 81/81, zero failures/skips,
+including 49 genuine and 32 data controls. Sets overlap; no fresh combined 1,858
+pass is claimed. Solution/test builds passed zero errors and no changed C# warning.
+Its exact-public full Windows gate is pending.
 
-These are owned managed-fixture/source checks, not current-client gameplay,
-7937 activation, full Rune/English completion, SQL, physical power-loss safety or
-host cleanliness. Decompose reward UID issuance, remaining passives/resources
-and broader persistence remain active. The legacy execution hold is unchanged.
+These are managed source/fixture checks. Protected native D13 ticket binding,
+account registration/SQL, production power loss, native Equip, 7937/English/live
+acceptance remain open. Direct inventory/RuneBag work is a separate unqualified
+successor. The legacy execution hold remains active.
 
 ## Implemented source families
 

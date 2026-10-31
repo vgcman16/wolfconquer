@@ -19,9 +19,13 @@ internal sealed partial class LegacyItemUidRegistry
             if (operation.ValueKind != JsonValueKind.Object) throw new JsonException("Invalid UID operation receipt.");
             var names = new HashSet<string>(StringComparer.Ordinal);
             foreach (var property in operation.EnumerateObject())
-                if (!OperationKeys.Contains(property.Name, StringComparer.Ordinal) || !names.Add(property.Name))
+                if ((!OperationKeys.Contains(property.Name, StringComparer.Ordinal) &&
+                    !(version == 5 && property.Name == "NamespaceReservation")) || !names.Add(property.Name))
                     throw new JsonException("Unknown or duplicate UID operation property.");
-            if (names.Count != OperationKeys.Length) throw new JsonException("Missing UID operation property.");
+            var hasNamespace = names.Contains("NamespaceReservation");
+            if (names.Count != OperationKeys.Length + (hasNamespace ? 1 : 0))
+                throw new JsonException("Missing UID operation property.");
+            if (hasNamespace) ValidateNamespaceReservationJson(operation.GetProperty("NamespaceReservation"));
         }
     }
 
@@ -45,7 +49,8 @@ internal sealed partial class LegacyItemUidRegistry
                 !IsWriterName(row.Writer) || row.AccountId == 0 || row.CharacterUid == 0 || !IsDigest(row.PayloadSha256) ||
                 row.Count is < 1 or > MaximumReservation || row.First == 0 || row.First <= previousLast ||
                 (ulong)row.First + (uint)row.Count - 1 > state.HighWater ||
-                row.Generation <= previousGeneration || row.Generation > state.Generation)
+                row.Generation <= previousGeneration || row.Generation > state.Generation ||
+                row.NamespaceReservation is not null && (state.Version != 5 || !IsRuneDecomposeNamespace(row)))
                 throw new JsonException("Invalid or overlapping UID operation receipt.");
             previousGeneration = row.Generation;
             previousLast = (ulong)row.First + (uint)row.Count - 1;

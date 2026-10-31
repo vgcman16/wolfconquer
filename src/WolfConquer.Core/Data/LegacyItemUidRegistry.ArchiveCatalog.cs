@@ -8,16 +8,19 @@ internal sealed partial class LegacyItemUidRegistry
         byte[]? beforeBytes, bool allowNext)
     {
         var all = new Dictionary<string, ArchiveEntry>(StringComparer.Ordinal);
+        var budget = new ArchiveReadBudget();
         EnsureOrdinaryPath(paths.History);
         if (File.Exists(paths.History)) throw new IOException("UID archive directory is not a directory.");
         if (Directory.Exists(paths.History))
             foreach (var path in Directory.EnumerateFileSystemEntries(paths.History))
             {
+                budget.ChargeEntry();
                 EnsureOrdinaryPath(path);
                 var leaf = Path.GetFileName(path);
                 if (Directory.Exists(path) || leaf.Length != 37 || !leaf.EndsWith(".json", StringComparison.Ordinal) ||
                     !IsCanonicalOperation(leaf[..32])) throw new JsonException("Unknown UID archive entry.");
                 var entry = ReadArchive(path, current);
+                budget.ChargeBytes(entry.Bytes);
                 if (entry.Record.OperationId != leaf[..32] || !all.TryAdd(entry.Record.OperationId, entry))
                     throw new JsonException("UID archive filename or identity differs.");
             }
@@ -44,7 +47,9 @@ internal sealed partial class LegacyItemUidRegistry
         if (staged)
         {
             if (!allowNext || extras.Length != 0) throw new JsonException("Unexpected UID archive stage.");
+            budget.ChargeEntry();
             next = ReadArchive(paths.ArchivePending, current);
+            budget.ChargeBytes(next.Bytes);
         }
         else if (extras.Length != 0)
         {

@@ -21,6 +21,8 @@ internal sealed partial class LegacyItemUidRegistry
         var expected = before with { Generation = after.Generation, HighWater = after.HighWater };
         if (after.HighWater > before.HighWater && SameState(expected, after)) return true;
         if (IsProducerIntentAppend(before, after, expected)) return true;
+        if (IsRuneDecomposeNamespaceAppend(before, after, expected) ||
+            IsRuneDecomposeNamespaceRetirement(before, after, expected)) return true;
         if (after.HighWater == before.HighWater || after.Version != Math.Max(2, before.Version) ||
             after.Operations is null) return false;
         var previousCount = before.Operations?.Length ?? 0;

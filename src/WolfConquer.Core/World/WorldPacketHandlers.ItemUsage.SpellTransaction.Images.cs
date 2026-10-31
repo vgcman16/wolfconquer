@@ -8,20 +8,25 @@ public static partial class WorldPacketHandlers
     private static LegacyTradeJournalChange[] PrepareItemSpellImages(LegacySpellMutationInputs inputs,
         WorldSession updated, ItemSpellBeforeImages beforeImages, LegacyPreparedSpellFileWrite spellWrite,
         LegacyRuneOperation? rune = null, LegacyRuneContainerOperation? container = null, LegacyRuneComposeOperation? compose = null,
-        LegacyRuneChanceOperation? chance = null)
+        LegacyRuneChanceOperation? chance = null, LegacyRuneDecomposeOperation? decompose = null)
     {
         var characterBefore = beforeImages.CopyCharacter();
         var current = inputs.Stable.Character;
-        if (!ItemSpellAttributesMatch(updated.Character.Attributes, current.Attributes, rune is not null || container is not null || compose is not null || chance is not null) ||
-            !ItemSpellAttributesMatch(current.Attributes, updated.Character.Attributes, rune is not null || container is not null || compose is not null || chance is not null) ||
+        bool runeIntent = rune is not null || container is not null || compose is not null || chance is not null || decompose is not null;
+        if (!ItemSpellAttributesMatch(updated.Character.Attributes, current.Attributes, runeIntent) ||
+            !ItemSpellAttributesMatch(current.Attributes, updated.Character.Attributes, runeIntent) ||
             !FullAccountStoredFieldsMatch(updated.Character.PaidNobility, current.PaidNobility) ||
             !FullAccountStoredFieldsMatch(current.PaidNobility, updated.Character.PaidNobility))
             throw new LegacySpellMutationRefusalException("itemSpellUnexpectedCharacterFields");
         var characterAfter = characterBefore;
-        if (rune is not null || container is not null || compose is not null || chance is not null)
+        bool storedDecompose = decompose is not null && inputs.Stable.PlayerItems.RuneItems.Single(row => row.Uid == decompose.SelectedUid).Position is 211 or 212;
+        if (runeIntent)
         {
-            if ((rune is not null ? 1 : 0) + (container is not null ? 1 : 0) + (compose is not null ? 1 : 0) + (chance is not null ? 1 : 0) != 1) throw InvalidSpellMutation();
-            var projected = chance is not null
+            if ((rune is not null ? 1 : 0) + (container is not null ? 1 : 0) + (compose is not null ? 1 : 0) +
+                (chance is not null ? 1 : 0) + (decompose is not null ? 1 : 0) != 1) throw InvalidSpellMutation();
+            var projected = decompose is not null
+                ? ProjectRecordedRuneDecompose(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, decompose).Character
+                : chance is not null
                 ? ProjectRecordedRuneChance(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, chance).Character
                 : compose is not null
                 ? ProjectRecordedRuneCompose(current, inputs.Stable.PlayerItems, inputs.Stable.PlayerSpells, compose).Character
@@ -31,8 +36,8 @@ public static partial class WorldPacketHandlers
             if (!FullAccountCharacterScalarsEqual(projected, updated.Character) ||
                 !FullAccountStoredFieldsMatch(projected.Attributes, updated.Character.Attributes) ||
                 !FullAccountStoredFieldsMatch(updated.Character.Attributes, projected.Attributes)) throw InvalidSpellMutation();
-            characterAfter = LegacyRuneSpellOrigins.ProjectCharacterImage(characterBefore, projected);
-            LegacyRuneSpellOrigins.RequireSavedRows(current, spellWrite.CopyBeforeImage());
+            characterAfter = storedDecompose ? characterBefore : LegacyRuneSpellOrigins.ProjectCharacterImage(characterBefore, projected);
+            if (!storedDecompose) LegacyRuneSpellOrigins.RequireSavedRows(current, spellWrite.CopyBeforeImage());
         }
         else if (updated.Character.MinHitPoints != current.MinHitPoints)
         {
@@ -47,6 +52,7 @@ public static partial class WorldPacketHandlers
         var spellBefore = spellWrite.CopyBeforeImage();
         if (!SpellMutationImagesEqual(spellBefore, beforeImages.CopySpells())) throw InvalidSpellMutation();
         var spellAfter = spellWrite.CopyAfterImage();
+        if (storedDecompose && spellBefore is not null && !spellBefore.AsSpan().SequenceEqual(spellAfter)) throw InvalidSpellMutation();
         return [new(LegacyTradeJournalFileKind.Character, inputs.Stable.AccountId, characterBefore, characterAfter),
             new(LegacyTradeJournalFileKind.Items, inputs.Stable.Character.Uid, itemBefore, itemAfter),
             new(LegacyTradeJournalFileKind.Spells, inputs.Stable.Character.Uid, spellBefore, spellAfter)];

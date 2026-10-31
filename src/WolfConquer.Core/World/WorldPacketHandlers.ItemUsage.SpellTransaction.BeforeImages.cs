@@ -12,10 +12,14 @@ public static partial class WorldPacketHandlers
         private readonly WorldSession expected, stable;
         private readonly byte[] character, items;
         private readonly byte[]? spells;
+        internal string ItemPath { get; }
+        internal string CharacterPath { get; }
+        internal string SpellsPath { get; }
 
         private ItemSpellBeforeImages(LegacyPreparedSpellFileWrite writer, WorldSession expected, WorldSession stable,
-            byte[] character, byte[] items, byte[]? spells)
-        { this.writer = writer; this.expected = expected; this.stable = stable; this.character = character; this.items = items; this.spells = spells; }
+            byte[] character, byte[] items, byte[]? spells, string[] paths)
+        { this.writer = writer; this.expected = expected; this.stable = stable; this.character = character; this.items = items; this.spells = spells;
+            CharacterPath = paths[0]; ItemPath = paths[1]; SpellsPath = paths[2]; }
 
         internal static ItemSpellBeforeImages Capture(WorldPacketHandlerContext context, WorldSession expected,
             WorldSession stable, LegacyPreparedSpellFileWrite writer, string[] paths)
@@ -52,20 +56,36 @@ public static partial class WorldPacketHandlers
             if (!LegacyNativeSpellStorage.FreezeSessionSnapshot(saved).Spells.OrderBy(row => row.Id).SequenceEqual(
                     LegacyNativeSpellStorage.FreezeSessionSnapshot(stable.PlayerSpells).Spells.OrderBy(row => row.Id))) throw InvalidSpellMutation();
             writer.RequireItemSpellBeforeOwnerPlain(context, expected);
-            return new(writer, expected, stable, baseline.Bytes, itemBefore, spellBefore);
+            return new(writer, expected, stable, baseline.Bytes, itemBefore, spellBefore, paths);
         }
 
         internal void RequireChanceOwner(WorldPacketHandlerContext context, WorldSession actual)
+        {
+            RequireOwnedInvocation(context, actual);
+            LegacyRuneSpellOrigins.RequireSavedRows(actual.Character, spells);
+        }
+
+        internal void RequireRuneDecomposeOwner(WorldPacketHandlerContext context, WorldSession actual, uint uid)
+        {
+            RequireOwnedInvocation(context, actual);
+            var selected = actual.PlayerItems.RuneItems.Single(row => row.Uid == uid);
+            // These actual container positions contribute no WornObjects.
+            // Preserve complete current saved/native rows, without resolving
+            // the removed stored item's unused spell mapping or repairing it.
+            if (selected.Position is not (211 or 212)) LegacyRuneSpellOrigins.RequireSavedRows(actual.Character, spells);
+        }
+
+        private void RequireOwnedInvocation(WorldPacketHandlerContext context, WorldSession actual)
         {
             if (!ReferenceEquals(stable, actual) || actual.NativeGameClient?.OrdinarySpellBinding is null) throw InvalidSpellMutation();
             writer.RequireItemSpellBeforeOwner(context, expected);
             var saved = CharacterSnapshotParser.ParseText(CharacterSnapshotFileEncoding.Decode(character, out _));
             if (!LegacyRuneSpellOrigins.Read(saved).SequenceEqual(LegacyRuneSpellOrigins.Read(actual.Character))) throw InvalidSpellMutation();
-            LegacyRuneSpellOrigins.RequireSavedRows(actual.Character, spells);
         }
 
         internal byte[] CopyCharacter() => character.ToArray();
         internal byte[] CopyItems() => items.ToArray();
         internal byte[]? CopySpells() => spells?.ToArray();
+        internal bool HasCommittedRuneDecompose(LegacyRuneDecomposeEvidence evidence) => writer.HasCommittedRuneDecompose(evidence);
     }
 }

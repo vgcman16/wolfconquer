@@ -13,7 +13,8 @@ internal sealed partial class LegacyItemUidRegistry
         if (!configuration.TryNormalize(out var actual, out reason)) return false;
         return LegacyTradeJournal.HasPending(actual.UsersRoot)
             ? OwnedStartupCustody.TryOpen(actual, out registry, out reason)
-            : TryOpen(actual.RegistryOptions, actual.ExpectedDomain, out registry, out reason);
+            : TryAcquire(actual.RegistryOptions, false, LegacyItemUidInterruption.None,
+                out registry, out reason, actual.ExpectedDomain, actual);
     }
 
     internal sealed partial class OwnedStartupCustody
@@ -38,9 +39,9 @@ internal sealed partial class LegacyItemUidRegistry
                 var stateBytes = ReadBounded(paths.State);
                 var current = ParseState(stateBytes);
                 var archives = ReadArchiveCatalog(paths, current, null, allowNext: false);
-                RequireNoRetainedProducerWork(current, archives);
                 var custody = new OwnedStartupCustody(configuration, paths, lease, stateBytes, current, archives);
                 custody.RequireCurrent();
+                LegacyTradeJournal.RequireOwnedStartupProducerWork(custody);
                 // Register actual configured participants as a DENY-only fence.
                 // Recovery still needs its private captured-record permission.
                 LegacyOrdinaryAdmissionMutationFence.BindConfiguredDomain(configuration.Roots);
@@ -75,14 +76,6 @@ internal sealed partial class LegacyItemUidRegistry
             }
         }
 
-        private static void RequireNoRetainedProducerWork(RegistryState state, ArchiveCatalog archives)
-        {
-            // UID rows alone cannot establish whether the corresponding work
-            // store finished. Do not replay a different WAL ahead of that debt.
-            if ((state.ProducerIntents?.Length ?? 0) != 0 || archives.Entries.Count != 0 ||
-                state.Operations?.Any(row => row.Writer == LegacyOrdinaryAdmissionUidOwner.Writer) == true)
-                throw new InvalidDataException("Owned startup cannot reconcile retained producer work alongside a game journal.");
-        }
     }
 
     private static bool IsOwnedStartupFailure(Exception error) =>

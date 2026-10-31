@@ -35,7 +35,7 @@ internal sealed partial class LegacyItemUidRegistry
 
     private static bool TryAcquire(LegacyItemUidRegistryOptions options, bool bootstrap,
         LegacyItemUidInterruption interruption, out LegacyItemUidRegistry? registry, out string reason,
-        Guid? expectedDomain = null)
+        Guid? expectedDomain = null, LegacyOwnedAdmissionOptions? configuredStartup = null)
     {
         registry = null;
         reason = "itemUidConfigurationInvalid";
@@ -72,7 +72,8 @@ internal sealed partial class LegacyItemUidRegistry
                     0, Math.Max(historicalFloor, observed.Maximum));
                 if (!TryCreate(paths, current, interruption, out reason)) return false;
             }
-            else if (!TryRecoverAndRead(paths, options, observed.Maximum, out current, out reason)) return false;
+            else if (!TryRecoverAndRead(paths, options, observed.Maximum, out current, out reason,
+                configuredStartup, lease)) return false;
             // Bootstrap/open is an explicitly quiescent operation. This second
             // journal check does not fabricate a global "no raw writers" proof.
             if (LegacyTradeJournal.HasPending(paths.Users))

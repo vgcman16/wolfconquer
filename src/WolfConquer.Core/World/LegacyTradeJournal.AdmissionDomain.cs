@@ -82,11 +82,13 @@ internal static partial class LegacyTradeJournal
     }
 
     private static string[] AdmissionLockPaths(JournalRoots roots, JournalRecord record, JournalTarget[] targets) =>
+        record.Version == 19 ? AuthenticatedCreationPaths(roots.Admission!, roots.Mailbox!, checked((uint)record.Changes[0].FileId)).Values.ToArray() :
         !IsOrdinaryAdmissionVersion(record.Version) ? targets.Select(target => target.Path).ToArray() : targets.Select(target => target.Path)
             .Concat(record.AdmissionInputs!.Select(input => roots.Admission!.PathFor(input.Kind, input.FileId))).ToArray();
 
     private static void EnsureAdmissionInputs(JournalRoots roots, JournalRecord record)
     {
+        if (record.Version == 19) { EnsureAuthenticatedCreationInputs(roots, record); return; }
         if (!IsOrdinaryAdmissionVersion(record.Version)) return;
         foreach (var input in record.AdmissionInputs!)
             if (!Matches(ReadTarget(roots.Admission!.PathFor(input.Kind, input.FileId)), input.Image))

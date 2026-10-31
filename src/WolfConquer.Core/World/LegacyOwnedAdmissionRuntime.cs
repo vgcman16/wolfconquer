@@ -2,8 +2,10 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Opens a pre-existing explicit domain. This API never bootstraps a registry,
-// creates starter rewards, or activates the separate mailbox package producer.
+// Opens a pre-existing explicit domain. It never bootstraps a registry or
+// infers starter entitlement; fresh creation needs its actual authenticated
+// permit, and startup completes only known already-issued durable intent.
+// The separate mailbox package producer is not activated here.
 public sealed partial class LegacyOwnedAdmissionRuntime : IDisposable, IAsyncDisposable
 {
     private readonly LegacyItemUidRegistry registry;
@@ -25,6 +27,7 @@ public sealed partial class LegacyOwnedAdmissionRuntime : IDisposable, IAsyncDis
     {
         runtime = null; reason = "ownedAdmissionConfigurationRequired";
         LegacyItemUidRegistry? acquired = null;
+        LegacyOwnedAdmissionRuntime? opening = null;
         try
         {
             if (options is null)
@@ -42,22 +45,33 @@ public sealed partial class LegacyOwnedAdmissionRuntime : IDisposable, IAsyncDis
                 return false;
             if (!LegacyOrdinaryAdmissionUidOwner.TryCreate(acquired, actual.ExpectedDomain, actual.Roots,
                     actual.MailboxRoot, out var ordinary, out reason) || ordinary is null) return false;
-            if (!ordinary.IsReconciliationComplete)
-            { reason = "ownedAdmissionRetainedWorkRecoveryRequired"; return false; }
             var recovery = new LegacyTradeRecoveryState(actual.UsersRoot, actual.ItemsRoot, actual.QuestsRoot,
                 actual.MailboxRoot, actual.CombatGearRoot, actual.SpellsRoot, actual.ProficienciesRoot);
+            // This private candidate cannot bind a Frame or escape TryOpen.
+            // Its real existing lease/ordinary owner completes only the exact
+            // recorded authenticated creation before normal readiness exists.
+            opening = new LegacyOwnedAdmissionRuntime(acquired, actual, ordinary, recovery);
+            acquired = null; // The unpublished candidate now owns this same handle.
+            if (!opening.TryCompleteAuthenticatedCreationStartup(out reason)) return false;
+            if (!ordinary.IsReconciliationComplete)
+            { reason = "ownedAdmissionRetainedWorkRecoveryRequired"; return false; }
             // The real owner is registered before the existing escrow recovery
             // may write a Character; retained ordinary accounts remain fenced.
             if (!recovery.TryInitializeOwnedAdmission(actual.Roots, out reason)) return false;
             if (!recovery.IsReadyForOrdinaryAdmission(actual.Roots))
             { reason = "ownedAdmissionRecoveryReadinessUnproven"; return false; }
-            runtime = new(acquired, actual, ordinary, recovery);
-            acquired = null; reason = string.Empty; return true;
+            if (!opening.TryCompleteRuneDecomposeNamespaceStartup(out reason)) return false;
+            runtime = opening;
+            opening = null; reason = string.Empty; return true;
         }
         catch (Exception error) when (LegacyOwnedAdmissionOptions.IsConfigurationFailure(error))
         { reason = "ownedAdmissionStartupRefused:" + error.GetType().Name; return false; }
         finally
         {
+            if (opening is not null)
+                try { opening.Dispose(); }
+                catch (Exception closeError) when (LegacyOwnedAdmissionOptions.IsConfigurationFailure(closeError))
+                { reason += ";startupClose:" + closeError.GetType().Name; }
             if (acquired is not null)
                 try { acquired.Dispose(); }
                 catch (Exception closeError) when (LegacyOwnedAdmissionOptions.IsConfigurationFailure(closeError))

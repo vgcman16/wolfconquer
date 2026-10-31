@@ -34,8 +34,9 @@ internal static partial class LegacyTradeJournal
         private readonly RecoveryCapture capture;
         private readonly JournalTarget[] characters;
         private readonly JournalTarget[] items;
-        private readonly HashSet<uint>? protectedPhysicalBefore;
+        private readonly HashSet<uint>? protectedPhysicalUids;
         private readonly string? protectedItemPath;
+        private readonly LegacyCharacterCreationRecoveryEvidence? creationNames;
 
         private OwnedStartupItemRecovery(LegacyItemUidRegistry.OwnedStartupCustody custody, RecoveryCapture capture)
         {
@@ -43,11 +44,33 @@ internal static partial class LegacyTradeJournal
             this.capture = capture;
             characters = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Character).ToArray();
             items = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Items).ToArray();
-            if (capture.Record.Version is 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17)
+            if (capture.Record.Version == 19)
+            {
+                var recipe = ValidateAuthenticatedCreationImages(capture.Record, custody.HighWater);
+                creationNames = LegacyCharacterCreationRecoveryEvidence.Capture(custody.Configuration, recipe.Account,
+                    recipe.Projection.Name, capture.Record.Changes, capture.Record.TransactionId);
+            }
+            if (capture.Record.Version is 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19)
             {
                 var target = items.Single();
-                protectedPhysicalBefore = LegacyItemUidRawCatalog.ReadAdmissionPlayerItemUids(target.Change.Before!).ToHashSet();
+                protectedPhysicalUids = capture.Record.Version == 19 ? [] :
+                    LegacyItemUidRawCatalog.ReadAdmissionPlayerItemUids(target.Change.Before!).ToHashSet();
                 protectedItemPath = target.Path;
+                if (capture.Record.Version == 18)
+                {
+                    // The exact allocation was already joined to pinned real
+                    // custody. At prefix0 these births may not exist here yet;
+                    // none may borrow a physical owner elsewhere meanwhile.
+                    var allocation = capture.Record.RuneDecompose!.Allocation;
+                    for (var index = 0; index < allocation.Count; index++)
+                        protectedPhysicalUids.Add(checked(allocation.First + (uint)index));
+                }
+                if (capture.Record.Version == 19)
+                {
+                    var allocation = capture.Record.OrdinaryCreation!.Allocation;
+                    for (var index = 0; index < allocation.Count; index++)
+                        protectedPhysicalUids.Add(checked(allocation.First + (uint)index));
+                }
             }
         }
 
@@ -64,15 +87,29 @@ internal static partial class LegacyTradeJournal
             if (captured is null)
             { reason = RecoveryRequired + ":ownedCapturedRecordMissing"; return false; }
             custody.RequireRoots(captured.Roots.Users, captured.Roots.Items);
-            ValidateImages(captured, custody.HighWater);
+            ValidateImages(captured, custody.HighWater, custody);
             var issued = new OwnedStartupItemRecovery(custody, captured);
             issued.RequireCurrent();
             recovery = issued;
             return true;
         }
 
-        private static void ValidateImages(RecoveryCapture captured, uint highWater)
+        private static void ValidateImages(RecoveryCapture captured, uint highWater,
+            LegacyItemUidRegistry.OwnedStartupCustody custody)
         {
+            if (captured.Record.Version == 19)
+            {
+                _ = ValidateAuthenticatedCreationImages(captured.Record, highWater);
+                custody.RequireAuthenticatedCreationAllocation(captured.Record.OrdinaryCreation!);
+                return;
+            }
+            if (captured.Record.Version == 18)
+            {
+                ValidateRecordedRuneDecomposeImages(captured.Record, highWater);
+                var operation = captured.Record.RuneDecompose!;
+                custody.RequireRuneDecomposeAllocation(operation.Request, operation.Allocation);
+                return;
+            }
             if (captured.Record.Version == 17)
             {
                 ValidateRecordedRuneChanceImages(captured.Record, highWater);
@@ -143,6 +180,7 @@ internal static partial class LegacyTradeJournal
             custody.RequireRoots(capture.Roots.Users, capture.Roots.Items);
             RequireConfiguredSpellsRoot();
             RequirePendingIdentity();
+            creationNames?.RequireCurrent();
             EnsureTargetsMatch(capture.Targets, allowAfter: true);
             foreach (var target in capture.Targets) ValidateStage(target);
             // An unrelated Character stage is evidence too; unlike PlayersItems,
@@ -203,12 +241,13 @@ internal static partial class LegacyTradeJournal
 
         // Pure closed BCL proof in the physical-row loop. Capture and scan
         // boundaries still validate custody/current targets/pending/stages.
-        // A retired BEFORE UID cannot borrow a new physical owner elsewhere.
+        // A retired BEFORE UID or v18 reserved birth cannot borrow a physical
+        // owner elsewhere. References retain their ordinary highwater rules.
         internal void RequirePhysicalUidInput(string path, LegacyItemUidRawCatalog.Kind kind, uint uid)
         {
-            if (protectedPhysicalBefore?.Contains(uid) == true &&
+            if (protectedPhysicalUids?.Contains(uid) == true &&
                 (kind != LegacyItemUidRawCatalog.Kind.PlayerItems || !JournalDomainComparer.Equals(path, protectedItemPath)))
-                throw new InvalidDataException("Captured BEFORE physical UID is owned by an unrelated physical input.");
+                throw new InvalidDataException("Captured physical UID is owned by an unrelated physical input.");
         }
 
         internal void RequireExactJournal(IReadOnlyList<string> paths, IReadOnlyList<LegacyTradeJournalChange> changes)

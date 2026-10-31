@@ -16,11 +16,12 @@ internal sealed partial class LegacyPreparedSpellFileWrite
         private readonly LegacyRuneContainerEvidence? container;
         private readonly LegacyRuneComposeEvidence? compose;
         private readonly LegacyRuneChanceEvidence? chance;
+        private readonly LegacyRuneDecomposeEvidence? decompose;
 
         private RuneCharacterPublication(LegacyPreparedSpellFileWrite writer, CharacterSnapshot character,
             LegacyTradeJournalChange[] changes, LegacyRuneOperationEvidence? rune, LegacyRuneContainerEvidence? container,
-            LegacyRuneComposeEvidence? compose, LegacyRuneChanceEvidence? chance)
-        { this.writer = writer; this.character = character; this.changes = changes; this.rune = rune; this.container = container; this.compose = compose; this.chance = chance; }
+            LegacyRuneComposeEvidence? compose, LegacyRuneChanceEvidence? chance, LegacyRuneDecomposeEvidence? decompose)
+        { this.writer = writer; this.character = character; this.changes = changes; this.rune = rune; this.container = container; this.compose = compose; this.chance = chance; this.decompose = decompose; }
 
         internal void RequireCurrent(WorldSessionStore store, ConquerTcpConnection connection,
             WorldSession expected, WorldSession proposed)
@@ -33,7 +34,8 @@ internal sealed partial class LegacyPreparedSpellFileWrite
                 !LegacyRuneSpellOrigins.ProjectSpellImage(changes[2].Before, proposed.PlayerSpells).AsSpan().SequenceEqual(changes[2].After) ||
                 !writer.OwnerIsCurrentPlain() || rune is not null && !rune.IsCurrent() ||
                 container is not null && !container.IsCurrent() || compose is not null && !compose.IsCurrent() ||
-                chance is not null && !chance.IsCurrent()) throw Unavailable();
+                chance is not null && !chance.IsCurrent() || decompose is not null && !decompose.IsCurrent()) throw Unavailable();
+            decompose?.RequireProposedCharacter(proposed.Character);
         }
 
         internal byte[] RequireAfterImage(LegacyOrdinarySpellBinding binding, WorldSession expected,
@@ -49,15 +51,18 @@ internal sealed partial class LegacyPreparedSpellFileWrite
 
         internal void RequireBeforeCommit(LegacyPreparedSpellFileWrite actual,
             IReadOnlyList<LegacyTradeJournalChange> owned, LegacyRuneOperation? operation, LegacyRuneContainerOperation? containerOperation,
-            LegacyRuneComposeOperation? composeOperation, LegacyRuneChanceOperation? chanceOperation)
+            LegacyRuneComposeOperation? composeOperation, LegacyRuneChanceOperation? chanceOperation,
+            LegacyRuneDecomposeOperation? decomposeOperation)
         {
             if (!ReferenceEquals(writer, actual) || !writer.OwnerIsCurrentPlain() ||
                 !ReferenceEquals(rune?.Operation, operation) || !ReferenceEquals(container?.Operation, containerOperation) ||
                 !ReferenceEquals(compose?.Operation, composeOperation) ||
                 !ReferenceEquals(chance?.Operation, chanceOperation) ||
+                !ReferenceEquals(decompose?.Operation, decomposeOperation) ||
                 rune is not null && !rune.IsCurrent() || container is not null && !container.IsCurrent() || owned.Count != changes.Length)
                 throw Unavailable();
-            if (compose is not null && !compose.IsCurrent() || chance is not null && !chance.IsCurrent()) throw Unavailable();
+            if (compose is not null && !compose.IsCurrent() || chance is not null && !chance.IsCurrent() ||
+                decompose is not null && !decompose.IsCurrent()) throw Unavailable();
             for (var index = 0; index < changes.Length; index++)
             {
                 var captured = changes[index]; var current = owned[index];
@@ -70,13 +75,14 @@ internal sealed partial class LegacyPreparedSpellFileWrite
         {
             try
             {
-                return SnapshotFileLockCoordinator.ExecuteLocked(writer.CharacterPath, () =>
+                var paths = decompose is null ? new[] { writer.CharacterPath } : new[] { writer.CharacterPath, decompose.ItemPath, writer.SpellsPath };
+                return SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>
                     writer.committed && ReferenceEquals(writer.committedRuneCharacter, this) &&
                     ReferenceEquals(writer.binding!.SavedSpells, writer.prepared) && !writer.Recovery.IsBlocked &&
                     writer.store.IsSpellFileWriteOwnerCurrent(writer.connection, writer.expected, writer.identity, writer.binding) &&
                     !LegacyTradeJournal.HasPending(writer.UsersRoot) &&
                     CharacterSnapshotFileBaseline.TryReadBytes(writer.CharacterPath, "runeCharacterPublication", out var actual, out _) &&
-                    actual.AsSpan().SequenceEqual(changes[0].After));
+                    actual.AsSpan().SequenceEqual(changes[0].After) && DecomposeCommittedSidecarsMatch());
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or
                 NotSupportedException or System.Security.SecurityException or FormatException or OverflowException) { return false; }

@@ -17,8 +17,8 @@ public sealed partial class WorldServerFrameHandler
 
     private void RegisterTradeDisconnect(ConquerTcpConnection connection, CancellationToken connectionLifetime)
     {
-        connection.RegisterTransportCloseCleanup(() =>
-            CancelTradeAfterDisconnectAsync(CreateTradeDisconnectContext(connection), transportClosed: true));
+        var creationLifetime = _creationLifetimes.GetValue(connection, current => new(this, current));
+        connection.TryRegisterTransportCloseCleanup(creationLifetime.CloseCleanup);
         if (!connectionLifetime.CanBeCanceled) return;
         _tradeLifetimes.GetValue(connection, currentConnection =>
         {

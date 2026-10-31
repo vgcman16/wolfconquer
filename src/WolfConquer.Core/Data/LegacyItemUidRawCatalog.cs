@@ -19,6 +19,8 @@ internal static partial class LegacyItemUidRawCatalog
     private sealed class Scan
     {
         private readonly LegacyTradeJournal.OwnedStartupItemRecovery? recovery;
+        private readonly LegacyAuthenticatedOrdinaryCreationProducer? creation;
+        private readonly LegacyItemUidRegistry.OwnedStartupCustody.AuthenticatedCreationBirths? startupBirths;
         private string inputPath = string.Empty;
         private Kind inputKind;
         internal readonly HashSet<uint> Physical = [];
@@ -26,13 +28,18 @@ internal static partial class LegacyItemUidRawCatalog
         internal uint Maximum;
         internal int References;
 
-        internal Scan(LegacyTradeJournal.OwnedStartupItemRecovery? recovery = null) => this.recovery = recovery;
+        internal Scan(LegacyTradeJournal.OwnedStartupItemRecovery? recovery = null,
+            LegacyAuthenticatedOrdinaryCreationProducer? creation = null,
+            LegacyItemUidRegistry.OwnedStartupCustody.AuthenticatedCreationBirths? startupBirths = null)
+        { this.recovery = recovery; this.creation = creation; this.startupBirths = startupBirths; }
 
         internal void BeginInput(string path, Kind kind) { inputPath = path; inputKind = kind; }
 
         internal void AddPhysical(uint uid)
         {
             recovery?.RequirePhysicalUidInput(inputPath, inputKind, uid);
+            creation?.RequireUnoccupiedPhysicalBirth(uid);
+            startupBirths?.RequireUnoccupiedPhysicalUid(uid);
             if (uid == 0 || Physical.Count == MaximumPhysicalRows || !Physical.Add(uid))
                 throw new FormatException("Zero, duplicate or oversized physical UID catalog.");
             Maximum = Math.Max(Maximum, uid);
@@ -48,25 +55,41 @@ internal static partial class LegacyItemUidRawCatalog
 
     internal static bool TryScan(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
         out Observation observation, out string reason) =>
-        TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile, null, out observation, out reason);
+        TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile, null, null, null, out observation, out reason);
 
     internal static bool TryScanOwnedStartup(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
         LegacyTradeJournal.OwnedStartupItemRecovery recovery, out Observation observation, out string reason)
     {
         ArgumentNullException.ThrowIfNull(recovery);
-        return TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile, recovery, out observation, out reason);
+        return TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile, recovery, null, null, out observation, out reason);
     }
 
+    internal static bool TryScanAuthenticatedCreation(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
+        LegacyAuthenticatedOrdinaryCreationProducer creation, out Observation observation, out string reason)
+    {
+        ArgumentNullException.ThrowIfNull(creation);
+        return TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile, null, creation, null, out observation, out reason);
+    }
+
+    internal static bool TryScanAuthenticatedCreationStartup(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
+        LegacyItemUidRegistry.OwnedStartupCustody custody, LegacyAuthenticatedOrdinaryCreationOperation operation,
+        out Observation observation, out string reason) => TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile,
+            null, null, custody.CaptureAuthenticatedCreationBirths(operation), out observation, out reason);
+
     private static bool TryScanCore(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
-        LegacyTradeJournal.OwnedStartupItemRecovery? recovery, out Observation observation, out string reason)
+        LegacyTradeJournal.OwnedStartupItemRecovery? recovery, LegacyAuthenticatedOrdinaryCreationProducer? creation,
+        LegacyItemUidRegistry.OwnedStartupCustody.AuthenticatedCreationBirths? startupBirths,
+        out Observation observation, out string reason)
     {
         observation = default;
         reason = string.Empty;
         try
         {
             recovery?.RequireScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
+            creation?.RequireRawScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
+            startupBirths?.RequireRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
             var inputs = Discover(itemsRoot, mailboxRoot, redeemFile, claimFile, recovery);
-            var scan = new Scan(recovery);
+            var scan = new Scan(recovery, creation, startupBirths);
             void ReadAll()
             {
                 long total = 0;
@@ -94,6 +117,8 @@ internal static partial class LegacyItemUidRawCatalog
             if (inputs.Length == 0) ReadAll();
             else SnapshotFileLockCoordinator.ExecuteLocked(inputs.Select(input => input.Path).ToArray(),
                 () => { ReadAll(); return true; });
+            creation?.RequireRawScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
+            startupBirths?.RequireRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
             observation = new(scan.Maximum, scan.Physical.Count, scan.References);
             return true;
         }

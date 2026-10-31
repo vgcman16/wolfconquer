@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
@@ -14,7 +13,7 @@ internal sealed partial class LegacyOrdinaryAdmissionUidOwner
             foreach (var row in retained.OrderBy(row => row.PreparedGeneration))
             {
                 var recipe = ReadRecipe(row);
-                var current = LegacyTradeJournal.CaptureOrdinaryAdmissionInputs(Roots, recipe.Account);
+                var current = recipe.CaptureCurrent();
                 if (row.Allocation is { } receipt && recipe.IsAfter(current, receipt))
                 {
                     if (!TryComplete(row.Request.OperationId, out reason)) return false;
@@ -32,16 +31,8 @@ internal sealed partial class LegacyOrdinaryAdmissionUidOwner
         { reason = "ordinaryAdmissionRecoveryRequired:" + error.GetType().Name; return false; }
     }
 
-    private LegacyOrdinaryAdmissionRecipe ReadRecipe(LegacyItemUidProducerIntentSnapshot row)
-    {
-        var payload = row.CopyPayload();
-        var recipe = LegacyOrdinaryAdmissionRecipe.Decode(payload, Roots);
-        if (row.DomainId != domain || row.Request.Writer != Writer || row.Request.AccountId != recipe.Account ||
-            row.Request.CharacterUid != recipe.Account || row.Request.Count != recipe.Items.Length ||
-            row.Request.OperationId != new Guid(SHA256.HashData(payload).AsSpan(0, 16)))
-            throw new InvalidDataException("Retained ordinary-admission identity is invalid.");
-        return recipe;
-    }
+    private LegacyOrdinaryProducerRecipe ReadRecipe(LegacyItemUidProducerIntentSnapshot row) =>
+        LegacyOrdinaryProducerRecipe.Read(row, domain, Roots, mailbox);
 
     internal bool TryReadCompletedIntent(Guid operation, out LegacyItemUidProducerIntentSnapshot? intent, out string reason)
     {
@@ -51,7 +42,7 @@ internal sealed partial class LegacyOrdinaryAdmissionUidOwner
             if (!IsCurrent(Roots) || !registry.TryReadProducerIntent(domain, operation, out var row, out reason) ||
                 row?.Allocation is not { } receipt) return false;
             var recipe = ReadRecipe(row);
-            if (!recipe.IsAfter(LegacyTradeJournal.CaptureOrdinaryAdmissionInputs(Roots, recipe.Account), receipt))
+            if (!recipe.IsAfter(recipe.CaptureCurrent(), receipt))
             { reason = "ordinaryAdmissionCompletionUnproven:afterImages"; return false; }
             intent = row; reason = string.Empty; return true;
         }

@@ -10,7 +10,7 @@ public static partial class WorldPacketHandlers
     // same issued capability must make final reprojection deterministic.
     private sealed record ItemSpellProjection(WorldSession Updated, byte[][] Frames, byte[][]? Refresh = null,
         bool UpdateRank = false, LegacyRuneOperationEvidence? Rune = null, LegacyRuneContainerEvidence? Container = null,
-        LegacyRuneComposeEvidence? Compose = null, LegacyRuneChanceEvidence? Chance = null);
+        LegacyRuneComposeEvidence? Compose = null, LegacyRuneChanceEvidence? Chance = null, LegacyRuneDecomposeEvidence? Decompose = null);
 
     private static bool TryCommitLegacyItemSpell(WorldPacketHandlerContext context, WorldSession expected,
         Func<WorldSession, object, ItemSpellProjection> project, CancellationToken cancellationToken,
@@ -56,7 +56,8 @@ public static partial class WorldPacketHandlers
                 cancellationToken.ThrowIfCancellationRequested();
                 var prepared = project(inputs.Stable, identity, beforeImages);
                 if ((prepared.Rune is not null ? 1 : 0) + (prepared.Container is not null ? 1 : 0) +
-                    (prepared.Compose is not null ? 1 : 0) + (prepared.Chance is not null ? 1 : 0) > 1) throw InvalidSpellMutation();
+                    (prepared.Compose is not null ? 1 : 0) + (prepared.Chance is not null ? 1 : 0) +
+                    (prepared.Decompose is not null ? 1 : 0) > 1) throw InvalidSpellMutation();
                 if (!FullAccountCharacterScalarsEqual(prepared.Updated.Character with { MinHitPoints = inputs.Stable.Character.MinHitPoints }, inputs.Stable.Character) ||
                     !LegacyItemSaveGraph.TryCapture(prepared.Updated.PlayerItems, out var afterGraph)) throw InvalidSpellMutation();
                 var candidate = afterGraph.WithOwnedItemsForPersistence(prepared.Updated);
@@ -67,11 +68,14 @@ public static partial class WorldPacketHandlers
                 SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>
                 {
                     changes = PrepareItemSpellImages(inputs, candidate, beforeImages, spellWrite,
-                        prepared.Rune?.Operation, prepared.Container?.Operation, prepared.Compose?.Operation, prepared.Chance?.Operation);
+                        prepared.Rune?.Operation, prepared.Container?.Operation, prepared.Compose?.Operation, prepared.Chance?.Operation,
+                        prepared.Decompose?.Operation);
                     return true;
                 });
-                var runePublication = prepared.Rune is not null || prepared.Container is not null || prepared.Compose is not null || prepared.Chance is not null
-                    ? spellWrite.PrepareRuneCharacterPublication(candidate, changes!, prepared.Rune, prepared.Container, prepared.Compose, prepared.Chance) : null;
+                var runePublication = prepared.Rune is not null || prepared.Container is not null || prepared.Compose is not null ||
+                    prepared.Chance is not null || prepared.Decompose is not null
+                    ? spellWrite.PrepareRuneCharacterPublication(candidate, changes!, prepared.Rune, prepared.Container, prepared.Compose, prepared.Chance,
+                        prepared.Decompose) : null;
                 if (!owner.IsCurrent()) { reason = "itemSpellOwnerChanged"; return false; }
                 inputs.ArmPlainProof();
                 bool Writer()
@@ -88,6 +92,7 @@ public static partial class WorldPacketHandlers
                                 prepared.Container is { } container && !container.IsCurrent() ||
                                 prepared.Compose is { } compose && !compose.IsCurrent() ||
                                 prepared.Chance is { } chance && !chance.IsCurrent() ||
+                                prepared.Decompose is { } decompose && !decompose.IsCurrent() ||
                                 prepared.Refresh is not null && !ItemSpellFramesEqual(prepared.Refresh, BuildItemSpellRefresh(context, candidate, identity)) ||
                                 !ItemSpellBeforeImagesMatch(paths, changes!) ||
                                 !ItemSpellProjectionMatches(prepared, project(inputs.Stable, identity, beforeImages)))
@@ -101,16 +106,19 @@ public static partial class WorldPacketHandlers
                                 prepared.Rune is { } finalRune && !finalRune.IsCurrent() ||
                                 prepared.Container is { } finalContainer && !finalContainer.IsCurrent() ||
                                 prepared.Compose is { } finalCompose && !finalCompose.IsCurrent() ||
-                                prepared.Chance is { } finalChance && !finalChance.IsCurrent())
+                                prepared.Chance is { } finalChance && !finalChance.IsCurrent() ||
+                                prepared.Decompose is { } finalDecompose && !finalDecompose.IsCurrent())
                             { failure = "itemSpellBeforeImageChanged"; return false; }
                             if (!spellWrite.TryCommitCharacterItemsSpells(itemRoot, changes!, out failure,
                                     context.ItemSpellJournalInterruption, prepared.Rune?.Operation, prepared.Container?.Operation, runePublication,
-                                    prepared.Compose?.Operation, prepared.Chance?.Operation))
+                                    prepared.Compose?.Operation, prepared.Chance?.Operation, prepared.Decompose))
                             {
                                 if (failure.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal)) owner.Recovery.Block(failure);
                                 return false;
                             }
-                            durable = true; return true;
+                            durable = true;
+                            prepared.Decompose?.RetireCommittedNamespace(runePublication!);
+                            return true;
                         });
                     }
                     if (owner.Native is not { } native) return Locked();

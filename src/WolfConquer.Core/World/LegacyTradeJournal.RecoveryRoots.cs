@@ -7,7 +7,15 @@ internal static partial class LegacyTradeJournal
         out JournalRoots roots, out string reason)
     {
         roots = null!; reason = string.Empty;
-        if (IsOrdinaryAdmissionVersion(record.Version))
+        if (record.Version == 19)
+        {
+            if (admissionRoots is null || mailboxRoot is null)
+            { reason = RecoveryRequired + ":authenticatedCreationConfiguredRootsMissing"; return false; }
+            roots = GetAuthenticatedCreationRoots(admissionRoots, mailboxRoot);
+            if (!SameQuestRoot(usersRoot, roots.Users) || !SameQuestRoot(itemsRoot, roots.Items))
+            { reason = RecoveryRequired + ":authenticatedCreationConfiguredRootsMismatch"; return false; }
+        }
+        else if (IsOrdinaryAdmissionVersion(record.Version))
             roots = GetAdmissionRoots(admissionRoots ?? throw new ArgumentException("Explicit ordinary-admission roots are required."));
         else if (record.Version == 8)
         {
@@ -17,7 +25,7 @@ internal static partial class LegacyTradeJournal
             if (!SameQuestRoot(usersRoot, roots.Users))
             { reason = RecoveryRequired + ":characterSpellsUsersMismatch"; return false; }
         }
-        else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17)
+        else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18)
         {
             if (admissionRoots?.Items is not { } configuredItems || admissionRoots.Spells is not { } configuredSpells)
             { reason = RecoveryRequired + ":characterItemsSpellsRootMissing"; return false; }

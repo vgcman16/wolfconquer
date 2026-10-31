@@ -67,7 +67,8 @@ internal sealed partial class LegacyItemUidRegistry
     }
 
     private static bool TryRecoverAndRead(RegistryPaths paths, LegacyItemUidRegistryOptions options,
-        uint observedMaximum, out RegistryState state, out string reason)
+        uint observedMaximum, out RegistryState state, out string reason,
+        WolfConquer.Core.World.LegacyOwnedAdmissionOptions? configuredStartup, FileStream lease)
     {
         state = null!;
         reason = RecoveryRequired + ":registryStateMissing";
@@ -76,10 +77,27 @@ internal sealed partial class LegacyItemUidRegistry
         if (!hasState && !hasPending) return false;
         var currentBytes = hasState ? ReadBounded(paths.State) : null;
         var current = currentBytes is not null ? ParseState(currentBytes) : null;
-        var pending = hasPending ? ReadState(paths.Pending) : null;
+        var pendingBytes = hasPending ? ReadBounded(paths.Pending) : null;
+        var pending = pendingBytes is not null ? ParseState(pendingBytes) : null;
         if ((current is not null && !MatchesConfiguration(current, paths, options)) ||
             (pending is not null && !MatchesConfiguration(pending, paths, options)))
         { reason = RecoveryRequired + ":configurationChanged"; return false; }
+        // Our actual File.Replace/File.Move consumes the pending file. A v5
+        // duplicate cannot be attributed to the closed retirement interruption
+        // and must not be silently deleted by either acquisition route.
+        if (current?.Version == 5 && SameState(current, pending))
+        { reason = RecoveryRequired + ":identicalNamespacePendingUnsupported"; return false; }
+        RuneDecomposeNamespaceReplayCustody? namespaceReplay = null;
+        if (current is not null && pending is not null && IsNext(current, pending) &&
+            IsRuneDecomposeNamespaceRetirement(current, pending,
+                current with { Generation = pending.Generation, HighWater = pending.HighWater }))
+        {
+            if (configuredStartup is null)
+            { reason = RecoveryRequired + ":decomposeNamespaceOwnedReplayRequired"; return false; }
+            namespaceReplay = RuneDecomposeNamespaceReplayCustody.Capture(paths, lease,
+                configuredStartup, currentBytes!, pendingBytes!, current, pending);
+            namespaceReplay.RequireBefore();
+        }
         ArchiveEntry? retiring = null;
         if (current is not null) retiring = RecoverArchiveStage(paths, current, currentBytes!, observedMaximum, ref pending);
         else if (File.Exists(paths.ArchivePending) || Directory.Exists(paths.History))
@@ -101,7 +119,12 @@ internal sealed partial class LegacyItemUidRegistry
                 EnsureOrdinaryPath(paths.Pending);
                 File.Delete(paths.Pending);
             }
-            else ReplacePending(paths);
+            else
+            {
+                namespaceReplay?.RequireBefore();
+                ReplacePending(paths);
+                namespaceReplay?.RequireAfter();
+            }
             current = ReadState(paths.State);
             if (!SameState(current, pending))
             { reason = RecoveryRequired + ":recoveryPoststateUnproven"; return false; }

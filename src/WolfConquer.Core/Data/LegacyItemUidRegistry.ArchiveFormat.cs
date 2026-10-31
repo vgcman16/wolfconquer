@@ -71,7 +71,7 @@ internal sealed partial class LegacyItemUidRegistry
 
     private static RegistryState RetiredState(RegistryState before, ArchiveEntry entry) => before with
     {
-        Version = 4, Generation = entry.Record.AfterGeneration,
+        Version = Math.Max(4, before.Version), Generation = entry.Record.AfterGeneration,
         Operations = (before.Operations ?? []).Where(row => row.OperationId != entry.Record.OperationId).ToArray(),
         ProducerIntents = (before.ProducerIntents ?? []).Where(row => row.OperationId != entry.Record.OperationId).ToArray(),
         ArchiveHead = entry.Record.OperationId, ArchiveHeadSha256 = entry.Sha256,

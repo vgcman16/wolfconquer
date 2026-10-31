@@ -4,6 +4,84 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Authenticated creation and completed-history qualification - 2026-10-30
+
+### FSB-256: Own authenticated starter creation, completion history and permit lifetime
+
+Raw legacy NewRole state was not authenticated creation authority. The new internal
+account login/service path redeems a real signed one-use handoff on the same
+pre-character connection. A private Runtime permit, complete case-insensitive
+name/seven-leaf absence check and adopted HP/starter metadata precede real UID
+issuance and a create-only six-file v19 journal. Exact completed work archives
+before native/Store publication; issued uncertainty fences retries. Known prewrite
+refusal preserves the unused permit. Recovery finishes the same genuine recipe
+and range, including pre-WAL cuts, without another grant.
+
+The full anchored known ordinary history now permits legitimate later gameplay
+and Rune recovery without requiring stale starter afterimages. Unknown or incomplete
+work remains fenced. Finished/ended permits release only their exact references.
+The completed account set denies another starter grant even after all seven saved
+leaves disappear, in the same Runtime and after restart. Cleanup never refunds,
+reissues or deletes UID debt. Name/archive resource bounds remain explicit.
+
+Root solution/test builds passed zero errors and no changed C# warning. The first
+combined run 1,809 passed / 49 failed / 0 skipped; actual TRX traces all 49 to incorrect
+new fixture endpoint expectations before test bodies. Two test-only corrections
+retain the established 127.0.0.1:5818 wire. Corrected creation02 passed 81/81,
+zero failures/skips, including 49 genuine creator/owner/recovery and 32 data controls.
+Sets overlap; no single combined green or exact-public full gate is claimed yet.
+
+Limits: this qualifies authenticated internal transport, not protected native D13
+ticket binding or SQL/account registration. Archive/name limits, production
+power loss, general reward producers, native Equip, 7937/English/live acceptance
+remain open. The separate direct RuneBag successor is still unqualified.
+
+## Rune decomposition qualification - 2026-10-30
+
+Root Build05 passed with zero errors and 157 existing warnings; no changed C#
+warning. The corrected combined run passed **1,596/1,596**, zero failures/skips
+(13m31s), including 133 new decomposition outcomes, migrated request/rank controls,
+five actual owned Compose publication controls, and ordinary/UID/recovery/native
+HP neighbors. Actual earlier failures and their diagnostics remain preserved.
+
+The public60ab full Windows run failed five obsolete unowned Compose test setups;
+all five now use real owned transactions and pass. This successor's full Windows
+check is still pending. These are focused source results, not live/SQL acceptance.
+
+### FSB-255: Commit Rune consumption and registered complete rewards together
+
+Original action1981-2048 and the earlier managed path removed a Rune before
+checking complete reward placement, guessed reward UIDs and published before
+best-effort saves. Oversized essence could truncate or exceed its real cap;
+full bags/inventory could lose the source or produce partial rewards. Fragment
+merging could clear Locked or lose a raw-zero stack's existing unit.
+
+The owned producer validates physical ownership, complete capacity, actual used
+cumulative rows and real catalog caps before effects. It splits the full essence
+quantity into fresh211 roots, preserves whole+10 fragment merging/Locked/opaque
+fields and raw0-as1 conservation, and uses actual single-use registry allocations.
+Strict v18 binds the actual request/range, recorded private color, full before
+images and all three Character/Items/Spells outcomes. Game commitment precedes
+native/Store/rank/output publication; HP stays unchanged and only proven lost
+owned spell grants retire. Stored targets preserve Character/Spells byte identity.
+
+Typed v5 namespace retirement requires the actual committed writer or real fresh
+configured startup custody. Recovery protects captured BEFORE UIDs and real birth
+ranges at the sole captured Items path, including prefix0 foreign occupancy;
+unknown work and generic replay cannot provide authority or duplicate rewards.
+Every issued uncommitted exit fences the real Runtime/registry. No UID refund or
+new draw/allocation is inferred from missing bookkeeping.
+
+Root's first combined run exposed a replacement projection defect: a surviving212
+row followed by appended211 essence failed the strict lossless-image guard after
+reservation. Projection now uses canonical position buckets with stable211 order.
+The strict guard remains. A genuine sibling case and all four replacement-prefix
+recoveries pass; the original multi-user worn-target rank/reload case is retained.
+
+Verification limits: issued aborts still require a fresh owned startup. Completed
+ordinary producer/history joins are a separate unqualified successor. No complete
+Rune/production power-loss/SQL/current7937/English or live-client claim is made.
+
 ## Rune composition, chance and selected passive qualification - 2026-10-30
 
 The combined focused gate passed **1,238/1,238**, zero failures/skips,

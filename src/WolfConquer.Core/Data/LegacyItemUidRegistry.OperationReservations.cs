@@ -19,7 +19,9 @@ internal sealed partial class LegacyItemUidRegistry
 
     private sealed record OperationReservation(string OperationId, string Writer,
         uint AccountId, uint CharacterUid, string PayloadSha256, ulong Generation,
-        uint First, int Count);
+        uint First, int Count,
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        NamespaceReservation? NamespaceReservation = null);
 
     internal LegacyItemUidReservationOutcome ReserveForOperation(Guid expectedDomain,
         LegacyItemUidReservationRequest request, out Reservation? reservation,
@@ -97,7 +99,7 @@ internal sealed partial class LegacyItemUidRegistry
     {
         receipt = null;
         reason = "itemUidOperationConflict";
-        if (existing.Writer != request.Writer || existing.AccountId != request.AccountId ||
+        if (existing.NamespaceReservation is not null || existing.Writer != request.Writer || existing.AccountId != request.AccountId ||
             existing.CharacterUid != request.CharacterUid || existing.PayloadSha256 != request.PayloadSha256 ||
             existing.Count != request.Count) return LegacyItemUidReservationOutcome.Rejected;
         // A replay issues no token, but its receipt must still describe the

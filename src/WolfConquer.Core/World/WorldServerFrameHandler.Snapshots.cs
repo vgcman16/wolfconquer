@@ -27,7 +27,9 @@ public sealed partial class WorldServerFrameHandler
         await SendSnapshotForAccountAsync(connection, request.AccountId, cancellationToken).ConfigureAwait(false);
     }
 
-    private async ValueTask<CharacterSnapshot?> SendSnapshotForAccountAsync(
+    private readonly record struct SnapshotReply(CharacterSnapshot? Snapshot, WorldSnapshotWireStatus Status);
+
+    private async ValueTask<SnapshotReply> SendSnapshotForAccountAsync(
         ConquerTcpConnection connection,
         long accountId,
         CancellationToken cancellationToken)
@@ -44,7 +46,7 @@ public sealed partial class WorldServerFrameHandler
             await _log.WriteLineAsync(
                     $"WorldServer snapshot request for {accountId} received but no Users root is configured.")
                 .ConfigureAwait(false);
-            return null;
+            return new(null, WorldSnapshotWireStatus.SnapshotsUnavailable);
         }
 
         var loadResult = _snapshotLoader.TryLoadByAccountId(accountId);
@@ -63,7 +65,7 @@ public sealed partial class WorldServerFrameHandler
             await _log.WriteLineAsync(
                     FormatSnapshotLoadFailure("WorldServer snapshot error", loadResult))
                 .ConfigureAwait(false);
-            return null;
+            return new(null, WorldSnapshotWireStatus.SnapshotError);
         }
 
         if (loadResult.Status == CharacterSnapshotLoadStatus.MissingSnapshot)
@@ -78,7 +80,7 @@ public sealed partial class WorldServerFrameHandler
             await _log.WriteLineAsync(
                     FormatSnapshotLoadFailure("WorldServer snapshot missing", loadResult))
                 .ConfigureAwait(false);
-            return null;
+            return new(null, WorldSnapshotWireStatus.MissingSnapshot);
         }
 
         var snapshot = loadResult.Snapshot;
@@ -97,6 +99,6 @@ public sealed partial class WorldServerFrameHandler
         await _log.WriteLineAsync(
                 $"WorldServer snapshot Success for {accountId} uid={snapshot.Uid} map={snapshot.MapId}.")
             .ConfigureAwait(false);
-        return snapshot;
+        return new(snapshot, WorldSnapshotWireStatus.Success);
     }
 }

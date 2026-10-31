@@ -22,7 +22,10 @@ internal static class NativeCallerWorldDataFixture
         IReadOnlyList<TransformInfo>? transformInfo = null,
         IReadOnlyList<BeastAttribute>? beastAttributes = null, IReadOnlyList<MagicEffect>? magicEffects = null,
         IReadOnlyList<RuneRankingRecord>? runeRankings = null,
-        IReadOnlyList<RuneLevelExperience>? runeLevelExperience = null)
+        IReadOnlyList<RuneLevelExperience>? runeLevelExperience = null,
+        IReadOnlyList<ProfessionLevelBenefit>? professionLevelBenefits = null,
+        IReadOnlyList<RuneStorageAttribute>? runeStorageAttributes = null,
+        IReadOnlyList<InnerPowerRankEntry>? innerPowerRanks = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -35,7 +38,7 @@ internal static class NativeCallerWorldDataFixture
             itemAddBonuses: [],
             levelExperience: [],
             runeLevelExperience: runeLevelExperience ?? [],
-            runeStorageAttributes: [],
+            runeStorageAttributes: runeStorageAttributes ?? [],
             itemRefineEffects: [],
             itemRefineEffectEx: [],
             itemRefineUpgrades: [],
@@ -88,7 +91,7 @@ internal static class NativeCallerWorldDataFixture
             classPkWarRecords: [],
             combatGearRanks: [],
             prestigeRanks: prestigeRanks ?? [],
-            innerPowerRanks: [],
+            innerPowerRanks: innerPowerRanks ?? [],
             runeRankings: runeRankings ?? [],
             staticStatues: [],
             newPlayerRewards: [],
@@ -99,7 +102,7 @@ internal static class NativeCallerWorldDataFixture
             superGuildWarInfo: EmptyGuildWarData("superguildwar"),
             classLevelStats: classLevelStats ?? [],
             professionLevelUps: [],
-            professionLevelBenefits: [],
+            professionLevelBenefits: professionLevelBenefits ?? [],
             professionTitleBenefits: [],
             questInfo: new QuestInfoMetadata(ActionBase: null, RecommendInterval: null, TotalMission: null),
             questTaskTypes: [],

@@ -591,13 +591,18 @@ public sealed partial class WorldServerFrameHandler
         }
 
         var ticket = redeemed.Ticket!;
-        var snapshot = await SendSnapshotForAccountAsync(connection, ticket.AccountId, cancellationToken)
+        var reply = await SendSnapshotForAccountAsync(connection, ticket.AccountId, cancellationToken)
             .ConfigureAwait(false);
-        if (snapshot is not null)
+        cancellationToken.ThrowIfCancellationRequested();
+        if (reply.Snapshot is { } snapshot)
         {
             await StartWorldSessionAsync(connection, ticket.AccountId, ticket.Username, snapshot, cancellationToken)
                 .ConfigureAwait(false);
         }
+        else if (reply.Status == WorldSnapshotWireStatus.MissingSnapshot && HasOrdinaryUidNamespace() &&
+            !TryRegisterAuthenticatedCreation(connection, ticket, out var creationReason))
+            await _log.WriteLineAsync("WorldServer authenticated creation permit refused: " + creationReason + ".")
+                .ConfigureAwait(false);
     }
 
     private async ValueTask HandleLegacyWorldLoginAsync(
@@ -665,6 +670,13 @@ public sealed partial class WorldServerFrameHandler
         var parsed = LegacyNewRolePacket.TryParse(frame, out var request);
         if (HasOrdinaryUidNamespace())
         {
+            if (pending.Authenticated && _ownedAdmissionRuntime is { } runtime &&
+                runtime.HasAuthenticatedCreationPermit(this, connection))
+            {
+                await HandleAuthenticatedOrdinaryCreationAsync(connection, frame, pending, cancellationToken)
+                    .ConfigureAwait(false);
+                return;
+            }
             await _log.WriteLineAsync($"WorldServer refused legacy NewRole uid={pending.CharacterUid}; ordinaryAdmissionUidCreatorRequired.")
                 .ConfigureAwait(false);
             return; // Preserve the pending request; never use the old derived-UID writer in this domain.
@@ -1462,7 +1474,7 @@ public sealed partial class WorldServerFrameHandler
         return classCode != 0;
     }
 
-    private sealed record PendingLegacyCharacterCreation(long CharacterUid);
+    private sealed record PendingLegacyCharacterCreation(long CharacterUid, bool Authenticated = false);
 
     private readonly record struct LegacyWorldLoginSnapshotLoadResult(
         CharacterSnapshot? Snapshot,
