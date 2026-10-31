@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "Sanitized legacy-server parity: client compatibility, corrected emulator defects (project planning)",
-  "reviewedAt": "2026-10-30",
+  "reviewedAt": "2026-10-31",
   "estimate": {
     "percent": 55,
     "low": 40,
@@ -20,21 +20,21 @@
       "id": "transport",
       "title": "Transport, authentication and startup",
       "status": "partial",
-      "implemented": "Packet/cipher/startup paths validate envelopes and configured UID domains. Earlier D13 login/walk remains bounded. New authenticated internal account handoff/NewRole uses real signed redemption, single-use connection permits, unique names and complete six-file starter creation before native output. All 81 creation/data controls pass. Protected native D13 ticket binding and current-client acceptance remain open.",
+      "implemented": "Packet/cipher/startup paths validate envelopes and configured UID domains. Signed internal account handoff and single-use creation permits commit six starter files before native output; completed history prevents repeat grants. Creator81 is in the passing f6 full gate. Protected native D13 ticket binding and current-client acceptance remain open.",
       "remaining": "Prove the authenticated native account-to-world handoff and protected D13 login payload; complete ownership and loader joins, then verify the published build and staged endpoint migration with the actual client."
     },
     {
       "id": "persistence",
       "title": "Shared player, items and persistence",
       "status": "partial",
-      "implemented": "Selected storage/mail/Trade/booth/equipment and learning use owned saves. Rune compose/chance/decompose retain full images, registered UIDs and recovery. Creator v19 and completed history allow later gameplay while denying repeat starter grants; EOF cleanup preserves debt. First run: 1,809 passed / 49 fixture failures; corrected 81 creator controls passed. Full public CI, RuneBag, remaining producers, native graph and SQL remain open.",
+      "implemented": "Selected storage/mail/Trade/booth/equipment use owned file commits. RuneBag transfers now preserve complete items, registered fresh UIDs, locks and restart recovery; composition/chance/decomposition retain full images. Scoped qualification passes128 RuneBag/WindWalker,75 stamina and26 admission controls, with overlap. Real SQL, remaining producers and client cache recovery remain open.",
       "remaining": "Prove client warehouse cache/resynchronization behavior after committed-but-undelivered mutations. Finish one shared native player/item graph, login-loader, real login/save worker, production callers, legacy SQL/provider compatibility and restart recovery."
     },
     {
       "id": "combat",
       "title": "Combat, monsters and death",
       "status": "partial",
-      "implemented": "Selected combat/status/AI/death paths have source proof. Rune casting joins actual classification, normal/alternate providers and Beast state before costs; passive raw-self items do not mint phantom learned skills. Current source adds the exact selected7899 All-round table through owned status. Full native equipment/attack/death, other passive effects and7937 activation remain open.",
+      "implemented": "Selected combat/status/death paths have source proof. Completed fan queries own native WindWalker194, timer, expiry and death/revive projection. Admitted native stamina now shares Store HP/Mana publication; normal/fan regeneration and accepted costs/refills commit before replies. Full native equipment/Action/auto-attack, unjoined modifiers and7937 activation remain open.",
       "remaining": "Complete all callers, native arithmetic and shared RNG/order semantics, drops, lifetime ownership and multi-player/client scenarios."
     },
     {
@@ -70,7 +70,7 @@
       "id": "public-build",
       "title": "Current public build live-client acceptance",
       "status": "planned",
-      "detail": "Last complete qualified 046110e5 passed all eight stages of Windows 41134500138. Later 60ab full run 41147388998 failed five obsolete unowned Compose fixtures; all five are migrated and passing. Reviewed decomposition/creator work passed 1,596 decomposition, 1,809 retained neighbor/data and corrected 81 creator controls with overlap. Its exact-public full Windows gate and current-client acceptance remain pending."
+      "detail": "Last full qualified f6e00659 passed8stages of Windows41161576312:Core32591/Updates446/Launcher57,152existingCoreNotExecuted. New RuneBag/WindWalker128, stamina75 and admission26 controls pass in overlapping sets. Broader1260pass/20old-admission failures is retained; all20 are addressed by the corrected26passing. New exact-public full gate and live acceptance remain pending."
     },
     {
       "id": "english",

@@ -21,6 +21,7 @@ internal static partial class LegacyItemUidRawCatalog
         private readonly LegacyTradeJournal.OwnedStartupItemRecovery? recovery;
         private readonly LegacyAuthenticatedOrdinaryCreationProducer? creation;
         private readonly LegacyItemUidRegistry.OwnedStartupCustody.AuthenticatedCreationBirths? startupBirths;
+        private readonly LegacyRuneBagEvidence? runeBag;
         private string inputPath = string.Empty;
         private Kind inputKind;
         internal readonly HashSet<uint> Physical = [];
@@ -30,8 +31,9 @@ internal static partial class LegacyItemUidRawCatalog
 
         internal Scan(LegacyTradeJournal.OwnedStartupItemRecovery? recovery = null,
             LegacyAuthenticatedOrdinaryCreationProducer? creation = null,
-            LegacyItemUidRegistry.OwnedStartupCustody.AuthenticatedCreationBirths? startupBirths = null)
-        { this.recovery = recovery; this.creation = creation; this.startupBirths = startupBirths; }
+            LegacyItemUidRegistry.OwnedStartupCustody.AuthenticatedCreationBirths? startupBirths = null,
+            LegacyRuneBagEvidence? runeBag = null)
+        { this.recovery = recovery; this.creation = creation; this.startupBirths = startupBirths; this.runeBag = runeBag; }
 
         internal void BeginInput(string path, Kind kind) { inputPath = path; inputKind = kind; }
 
@@ -40,6 +42,7 @@ internal static partial class LegacyItemUidRawCatalog
             recovery?.RequirePhysicalUidInput(inputPath, inputKind, uid);
             creation?.RequireUnoccupiedPhysicalBirth(uid);
             startupBirths?.RequireUnoccupiedPhysicalUid(uid);
+            runeBag?.RequireUnoccupiedPhysicalBirth(uid);
             if (uid == 0 || Physical.Count == MaximumPhysicalRows || !Physical.Add(uid))
                 throw new FormatException("Zero, duplicate or oversized physical UID catalog.");
             Maximum = Math.Max(Maximum, uid);
@@ -76,10 +79,17 @@ internal static partial class LegacyItemUidRawCatalog
         out Observation observation, out string reason) => TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile,
             null, null, custody.CaptureAuthenticatedCreationBirths(operation), out observation, out reason);
 
+    internal static bool TryScanRuneBag(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
+        LegacyRuneBagEvidence evidence, out Observation observation, out string reason)
+    {
+        ArgumentNullException.ThrowIfNull(evidence);
+        return TryScanCore(itemsRoot, mailboxRoot, redeemFile, claimFile, null, null, null, out observation, out reason, evidence);
+    }
+
     private static bool TryScanCore(string itemsRoot, string mailboxRoot, string redeemFile, string claimFile,
         LegacyTradeJournal.OwnedStartupItemRecovery? recovery, LegacyAuthenticatedOrdinaryCreationProducer? creation,
         LegacyItemUidRegistry.OwnedStartupCustody.AuthenticatedCreationBirths? startupBirths,
-        out Observation observation, out string reason)
+        out Observation observation, out string reason, LegacyRuneBagEvidence? runeBag = null)
     {
         observation = default;
         reason = string.Empty;
@@ -88,8 +98,9 @@ internal static partial class LegacyItemUidRawCatalog
             recovery?.RequireScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
             creation?.RequireRawScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
             startupBirths?.RequireRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
+            runeBag?.RequireRawScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
             var inputs = Discover(itemsRoot, mailboxRoot, redeemFile, claimFile, recovery);
-            var scan = new Scan(recovery, creation, startupBirths);
+            var scan = new Scan(recovery, creation, startupBirths, runeBag);
             void ReadAll()
             {
                 long total = 0;
@@ -119,6 +130,7 @@ internal static partial class LegacyItemUidRawCatalog
                 () => { ReadAll(); return true; });
             creation?.RequireRawScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
             startupBirths?.RequireRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
+            runeBag?.RequireRawScanRoots(itemsRoot, mailboxRoot, redeemFile, claimFile);
             observation = new(scan.Maximum, scan.Physical.Count, scan.References);
             return true;
         }

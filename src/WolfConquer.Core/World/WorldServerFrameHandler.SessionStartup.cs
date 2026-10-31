@@ -108,6 +108,7 @@ public sealed partial class WorldServerFrameHandler
         }
 
         if (loginSpells is not null && !loginSpells.IsCurrent()) return false;
+        RegisterLegacyStaminaReadiness(connection, session);
         StartLegacyRuntimeUpdateLoop(
             connection,
             session.Character,

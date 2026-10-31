@@ -4,6 +4,85 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Owned stamina qualification - 2026-10-31
+
+### FSB-259: Join native stamina and commit regeneration before resource replies
+
+The admitted native Stamina field was detached from managed casts/refills/revive,
+and the runtime ticker could send before its Store merge. The existing genuine
+HP/Mana participant now also validates/publishes UInt16 stamina. Actual admission
+uses native0 for genuine absence; valid configured values are explicit managed
+compatibility. Malformed/out-of-width input refuses before binding or writes.
+Attached and retired players cannot regain direct native setter/refinement grants.
+
+Real same-Frame startup readiness owns source MinValue-born clocks. Normal/fan
+regeneration prepares exact source rules, actual completed Monk cache/metadata
+and current194 registration, then commits native/Store/stamps before2036 effect
+and2176 scalar output. Clock rollback, stale ownership and transport/EOF do not
+refund, duplicate or renew a step. Cost/refill replies consume their actual
+canonical Store receipt; query/death/revive keep the same resource owner.
+
+Root's isolated151-path candidate built with0errors/no changed-path warnings.
+Stamina02 passed75/75 (67new/eight migrated), zero skips. Wider neighbors01 retained
+1,260Passed/20Failed; all20 were older tests requiring malformed-input admission,
+absent100/150 fallback or UInt64 funds beyond native width. Four test-only paths
+retain all24 original inputs and add two real65535→65525 positives. Admission02
+passed26/26, zero skips, with real earlier-gate refusal, actual valid-peer retention,
+native0 absence, current/native/saved funds and independent wire goldens. Original
+red receipts remain; sets overlap and no single combined green is claimed.
+
+Limits: reviewed source is intaken; its new commit/full CI remain pending. Active unjoined
+status/modifier/automatic-Rampage branches are safe refusals, not working features.
+Native Action/auto-attack, full buffer ordering, SQL/power-loss, protected D13 auth,
+7937/English and live-client acceptance remain required. Source/results are in
+root-stamina-integration-next; original saves/routes/restore ZIP stay unchanged.
+
+## Owned RuneBag and WindWalker qualification - 2026-10-30
+
+These corrections are qualified in Root's isolated113-path candidate. Reviewed
+source is intaken; its new exact-public full gate remains pending. Initial
+focused01 retained2,435Passed/12Failed/1existingassetNotExecuted. All12 failures
+were new fixture/oracle errors; reviewed test-only corrections passed5/5 and
+34/34 in overlapping reruns. All128 new outcomes now have actual passing evidence,
+with no changed-path warnings. This is not a single2,448-case green rerun.
+
+### FSB-257: Commit RuneBag movement before output and preserve complete items
+
+The old handler could echo/publish before best-effort saving, delete a selected
+bag item when inventory was full, unlock a merge receiver, or reuse the old root
+identity for a fresh return. The actual admitted D13 producer now validates full
+ownership/capacity/payload and commits through WAL20 before native/Store/echo.
+Ingress and compatible whole merges mint no UID. A nonmerge return preserves
+the complete root/child/perfection/opaque payload with one registered fresh root
+UID; uncertain issuance fences retry, and configured restart reconciles the same
+typed receipt without regrant. HP and Character stay unchanged by the bag move.
+The subsequent actual equipment query/rank is a separate committed phase.
+
+Actual evidence includes all59 owned bag,34 pure planner and one signed
+creator→bag-v6→decomposition/recovery outcome, plus retained neighbors. Four
+phase fixtures needed complete declared Character input; the creator observer
+now validates real peer spawns as well as self output. Production parsing was
+not relaxed. Full SQL, power-loss, protected native authentication and live
+client acceptance remain open; scope/details are in root-rune-bag-integration-next.
+
+### FSB-258: Join the real WindWalker equipment-query status lifecycle
+
+The query omitted the post-perfection fan194 registration/removal. Its completed
+current query epoch now owns the native copy-on-write transition, Store overlay
+and existing2176 owner/view output. Duplicate queries retain the same row/timer;
+the actual expiry producer removes it without regrant. Death/revive preserves
+RemoveOnDead=false and the canonical status projection. Delayed MsgAction revive
+uses the same configured clock as ordinary death, and three revive Store writers
+retain their canonical out-result for later spawn publication.
+
+All34 authored controls passed, including genuine query/equipment, expiry,
+transport/EOF and death-publication→delayed-revive paths. Corrected independent
+49/51-byte goldens retain FineRain; raw equipment saves retain physical order and
+every unrelated byte while complete logical rows match managed/native snapshots.
+No production ordering was changed to satisfy an oracle. This does not prove
+combat-kill authorization,30days elapsed, native stamina modifiers, full native
+equipment/SQL,7937 activation, English rendering or live gameplay.
+
 ## Authenticated creation and completed-history qualification - 2026-10-30
 
 ### FSB-256: Own authenticated starter creation, completion history and permit lifetime
@@ -29,12 +108,14 @@ combined run 1,809 passed / 49 failed / 0 skipped; actual TRX traces all 49 to i
 new fixture endpoint expectations before test bodies. Two test-only corrections
 retain the established 127.0.0.1:5818 wire. Corrected creation02 passed 81/81,
 zero failures/skips, including 49 genuine creator/owner/recovery and 32 data controls.
-Sets overlap; no single combined green or exact-public full gate is claimed yet.
+Sets overlap; no single combined focused green is claimed. The exact publicf6e00659
+Windows41161576312 subsequently passed8stages:Core32,591/152existingNotExecuted,
+Updates446 and Launcher57; creator81 is confirmed in the full Core result.
 
 Limits: this qualifies authenticated internal transport, not protected native D13
 ticket binding or SQL/account registration. Archive/name limits, production
 power loss, general reward producers, native Equip, 7937/English/live acceptance
-remain open. The separate direct RuneBag successor is still unqualified.
+remain open. The direct RuneBag successor now has the bounded qualification above.
 
 ## Rune decomposition qualification - 2026-10-30
 

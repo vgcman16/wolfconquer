@@ -50,7 +50,7 @@ internal static partial class LegacyTradeJournal
                 creationNames = LegacyCharacterCreationRecoveryEvidence.Capture(custody.Configuration, recipe.Account,
                     recipe.Projection.Name, capture.Record.Changes, capture.Record.TransactionId);
             }
-            if (capture.Record.Version is 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19)
+            if (capture.Record.Version is 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20)
             {
                 var target = items.Single();
                 protectedPhysicalUids = capture.Record.Version == 19 ? [] :
@@ -65,6 +65,8 @@ internal static partial class LegacyTradeJournal
                     for (var index = 0; index < allocation.Count; index++)
                         protectedPhysicalUids.Add(checked(allocation.First + (uint)index));
                 }
+                if (capture.Record.Version == 20 && capture.Record.RuneBag!.Allocation is { } bagAllocation)
+                    protectedPhysicalUids.Add(bagAllocation.First);
                 if (capture.Record.Version == 19)
                 {
                     var allocation = capture.Record.OrdinaryCreation!.Allocation;
@@ -97,6 +99,13 @@ internal static partial class LegacyTradeJournal
         private static void ValidateImages(RecoveryCapture captured, uint highWater,
             LegacyItemUidRegistry.OwnedStartupCustody custody)
         {
+            if (captured.Record.Version == 20)
+            {
+                ValidateRecordedRuneBagImages(captured.Record, highWater);
+                var operation = captured.Record.RuneBag!;
+                if (operation.Allocation is { } allocation) custody.RequireRuneBagAllocation(operation.Request!, allocation);
+                return;
+            }
             if (captured.Record.Version == 19)
             {
                 _ = ValidateAuthenticatedCreationImages(captured.Record, highWater);

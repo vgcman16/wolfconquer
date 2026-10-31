@@ -114,7 +114,7 @@ internal static partial class LegacyTradeJournal
             EnsureTargetsMatch(targets, allowAfter: false);
             EnsureAdmissionInputs(roots, record);
             RequireAuthenticatedCreationBoundary(record);
-            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19)) Directory.CreateDirectory(roots.Items);
+            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20)) Directory.CreateDirectory(roots.Items);
             Directory.CreateDirectory(roots.Journal);
             EnsureSafePath(roots.Journal);
             WriteFlushed(preparing, Serialize(record));
@@ -127,7 +127,7 @@ internal static partial class LegacyTradeJournal
                 return false;
             }
             if (record.Version == 19) PrepareAuthenticatedCreationDirectories(roots, record, targets);
-            else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
+            else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
             else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
             else PrepareAdmissionDirectories(roots, record, targets);
             for (var index = 0; index < targets.Length; index++)

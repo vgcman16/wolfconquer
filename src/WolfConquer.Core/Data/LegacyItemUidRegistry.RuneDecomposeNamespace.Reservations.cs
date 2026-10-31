@@ -35,7 +35,7 @@ internal sealed partial class LegacyItemUidRegistry
                 request.Count, new(1, RuneDecomposeNamespaceKind));
             var rows = new OperationReservation[(state.Operations?.Length ?? 0) + 1];
             state.Operations?.CopyTo(rows, 0); rows[^1] = row;
-            var next = state with { Version = 5, Generation = row.Generation,
+            var next = state with { Version = Math.Max(5, state.Version), Generation = row.Generation,
                 HighWater = state.HighWater + (uint)row.Count, Operations = rows,
                 ProducerIntents = state.ProducerIntents ?? [] };
             var prepared = Reservation.Prepare(this, row.Count);

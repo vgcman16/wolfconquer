@@ -7,7 +7,15 @@ public sealed partial class LegacyNativePlayerRuntime
     // Native Player877/1025/1149 physical storage, not session attributes.
     public ushort RandomSpell = 0;
 
-    public ushort Stamina = 0;
+    private ushort _stamina;
+
+    // Admitted HP/Mana/Stamina share one owned publication. Unbound native
+    // components keep the original numeric-only stamina assignment behavior.
+    public ushort Stamina
+    {
+        get { return Volatile.Read(ref _stamina); }
+        set { SetCurrentStamina(value); }
+    }
 
     private uint _mana;
 

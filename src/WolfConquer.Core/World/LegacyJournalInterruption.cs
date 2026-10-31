@@ -78,6 +78,19 @@ internal sealed class LegacyJournalInterruption : IDisposable
         }
     }
 
+    internal void ArmRuneBagBeforeWriter(LegacyRuneBagEvidence producer)
+    {
+        lock (gate)
+        {
+            if (kind != LegacyJournalFault.ItemSpellTargetBeforeWriter) return;
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (consumed) throw new InvalidOperationException("Pre-writer target lease is already consumed.");
+            ArgumentNullException.ThrowIfNull(producer);
+            lease = new FileStream(producer.SavedBeforePath(ordinal), FileMode.Open, FileAccess.Read, FileShare.None);
+            consumed = true; ItemSpellTargetLeaseObserved = true;
+        }
+    }
+
     internal void Claim(int targetCount, int journalVersion)
     {
         lock (gate)
@@ -86,7 +99,7 @@ internal sealed class LegacyJournalInterruption : IDisposable
                 targetCount < 1 || targetCount > (journalVersion == 19 ? 6 : 4) || boundary > targetCount ||
                 (kind is LegacyJournalFault.TargetReadLease or LegacyJournalFault.TargetExclusiveLease) &&
                     (ordinal < 0 || ordinal >= targetCount) ||
-                kind == LegacyJournalFault.StopAfterStageFlushed && journalVersion is not (1 or 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19) ||
+                kind == LegacyJournalFault.StopAfterStageFlushed && journalVersion is not (1 or 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20) ||
                 kind == LegacyJournalFault.PendingReadLease && boundary != targetCount)
                 throw new ArgumentException("Interruption boundary/target is invalid or already consumed.");
             consumed = true;

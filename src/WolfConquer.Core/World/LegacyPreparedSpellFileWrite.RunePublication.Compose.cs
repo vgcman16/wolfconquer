@@ -9,8 +9,13 @@ internal sealed partial class LegacyPreparedSpellFileWrite
         private static (CharacterSnapshot Character, PlayerItemSnapshot Items, PlayerSpellSnapshot Spells) ProjectRecordedImages(
             CharacterSnapshot character, PlayerItemSnapshot items, PlayerSpellSnapshot spells,
             LegacyRuneOperationEvidence? rune, LegacyRuneContainerEvidence? container, LegacyRuneComposeEvidence? compose,
-            LegacyRuneChanceEvidence? chance, LegacyRuneDecomposeEvidence? decompose)
+            LegacyRuneChanceEvidence? chance, LegacyRuneDecomposeEvidence? decompose, LegacyRuneBagEvidence? bag)
         {
+            if (bag is not null)
+            {
+                var result = WorldPacketHandlers.ProjectRecordedRuneBag(character, items, spells, bag.Operation);
+                return (result.Character, result.Items, result.Spells);
+            }
             if (decompose is not null)
             {
                 var result = WorldPacketHandlers.ProjectRecordedRuneDecompose(character, items, spells, decompose.Operation);

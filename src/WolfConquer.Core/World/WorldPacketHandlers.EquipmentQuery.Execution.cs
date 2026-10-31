@@ -36,6 +36,8 @@ public static partial class WorldPacketHandlers
         public LegacyEquipmentQueryRequest Request { get; }
         public IReadOnlyList<PlayerItemSnapshotItem> CapturedEquipment { get; private set; } = [];
         public bool CapturedAlternate { get; private set; }
+        private WorldSession? capturedQuerySource;
+        private LegacyNativeMagicQueryClient.QueryEpoch? queryEpoch;
         public bool Admitted { get; set; }
         public LegacyEquipmentQueryPublicationResult Current { get; private set; }
         public LegacyEquipmentQueryPublicationReceipt Receipt { get; private set; }
@@ -49,8 +51,10 @@ public static partial class WorldPacketHandlers
         public bool CaptureEquipment()
         {
             if (!Refresh()) return false;
-            CapturedEquipment = LegacyEquipmentQuerySelector.Select(Session);
-            CapturedAlternate = Session.AlternateEquipmentActive;
+            capturedQuerySource = Session.NativeGameClient?.OrdinarySpellBinding is not null
+                ? new LegacySpellMutationInputs(Session, captureItems: true).Stable : Session;
+            CapturedEquipment = LegacyEquipmentQuerySelector.Select(capturedQuerySource);
+            CapturedAlternate = capturedQuerySource.AlternateEquipmentActive;
             return true;
         }
 

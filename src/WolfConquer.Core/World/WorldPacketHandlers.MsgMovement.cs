@@ -116,7 +116,7 @@ public static partial class WorldPacketHandlers
             session.AlternateEquipmentActive);
         var revive = LegacyPlayerDeathState.TryRevive(
             session.Character,
-            DateTimeOffset.UtcNow,
+            (context.TimeProvider ?? TimeProvider.System).GetUtcNow(),
             new LegacyPlayerReviveOptions
             {
                 MaximumHitpoints = maxHitpoints,
@@ -135,7 +135,9 @@ public static partial class WorldPacketHandlers
         var revivedCharacter = revive.Character;
 
         var updated = session with { Character = revivedCharacter };
-        context.Sessions?.Set(context.Connection, updated);
+        if (context.Sessions is { } currentStore)
+            currentStore.Set(context.Connection, updated, out updated);
+        revivedCharacter = updated.Character;
         var updatedContext = context with { Session = updated };
         var uid = CheckedUInt32(revivedCharacter.Uid, nameof(revivedCharacter.Uid));
 
@@ -154,8 +156,8 @@ public static partial class WorldPacketHandlers
         await context.Connection.SendAsync(
                 LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
                     uid,
-                    LegacyNativePlayerFlag6Lifecycle.CaptureVector(nativePlayerReceiver,
-                        CreateLegacyRuntimeStatusFlagVector(revivedCharacter))).ToFrameBytes(),
+                    LegacyNativeWindWalkerFanLifecycle.CaptureVector(nativePlayerReceiver, LegacyNativePlayerFlag6Lifecycle.CaptureVector(nativePlayerReceiver,
+                        CreateLegacyRuntimeStatusFlagVector(revivedCharacter)))).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         await context.Connection.SendAsync(

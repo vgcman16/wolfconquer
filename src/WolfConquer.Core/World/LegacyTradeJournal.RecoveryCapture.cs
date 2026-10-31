@@ -34,6 +34,7 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 16) ValidateRecordedRuneComposeImages(record, uint.MaxValue);
         if (record.Version == 17) ValidateRecordedRuneChanceImages(record, uint.MaxValue);
         if (record.Version == 18) ValidateRecordedRuneDecomposeImages(record, uint.MaxValue);
+        if (record.Version == 20) ValidateRecordedRuneBagImages(record, uint.MaxValue);
         if (record.Version == 19) _ = ValidateAuthenticatedCreationImages(record, uint.MaxValue);
         if (!TryResolveRecoveryRoots(usersRoot, itemsRoot, questsRoot, mailboxRoot, combatGearRoot,
             admissionRoots, record, out var roots, out reason)) return false;
@@ -45,8 +46,9 @@ internal static partial class LegacyTradeJournal
         OwnedStartupItemRecovery? ownedStartup = null)
     {
         recovered = 0; reason = string.Empty;
-        if (capture.Record.Version is 18 or 19 && ownedStartup is null)
-        { reason = RecoveryRequired + (capture.Record.Version == 19 ? ":authenticatedCreationOwnedCustodyRequired" : ":runeDecomposeOwnedCustodyRequired"); return false; }
+        if (capture.Record.Version is 18 or 19 or 20 && ownedStartup is null)
+        { reason = RecoveryRequired + (capture.Record.Version == 19 ? ":authenticatedCreationOwnedCustodyRequired" :
+            capture.Record.Version == 20 ? ":runeBagOwnedCustodyRequired" : ":runeDecomposeOwnedCustodyRequired"); return false; }
         var count = 0; var failure = string.Empty;
         var result = SnapshotFileLockCoordinator.ExecuteLocked(
             AdmissionLockPaths(capture.Roots, capture.Record, capture.Targets), () =>

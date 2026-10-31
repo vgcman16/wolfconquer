@@ -838,132 +838,13 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerItemUsageRuneMovesInventoryRuneToBagEchoesAndPersists()
-    {
-        const uint runeUid = 5_337_500;
-        WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565);
-        WriteItems(
-            1_293_600,
-            PlayerItemSnapshotLoaderTests.DbItem(runeUid, 4_010_501, position: 0));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(CreateRuneBagUse(runeUid, dwParam: 0, 8_888)));
-
-        Assert.Equal(countBeforeRequest + 2, sent.Count);
-        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest]), out var storedRune));
-        Assert.Equal(runeUid, storedRune.Uid);
-        Assert.Equal(4_010_501U, storedRune.ItemId);
-        Assert.Equal((byte)211, storedRune.Position);
-        Assert.Equal(LegacyGameItemPacket.AddItemMode, storedRune.Mode);
-        Assert.True(MsgItemUsagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 1]), out var echoPacket));
-        Assert.Equal(
-            new MsgItemUsagePacket(
-                runeUid,
-                DwParam: 0,
-                MsgItemUsageAction.Rune,
-                511_043_495,
-                0,
-                0,
-                0),
-            echoPacket);
-        Assert.True(PacketReader.TryRead(sent[countBeforeRequest + 1], out var echoReader));
-        Assert.Equal(8_888U, echoReader.ReadUInt32(MsgItemUsagePacket.PayloadLength));
-
-        var session = GetSession(handler, connection);
-        Assert.DoesNotContain(session.PlayerItems.InventoryItems, item => item.Uid == runeUid);
-        Assert.Contains(session.PlayerItems.RuneItems, item => item.Uid == runeUid && item.Position == 211);
-
-        var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.DoesNotContain(persistedItems.InventoryItems, item => item.Uid == runeUid);
-        Assert.Contains(persistedItems.RuneItems, item => item.Uid == runeUid && item.Position == 211);
-
-        var output = log.ToString();
-        Assert.Contains("handled MsgItemUsage direct rune bag add", output);
-        Assert.Contains("persisted MsgItemUsage direct rune bag add items", output);
-        Assert.DoesNotContain("PARITY-GAP MsgItemUsage direct rune bag add", output);
-    }
+    public Task HandlerItemUsageRuneMovesInventoryRuneToBagEchoesAndPersists() => AssertOwnedLegacyRuneBagMainAsync(intoBag: true);
 
     [Fact]
-    public async Task HandlerItemUsageRuneReturnsBagRuneToInventoryEchoesAndPersists()
-    {
-        const uint runeUid = 5_337_510;
-        WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565);
-        WriteItems(
-            1_293_600,
-            PlayerItemSnapshotLoaderTests.DbItem(runeUid, 4_020_501, position: 211));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(CreateRuneBagUse(runeUid, dwParam: 1)));
-
-        Assert.Equal(countBeforeRequest + 3, sent.Count);
-        AssertItemUsage(
-            sent[countBeforeRequest],
-            new MsgItemUsagePacket(runeUid, DwParam: 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
-        Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + 1]), out var returnedRune));
-        Assert.Equal(runeUid, returnedRune.Uid);
-        Assert.Equal(4_020_501U, returnedRune.ItemId);
-        Assert.Equal((byte)0, returnedRune.Position);
-        Assert.Equal(LegacyGameItemPacket.AddItemMode, returnedRune.Mode);
-        Assert.True(MsgItemUsagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 2]), out var echoPacket));
-        Assert.Equal(
-            new MsgItemUsagePacket(
-                runeUid,
-                DwParam: 1,
-                MsgItemUsageAction.Rune,
-                511_043_495,
-                0,
-                0,
-                0),
-            echoPacket);
-
-        var session = GetSession(handler, connection);
-        Assert.Contains(session.PlayerItems.InventoryItems, item => item.Uid == runeUid && item.Position == 0);
-        Assert.DoesNotContain(session.PlayerItems.RuneItems, item => item.Uid == runeUid);
-
-        var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.Contains(persistedItems.InventoryItems, item => item.Uid == runeUid && item.Position == 0);
-        Assert.DoesNotContain(persistedItems.RuneItems, item => item.Uid == runeUid);
-
-        var output = log.ToString();
-        Assert.Contains("handled MsgItemUsage direct rune bag remove", output);
-        Assert.Contains("persisted MsgItemUsage direct rune bag remove items", output);
-        Assert.DoesNotContain("PARITY-GAP MsgItemUsage direct rune bag remove", output);
-    }
+    public Task HandlerItemUsageRuneReturnsBagRuneToInventoryEchoesAndPersists() => AssertOwnedLegacyRuneBagMainAsync(intoBag: false);
 
     [Fact]
-    public async Task HandlerItemUsageRuneRequiresSecondRebornAndLevelFifteen()
-    {
-        const uint runeUid = 5_337_520;
-        WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565, level: 14);
-        WriteItems(
-            1_293_600,
-            PlayerItemSnapshotLoaderTests.DbItem(runeUid, 4_030_501, position: 0));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(CreateRuneBagUse(runeUid, dwParam: 0)));
-
-        Assert.Equal(countBeforeRequest, sent.Count);
-        var session = GetSession(handler, connection);
-        Assert.Contains(session.PlayerItems.InventoryItems, item => item.Uid == runeUid && item.Position == 0);
-        Assert.Empty(session.PlayerItems.RuneItems);
-
-        var output = log.ToString();
-        Assert.Contains("skipped MsgItemUsage direct rune bag", output);
-        Assert.Contains("requires second reborn and level 15", output);
-        Assert.DoesNotContain("handled MsgItemUsage direct rune bag add", output);
-    }
+    public Task HandlerItemUsageRuneRequiresSecondRebornAndLevelFifteen() => AssertOwnedLegacyRuneBagLevelRefusalAsync();
 
     [Fact]
     public async Task HandlerItemUsageRedRuneProgressControlMapsComprehensionOptionAndPersists()

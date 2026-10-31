@@ -162,13 +162,14 @@ public static partial class WorldPacketHandlers
                 continue;
             }
 
+            var activeTargetSession = activeTarget.Session;
             if (supportTarget.StaminaDelta > 0 ||
                 outcome.Kind == LegacyMagicSupportKind.DragonRoarStamina)
             {
-                await ApplyLegacyStaminaToPlayerAsync(
+                activeTargetSession = await ApplyLegacyStaminaToPlayerAsync(
                         context,
                         activeTarget.Connection,
-                        activeTarget.Session,
+                        activeTargetSession,
                         supportTarget.NewStamina,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -180,7 +181,7 @@ public static partial class WorldPacketHandlers
                 ApplyLegacyXpCountToPlayer(
                         context,
                         activeTarget.Connection,
-                        activeTarget.Session,
+                        activeTargetSession,
                         supportTarget.NewXpCount);
             }
         }

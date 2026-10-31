@@ -61,11 +61,12 @@ public static partial class WorldPacketHandlers
         else if (!await execution.PairAsync().ConfigureAwait(false))
             return execution.Outcome();
         // QueryEquipment postlude follows OnDequeue's HP work.
-        if (execution.Refresh())
+        if (execution.Refresh() &&
             await execution.SendAsync(LegacyUserTotalRefineLevPacket.FromEquipmentPerfection(
                     CheckedUInt32(request.Scope.OwnerUid, nameof(request.Scope.OwnerUid)),
                     execution.Session.PlayerItems).ToFrameBytes(),
-                LegacyEquipmentQueryPublishedPhases.Perfection).ConfigureAwait(false);
+                LegacyEquipmentQueryPublishedPhases.Perfection).ConfigureAwait(false))
+            await execution.RunWindWalkerPostludeAsync().ConfigureAwait(false);
         return execution.Outcome();
     }
 }

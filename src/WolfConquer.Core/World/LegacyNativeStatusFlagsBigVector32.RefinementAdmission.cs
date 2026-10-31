@@ -12,7 +12,8 @@ internal partial class LegacyNativeStatusFlagsBigVector32
     internal bool TryPrepareRefinement(LegacyNativeRefinementBindings bindings, out RefinementChange? token)
     {
         token = null;
-        if (!Monitor.IsEntered(SyncRoot) || !ReferenceEquals(bindings.Vector, this)) return false;
+        if (!Monitor.IsEntered(SyncRoot) || !ReferenceEquals(bindings.Vector, this) ||
+            bindings.Kind == LegacyNativePerfectionEffects.RefinementKind.Stamina && bindings.Player.HasOwnedVitalsAttachment) return false;
         try
         {
             if (!TryCapture(out var before)) return false;
@@ -37,7 +38,8 @@ internal partial class LegacyNativeStatusFlagsBigVector32
                 (!TryPrepareAdd((int)LegacyNativeMsgUpdate.Flags.XPList, 20, true, 0, false, out change) ||
                  !TryGetPreparedWords(change, out words))) return false;
             if (!IsCurrent(before!) || !bindings.IsCurrent() ||
-                (bindings.Kind == LegacyNativePerfectionEffects.RefinementKind.Stamina && bindings.Player.Stamina != stamina)) return false;
+                (bindings.Kind == LegacyNativePerfectionEffects.RefinementKind.Stamina &&
+                    (bindings.Player.Stamina != stamina || bindings.Player.HasOwnedVitalsAttachment))) return false;
             var prepared = new RefinementChange();
             refinementChanges.Add(prepared, new(bindings, before!, change, bindings.Kind, eligible, words, stamina));
             token = prepared;
@@ -96,7 +98,8 @@ internal partial class LegacyNativeStatusFlagsBigVector32
 
     private static bool RefinementBindingsCurrent(RefinementState state, LegacyNativeRefinementBindings bindings) =>
         state.Kind == bindings.Kind && bindings.IsCurrent() &&
-        (state.Kind != LegacyNativePerfectionEffects.RefinementKind.Stamina || bindings.Player.Stamina == state.Stamina);
+        (state.Kind != LegacyNativePerfectionEffects.RefinementKind.Stamina ||
+            bindings.Player.Stamina == state.Stamina && !bindings.Player.HasOwnedVitalsAttachment);
 
     private bool RefinementPhysicalCurrent(State before)
     {

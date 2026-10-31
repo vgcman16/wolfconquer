@@ -9,22 +9,22 @@ internal sealed partial class LegacyPreparedSpellFileWrite
     internal RuneCharacterPublication PrepareRuneCharacterPublication(WorldSession proposed,
         IReadOnlyList<LegacyTradeJournalChange> changes, LegacyRuneOperationEvidence? rune,
         LegacyRuneContainerEvidence? container, LegacyRuneComposeEvidence? compose = null, LegacyRuneChanceEvidence? chance = null,
-        LegacyRuneDecomposeEvidence? decompose = null) =>
-        RuneCharacterPublication.Capture(this, proposed, changes, rune, container, compose, chance, decompose);
+        LegacyRuneDecomposeEvidence? decompose = null, LegacyRuneBagEvidence? bag = null) =>
+        RuneCharacterPublication.Capture(this, proposed, changes, rune, container, compose, chance, decompose, bag);
 
     internal sealed partial class RuneCharacterPublication
     {
         internal static RuneCharacterPublication Capture(LegacyPreparedSpellFileWrite writer, WorldSession proposed,
             IReadOnlyList<LegacyTradeJournalChange> changes, LegacyRuneOperationEvidence? rune,
             LegacyRuneContainerEvidence? container, LegacyRuneComposeEvidence? compose, LegacyRuneChanceEvidence? chance,
-            LegacyRuneDecomposeEvidence? decompose)
+            LegacyRuneDecomposeEvidence? decompose, LegacyRuneBagEvidence? bag)
         {
             if (writer.binding is null ||
                 (rune is not null ? 1 : 0) + (container is not null ? 1 : 0) + (compose is not null ? 1 : 0) +
-                (chance is not null ? 1 : 0) + (decompose is not null ? 1 : 0) != 1 ||
+                (chance is not null ? 1 : 0) + (decompose is not null ? 1 : 0) + (bag is not null ? 1 : 0) != 1 ||
                 rune is not null && !rune.IsCurrent() || container is not null && !container.IsCurrent() ||
                 compose is not null && !compose.IsCurrent() || chance is not null && !chance.IsCurrent() ||
-                decompose is not null && !decompose.IsCurrent()) throw Unavailable();
+                decompose is not null && !decompose.IsCurrent() || bag is not null && !bag.IsCurrent()) throw Unavailable();
             var owned = writer.ValidateChanges(changes);
             if (owned.Length != 3 || owned[0].Kind != LegacyTradeJournalFileKind.Character ||
                 owned[1].Kind != LegacyTradeJournalFileKind.Items || owned[2].Kind != LegacyTradeJournalFileKind.Spells ||
@@ -36,9 +36,9 @@ internal sealed partial class LegacyPreparedSpellFileWrite
             LegacyItemUidRawCatalog.ValidateAdmissionPlayerItems(owned[1].After);
             var items = PlayerItemSnapshotLoader.Parse(owned[1].Before!);
             var spells = owned[2].Before is null ? PlayerSpellSnapshot.Empty : PlayerSpellSnapshotLoader.Parse(owned[2].Before!);
-            bool storedDecompose = decompose is not null && items.RuneItems.Single(row => row.Uid == decompose.Operation.SelectedUid).Position is 211 or 212;
+            bool storedDecompose = bag is not null || decompose is not null && items.RuneItems.Single(row => row.Uid == decompose.Operation.SelectedUid).Position is 211 or 212;
             if (!storedDecompose) LegacyRuneSpellOrigins.RequireSavedRows(character, owned[2].Before);
-            var projected = ProjectRecordedImages(character, items, spells, rune, container, compose, chance, decompose);
+            var projected = ProjectRecordedImages(character, items, spells, rune, container, compose, chance, decompose, bag);
             decompose?.RequireProposedCharacter(proposed.Character);
             if (!WorldPacketHandlers.BoundHitpointsInputs.ScalarsEqual(character, writer.expected.Character) ||
                 !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(character, writer.expected.Character) ||
@@ -54,7 +54,7 @@ internal sealed partial class LegacyPreparedSpellFileWrite
                 !LegacyRuneSpellOrigins.ProjectSpellImage(owned[2].Before, proposed.PlayerSpells).AsSpan().SequenceEqual(owned[2].After))
                 throw Unavailable();
             if (storedDecompose && owned[2].Before is { } previous && !previous.AsSpan().SequenceEqual(owned[2].After)) throw Unavailable();
-            return new(writer, proposed.Character, owned, rune, container, compose, chance, decompose);
+            return new(writer, proposed.Character, owned, rune, container, compose, chance, decompose, bag);
         }
     }
 }

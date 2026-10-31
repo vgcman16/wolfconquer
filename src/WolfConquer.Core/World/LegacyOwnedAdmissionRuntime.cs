@@ -61,6 +61,7 @@ public sealed partial class LegacyOwnedAdmissionRuntime : IDisposable, IAsyncDis
             if (!recovery.IsReadyForOrdinaryAdmission(actual.Roots))
             { reason = "ownedAdmissionRecoveryReadinessUnproven"; return false; }
             if (!opening.TryCompleteRuneDecomposeNamespaceStartup(out reason)) return false;
+            if (!opening.TryCompleteRuneBagNamespaceStartup(out reason)) return false;
             runtime = opening;
             opening = null; reason = string.Empty; return true;
         }

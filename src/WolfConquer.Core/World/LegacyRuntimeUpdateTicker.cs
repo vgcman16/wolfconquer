@@ -84,7 +84,15 @@ public sealed class LegacyRuntimeUpdateTicker
 
     public IReadOnlyList<LegacyRuntimeUpdate> CreateDueUpdates(
         DateTimeOffset now,
-        CharacterSnapshot? currentSnapshot = null)
+        CharacterSnapshot? currentSnapshot = null) => CreateDueUpdatesCore(now, currentSnapshot, includeStamina: true);
+
+    // Scheduling/codec compatibility only. The actual admitted Frame routes
+    // stamina through its separately owned commit-before-send phase.
+    internal IReadOnlyList<LegacyRuntimeUpdate> CreateDueNonStaminaUpdates(DateTimeOffset now,
+        CharacterSnapshot? currentSnapshot) => CreateDueUpdatesCore(now, currentSnapshot, includeStamina: false);
+
+    private IReadOnlyList<LegacyRuntimeUpdate> CreateDueUpdatesCore(DateTimeOffset now,
+        CharacterSnapshot? currentSnapshot, bool includeStamina)
     {
         var updates = new List<LegacyRuntimeUpdate>(capacity: 5);
         updates.AddRange(_topInHoursInvitations.CreateDueUpdates(now));
@@ -132,7 +140,7 @@ public sealed class LegacyRuntimeUpdateTicker
         }
 
         var staminaRecurringDelay = _isSitting ? SittingStaminaRecurringDelay : StandingStaminaRecurringDelay;
-        if (now >= _lastStaminaAt + staminaRecurringDelay && _stamina < _maximumStamina)
+        if (includeStamina && now >= _lastStaminaAt + staminaRecurringDelay && _stamina < _maximumStamina)
         {
             var staminaIncrement = _isSitting ? SittingStaminaIncrement : StandingStaminaIncrement;
             _stamina = checked((ushort)Math.Min(_maximumStamina, _stamina + staminaIncrement));

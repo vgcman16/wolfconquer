@@ -15,6 +15,7 @@ public sealed partial class WorldSessionStore
         private readonly long mana;
         private readonly bool hasStamina;
         private readonly string? stamina;
+        private readonly LegacyStaminaState.NativeValueProof? acceptedStamina;
         private readonly ushort authorization;
         private readonly (ushort Id, bool Present, DateTimeOffset Value)[] cooldowns;
         internal WorldSession Published { get; }
@@ -25,8 +26,21 @@ public sealed partial class WorldSessionStore
         {
             this.store = store; this.connection = connection; this.identity = identity; this.binding = binding;
             Published = published; mana = published.Character.MinMana; authorization = published.LegacyRandomSpell;
-            hasStamina = published.Character.Attributes.TryGetValue("Stamina", out var rawStamina);
-            stamina = rawStamina;
+            using var actors = binding is null ? null : new SpellActorScope(binding);
+            LegacyStaminaState.NativeValueProof? beforeStamina = null;
+            if (binding is not null)
+            {
+                beforeStamina = new(before.Character);
+                acceptedStamina = new(published.Character);
+                hasStamina = true; stamina = acceptedStamina.Text;
+                if (!BeforeStaminaOwnerIsCurrent(before) || binding.Player.Stamina != beforeStamina.Value ||
+                    !beforeStamina.IsCurrentPlain() || !acceptedStamina.IsCurrentPlain()) throw InvalidStaminaOwner();
+            }
+            else
+            {
+                hasStamina = published.Character.Attributes.TryGetValue("Stamina", out var rawStamina);
+                stamina = rawStamina;
+            }
             var changed = new List<(ushort, bool, DateTimeOffset)>();
             if (published.MagicCooldowns is { } after)
                 foreach (var pair in after)
@@ -38,7 +52,20 @@ public sealed partial class WorldSessionStore
                     if (published.MagicCooldowns is not { } afterValues || !afterValues.ContainsKey(pair.Key))
                         changed.Add((pair.Key, false, default));
             cooldowns = changed.ToArray();
+            // Cooldown/custom-map reads are complete before the last plain
+            // physical proof. This receipt is still prepared BEFORE commit.
+            if (binding is not null && (!BeforeStaminaOwnerIsCurrent(before) ||
+                binding.Player.Stamina != beforeStamina!.Value || !beforeStamina.IsCurrentPlain() ||
+                !acceptedStamina!.IsCurrentPlain())) throw InvalidStaminaOwner();
         }
+
+        private bool BeforeStaminaOwnerIsCurrent(WorldSession before) => binding is not null &&
+            IsCurrentThreadInsideAnyConnectionGate && Monitor.IsEntered(binding.Client.SpellAdmissionSyncRoot) &&
+            Monitor.IsEntered(binding.Player.SpellAdmissionSyncRoot) && ReferenceEquals(binding.Store, store) &&
+            ReferenceEquals(binding.Connection, connection) && ReferenceEquals(binding.NativeIdentity, identity) &&
+            store.TryGet(connection, out var current) && ReferenceEquals(current, before) && store.IsBoundSpellOwnerCurrent(binding);
+
+        private static InvalidOperationException InvalidStaminaOwner() => new("committedMagicStaminaPhysicalOwnerInvalid");
 
         internal async ValueTask<WorldSession?> SendAsync(IReadOnlyList<byte[]> frames, CancellationToken cancellationToken)
         {
@@ -87,10 +114,12 @@ public sealed partial class WorldSessionStore
                     !ReferenceEquals(holder.NativeClientIdentity, identity) || holder.Read() is not { } observed ||
                     observed.AccountId != Published.AccountId || observed.Character.Uid != Published.Character.Uid ||
                     !ReferenceEquals(holder.SpellBinding, binding)) return false;
+                using var actors = binding is null ? null : new SpellActorScope(binding);
                 if (binding is not null
                     ? !store.BindingIsCurrentPlain(binding, holder, observed)
                     : connection.NativeGameClient?.OrdinarySpellBinding is not null ||
                       connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true) return false;
+                var physicalStamina = binding is null ? null : new LegacyStaminaState.NativeValueProof(observed.Character);
                 if (observed.LegacyRandomSpell != authorization ||
                     (pending & CostFields.Mana) != 0 && observed.Character.MinMana != mana) return false;
                 if ((pending & CostFields.Stamina) != 0 &&
@@ -102,6 +131,10 @@ public sealed partial class WorldSessionStore
                     var present = observed.MagicCooldowns is { } values && values.TryGetValue(entry.Id, out value);
                     if (present != entry.Present || present && value != entry.Value) return false;
                 }
+                if (binding is not null && (!store.BindingIsCurrentPlain(binding, holder, observed) ||
+                    !physicalStamina!.IsCurrentPlain() || !acceptedStamina!.IsCurrentPlain() ||
+                    binding.Player.Stamina != physicalStamina.Value ||
+                    (pending & CostFields.Stamina) != 0 && physicalStamina.Value != acceptedStamina.Value)) return false;
                 current = observed;
                 return true;
             }

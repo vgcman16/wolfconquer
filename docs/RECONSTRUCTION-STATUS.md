@@ -1,38 +1,36 @@
 # Reconstruction status
 
-Updated 2026-10-30. Full English server/client reconstruction remains active.
+Updated 2026-10-31. Full English server/client reconstruction remains active.
 Observed live target: Chinese client7899 / VisibleDx8D13. The separate official
 7937 reference/stage is not complete current-client feature or English acceptance.
 
 ## Current source qualification
 
-The last complete qualified published `046110e5` passed all eight stages of
-[Windows41134500138](https://github.com/vgcman16/wolfconquer/actions/runs/41134500138):
-Core 32,209 Passed / 152 existing NotExecuted, Updates 446 and Launcher 57.
-The later `60ab2d8e` full [Windows41147388998](https://github.com/vgcman16/wolfconquer/actions/runs/41147388998)
-failed five obsolete unowned Compose fixture setups; Core 32,372 passed and
-Updates 446 passed, while Launcher/later stages were not reached. Results are retained.
+The last complete qualified published `f6e00659` passed all eight stages of
+[Windows41161576312](https://github.com/vgcman16/wolfconquer/actions/runs/41161576312):
+Core32,591 Passed /152 existing NotExecuted, Updates446 and Launcher57. All81
+corrected creator controls are present in the actual full Core result. Earlier
+failed runs remain retained; passing source checks are not live-client proof.
 
-This reviewed successor includes owned Rune decomposition with real registered
-rewards and authenticated internal NewRole/starter creation with completed-history
-recovery joins. Actual signed account handoff, same-connection single-use permits,
-complete name/seven-leaf checks and a six-file v19 journal precede native output.
-Completed/ended permit references retire exactly; durable history denies a second
-starter grant after saved leaves disappear. Issued uncertain ranges stay fenced.
+This reviewed successor adds durable direct RuneBag transfer/return, complete
+item preservation and real registered return UIDs. WindWalker194 joins completed
+equipment queries, current native/Store status, expiry and death/revive. Native
+stamina joins the existing HP/Mana publication; normal/fan regeneration and
+accepted costs/refills commit before resource replies. Missing stamina starts0;
+malformed/out-of-UInt16 saved state refuses admission instead of becoming funds.
 
-Decomposition passed 1,596 focused outcomes, including all five migrated owned
-Compose publication controls. The creator successor production passed 1,809
-neighbor/data outcomes in its first 1,858 selection; 49 new fixtures failed at an
-incorrect endpoint expectation before their genuine bodies. Only two test
-expectations changed. Corrected creator selection passed 81/81, zero failures/skips,
-including 49 genuine and 32 data controls. Sets overlap; no fresh combined 1,858
-pass is claimed. Solution/test builds passed zero errors and no changed C# warning.
-Its exact-public full Windows gate is pending.
+Actual focused results: all128 new RuneBag/WindWalker outcomes have passing
+evidence; stamina75/75 and admission26/26 passed with zero failures/skips. The
+broader run retained1,260Passed/20Failed; those20 old admission expectations are
+addressed by the corrected26-case selection, preserving24 original inputs and
+adding two real65535 boundaries. Initial failures and exact test-only corrections
+remain recorded. Sets overlap; no single combined rerun is claimed. Builds have
+zero errors and no changed-path warnings. The new exact-public full gate is pending.
 
-These are managed source/fixture checks. Protected native D13 ticket binding,
-account registration/SQL, production power loss, native Equip, 7937/English/live
-acceptance remain open. Direct inventory/RuneBag work is a separate unqualified
-successor. The legacy execution hold remains active.
+Protected native D13 ticket binding, account registration/SQL, production power
+loss, native Action/auto-attack/equipment and unjoined stamina modifiers remain
+open. Current source deployment,7937 and complete English/live acceptance remain
+unproven. The legacy execution hold remains active.
 
 ## Implemented source families
 

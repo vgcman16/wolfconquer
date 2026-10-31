@@ -10,14 +10,14 @@ public static partial class WorldPacketHandlers
         private bool ResetNativeMagicQuery()
         {
             if (!Refresh()) return false;
-            return LegacyNativeMagicQueryClient.Reset(Context.Sessions, Context.Connection,
-                Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity);
+            return capturedQuerySource is not null && LegacyNativeMagicQueryClient.TryBeginQuery(Context.Sessions, Context.Connection,
+                Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity, out queryEpoch, capturedQuerySource);
         }
 
         private bool NativeMagic(Func<LegacyNativeMagicQueryFields, LegacyNativeMagicQueryFields> update) =>
             Refresh() && LegacyNativeMagicQueryClient.Update(
                 Context.Sessions, Context.Connection, Request.Scope.OwnerUid, update,
-                Request.Scope.OwnerNativeClientIdentity);
+                Request.Scope.OwnerNativeClientIdentity, queryEpoch);
 
         private LegacyNativeMagicQueryFields NativeMagicCurrent =>
             LegacyNativeMagicQueryClient.Read(Context.Sessions, Context.Connection,
@@ -102,7 +102,7 @@ public static partial class WorldPacketHandlers
             if (!HasLegacyPlayerMagicInterserverAttribute(Session) &&
                 !LegacyNativeMagicQueryClient.RebuildJiangHu(Context.Sessions, Context.Connection,
                     Request.Scope.OwnerUid, owner => NativeMagicJiangHu(owner, Context.WorldData),
-                    Request.Scope.OwnerNativeClientIdentity)) return false;
+                    Request.Scope.OwnerNativeClientIdentity, queryEpoch)) return false;
             return AddNativeMagic(LegacyNativeMagicQueryClient.ReadJiangHu(
                 Context.Sessions, Context.Connection, Request.Scope.OwnerUid,
                 Request.Scope.OwnerNativeClientIdentity));

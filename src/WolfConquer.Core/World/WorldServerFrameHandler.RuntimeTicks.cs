@@ -87,7 +87,17 @@ public sealed partial class WorldServerFrameHandler
                         cancellationToken)
                     .ConfigureAwait(false);
                 _sessions.TryGet(connection, out currentSession);
-                foreach (var update in ticker.CreateDueUpdates(now, currentSession?.Character))
+                var ownedStamina = currentSession?.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true ||
+                    connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true;
+                if (ownedStamina)
+                {
+                    await SendDueLegacyStaminaUpdateAsync(connection, cancellationToken).ConfigureAwait(false);
+                    _sessions.TryGet(connection, out currentSession);
+                }
+                var dueUpdates = ownedStamina
+                    ? ticker.CreateDueNonStaminaUpdates(now, currentSession?.Character)
+                    : ticker.CreateDueUpdates(now, currentSession?.Character);
+                foreach (var update in dueUpdates)
                 {
                     await connection.SendAsync(update.FrameBytes, cancellationToken)
                         .ConfigureAwait(false);
@@ -174,6 +184,7 @@ public sealed partial class WorldServerFrameHandler
                 await SendDueLegacyCombatGearAttachStatusExpirationsAsync(now, cancellationToken)
                     .ConfigureAwait(false);
                 await SendDueLegacyArrowAndFlashingFlagExpirationsAsync(cancellationToken).ConfigureAwait(false);
+                await SendDueLegacyWindWalkerFanExpirationsAsync(cancellationToken).ConfigureAwait(false);
                 await SendDueLegacyHookMoonExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
                 await SendDueLegacyStigmaMagicShieldExpirationsAsync(now, cancellationToken)
                     .ConfigureAwait(false);

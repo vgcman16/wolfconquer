@@ -27,8 +27,10 @@ internal sealed partial class LegacyItemUidRegistry
             RegistryState before, RegistryState after)
         {
             if (!configured.TryNormalize(out var normalized, out _) || normalized != configured ||
-                !IsNext(before, after) || !IsRuneDecomposeNamespaceRetirement(before, after,
-                    before with { Generation = after.Generation, HighWater = after.HighWater }))
+                !IsNext(before, after) || !(IsRuneDecomposeNamespaceRetirement(before, after,
+                    before with { Generation = after.Generation, HighWater = after.HighWater }) ||
+                    IsRuneBagNamespaceRetirement(before, after,
+                    before with { Generation = after.Generation, HighWater = after.HighWater })))
                 throw new InvalidDataException("Decompose namespace replay requires its exact configured transition.");
             var custody = new RuneDecomposeNamespaceReplayCustody(paths, lease, configured,
                 beforeBytes, afterBytes, before, after);

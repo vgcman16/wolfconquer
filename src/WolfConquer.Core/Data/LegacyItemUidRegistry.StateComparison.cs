@@ -22,7 +22,8 @@ internal sealed partial class LegacyItemUidRegistry
         if (after.HighWater > before.HighWater && SameState(expected, after)) return true;
         if (IsProducerIntentAppend(before, after, expected)) return true;
         if (IsRuneDecomposeNamespaceAppend(before, after, expected) ||
-            IsRuneDecomposeNamespaceRetirement(before, after, expected)) return true;
+            IsRuneDecomposeNamespaceRetirement(before, after, expected) ||
+            IsRuneBagNamespaceAppend(before, after, expected) || IsRuneBagNamespaceRetirement(before, after, expected)) return true;
         if (after.HighWater == before.HighWater || after.Version != Math.Max(2, before.Version) ||
             after.Operations is null) return false;
         var previousCount = before.Operations?.Length ?? 0;
@@ -30,6 +31,7 @@ internal sealed partial class LegacyItemUidRegistry
             previousCount > 0 && !before.Operations!.AsSpan().SequenceEqual(after.Operations.AsSpan(0, previousCount)))
             return false;
         var appended = after.Operations[^1];
+        if (appended.NamespaceReservation is not null) return false; // Typed append must pass its own exact transition above.
         if (appended.Generation != after.Generation || appended.First != before.HighWater + 1 ||
             (uint)appended.Count != after.HighWater - before.HighWater) return false;
         return SameState(expected with { Version = Math.Max(2, before.Version), Operations = after.Operations }, after);

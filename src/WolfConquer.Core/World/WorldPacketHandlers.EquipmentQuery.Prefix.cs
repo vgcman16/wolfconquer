@@ -16,6 +16,8 @@ public static partial class WorldPacketHandlers
             // Equip.UpdateStats consumes captured MyGear AFTER AppendItems.
             // Earned overlays do not enter its raw BT/CA rebuild projection.
             if (!Refresh()) return false;
+            if (!LegacyNativeMagicQueryClient.RetireStaminaCacheAtStatsBegin(Context.Sessions, Context.Connection,
+                    Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity)) return false;
             if (!LegacyNativePerfectionClient.BeginQuery(Context.Sessions, Context.Connection,
                     Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity)) return false;
             var rawSource = Session with
@@ -129,7 +131,13 @@ public static partial class WorldPacketHandlers
             projection = LegacyMaxHitpointsCalculator.CalculateQueryHitpointProjection(
                 Session, SourceItems, Context.WorldData, CapturedAlternate);
             if (!AddMaximum(projection.SubClass)) return false;
-            return NativeMagicLateProfiles() && AddJiangHuManaMaximum(); // Native1577–1582.
+            if (!NativeMagicLateProfiles() || !AddJiangHuManaMaximum()) return false; // Native1577–1582.
+            // UpdateStats-derived cache completes before later HP/status and
+            // perfection transport. FineRain denial never enters this rebuild.
+            if (Session.NativeGameClient?.OrdinarySpellBinding is not null &&
+                !LegacyNativeMagicQueryClient.TryCompleteStaminaCache(Context.Sessions, Context.Connection,
+                    Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity, queryEpoch)) return false;
+            return true;
         }
     }
 }

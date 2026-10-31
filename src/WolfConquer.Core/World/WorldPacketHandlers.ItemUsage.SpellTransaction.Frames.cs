@@ -36,6 +36,7 @@ public static partial class WorldPacketHandlers
         RuneComposeOperationsEqual(first.Compose?.Operation, second.Compose?.Operation) &&
         RuneChanceOperationsEqual(first.Chance?.Operation, second.Chance?.Operation) &&
         RuneDecomposeOperationsEqual(first.Decompose?.Operation, second.Decompose?.Operation) &&
+        first.Bag?.Operation == second.Bag?.Operation &&
         FullAccountCharacterScalarsEqual(first.Updated.Character, second.Updated.Character) &&
         FullAccountStoredFieldsMatch(first.Updated.Character.Attributes, second.Updated.Character.Attributes) &&
         FullAccountStoredFieldsMatch(second.Updated.Character.Attributes, first.Updated.Character.Attributes) &&

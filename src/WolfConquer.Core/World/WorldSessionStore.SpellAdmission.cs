@@ -16,6 +16,7 @@ public sealed partial class WorldSessionStore
         private readonly LegacyNativePlayerRuntime.OwnedMoneyPublication money;
         private readonly LegacyNativePlayerRuntime.OwnedCpsPublication cps;
         private readonly LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication warehouseMoney;
+        private readonly LegacyNativeMagicQueryClient.ColdMonkCachePublication monkCache;
         private readonly LegacyOwnedNativeItemImage.Preparation itemImage;
         private readonly LegacyNativeOwnedItemGraph.PreparedPublication? items;
         private bool spellGateHeld, proficiencyGateHeld;
@@ -29,6 +30,7 @@ public sealed partial class WorldSessionStore
             if (!connection.HasSendRoute || !connection.HasDisconnectRoute) throw InvalidSpellPublication();
             var client = connection.NativeGameClient ?? throw InvalidSpellPublication();
             var player = client.Player ?? throw InvalidSpellPublication();
+            proposed = LegacyStaminaState.ForAdmission(proposed);
             if (string.IsNullOrWhiteSpace(spellsRoot) || !Path.IsPathFullyQualified(spellsRoot) ||
                 string.IsNullOrWhiteSpace(proposed.UsersRoot) || !Path.IsPathFullyQualified(proposed.UsersRoot) ||
                 !recovery.IsReadyForCharacterSpells(proposed.UsersRoot, spellsRoot)) throw InvalidSpellPublication();
@@ -63,6 +65,7 @@ public sealed partial class WorldSessionStore
                 items = LegacyNativeOwnedItemGraph.PrepareAdmission(client, player, admissionOwner.PreparedUid, itemImage);
                 if (!ReferenceEquals(items.FinalSnapshot, FinalSession.PlayerItems)) throw InvalidSpellPublication();
                 binding.InitializePreparedItems(items.Graph, context.Catalog, context.Profile, FinalSession.PlayerItems);
+                monkCache = LegacyNativeMagicQueryClient.ColdMonkCachePublication.Prepare(binding, admissionOwner);
                 RequireCurrentBeforeWriter();
             }
             catch { Dispose(); throw; }
@@ -81,12 +84,12 @@ public sealed partial class WorldSessionStore
             detachedProficiencies.Plan.RequireCurrentBeforeWriter();
             items!.RequireCurrentBeforeWriter();
             if (!OwnerIsCurrentPlain() || !hitpoints.IsCurrentPlain() || !money.IsCurrentPlain() || !cps.IsCurrentPlain() ||
-                !warehouseMoney.IsCurrentPlain())
+                !warehouseMoney.IsCurrentPlain() || !monkCache.IsCurrentPlain())
                 throw InvalidSpellPublication();
         }
 
         internal bool ConsumeCurrentPlain() => hitpoints.IsCurrentPlain() && money.IsCurrentPlain() && cps.IsCurrentPlain() &&
-            warehouseMoney.IsCurrentPlain() &&
+            warehouseMoney.IsCurrentPlain() && monkCache.IsCurrentPlain() &&
             OwnerIsCurrentPlain() && admissionOwner.ConsumeCurrentPlain() &&
             detached.Plan.ConsumeCurrentPlain() &&
             detachedProficiencies.Plan.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain();
@@ -96,7 +99,7 @@ public sealed partial class WorldSessionStore
             detachedProficiencies.Plan.ArmFinalProof();
             items!.ArmFinalProof();
             admissionOwner.ArmAdmissionProof();
-            return hitpoints.IsCurrentPlain() && money.IsCurrentPlain() && cps.IsCurrentPlain() && warehouseMoney.IsCurrentPlain() &&
+            return hitpoints.IsCurrentPlain() && money.IsCurrentPlain() && cps.IsCurrentPlain() && warehouseMoney.IsCurrentPlain() && monkCache.IsCurrentPlain() &&
                 OwnerIsCurrentPlain() &&
                 admissionOwner.ConsumeBeforeWriterPlain() && detached.Plan.ConsumeBeforeWriterPlain() &&
                 detachedProficiencies.Plan.ConsumeBeforeWriterPlain() && items.ConsumeBeforeWriterPlain();
@@ -115,6 +118,7 @@ public sealed partial class WorldSessionStore
             money.PublishPrepared();
             cps.PublishPrepared();
             warehouseMoney.PublishPrepared();
+            monkCache.PublishPrepared();
         }
 
         public void Dispose()

@@ -20,12 +20,12 @@ internal sealed partial class LegacyItemUidRegistry
             var names = new HashSet<string>(StringComparer.Ordinal);
             foreach (var property in operation.EnumerateObject())
                 if ((!OperationKeys.Contains(property.Name, StringComparer.Ordinal) &&
-                    !(version == 5 && property.Name == "NamespaceReservation")) || !names.Add(property.Name))
+                    !(version is 5 or 6 && property.Name == "NamespaceReservation")) || !names.Add(property.Name))
                     throw new JsonException("Unknown or duplicate UID operation property.");
             var hasNamespace = names.Contains("NamespaceReservation");
             if (names.Count != OperationKeys.Length + (hasNamespace ? 1 : 0))
                 throw new JsonException("Missing UID operation property.");
-            if (hasNamespace) ValidateNamespaceReservationJson(operation.GetProperty("NamespaceReservation"));
+            if (hasNamespace) ValidateNamespaceReservationJson(operation.GetProperty("NamespaceReservation"), version);
         }
     }
 
@@ -50,7 +50,8 @@ internal sealed partial class LegacyItemUidRegistry
                 row.Count is < 1 or > MaximumReservation || row.First == 0 || row.First <= previousLast ||
                 (ulong)row.First + (uint)row.Count - 1 > state.HighWater ||
                 row.Generation <= previousGeneration || row.Generation > state.Generation ||
-                row.NamespaceReservation is not null && (state.Version != 5 || !IsRuneDecomposeNamespace(row)))
+                row.NamespaceReservation is not null && (state.Version == 5 ? !IsRuneDecomposeNamespace(row) :
+                    state.Version != 6 || !IsRuneDecomposeNamespace(row) && !IsRuneBagNamespace(row)))
                 throw new JsonException("Invalid or overlapping UID operation receipt.");
             previousGeneration = row.Generation;
             previousLast = (ulong)row.First + (uint)row.Count - 1;

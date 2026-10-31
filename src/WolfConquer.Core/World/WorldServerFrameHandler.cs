@@ -876,7 +876,7 @@ public sealed partial class WorldServerFrameHandler
         }
 
         var updatedSession = session with { Character = revive.Character };
-        _sessions.Set(connection, updatedSession);
+        _sessions.Set(connection, updatedSession, out updatedSession);
         var uid = CheckedUInt32(updatedSession.Character.Uid, nameof(updatedSession.Character.Uid));
 
         foreach (var update in LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(
@@ -896,10 +896,10 @@ public sealed partial class WorldServerFrameHandler
         await connection.SendAsync(
                 LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
                     uid,
-                    LegacyNativePlayerFlag6Lifecycle.CaptureVector(nativePlayerReceiver,
+                    LegacyNativeWindWalkerFanLifecycle.CaptureVector(nativePlayerReceiver, LegacyNativePlayerFlag6Lifecycle.CaptureVector(nativePlayerReceiver,
                         LegacyPlayerDeathState.CreateStatusFlagVector(
                             updatedSession.Character.Attributes,
-                            LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength))).ToFrameBytes(),
+                            LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength)))).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         await connection.SendAsync(

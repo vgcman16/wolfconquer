@@ -13,50 +13,39 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [InlineData("-1", false)] [InlineData("", true)] [InlineData("not-a-number", false)]
     [InlineData("18446744073709551616", true)]
     public Task OwnedGenericMalformedSavedStaminaRefusesWithoutDefaultResources(string raw, bool first) =>
-        RunStaminaAdmissionOwner(raw, "1", first, 1000, async (f, world, clock) =>
-        {
-            var owner = f.Current(PlayerUid); var peer = f.Current(TargetPlayerUid);
-            StaminaInput(f, raw); var native = StaminaNative(f); var files = ProcFiles(f); int ownFrames = f.Frames(PlayerUid).Count, peerFrames = f.Frames(TargetPlayerUid).Count;
-            Assert.Null(await InvokeStaminaAdmission(f, world, clock, root: false));
-            StaminaRefusal(f, owner, peer, files, ownFrames, peerFrames);
-            Assert.Equal(native, StaminaNative(f));
-        });
+        RunRejectedStaminaAdmission(raw, "1", first, 1000, root: false);
 
     [Theory]
     [InlineData("-1", true)] [InlineData("", false)] [InlineData("not-a-number", true)]
     [InlineData("18446744073709551616", false)]
     public Task OwnedRootMalformedSavedStaminaRefusesWithoutDefaultResources(string raw, bool first) =>
-        RunStaminaAdmissionOwner(raw, "1", first, 1000, async (f, world, clock) =>
-        {
-            var owner = f.Current(PlayerUid); var peer = f.Current(TargetPlayerUid);
-            StaminaInput(f, raw); var native = StaminaNative(f); var files = ProcFiles(f); int ownFrames = f.Frames(PlayerUid).Count, peerFrames = f.Frames(TargetPlayerUid).Count;
-            Assert.Null(await InvokeStaminaAdmission(f, world, clock, root: true));
-            StaminaRefusal(f, owner, peer, files, ownFrames, peerFrames);
-            Assert.Equal(native, StaminaNative(f));
-        });
+        RunRejectedStaminaAdmission(raw, "1", first, 1000, root: true);
+
+    private static WorldDataCatalog StaminaAdmissionWorld(byte cost) => CreateMagicCatalogCore(CreateMonsterFamily(), [], [],
+        [CreateMagicRow(1000, sort: 1, useMana: 50, useStamina: cost, damage: 100, range: 4, coldTime: 1000),
+         CreateMagicRow(1045, sort: 14, useMana: 50, useStamina: cost, damage: 100, range: 4, coldTime: 1000)]);
+
+    private static OwnedEquipmentBehaviorInput StaminaAdmissionInput(uint uid, string? raw, string? blessing, bool first, long map)
+    {
+        var original = CreateSession(uid: uid, classCode: 142, mapId: map,
+            x: uid == PlayerUid ? 830 : 831, y: 584, minHitPoints: 1000, minMana: 1000, stamina: 100,
+            spellIds: [1000, 1045], attributes: new Dictionary<string, string> { ["PkMode"] = "0", ["DynamicID"] = map == 1039 ? "1" : "0" });
+        var attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (first && raw is not null) attributes["Stamina"] = raw;
+        attributes["StaminaOrderWitness"] = "preserved";
+        foreach (var pair in original.Character.Attributes.Where(pair => !string.Equals(pair.Key, "Stamina", StringComparison.OrdinalIgnoreCase)))
+            attributes[pair.Key] = pair.Value;
+        if (blessing is not null) attributes["HeavenBlessing"] = blessing;
+        if (!first && raw is not null) attributes["Stamina"] = raw;
+        return new(original.Character with { Attributes = attributes }, PlayerItemSnapshot.Empty, original.PlayerSpells);
+    }
 
     private static Task RunStaminaAdmissionOwner(string? raw, string? blessing, bool first, long map,
         Func<OwnedEquipmentBehaviorFixture, WorldDataCatalog, ManualRuntimeTimeProvider, Task> body, byte cost = 10)
     {
-        var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [],
-            [CreateMagicRow(1000, sort: 1, useMana: 50, useStamina: cost, damage: 100, range: 4, coldTime: 1000),
-             CreateMagicRow(1045, sort: 14, useMana: 50, useStamina: cost, damage: 100, range: 4, coldTime: 1000)]);
-        OwnedEquipmentBehaviorInput Input(uint uid)
-        {
-            var original = CreateSession(uid: uid, classCode: 142, mapId: map,
-                x: uid == PlayerUid ? 830 : 831, y: 584, minHitPoints: 1000, minMana: 1000, stamina: 100,
-                spellIds: [1000, 1045], attributes: new Dictionary<string, string> { ["PkMode"] = "0", ["DynamicID"] = map == 1039 ? "1" : "0" });
-            var attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (first && raw is not null) attributes["Stamina"] = raw;
-            attributes["StaminaOrderWitness"] = "preserved";
-            foreach (var pair in original.Character.Attributes.Where(pair => !string.Equals(pair.Key, "Stamina", StringComparison.OrdinalIgnoreCase)))
-                attributes[pair.Key] = pair.Value;
-            if (blessing is not null) attributes["HeavenBlessing"] = blessing;
-            if (!first && raw is not null) attributes["Stamina"] = raw;
-            return new(original.Character with { Attributes = attributes }, PlayerItemSnapshot.Empty, original.PlayerSpells);
-        }
+        var world = StaminaAdmissionWorld(cost);
         var clock = new ManualRuntimeTimeProvider(new DateTimeOffset(2026, 10, 29, 12, 0, 0, TimeSpan.Zero));
-        return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(Input(PlayerUid), world,
+        return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(StaminaAdmissionInput(PlayerUid, raw, blessing, first, map), world,
             new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), clock), async f =>
             {
                 if (raw is not null)
@@ -69,7 +58,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                         Assert.Equal(first, staminaRow < witness); // Actual retained file order, not a dictionary-only proxy.
                     }
                 await body(f, world, clock);
-            }, Input(TargetPlayerUid));
+            }, StaminaAdmissionInput(TargetPlayerUid, raw, blessing, first, map));
     }
 
     private static void StaminaInput(OwnedEquipmentBehaviorFixture f, string raw)
@@ -82,10 +71,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.NotNull(f.Current(uid).NativeGameClient!.OrdinarySpellBinding);
         }
     }
-    private static (int Hp, uint Mana, ushort Stamina, ushort Authorization, ushort Soul)[] StaminaNative(OwnedEquipmentBehaviorFixture f) =>
-        new[] { f.Current(PlayerUid), f.Current(TargetPlayerUid) }.Select(session =>
-            (session.NativePlayer!.HitPoints, session.NativePlayer.Mana, session.NativePlayer.Stamina,
-                session.NativePlayer.RandomSpell, session.NativeGameClient!.OnSoulSpell)).ToArray();
     private static void StaminaRefusal(OwnedEquipmentBehaviorFixture f, WorldSession owner, WorldSession peer,
         Dictionary<string, byte[]> files, int ownerFrames, int peerFrames)
     {

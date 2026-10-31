@@ -80,6 +80,14 @@ public sealed class PlayerItemSnapshotItem
     public string Signature { get; set; } = "";
     public IReadOnlyList<PlayerItemSnapshotItem> DepositedItems { get; init; } = [];
 
+    // Data projection only: the caller still needs the actual registered UID
+    // issuer. Preserve the complete payload and existing child identities.
+    public PlayerItemSnapshotItem WithUid(uint uid)
+    {
+        if (uid == 0) throw new ArgumentOutOfRangeException(nameof(uid));
+        return Copy(uid: uid);
+    }
+
     public PlayerItemSnapshotItem WithPosition(ushort position)
     {
         return Copy(position: position);
@@ -170,11 +178,12 @@ public sealed class PlayerItemSnapshotItem
         long? expiration = null,
         uint? timeLeftInMinutes = null,
         uint? warehouseId = null,
-        IReadOnlyList<PlayerItemSnapshotItem>? depositedItems = null)
+        IReadOnlyList<PlayerItemSnapshotItem>? depositedItems = null,
+        uint? uid = null)
     {
         return new PlayerItemSnapshotItem
         {
-            Uid = Uid,
+            Uid = uid ?? Uid,
             ItemId = itemId ?? ItemId,
             Durability = durability ?? Durability,
             MaximumDurability = maximumDurability ?? MaximumDurability,

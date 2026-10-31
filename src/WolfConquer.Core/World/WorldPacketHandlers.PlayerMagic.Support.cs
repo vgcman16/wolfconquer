@@ -495,16 +495,24 @@ public static partial class WorldPacketHandlers
         {
             Character = WithCharacterAttribute(session.Character, "Stamina", newStamina),
         };
-        context.Sessions?.Set(connection, updatedSession);
-
-        await connection.SendAsync(
-                LegacyMsgUpdatePacket
-                    .CreateLegacyRuntimeStaminaTickUpdate(
-                        CheckedUInt32(updatedSession.Character.Uid, nameof(updatedSession.Character.Uid)),
-                        newStamina)
-                    .ToFrameBytes(),
-                cancellationToken)
-            .ConfigureAwait(false);
+        var frame = LegacyMsgUpdatePacket.CreateLegacyRuntimeStaminaTickUpdate(
+            CheckedUInt32(updatedSession.Character.Uid, nameof(updatedSession.Character.Uid)), newStamina).ToFrameBytes();
+        if (context.Sessions is { } world)
+        {
+            // Reuse the real expected-record publication and its committed
+            // output receipt. Canonical status projection (including194) is
+            // retained; a stale refill cannot overwrite a newer resource step.
+            if (!LegacyNativeClientPublication.TryCaptureIdentity(world, connection, session.Character.Uid, out var identity) ||
+                !world.TryCommitMagicCosts(connection, session, identity, updatedSession, out var receipt) || receipt is null)
+                throw new InvalidOperationException("staminaRefillCurrentOwnerChanged");
+            return await receipt.SendAsync([frame], cancellationToken).ConfigureAwait(false) ??
+                throw new InvalidOperationException("committedStaminaRefillOutputOwnerLost");
+        }
+        if (session.NativePlayer?.HasOwnedVitalsAttachment == true ||
+            connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true)
+            throw new InvalidOperationException("staminaRefillRequiresOwnedStore");
+        // Existing local-record compatibility has no native grant/receipt.
+        await connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
         return updatedSession;
     }
 
@@ -551,7 +559,8 @@ public static partial class WorldPacketHandlers
 
         var revivedCharacter = WithCharacterAttribute(revive.Character, "XPCount", newXpCount);
         var updatedSession = session with { Character = revivedCharacter };
-        context.Sessions?.Set(connection, updatedSession);
+        if (context.Sessions is { } currentStore)
+            currentStore.Set(connection, updatedSession, out updatedSession);
         var uid = CheckedUInt32(updatedSession.Character.Uid, nameof(updatedSession.Character.Uid));
 
         foreach (var update in LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(
@@ -581,8 +590,8 @@ public static partial class WorldPacketHandlers
         await connection.SendAsync(
                 LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
                     uid,
-                    LegacyNativePlayerFlag6Lifecycle.CaptureVector(nativePlayerReceiver,
-                        CreateLegacyRuntimeStatusFlagVector(updatedSession.Character))).ToFrameBytes(),
+                    LegacyNativeWindWalkerFanLifecycle.CaptureVector(nativePlayerReceiver, LegacyNativePlayerFlag6Lifecycle.CaptureVector(nativePlayerReceiver,
+                        CreateLegacyRuntimeStatusFlagVector(updatedSession.Character)))).ToFrameBytes(),
                 cancellationToken)
             .ConfigureAwait(false);
         await connection.SendAsync(

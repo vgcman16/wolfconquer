@@ -14,6 +14,8 @@ public sealed partial class WorldSessionStore
         private readonly object finalIdentity;
         private readonly LegacyNativePlayerRuntime.OwnedHitpointsPublication? hitpoints;
         private readonly LegacyNativeEquipItemStorage.OwnedAlternatePublication? alternateEquipment;
+        private readonly LegacyNativePlayerRuntime.OwnedRuneBagPublication? runeBag;
+        private readonly OwnedWindWalkerProjection? windWalker;
         private readonly LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication;
         private LegacyNativePlayerRuntime.OwnedMoneyPublication? money;
         private LegacyNativePlayerRuntime.OwnedCpsPublication? cps;
@@ -70,8 +72,16 @@ public sealed partial class WorldSessionStore
             actors = new(binding);
             try
             {
+                windWalker = OwnedWindWalkerProjection.PrepareBound(binding, proposed);
+                if (windWalker is not null)
+                {
+                    if (runePublication is not null && !ReferenceEquals(proposed.Character, windWalker.Proposed.Character))
+                        throw InvalidSpellPublication();
+                    proposed = windWalker.Proposed;
+                }
                 binding.Items.RequireCurrentBeforePreparation();
                 alternateEquipment = LegacyNativeEquipItemStorage.OwnedAlternatePublication.PrepareBound(binding, expected, proposed);
+                runeBag = runePublication?.PrepareBagNativePublication(binding, expected, proposed);
                 map = LegacyNativeSpellStorage.PrepareSessionSnapshot(binding.Client, binding.Player,
                     expected.PlayerSpells, proposed.PlayerSpells);
                 proficiencies = LegacyNativeProficiencyStorage.PrepareSessionSnapshot(binding.Client, binding.Player,
@@ -96,7 +106,7 @@ public sealed partial class WorldSessionStore
                 warehouseMoney = LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication.PrepareBound(binding, expected, FinalSession);
                 RequireCurrentBeforeWriter();
             }
-            catch { items?.Dispose(); actors.Dispose(); throw; }
+            catch { items?.Dispose(); windWalker?.Dispose(); actors.Dispose(); throw; }
         }
 
         private void PrepareItems(WorldSession proposed)
@@ -171,8 +181,10 @@ public sealed partial class WorldSessionStore
             items?.RequireCurrentBeforeWriter();
             if (hitpoints is not null && !hitpoints.IsCurrentPlain() || money is not null && !money.IsCurrentPlain() ||
                 cps is not null && !cps.IsCurrentPlain() || warehouseMoney is not null && !warehouseMoney.IsCurrentPlain() ||
-                alternateEquipment is not null && !alternateEquipment.IsCurrentPlain(FinalSession.AlternateEquipmentActive))
+                alternateEquipment is not null && !alternateEquipment.IsCurrentPlain(FinalSession.AlternateEquipmentActive) ||
+                runeBag is not null && !runeBag.IsCurrentPlain())
                 throw InvalidSpellPublication();
+            if (windWalker is not null && !windWalker.IsCurrentPlain()) throw InvalidSpellPublication();
             if (binding is not null && !store.BindingIsCurrentPlain(binding, holder, expected!)) throw InvalidSpellPublication();
         }
 
@@ -187,7 +199,8 @@ public sealed partial class WorldSessionStore
         internal bool ConsumeBeforeWriterPlain() => ReferenceEquals(holder.Read(), expected) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeBeforeWriterPlain() &&
                 proficiencies!.ConsumeBeforeWriterPlain() && items!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() &&
-                money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) &&
+                money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) && (runeBag is null || runeBag.IsCurrentPlain()) &&
+                (windWalker is null || windWalker.IsCurrentPlain()) &&
                 (HitpointsWrite is null || HitpointsWrite.Inputs.ConsumeBeforePlain()));
 
         // The raw map enumerator was allocated before the writer. Consume it
@@ -195,7 +208,8 @@ public sealed partial class WorldSessionStore
         internal bool IsCurrentPlain() => ReferenceEquals(holder.Read(), expected) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeCurrentPlain() &&
                 proficiencies!.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() &&
-                money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) &&
+                money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) && (runeBag is null || runeBag.IsCurrentPlain()) &&
+                (windWalker is null || windWalker.IsCurrentPlain()) &&
                 (HitpointsWrite is null || HitpointsWrite.IsCommitted && HitpointsWrite.Inputs.ConsumeAfterPlain()));
 
         // Call only after the final plain proof and actual successful writer.
@@ -206,6 +220,7 @@ public sealed partial class WorldSessionStore
             proficiencies!.PublishPreparedMap();
             items!.PublishPrepared();
             alternateEquipment!.PublishPrepared();
+            runeBag?.PublishPrepared();
             binding.PublishSnapshots(FinalSession.PlayerSpells, FinalSession.PlayerProficiencies);
             binding.PublishItemSnapshot(FinalSession.PlayerItems);
             hitpoints!.PublishPrepared();
@@ -222,6 +237,7 @@ public sealed partial class WorldSessionStore
         public void Dispose()
         {
             items?.Dispose();
+            windWalker?.Dispose();
             actors?.Dispose();
         }
     }

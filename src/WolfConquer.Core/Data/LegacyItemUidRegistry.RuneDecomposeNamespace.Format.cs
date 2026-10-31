@@ -12,7 +12,7 @@ internal sealed partial class LegacyItemUidRegistry
         row.NamespaceReservation is { Version: 1, Kind: RuneDecomposeNamespaceKind } &&
         row.Writer == RuneDecomposeWriter;
 
-    private static void ValidateNamespaceReservationJson(JsonElement value)
+    private static void ValidateNamespaceReservationJson(JsonElement value, int stateVersion)
     {
         if (value.ValueKind != JsonValueKind.Object) throw new JsonException("UID namespace reservation must be an object.");
         var names = new HashSet<string>(StringComparer.Ordinal);
@@ -22,26 +22,27 @@ internal sealed partial class LegacyItemUidRegistry
         if (names.Count != 2 || value.GetProperty("Version").ValueKind != JsonValueKind.Number ||
             !value.GetProperty("Version").TryGetInt32(out var version) || version != 1 ||
             value.GetProperty("Kind").ValueKind != JsonValueKind.String ||
-            value.GetProperty("Kind").GetString() != RuneDecomposeNamespaceKind)
+            (value.GetProperty("Kind").GetString() != RuneDecomposeNamespaceKind &&
+                (stateVersion != 6 || value.GetProperty("Kind").GetString() != RuneBagNamespaceKind)))
             throw new JsonException("Unsupported UID namespace reservation kind or version.");
     }
 
     private static bool IsRuneDecomposeNamespaceAppend(RegistryState before, RegistryState after, RegistryState expected)
     {
         var previous = before.Operations ?? [];
-        if (after.Version != 5 || after.HighWater == before.HighWater || after.Operations is null ||
+        if (after.Version != Math.Max(5, before.Version) || after.HighWater == before.HighWater || after.Operations is null ||
             after.Operations.Length != previous.Length + 1 ||
             !previous.AsSpan().SequenceEqual(after.Operations.AsSpan(0, previous.Length))) return false;
         var added = after.Operations[^1];
         return IsRuneDecomposeNamespace(added) && added.Generation == after.Generation &&
             added.First == before.HighWater + 1 && (uint)added.Count == after.HighWater - before.HighWater &&
-            SameState(expected with { Version = 5, Operations = after.Operations,
+            SameState(expected with { Version = Math.Max(5, before.Version), Operations = after.Operations,
                 ProducerIntents = before.ProducerIntents ?? [] }, after);
     }
 
     private static bool IsRuneDecomposeNamespaceRetirement(RegistryState before, RegistryState after, RegistryState expected)
     {
-        if (before.Version != 5 || after.Version != 5 || after.HighWater != before.HighWater ||
+        if (before.Version is not (5 or 6) || after.Version != before.Version || after.HighWater != before.HighWater ||
             before.Operations is null || after.Operations is null ||
             before.Operations.Length != after.Operations.Length + 1) return false;
         var removed = -1;
