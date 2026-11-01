@@ -327,6 +327,8 @@ public sealed partial class WorldServerFrameHandlerTests
                 frame => LegacyMonsterSpawnPacket.TryParse(ReadFrame(frame), out var spawn) &&
                     spawn.Uid == bossInstance.Uid);
             var schedulerStart = sent.Count;
+            var firstTimers = timeProvider.CaptureScheduledTimers();
+            Assert.Equal(2, firstTimers.Length);
             timeProvider.Advance(tickInterval);
             await WaitUntilAsync(() => FindFrameIndexAfter(sent, schedulerStart, frame =>
                 MsgMovementPacket.TryParse(frame, out var movement) && movement.Uid == bossInstance.Uid) >= schedulerStart,
@@ -338,7 +340,7 @@ public sealed partial class WorldServerFrameHandlerTests
             // The movement log is written before the global worker returns to
             // its one-shot delay. Do not advance the retained-target phase until
             // both real workers have registered their next timer.
-            await WaitForMonsterRuntimeTimerRegistrationAsync(timeProvider);
+            await WaitForMonsterRuntimeTimerReplacementAsync(timeProvider, firstTimers);
             schedulerStart = sent.Count;
             timeProvider.Advance(tickInterval);
             await WaitForProactiveMonsterActionAsync(
@@ -391,6 +393,21 @@ public sealed partial class WorldServerFrameHandlerTests
                 {
                     return _timers.Count(timer => timer.IsScheduled);
                 }
+            }
+        }
+
+        public object[] CaptureScheduledTimers()
+        {
+            lock (_gate) return _timers.Where(timer => timer.IsScheduled).Cast<object>().ToArray();
+        }
+
+        public bool HaveReplacedScheduledTimers(object[] previous)
+        {
+            lock (_gate)
+            {
+                var scheduled = _timers.Where(timer => timer.IsScheduled).Cast<object>().ToArray();
+                return scheduled.Length == previous.Length &&
+                    previous.All(old => !scheduled.Contains(old));
             }
         }
 

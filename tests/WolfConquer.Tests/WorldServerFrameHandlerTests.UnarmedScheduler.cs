@@ -56,10 +56,12 @@ public sealed partial class WorldServerFrameHandlerTests
                 Assert.True(owner.Store.IsBoundSpellOwnerCurrent(binding));
                 Assert.False(ContainsMonsterPhysicalAttackAfter(frames, 0, monster.Uid, uid));
                 var beforeHp = owner.Current().Character.MinHitPoints;
+                var firstTimers = clock.CaptureScheduledTimers();
+                Assert.Equal(2, firstTimers.Length);
                 clock.Advance(interval);
                 // Observe completion of the actual first pass before inspecting
                 // its retained target; this does not issue an AI capability.
-                await WaitForMonsterRuntimeTimerRegistrationAsync(clock);
+                await WaitForMonsterRuntimeTimerReplacementAsync(clock, firstTimers);
                 Assert.True(GetMonsterStates(owner.Handler).TryGetTargetLockState(visible, clock.GetUtcNow(), out var targetLock));
                 Assert.Equal(uid, targetLock.LastTargetUid);
                 Assert.NotNull(targetLock.LastAttackAt);
@@ -70,5 +72,18 @@ public sealed partial class WorldServerFrameHandlerTests
             }
             finally { owner.BeforeSend = null; }
         });
+    }
+
+    private static async Task WaitForMonsterRuntimeTimerReplacementAsync(
+        BossRuntimeManualTimeProvider clock, object[] previous)
+    {
+        try
+        {
+            await WaitUntilAsync(() => clock.HaveReplacedScheduledTimers(previous), TimeSpan.FromSeconds(3));
+        }
+        catch (TimeoutException error)
+        {
+            throw new TimeoutException($"Both real worker timers must be replaced after the tick; scheduled={clock.ScheduledTimerCount}.", error);
+        }
     }
 }
