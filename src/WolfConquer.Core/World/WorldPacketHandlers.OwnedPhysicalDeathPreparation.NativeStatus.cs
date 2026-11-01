@@ -24,8 +24,9 @@ public static partial class WorldPacketHandlers
             internal LegacyNativeStatusFlagsBigVector32 Vector { get; }
             internal LegacyNativeStatusFlagsBigVector32.WindWalkerSnapshot Before { get; }
             internal LegacyNativeStatusFlagsBigVector32.WindWalkerChange? Change { get; private set; }
+            internal LegacyNativeStatusFlagsBigVector32.OwnedDragonhowlFlashingLease? Flashing { get; }
 
-            internal OwnedDeathNativeStatus(LegacyOrdinarySpellBinding binding)
+            internal OwnedDeathNativeStatus(LegacyOrdinarySpellBinding binding, WorldSession target)
             {
                 this.binding = binding;
                 Vector = binding.Player.BitVector;
@@ -34,6 +35,7 @@ public static partial class WorldPacketHandlers
                 // The real194 producer installs RemoveOnDead=false. A changed
                 // raw policy is not a new accepted native registration owner.
                 Before = before;
+                Flashing = LegacyNativeStatusFlagsBigVector32.CaptureOwnedPhysicalDeathFlashing(binding, target, before);
                 flag6 = LegacyNativePlayerFlag6Lifecycle.CaptureVector(binding.Player,
                     new ulong[LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength])[0] & LegacyNativePlayerFlag6Lifecycle.Mask;
                 if (!IsCurrentPlain()) throw InvalidOwnedPhysicalDeath();
@@ -41,6 +43,7 @@ public static partial class WorldPacketHandlers
 
             internal bool IsCurrentPlain() => ReferenceEquals(binding.Player.BitVector, Vector) &&
                 Monitor.IsEntered(Vector.SyncRoot) && Vector.IsWindWalkerCurrentPlain(Before) &&
+                (Flashing is null || Flashing.IsNativeCurrentPlain()) &&
                 (Change is null || Vector.IsOwnedPhysicalDeathWindWalkerPreparationCurrent(Change));
 
             internal CharacterSnapshot PrepareQuery(CharacterSnapshot character, bool desired)

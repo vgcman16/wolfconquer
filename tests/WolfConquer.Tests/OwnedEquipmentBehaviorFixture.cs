@@ -46,6 +46,28 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
         Func<OwnedEquipmentBehaviorFixture, Task> exercise, params OwnedEquipmentBehaviorInput[] peers) =>
         RunActualAsync(actor, catalog, LegacyRuntimeUpdateLoopOptions.Disabled, exercise, peers, useNativeGear: true);
 
+    internal static async Task RunWithNativeGearOptionsAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
+        LegacyRuntimeUpdateLoopOptions options, Func<OwnedEquipmentBehaviorFixture, Task> exercise,
+        params OwnedEquipmentBehaviorInput[] peers)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (options.Enabled || options.TimeProvider is null || options.TickInterval <= TimeSpan.Zero)
+            throw new ArgumentException("Native gear options require disabled scheduling, a real clock and positive interval.", nameof(options));
+        await RunActualAsync(actor, catalog, options, exercise, peers, useNativeGear: true);
+    }
+
+    // Real native table publisher plus genuine enabled Frame workers. Clock
+    // callbacks never grant admission, cast authority or a successful outcome.
+    internal static async Task RunWithNativeGearAndSchedulingAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
+        LegacyRuntimeUpdateLoopOptions options, Func<OwnedEquipmentBehaviorFixture, Task> exercise,
+        params OwnedEquipmentBehaviorInput[] peers)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.Enabled || options.TimeProvider is null || options.TickInterval <= TimeSpan.Zero)
+            throw new ArgumentException("Native gear scheduling requires enabled options, a real clock and positive interval.", nameof(options));
+        await RunActualAsync(actor, catalog, options, exercise, peers, useNativeGear: true);
+    }
+
     internal static async Task RunWithOptionsAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
         LegacyRuntimeUpdateLoopOptions options, Func<OwnedEquipmentBehaviorFixture, Task> exercise,
         params OwnedEquipmentBehaviorInput[] peers)

@@ -2,7 +2,7 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class WorldServerFrameHandler
 {
-    private async ValueTask SendDueLegacyArrowAndFlashingFlagExpirationsAsync(CancellationToken cancellationToken)
+    private async ValueTask SendDueLegacyArrowAndFlashingFlagExpirationsAsync(IDisposable operation, CancellationToken cancellationToken)
     {
         var provider = _runtimeUpdateLoop.TimeProvider ?? TimeProvider.System;
         foreach (var candidate in _sessions.Snapshot())
@@ -18,13 +18,26 @@ public sealed partial class WorldServerFrameHandler
                 LegacyArrowBladesFlagRegistration.StarFlowTriggerFlag })
                 if (LegacyArrowBladesFlagRegistration.TryRead(current.Character, flag, out var entry))
                     entries.Add((flag, entry.ExpiresAtLocal));
+            LegacyCanAttackFlashingRegistration? capturedFlashing = null;
             if (LegacyCanAttackFlashingRegistration.TryRead(current, out var flashing))
+            {
+                capturedFlashing = flashing;
                 entries.Add((LegacyCanAttackFlashingRegistration.StatusFlag, flashing.ExpiresAtLocal));
+            }
 
             foreach (var entry in entries)
             {
                 if (localNow < entry.ExpiresAtLocal) continue;
                 if (!TryRefreshLegacyLightningShieldLifetimeSubject(candidate.Connection, uid, out current)) break;
+                if (entry.Flag == LegacyCanAttackFlashingRegistration.StatusFlag &&
+                    current.NativeGameClient?.OrdinarySpellBinding is { } binding &&
+                    LegacyNativeStatusFlagsBigVector32.HasOwnedDragonhowlFlashing(binding))
+                {
+                    if (capturedFlashing is not null)
+                        await TryExpireOwnedDragonhowlFlashingAsync(new(candidate.Connection, current),
+                            capturedFlashing, operation, cancellationToken).ConfigureAwait(false);
+                    continue; // A stale native registration never falls back to managed-only removal.
+                }
                 // Captured due entry removes the CURRENT integer key; no rearm/identity-token cancellation.
                 var attributes = new Dictionary<string, string>(current.Character.Attributes, StringComparer.OrdinalIgnoreCase);
                 var removed = RemoveLegacyStatusFlag(attributes, entry.Flag);

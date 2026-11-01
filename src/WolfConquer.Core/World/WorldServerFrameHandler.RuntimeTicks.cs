@@ -178,7 +178,7 @@ public sealed partial class WorldServerFrameHandler
                     await SendDueLegacyXpSkillExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
                 }
                 await SendDueLegacyManiacDanceAttacksAsync(now, cancellationToken).ConfigureAwait(false);
-                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                using (var statusOperation = await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
                 {
                     if (_tradeRecovery.IsBlocked) continue;
                     await SendDueLegacyShieldBlockExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
@@ -186,7 +186,7 @@ public sealed partial class WorldServerFrameHandler
                         .ConfigureAwait(false);
                     await SendDueLegacyCombatGearAttachStatusExpirationsAsync(now, cancellationToken)
                         .ConfigureAwait(false);
-                    await SendDueLegacyArrowAndFlashingFlagExpirationsAsync(cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyArrowAndFlashingFlagExpirationsAsync(statusOperation, cancellationToken).ConfigureAwait(false);
                     await SendDueLegacyWindWalkerFanExpirationsAsync(cancellationToken).ConfigureAwait(false);
                     await SendDueLegacyHookMoonExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
                     await SendDueLegacyStigmaMagicShieldExpirationsAsync(now, cancellationToken)

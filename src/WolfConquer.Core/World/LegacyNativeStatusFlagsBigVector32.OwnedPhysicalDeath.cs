@@ -20,9 +20,12 @@ internal partial class LegacyNativeStatusFlagsBigVector32
         private readonly WindWalkerChange? change;
         private readonly WindWalkerPreparedState? transition;
         private readonly PreparedState? staged;
+        private readonly PreparedChange? nativeChange;
+        private readonly PreparedState? nativePrepared;
         private readonly WindWalkerOrigin? origin;
         private readonly WorldSessionStore.OwnedDeathWindWalkerRegistration registration;
-        private bool published;
+        private readonly OwnedPhysicalDeathFlashingPublication? flashing;
+        private bool consumed, published;
 
         private OwnedPhysicalDeathWindWalkerPublication(LegacyOrdinarySpellBinding binding,
             WorldPacketHandlers.OwnedPhysicalDeathPreparation preparation, WorldSession canonical)
@@ -35,8 +38,15 @@ internal partial class LegacyNativeStatusFlagsBigVector32
                 if (!vector.IsOwnedPhysicalDeathWindWalkerPreparationCurrent(change) ||
                     !vector.windWalkerChanges.TryGetValue(change, out transition) ||
                     !vector.windWalkerOrigins.TryGetValue(change, out origin)) throw InvalidDeathWindWalker();
-                if (transition.Change is { } native && !vector.TryTakeCurrent(native, out staged)) throw InvalidDeathWindWalker();
+                if (transition.Change is { } native)
+                {
+                    if (!vector.pendingChanges.TryGetValue(native, out nativePrepared)) throw InvalidDeathWindWalker();
+                    nativeChange = native; staged = nativePrepared;
+                }
             }
+            flashing = OwnedPhysicalDeathFlashingPublication.Prepare(binding, preparation, canonical,
+                vector, before, transition?.After);
+            if (flashing is not null) staged = flashing.Staged;
             registration = WorldSessionStore.OwnedDeathWindWalkerRegistration.Prepare(binding, preparation, canonical);
             if (!IsCurrentPlain()) throw InvalidDeathWindWalker();
         }
@@ -47,7 +57,23 @@ internal partial class LegacyNativeStatusFlagsBigVector32
 
         internal bool IsCurrentPlain() => !published && NativeOwnerCurrentPlain() &&
             preparation.IsCurrentPlain(binding) && vector.IsWindWalkerCurrentPlain(before) &&
-            (change is null || vector.IsOwnedPhysicalDeathWindWalkerPreparationCurrent(change)) && registration.IsCurrentPlain();
+            (change is null || vector.IsOwnedPhysicalDeathWindWalkerPreparationCurrent(change)) &&
+            (consumed || nativeChange is null || vector.pendingChanges.TryGetValue(nativeChange, out var pending) &&
+                ReferenceEquals(pending, nativePrepared)) &&
+            (flashing is null || flashing.IsCurrentPlain()) && registration.IsCurrentPlain();
+
+        // Preparation (including whole-proc preflight) only observes the actual
+        // staged native graph. The real writer alone consumes its one-use proof.
+        internal bool ConsumeBeforeWriterPlain()
+        {
+            if (consumed || !IsCurrentPlain()) return false;
+            if (nativeChange is not null && (!vector.TryTakeCurrent(nativeChange, out var actual) ||
+                !ReferenceEquals(actual, nativePrepared))) return false;
+            consumed = true;
+            // TryTakeCurrent can invoke the actual registration comparer. Keep
+            // the complete plain before proof after that last possible callout.
+            return IsCurrentPlain();
+        }
 
         internal bool IsPreparedFor(LegacyOrdinarySpellBinding actualBinding,
             WorldPacketHandlers.OwnedPhysicalDeathPreparation actualPreparation, WorldSession actualCanonical) =>
@@ -58,14 +84,17 @@ internal partial class LegacyNativeStatusFlagsBigVector32
         // any native store. This continuation has no lookup/callback/allocation.
         internal void PublishPrepared()
         {
+            if (!consumed) throw InvalidDeathWindWalker();
             if (staged is not null) vector.CommitPreparedState(staged);
             if (origin is not null) origin.Committed = true;
+            flashing?.PublishPrepared();
             registration.PublishPrepared();
             published = true;
         }
 
         internal bool IsPublishedCurrentPlain() => published && NativeOwnerCurrentPlain() &&
-            (transition is not null ? vector.HasUnchangedCapturedGraph(transition.After) : vector.IsWindWalkerCurrentPlain(before)) &&
+            (flashing is not null ? flashing.IsPublishedCurrentPlain() :
+                transition is not null ? vector.HasUnchangedCapturedGraph(transition.After) : vector.IsWindWalkerCurrentPlain(before)) &&
             (origin is null || origin.Committed) && registration.IsPublishedCurrentPlain();
 
         private bool NativeOwnerCurrentPlain() => WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate &&

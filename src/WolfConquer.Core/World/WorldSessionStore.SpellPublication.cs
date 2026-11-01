@@ -18,6 +18,7 @@ public sealed partial class WorldSessionStore
         private readonly LegacyNativeEquipItemStorage.OwnedAlternatePublication? alternateEquipment;
         private readonly LegacyNativePlayerRuntime.OwnedRuneBagPublication? runeBag;
         private readonly OwnedWindWalkerProjection? windWalker;
+        private readonly OwnedDragonhowlFlashingProjection? flashing;
         private readonly LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication;
         private readonly LegacyPreparedPairMovementWrite.CharacterPublication? pairMovementPublication;
         private readonly LegacyPreparedMovementWrite.CharacterPublication? movementPublication;
@@ -62,7 +63,8 @@ public sealed partial class WorldSessionStore
             WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null,
             OwnedAttributeChange? attributeChange = null,
             WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery = null,
-            OwnedDragonhowlDeath? dragonhowlDeath = null)
+            OwnedDragonhowlDeath? dragonhowlDeath = null,
+            LegacyNativeStatusFlagsBigVector32.OwnedDragonhowlFlashingLease.ExpiryPublication? dragonhowlFlashingExpiry = null)
         {
             bool pendingContinuation = !LegacyExperienceContinuationFence.AllowsOrdinaryPublication(expected, proposed);
             if (pendingContinuation && (continuationQuery is not null ? derivedSpellQueryPublication is not null :
@@ -80,6 +82,12 @@ public sealed partial class WorldSessionStore
             this.teleportPublication = teleportPublication;
             this.derivedSpellQueryPublication = derivedSpellQueryPublication;
             this.classRetirement = classRetirement;
+            if (dragonhowlFlashingExpiry is not null && (expected is null || caprice is not null || deferItems ||
+                runePublication is not null || pairMovementPublication is not null || movementPublication is not null ||
+                physicalDeath is not null || ownedHawksCast is not null || basicPhysical is not null ||
+                physicalDeathPublication is not null || teleportPublication is not null || derivedSpellQueryPublication is not null ||
+                classRetirement is not null || attributeChange is not null || continuationQuery is not null || dragonhowlDeath is not null))
+                throw InvalidSpellPublication();
             if (attributeChange is not null && (expected is null || classRetirement is not null || caprice is not null ||
                 deferItems || runePublication is not null || pairMovementPublication is not null || movementPublication is not null ||
                 physicalDeath is not null || ownedHawksCast is not null || basicPhysical is not null ||
@@ -152,6 +160,7 @@ public sealed partial class WorldSessionStore
                 expected.Character.Uid == proposed.Character.Uid ? holder.NativeClientIdentity : new object();
             if (binding is null)
             {
+                if (dragonhowlFlashingExpiry is not null) throw InvalidSpellPublication();
                 if (continuationQuery is not null) throw InvalidSpellPublication();
                 if (derivedSpellQueryPublication is not null) throw InvalidSpellPublication();
                 if (ownedHawksCast is not null) throw InvalidSpellPublication();
@@ -191,6 +200,7 @@ public sealed partial class WorldSessionStore
                     !basicPhysical.IsCurrentPlain() || !basicPhysical.CanonicalOutcomesMatch(basicPhysical.Actor, proposed)))
                     throw InvalidSpellPublication();
                 physicalDeathPublication?.RequireCurrent(store, connection, expected, proposed);
+                flashing = OwnedDragonhowlFlashingProjection.Prepare(binding, expected, proposed, physicalDeath, dragonhowlFlashingExpiry);
                 if (physicalDeath is not null)
                 {
                     // The actual death plan already projects its privately
@@ -243,7 +253,7 @@ public sealed partial class WorldSessionStore
                 warehouseMoney = LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication.PrepareBound(binding, expected, FinalSession);
                 RequireCurrentBeforeWriter();
             }
-            catch { items?.Dispose(); windWalker?.Dispose(); actors.Dispose(); throw; }
+            catch { items?.Dispose(); windWalker?.Dispose(); flashing?.Dispose(); actors.Dispose(); throw; }
         }
 
         private void PrepareItems(WorldSession proposed)
@@ -329,6 +339,7 @@ public sealed partial class WorldSessionStore
                 runeBag is not null && !runeBag.IsCurrentPlain())
                 throw InvalidSpellPublication();
             if (windWalker is not null && !windWalker.IsCurrentPlain()) throw InvalidSpellPublication();
+            if (flashing is not null && !flashing.IsCurrentPlain(FinalSession)) throw InvalidSpellPublication();
             if (physicalDeath is not null && !physicalDeath.IsCurrentPlain(binding!)) throw InvalidSpellPublication();
             if (hawks is not null && !hawks.IsCurrentPlain()) throw InvalidSpellPublication();
             if (basicPhysical is not null && !basicPhysical.IsCurrentPlain()) throw InvalidSpellPublication();
@@ -351,6 +362,7 @@ public sealed partial class WorldSessionStore
                 proficiencies!.ConsumeBeforeWriterPlain() && items!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() && action!.IsCurrentPlain() && actorScalars!.IsCurrentPlain() &&
                 money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) && (runeBag is null || runeBag.IsCurrentPlain()) &&
                 (windWalker is null || windWalker.IsCurrentPlain()) &&
+                (flashing is null || flashing.IsCurrentPlain(FinalSession)) &&
                 (physicalDeath is null || physicalDeath.IsCurrentPlain(binding)) &&
                 (hawks is null || hawks.IsCurrentPlain()) &&
                 (basicPhysical is null || basicPhysical.IsCurrentPlain()) &&
@@ -365,6 +377,7 @@ public sealed partial class WorldSessionStore
                 proficiencies!.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() && action!.IsCurrentPlain() && actorScalars!.IsCurrentPlain() &&
                 money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) && (runeBag is null || runeBag.IsCurrentPlain()) &&
                 (windWalker is null || windWalker.IsCurrentPlain()) &&
+                (flashing is null || flashing.IsCurrentPlain(FinalSession)) &&
                 (physicalDeath is null || physicalDeath.IsCurrentPlain(binding)) &&
                 (hawks is null || hawks.IsCurrentPlain()) &&
                 (basicPhysical is null || basicPhysical.IsCurrentPlain()) &&
@@ -401,6 +414,7 @@ public sealed partial class WorldSessionStore
         {
             items?.Dispose();
             windWalker?.Dispose();
+            flashing?.Dispose();
             actors?.Dispose();
         }
     }

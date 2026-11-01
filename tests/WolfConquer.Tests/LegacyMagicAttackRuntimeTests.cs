@@ -19834,7 +19834,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         IReadOnlyList<CombatGear>? combatGear = null,
         IReadOnlyList<JiangHuAttribute>? jiangHuAttributes = null,
         IReadOnlyList<CollectionRewardTier>? collectionRewardTiers = null,
-        IReadOnlyList<GouyuType>? gouyuTypes = null)
+        IReadOnlyList<GouyuType>? gouyuTypes = null,
+        IReadOnlyList<Monster>? monsterRows = null)
     {
         if (magicRows.Count == 0)
         {
@@ -19929,7 +19930,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             portals: [],
             maps: [],
             mapNames: [],
-            monsters: [monster],
+            monsters: monsterRows ?? [monster],
             monsterSpawns: spawns,
             lotteryDictionary: [],
             collectionRewardTiers: collectionRewardTiers ?? [],

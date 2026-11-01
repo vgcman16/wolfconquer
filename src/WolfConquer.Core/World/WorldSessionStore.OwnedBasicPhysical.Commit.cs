@@ -54,7 +54,8 @@ public sealed partial class WorldSessionStore
             deathNative is not null && !deathNative.IsCurrentPlain() || deathWind is not null && !deathWind.IsCurrentPlain() ||
             targetCancellation is not null && !targetCancellation.IsCurrentPlain() ||
             notifications is not null && !notifications.IsCurrentPlain() ||
-            !actorPublication.ConsumeBeforeWriterPlain() || !targetPublication.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
+            !actorPublication.ConsumeBeforeWriterPlain() || !targetPublication.ConsumeBeforeWriterPlain() ||
+            deathWind is not null && !deathWind.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
         var hp = targetPublication.HitpointsWrite ?? throw InvalidSpellPublication();
         bool committed;
         if (death is null)

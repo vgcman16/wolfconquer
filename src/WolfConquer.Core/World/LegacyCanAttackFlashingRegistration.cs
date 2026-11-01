@@ -2,7 +2,8 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-// Only the scoped10950 CanAttackPlayer producer owns this transient registration.
+// Transient managed registration issued by scoped10950 or the actual owned
+// Dragonhowl CanAttackPlayer prefix. The latter also owns a private native lease.
 internal sealed record LegacyCanAttackFlashingRegistration(long OwnerUid, DateTime Timer)
 {
     public const int StatusFlag = 0;

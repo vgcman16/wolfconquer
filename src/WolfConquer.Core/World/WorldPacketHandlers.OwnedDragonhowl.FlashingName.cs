@@ -37,7 +37,7 @@ public static partial class WorldPacketHandlers
             var registration = LegacyCanAttackFlashingRegistration.Create(source.Character.Uid, clock);
             var character = Project(source.Character);
             var after = registration.Install(source with { Character = character });
-            var native = LegacyNativeStatusFlagsBigVector32.DragonhowlFlashingPreparation.Prepare(binding, registration.Timer);
+            var native = LegacyNativeStatusFlagsBigVector32.DragonhowlFlashingPreparation.Prepare(binding, registration, clock);
             return new(after, clock, registration, native);
         }
 

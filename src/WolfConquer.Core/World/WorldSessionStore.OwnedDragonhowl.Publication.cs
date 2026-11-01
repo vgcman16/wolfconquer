@@ -140,7 +140,7 @@ public sealed partial class WorldSessionStore
                 publication.ArmFinalProof();
                 state.CommitStage = "beforeWriter";
                 if (!publication.ConsumeBeforeWriterPlain() || !DragonhowlHeldCurrent(state) ||
-                    death is not null && !death.IsCurrentPlain() ||
+                    death is not null && !death.ConsumeBeforeWriterPlain() ||
                     flashing is not null && !flashing.IsCurrentPlain() ||
                     native is not null && (!native.IsCurrentPlain() || runtime?.IsCurrentPlain() != true)) return false;
                 if (publication.HitpointsWrite is { } writer)

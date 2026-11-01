@@ -47,7 +47,7 @@ public static partial class WorldPacketHandlers
                 this.dragonhowl = dragonhowl;
                 this.actorBinding = actorBinding; this.targetBinding = targetBinding;
                 this.actor = actor; this.target = target;
-                nativeStatus = new(targetBinding);
+                nativeStatus = new(targetBinding, target);
                 // This builder privately owns a closed array for each virtual
                 // spell view. The original source retains its separate proof;
                 // no metadata witness needs to trust a private custom indexer.

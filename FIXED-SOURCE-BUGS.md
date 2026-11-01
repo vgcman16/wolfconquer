@@ -8,37 +8,47 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ### FSB-293: Execute selected Dragonhowl through the actual Physical owner
 
-OPEN full integration; selected Physical path now has focused passing evidence.
-Build20 passed0errors/159warnings; focused21 passed18/18,0failed/0skipped.
-Actual TRX outcomes were counted. Original12equipment/reentry cases retain their
-independent17490/17650damage, native19gear, savedfiles and packet expectations.
-Six additional cases cover native flashing timer metadata/order, learned-spell
-refusal, saved-gear/real-table-publisher drift and both first-output loss paths.
+OPEN full integration. Release build 25 passed (0 errors, 160 warnings).
+Focused run 26 passed 34/34, with 0 failed and 0 skipped; actual TRX nodes were
+counted. The earlier 18-case result overlaps this run and is not additive.
 
-The actual Physical request now captures its real command/cadence/operation,
-configured legacy19 metadata, saved constructor gear, targets and phase writers.
-The real native+managed flashing prefix precedes FrontBreak, targetHP and2239
-animation. Rejection preserves resources/nativeattack/status/files/output;
-committed output loss fences both real participants before later target damage.
-FineRain fixture metadata now backs99900HP plus the actual100HP buff, preserving
-the100000HP physical goldens rather than changing damage expectations.
+The original equipment/reentry cases retain independent 17490/17650 damage,
+range-nine, native19 gear, complete saved-file and packet expectations. New
+controls prove real native flashing order, saved-gear/table-publisher refusal,
+learned-spell refusal, connection-loss fencing, exposed rune/catalog drift,
+worker-driven expiry at 30 seconds, earned native-0 removal on a lethal Basic
+hit, and monster/SOB primary/repeat/replacement/respawn/reset behavior. The actual
+non-player reservation cannot enter Basic authority or be consumed by Basic
+cleanup. Defensive array edits preserve the original 582-damage positive.
 
-Two real ownership defects were corrected after integration exposed them.
-Preflight used postcommit IsCurrentPlain, which requires a completed HPwriter;
-it now consumes the genuine beforewriter proof, while real postwrite checks
-remain. The worn-rune snapshot pinned the original holder even after this proc
-committed its legitimate successor. Only the registered plan's exact original
-binding/snapshot/session can follow its actual committed state.Current; original
-native rune objects, storage/context, class/level/reborn and graph proofs remain
-checked. Ordinary/basic consumers retain their strict original-holder behavior.
-Per-phase diagnostics report actual phase/stage/commit state without granting
-any authority. Earlier gear06/focused14/17 and diagnostic19 reds remain retained.
+The real Physical request owns command, cadence, configured legacy19 metadata,
+saved constructor gear, target lineage and ordered phase writers. Native and
+managed flashing state commit before status2176, FrontBreak, target HP and
+animation2239. The private native lease follows its original binding, row,
+registration and clock. Generic publication preserves it or needs a real typed
+expiry/death participant. Real expiry removes both halves before output; real
+physical death composes native-0 removal with the genuine 194 after graph.
 
-Actual worker expiry/death native removal, applicable194 death transitions,
-monster/SOB primary/repeat/reset, lethal reward chains, remaining effect/event
-families, original91full regression closure and full-suite/live acceptance are
-still open. A timer/removal row is not execution proof. Ordered phases are not
-all-target crash atomicity, SQL safety or an output outbox. This is a local
+Integration corrected two ownership defects: preflight required a postcommit
+HP proof before any writer, and worn-rune proof pinned the original holder after
+this proc legitimately published its successor. Preflight now consumes the real
+before-writer proof; actual post-write checks stay. Only this registered plan's
+original binding/snapshot/session can follow its actual committed successor;
+native rune objects/context, class/level/reborn and rows remain checked. Basic
+consumers retain strict original-holder behavior. Death preflight observes the
+actual prepared 194 token; only real Basic/proc writers consume it once, followed
+by the full proof after a possible comparer call.
+
+Fixture corrections preserve the independent goldens: actual FineRain adds
+100 HP to a genuine 99900 base; monster input supplies its adopted raw ID and an
+explicit supported catalog array. Earlier compiler, gear, focused, admission and
+nonplayer23 reds remain retained, not relabeled or waived.
+
+Still open: a genuinely changed-194 death execution, explicit generic orphan
+guard and expiry output-loss controls, broader/full-suite acceptance, lethal
+monster reward/Team XP chains, remaining effect/event families, original full91
+closure, other unbound save origins, SQL, and live client acceptance. Ordered
+phases are not an all-target crash transaction or output outbox. This is a local
 checkpoint; no push or legacy client/updater launch is implied.
 
 ## Open managed Character publication repair - 2026-11-01

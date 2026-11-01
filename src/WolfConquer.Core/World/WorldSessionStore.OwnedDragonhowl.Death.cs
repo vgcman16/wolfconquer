@@ -63,6 +63,8 @@ public sealed partial class WorldSessionStore
         internal bool IsCurrentPlain() => !published && Purpose.IsCurrentPlain() && Writer.IsCurrent() &&
             query.IsCurrentPlain() && wind.IsCurrentPlain() && cancellation.IsCurrentPlain() && Notifications.IsCurrentPlain();
 
+        internal bool ConsumeBeforeWriterPlain() => IsCurrentPlain() && wind.ConsumeBeforeWriterPlain();
+
         internal void PublishPrepared()
         {
             query.PublishPrepared(); wind.PublishPrepared(); Notifications.PublishPrepared(); cancellation.PublishPrepared();

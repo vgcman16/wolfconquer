@@ -12,12 +12,15 @@ internal partial class LegacyNativeStatusFlagsBigVector32
         private readonly LegacyNativeStatusFlagsBigVector32 vector;
         private readonly State before, after;
         private readonly PreparedState staged;
+        private readonly OwnedDragonhowlFlashingLease lease;
         private bool publicationIssued, published;
 
         private DragonhowlFlashingPreparation(LegacyOrdinarySpellBinding binding,
-            LegacyNativeStatusFlagsBigVector32 vector, State before, DateTime timer)
+            LegacyNativeStatusFlagsBigVector32 vector, State before,
+            LegacyCanAttackFlashingRegistration registration, TimeProvider clock)
         {
             this.binding = binding; this.vector = vector; this.before = before;
+            var timer = registration.Timer;
             var row = new Flag(0, 30, true, 0) { Timer = timer };
             var registrations = new ConcurrentDictionary<int, Flag>(before.Registrations,
                 before.Registrations.Comparer);
@@ -27,22 +30,27 @@ internal partial class LegacyNativeStatusFlagsBigVector32
             var rows = before.Rows.Append(new RowState(0, row, 30, 0, timer, default, true)).ToArray();
             after = new(registrations, words, (uint[])words.Clone(), rows);
             staged = new(before, registrations, words, registrations.Values.ToArray());
+            lease = OwnedDragonhowlFlashingLease.Prepare(binding, vector, row, registration, clock);
         }
 
-        internal static DragonhowlFlashingPreparation Prepare(LegacyOrdinarySpellBinding binding, DateTime timer)
+        internal static DragonhowlFlashingPreparation Prepare(LegacyOrdinarySpellBinding binding,
+            LegacyCanAttackFlashingRegistration registration, TimeProvider clock)
         {
             var vector = binding.Player.BitVector;
+            var timer = registration.Timer;
             if (!NativeOwnerCurrent(binding, vector) || timer.Kind != DateTimeKind.Unspecified ||
                 !TryDeadline(timer, 30, out _) || !vector.TryCapture(out var before) || before is null ||
                 before.Words.Length == 0 || !ReferenceEquals(before.Registrations.Comparer, EqualityComparer<int>.Default) ||
                 before.Rows.Any(row => row.Key == 0)) throw InvalidFlashing();
-            var result = new DragonhowlFlashingPreparation(binding, vector, before, timer);
+            var result = new DragonhowlFlashingPreparation(binding, vector, before, registration, clock);
             if (!result.IsCurrentPlain()) throw InvalidFlashing();
             return result;
         }
 
         internal bool IsCurrentPlain() => NativeOwnerCurrent(binding, vector) &&
-            vector.HasUnchangedCapturedGraph(published ? after : before);
+            vector.HasUnchangedCapturedGraph(published ? after : before) &&
+            (published ? lease.IsNativeCurrentPlain() : lease.IsPreparedPlain());
+        internal bool IsPreparedLease(OwnedDragonhowlFlashingLease actual) => ReferenceEquals(lease, actual) && !published;
 
         internal Publication PreparePublication(WorldPacketHandlers.OwnedDragonhowlPreparation plan,
             int index, WorldSession expected, WorldSession proposed) =>
@@ -54,10 +62,15 @@ internal partial class LegacyNativeStatusFlagsBigVector32
             private readonly WorldPacketHandlers.OwnedDragonhowlPreparation plan;
             private readonly int index;
             private readonly WorldSession expected, proposed;
+            private readonly OwnedDragonhowlFlashingLease.OriginPublication origin;
             private Publication(DragonhowlFlashingPreparation preparation,
                 WorldPacketHandlers.OwnedDragonhowlPreparation plan, int index,
                 WorldSession expected, WorldSession proposed)
-            { this.preparation = preparation; this.plan = plan; this.index = index; this.expected = expected; this.proposed = proposed; }
+            {
+                this.preparation = preparation; this.plan = plan; this.index = index; this.expected = expected; this.proposed = proposed;
+                origin = OwnedDragonhowlFlashingLease.OriginPublication.Prepare(preparation.lease, preparation,
+                    plan, index, expected, proposed);
+            }
             internal static Publication Prepare(DragonhowlFlashingPreparation preparation,
                 WorldPacketHandlers.OwnedDragonhowlPreparation plan, int index,
                 WorldSession expected, WorldSession proposed)
@@ -69,7 +82,7 @@ internal partial class LegacyNativeStatusFlagsBigVector32
                 preparation.publicationIssued = true;
                 return publication;
             }
-            internal bool IsCurrentPlain() => !preparation.published && preparation.IsCurrentPlain() &&
+            internal bool IsCurrentPlain() => !preparation.published && preparation.IsCurrentPlain() && origin.IsCurrentPlain() &&
                 preparation.binding.Store.IsActualDragonhowlFlashingPhase(plan, index,
                     preparation.binding, expected, proposed, preparation);
             // The real Store consumed all phase/native proofs immediately before
@@ -77,6 +90,7 @@ internal partial class LegacyNativeStatusFlagsBigVector32
             internal void PublishPrepared()
             {
                 preparation.vector.CommitPreparedState(preparation.staged);
+                origin.PublishPrepared();
                 preparation.published = true;
             }
         }

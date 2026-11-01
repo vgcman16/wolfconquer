@@ -140,28 +140,46 @@ Source-bug ledger handoff remains OPEN: owned Physical proc interception;
 checked mutable-percent overflow; invalid SOB death-behavior rejection before
 HP mutation. No verified fixed claim follows from this source snapshot.
 
+## Native retirement integration
+
+The actual flashing publication installs a private native-0 lease tied to the
+original binding, managed registration, native row and Frame clock. Generic
+publication preserves that exact lease or needs typed expiry/death authority;
+it cannot clear only the managed half. The real global worker carries its
+retained operation lease into native+holder removal before2176. Other native
+rows and raw fields remain. Committed output failures fence the original owner.
+The existing managed-only10950 path does not invent a native lease.
+
+Physical death composes native-0 removal with the genuine 194 after graph and
+retires the original lease. Whole-proc death preflight observes prepared194
+state without consuming it. Basic/proc writers consume once and recheck the
+full proof after a possible comparer call. No validation or participant is
+replaced by an accepting substitute.
+
 ## Current bounded result - 2026-11-01
 
-Build20 passed0errors/159warnings. Focused21 passed18/18,0failed/0skipped:
-original12gear/reentry cases plus2real admission-refusal and4native lifecycle
-metadata/order/refusal/output-loss cases. The17490/17650damage/status/wire
-expectations remain independent. Genuine FineRain data backs100000HP after
-its100HP buff. Native flashing2176 precedes FrontBreak, targetHP and2239;
-connection loss after that actual commit fences both real bindings before
-laterHP/animation/repeat. Actual timed-worker/death removal is still unqualified.
+Release build25 passed (0 errors, 160 warnings). Focused26 passed34/34, with no
+failed/skipped cases; actual TRX nodes were counted. This includes the original
+12 gear cases, 2 admission refusals, 6 lifecycle cases, 8 non-player cases and
+6 worn-input controls. The earlier18-case result overlaps and is not additive.
 
-Preflight now uses the actual beforewriter proof instead of requiring an
-already-committed HPwriter. Worn-input currentness can follow only the actual
-private proc's committed successor, retaining original native graph and exact
-binding/snapshot provenance. Ordinary/basic snapshot behavior stays strict.
-Per-phase refusal diagnostics are data only and grant no execution authority.
-Earlier gear/focused/admission reds and logs remain retained, not relabeled.
+Executed behavior includes native flashing2176 before FrontBreak/targetHP/2239,
+real worker expiry at29/30 seconds, earned native-0 removal on a real lethal
+Basic hit,1050-damage monster/SOB primary and repeat, real target lineage/reset
+refusal, and postcommit corruption/output-loss fencing. A real non-player proc
+reservation does not grant Basic authority. Original17490/17650 damage/status/
+wire and file goldens remain; defensive array edits retain582/Penetration.
 
-Loaded metadata is an immutable published image; its actual complete native
-publisher transition, rather than a source-file edit alone, invalidates the old
-Frame owner in the passing refusal control. No fresh owner or writer is faked.
+Preflight uses before-writer proof, not an already-committed HP proof. Worn
+currentness follows only the actual private proc's committed successor with
+original binding/snapshot/native graph. Basic behavior stays strict. Per-phase
+diagnostics report data and grant no authority. Earlier failed runs are retained.
 
-Next qualification includes real worker expiry/death cleanup, applicable194
-native death preparation, monster/SOB primary/repeat/reset and output loss.
-Lethal monster rewards, remaining selected effects/events, full suite, SQL,
-all-target crash safety/outbox and live client acceptance remain open.
+Monster fixtures now provide the adopted raw ID and explicit catalog array;
+FineRain data backs100000 HP after its100HP buff. Neither changes damage goldens.
+A complete native table publisher transition, rather than a source-file edit
+alone, invalidates the immutable old loaded metadata owner in refusal tests.
+
+Still required: genuinely changed194 death, explicit generic orphan guard and
+expiry output-loss controls, broader/full Windows checks, lethal monster rewards,
+Team XP, remaining effects/events, SQL/crash/outbox and live client acceptance.
