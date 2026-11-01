@@ -35,83 +35,39 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        var total = packet.Total;
-        if (session.Character.AttributePoints == 0 || session.Character.AttributePoints < total)
+        if (!LegacyOwnedAttributeSetProposal.TryCreate(session.Character, packet, out var proposal) || proposal is null)
         {
             await context.Log.WriteLineAsync(
                     "WorldServer skipped LegacyAttributeSet " +
-                    $"{FormatSession(context)} requested={total} available={session.Character.AttributePoints}.")
+                    $"{FormatSession(context)} reason=invalid-attribute-allocation.")
                 .ConfigureAwait(false);
             return;
         }
 
-        var updatedCharacter = WithLegacyAttributeSet(session.Character, packet);
-        context.Sessions?.Set(context.Connection, session with { Character = updatedCharacter });
-
-        await context.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacyAttributeSetRefreshAsync(context, session, updatedCharacter, cancellationToken)
-            .ConfigureAwait(false);
-        await context.Log.WriteLineAsync(
-                "WorldServer handled LegacyAttributeSet " +
-                $"{FormatSession(context)} strength={packet.Strength} agility={packet.Agility} " +
-                $"vitality={packet.Vitality} spirit={packet.Spirit}.")
-            .ConfigureAwait(false);
-    }
-
-    private static async ValueTask SendLegacyAttributeSetRefreshAsync(
-        WorldPacketHandlerContext context,
-        WorldSession session,
-        CharacterSnapshot updatedCharacter,
-        CancellationToken cancellationToken)
-    {
-        var uid = CheckedUInt32(updatedCharacter.Uid, nameof(updatedCharacter.Uid));
-        var currentHitpoints = CheckedUInt32(updatedCharacter.MinHitPoints, nameof(updatedCharacter.MinHitPoints));
-        var maxHitpoints = ComputeLegacyRuntimeMaxHitpoints(
-            updatedCharacter,
-            currentHitpoints,
-            session.PlayerItems,
-            session.CombatGear ?? CombatGearSnapshot.Empty,
-            context.WorldData,
-            session.AlternateEquipmentActive);
-
-        foreach (var update in LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(
-            uid,
-            maxHitpoints,
-            Math.Min(currentHitpoints, maxHitpoints)))
+        if (context.Sessions is not { } store ||
+            !store.TryCommitAttributeSet(context, session, proposal, out var receipt, out var rebuild, out var frames) ||
+            receipt is null || rebuild is null)
         {
-            await context.Connection.SendAsync(update.ToFrameBytes(), cancellationToken)
+            await context.Log.WriteLineAsync("WorldServer refused LegacyAttributeSet: owned allocation or query preflight unavailable.")
                 .ConfigureAwait(false);
+            return;
         }
-
-        await context.Connection.SendAsync(
-                LegacyUserTotalRefineLevPacket.FromEquipmentPerfection(uid, session.PlayerItems).ToFrameBytes(),
-                cancellationToken)
+        try
+        {
+            if (!receipt.TryCurrent(out _)) throw new InvalidOperationException("ownedAttributeSetEchoOwnerChanged");
+            await context.Connection.SendAsync(frames[0], cancellationToken).ConfigureAwait(false);
+            if (!await rebuild.RebuildAsync(receipt, cancellationToken).ConfigureAwait(false))
+                throw new InvalidOperationException("ownedAttributeSetCommittedQueryUnproven");
+        }
+        catch (Exception error)
+        {
+            receipt.FenceCommittedAttributeFailure(error);
+            throw;
+        }
+        await context.Log.WriteLineAsync("WorldServer handled LegacyAttributeSet " +
+            $"{FormatSession(context)} strength={packet.Strength} agility={packet.Agility} " +
+            $"vitality={packet.Vitality} spirit={packet.Spirit}.")
             .ConfigureAwait(false);
-    }
-
-    private static CharacterSnapshot WithLegacyAttributeSet(
-        CharacterSnapshot character,
-        LegacyAttributeSetPacket packet)
-    {
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            ["Strength"] = checked(character.Strength + packet.Strength).ToString(CultureInfo.InvariantCulture),
-            ["Agility"] = checked(character.Agility + packet.Agility).ToString(CultureInfo.InvariantCulture),
-            ["Vitaliti"] = checked(character.Vitality + packet.Vitality).ToString(CultureInfo.InvariantCulture),
-            ["Spirit"] = checked(character.Spirit + packet.Spirit).ToString(CultureInfo.InvariantCulture),
-            ["Atributes"] = checked(character.AttributePoints - packet.Total).ToString(CultureInfo.InvariantCulture),
-        };
-
-        return character with
-        {
-            Strength = checked(character.Strength + packet.Strength),
-            Agility = checked(character.Agility + packet.Agility),
-            Vitality = checked(character.Vitality + packet.Vitality),
-            Spirit = checked(character.Spirit + packet.Spirit),
-            AttributePoints = checked(character.AttributePoints - packet.Total),
-            Attributes = attributes,
-        };
     }
 
 }

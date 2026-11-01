@@ -11,7 +11,7 @@ public static partial class WorldPacketHandlers
     {
         // ClientTransform.UpdateStatus: setter uses PRIOR current Status.Max.
         var current = await AssignLegacyPlayerHitpointsAsync(
-                context, session, scope, unchecked((int)capturedTransformMaximum), cancellationToken)
+                context, session, scope, checked((int)capturedTransformMaximum), cancellationToken)
             .ConfigureAwait(false);
         if (!current.Completed) return current;
         current = CommitLegacyEquipmentQueryMutation(context, current.Session!, scope,

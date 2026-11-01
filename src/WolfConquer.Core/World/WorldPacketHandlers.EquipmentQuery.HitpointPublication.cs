@@ -55,6 +55,11 @@ public static partial class WorldPacketHandlers
             loss |= LegacyEquipmentQueryPublicationLoss.AcceptedItemsChanged;
         }
 
+        if (owner is not null && scope.AttributeRebuild is { } rebuild && !rebuild.IsQueryCurrent(context, session, owner))
+        {
+            owner = null;
+            loss |= LegacyEquipmentQueryPublicationLoss.OwnerLost;
+        }
         return new(owner, required, loss);
     }
 

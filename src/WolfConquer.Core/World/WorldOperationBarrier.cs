@@ -98,6 +98,7 @@ internal sealed partial class WorldOperationBarrier
     {
         private WorldOperationBarrier? _owner = owner;
         internal bool IsOwnedBy(WorldOperationBarrier candidate) => ReferenceEquals(Volatile.Read(ref _owner), candidate);
+        internal bool IsExclusiveOwnedBy(WorldOperationBarrier candidate) => exclusive && IsOwnedBy(candidate);
         public void Dispose() => Interlocked.Exchange(ref _owner, null)?.Exit(exclusive);
     }
 }

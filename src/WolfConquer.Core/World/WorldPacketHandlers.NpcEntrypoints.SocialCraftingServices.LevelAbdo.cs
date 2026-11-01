@@ -128,6 +128,11 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (HasAttachedStatOwner(context, session) && HasChangedOwnedLevelOrStats(session.Character, updatedCharacter))
+        {
+            await context.Log.WriteLineAsync("WorldServer held bound LevelAbdo grant: owned stat transaction unavailable.").ConfigureAwait(false);
+            return;
+        }
         var persistenceValues = CreateLegacySocialCraftingServicesLevelPersistenceValues(updatedCharacter);
         if (!TryPersistLegacyCharacterAttributes(
                 session.UsersRoot,

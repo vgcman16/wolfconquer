@@ -11,4 +11,5 @@ public enum LegacyEquipmentRebuildReason
     InitialWorldEntry,
     AllowAnimation,
     RiseOfTaoismChange,
+    AttributeAllocation,
 }

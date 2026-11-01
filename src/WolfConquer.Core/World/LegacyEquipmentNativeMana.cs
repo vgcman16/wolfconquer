@@ -10,7 +10,7 @@ public static class LegacyEquipmentNativeMana
         if (data is null) return 0;
         var total = ItemMana(item.ItemId, data);
         if (PurificationInLife(item))
-            total = unchecked(total + ItemMana(item.PurificationItemId, data));
+            total = checked(total + ItemMana(item.PurificationItemId, data));
         return total;
     }
 
@@ -24,7 +24,8 @@ public static class LegacyEquipmentNativeMana
                 13_004 or 14_004 => 25,
                 _ => 5,
             };
-        return unchecked((ushort)(character.Spirit * multiplier));
+        if (character.Spirit < 0) throw new InvalidDataException("equipmentManaSpiritNegative");
+        return checked((ushort)checked(character.Spirit * multiplier));
     }
 
     public static uint CombatGear(WorldSession session, WorldDataCatalog? data)
@@ -42,21 +43,21 @@ public static class LegacyEquipmentNativeMana
                 {
                     var itemScore = item.ItemID <= int.MaxValue && item.Level <= int.MaxValue &&
                         data.CombatGearByGearTypeAndLevel.TryGetValue(((int)item.ItemID, (int)item.Level), out var row)
-                        ? unchecked((uint)row.Score) : 0;
-                    score = unchecked(score + (int)(itemScore + item.MasteryScore));
+                        ? checked((uint)row.Score) : 0;
+                    score = checked(score + (int)checked(itemScore + item.MasteryScore));
                 }
                 foreach (var id in gear.BlackJadeBag.BlackJades)
                 {
                     if (!TryJade(data, id, out var jade)) continue;
                     var type = Field(jade.Fields, 14);
                     if (collection == 700 ? type == 0 && Field(jade.Fields, 9) % 100 == 7 : type == collection)
-                        score = unchecked(score + (int)Field(jade.Fields, 6));
+                        score = checked(score + (int)Field(jade.Fields, 6));
                 }
                 // Native GetNutBook adds EVERY matching loaded row, including zero-score matches.
                 foreach (var row in data.CollectionRewardTiers)
                     if (Field(row.Fields, 1) == collection && (long)score >= Field(row.Fields, 2) &&
                         (long)score <= Field(row.Fields, 3) && Field(row.Fields, 4) == 23)
-                        total = unchecked(total + Field(row.Fields, 5));
+                        total = checked(total + Field(row.Fields, 5));
             }
         }
         var equipped = gear.Items.FirstOrDefault(item => item.Equip == 1 && (family switch
@@ -70,8 +71,8 @@ public static class LegacyEquipmentNativeMana
             foreach (var id in equipped.BlackJades)
                 if (TryJade(data, id, out var jade))
                 {
-                    if (Field(jade.Fields, 2) == 23) total = unchecked(total + Field(jade.Fields, 3));
-                    if (Field(jade.Fields, 4) == 23) total = unchecked(total + Field(jade.Fields, 5));
+                    if (Field(jade.Fields, 2) == 23) total = checked(total + Field(jade.Fields, 3));
+                    if (Field(jade.Fields, 4) == 23) total = checked(total + Field(jade.Fields, 5));
                 }
         return total;
     }
@@ -110,10 +111,10 @@ public static class LegacyEquipmentNativeMana
                         var encoded = stars[at].EncodedAttribute;
                         var row = data.JiangHuAttributes.FirstOrDefault(attribute =>
                             attribute.AttributeType == encoded % 256 && attribute.Level == encoded / 256);
-                        var power = row is null ? (ushort)0 : unchecked((ushort)row.Value);
-                        aligned = unchecked((ushort)(aligned + unchecked((ushort)(power + power * bonus / 100))));
+                        var power = row is null ? (ushort)0 : checked((ushort)row.Value);
+                        aligned = checked((ushort)(aligned + checked((ushort)(power + power * bonus / 100))));
                     }
-                    total = unchecked(total + aligned);
+                    total = checked(total + aligned);
                 }
                 start = end;
             }

@@ -14,7 +14,7 @@ public sealed record LegacyMaxHitpointsExternalBonuses(
     uint Vip = 0,
     uint ExtraStatus = 0)
 {
-    public uint Total =>
+    public uint Total => checked(
         Chi +
         InnerPower +
         Rune +
@@ -23,7 +23,7 @@ public sealed record LegacyMaxHitpointsExternalBonuses(
         Beasts +
         Profession +
         Vip +
-        ExtraStatus;
+        ExtraStatus);
 }
 
 public sealed record LegacyMaxHitpointsBreakdown(
@@ -198,8 +198,8 @@ public static partial class LegacyMaxHitpointsCalculator
 
         return breakdown with
         {
-            ExternalHitpoints = breakdown.ExternalHitpoints + sourcedHitpoints,
-            Total = breakdown.Total + sourcedHitpoints,
+            ExternalHitpoints = checked(breakdown.ExternalHitpoints + sourcedHitpoints),
+            Total = checked(breakdown.Total + sourcedHitpoints),
             MissingInputs = missingInputs,
         };
     }
@@ -243,7 +243,7 @@ public static partial class LegacyMaxHitpointsCalculator
             equipmentHitpoints,
             combatGearHitpoints,
             externalHitpoints,
-            attributeHitpoints + equipmentHitpoints + combatGearHitpoints + externalHitpoints,
+            checked(attributeHitpoints + equipmentHitpoints + combatGearHitpoints + externalHitpoints),
             missingInputs);
     }
 
@@ -253,6 +253,18 @@ public static partial class LegacyMaxHitpointsCalculator
         long agility,
         long vitality,
         long spirit)
+        => TruncateLegacyUShort(CalculateAttributeHitpointsValue(classCode, strength, agility, vitality, spirit));
+
+    internal static uint CalculateAttributeHitpointsChecked(CharacterSnapshot character)
+    {
+        if (character.Strength < 0 || character.Agility < 0 || character.Vitality < 0 || character.Spirit < 0)
+            throw new InvalidDataException("equipmentAttributeHitpointsNegative");
+        double value = CalculateAttributeHitpointsValue(character.Class, character.Strength, character.Agility,
+            character.Vitality, character.Spirit);
+        return checked((ushort)value);
+    }
+
+    private static double CalculateAttributeHitpointsValue(long classCode, long strength, long agility, long vitality, long spirit)
     {
         var str = Math.Max(0, strength);
         var agi = Math.Max(0, agility);
@@ -261,16 +273,16 @@ public static partial class LegacyMaxHitpointsCalculator
 
         if (classCode is >= 1005 and <= 1058)
         {
-            return TruncateLegacyUShort((agi * 3.45) + (spi * 3.45) + (str * 3.45) + (vit * 27.6));
+            return (agi * 3.45) + (spi * 3.45) + (str * 3.45) + (vit * 27.6);
         }
 
         return classCode switch
         {
-            1001 => TruncateLegacyUShort((agi * 3.15) + (spi * 3.15) + (str * 3.15) + (vit * 25.2)),
-            1002 => TruncateLegacyUShort((agi * 3.24) + (spi * 3.24) + (str * 3.24) + (vit * 25.9)),
-            1003 => TruncateLegacyUShort((agi * 3.3) + (spi * 3.3) + (str * 3.3) + (vit * 26.4)),
-            1004 => TruncateLegacyUShort((agi * 3.36) + (spi * 3.36) + (str * 3.36) + (vit * 26.8)),
-            _ => TruncateLegacyUShort((agi * 3) + (spi * 3) + (str * 3) + (vit * 24)),
+            1001 => (agi * 3.15) + (spi * 3.15) + (str * 3.15) + (vit * 25.2),
+            1002 => (agi * 3.24) + (spi * 3.24) + (str * 3.24) + (vit * 25.9),
+            1003 => (agi * 3.3) + (spi * 3.3) + (str * 3.3) + (vit * 26.4),
+            1004 => (agi * 3.36) + (spi * 3.36) + (str * 3.36) + (vit * 26.8),
+            _ => (agi * 3) + (spi * 3) + (str * 3) + (vit * 24),
         };
     }
 
@@ -336,7 +348,7 @@ public static partial class LegacyMaxHitpointsCalculator
             var attributeValue = encoded % 10_000;
             if ((LegacyChiAttributeType)attributeType == LegacyChiAttributeType.HPAdd)
             {
-                total += checked((uint)attributeValue);
+                total = checked(total + (uint)attributeValue);
             }
         }
 
@@ -361,18 +373,18 @@ public static partial class LegacyMaxHitpointsCalculator
 
             var position = item.Position % 50;
             var itemHitpoints = TryGetItemHitpoints(itemsById, item.ItemId, out var rawItemHp) ? rawItemHp : 0;
-            total += itemHitpoints;
+            total = checked(total + itemHitpoints);
 
             if (item.PurificationItemId != 0 &&
                 TryGetItemHitpoints(itemsById, item.PurificationItemId, out var purificationHitpoints))
             {
-                total += purificationHitpoints;
+                total = checked(total + purificationHitpoints);
             }
 
             var enchant = IsLegacyEnchantClearedPosition(position) ? 0u : (uint)item.Enchant;
             if (position != 12)
             {
-                total += enchant;
+                total = checked(total + enchant);
             }
 
             var plus = IsLegacyPlusClearedPosition(position) ? 0 : Math.Min((int)item.Plus, 12);
@@ -384,7 +396,7 @@ public static partial class LegacyMaxHitpointsCalculator
                 var animaPercent = TryGetItemHitpoints(itemsById, item.AnimaItemId, out var animaHitpoints)
                     ? animaHitpoints / 100
                     : 0;
-                total += plusHitpoints + (plusHitpoints * animaPercent / 100);
+                total = checked(total + plusHitpoints + (uint)((ulong)plusHitpoints * animaPercent / 100));
             }
         }
 
@@ -457,14 +469,14 @@ public static partial class LegacyMaxHitpointsCalculator
             return total;
         }
 
-        total += GetCombatGearLife(equipped, combatGearByGearTypeAndLevel);
-        total += GetBlackJadeMaxHitpoints(equipped, daoqiDictTypesById);
-        total += GetCombatGearNutBookMaxHitpoints(
+        total = checked(total + GetCombatGearLife(equipped, combatGearByGearTypeAndLevel));
+        total = checked(total + GetBlackJadeMaxHitpoints(equipped, daoqiDictTypesById));
+        total = checked(total + GetCombatGearNutBookMaxHitpoints(
             classCode,
             combatGear,
             combatGearByGearTypeAndLevel,
             daoqiDictTypesById,
-            collectionRewardTiersByCollectionId);
+            collectionRewardTiersByCollectionId));
 
         foreach (var item in combatGear.Items)
         {
@@ -473,7 +485,7 @@ public static partial class LegacyMaxHitpointsCalculator
                 continue;
             }
 
-            total += GetCombatGearLife(item, combatGearByGearTypeAndLevel) * 5 / 100;
+            total = checked(total + (uint)((ulong)GetCombatGearLife(item, combatGearByGearTypeAndLevel) * 5 / 100));
         }
 
         return total;
@@ -592,14 +604,14 @@ public static partial class LegacyMaxHitpointsCalculator
                 continue;
             }
 
-            total += ReadMaxHitpointsAttribute(
+            total = checked(total + ReadMaxHitpointsAttribute(
                 blackJade,
                 DaoqiFirstAttributeTypeFieldIndex,
-                DaoqiFirstAttributeValueFieldIndex);
-            total += ReadMaxHitpointsAttribute(
+                DaoqiFirstAttributeValueFieldIndex));
+            total = checked(total + ReadMaxHitpointsAttribute(
                 blackJade,
                 DaoqiSecondAttributeTypeFieldIndex,
-                DaoqiSecondAttributeValueFieldIndex);
+                DaoqiSecondAttributeValueFieldIndex));
         }
 
         return total;

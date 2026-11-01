@@ -52,7 +52,7 @@ public static partial class WorldPacketHandlers
         {
             if (!Refresh()) return false;
             capturedQuerySource = Session.NativeGameClient?.OrdinarySpellBinding is not null
-                ? new LegacySpellMutationInputs(Session, captureItems: true).Stable : Session;
+                ? CaptureEquipmentQueryInputs(Session) : Session;
             CapturedEquipment = LegacyEquipmentQuerySelector.Select(capturedQuerySource);
             CapturedAlternate = capturedQuerySource.AlternateEquipmentActive;
             return true;
@@ -83,8 +83,7 @@ public static partial class WorldPacketHandlers
 
         public bool AddMaximum(uint addition)
         {
-            if (!Refresh()) return false;
-            return SetMaximum(unchecked(Maximum + addition));
+            return Refresh() && SetMaximum(checked(Maximum + addition));
         }
 
         public async ValueTask<bool> SendAsync(byte[] bytes, LegacyEquipmentQueryPublishedPhases phase)
@@ -119,7 +118,7 @@ public static partial class WorldPacketHandlers
         public async ValueTask<bool> AddHitpointsAsync(uint addition)
         {
             if (!Refresh()) return false;
-            return await AssignAsync(unchecked((int)Session.Character.MinHitPoints + (int)addition))
+            return await AssignAsync(LegacyEquipmentQueryBounds.AddHitpoints(Session.Character.MinHitPoints, addition))
                 .ConfigureAwait(false);
         }
 

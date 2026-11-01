@@ -33,7 +33,8 @@ public static partial class WorldPacketHandlers
             Adopt(RefreshLegacyEquipmentQueryPublication(Context with { Session = committed }, committed, Request.Scope));
             if (!Current.Completed) return false;
             var published = await publication.PublishAsync(CancellationToken).ConfigureAwait(false);
-            if (published is null) return LoseWindWalkerOwner();
+            if (published is null || Request.Scope.AttributeRebuild is not null && !ReferenceEquals(published, committed))
+                return LoseWindWalkerOwner();
             Adopt(RefreshLegacyEquipmentQueryPublication(Context with { Session = published }, published, Request.Scope));
             return Current.Completed;
         }

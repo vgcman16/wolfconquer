@@ -8,5 +8,19 @@ public sealed partial class LegacyNativePlayerRuntime
 
     public uint SecoundeClass;
 
-    public ulong Experience;
+    private ulong experience;
+    public ulong Experience
+    {
+        get => experience;
+        set
+        {
+            RequireUnboundActorScalarMutation();
+            lock (Owner.SpellAdmissionSyncRoot)
+            lock (SpellAdmissionSyncRoot)
+            {
+                RequireUnboundActorScalarMutation();
+                experience = value;
+            }
+        }
+    }
 }

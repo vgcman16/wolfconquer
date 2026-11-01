@@ -8,6 +8,7 @@ internal sealed partial class LegacyOwnedPhysicalMetadataWitness
 {
     private readonly LegacyOrdinarySpellBinding binding;
     private readonly WorldDataCatalog? catalog;
+    private readonly bool preserveRawAttributes;
     private readonly Dictionary<object, ICurrent> collections = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<object, Row> rows = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<object> capturedRaw = new(ReferenceEqualityComparer.Instance);
@@ -23,10 +24,11 @@ internal sealed partial class LegacyOwnedPhysicalMetadataWitness
     private readonly List<(ushort Id, ushort Level)> derivedOrder = [];
     private bool nativeQueryRequired;
 
-    private LegacyOwnedPhysicalMetadataWitness(LegacyOrdinarySpellBinding binding, WorldDataCatalog? catalog)
+    private LegacyOwnedPhysicalMetadataWitness(LegacyOrdinarySpellBinding binding, WorldDataCatalog? catalog, bool preserveRawAttributes = false)
     {
         this.binding = binding;
         this.catalog = catalog;
+        this.preserveRawAttributes = preserveRawAttributes;
     }
 
     internal static LegacyOwnedPhysicalMetadataWitness Capture(LegacyOrdinarySpellBinding binding,
@@ -41,7 +43,7 @@ internal sealed partial class LegacyOwnedPhysicalMetadataWitness
     {
         if (!IsCurrentPlain() || !ReferenceEquals(source.NativeGameClient, binding.Client) ||
             source.Character.Uid != binding.Uid || source.AccountId != binding.AccountId) throw Invalid();
-        inputs.Add(new(source));
+        inputs.Add(new(source, preserveRawAttributes));
         LegacyPlayerStatusCalculator.CaptureOwnedPhysicalMetadata(this, source, catalog);
         LegacyMaxHitpointsCalculator.CaptureOwnedPhysicalMetadata(this, source, catalog);
         if (nativeQueryRequired) LegacyPlayerStatusCalculator.CaptureOwnedPhysicalNativeQueryMetadata(this, source, catalog);
@@ -59,7 +61,7 @@ internal sealed partial class LegacyOwnedPhysicalMetadataWitness
     {
         if (!IsCurrentPlain() || !ReferenceEquals(source.NativeGameClient, binding.Client) ||
             source.AccountId != binding.AccountId || source.Character.Uid != binding.Uid) throw Invalid();
-        inputs.Add(new(source));
+        inputs.Add(new(source, preserveRawAttributes));
         nativeQueryRequired = true;
         LegacyPlayerStatusCalculator.CaptureOwnedPhysicalNativeQueryMetadata(this, source, catalog);
         if (!IsCurrentPlain()) throw Invalid();
@@ -261,10 +263,11 @@ internal sealed partial class LegacyOwnedPhysicalMetadataWitness
         private readonly SpellRows spells;
         private readonly LegacyItemSaveGraph items;
         private readonly List<ICurrent> gear = [];
-        internal Input(WorldSession source)
+        internal Input(WorldSession source, bool preserveRawAttributes = false)
         {
             this.source = source;
-            attributes = new(source.Character.Attributes); paid = new(source.Character.PaidNobility);
+            attributes = preserveRawAttributes ? LegacyNativeAttributeMapProof.CaptureRaw(source.Character.Attributes) : new(source.Character.Attributes);
+            paid = preserveRawAttributes ? LegacyNativeAttributeMapProof.CaptureRaw(source.Character.PaidNobility) : new(source.Character.PaidNobility);
             spells = new(source.PlayerSpells.Spells);
             if (!LegacyItemSaveGraph.TryCapture(source.PlayerItems, out var captured) || captured is null) throw Invalid();
             items = captured;

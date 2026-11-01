@@ -24,26 +24,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
 
     [Fact]
-    public async Task HandlerEquipmentQueryReadsCurrentSpiritAfterNativeDerivedSpellPublication()
+    public async Task DetachedDerivedSpellQueryDoesNotInventAConsumptionOrCallback()
     {
-        var entered = false;
-        using var fixture = new NativeEquipmentCacheFixture(venom: true, onSend: (current, bytes) =>
-        {
-            var frame = ReadFrame(bytes);
-            if (!entered && LegacySpellPacket.TryParse(frame, out var spell) && spell.Id == 20_000)
-            {
-                entered = true;
-                Assert.Equal(150U, LegacyPhysicalStatusOverlay.ForOwner(current.Owner).MaxMana);
-                current.ChangeSpiritDuringPublication(20);
-            }
-            return ValueTask.CompletedTask;
-        });
+        using var fixture = new NativeEquipmentCacheFixture(venom: true);
+        var before = fixture.Owner.Character;
         await fixture.QueryAsync();
-        Assert.True(entered, fixture.Output);
-        fixture.RequireSavedVenom();
-        Assert.Equal(20L, fixture.Owner.Character.Spirit);
-        Assert.Equal(750U, LegacyPhysicalStatusOverlay.ForOwner(fixture.Owner).MaxMana);
-        Assert.Equal(750U, (await fixture.ReadStatusAsync()).MaxMana);
+        Assert.Equal(before.Spirit, fixture.Owner.Character.Spirit);
+        Assert.Equal(before.AttributePoints, fixture.Owner.Character.AttributePoints);
+        Assert.False(fixture.Owner.PlayerSpells.ContainsSpell(20000));
+        Assert.DoesNotContain(fixture.Frames, bytes => LegacySpellPacket.TryParse(ReadFrame(bytes), out var row) && row.Id == 20000);
     }
 
     [Fact]

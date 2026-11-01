@@ -94,6 +94,11 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (HasAttachedStatOwner(context, session) && HasChangedOwnedLevelOrStats(session.Character, updatedCharacter))
+        {
+            await context.Log.WriteLineAsync("WorldServer held bound AdminUtility level grant: owned stat transaction unavailable.").ConfigureAwait(false);
+            return;
+        }
         if (!TryPersistLegacyCharacterAttributes(
                 session.UsersRoot,
                 session.AccountId,

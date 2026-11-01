@@ -93,13 +93,7 @@ public static partial class WorldPacketHandlers
                 HasLegacyStatusFlag(Session.Character, LegacyIronGuardFlag) &&
                 TryGetLegacyEligibleEquippedRuneLevel(Session, worldData, "FuryStrike", out var fury))
             {
-                var addition = fury switch
-                {
-                    >= 1 and <= 11 => 50_000U, 12 => 51_000U, 13 => 52_000U, 14 => 53_000U,
-                    15 => 54_000U, 16 => 55_000U, 17 => 58_000U, 18 => 60_000U, 19 => 62_000U,
-                    20 => 65_000U, 21 => 68_000U, 22 => 70_000U, 23 => 75_000U, 24 => 78_000U,
-                    25 => 80_000U, 26 => 85_000U, 27 => 100_000U, _ => 0U,
-                };
+                var addition = EquipmentQueryFuryMaximum(fury);
                 // Source setter precedes its Max addition (even unsupported level0).
                 if (!await AddHitpointsAsync(addition).ConfigureAwait(false) || !AddMaximum(addition))
                     return false;
@@ -112,11 +106,9 @@ public static partial class WorldPacketHandlers
             if (!RebuildNativePerfectionCache()) return false;
             if (!NativeMagicBeforeGear()) return false;
             if (!await RunNativeDerivedSpellsAsync().ConfigureAwait(false)) return false;
-            if (!Refresh() || !AddMaximum(LegacyMaxHitpointsCalculator.CalculateAttributeHitpoints(
-                    Session.Character.Class, Session.Character.Strength, Session.Character.Agility,
-                    Session.Character.Vitality, Session.Character.Spirit)))
+            if (!AddMaximum(LegacyMaxHitpointsCalculator.CalculateAttributeHitpointsChecked(Session.Character)))
                 return false; // Native1554: CURRENT attributes, before current Class/Spirit Mana1555.
-            if (!Refresh() || !AddManaMaximum(LegacyEquipmentNativeMana.ClassAndSpirit(Session.Character)))
+            if (!AddManaMaximum(LegacyEquipmentNativeMana.ClassAndSpirit(Session.Character)))
                 return false; // Native1555 reads CURRENT Spirit/Class after both derived-spell awaits.
             if (ReadAttributeUInt32(Session.Character.Attributes, "VipLevel") == 7)
             {

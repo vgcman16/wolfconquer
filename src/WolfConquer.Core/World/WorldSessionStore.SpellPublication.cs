@@ -58,7 +58,8 @@ public sealed partial class WorldSessionStore
             LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication = null,
             LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication = null,
             LegacyPreparedDerivedSpellQueryWrite.Publication? derivedSpellQueryPublication = null,
-            WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null)
+            WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null,
+            OwnedAttributeChange? attributeChange = null)
         {
             this.store = store; this.connection = connection; this.holder = holder; this.expected = expected;
             this.deferItems = deferItems;
@@ -70,6 +71,11 @@ public sealed partial class WorldSessionStore
             this.teleportPublication = teleportPublication;
             this.derivedSpellQueryPublication = derivedSpellQueryPublication;
             this.classRetirement = classRetirement;
+            if (attributeChange is not null && (expected is null || classRetirement is not null || caprice is not null ||
+                deferItems || runePublication is not null || pairMovementPublication is not null || movementPublication is not null ||
+                physicalDeath is not null || ownedHawksCast is not null || basicPhysical is not null ||
+                physicalDeathPublication is not null || teleportPublication is not null || derivedSpellQueryPublication is not null))
+                throw InvalidSpellPublication();
             if (classRetirement is not null)
             {
                 if (expected is null || caprice is not null || deferItems || runePublication is not null ||
@@ -207,7 +213,7 @@ public sealed partial class WorldSessionStore
                 FinalSession = HitpointsWrite?.Proposed ?? final;
                 hawks = OwnedHawksAmbitionPublication.PrepareBound(binding, expected, FinalSession, ownedHawksCast);
                 action = LegacyNativePlayerRuntime.OwnedActionPublication.PrepareBound(binding, expected, FinalSession);
-                actorScalars = LegacyNativePlayerRuntime.OwnedActorScalarsPublication.PrepareBound(binding, expected, FinalSession, pairMovementPublication, movementPublication, teleportPublication);
+                actorScalars = LegacyNativePlayerRuntime.OwnedActorScalarsPublication.PrepareBound(binding, expected, FinalSession, pairMovementPublication, movementPublication, teleportPublication, classRetirement, attributeChange);
                 money = LegacyNativePlayerRuntime.OwnedMoneyPublication.PrepareBound(binding, expected, FinalSession);
                 cps = LegacyNativePlayerRuntime.OwnedCpsPublication.PrepareBound(binding, expected, FinalSession);
                 warehouseMoney = LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication.PrepareBound(binding, expected, FinalSession);
@@ -384,7 +390,7 @@ public sealed partial class WorldSessionStore
         ReferenceEquals(expected.NativeGameClient, binding.Client) && ReferenceEquals(expected.PlayerSpells, binding.Snapshot) &&
         ReferenceEquals(expected.PlayerProficiencies, binding.ProficiencySnapshot) &&
         ReferenceEquals(expected.PlayerItems, binding.ItemSnapshot) &&
-        binding.PhysicalOwnerIsCurrentPlain();
+        binding.PhysicalOwnerIsCurrentPlain() && binding.Player.AttributeStateMatches(expected);
 
     internal bool IsBoundSpellOwnerCurrent(LegacyOrdinarySpellBinding binding) =>
         _sessions.TryGetValue(binding.Connection, out var holder) && holder.Read() is { } current &&

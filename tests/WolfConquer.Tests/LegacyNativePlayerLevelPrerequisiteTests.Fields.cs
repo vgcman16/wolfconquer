@@ -6,7 +6,7 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativePlayerLevelPrerequisiteTests
 {
     [Fact]
-    public void ActualPlayerBirthHasThreeZeroMutablePhysicalFieldsWithNativeWidths()
+    public void ActualPlayerBirthHasZeroNativeClassFieldsAndGuardedExperienceWithNativeWidths()
     {
         using var scope = new Scope();
         var client = new LegacyNativeGameClientRuntime();
@@ -19,7 +19,6 @@ public sealed partial class LegacyNativePlayerLevelPrerequisiteTests
         {
             (nameof(LegacyNativePlayerRuntime.FirstClass), typeof(uint)),
             (nameof(LegacyNativePlayerRuntime.SecoundeClass), typeof(uint)),
-            (nameof(LegacyNativePlayerRuntime.Experience), typeof(ulong)),
         })
         {
             var field = type.GetField(name, BindingFlags.Instance | BindingFlags.Public)!;
@@ -27,6 +26,10 @@ public sealed partial class LegacyNativePlayerLevelPrerequisiteTests
             Assert.False(field.IsInitOnly); Assert.False(field.IsStatic); Assert.False(field.IsLiteral);
             Assert.Null(type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic));
         }
+        var experience = type.GetProperty(nameof(LegacyNativePlayerRuntime.Experience), BindingFlags.Instance | BindingFlags.Public)!;
+        Assert.Equal(typeof(ulong), experience.PropertyType);
+        Assert.True(experience.CanRead); Assert.True(experience.CanWrite);
+        Assert.Null(type.GetField(nameof(LegacyNativePlayerRuntime.Experience), BindingFlags.Instance | BindingFlags.Public));
         _ = scope.Control.Next(); // Genuine Player.MyRandom field birth consumed one shared seed draw.
         Assert.Equal(scope.Control.Next(), scope.Actual.Next());
         Assert.Equal(scope.ResetMarker, LegacyNativePoolRandom.ResetRandom);

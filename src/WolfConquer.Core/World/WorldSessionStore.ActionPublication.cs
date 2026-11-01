@@ -61,6 +61,53 @@ public sealed partial class WorldSessionStore
             }
         }
 
+        // The 2203 Character image is already durable when this is called.
+        // Fence the shared recovery owner and clear only this exact binding;
+        // a later replacement holder is never cleared on the old receipt.
+        internal void FenceCommittedAttributeFailure(Exception primary)
+        {
+            var errors = new List<Exception> { primary };
+            try
+            {
+                lock (frame.RequireActionLifecycleGate(store))
+                {
+                    using var package = LegacyMailboxPackageMutationFence.EnterStoreScope(store.MailboxPackages,
+                        store.PeekMailboxSession(context.Connection));
+                    if (store._connectionGates.TryGetValue(context.Connection, out var gate))
+                    {
+                        lock (gate)
+                        {
+                            using var nativeGate = EnterNativeConnectionGate();
+                            try { binding.Recovery.Block("ownedAttributeSetRecoveryRequired:queryPublicationUnproven"); }
+                            catch (Exception error) { errors.Add(error); }
+                            if (store._sessions.TryGetValue(context.Connection, out var holder) &&
+                                ReferenceEquals(holder.NativeClientIdentity, identity) && ReferenceEquals(holder.SpellBinding, binding))
+                                try
+                                {
+                                    using var actors = new SpellActorScope(binding);
+                                    // Revalidate after actor acquisition; a stale receipt cannot clear a replacement.
+                                    if (store._sessions.TryGetValue(context.Connection, out var current) && ReferenceEquals(current, holder) &&
+                                        ReferenceEquals(holder.NativeClientIdentity, identity) && ReferenceEquals(holder.SpellBinding, binding))
+                                        holder.Clear();
+                                }
+                                catch (Exception error) { errors.Add(error); }
+                        }
+                    }
+                    else
+                        try { binding.Recovery.Block("ownedAttributeSetRecoveryRequired:queryPublicationUnproven"); }
+                        catch (Exception error) { errors.Add(error); }
+                }
+            }
+            catch (Exception error)
+            {
+                errors.Add(error);
+                try { binding.Recovery.Block("ownedAttributeSetRecoveryRequired:queryPublicationUnproven"); }
+                catch (Exception fence) { errors.Add(fence); }
+            }
+            if (errors.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(primary).Throw();
+            throw new AggregateException("Committed attribute allocation and recovery fencing failed.", errors);
+        }
+
         private bool NativeMatches() => scalars.IsCurrentPlain() && (uint)binding.Player.Action == action &&
             binding.Player.Reborn == scalars.Value.Reborn && binding.Player.Agility == scalars.Value.Agility &&
             binding.Player.X == scalars.Value.X && binding.Player.Y == scalars.Value.Y &&

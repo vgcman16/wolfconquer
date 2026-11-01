@@ -21,7 +21,8 @@ internal static class LegacyItemWorldDataFixture
         IReadOnlyList<PrestigeRankEntry>? prestigeRanks = null,
         IReadOnlyList<CombatGearRankEntry>? combatGearRanks = null,
         IReadOnlyList<Monster>? monsters = null,
-        IReadOnlyList<MagicType>? magic = null)
+        IReadOnlyList<MagicType>? magic = null,
+        IReadOnlyList<LevelExperience>? levelExperience = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -32,7 +33,7 @@ internal static class LegacyItemWorldDataFixture
             clientConfigs: clientConfigs ?? [],
             items: items,
             itemAddBonuses: [],
-            levelExperience: [],
+            levelExperience: levelExperience ?? Array.Empty<LevelExperience>(),
             runeLevelExperience: [],
             runeStorageAttributes: [],
             itemRefineEffects: [],
@@ -96,7 +97,7 @@ internal static class LegacyItemWorldDataFixture
             socialAssociations: socialAssociations ?? [],
             guildWarInfo: EmptyGuildWarData("guildwar"),
             superGuildWarInfo: EmptyGuildWarData("superguildwar"),
-            classLevelStats: classLevelStats ?? [],
+            classLevelStats: classLevelStats ?? Array.Empty<ClassLevelStat>(),
             professionLevelUps: [],
             professionLevelBenefits: [],
             professionTitleBenefits: [],

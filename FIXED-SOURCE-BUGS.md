@@ -4,6 +4,70 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Open full-gate repairs - 2026-11-01
+
+### FSB-279: Join combat level/XP and legitimate stat writers to native ownership
+
+OPEN full integration. The reviewed draft compiled and focused20 passed395/395,
+0failed/0skipped after independently corrected fixture expectations. This includes
+actual admitted direct and team XP, exit/rejoin stale-award refusal and output
+failure fencing. The full suite is still pending. Closing the five
+native stat setters exposed real combat XP/level progression using generic
+Store.Set after computing class stats. It also exposed reachable Reallot and
+LevelAbdo branches that persist before generic publication. Rejecting only at the
+new Store guard would leave a partial saved result; exempting generic writes
+would leave native state stale. Native Experience was also directly mutable.
+
+The draft adds a closed actual-producer/per-recipient XP transaction, genuine
+metadata and saved-image checks, prepared successful frames, native level/XP/
+stats/vitals publication, and uncertainty/output fencing. Currentness and native
+setters must cover level/XP; FullAccount retains only its own narrow existing
+class-retirement purpose. Temporary bound NPC holds stop before item/file writes
+until their real transactions are implemented; these are unfinished features.
+Real team membership must be revalidated under the established team-gate-last
+lock order. The actual Character coordinator lock must span final comparison,
+replacement and native/holder publication. These checks do not establish full
+level-up behavior: ORIGINAL GameClient.UpdateLevel also runs the complete
+equipment query, and the draft still needs that genuine owner join to refresh
+completed HP/mana/magic caches after automatic source-stat gains. A real auto-stat
+regression/spec and non-level XP retention test are authored separately but
+unbuilt/unrun. Damage, each recipient award and other rewards remain
+separate transactions; the draft does not claim all-combat crash atomicity.
+
+### FSB-278: Commit allocated attributes and their derived caches coherently
+
+OPEN full integration. Reviewed source compiled; focused20 passed395/395,0failed/
+0skipped across the selected attribute/query/XP/native families. Legacy2203 used
+generic Store mutation for Strength/Agility/Vitality/Spirit/remaining points,
+without a closed native-stat/file transaction. Native Strength/Vitality/Spirit/
+points were not hydrated/published through actual bound ownership. Sending a fresh
+HP pair alone also left EquipmentHitpointsStatus and MaxMana query caches stale.
+
+The draft joins actual admitted native tuples, guarded writes, exact-five-field
+Character compare/replace and uncertainty fencing. Root then read the ORIGINAL
+MsgAtributeSet.cs: it echoes2203 and invokes full Equipment.QueryEquipment with
+CallItems:false. The local HP/refine-only handler was incomplete; incremental
+HP/mana-only owner work is preserved/withdrawn, not activated as a substitute.
+Use the actual full query so magic attack and all supported derived views refresh;
+validate real prerequisites before debit, retain the exclusive actual Frame lease
+and fence any postcommit failure without reporting rollback. Tests target correct
+immediate stats and full files/native/points/wire output. Stale cache behavior is
+not an acceptance criterion. No fixed or all-query/crash-safe SQL claim.
+
+Further review found final-HP-only preparation could miss intermediate signed HP
+overflow, retained Blood HP, pre-Transform clamping, Vigor narrowing and native
+magic cumulative/provider overflow. Shared checked arithmetic and a DATA replay
+of actual phase order are being authored with genuine pre-debit/opaque-map
+controls. The earlier53path intake is superseded. The saved Character and actual
+prepared spell-file coordinator locks must be acquired in their shared sorted
+order through final proof and native/holder publication. These joins are now in
+the bounded passing snapshot. Earlier focused18was208passed/7failed and focused19
+was216passed/1failed; both failed receipts remain. The source query's unconditional
+HP setter requires9frames rather than7; the reopen fixture adds a genuine23HP
+rune-storage bonus, and the non-magic XP file golden persists MaxMana0 as well as
+MinMana0. Corrected tests retain complete files, native invariants and exact wire
+ordering. No new full-gate or live-client acceptance is established.
+
 ## Qualified stamina/query repair - 2026-10-31
 
 Exact publicc271eec1 passed all8stages of Windows41243428459/job124661847443:

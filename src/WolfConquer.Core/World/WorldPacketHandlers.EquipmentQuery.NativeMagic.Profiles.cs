@@ -14,7 +14,7 @@ public static partial class WorldPacketHandlers
         uint attack = 0, critical = 0, increase = 0;
         void Add(int kind, uint value)
         {
-            unchecked { if (kind == 3) attack += value; else if (kind == 11) critical += value; else if (kind == 7) increase += value; }
+            checked { if (kind == 3) attack += value; else if (kind == 11) critical += value; else if (kind == 7) increase += value; }
         }
         foreach (var stage in state.Stages)
         {
@@ -27,12 +27,12 @@ public static partial class WorldPacketHandlers
                 if (!data.NeiGongTypeBySecretIdAndSlot.TryGetValue((stage.Id, index + 1), out var type) ||
                     type.MaxLevel == 0) continue;
                 for (var attr = 0; attr < type.AttributeTypes.Count && attr < type.AttributeValues.Count; attr++)
-                    Add(type.AttributeTypes[attr], unchecked((uint)type.AttributeValues[attr]) /
-                        unchecked((uint)type.MaxLevel) * gong.Level);
+                    Add(type.AttributeTypes[attr], checked((uint)type.AttributeValues[attr] /
+                        (uint)type.MaxLevel * gong.Level));
             }
             if (stage.Gongs.All(gong => gong.Complete))
                 for (var attr = 0; attr < secret.AttributeTypes.Count && attr < secret.AttributeValues.Count; attr++)
-                    Add(secret.AttributeTypes[attr], unchecked((uint)secret.AttributeValues[attr]));
+                    Add(secret.AttributeTypes[attr], checked((uint)secret.AttributeValues[attr]));
         }
         return new(attack, 0, critical, increase);
     }
@@ -51,7 +51,7 @@ public static partial class WorldPacketHandlers
             var first = row.Intro.Split(';')[0].Split('+');
             if (first.Length < 2 || !uint.TryParse(first[1].Split('%')[0].Trim(),
                     NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)) continue;
-            unchecked { if (entry.Id == 6) attack += value; else critical += value * 100; }
+            checked { if (entry.Id == 6) attack += value; else critical += value * 100; }
         }
         return new(attack, 0, critical, 0);
     }
@@ -70,7 +70,7 @@ public static partial class WorldPacketHandlers
         uint attack = 0, critical = 0, increase = 0;
         void Add(int kind, ushort value)
         {
-            unchecked { if (kind == 3) attack += value; else if (kind == 11) critical += value; else if (kind == 7) increase += value; }
+            checked { if (kind == 3) attack += value; else if (kind == 11) critical += value; else if (kind == 7) increase += value; }
         }
         var alignment = new uint[] { 0, 10, 13, 15, 18, 21, 25, 30, 50 };
         foreach (var stage in stages)
@@ -88,8 +88,8 @@ public static partial class WorldPacketHandlers
                 for (var at = start; at < index; at++)
                     if (table.TryGetValue(stars[at].EncodedAttribute, out var row))
                     {
-                        var scalar = unchecked((ushort)row.Value);
-                        power = unchecked((ushort)(power + scalar + scalar * alignment[count - 1] / 100));
+                        var scalar = checked((ushort)row.Value);
+                        power = checked((ushort)(power + scalar + scalar * alignment[count - 1] / 100));
                     }
                 Add(kind, power); // Native aligned group accumulator is ushort before ComputeStatus.
             }

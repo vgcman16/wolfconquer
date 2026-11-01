@@ -11,11 +11,10 @@ public static partial class WorldPacketHandlers
             if (!Refresh()) return false;
             var maximum = LegacyMaxHitpointsCalculator.CalculateQueryMaxVigor(
                 CapturedEquipment, Context.WorldData);
-            // Source current Vigor is uint: cast to int before Min, narrow AFTER.
-            var vigor = unchecked((ushort)Math.Min(
-                unchecked((int)ReadAttributeUInt32(Session.Character.Attributes, "Vigor")), maximum));
+            var vigor = LegacyEquipmentQueryBounds.ClampVigor(
+                LegacyEquipmentQueryBounds.ReadVigor(Session.Character), maximum);
             if (!Commit(session => session with
-                { Character = WithCharacterAttribute(session.Character, "Vigor", vigor) }))
+                { Character = WithEquipmentQueryVigor(session.Character, vigor) }))
                 return false;
             if (!Request.CallItems) return true;
             if (!await SendAsync(new LegacyServerInfoPacket(vigor).ToFrameBytes(),

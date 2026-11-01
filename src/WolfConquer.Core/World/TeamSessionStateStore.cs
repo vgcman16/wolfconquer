@@ -89,6 +89,7 @@ public sealed partial class TeamSessionStateStore
 
             leaderState.Team.Members.Add(new TeamSessionMember(memberConnection, memberUid));
             _states.Add(memberConnection, new TeamSessionState(leaderState.Team, memberUid, isLeader: false));
+            leaderState.Team.MembershipGeneration = new object();
             return true;
         }
     }
@@ -335,6 +336,7 @@ public sealed partial class TeamSessionStateStore
                 _states.Remove(member.Connection);
         }
 
+        team.MembershipGeneration = new object();
         team.Members.Clear();
     }
 
@@ -353,6 +355,7 @@ public sealed partial class TeamSessionStateStore
         }
 
         _states.Remove(connection);
+        state.Team.MembershipGeneration = new object();
     }
 
     private void PromoteFirstRemainingMemberNoLock(TeamSession team)
@@ -387,6 +390,7 @@ public sealed partial class TeamSessionStateStore
         public string TeamName { get; set; } = teamName;
 
         public List<TeamSessionMember> Members { get; } = [];
+        public object MembershipGeneration { get; set; } = new object();
 
         public bool ForbidJoin { get; set; }
 

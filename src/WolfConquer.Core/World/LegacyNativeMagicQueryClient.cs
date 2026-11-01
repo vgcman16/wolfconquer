@@ -71,7 +71,7 @@ internal static partial class LegacyNativeMagicQueryClient
             // reenter a legitimate toggle/equip. Compute that captured gear;
             // exact current gear is still required to complete a capability.
             if (!source.CanBeginCapturedComputation(owner)) return;
-            entry.Fields = new(unchecked((uint)owner.Character.Spirit), 0, 0, 0);
+            entry.Fields = LegacyEquipmentMagicArithmetic.Start(owner.Character.Spirit);
             issued = new QueryEpoch();
             Queries.Add(issued, source);
             entry.Epoch = issued;

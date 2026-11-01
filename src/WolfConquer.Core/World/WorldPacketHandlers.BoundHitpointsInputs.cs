@@ -8,60 +8,90 @@ public static partial class WorldPacketHandlers
     // immutable input evidence, not a second HP/persistence authority.
     internal sealed class BoundHitpointsInputs
     {
-        private readonly FullAccountStringMap beforeAttributes, beforePaid, afterAttributes, afterPaid;
-        private Dictionary<string, string>.Enumerator baPre, bpPre, aaPre, apPre, baPost, bpPost, aaPost, apPost;
-        private readonly FullAccountStringMap finalAttributes, finalPaid;
-        private Dictionary<string, string>.Enumerator faPre, fpPre, faPost, fpPost, faPostlude, fpPostlude;
+        private readonly LegacyNativeAttributeMapProof beforeAttributes, beforePaid, afterAttributes, afterPaid;
+        private readonly LegacyNativeAttributeMapProof stableBeforeAttributes, stableBeforePaid;
+        private readonly LegacyNativeAttributeMapProof finalAttributes, finalPaid;
         private bool armed, beforeConsumed, afterConsumed, postludeConsumed;
         internal CharacterSnapshot Before { get; }
         internal CharacterSnapshot After { get; }
         internal BoundHitpointsInputs(CharacterSnapshot before, CharacterSnapshot after)
         {
-            beforeAttributes = new(before.Attributes); beforePaid = new(before.PaidNobility);
-            afterAttributes = new(after.Attributes); afterPaid = new(after.PaidNobility);
-            Before = before with { Attributes = beforeAttributes.Copy, PaidNobility = beforePaid.Copy };
-            var stable = after with { Attributes = afterAttributes.Copy, PaidNobility = afterPaid.Copy };
-            var attributes = new Dictionary<string, string>(stable.Attributes, StringComparer.OrdinalIgnoreCase);
-            foreach (var pair in CharacterSnapshotScalarPersistence.BuildPersistedValues(stable)) attributes[pair.Key] = pair.Value;
-            CharacterSnapshotEpicTrojanSchema.ProjectRuntimeAttributes(attributes, attributes);
+            beforeAttributes = LegacyNativeAttributeMapProof.CaptureRaw(before.Attributes);
+            beforePaid = LegacyNativeAttributeMapProof.CaptureRaw(before.PaidNobility);
+            afterAttributes = LegacyNativeAttributeMapProof.CaptureRaw(after.Attributes);
+            afterPaid = LegacyNativeAttributeMapProof.CaptureRaw(after.PaidNobility);
+            Before = before with { Attributes = Copy(beforeAttributes), PaidNobility = Copy(beforePaid) };
+            stableBeforeAttributes = LegacyNativeAttributeMapProof.CaptureRaw(Before.Attributes);
+            stableBeforePaid = LegacyNativeAttributeMapProof.CaptureRaw(Before.PaidNobility);
+            var stable = after with { Attributes = Copy(afterAttributes), PaidNobility = Copy(afterPaid) };
+            var attributes = Copy(afterAttributes);
+            var modeled = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var scalarKeys = CharacterSnapshotScalarPersistence.BuildPersistedValues(stable).Keys;
+            var owned = new HashSet<string>(scalarKeys, StringComparer.OrdinalIgnoreCase);
+            owned.UnionWith(ModeledAttributeKeys);
+            var beforeKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in beforeAttributes.Fields)
+                if (owned.Contains(pair.Key) && !beforeKeys.Add(pair.Key))
+                    throw new InvalidOperationException("ordinaryHitpointsOwnedAttributeAmbiguous");
+            foreach (var pair in afterAttributes.Fields)
+                if (owned.Contains(pair.Key) && !modeled.TryAdd(pair.Key, pair.Value))
+                    throw new InvalidOperationException("ordinaryHitpointsOwnedAttributeAmbiguous");
+            var modeledCharacter = stable with { Attributes = modeled };
+            var projected = new Dictionary<string, string>(modeled, StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in CharacterSnapshotScalarPersistence.BuildPersistedValues(modeledCharacter))
+            { SetOwned(attributes, pair.Key, pair.Value); projected[pair.Key] = pair.Value; }
+            CharacterSnapshotEpicTrojanSchema.ProjectRuntimeAttributes(projected, projected);
+            foreach (var key in EpicRuntimeKeys)
+                if (projected.TryGetValue(key, out var value)) SetOwned(attributes, key, value);
             After = stable with { Attributes = attributes };
-            finalAttributes = new(After.Attributes); finalPaid = new(After.PaidNobility);
+            finalAttributes = LegacyNativeAttributeMapProof.CaptureRaw(After.Attributes);
+            finalPaid = LegacyNativeAttributeMapProof.CaptureRaw(After.PaidNobility);
         }
         internal void Arm()
         {
             if (armed) throw new InvalidOperationException("ordinaryHitpointsInputsAlreadyArmed");
-            baPre = beforeAttributes.Open(); bpPre = beforePaid.Open(); aaPre = afterAttributes.Open(); apPre = afterPaid.Open();
-            baPost = beforeAttributes.Open(); bpPost = beforePaid.Open(); aaPost = afterAttributes.Open(); apPost = afterPaid.Open();
-            faPre = finalAttributes.Open(); fpPre = finalPaid.Open();
-            faPost = finalAttributes.Open(); fpPost = finalPaid.Open();
-            faPostlude = finalAttributes.Open(); fpPostlude = finalPaid.Open();
             armed = true;
         }
         internal bool ConsumeBeforePlain()
         {
             if (!armed || beforeConsumed) return false;
             beforeConsumed = true;
-            return Match(beforeAttributes, baPre) && Match(beforePaid, bpPre) && Match(afterAttributes, aaPre) && Match(afterPaid, apPre) &&
-                Match(finalAttributes, faPre) && Match(finalPaid, fpPre);
+            return InputsCurrent() && FinalsCurrent();
         }
         internal bool ConsumeAfterPlain()
         {
             if (!armed || afterConsumed) return false;
             afterConsumed = true;
-            return Match(beforeAttributes, baPost) && Match(beforePaid, bpPost) && Match(afterAttributes, aaPost) && Match(afterPaid, apPost) &&
-                Match(finalAttributes, faPost) && Match(finalPaid, fpPost);
+            return InputsCurrent() && FinalsCurrent();
         }
         internal bool ConsumePostludePlain()
         {
             if (!armed || postludeConsumed) return false;
             postludeConsumed = true;
-            return Match(finalAttributes, faPostlude) && Match(finalPaid, fpPostlude);
+            return FinalsCurrent();
         }
-        private static bool Match(FullAccountStringMap map, Dictionary<string, string>.Enumerator witness)
+        private bool InputsCurrent() => beforeAttributes.IsCurrentPlain() && beforePaid.IsCurrentPlain() &&
+            stableBeforeAttributes.IsCurrentPlain() && stableBeforePaid.IsCurrentPlain() &&
+            afterAttributes.IsCurrentPlain() && afterPaid.IsCurrentPlain();
+        private bool FinalsCurrent() => finalAttributes.IsCurrentPlain() && finalPaid.IsCurrentPlain();
+        private static Dictionary<string, string> Copy(LegacyNativeAttributeMapProof proof) =>
+            new(proof.Fields, proof.CapturedComparer);
+        private static void SetOwned(Dictionary<string, string> map, string key, string value)
         {
-            try { return map.Matches(witness); }
-            catch (InvalidOperationException) { return false; } // Raw dictionary replacement/resize is a failed proof.
+            var matches = map.Keys.Where(existing => existing.Equals(key, StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (matches.Length > 1) throw new InvalidOperationException("ordinaryHitpointsOwnedAttributeAmbiguous");
+            if (matches.Length == 1 && !string.Equals(matches[0], key, StringComparison.Ordinal)) map.Remove(matches[0]);
+            map[key] = value;
         }
+        private static readonly string[] EpicRuntimeKeys =
+        ["StageEpicTrojanQuest", "ChangeEpicTrojan", "ChangeArrayEpicTrojan", "EpicTrojanEvilArrayPoints",
+            "EpicTrojanAbysalStage", "ChangeMr_MirrorEpicTrojan", "ChangeGeneralPakEpicTrojan", "EpicTrojanMrMirrorPrograss"];
+        private static readonly string[] ModeledAttributeKeys =
+        ["MainFlag", "ClaimStateGift", "CanChangeWindWalkerFree", "ClassExperience", "WHMoney", "WarehouseMoney",
+            "VotePoints", "PinCodeAnima", "Dragon", "Pheonix", "Phoenix", "Tiger", "Turtle", "ChiPoints",
+            "DragonTime", "PhoenixTime", "TigerTime", "TurtleTime", "RetreatedDragon", "RetreatedPhoenix",
+            "RetreatedTiger", "RetreatedTurtle", "SkyTowerCompletedChallengeId", "SkyTowerAvailableAttempts",
+            "EpicTrojan", .. EpicRuntimeKeys];
         internal static bool ScalarsEqual(CharacterSnapshot first, CharacterSnapshot second) => FullAccountCharacterScalarsEqual(first, second);
         internal static bool PaidEqual(CharacterSnapshot first, CharacterSnapshot second) =>
             FullAccountStoredFieldsMatch(first.PaidNobility, second.PaidNobility) && FullAccountStoredFieldsMatch(second.PaidNobility, first.PaidNobility);

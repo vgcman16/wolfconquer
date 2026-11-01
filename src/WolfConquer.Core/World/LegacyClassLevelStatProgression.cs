@@ -37,12 +37,10 @@ internal static class LegacyClassLevelStatProgression
             MaxMana = maxMana,
         };
 
-        var attributes = new Dictionary<string, string>(updated.Attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            ["MinHitPoints"] = updated.MinHitPoints.ToString(CultureInfo.InvariantCulture),
-            ["MinMana"] = updated.MinMana.ToString(CultureInfo.InvariantCulture),
-            ["MaxMana"] = updated.MaxMana.ToString(CultureInfo.InvariantCulture),
-        };
+        var attributes = ProjectOwned(updated, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        { ["MinHitPoints"] = updated.MinHitPoints.ToString(CultureInfo.InvariantCulture),
+          ["MinMana"] = updated.MinMana.ToString(CultureInfo.InvariantCulture),
+          ["MaxMana"] = updated.MaxMana.ToString(CultureInfo.InvariantCulture) });
         return updated with { Attributes = attributes };
     }
 
@@ -183,10 +181,8 @@ internal static class LegacyClassLevelStatProgression
             return character;
         }
 
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            ["Atributes"] = attributePoints.ToString(CultureInfo.InvariantCulture),
-        };
+        var attributes = ProjectOwned(character, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            { ["Atributes"] = attributePoints.ToString(CultureInfo.InvariantCulture) });
         return character with
         {
             AttributePoints = attributePoints,
@@ -196,13 +192,26 @@ internal static class LegacyClassLevelStatProgression
 
     private static CharacterSnapshot WithStatAttributes(CharacterSnapshot character)
     {
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            ["Strength"] = character.Strength.ToString(CultureInfo.InvariantCulture),
+        var attributes = ProjectOwned(character, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {   ["Strength"] = character.Strength.ToString(CultureInfo.InvariantCulture),
             ["Agility"] = character.Agility.ToString(CultureInfo.InvariantCulture),
             ["Vitaliti"] = character.Vitality.ToString(CultureInfo.InvariantCulture),
-            ["Spirit"] = character.Spirit.ToString(CultureInfo.InvariantCulture),
-        };
+            ["Spirit"] = character.Spirit.ToString(CultureInfo.InvariantCulture) });
         return character with { Attributes = attributes };
+    }
+
+    private static Dictionary<string, string> ProjectOwned(CharacterSnapshot character, IReadOnlyDictionary<string, string> changes)
+    {
+        var proof = LegacyNativeAttributeMapProof.CaptureRaw(character.Attributes);
+        var result = new Dictionary<string, string>(proof.Fields, proof.CapturedComparer);
+        foreach (var pair in changes)
+        {
+            var keys = result.Keys.Where(key => key.Equals(pair.Key, StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (keys.Length > 1) throw new InvalidOperationException("combatExperienceOwnedAttributeAmbiguous");
+            if (keys.Length == 1 && keys[0] != pair.Key) result.Remove(keys[0]);
+            result[pair.Key] = pair.Value;
+        }
+        if (!proof.IsCurrentPlain()) throw new InvalidOperationException("combatExperienceAttributesChanged");
+        return result;
     }
 }

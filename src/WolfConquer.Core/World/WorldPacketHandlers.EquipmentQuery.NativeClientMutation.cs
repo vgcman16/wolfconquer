@@ -12,7 +12,12 @@ public static partial class WorldPacketHandlers
         {
             // Expected client identity and CURRENT record are checked/updated under ONE connection gate.
             if (!LegacyNativeClientPublication.TryUpdate(world, context.Connection, scope.OwnerUid,
-                    identity, update, out var written))
+                    identity, owner =>
+                    {
+                        if (scope.AttributeRebuild is { } rebuild && !rebuild.IsQueryCurrent(context, current.Session!, owner))
+                            throw new InvalidOperationException("attributeRebuildHolderChanged");
+                        return update(owner);
+                    }, out var written))
                 return new(null, current.RequiredParticipantSession,
                     current.Loss | LegacyEquipmentQueryPublicationLoss.OwnerLost);
             session = written;

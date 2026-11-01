@@ -68,6 +68,18 @@ public static partial class WorldPacketHandlers
         }
 
         internal bool IsCurrentPlain() => ClassRetirements.TryGetValue(this, out var data) && data.IsCurrentPlain();
+        internal bool CoversAttributes(LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed)
+        {
+            var data = Data;
+            return ReferenceEquals(data.Plan.Owner.Expected, expected) &&
+                ReferenceEquals(data.Plan.Owner.Context.Sessions, binding.Store) &&
+                ReferenceEquals(data.Plan.Owner.Context.Connection, binding.Connection) && data.IsCurrentPlain() &&
+                LegacyNativeAttributeState.From(data.Proposed.Character) == LegacyNativeAttributeState.From(proposed.Character);
+        }
+        internal bool CoversLevelExperience(LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed) =>
+            CoversAttributes(binding, expected, proposed) &&
+            Data.Proposed.Character.Level == proposed.Character.Level &&
+            Data.Proposed.Character.Experience == proposed.Character.Experience;
         internal bool RequireCommittedPair() => IsCurrentPlain() && Data.Plan.OriginSpellWriter.HasCommittedClassRetirement(this);
         internal IReadOnlyList<LegacyTradeJournalChange> CopyCapturedChanges() => Data.Plan.OriginChanges.Select(change =>
             new LegacyTradeJournalChange(change.Kind, change.FileId, change.Before?.ToArray(), change.After.ToArray())).ToArray();

@@ -35,12 +35,12 @@ public static partial class LegacyMaxHitpointsCalculator
         {
             if (item.Durability == 0) continue;
             var position = item.Position % 50;
-            if (position == 18) maximum = unchecked((ushort)(maximum + 1_000));
+            if (position == 18) maximum = checked((ushort)(maximum + 1_000));
             var plus = Math.Min((int)item.Plus, 12);
             if (position == 12 && plus > 0 &&
                 TryGetItemAddBonus(catalog?.ItemAddBonusByItemTypeIdAndLevel, item.ItemId, plus, out var bonus) &&
                 bonus.Values.Count > 6)
-                maximum = unchecked((ushort)bonus.Values[6]);
+                maximum = checked((ushort)bonus.Values[6]);
         }
 
         return maximum;
@@ -54,7 +54,7 @@ public static partial class LegacyMaxHitpointsCalculator
             catalog?.ItemAddBonusByItemTypeIdAndLevel, alternate);
         var secondary = LegacyItemSecondaryHitpointsCalculator.Calculate(
             single, catalog, alternateEquipmentActive: alternate);
-        return unchecked(equipment + secondary.RelicAttributeHitpoints + secondary.RefineryHitpoints);
+        return checked(equipment + secondary.RelicAttributeHitpoints + secondary.RefineryHitpoints);
     }
 
     internal static LegacyEquipmentQueryHitpointProjection CalculateQueryHitpointProjection(
@@ -73,7 +73,7 @@ public static partial class LegacyMaxHitpointsCalculator
         foreach (var item in LegacyEquipmentSelector.SelectCurrentEquipment(sourceItems, alternate))
         {
             if (item.Durability != 0)
-                itemTotal = unchecked(itemTotal + CalculateQueryItemHitpoints(item, catalog, alternate));
+                itemTotal = checked(itemTotal + CalculateQueryItemHitpoints(item, catalog, alternate));
         }
 
         // Preserve the existing raw stored fallback for not-yet-modeled inputs;

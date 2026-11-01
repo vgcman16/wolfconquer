@@ -44,18 +44,23 @@ internal static class LegacyWindWalkerStatusProjection
         var words = Read(character);
         bool present = (words[Word] & Mask) != 0;
         string key = LegacyStatusFlagDeathRegistration.Key(Flag);
+        var proof = LegacyNativeAttributeMapProof.CaptureRaw(character.Attributes);
+        var policyKeys = proof.Fields.Keys.Where(name => name.Equals(key, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (policyKeys.Length > 1) throw Invalid();
         bool policyMatches = native.Present
-            ? character.Attributes.TryGetValue(key, out var policy) && policy == (native.RemoveOnDeath ? "true" : "false")
-            : !character.Attributes.ContainsKey(key);
+            ? policyKeys.Length == 1 && proof.Fields[policyKeys[0]] == (native.RemoveOnDeath ? "true" : "false")
+            : policyKeys.Length == 0;
+        if (!proof.IsCurrentPlain()) throw Invalid();
         if (present == native.Present && policyMatches) return character;
         words[Word] = native.Present ? words[Word] | Mask : words[Word] & ~Mask;
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
+        var attributes = new Dictionary<string, string>(proof.Fields, proof.CapturedComparer);
         var aliases = attributes.Keys.Where(name => name.Equals("StatusFlags", StringComparison.OrdinalIgnoreCase) ||
             name.Equals("BitVector", StringComparison.OrdinalIgnoreCase)).ToArray();
         if (aliases.Length == 0) aliases = ["StatusFlags"];
         foreach (var alias in aliases) attributes[alias] = string.Join('/', words) + "/";
-        if (native.Present) attributes[key] = native.RemoveOnDeath ? "true" : "false";
-        else attributes.Remove(key);
+        if (native.Present) attributes[policyKeys.Length == 0 ? key : policyKeys[0]] = native.RemoveOnDeath ? "true" : "false";
+        else if (policyKeys.Length != 0) attributes.Remove(policyKeys[0]);
+        if (!proof.IsCurrentPlain()) throw Invalid();
         return character with { Attributes = attributes };
     }
 

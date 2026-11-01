@@ -27,13 +27,13 @@ public sealed partial class LegacyNativeAtributesStatusTests
         var player = Player();
         foreach (string name in new[] { "Vitality", "Spirit", "Strength" })
         {
-            var field = typeof(LegacyNativePlayerRuntime).GetField(name, BindingFlags.Public | BindingFlags.Instance)!;
-            Assert.Equal(typeof(ushort), field.FieldType);
-            Assert.False(field.IsInitOnly);
-            Assert.Null(typeof(LegacyNativePlayerRuntime).GetProperty(name));
-            Assert.Equal((ushort)0, field.GetValue(player));
-            field.SetValue(player, ushort.MaxValue);
-            Assert.Equal(ushort.MaxValue, field.GetValue(player));
+            var property = typeof(LegacyNativePlayerRuntime).GetProperty(name, BindingFlags.Public | BindingFlags.Instance)!;
+            Assert.Equal(typeof(ushort), property.PropertyType);
+            Assert.True(property.GetMethod!.IsPublic && property.SetMethod!.IsPublic);
+            Assert.Null(typeof(LegacyNativePlayerRuntime).GetField(name, BindingFlags.Public | BindingFlags.Instance));
+            Assert.Equal((ushort)0, property.GetValue(player));
+            property.SetValue(player, ushort.MaxValue);
+            Assert.Equal(ushort.MaxValue, property.GetValue(player));
         }
         // Agility is now an owner-guarded property; retain its source width,
         // unbound default and setter behavior without requiring a public field.
@@ -137,7 +137,7 @@ public sealed partial class LegacyNativeAtributesStatusTests
         if (field == "Agility") player.Agility--;
         else
         {
-            var member = typeof(LegacyNativePlayerRuntime).GetField(field)!;
+            var member = typeof(LegacyNativePlayerRuntime).GetProperty(field)!;
             member.SetValue(player, (ushort)((ushort)member.GetValue(player)! - 1));
         }
         var before = Stats(player);

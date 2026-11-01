@@ -72,6 +72,7 @@ public sealed partial class TeamSessionStateStore
             // Native Create replaces ONLY owner.Team. Even the SAME original client remains
             // in its prior Team.Members roster; other clients still reference that old Team.
             // Do not introduce a stale-roster cleanup policy absent in native MsgTeam.Create.
+            if (_states.TryGetValue(owner.Connection, out var prior)) prior.Team.MembershipGeneration = new object();
             _states.Remove(owner.Connection);
             _nextTeamUid = unchecked(_nextTeamUid + 1U); // Native Counter(1).Next starts at2.
             var team = new TeamSession(_nextTeamUid, owner.Uid, teamName) { NativeLeader = owner };
@@ -98,12 +99,14 @@ public sealed partial class TeamSessionStateStore
             if (_states.TryGetValue(member.Connection, out var previous))
             {
                 if (ReferenceEquals(previous.NativeClient?.Identity, member.Identity)) return false;
+                previous.Team.MembershipGeneration = new object();
                 _states.Remove(member.Connection); // Do NOT transfer the retired original's membership.
             }
             existing.Team.Members.Add(new TeamSessionMember(member.Connection, member.Uid)
                 { NativeClient = member });
             _states.Add(member.Connection,
                 new TeamSessionState(existing.Team, member.Uid, isLeader: false) { NativeClient = member });
+            existing.Team.MembershipGeneration = new object();
             return true;
         });
     }

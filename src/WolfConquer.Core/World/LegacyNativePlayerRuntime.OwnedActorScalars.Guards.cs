@@ -14,7 +14,7 @@ public sealed partial class LegacyNativePlayerRuntime
             throw new InvalidOperationException("nativeActorScalarActorOrderInvalid");
     }
 
-    private enum ActorScalar { Reborn, Agility, X, Y, Map, DynamicID }
+    private enum ActorScalar { Reborn, Agility, X, Y, Map, DynamicID, Strength, Vitality, Spirit, Atributes }
 
     private void SetUnboundActorScalar(ActorScalar field, uint value)
     {
@@ -33,6 +33,10 @@ public sealed partial class LegacyNativePlayerRuntime
                 case ActorScalar.Y: Py = yy; yy = (ushort)value; break;
                 case ActorScalar.Map: _mmmap = value; break;
                 case ActorScalar.DynamicID: _dynamicId = value; break;
+                case ActorScalar.Strength: _strength = (ushort)value; break;
+                case ActorScalar.Vitality: _vitality = (ushort)value; break;
+                case ActorScalar.Spirit: _spirit = (ushort)value; break;
+                case ActorScalar.Atributes: _atributes = (ushort)value; break;
             }
         }
     }

@@ -4,13 +4,22 @@ public static partial class WorldPacketHandlers
 {
     private sealed partial class LegacyEquipmentQueryExecution
     {
-        private bool AddManaMaximum(uint addition) => Commit(session => session with
+        private uint capturedManaAggregate;
+
+        private bool AddManaMaximum(uint addition, uint? jiangHu = null)
         {
-            PhysicalStatusOverlay = LegacyPhysicalStatusOverlay.ForOwner(session) with
+            uint before = capturedManaAggregate;
+            uint after = checked(before + addition);
+            if (!Commit(session =>
             {
-                MaxMana = unchecked((LegacyPhysicalStatusOverlay.ForOwner(session).MaxMana ?? 0) + addition),
-            },
-        });
+                var overlay = LegacyPhysicalStatusOverlay.ForOwner(session);
+                if (overlay.MaxMana != before) throw new InvalidDataException("equipmentManaQueryAggregateChanged");
+                return session with { PhysicalStatusOverlay = overlay with
+                { MaxMana = after, JiangHuMaxMana = jiangHu ?? overlay.JiangHuMaxMana } };
+            })) return false;
+            capturedManaAggregate = after;
+            return true;
+        }
 
         private bool AddJiangHuManaMaximum()
         {
@@ -20,14 +29,7 @@ public static partial class WorldPacketHandlers
             var contribution = HasLegacyPlayerMagicInterserverAttribute(Session)
                 ? LegacyPhysicalStatusOverlay.ForOwner(Session).JiangHuMaxMana ?? 0
                 : LegacyEquipmentNativeMana.JiangHu(Session.Character, Context.WorldData);
-            return Commit(session => session with
-            {
-                PhysicalStatusOverlay = LegacyPhysicalStatusOverlay.ForOwner(session) with
-                {
-                    JiangHuMaxMana = contribution,
-                    MaxMana = unchecked((LegacyPhysicalStatusOverlay.ForOwner(session).MaxMana ?? 0) + contribution),
-                },
-            });
+            return AddManaMaximum(contribution, contribution);
         }
     }
 }

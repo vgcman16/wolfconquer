@@ -60,10 +60,9 @@ public static partial class WorldPacketHandlers
                 rune is { ItemId: 4_010_701 })
                 power = rune.SocketProgress;
             if (power > spell.Damage) power = spell.Damage;
-            var reduction = unchecked(Maximum * power) / 100;
-            if (!SetMaximum(unchecked(Maximum - reduction))) return false;
+            if (!SetMaximum(LegacyEquipmentQueryBounds.ReduceHitpoints(Maximum, power))) return false;
             if (Session.Character.MinHitPoints > Maximum &&
-                !await AssignAsync(unchecked((int)Maximum)).ConfigureAwait(false))
+                !await AssignAsync(checked((int)Maximum)).ConfigureAwait(false))
                 return false;
             // Source also adds the reduction-derived physical-flat Status value.
             // This new HP phase owner does not claim that separate cached field.

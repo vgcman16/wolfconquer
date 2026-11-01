@@ -6,7 +6,8 @@ public sealed partial class LegacyNativePlayerRuntime
     public int CursedTimer = 0;
     public bool Reincarnation = false;
     // Native Player1111, before the saved reborn levels.
-    public ushort Atributes;
+    private ushort _atributes;
+    public ushort Atributes { get => _atributes; set => SetUnboundActorScalar(ActorScalar.Atributes, value); }
     public byte FirstRebornLevel;
     public byte SecoundeRebornLevel;
     // Native Player1145, plain UInt32, not level-up side effects.

@@ -23,13 +23,8 @@ public static partial class WorldPacketHandlers
             LegacyNativeMagicQueryClient.Read(Context.Sessions, Context.Connection,
                 Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity);
 
-        private bool AddNativeMagic(LegacyNativeMagicQueryFields add) => NativeMagic(current => current with
-        {
-            MagicAttack = unchecked(current.MagicAttack + add.MagicAttack),
-            MagicPercent = unchecked(current.MagicPercent + add.MagicPercent),
-            SkillCStrike = unchecked(current.SkillCStrike + add.SkillCStrike),
-            MagicDamageIncrease = unchecked(current.MagicDamageIncrease + add.MagicDamageIncrease),
-        });
+        private bool AddNativeMagic(LegacyNativeMagicQueryFields add) =>
+            NativeMagic(current => LegacyEquipmentMagicArithmetic.Add(current, add));
 
         private bool NativeMagicItemBeforeCircle(PlayerItemSnapshotItem item) =>
             NativeMagic(current =>
@@ -54,23 +49,12 @@ public static partial class WorldPacketHandlers
             if (Context.WorldData is { } data &&
                 TryGetLegacyEligibleEquippedRuneLevel(Session, data, "witchery", out var witchery))
             {
-                if (!NativeMagic(current =>
-                {
-                    if (current.MagicAttack >= 15_000) return current;
-                    var add = witchery switch
-                    { 1 => 2_000U, 2 => 2_300U, 3 => 2_600U, 4 => 3_000U, 5 => 3_500U,
-                        6 => 4_000U, 7 => 4_500U, 8 => 5_000U, 9 => 6_000U, _ => 0U };
-                    return current with { MagicAttack = Math.Min(15_000U, unchecked(current.MagicAttack + add)) };
-                })) return false;
+                if (!NativeMagic(current => LegacyEquipmentMagicArithmetic.Witchery(current, witchery))) return false;
             }
             if (Context.WorldData is { } chantData &&
                 TryGetLegacyEligibleEquippedRuneLevel(Session, chantData, "Nature`sChant", out var chant))
             {
-                var percent = chant switch
-                { 1 => 13U, 2 => 14U, 3 => 15U, 4 => 16U, 5 => 17U, 6 => 18U, 7 => 19U,
-                    8 => 22U, 9 => 24U, _ => 0U };
-                if (!NativeMagic(current => current with
-                    { MagicAttack = unchecked(current.MagicAttack + current.MagicAttack / 100 * percent) }))
+                if (!NativeMagic(current => LegacyEquipmentMagicArithmetic.NatureChant(current, chant)))
                     return false;
             }
             return true;
@@ -79,15 +63,7 @@ public static partial class WorldPacketHandlers
         private bool NativeMagicBeforeGear()
         {
             if (!Refresh()) return false;
-            var wardrobe = EnumerateLegacyWardrobeItems(Session.PlayerItems).ToArray();
-            var mount = wardrobe.Where(item => ItemType.GetLegacyEquipmentPosition(item.ItemId) == 17)
-                .Select(item => item.Uid).Distinct().Count() > 100;
-            var garment = wardrobe.Where(item => ItemType.GetLegacyEquipmentPosition(item.ItemId) == 9)
-                .Select(item => item.Uid).Distinct().Count() > 100;
-            if (!NativeMagic(current => current with
-                { MagicAttack = unchecked(current.MagicAttack + (mount ? 1_000U : 0U) +
-                        (garment ? 600U : 0U) + 1),
-                    MagicDamageIncrease = unchecked(current.MagicDamageIncrease + current.ThunderGemValue) }))
+            if (!NativeMagic(current => EquipmentQueryMagicBeforeGear(current, Session)))
                 return false;
             if (!AddNativeMagic(LegacyPlayerStatusCalculator.NativeMagicBeforeGear(
                     Session, Context.WorldData, LegacyNativePerfectionClient.Prestige(
@@ -114,6 +90,16 @@ public static partial class WorldPacketHandlers
             AddNativeMagic(LegacyPlayerStatusCalculator.NativeMagicMythsoul(Session, Context.WorldData));
         private bool NativeMagicRuneStorage() => Refresh() &&
             AddNativeMagic(LegacyPlayerStatusCalculator.NativeMagicRuneStorage(Session, Context.WorldData));
+    }
+
+    private static LegacyNativeMagicQueryFields EquipmentQueryMagicBeforeGear(LegacyNativeMagicQueryFields current, WorldSession source)
+    {
+        var wardrobe = EnumerateLegacyWardrobeItems(source.PlayerItems).ToArray();
+        bool mount = wardrobe.Where(item => ItemType.GetLegacyEquipmentPosition(item.ItemId) == 17)
+            .Select(item => item.Uid).Distinct().Count() > 100;
+        bool garment = wardrobe.Where(item => ItemType.GetLegacyEquipmentPosition(item.ItemId) == 9)
+            .Select(item => item.Uid).Distinct().Count() > 100;
+        return LegacyEquipmentMagicArithmetic.BeforeGear(current, mount, garment);
     }
 
     private static LegacyPlayerStatusPacket CreateNativeMagicCachedPlayerStatusResponse(

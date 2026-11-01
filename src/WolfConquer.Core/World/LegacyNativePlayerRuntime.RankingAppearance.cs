@@ -20,11 +20,10 @@ public sealed partial class LegacyNativePlayerRuntime
         set => SetUnboundActorScalar(ActorScalar.Agility, value);
     }
 
-    public ushort Vitality;
-
-    public ushort Spirit;
-
-    public ushort Strength;
+    private ushort _vitality, _spirit, _strength;
+    public ushort Vitality { get => _vitality; set => SetUnboundActorScalar(ActorScalar.Vitality, value); }
+    public ushort Spirit { get => _spirit; set => SetUnboundActorScalar(ActorScalar.Spirit, value); }
+    public ushort Strength { get => _strength; set => SetUnboundActorScalar(ActorScalar.Strength, value); }
 
     // Native Player1115/1127/1165; saved identity hydration belongs to ExistingPrefixLoad.
     // the whole Hair property is owned by its dedicated partial.

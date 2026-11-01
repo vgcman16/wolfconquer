@@ -62,8 +62,8 @@ public static partial class WorldPacketHandlers
             return execution.Outcome();
 
         if (!execution.Refresh() ||
-            !await execution.AssignAsync(Math.Min(unchecked((int)execution.Session.Character.MinHitPoints),
-                unchecked((int)execution.Maximum))).ConfigureAwait(false))
+            !await execution.AssignAsync(LegacyEquipmentQueryBounds.ClampHitpoints(
+                execution.Session.Character.MinHitPoints, execution.Maximum)).ConfigureAwait(false))
             return execution.Outcome();
         if (!execution.Refresh()) return execution.Outcome();
         if (LegacyTransformState.TryGetActiveMaxHitpoints(execution.Session.Character, out var transform))
@@ -74,12 +74,13 @@ public static partial class WorldPacketHandlers
         else if (!await execution.PairAsync().ConfigureAwait(false))
             return execution.Outcome();
         // QueryEquipment postlude follows OnDequeue's HP work.
-        if (execution.Refresh() &&
-            await execution.SendAsync(LegacyUserTotalRefineLevPacket.FromEquipmentPerfection(
+        if (!execution.Refresh() ||
+            !await execution.SendAsync(LegacyUserTotalRefineLevPacket.FromEquipmentPerfection(
                     CheckedUInt32(request.Scope.OwnerUid, nameof(request.Scope.OwnerUid)),
                     execution.Session.PlayerItems).ToFrameBytes(),
-                LegacyEquipmentQueryPublishedPhases.Perfection).ConfigureAwait(false))
-            await execution.RunWindWalkerPostludeAsync().ConfigureAwait(false);
+                LegacyEquipmentQueryPublishedPhases.Perfection).ConfigureAwait(false) ||
+            !await execution.RunWindWalkerPostludeAsync().ConfigureAwait(false)) return execution.Outcome();
+        if (!execution.PublishCompletedQueryMaximums()) execution.RefuseIncompleteQuery();
         return execution.Outcome();
     }
 }

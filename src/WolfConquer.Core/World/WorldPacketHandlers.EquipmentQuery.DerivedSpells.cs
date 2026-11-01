@@ -85,7 +85,7 @@ public static partial class WorldPacketHandlers
             return await SendAsync(frame, LegacyEquipmentQueryPublishedPhases.None).ConfigureAwait(false);
         }
 
-        private static uint NativePirateRank(IReadOnlyList<CombatGearRankEntry> rows, long uid, byte type)
+        internal static uint NativePirateRank(IReadOnlyList<CombatGearRankEntry> rows, long uid, byte type)
         {
             // Reproduce loaded UpdateItem top10 after every row, including replacement and stable ties.
             var ranking = new Dictionary<uint, uint>();

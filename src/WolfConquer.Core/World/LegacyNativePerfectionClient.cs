@@ -61,7 +61,7 @@ internal static partial class LegacyNativePerfectionClient
     internal static bool AddCapturedItem(WorldSessionStore? world, ConquerTcpConnection connection,
         long uid, uint perfectionLevel, object? expectedIdentity) =>
         expectedIdentity is not null && WithCurrent(world, connection, uid, expectedIdentity, false,
-            state => state.PrestigeLevel = unchecked(state.PrestigeLevel + perfectionLevel));
+            state => state.PrestigeLevel = checked(state.PrestigeLevel + perfectionLevel));
 
     internal static bool Rebuild(WorldSessionStore? world, ConquerTcpConnection connection,
         long uid, Func<string, byte> rune, object? expectedIdentity) =>

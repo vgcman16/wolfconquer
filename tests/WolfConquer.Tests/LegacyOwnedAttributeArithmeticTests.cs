@@ -1,0 +1,93 @@
+using WolfConquer.Core.Data;
+using WolfConquer.Core.World;
+
+namespace WolfConquer.Tests;
+
+[Collection("NativeItemCounterSourcePrerequisite")]
+public sealed class LegacyOwnedAttributeArithmeticTests
+{
+    private const uint Actor = OwnedEquipmentBehaviorFixture.Actor;
+    private static OwnedEquipmentBehaviorInput Input() => new(
+        OwnedEquipmentBehaviorFixture.Character(classCode: 14005, agility: 0, strength: 0, minHitPoints: 30)
+            with { Vitality = 0, Spirit = 10, AttributePoints = 12 }, PlayerItemSnapshot.Empty);
+
+    [Theory]
+    [InlineData("BloodTideHP", "4294967295")]
+    [InlineData("Vigor", "4294967295")]
+    public Task InvalidIntermediateArithmeticRefusesBeforeAllocation(string key, string value) =>
+        OwnedEquipmentBehaviorFixture.RunAsync(Input(), OwnedEquipmentBehaviorFixture.Catalog(), async f =>
+        {
+            var admitted = f.Current();
+            var fields = new Dictionary<string, string>(admitted.Character.Attributes, StringComparer.OrdinalIgnoreCase) { [key] = value };
+            // A real generic publication supplies data; it does not supply query authority.
+            f.Store.Set(f.Connection(Actor), admitted with { Character = admitted.Character with { Attributes = fields } });
+            await AssertRefusedAsync(f);
+        });
+
+    [Fact]
+    public Task CumulativeMagicOverflowAfterNewSpiritRefusesBeforeAllocation()
+    {
+        var row = RuneParser.ParseStorageAttributeRow("owned-rune-arithmetic.txt", 1,
+            "1@@0@@3@@2147482640@@3@@2147482640@@0@@0@@");
+        var witchery = OwnedEquipmentBehaviorFixture.Item(4_031_301, "Witchery (+1)");
+        var catalog = NativeCallerWorldDataFixture.Create(new[] { witchery }, [], runeStorageAttributes: new[] { row });
+        var input = Input() with { Items = PlayerItemSnapshot.Empty with
+        { RuneItems = new PlayerItemSnapshotItem[] { new() { Uid = 99103, ItemId = 4_031_301, Position = 103,
+            Durability = 100, MaximumDurability = 100, StackSize = 1 } } } };
+        return OwnedEquipmentBehaviorFixture.RunAsync(input, catalog, async f =>
+        {
+            var before = f.Current(); var binding = before.NativeGameClient!.OrdinarySpellBinding!;
+            Assert.Equal(uint.MaxValue - 4, LegacyNativeMagicQueryClient.Read(f.Store, f.Connection(Actor), Actor, binding.NativeIdentity).MagicAttack);
+            // The ordinary status projection omits the actual query's Witchery
+            // increment, so evaluating that projection alone cannot catch this.
+            var raw = LegacyPlayerStatusCalculator.CalculateFields(before.Character with { Spirit = 20 }, before.PlayerItems,
+                catalog, 60, 0, alternateEquipmentActive: before.AlternateEquipmentActive);
+            Assert.Equal(uint.MaxValue - 1994, raw[LegacyPlayerStatusPacket.MagicAttackIndex]);
+            await AssertRefusedAsync(f);
+        });
+    }
+
+    [Fact]
+    public Task RealHpSetterDuringAllocationPreservesOpaqueCaseVariants() =>
+        OwnedEquipmentBehaviorFixture.RunAsync(Input(), OwnedEquipmentBehaviorFixture.Catalog(), async f =>
+        {
+            var admitted = f.Current();
+            var fields = new Dictionary<string, string>(admitted.Character.Attributes, StringComparer.Ordinal)
+            { ["Other"] = "one", ["other"] = "two", ["BloodTideHP"] = "5" };
+            f.Store.Set(f.Connection(Actor), admitted with { Character = admitted.Character with { Attributes = fields } });
+            var before = f.Current(); var binding = before.NativeGameClient!.OrdinarySpellBinding!;
+            var expected = f.Data.Files().ToDictionary(pair => pair.Key, pair => pair.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+            string path = Path.GetRelativePath(f.Data.Root, f.CharacterPath());
+            string text = CharacterSnapshotFileEncoding.Decode(expected[path], out var encoding);
+            Assert.Contains("\r\nMinHitPoints=30\r\n", text);
+            text = text.Replace("\r\nSpirit=10\r\n", "\r\nSpirit=20\r\n", StringComparison.Ordinal)
+                .Replace("\r\nAtributes=12\r\n", "\r\nAtributes=2\r\n", StringComparison.Ordinal)
+                .Replace("\r\nMinHitPoints=30\r\n", "\r\nMinHitPoints=35\r\n", StringComparison.Ordinal);
+            expected[path] = encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray();
+            int first = f.ActorFrames.Count;
+            await f.SendAsync(Actor, new LegacyAttributeSetPacket(0, 0, 0, 10).ToFrameBytes());
+            var after = f.Current();
+            Assert.Equal(20L, after.Character.Spirit); Assert.Equal(2L, after.Character.AttributePoints);
+            Assert.Equal(35L, after.Character.MinHitPoints); Assert.Equal(35, binding.Player.HitPoints);
+            Assert.Equal("one", after.Character.Attributes["Other"]); Assert.Equal("two", after.Character.Attributes["other"]);
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); Assert.False(binding.Recovery.IsBlocked);
+            f.Data.AssertFiles(expected);
+            Assert.Equal(new ushort[] { 2203, 2176, 2176, 2301, 2176, 2176, 2176, 2176, 2128 },
+                f.ActorFrames.Skip(first).Select(bytes => OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode));
+        });
+
+    private static async Task AssertRefusedAsync(OwnedEquipmentBehaviorFixture f)
+    {
+        var before = f.Current(); var binding = before.NativeGameClient!.OrdinarySpellBinding!;
+        Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+        var files = f.Data.Files(); int first = f.ActorFrames.Count;
+        var magic = LegacyNativeMagicQueryClient.Read(f.Store, f.Connection(Actor), Actor, binding.NativeIdentity);
+        var status = binding.Client.Status; var hp = binding.Player.HitPoints;
+        await f.SendAsync(Actor, new LegacyAttributeSetPacket(0, 0, 0, 10).ToFrameBytes());
+        Assert.Same(before, f.Current()); Assert.Equal(first, f.ActorFrames.Count); f.Data.AssertFiles(files);
+        Assert.Equal((ushort)10, binding.Player.Spirit); Assert.Equal((ushort)12, binding.Player.Atributes);
+        Assert.Equal(hp, binding.Player.HitPoints); Assert.Same(status, binding.Client.Status);
+        Assert.Equal(magic, LegacyNativeMagicQueryClient.Read(f.Store, f.Connection(Actor), Actor, binding.NativeIdentity));
+        Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); Assert.False(binding.Recovery.IsBlocked);
+    }
+}

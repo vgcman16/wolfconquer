@@ -19,11 +19,7 @@ public static partial class WorldPacketHandlers
                     GetLegacyEquipmentRuntimeMaxHitpoints(owner, context.WorldData, previousHitpoints)),
             };
         }
-        if (owner.Character.MinHitPoints == value) return owner;
-        var changed = owner.Character with { MinHitPoints = value };
-        var attributes = new Dictionary<string, string>(owner.Character.Attributes, StringComparer.OrdinalIgnoreCase);
-        foreach (var pair in CharacterSnapshotScalarPersistence.BuildPersistedValues(changed)) attributes[pair.Key] = pair.Value;
-        CharacterSnapshotEpicTrojanSchema.ProjectRuntimeAttributes(attributes, attributes);
-        return owner with { Character = changed with { Attributes = attributes } };
+        var changed = LegacyEquipmentQueryBounds.WithHitpoints(owner.Character, value);
+        return owner.Character.MinHitPoints == value ? owner : owner with { Character = changed };
     }
 }

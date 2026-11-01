@@ -11,7 +11,7 @@ public static partial class LegacyPlayerStatusCalculator
         CharacterSnapshot character, WorldDataCatalog? data)
     {
         uint attack = 0, critical = 0, increase = 0;
-        unchecked
+        checked
         {
             if (data is not null && data.BeastAttributesByLevel.Count != 0 &&
                 ReadBooleanAttribute(character, "TailedBeastActivated") &&
@@ -48,7 +48,7 @@ public static partial class LegacyPlayerStatusCalculator
     {
         uint attack = 0, critical = 0, increase = 0;
         if (data is null) return default;
-        unchecked
+        checked
         {
             foreach (var item in items.MythsoulBagItems)
             {
@@ -72,7 +72,7 @@ public static partial class LegacyPlayerStatusCalculator
     {
         if (data is null) return default;
         uint score = 0, attack = 0, critical = 0;
-        unchecked
+        checked
         {
             foreach (var item in items.RuneItems)
                 if (item.Position is not (0 or 211))

@@ -24,15 +24,33 @@ public ushort ExtraAtributes
 
 internal void AddExtraAtributes(LegacyNativePacket stream, ushort value)
 	{
-		ExtraAtributes += value;
-		Atributes += value;
-		SendUpdate(stream, Atributes, LegacyNativeMsgUpdate.DataType.Atributes);
-		if (ExtraAtributes > 901)
+		RequireUnboundActorScalarMutation();
+		ushort first;
+		lock (Owner.SpellAdmissionSyncRoot)
+		lock (SpellAdmissionSyncRoot)
 		{
-			value = (ushort)(ExtraAtributes - 300);
+			RequireUnboundActorScalarMutation();
 			ExtraAtributes += value;
 			Atributes += value;
-			SendUpdate(stream, Atributes, LegacyNativeMsgUpdate.DataType.Atributes);
+			first = Atributes;
+		}
+		// The real socket may acquire its own gate and invoke a cipher; never
+		// hold native actor gates across that external send path.
+		SendUpdate(stream, first, LegacyNativeMsgUpdate.DataType.Atributes);
+		if (ExtraAtributes > 901)
+		{
+			ushort second;
+			lock (Owner.SpellAdmissionSyncRoot)
+			lock (SpellAdmissionSyncRoot)
+			{
+				RequireUnboundActorScalarMutation();
+				if (ExtraAtributes <= 901) return;
+				value = (ushort)(ExtraAtributes - 300);
+				ExtraAtributes += value;
+				Atributes += value;
+				second = Atributes;
+			}
+			SendUpdate(stream, second, LegacyNativeMsgUpdate.DataType.Atributes);
 		}
 	}
 }

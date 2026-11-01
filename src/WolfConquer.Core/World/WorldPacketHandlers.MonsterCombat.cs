@@ -70,6 +70,7 @@ public static partial class WorldPacketHandlers
             return updatedSession;
         }
 
+        var beforeFinalExperience = updatedSession;
         updatedSession = await ApplyLegacyFinalExperienceGainAsync(
                 context,
                 context.Connection,
@@ -78,6 +79,7 @@ public static partial class WorldPacketHandlers
                 cancellationToken)
             .ConfigureAwait(false);
 
+        if (ReferenceEquals(updatedSession, beforeFinalExperience)) return updatedSession;
         await context.Log.WriteLineAsync(
                 "WorldServer sent legacy monster experience " +
                 $"{FormatSession(context with { Session = updatedSession })} monsterUid={monster.Uid} " +
@@ -101,7 +103,15 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        var teamConnections = teamStates.GetConnections(context.Connection);
+        var killerBinding = context.Connection.NativeGameClient?.OrdinarySpellBinding;
+        if (killerBinding is not null && (!ReferenceEquals(killerBinding.Connection, context.Connection) ||
+            !ReferenceEquals(killerSession.NativeGameClient, context.Connection.NativeGameClient) ||
+            !sessions.TryGet(context.Connection, out var liveKiller) || !ReferenceEquals(liveKiller, killerSession) ||
+            !sessions.IsBoundSpellOwnerCurrent(killerBinding))) return;
+        var roster = killerBinding is null ? null : teamStates.CaptureCombatExperienceRoster(killerBinding);
+        if (killerBinding is not null && roster is null) return;
+        var teamConnections = roster is null ? teamStates.GetConnections(context.Connection) :
+            roster.Members.Select(member => member.Connection).ToArray();
         if (teamConnections.Count <= 1)
         {
             return;
@@ -121,6 +131,11 @@ public static partial class WorldPacketHandlers
             {
                 continue;
             }
+            if (roster is not null && (memberSession.NativeGameClient?.OrdinarySpellBinding is not { } memberBinding ||
+                !ReferenceEquals(memberBinding.Connection, connection) ||
+                !roster.Members.Any(row => ReferenceEquals(row.Connection, connection) && row.Uid == memberSession.Character.Uid)))
+                continue;
+            if (roster is null && memberSession.NativeGameClient?.OrdinarySpellBinding is not null) continue;
 
             activeMembers.Add((
                 connection,
@@ -171,7 +186,7 @@ public static partial class WorldPacketHandlers
                     connection,
                     memberSession,
                     checked((ulong)amount),
-                    cancellationToken)
+                    cancellationToken, roster)
                 .ConfigureAwait(false);
             if (updatedSession.Character.Experience != memberSession.Character.Experience ||
                 updatedSession.Character.Level != memberSession.Character.Level)
@@ -194,7 +209,8 @@ public static partial class WorldPacketHandlers
         ConquerTcpConnection connection,
         WorldSession session,
         ulong experienceGain,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TeamSessionStateStore.CombatExperienceRoster? roster = null)
     {
         if (experienceGain == 0)
         {
@@ -213,7 +229,7 @@ public static partial class WorldPacketHandlers
                 connection,
                 session,
                 experienceResult.AppliedExperienceGain,
-                cancellationToken)
+                cancellationToken, roster)
             .ConfigureAwait(false);
     }
 
@@ -222,7 +238,8 @@ public static partial class WorldPacketHandlers
         ConquerTcpConnection connection,
         WorldSession session,
         ulong experienceGain,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TeamSessionStateStore.CombatExperienceRoster? roster = null)
     {
         if (experienceGain == 0)
         {
@@ -234,66 +251,72 @@ public static partial class WorldPacketHandlers
             throw new OverflowException("Legacy experience gain cannot fit in the local character snapshot.");
         }
 
-        var updatedExperience = checked(session.Character.Experience + (long)experienceGain);
-        var updatedLevel = session.Character.Level;
-        var levelChanged = false;
-        while (updatedLevel < 140 &&
-            context.WorldData?.LevelExperienceByTypeAndLevel.TryGetValue((0, checked((int)updatedLevel)), out var levelExperience) == true &&
-            levelExperience.Experience > 0 &&
-            updatedExperience >= levelExperience.Experience)
+        WorldSession updatedSession;
+        CharacterSnapshot updatedCharacter;
+        long updatedLevel;
+        bool levelChanged;
+        LegacyClassLevelStatProgressionChange statProgression;
+        WorldSessionStore.ActionPublication? experienceReceipt = null;
+        if (session.NativeGameClient?.OrdinarySpellBinding is not null)
         {
-            updatedExperience -= levelExperience.Experience;
-            updatedLevel++;
-            levelChanged = true;
+            if (context.Sessions is not { } store) return session;
+            var purpose = IssueCombatExperience(context, connection, session, experienceGain, roster);
+            if (!store.TryCommitCombatExperience(context, connection, session, experienceGain, purpose,
+                    out var committed, out statProgression, out experienceReceipt, out var frames, out var refusal) || committed is null || experienceReceipt is null)
+            {
+                await context.Log.WriteLineAsync($"WorldServer refused combat experience reason={refusal}.").ConfigureAwait(false);
+                return session;
+            }
+            await SendCommittedCombatExperienceAsync(connection, committed, experienceReceipt, frames, cancellationToken).ConfigureAwait(false);
+            return committed;
+        }
+        else
+        {
+            // Existing unbound component path has no authority over a native owner.
+            var updatedExperience = checked(session.Character.Experience + (long)experienceGain);
+            updatedLevel = session.Character.Level;
+            while (updatedLevel < 140 &&
+                context.WorldData?.LevelExperienceByTypeAndLevel.TryGetValue((0, checked((int)updatedLevel)), out var threshold) == true &&
+                threshold.Experience > 0 && updatedExperience >= threshold.Experience)
+            { updatedExperience -= threshold.Experience; updatedLevel++; }
+            levelChanged = updatedLevel != session.Character.Level;
+            var leveled = session.Character with { Experience = updatedLevel >= 140 ? 0 : updatedExperience, Level = updatedLevel };
+            updatedCharacter = LegacyClassLevelStatProgression.Apply(leveled, context.WorldData,
+                session.Character.Level, out statProgression);
+            if (levelChanged) updatedCharacter = LegacyClassLevelStatProgression.RefreshVitals(updatedCharacter,
+                session.PlayerItems, session.CombatGear ?? CombatGearSnapshot.Empty, context.WorldData);
+            updatedSession = session with { Character = updatedCharacter };
+            context.Sessions?.Set(connection, updatedSession);
         }
 
-        var leveledCharacter = session.Character with
+        async ValueTask SendExperienceFrame(byte[] bytes)
         {
-            Experience = updatedLevel >= 140 ? 0 : updatedExperience,
-            Level = updatedLevel,
-        };
-        var updatedCharacter = LegacyClassLevelStatProgression.Apply(
-            leveledCharacter,
-            context.WorldData,
-            session.Character.Level,
-            out var statProgression);
-        if (levelChanged)
-        {
-            updatedCharacter = LegacyClassLevelStatProgression.RefreshVitals(
-                updatedCharacter,
-                session.PlayerItems,
-                session.CombatGear ?? CombatGearSnapshot.Empty,
-                context.WorldData);
+            await connection.SendAsync(bytes, cancellationToken).ConfigureAwait(false);
         }
-
-        var updatedSession = session with { Character = updatedCharacter };
-        context.Sessions?.Set(connection, updatedSession);
 
         var uid = CheckedUInt32(updatedCharacter.Uid, nameof(updatedCharacter.Uid));
         if (levelChanged)
         {
-            await connection.SendAsync(
-                    LegacyMsgUpdatePacket.CreateLegacyRuntimeLevelUpdate(uid, checked((ulong)updatedLevel)).ToFrameBytes(),
-                    cancellationToken)
+            await SendExperienceFrame(
+                    LegacyMsgUpdatePacket.CreateLegacyRuntimeLevelUpdate(uid, checked((ulong)updatedLevel)).ToFrameBytes())
                 .ConfigureAwait(false);
 
             if (statProgression.AppliedSourceStats)
             {
                 foreach (var update in LegacyMsgUpdatePacket.CreateLegacyRuntimeSourceStatUpdates(uid, updatedCharacter))
                 {
-                    await connection.SendAsync(update.ToFrameBytes(), cancellationToken)
+                    await SendExperienceFrame(update.ToFrameBytes())
                         .ConfigureAwait(false);
                 }
             }
 
             if (statProgression.AddedAttributePoints)
             {
-                await connection.SendAsync(
+                await SendExperienceFrame(
                         LegacyMsgUpdatePacket.CreateLegacyRuntimeAttributePointsUpdate(
                                 uid,
                                 CheckedUInt64(updatedCharacter.AttributePoints, nameof(updatedCharacter.AttributePoints)))
-                            .ToFrameBytes(),
-                        cancellationToken)
+                            .ToFrameBytes())
                     .ConfigureAwait(false);
             }
 
@@ -302,7 +325,7 @@ public static partial class WorldPacketHandlers
                          CheckedUInt32(updatedCharacter.MinHitPoints, nameof(updatedCharacter.MinHitPoints)),
                          CheckedUInt32(updatedCharacter.MinHitPoints, nameof(updatedCharacter.MinHitPoints))))
             {
-                await connection.SendAsync(update.ToFrameBytes(), cancellationToken)
+                await SendExperienceFrame(update.ToFrameBytes())
                     .ConfigureAwait(false);
             }
 
@@ -311,17 +334,16 @@ public static partial class WorldPacketHandlers
                          CheckedUInt64(updatedCharacter.MaxMana, nameof(updatedCharacter.MaxMana)),
                          CheckedUInt64(updatedCharacter.MinMana, nameof(updatedCharacter.MinMana))))
             {
-                await connection.SendAsync(update.ToFrameBytes(), cancellationToken)
+                await SendExperienceFrame(update.ToFrameBytes())
                     .ConfigureAwait(false);
             }
         }
 
-        await connection.SendAsync(
+        await SendExperienceFrame(
                 LegacyMsgUpdatePacket.CreateLegacyRuntimeExperienceUpdate(
                         uid,
                         checked((ulong)updatedCharacter.Experience))
-                    .ToFrameBytes(),
-                cancellationToken)
+                    .ToFrameBytes())
             .ConfigureAwait(false);
 
         return updatedSession;

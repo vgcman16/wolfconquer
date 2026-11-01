@@ -377,6 +377,11 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (HasAttachedStatOwner(context, session))
+        {
+            await context.Log.WriteLineAsync("WorldServer held bound ReallotPoints reset: owned item/stat transaction unavailable.").ConfigureAwait(false);
+            return;
+        }
         var persistenceValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["Agility"] = updatedCharacter.Agility.ToString(CultureInfo.InvariantCulture),
@@ -951,6 +956,11 @@ public static partial class WorldPacketHandlers
             statKey,
             updatedStat,
             remaining);
+        if (HasAttachedStatOwner(context, session))
+        {
+            await context.Log.WriteLineAsync("WorldServer held bound ReallotPoints allocation: owned stat transaction unavailable.").ConfigureAwait(false);
+            return;
+        }
         var persistenceValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             [statKey] = updatedStat.ToString(CultureInfo.InvariantCulture),

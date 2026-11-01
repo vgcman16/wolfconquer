@@ -12,7 +12,7 @@ public static partial class LegacyPlayerStatusCalculator
         var position = item.Position % 50;
         if (!TryGetItemType(data?.ItemsById, item.ItemId, out var row)) return default;
         uint attack = 0, critical = 0, increase = 0;
-        unchecked
+        checked
         {
             var itemAttack = NativeMagicItemUShort(row, MagicAttackFieldIndex);
             if (position is 10 or 19) increase += itemAttack;
@@ -34,8 +34,8 @@ public static partial class LegacyPlayerStatusCalculator
                     if (refinery.Fields.Count <= Math.Max(typeAt, valueAt) ||
                         !byte.TryParse(refinery.Fields[typeAt], NumberStyles.Integer, CultureInfo.InvariantCulture, out var type) ||
                         !uint.TryParse(refinery.Fields[valueAt], NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)) return;
-                    if (type == 3) critical = unchecked(critical + value * 100);
-                    else if (type == 12) increase = unchecked(increase + value);
+                    if (type == 3) critical = checked(critical + value * 100);
+                    else if (type == 12) increase = checked(increase + value);
                 }
             }
             // Source Equip645-647 clamps Plus13+ to12 BEFORE its later item contribution.
@@ -55,7 +55,7 @@ public static partial class LegacyPlayerStatusCalculator
                 foreach (var encoded in new[] { item.Attribute1, item.Attribute2, item.Attribute3, item.Attribute4, item.Attribute5 })
                 {
                     if (encoded == 0) continue;
-                    var value = unchecked((ushort)(encoded / 1_000)); // Native RelicAttribute.Value is ushort.
+                    var value = checked((ushort)(encoded / 1_000)); // Native RelicAttribute.Value is ushort.
                     switch (encoded % 100)
                     {
                         case 2: critical += value; break;
@@ -102,13 +102,13 @@ public static partial class LegacyPlayerStatusCalculator
             };
             if (value == 0) continue;
             var count = current.TortoiseGemCount;
-            if (gem is >= 71 and <= 73) count = unchecked((byte)(count + 1));
+            if (gem is >= 71 and <= 73) count = checked((byte)(count + 1));
             var percent = current.MagicPercent;
             if (value is 5 or 10 or 15 && gem is not (11 or 12 or 13))
-                percent = unchecked(percent + value);
+                percent = checked(percent + value);
             var thunder = current.ThunderGemValue;
             if (count <= 8 && gem / 10 == 10)
-                thunder = unchecked((ushort)(thunder + value));
+                thunder = checked((ushort)(thunder + value));
             current = current with { MagicPercent = percent, ThunderGemValue = thunder, TortoiseGemCount = count };
         }
         return current;
@@ -120,15 +120,14 @@ public static partial class LegacyPlayerStatusCalculator
         var f = new uint[LegacyPlayerStatusPacket.FieldCount];
         var source = NativeMagicBeastAndProfession(current.Character, data);
         ApplyChiAttributes(f, current.Character, data?.FateExperienceByType);
-        // Native Equip1837 narrows CURRENT shared PrestigeLevel to ushort, including wrap to0.
-        if (data is not null && data.ItemRefineEffectsById.TryGetValue(unchecked((ushort)currentPrestige), out var effects) &&
+        // Preserve the native ushort domain; unsupported overflow cannot select a wrapped row.
+        ushort prestige = checked((ushort)currentPrestige);
+        if (data is not null && data.ItemRefineEffectsById.TryGetValue(prestige, out var effects) &&
             effects.Count != 0 && effects[0].Values.Count > 1)
-            f[LegacyPlayerStatusPacket.MagicAttackIndex] = unchecked(
+            f[LegacyPlayerStatusPacket.MagicAttackIndex] = checked(
                 f[LegacyPlayerStatusPacket.MagicAttackIndex] + (uint)effects[0].Values[1]);
         var other = NativeMagicFields(f);
-        return new(unchecked(source.MagicAttack + other.MagicAttack), 0,
-            unchecked(source.SkillCStrike + other.SkillCStrike),
-            unchecked(source.MagicDamageIncrease + other.MagicDamageIncrease));
+        return LegacyEquipmentMagicArithmetic.Add(source, other);
     }
 
     internal static LegacyNativeMagicQueryFields NativeMagicGear(
