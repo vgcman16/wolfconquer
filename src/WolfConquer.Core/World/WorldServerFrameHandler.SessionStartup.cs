@@ -82,7 +82,8 @@ public sealed partial class WorldServerFrameHandler
         ConquerTcpConnection connection, WorldSession session, CancellationToken cancellationToken,
         Func<WorldSession, CancellationToken, ValueTask>? afterStartupBeforeRuntime = null,
         LegacyNativeGameClientRuntime? nativeLoadedClient = null,
-        LegacySpellPublicationOwner? loginSpells = null)
+        LegacySpellPublicationOwner? loginSpells = null,
+        PendingExperienceStartup? pendingExperience = null)
     {
         var snapshot = session.Character;
         await LogLegacySessionSidecarStatusAsync(session).ConfigureAwait(false);
@@ -95,8 +96,10 @@ public sealed partial class WorldServerFrameHandler
                 session.CombatGear ?? CombatGearSnapshot.Empty,
                 cancellationToken,
                 nativeLoadedClient: nativeLoadedClient,
-                loginSpells: loginSpells)
+                loginSpells: loginSpells,
+                pendingExperience: pendingExperience)
             .ConfigureAwait(false);
+        if (pendingExperience is not null) loginSpells = pendingExperience.LoginSpells;
         if (loginSpells is not null && !loginSpells.IsCurrent()) return false;
         var ownerUid = snapshot.Uid;
         if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, ownerUid, out session)) return false;
@@ -108,6 +111,12 @@ public sealed partial class WorldServerFrameHandler
         }
 
         if (loginSpells is not null && !loginSpells.IsCurrent()) return false;
+        if (pendingExperience is not null)
+        {
+            var resumed = await pendingExperience.ResumeAsync(cancellationToken).ConfigureAwait(false);
+            if (resumed is null) return false;
+            session = resumed;
+        }
         RegisterLegacyStaminaReadiness(connection, session);
         StartLegacyRuntimeUpdateLoop(
             connection,

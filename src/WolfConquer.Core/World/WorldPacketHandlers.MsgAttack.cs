@@ -28,6 +28,8 @@ public static partial class WorldPacketHandlers
         }
 
         var query = packet.Query;
+        if (query.AttackType == MsgAttackType.Physical && !HasCurrentPhysicalNativeOwnerOrUnboundModel(context))
+            return;
         if (await TryHandleOwnedBasicPhysicalEntryAsync(context, packet, cancellationToken).ConfigureAwait(false)) return;
         if ((query.AttackType is MsgAttackType.InteractionRequest or MsgAttackType.InteractionAccept or
             MsgAttackType.InteractionRefuse or MsgAttackType.InteractionStopEffect) &&
@@ -137,6 +139,26 @@ public static partial class WorldPacketHandlers
                     await ClearLegacyMsgAttackFocusedAsync(context, cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    private static bool HasCurrentPhysicalNativeOwnerOrUnboundModel(WorldPacketHandlerContext context)
+    {
+        var session = context.Session;
+        var connectionClient = context.Connection.NativeGameClient;
+        var sessionClient = session?.NativeGameClient;
+        static bool HasAttachment(LegacyNativeGameClientRuntime? client) => client is not null &&
+            (client.OrdinarySpellBinding is not null || client.MySpells?.OrdinaryBinding is not null ||
+             client.HasOwnedBasicPhysicalAttachment || client.Player?.HasOwnedVitalsAttachment == true ||
+             client.Player?.HasOwnedActionAttachment == true || client.Player?.HasOwnedActorScalarsAttachment == true ||
+             client.Player?.HasOwnedMoneyAttachment == true || client.Player?.HasOwnedCpsAttachment == true ||
+             client.Player?.HasOwnedWarehouseMoneyAttachment == true);
+        if (!HasAttachment(connectionClient) && !HasAttachment(sessionClient)) return true;
+        if (session is null || connectionClient is null || !ReferenceEquals(connectionClient, sessionClient) ||
+            connectionClient.OrdinarySpellBinding is not { IsRetired: false } binding ||
+            !ReferenceEquals(binding.Connection, context.Connection) || !ReferenceEquals(binding.Client, connectionClient) ||
+            context.Sessions is not { } store || !ReferenceEquals(binding.Store, store)) return false;
+        return store.TryGet(context.Connection, out var current) && ReferenceEquals(current, session) &&
+            store.IsBoundSpellOwnerCurrent(binding);
     }
 
     private static async ValueTask<WorldPacketHandlerContext> CancelLegacyMsgAttackIntensifyArmAsync(
@@ -420,161 +442,214 @@ public static partial class WorldPacketHandlers
         }
 
         var requestedDamage = CalculateLegacyPlayerMonsterDamage(context, session, monster, monsterFamily, query);
-        var result = ApplyLegacyPlayerMonsterDamage(
-            monsterStates,
-            monster,
-            requestedDamage,
-            now,
-            session);
-        if (!hasVisibleInstance && !result.AlreadyDead)
+        WorldServerFrameHandler.MonsterPhysicalAttempt? monsterAttempt = null;
+        var boundActor = session.NativeGameClient?.OrdinarySpellBinding;
+        var ownedStore = boundActor is not null ? context.Sessions : null;
+        // An attached native actor never falls through to the unbound model
+        // when its actual Frame/Store owner is missing.
+        if (boundActor is not null && ownedStore is null) return true;
+        MonsterDamageResult result;
+        if (ownedStore is not null)
         {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped monster combat " +
-                    $"{FormatSession(context)} monsterUid={monster.Uid}; monster has not been spawned to this runtime view.")
-                .ConfigureAwait(false);
-            return false;
-        }
-
-        if (result.AlreadyDead)
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped monster combat " +
-                    $"{FormatSession(context)} monsterUid={monster.Uid}; monster is waiting to respawn.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var response = new MsgAttackPacket(packet.Query with
-        {
-            Damage = unchecked((int)result.RequestedDamage),
-            KilledMonster = 0,
-            ResponseDamage = query.ResponseDamage,
-            X = monster.X,
-            Y = monster.Y,
-        });
-        await context.Connection.SendAsync(response.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-
-        if (!result.Killed && LegacyMsgUpdatePacket.ShouldSendMonsterHitpointUpdates(monster))
-        {
-            var updatedMonster = monster with { Hitpoints = result.RemainingHitpoints };
-            foreach (var update in LegacyMsgUpdatePacket.CreateMonsterHitpointUpdateSequence(updatedMonster))
+            if (!hasVisibleInstance || !ownedStore.TryBeginMonsterPhysical(context with { Session = session }, packet,
+                    monster, monsterFamily, out monsterAttempt) || monsterAttempt is null) return true;
+            if (!ownedStore.TryCommitMonsterPhysicalDamage(context with { Session = session }, monsterAttempt,
+                    monster, requestedDamage, now, out result))
             {
-                await context.Connection.SendAsync(update.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+                _ = ownedStore.FinishMonsterPhysical(context, monsterAttempt, null);
+                return true;
             }
         }
-
-        if (result.Killed)
+        else result = ApplyLegacyPlayerMonsterDamage(monsterStates, monster, requestedDamage, now, session);
+        bool experienceCompleted = true;
+        void RequireMonsterOwner(WorldSession expected)
         {
-            var death = new MsgAttackPacket(new MsgAttackQuery(
-                Uid: CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)),
-                OpponentUid: monster.Uid,
-                X: monster.X,
-                Y: monster.Y,
-                AttackType: MsgAttackType.Death,
-                Damage: 0,
-                KilledMonster: 1,
-                ResponseDamage: 0,
-                Effect: MsgAttackEffect.None,
-                Unknown: 0));
-            await SendMonsterCombatFrameToVisibleAsync(context, session, monster, death, cancellationToken)
-                .ConfigureAwait(false);
-            await TrySendLegacyMonsterDeathDropAsync(context, session, monster, monsterFamily, cancellationToken)
-                .ConfigureAwait(false);
-            session = await TryApplyLegacyBossDeathRewardsAsync(
-                    context,
-                    session,
-                    monster,
-                    monsterFamily,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await TryApplyLegacyMonsterTeamExperienceAsync(context, session, monster, cancellationToken)
-                .ConfigureAwait(false);
+            if (ownedStore is not null && monsterAttempt is not null &&
+                !ownedStore.IsMonsterPhysicalOutputCurrent(context, monsterAttempt, expected))
+                throw new InvalidOperationException("monsterPhysicalOutputOwnerChanged");
         }
-        else
+        try
         {
-            session = await TryApplyLegacyWeaponProficiencyExperienceAsync(
-                    context,
-                    session,
-                    requestedDamage,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            RequireMonsterOwner(session);
+            if (!hasVisibleInstance && !result.AlreadyDead)
+            {
+                await context.Log.WriteLineAsync(
+                        "WorldServer skipped monster combat " +
+                        $"{FormatSession(context)} monsterUid={monster.Uid}; monster has not been spawned to this runtime view.")
+                    .ConfigureAwait(false);
+                return false;
+            }
 
-            session = await TryApplyLegacyMonsterExperienceAsync(
-                    context,
-                    session,
-                    monster,
-                    monsterFamily,
-                    result.DamageApplied,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
+            if (result.AlreadyDead)
+            {
+                await context.Log.WriteLineAsync(
+                        "WorldServer skipped monster combat " +
+                        $"{FormatSession(context)} monsterUid={monster.Uid}; monster is waiting to respawn.")
+                    .ConfigureAwait(false);
+                return true;
+            }
 
-        if (result.Killed)
-        {
-            session = await TryApplyLegacyWeaponProficiencyExperienceAsync(
-                    context,
-                    session,
-                    requestedDamage,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            var response = new MsgAttackPacket(packet.Query with
+            {
+                Damage = unchecked((int)result.RequestedDamage),
+                KilledMonster = 0,
+                ResponseDamage = query.ResponseDamage,
+                X = monster.X,
+                Y = monster.Y,
+            });
+            await context.Connection.SendAsync(response.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+            RequireMonsterOwner(session);
 
-            session = await TryApplyLegacyMonsterExperienceAsync(
-                    context,
-                    session,
-                    monster,
-                    monsterFamily,
-                    requestedDamage,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
+            if (!result.Killed && LegacyMsgUpdatePacket.ShouldSendMonsterHitpointUpdates(monster))
+            {
+                var updatedMonster = monster with { Hitpoints = result.RemainingHitpoints };
+                foreach (var update in LegacyMsgUpdatePacket.CreateMonsterHitpointUpdateSequence(updatedMonster))
+                {
+                    await context.Connection.SendAsync(update.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
+                    RequireMonsterOwner(session);
+                }
+            }
 
-        if (!result.Killed &&
-            await TryHandleLegacyPostPhysicalLearnedMonsterProcsAsync(
-                    context with { Session = session },
-                    packet,
-                    session,
-                    monster,
-                    cancellationToken)
-                .ConfigureAwait(false) &&
-            context.Sessions is { } sessionsAfterProc &&
-            sessionsAfterProc.TryGet(context.Connection, out var sessionAfterProc) &&
-            sessionAfterProc is not null)
-        {
-            session = sessionAfterProc;
-            context = context with { Session = session };
-        }
+            if (result.Killed)
+            {
+                var death = new MsgAttackPacket(new MsgAttackQuery(
+                    Uid: CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)),
+                    OpponentUid: monster.Uid,
+                    X: monster.X,
+                    Y: monster.Y,
+                    AttackType: MsgAttackType.Death,
+                    Damage: 0,
+                    KilledMonster: 1,
+                    ResponseDamage: 0,
+                    Effect: MsgAttackEffect.None,
+                    Unknown: 0));
+                await SendMonsterCombatFrameToVisibleAsync(context, session, monster, death, cancellationToken)
+                    .ConfigureAwait(false);
+                RequireMonsterOwner(session);
+                await TrySendLegacyMonsterDeathDropAsync(context, session, monster, monsterFamily, cancellationToken)
+                    .ConfigureAwait(false);
+                RequireMonsterOwner(session);
+                session = await TryApplyLegacyBossDeathRewardsAsync(
+                        context,
+                        session,
+                        monster,
+                        monsterFamily,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                RequireMonsterOwner(session);
+                await TryApplyLegacyMonsterTeamExperienceAsync(context, session, monster, cancellationToken)
+                    .ConfigureAwait(false);
+                RequireMonsterOwner(session);
+            }
+            else
+            {
+                session = await TryApplyLegacyWeaponProficiencyExperienceAsync(
+                        context,
+                        session,
+                        requestedDamage,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                RequireMonsterOwner(session);
 
-        if (HasLegacyStatusFlag(session.Character, LegacyFocusedFlag))
-        {
-            var focusedCharacter = WithoutCharacterAttribute(
-                WithoutCharacterAttribute(
-                    WithoutLegacyStatusFlag(session.Character, LegacyFocusedFlag),
-                    "doFocus"),
-                "DoFocus");
-            session = session with { Character = focusedCharacter };
-            context = context with { Session = session };
-            context.Sessions?.Set(context.Connection, session);
-            await SendPlayerStatusFlagVectorToVisibleAsync(context, session, cancellationToken)
-                .ConfigureAwait(false);
+                var experience = await TryApplyLegacyMonsterExperienceWithOutcomeAsync(
+                        context,
+                        session,
+                        monster,
+                        monsterFamily,
+                        result.DamageApplied,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                session = experience.Session; experienceCompleted = experience.Completed;
+                RequireMonsterOwner(session);
+            }
+
+            if (result.Killed)
+            {
+                session = await TryApplyLegacyWeaponProficiencyExperienceAsync(
+                        context,
+                        session,
+                        requestedDamage,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                RequireMonsterOwner(session);
+
+                var experience = await TryApplyLegacyMonsterExperienceWithOutcomeAsync(
+                        context,
+                        session,
+                        monster,
+                        monsterFamily,
+                        requestedDamage,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                session = experience.Session; experienceCompleted = experience.Completed;
+                RequireMonsterOwner(session);
+            }
+
+            if (!result.Killed &&
+                await TryHandleLegacyPostPhysicalLearnedMonsterProcsAsync(
+                        context with { Session = session },
+                        packet,
+                        session,
+                        monster,
+                        cancellationToken)
+                    .ConfigureAwait(false) &&
+                context.Sessions is { } sessionsAfterProc &&
+                sessionsAfterProc.TryGet(context.Connection, out var sessionAfterProc) &&
+                sessionAfterProc is not null)
+            {
+                session = sessionAfterProc;
+                context = context with { Session = session };
+            }
+            RequireMonsterOwner(session);
+
+            if (HasLegacyStatusFlag(session.Character, LegacyFocusedFlag))
+            {
+                var focusedCharacter = WithoutCharacterAttribute(
+                    WithoutCharacterAttribute(
+                        WithoutLegacyStatusFlag(session.Character, LegacyFocusedFlag),
+                        "doFocus"),
+                    "DoFocus");
+                session = session with { Character = focusedCharacter };
+                context = context with { Session = session };
+                context.Sessions?.Set(context.Connection, session);
+                await SendPlayerStatusFlagVectorToVisibleAsync(context, session, cancellationToken)
+                    .ConfigureAwait(false);
+                RequireMonsterOwner(session);
+                await context.Log.WriteLineAsync(
+                        "WorldServer consumed legacy Focused attack " +
+                        $"{FormatSession(context)} statusFlag={LegacyFocusedFlag}; " +
+                        "source=MsgAttackPacket.cs RemoveFlag(Focused) one-shot focus attack.")
+                    .ConfigureAwait(false);
+            }
+
             await context.Log.WriteLineAsync(
-                    "WorldServer consumed legacy Focused attack " +
-                    $"{FormatSession(context)} statusFlag={LegacyFocusedFlag}; " +
-                    "source=MsgAttackPacket.cs RemoveFlag(Focused) one-shot focus attack.")
+                    "WorldServer handled monster combat " +
+                    $"{FormatSession(context)} monsterUid={monster.Uid} " +
+                    FormatLegacyPlayerMonsterPhysicalDamageAudit(
+                        context,
+                        session,
+                        monster,
+                        monsterFamily,
+                        requestedDamage,
+                        result))
                 .ConfigureAwait(false);
+            RequireMonsterOwner(session);
+            if (ownedStore is not null && monsterAttempt is not null && !result.Killed && experienceCompleted)
+                _ = ownedStore.TryArmCompletedMonsterPhysical(IssueCompletedMonsterPhysicalHit(
+                    context with { Session = session }, monsterAttempt, session));
+            return true;
+            }
+        catch (Exception error)
+        {
+            if (ownedStore is not null && monsterAttempt is not null)
+                throw ownedStore.FinishMonsterPhysical(context, monsterAttempt, error) ?? error;
+            throw;
         }
-
-        await context.Log.WriteLineAsync(
-                "WorldServer handled monster combat " +
-                $"{FormatSession(context)} monsterUid={monster.Uid} " +
-                FormatLegacyPlayerMonsterPhysicalDamageAudit(
-                    context,
-                    session,
-                    monster,
-                    monsterFamily,
-                    requestedDamage,
-                    result))
-            .ConfigureAwait(false);
-        return true;
+        finally
+        {
+            if (ownedStore is not null && monsterAttempt is not null)
+                _ = ownedStore.FinishMonsterPhysical(context, monsterAttempt, null);
+        }
     }
 
     private static string FormatLegacyPlayerMonsterPhysicalDamageAudit(

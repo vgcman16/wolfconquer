@@ -99,7 +99,7 @@ public sealed class LegacyOwnedPeriodicCombatExperienceTests
                 Assert.Equal((ushort)139, binding.Player.Level); Assert.Equal(5000, binding.Player.HitPoints);
                 Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
                 Assert.True(visible); Assert.NotNull(damaged); Assert.True(damaged.Hitpoints < beforeTick.Hitpoints);
-                Assert.Contains("combatExperienceCharacterImageInvalid", f.Log.ToString());
+                Assert.Contains("WorldServer refused combat experience continuation reason=experienceCreditCharacterImageInvalid.", f.Log.ToString());
                 Assert.DoesNotContain(f.ActorFrames, bytes => LegacyMsgUpdatePacket.TryParse(
                     OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var update) &&
                     update.Updates.Any(row => row.Type == LegacyMsgUpdateDataType.Experience));

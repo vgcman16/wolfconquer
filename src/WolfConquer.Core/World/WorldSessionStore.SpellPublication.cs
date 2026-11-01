@@ -59,8 +59,14 @@ public sealed partial class WorldSessionStore
             LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication = null,
             LegacyPreparedDerivedSpellQueryWrite.Publication? derivedSpellQueryPublication = null,
             WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null,
-            OwnedAttributeChange? attributeChange = null)
+            OwnedAttributeChange? attributeChange = null,
+            WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery = null)
         {
+            bool pendingContinuation = !LegacyExperienceContinuationFence.AllowsOrdinaryPublication(expected, proposed);
+            if (pendingContinuation && (continuationQuery is not null ? derivedSpellQueryPublication is not null :
+                    derivedSpellQueryPublication?.PermitsPendingContinuation(store, connection, expected, proposed) != true) ||
+                !pendingContinuation && continuationQuery is not null)
+                throw new InvalidOperationException("experienceContinuationPendingRequiresOwner");
             this.store = store; this.connection = connection; this.holder = holder; this.expected = expected;
             this.deferItems = deferItems;
             this.runePublication = runePublication;
@@ -137,6 +143,7 @@ public sealed partial class WorldSessionStore
                 expected.Character.Uid == proposed.Character.Uid ? holder.NativeClientIdentity : new object();
             if (binding is null)
             {
+                if (continuationQuery is not null) throw InvalidSpellPublication();
                 if (derivedSpellQueryPublication is not null) throw InvalidSpellPublication();
                 if (ownedHawksCast is not null) throw InvalidSpellPublication();
                 if (basicPhysical is not null || physicalDeathPublication is not null) throw InvalidSpellPublication();
@@ -165,6 +172,12 @@ public sealed partial class WorldSessionStore
             actors = new(binding);
             try
             {
+                if (continuationQuery is not null && (expected is null || !ReferenceEquals(continuationQuery.Expected, expected) ||
+                    !ReferenceEquals(continuationQuery.Proposed, proposed) || !continuationQuery.IsCurrentPlain(binding) ||
+                    caprice is not null || deferItems || runePublication is not null || pairMovementPublication is not null ||
+                    movementPublication is not null || physicalDeath is not null || ownedHawksCast is not null || basicPhysical is not null ||
+                    physicalDeathPublication is not null || teleportPublication is not null || derivedSpellQueryPublication is not null ||
+                    classRetirement is not null || attributeChange is not null)) throw InvalidSpellPublication();
                 if (basicPhysical is not null && (!ReferenceEquals(basicPhysical.TargetBinding, binding) ||
                     !basicPhysical.IsCurrentPlain() || !basicPhysical.CanonicalOutcomesMatch(basicPhysical.Actor, proposed)))
                     throw InvalidSpellPublication();
@@ -209,8 +222,10 @@ public sealed partial class WorldSessionStore
                     expected.Character.MinMana != final.Character.MinMana || caprice is not null)
                     HitpointsWrite = (store.framePersistenceOwner ?? throw InvalidSpellPublication())
                         .PrepareNativeHitpointsWrite(store, connection, binding, expected, final, caprice, runePublication, pairMovementPublication, movementPublication,
-                            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement);
+                            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement, continuationQuery);
                 FinalSession = HitpointsWrite?.Proposed ?? final;
+                if (continuationQuery is not null && !SameContinuationQuerySession(continuationQuery.Proposed, FinalSession))
+                    throw InvalidSpellPublication();
                 hawks = OwnedHawksAmbitionPublication.PrepareBound(binding, expected, FinalSession, ownedHawksCast);
                 action = LegacyNativePlayerRuntime.OwnedActionPublication.PrepareBound(binding, expected, FinalSession);
                 actorScalars = LegacyNativePlayerRuntime.OwnedActorScalarsPublication.PrepareBound(binding, expected, FinalSession, pairMovementPublication, movementPublication, teleportPublication, classRetirement, attributeChange);

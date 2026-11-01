@@ -202,7 +202,8 @@ internal sealed partial class LegacyTradeRecoveryState(string? usersRoot, string
                     Block(reason);
                     return false;
                 }
-                if (!LegacyTradeEscrowClaims.TryRecoverAll(usersRoot, out _, out reason))
+                if (!LegacyTradeEscrowClaims.TryRecoverAll(usersRoot,
+                        CaptureExperienceEscrowRecoveryPermit(usersRoot), out _, out reason))
                 {
                     Block(reason);
                     return false;

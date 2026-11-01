@@ -9,7 +9,8 @@ public static partial class WorldPacketHandlers
     internal sealed partial class PreparedLevelUpRebuild
     {
         private readonly WorldPacketHandlerContext context;
-        private readonly OwnedCombatExperience purpose;
+        private readonly OwnedCombatExperience? purpose;
+        private readonly WorldSessionStore.OwnedContinuationStep? continuation;
         private readonly LegacyOrdinarySpellBinding binding;
         private readonly WorldSession expected, proposed;
         private readonly LegacyNativeAttributeMapProof attributes, paid;
@@ -22,11 +23,13 @@ public static partial class WorldPacketHandlers
 
         internal string? LockedSpellPath => spellFile?.SpellsPath;
 
-        private PreparedLevelUpRebuild(WorldPacketHandlerContext context, OwnedCombatExperience purpose,
+        private PreparedLevelUpRebuild(WorldPacketHandlerContext context, OwnedCombatExperience? purpose,
+            WorldSessionStore.OwnedContinuationStep? continuation,
             LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed)
         {
-            this.context = context; this.purpose = purpose; this.binding = binding;
+            this.context = context; this.purpose = purpose; this.continuation = continuation; this.binding = binding;
             this.expected = expected; this.proposed = proposed;
+            continuationMarker = continuation is null ? null : LegacyExperienceContinuationCodec.ReadCharacter(proposed.Character, proposed.AccountId);
             attributes = LegacyNativeAttributeMapProof.CaptureRaw(expected.Character.Attributes);
             paid = LegacyNativeAttributeMapProof.CaptureRaw(expected.Character.PaidNobility);
             if (!LegacyItemSaveGraph.TryCapture(expected.PlayerItems, out var captured) || captured is null)
@@ -46,14 +49,18 @@ public static partial class WorldPacketHandlers
 
         internal static bool TryPrepare(WorldPacketHandlerContext context, OwnedCombatExperience purpose,
             LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed,
-            out PreparedLevelUpRebuild? plan)
+            out PreparedLevelUpRebuild? plan) => TryPrepareCore(context, purpose, null, binding, expected, proposed, out plan);
+
+        private static bool TryPrepareCore(WorldPacketHandlerContext context, OwnedCombatExperience? purpose,
+            WorldSessionStore.OwnedContinuationStep? continuation, LegacyOrdinarySpellBinding binding,
+            WorldSession expected, WorldSession proposed, out PreparedLevelUpRebuild? plan)
         {
             plan = null;
-            if (!purpose.CoversRebuild(context, binding, expected, proposed) ||
+            if ((purpose is null) == (continuation is null) ||
                 !binding.Store.IsLevelUpRebuildOwnerHeld(binding, expected, context) ||
                 !ReferenceEquals(context.WorldData, binding.ItemCatalog) ||
                 !ReferenceEquals(proposed.NativeGameClient, binding.Client) || proposed.AccountId != binding.AccountId ||
-                proposed.Character.Uid != binding.Uid || proposed.Character.Level <= expected.Character.Level ||
+                proposed.Character.Uid != binding.Uid || purpose is not null && proposed.Character.Level <= expected.Character.Level ||
                 proposed.Character.MinHitPoints != expected.Character.MinHitPoints || proposed.Character.MinMana != expected.Character.MinMana ||
                 proposed.Character.MaxMana != expected.Character.MaxMana ||
                 !ReferenceEquals(proposed.PlayerItems, expected.PlayerItems) || proposed.AlternateEquipmentActive != expected.AlternateEquipmentActive ||
@@ -61,7 +68,9 @@ public static partial class WorldPacketHandlers
                 !binding.Recovery.IsReadyForUsers(binding.UsersRoot)) return false;
             try
             {
-                var prepared = new PreparedLevelUpRebuild(context, purpose, binding, expected, proposed);
+                if (!(purpose?.CoversRebuild(context, binding, expected, proposed) ??
+                    ContinuationCovers(continuation!, context, binding, expected, proposed))) return false;
+                var prepared = new PreparedLevelUpRebuild(context, purpose, continuation, binding, expected, proposed);
                 if (!prepared.IsCurrentPlain()) return false;
                 plan = prepared; return true;
             }
@@ -70,7 +79,8 @@ public static partial class WorldPacketHandlers
         }
 
         internal bool IsCurrentPlain() => Volatile.Read(ref started) == 0 &&
-            purpose.CoversRebuild(context, binding, expected, proposed) &&
+            (purpose?.CoversRebuild(context, binding, expected, proposed) ??
+                ContinuationCovers(continuation!, context, binding, expected, proposed)) &&
             binding.Store.IsLevelUpRebuildOwnerHeld(binding, expected, context) && attributes.IsCurrentPlain() && paid.IsCurrentPlain() &&
             items.IsCurrent(expected.PlayerItems) && metadata.IsCurrentPlain() && speed.IsCurrentPlain(context.WorldData) &&
             (spellFile is null || spellFile.DiskImageIsCurrent());
@@ -82,6 +92,7 @@ public static partial class WorldPacketHandlers
             if (committed is not null || !IsCurrentPlain() || !SameProgression(final) ||
                 final.Character.MinHitPoints != proposed.Character.MinHitPoints || final.Character.MinMana != proposed.Character.MinMana ||
                 final.Character.MaxMana != proposed.Character.MaxMana ||
+                !ContinuationMarkerMatches(final) ||
                 !items.IsCurrent(final.PlayerItems)) throw new InvalidOperationException("levelUpRebuildFinalChanged");
             committed = final;
         }

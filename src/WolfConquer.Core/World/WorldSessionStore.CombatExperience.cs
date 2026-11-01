@@ -13,6 +13,8 @@ public sealed partial class WorldSessionStore
     {
         RefuseBoundSpellReentry(recipient);
         result = null; progression = default; receipt = null; frames = []; rebuild = null; refusal = "combatExperienceOwnerOrInputUnproven";
+        if (!LegacyExperienceContinuationFence.AllowsOrdinaryPublication(expected, expected))
+        { refusal = "experienceContinuationPendingRequiresOwner"; return false; }
         if (!purpose.Covers(this, context, recipient, expected, gain) || framePersistenceOwner is not { } frame ||
             context.WorldData is not { } catalog) return false;
         var recipientContext = context with { Connection = recipient, Session = expected };

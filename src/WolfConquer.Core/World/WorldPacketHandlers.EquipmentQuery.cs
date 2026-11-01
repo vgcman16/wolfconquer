@@ -10,6 +10,11 @@ public static partial class WorldPacketHandlers
     {
         var execution = new LegacyEquipmentQueryExecution(context, session, request)
         { CancellationToken = cancellationToken };
+        if (!TryBindContinuationInvocation(execution, context, session, request.Scope))
+        {
+            execution.RefuseIncompleteQuery();
+            return execution.Outcome();
+        }
         if (!execution.Refresh())
         {
             await context.Log.WriteLineAsync($"WorldServer equipment query refused phase=initial-owner loss={execution.Current.Loss}.").ConfigureAwait(false);

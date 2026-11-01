@@ -20,6 +20,8 @@ internal static partial class LegacyTradeJournal
             throw new InvalidDataException("Missing derived spell query23 intent.");
         RequireDerivedSpellQueryOrder(record.Changes);
         var character = record.Changes[0]; var spells = record.Changes[1];
+        _ = LegacyDerivedSpellContinuationImages.RequirePreserved(character.FileId, operation.TargetUid,
+            character.Before!, character.After);
         var before = CharacterSnapshotParser.ParseText(CharacterSnapshotFileEncoding.Decode(character.Before!, out _));
         var projected = operation.Project(character.Before!, spells.Before);
         if (before.Uid != operation.TargetUid || spells.FileId != operation.TargetUid ||

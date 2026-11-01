@@ -68,9 +68,11 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
         Assert.Equal(before.HighWater + (uint)allocation.Count, state["HighWater"]!.GetValue<uint>());
         Assert.Equal(before.Generation + 3, state["Generation"]!.GetValue<ulong>());
         Assert.Equal(1UL, state["ArchiveCount"]!.GetValue<ulong>());
+        // One complete read per observation; preserve every existing file/byte assertion.
+        var currentFiles = f.Data.Files();
         foreach (var pair in before.Files)
             if (!pair.Key.StartsWith(Path.GetRelativePath(f.Data.Root, f.Data.Registry) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                Assert.Equal(pair.Value, f.Data.Files()[pair.Key]);
+                Assert.Equal(pair.Value, currentFiles[pair.Key]);
         AssertCurrentCreated(f, expectedItems);
     }
 

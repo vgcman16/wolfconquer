@@ -32,6 +32,8 @@ internal partial class LegacyNativeRoleQuests
     private static Result SaveLocked(LegacyNativeGameClientRuntime client, LegacyNativePlayerRuntime player,
         LegacyNativeQuestsRuntime book, QuestLocation location)
     {
+        if (!HasClearBoundExperienceContinuation(client, player))
+            return new(Outcome.Rejected, "experienceContinuationPendingRequiresOwner");
         if (IndeterminatePaths.TryGetValue(location.Path, out var reason)) return new(Outcome.RecoveryRequired, reason);
         location.EnsureSafe();
         var before = ReadImage(location.Path);

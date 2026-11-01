@@ -42,16 +42,41 @@ public sealed partial class WorldServerFrameHandler
                 return;
             }
 
+            var snapshot = snapshotLoad.Snapshot;
+            string experienceReason = "snapshotLoaderUnavailable";
+            LegacyOrdinaryAdmissionPlan.ExperienceBeforeNativeEvidence? experienceBeforeNative = null;
+            if (_snapshotLoader is not { } loader ||
+                !LegacyOrdinaryAdmissionPlan.ExperienceBeforeNativeEvidence.TryCapture(loader, snapshot, characterUid,
+                    out experienceBeforeNative, out experienceReason) || experienceBeforeNative is null)
+            {
+                await _log.WriteLineAsync($"WorldServer refused legacy admission before native prefix key={characterUid} reason={experienceReason}.")
+                    .ConfigureAwait(false);
+                return;
+            }
+            if (experienceBeforeNative.Pending is not null)
+            {
+                if (!experienceBeforeNative.CaptureReadiness(this) ||
+                    !TryPreparePendingExperienceAdmission(connection, characterUid, snapshot, experienceBeforeNative,
+                        out var pendingPlan, out experienceReason) || pendingPlan is null)
+                {
+                    await _log.WriteLineAsync($"WorldServer held pending experience before admission key={characterUid}; saved data or owner unavailable reason={experienceReason}.")
+                        .ConfigureAwait(false);
+                    return;
+                }
+                await PublishPendingExperienceAdmissionAsync(connection, characterUid, pendingPlan, experienceBeforeNative, cancellationToken)
+                    .ConfigureAwait(false);
+                return;
+            }
+
             if (await TryRejectLegacyDuplicateLoginAsync(connection, characterUid, cancellationToken)
                     .ConfigureAwait(false))
             {
                 return;
             }
 
-            var snapshot = snapshotLoad.Snapshot;
             if (await TryStartLegacyMailboxRecoveryBeforePrefixAsync(connection, characterUid, snapshot, cancellationToken)
                     .ConfigureAwait(false)) return;
-            await StartLegacyOrdinaryExistingCharacterAsync(connection, characterUid, snapshot, cancellationToken)
+            await StartLegacyOrdinaryExistingCharacterAsync(connection, characterUid, snapshot, experienceBeforeNative, cancellationToken)
                 .ConfigureAwait(false);
         }
         finally

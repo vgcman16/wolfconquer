@@ -67,8 +67,13 @@ public sealed partial class WorldSessionStore
         internal void FenceCommittedAttributeFailure(Exception primary) => FenceCommittedQueryFailure(primary,
             "ownedAttributeSetRecoveryRequired:queryPublicationUnproven", "Committed attribute allocation and recovery fencing failed.");
 
-        internal void FenceCommittedLevelUpFailure(Exception primary) => FenceCommittedQueryFailure(primary,
-            "ownedLevelUpRecoveryRequired:queryPublicationUnproven", "Committed level-up and recovery fencing failed.");
+        internal void FenceCommittedLevelUpFailure(Exception primary)
+        {
+            if (store.TryRetireRecoverableContinuation(context, binding, primary))
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(primary).Throw();
+            FenceCommittedQueryFailure(primary, "ownedLevelUpRecoveryRequired:queryPublicationUnproven",
+                "Committed level-up and recovery fencing failed.");
+        }
 
         private void FenceCommittedQueryFailure(Exception primary, string reason, string aggregateMessage)
         {

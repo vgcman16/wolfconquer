@@ -4,13 +4,15 @@ namespace WolfConquer.Core.World;
 
 // Immutable learned-set/serialization capture; preparation has no save, grant,
 // Store, transport or client effects. Selection changes only which rows are sent.
-internal sealed class LegacySpellPublicationPlan
+internal sealed partial class LegacySpellPublicationPlan
 {
     internal PlayerSpellSnapshot Source { get; }
     internal PlayerSpellSnapshotEntry[] Entries { get; }
     internal byte[][] Frames { get; }
-    private LegacySpellPublicationPlan(PlayerSpellSnapshot source, PlayerSpellSnapshotEntry[] entries, byte[][] frames)
-    { Source = source; Entries = entries; Frames = frames; }
+    private readonly PlayerSpellSnapshotEntry[] selectedEntries;
+    private LegacySpellPublicationPlan(PlayerSpellSnapshot source, PlayerSpellSnapshotEntry[] entries,
+        PlayerSpellSnapshotEntry[] selectedEntries, byte[][] frames)
+    { Source = source; Entries = entries; this.selectedEntries = selectedEntries; Frames = frames; }
 
     internal static bool TryPrepare(PlayerSpellSnapshot source, IReadOnlySet<ushort>? selection,
         out LegacySpellPublicationPlan? plan)
@@ -23,9 +25,9 @@ internal sealed class LegacySpellPublicationPlan
             if (captured.Length != rows.Count || captured.Any(row => row is null || row.Id == 0 || row.Experience < 0) ||
                 captured.Select(row => row.Id).Distinct().Count() != captured.Length) return false;
             if (selection is not null && selection.Any(id => !captured.Any(row => row.Id == id))) return false;
-            var frames = captured.Where(row => selection is null || selection.Contains(row.Id))
-                .Select(row => LegacySpellPacket.FromSnapshot(row).ToFrameBytes()).ToArray();
-            plan = new(source, captured, frames);
+            var selected = captured.Where(row => selection is null || selection.Contains(row.Id)).ToArray();
+            var frames = selected.Select(row => LegacySpellPacket.FromSnapshot(row).ToFrameBytes()).ToArray();
+            plan = new(source, captured, selected, frames);
             return true;
         }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException or OverflowException)

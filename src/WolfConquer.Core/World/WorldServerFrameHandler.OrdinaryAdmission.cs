@@ -28,12 +28,13 @@ public sealed partial class WorldServerFrameHandler
     }
 
     private async ValueTask StartLegacyOrdinaryExistingCharacterAsync(ConquerTcpConnection connection, long accountId,
-        CharacterSnapshot snapshot, CancellationToken cancellationToken)
+        CharacterSnapshot snapshot, LegacyOrdinaryAdmissionPlan.ExperienceBeforeNativeEvidence experienceBeforeNative,
+        CancellationToken cancellationToken)
     {
         if (_snapshotLoader is not { } loader) return;
         if (!LegacyOrdinaryAdmissionPlan.TryPrepare(this, connection, accountId, snapshot.Name, snapshot, loader,
                 _ordinaryAdmissionUids, _tradeRecovery, _runtimeUpdateLoop.TimeProvider ?? TimeProvider.System,
-                out var plan, out var reason) || plan is null ||
+                out var plan, out var reason, experienceBeforeNative) || plan is null ||
             !_sessions.TryCommitOrdinaryAdmission(connection, plan, out var admitted, out reason) || admitted is null)
         {
             await _log.WriteLineAsync($"WorldServer skipped legacy accepted-login local prefix/admission key={accountId} reason={reason}.")
@@ -46,6 +47,18 @@ public sealed partial class WorldServerFrameHandler
         if (plan.NativeGearMetadataHeld)
             await _log.WriteLineAsync($"WorldServer native CombatGear held key={accountId}; complete native metadata owner unavailable.")
                 .ConfigureAwait(false);
+        if (experienceBeforeNative.Pending is not null)
+        {
+            // Unexpected pending state on the ordinary (non-continuation)
+            // route cannot use that route's startup. Hold the actual owner and
+            // retain the durable marker for the continuation route.
+            var origin = plan.CaptureExperienceAdmissionOrigin(experienceBeforeNative);
+            if (origin is null || !_sessions.TryHoldPendingExperienceAdmission(origin))
+                plan.Recovery.Block("experienceContinuationAdmissionHoldUnproven");
+            await _log.WriteLineAsync($"WorldServer held pending experience admission key={accountId}; startup query owner unavailable.")
+                .ConfigureAwait(false);
+            return;
+        }
         cancellationToken.ThrowIfCancellationRequested();
         if (!_sessions.TryGet(connection, out var current) || !ReferenceEquals(current, admitted) ||
             !plan.IsPublishedNativeOwnerCurrent())

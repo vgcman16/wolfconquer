@@ -22,7 +22,9 @@ internal static class LegacyItemWorldDataFixture
         IReadOnlyList<CombatGearRankEntry>? combatGearRanks = null,
         IReadOnlyList<Monster>? monsters = null,
         IReadOnlyList<MagicType>? magic = null,
-        IReadOnlyList<LevelExperience>? levelExperience = null)
+        IReadOnlyList<LevelExperience>? levelExperience = null,
+        IReadOnlyList<MonsterSpawn>? monsterSpawns = null,
+        IReadOnlyList<MagicEffect>? magicEffects = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -106,7 +108,7 @@ internal static class LegacyItemWorldDataFixture
             questMissions: [],
             quizQuestions: [],
             magic: magic ?? [],
-            magicEffects: [],
+            magicEffects: magicEffects ?? [],
             magicTypeOperations: magicTypeOperations ?? [],
             titleTypes: [],
             combatGear: [],
@@ -117,7 +119,7 @@ internal static class LegacyItemWorldDataFixture
             maps: [],
             mapNames: [],
             monsters: monsters ?? [],
-            monsterSpawns: [],
+            monsterSpawns: monsterSpawns ?? [],
             lotteryDictionary: [],
             collectionRewardTiers: [],
             taskRewardTypes: [],

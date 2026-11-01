@@ -56,7 +56,8 @@ public static partial class WorldPacketHandlers
         }
 
         if (owner is not null && (scope.AttributeRebuild is { } rebuild && !rebuild.IsQueryCurrent(context, session, owner) ||
-            scope.LevelUpRebuild is { } levelUp && !levelUp.IsQueryCurrent(context, session, owner)))
+            scope.LevelUpRebuild is { } levelUp && !levelUp.IsQueryCurrent(context, session, owner) ||
+            scope.AdmissionContinuation is { } admission && !admission.IsQueryCurrent(context, session, owner)))
         {
             owner = null;
             loss |= LegacyEquipmentQueryPublicationLoss.OwnerLost;

@@ -10,16 +10,12 @@ public static partial class WorldPacketHandlers
         internal async ValueTask<CompletedLevelUpPublication?> RebuildAndRestoreAsync(
             WorldSessionStore.ActionPublication receipt, CancellationToken cancellationToken)
         {
-            if (Interlocked.CompareExchange(ref started, 1, 0) != 0 || committed is null ||
+            if (purpose is null || continuation is not null || Interlocked.CompareExchange(ref started, 1, 0) != 0 || committed is null ||
                 !ReferenceEquals(receipt.Published, committed) || !receipt.TryCurrent(out var current) ||
                 !ReferenceEquals(current, committed) || !IsQueryCurrent(context, current, current)) return null;
-            var scope = new LegacyEquipmentQueryPublicationScope(binding.Uid, current.PlayerItems)
-            { OwnerNativeClientIdentity = binding.NativeIdentity, PhysicalReceiveOwner = binding, LevelUpRebuild = this };
-            var result = await ExecuteLegacyEquipmentQueryAsync(context with { Session = current }, current,
-                new LegacyEquipmentQueryRequest(LegacyEquipmentRebuildReason.LevelUp, scope, CallItems: false),
-                cancellationToken).ConfigureAwait(false);
-            if (!result.Admitted || !result.Completed || result.Session is not { } rebuilt || completion is null ||
-                !IsQueryCurrent(context, rebuilt, rebuilt)) return null;
+            var rebuilt = await ExecuteQueryAsync(current, cancellationToken).ConfigureAwait(false);
+            if (rebuilt is null) return null;
+            var scope = CreateScope(rebuilt);
 
             // UpdateLevel restores HP only after the real full query. The
             // ordinary bound HP writer commits before team/self setter sends.
@@ -43,6 +39,9 @@ public static partial class WorldPacketHandlers
         }
 
         internal bool IsQueryCurrent(WorldPacketHandlerContext actual, WorldSession supplied, WorldSession current) =>
+            IsQueryOwnerCurrent(actual, supplied, current) && ContinuationMarkerMatches(current);
+
+        private bool IsQueryOwnerCurrent(WorldPacketHandlerContext actual, WorldSession supplied, WorldSession current) =>
             Volatile.Read(ref started) == 1 && committed is not null && ReferenceEquals(supplied, current) &&
             ReferenceEquals(actual.Connection, context.Connection) && ReferenceEquals(actual.Sessions, binding.Store) &&
             ReferenceEquals(actual.WorldData, context.WorldData) &&
@@ -52,6 +51,21 @@ public static partial class WorldPacketHandlers
             SameProgression(current) && items.IsCurrent(current.PlayerItems) && metadata.IsCurrentPlain() &&
             speed.IsCurrentPlain(context.WorldData) &&
             binding.Store.IsLevelUpRebuildQueryOwnerCurrent(binding, current, actual, completion);
+
+        private LegacyEquipmentQueryPublicationScope CreateScope(WorldSession current) => new(binding.Uid, current.PlayerItems)
+            { OwnerNativeClientIdentity = binding.NativeIdentity, PhysicalReceiveOwner = binding, LevelUpRebuild = this };
+
+        private async ValueTask<WorldSession?> ExecuteQueryAsync(WorldSession current, CancellationToken cancellationToken)
+        {
+            var actual = context with { Session = current };
+            var scope = CreateScope(current);
+            if (continuation is not null) RegisterContinuationInvocation(this, actual, current, scope);
+            var result = await ExecuteLegacyEquipmentQueryAsync(actual, current,
+                new LegacyEquipmentQueryRequest(LegacyEquipmentRebuildReason.LevelUp, scope, CallItems: false),
+                cancellationToken).ConfigureAwait(false);
+            return result.Admitted && result.Completed && result.Session is { } rebuilt && completion is not null &&
+                IsQueryCurrent(context, rebuilt, rebuilt) ? rebuilt : null;
+        }
 
         internal bool IsRestoredCurrent(WorldSession current) => completion is not null &&
             ReferenceEquals(current, restoredSession) && IsQueryCurrent(context, current, current);

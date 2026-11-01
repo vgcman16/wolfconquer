@@ -23,6 +23,8 @@ public static partial class WorldPacketHandlers
                         completed = LegacyNativeMagicQueryClient.PublishCompletedMaximums(binding, Session, queryEpoch, out var proof);
                         if (completed && Request.Scope.LevelUpRebuild is { } levelUp)
                             completed = proof is not null && levelUp.AcceptQueryCompletion(Context, Session, proof);
+                        if (completed && Request.Scope.AdmissionContinuation is { } admission)
+                            completed = proof is not null && admission.AcceptQueryCompletion(Context, Session, proof);
                     }
                 });
             return completed;

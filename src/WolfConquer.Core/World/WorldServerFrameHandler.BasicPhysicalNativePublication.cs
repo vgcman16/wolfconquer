@@ -2,8 +2,9 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class WorldServerFrameHandler
 {
-    private sealed record BasicPhysicalRepeat(LegacyOrdinarySpellBinding Target,
-        LegacyNativeGameClientRuntime.BasicPhysicalNativeSnapshot Native, long Generation);
+    private sealed record BasicPhysicalRepeat(LegacyOrdinarySpellBinding? Target,
+        LegacyNativeGameClientRuntime.BasicPhysicalNativeSnapshot Native, long Generation,
+        MonsterRuntimeStateStore.OwnedMonsterRepeatTarget? Monster = null);
 
     internal sealed class BasicPhysicalNativePublication
     {

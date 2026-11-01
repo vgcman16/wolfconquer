@@ -8,12 +8,16 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
     internal static bool TryPrepare(WorldServerFrameHandler frame, ConquerTcpConnection connection,
         long accountId, string username, CharacterSnapshot raw, CharacterSnapshotLoader loader,
         LegacyOrdinaryAdmissionUidOwner? uids, LegacyTradeRecoveryState recovery, TimeProvider clock,
-        out LegacyOrdinaryAdmissionPlan? plan, out string reason)
+        out LegacyOrdinaryAdmissionPlan? plan, out string reason, ExperienceBeforeNativeEvidence? experienceBeforeNative = null)
     {
         plan = null; reason = "ordinaryAdmissionPreparationRefused";
         try
         {
             if (accountId is <= 0 or > uint.MaxValue || raw.Uid is <= 0 or > uint.MaxValue || recovery.IsBlocked) return false;
+            if (experienceBeforeNative is not null && !experienceBeforeNative.IsCurrentPlain())
+            { reason = "experienceAdmissionBeforeNativeChanged"; return false; }
+            if (experienceBeforeNative is null && raw.Attributes.Keys.Any(key => key.Equals(LegacyExperienceContinuationCodec.Key, StringComparison.OrdinalIgnoreCase)))
+            { reason = "experienceAdmissionBeforeNativeProofMissing"; return false; }
             if (!LegacyOrdinaryAdmissionReconciliation.TryRequireOwner(loader, uids, out reason)) return false;
             if (uids?.IsPending(checked((uint)accountId)) == true)
             { reason = "ordinaryAdmissionRecoveryRequired:unsafeRetainedWorkRequiresReconciliation"; return false; }
@@ -32,8 +36,8 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             var source = loadedSource with
             {
                 Online = 1,
-                Attributes = new Dictionary<string, string>(loadedSource.Attributes, StringComparer.OrdinalIgnoreCase) { ["Online"] = "1" },
-                PaidNobility = new Dictionary<string, string>(loadedSource.PaidNobility, StringComparer.OrdinalIgnoreCase),
+                Attributes = LegacyOrdinaryAdmissionImages.CopyWithOwnedField(loadedSource.Attributes, "Online", "1"),
+                PaidNobility = LegacyOrdinaryAdmissionImages.CopyRaw(loadedSource.PaidNobility),
             };
             var localNow = clock.GetLocalNow().DateTime;
             var character = LegacyOrdinaryAdmissionImages.PrepareSnapshot(source, localNow, out var pin);
@@ -80,6 +84,8 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             { reason = "ordinaryAdmissionProficienciesRootMissing"; return false; }
             var candidate = new LegacyOrdinaryAdmissionPlan(frame, connection, accountId, username, roots, images,
                 source, character, items, spells, profs, gear, normalized, pin, prefix, equipment, uids, recovery, localNow);
+            if (experienceBeforeNative is not null && !experienceBeforeNative.BindPreparedPlan(candidate))
+            { reason = "experienceAdmissionPreparedPlanChanged"; return false; }
             if (!candidate.IsCurrent()) { reason = "ordinaryAdmissionOwnerChanged"; return false; }
             plan = candidate; reason = string.Empty; return true;
         }

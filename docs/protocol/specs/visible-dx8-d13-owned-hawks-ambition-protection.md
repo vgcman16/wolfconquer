@@ -56,3 +56,8 @@
 - New modules: `LegacyOwnedHawksAmbitionMetadata.cs`, `WorldPacketHandlers.OwnedHawksAmbition.cs`, `WorldSessionStore.OwnedHawksAmbition{,.Publication,.Cast,.Output}.cs`, typed context output property; narrow actual caster hook. Lead owns generic publication/EOF/clock joins, restrictive shared transport/XP checks and receive writer sequencing.
 - Outside design/handoff: `OWNED-HAWKS-AMBITION-SPEC-R1.md` and finite path manifest in containing artifact. No frozen predecessor edits.
 - Source-only/current owner review does not establish runtime, live-client, deployment, full combat or full parity completion. Fixed-source-bug qualification remains Root-owned.
+
+## Continuation fixture correction, 2026-11-01
+- The focused continuation run exposed a fixture deadlock: its Hawks send observer synchronously re-entered Frame for Rune Startup while the actual outer combat operation held an exclusive lease. The old Shared-to-Shared comment was obsolete; no production authority guard is bypassed to retain that interleave.
+- The replacement fixture awaits real Rune Startup after actual flag194 expiry, verifies its ranking/response, complete ten-frame equipment query and final owner/viewer fan vector, then sends Hawks. It retains the real renewed registration/lifetime, exact paid/progressed files, native/binding/peer checks and independent merged194/256 golden. No request is launched by the send observer, and every Hawks status phase must follow its real Interaction.
+- This is serialized request coverage, not a claim that a mid-cast nested Frame request is supported. Fact count is unchanged. The correction is source-only and awaits Root qualification; it supplies no new live-client evidence.

@@ -22,25 +22,35 @@ public sealed class LegacyOwnedCombatExperienceTests
             text = ReplaceLine(text, "Atributes=12", "Atributes=15");
             files[path] = Encoding.UTF8.GetBytes(text);
             int interrupted = 0;
+            Dictionary<string, byte[]>? atFailure = null;
+            long observedHp = -1;
             f.BeforeSend = (_, bytes) =>
             {
                 if (binding.Player.Level != 140 ||
                     OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode != LegacyPlayerStatusPacket.Opcode) return;
-                Assert.Equal(0, interrupted++);
-                Assert.Equal(5000L, f.Current().Character.MinHitPoints);
-                Assert.Equal(5000, binding.Player.HitPoints);
-                f.Data.AssertFiles(files);
+                interrupted++;
+                observedHp = f.Current().Character.MinHitPoints;
+                atFailure = f.Data.Files();
                 throw new IOException("owned XP equipment status interruption");
             };
-            try { await Assert.ThrowsAnyAsync<Exception>(() => HitAsync(f, monster)); }
+            Exception? outputError = null;
+            try { outputError = await Assert.ThrowsAnyAsync<Exception>(() => HitAsync(f, monster)); }
             finally { f.BeforeSend = null; }
+            Assert.IsType<IOException>(outputError);
             Assert.Equal(1, interrupted);
-            Assert.True(f.Recovery.IsBlocked);
+            Assert.Equal(5000, observedHp); Assert.Equal(5000, binding.Player.HitPoints);
+            Assert.Equal((ushort)140, binding.Player.Level); Assert.Equal(0UL, binding.Player.Experience);
+            Assert.Equal((ushort)15, binding.Player.Atributes);
+            Assert.NotNull(atFailure);
+            var pending = AssertPendingCheckpoint(f, before, monster, files, atFailure);
+            Assert.False(f.Recovery.IsBlocked);
             Assert.False(f.Store.TryGet(f.Connection(OwnedEquipmentBehaviorFixture.Actor), out _));
             Assert.True(binding.IsRetired);
-            f.Data.AssertFiles(files);
+            Assert.False(binding.Client.OnAutoAttack);
+            f.Data.AssertFiles(atFailure);
             Assert.True(states.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out var damaged));
             Assert.True(damaged.Hitpoints < monster.Hitpoints);
+            await AssertResumesOnceAsync(f, before, pending, files, path);
         });
 
     [Fact]
@@ -48,15 +58,35 @@ public sealed class LegacyOwnedCombatExperienceTests
         RunHitAsync(async (f, monster, family, states) =>
         {
             var before = f.Current();
-            var native = Assert.IsType<LegacyOrdinarySpellBinding>(before.NativeGameClient!.OrdinarySpellBinding).Player;
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(before.NativeGameClient!.OrdinarySpellBinding);
+            var native = binding.Player;
+            var files = f.Data.Files();
+            var path = Path.GetRelativePath(f.Data.Root, f.CharacterPath());
+            var text = Encoding.UTF8.GetString(files[path]);
+            text = ReplaceLine(text, "Level=139", "Level=140");
+            text = ReplaceLine(text, "Atributes=12", "Atributes=15");
+            files[path] = Encoding.UTF8.GetBytes(text);
+            Dictionary<string, byte[]>? atFailure = null;
+            int interrupted = 0;
             f.BeforeSend = (_, _) =>
             {
-                if (native.Level == 140) throw new IOException("owned XP output interruption");
+                if (native.Level != 140) return;
+                interrupted++;
+                atFailure = f.Data.Files();
+                throw new IOException("owned XP output interruption");
             };
-            try { await Assert.ThrowsAnyAsync<Exception>(() => HitAsync(f, monster)); }
+            Exception? outputError = null;
+            try { outputError = await Assert.ThrowsAnyAsync<Exception>(() => HitAsync(f, monster)); }
             finally { f.BeforeSend = null; }
-            Assert.True(f.Recovery.IsBlocked);
+            Assert.IsType<IOException>(outputError);
+            Assert.Equal(1, interrupted); Assert.NotNull(atFailure);
+            var pending = AssertPendingCheckpoint(f, before, monster, files, atFailure);
+            Assert.False(f.Recovery.IsBlocked);
             Assert.False(f.Store.TryGet(f.Connection(OwnedEquipmentBehaviorFixture.Actor), out _));
+            Assert.True(binding.IsRetired); Assert.False(binding.Client.OnAutoAttack);
+            Assert.Equal((ushort)140, native.Level); Assert.Equal(0UL, native.Experience);
+            Assert.Equal((ushort)15, native.Atributes); Assert.Equal(5000, native.HitPoints);
+            f.Data.AssertFiles(atFailure);
             var disk = new CharacterSnapshotLoader(f.Data.Users).LoadByAccountId(before.AccountId);
             Assert.NotNull(disk);
             Assert.Equal(140, disk.Level);
@@ -64,6 +94,7 @@ public sealed class LegacyOwnedCombatExperienceTests
             Assert.Equal(15, disk.AttributePoints);
             Assert.True(states.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out var damaged));
             Assert.True(damaged.Hitpoints < monster.Hitpoints);
+            await AssertResumesOnceAsync(f, before, pending, files, path);
         });
 
     [Fact]
@@ -86,7 +117,7 @@ public sealed class LegacyOwnedCombatExperienceTests
             Assert.True(states.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out var damaged));
             Assert.True(damaged.Hitpoints < monster.Hitpoints);
             Assert.DoesNotContain("WorldServer sent legacy monster experience ", f.Log.ToString());
-            Assert.Contains("WorldServer refused combat experience reason=combatExperienceCharacterReplace:capturedImageUnchanged:", f.Log.ToString());
+            Assert.Contains("WorldServer refused combat experience continuation reason=experienceCreditReplace:capturedImageUnchanged:", f.Log.ToString());
         });
 
     [Fact]
@@ -99,6 +130,9 @@ public sealed class LegacyOwnedCombatExperienceTests
                 { ["Other"] = "one", ["other"] = "two" };
             f.Store.Set(f.Connection(OwnedEquipmentBehaviorFixture.Actor), before with
                 { Character = before.Character with { Attributes = fields } });
+            var accepted = f.Current();
+            Assert.Equal("one", accepted.Character.Attributes["Other"]);
+            Assert.Equal("two", accepted.Character.Attributes["other"]);
             var files = f.Data.Files();
             var characterPath = Path.GetRelativePath(f.Data.Root, f.CharacterPath());
             var expectedText = Encoding.UTF8.GetString(files[characterPath]);
@@ -112,6 +146,9 @@ public sealed class LegacyOwnedCombatExperienceTests
             try { await HitAsync(f, monster); }
             finally { f.BeforeSend = null; }
             var after = f.Current();
+            Assert.True(after.Character.Level == 140,
+                $"Expected real level-up; current level={after.Character.Level}, XP={after.Character.Experience}, " +
+                $"recoveryBlocked={f.Recovery.IsBlocked}; Frame log:\n{f.Log}");
             Assert.Equal(140, after.Character.Level);
             Assert.Equal(0, after.Character.Experience);
             Assert.Equal(15, after.Character.AttributePoints);
@@ -151,6 +188,61 @@ public sealed class LegacyOwnedCombatExperienceTests
                 (LegacyMsgUpdateDataType.MaxHitpoints, 11136), (LegacyMsgUpdateDataType.Hitpoints, 5000))));
             Assert.Equal(Update(uid, (LegacyMsgUpdateDataType.Experience, 0)), frames[^1]);
         });
+
+    private static LegacyExperienceContinuation AssertPendingCheckpoint(OwnedEquipmentBehaviorFixture f, WorldSession before,
+        LegacyMonsterInstance monster, Dictionary<string, byte[]> expected, Dictionary<string, byte[]> actual)
+    {
+        var path = Path.GetRelativePath(f.Data.Root, f.CharacterPath());
+        Assert.Equal(expected.Keys.Order(StringComparer.OrdinalIgnoreCase), actual.Keys.Order(StringComparer.OrdinalIgnoreCase));
+        foreach (var (name, bytes) in expected)
+        {
+            if (!string.Equals(name, path, StringComparison.OrdinalIgnoreCase)) { Assert.Equal(bytes, actual[name]); continue; }
+            var actualText = Encoding.UTF8.GetString(actual[name]);
+            var lines = actualText.Split("\r\n", StringSplitOptions.None)
+                .Where(line => line.StartsWith("ExperienceContinuation=", StringComparison.Ordinal)).ToArray();
+            var marker = Assert.Single(lines);
+            Assert.Equal(Encoding.UTF8.GetString(bytes), actualText.Replace(marker + "\r\n", "", StringComparison.Ordinal));
+        }
+        var pending = LegacyExperienceContinuationCodec.ReadCharacterImage(actual[path], before.AccountId, checked((uint)before.Character.Uid));
+        Assert.NotNull(pending);
+        Assert.Equal(LegacyExperienceContinuationPhase.QueryPending, pending.Phase);
+        Assert.Equal((ushort)139, pending.InitialLevel); Assert.Equal((ushort)140, pending.CurrentLevel);
+        Assert.Equal((ushort)1, pending.StepIndex); Assert.Equal(1UL, pending.ConsumedExperience);
+        Assert.Equal(0UL, pending.InitialExperience); Assert.Equal(0UL, pending.RemainingExperience);
+        var attacks = f.ActorFrames.Select(OwnedEquipmentBehaviorFixture.ReadFrame)
+            .Select(frame => MsgAttackPacket.TryParse(frame, out var packet) ? packet : (MsgAttackPacket?)null)
+            .Where(packet => packet is { } hit && hit.Query.AttackType == MsgAttackType.Physical && hit.Query.OpponentUid == monster.Uid)
+            .Select(packet => packet!.Value).ToArray();
+        var response = Assert.Single(attacks);
+        var earned = checked((ulong)Math.Max(10, response.Query.Damage));
+        Assert.Equal(earned, pending.CreditedExperience); Assert.Equal(earned - 1, pending.CappedExperience);
+        return pending;
+    }
+
+    private static async Task AssertResumesOnceAsync(OwnedEquipmentBehaviorFixture f, WorldSession before,
+        LegacyExperienceContinuation pending, Dictionary<string, byte[]> expected, string path)
+    {
+        await f.ReconnectContinuationAsync();
+        var resumed = f.Current();
+        var binding = Assert.IsType<LegacyOrdinarySpellBinding>(resumed.NativeGameClient!.OrdinarySpellBinding);
+        Assert.NotSame(before.NativeGameClient, resumed.NativeGameClient);
+        Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+        Assert.False(binding.Client.OnAutoAttack);
+        Assert.Equal(140, resumed.Character.Level); Assert.Equal(0, resumed.Character.Experience);
+        Assert.Equal(15, resumed.Character.AttributePoints); Assert.Equal(11136, resumed.Character.MinHitPoints);
+        Assert.Equal((ushort)140, binding.Player.Level); Assert.Equal(0UL, binding.Player.Experience);
+        Assert.Equal((ushort)15, binding.Player.Atributes); Assert.Equal(11136, binding.Player.HitPoints);
+        Assert.Null(LegacyExperienceContinuationCodec.ReadCharacterImage(File.ReadAllBytes(f.CharacterPath()),
+            before.AccountId, checked((uint)before.Character.Uid)));
+        var text = Encoding.UTF8.GetString(expected[path]);
+        text = ReplaceLine(text, "MinHitPoints=5000", "MinHitPoints=11136");
+        expected[path] = Encoding.UTF8.GetBytes(text);
+        f.Data.AssertFiles(expected);
+        Assert.Equal(1UL, pending.ConsumedExperience);
+        Assert.DoesNotContain(f.ActorFrames, row => MsgAttackPacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(row), out var packet) &&
+            packet.Query.AttackType == MsgAttackType.Physical);
+        Assert.Equal(Update(OwnedEquipmentBehaviorFixture.Actor, (LegacyMsgUpdateDataType.Experience, 0)), f.ActorFrames[^1]);
+    }
 
     private static byte[] Update(uint uid, params (LegacyMsgUpdateDataType Type, ulong Value)[] entries) =>
         new LegacyMsgUpdatePacket(uid, entries.Select(entry => new LegacyMsgUpdateEntry(entry.Type, entry.Value)).ToArray()).ToFrameBytes();

@@ -38,6 +38,7 @@ public sealed partial class WorldSessionStore
             var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
             if (holder.Read() is not null || connection.NativeGameClient?.OrdinarySpellBinding is not null ||
                 candidate.NativeGameClient?.OrdinarySpellBinding is not null ||
+                !LegacyExperienceContinuationFence.AllowsOrdinaryPublication(null, candidate) ||
                 !producer.TryAdmitReadOnlyOwner(candidate, out reason)) return false;
             holder.PublishPrepared(candidate, new object());
             // Deliberately no ordinary persistence callback: this is exact

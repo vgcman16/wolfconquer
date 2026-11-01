@@ -3,7 +3,7 @@ using WolfConquer.Core.Networking;
 namespace WolfConquer.Core.World;
 
 // Pins a real entered Store/native lifetime, not a copied UID or a send callback.
-internal sealed class LegacySpellPublicationOwner
+internal sealed partial class LegacySpellPublicationOwner
 {
     private readonly WorldSessionStore sessions;
     private readonly LegacyTradeStateStore trades;
@@ -13,11 +13,12 @@ internal sealed class LegacySpellPublicationOwner
     private readonly LegacyNativePlayerRuntime? player;
     private readonly long uid, account;
     private readonly LegacySpellPublicationPlan plan;
+    private readonly WorldSession boundSession;
 
     private LegacySpellPublicationOwner(WorldSessionStore sessions, LegacyTradeStateStore trades,
         ConquerTcpConnection connection, object identity, WorldSession expected, LegacySpellPublicationPlan plan)
     { this.sessions = sessions; this.trades = trades; this.connection = connection; this.identity = identity;
-      uid = expected.Character.Uid; account = expected.AccountId; this.plan = plan;
+      uid = expected.Character.Uid; account = expected.AccountId; this.plan = plan; boundSession = expected;
       native = connection.NativeGameClient; player = native?.Player; }
 
     internal static bool TryBind(WorldSessionStore sessions, LegacyTradeStateStore trades,

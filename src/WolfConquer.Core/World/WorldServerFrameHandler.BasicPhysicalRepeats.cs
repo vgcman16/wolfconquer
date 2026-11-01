@@ -40,6 +40,9 @@ public sealed partial class WorldServerFrameHandler
             repeat.Native.Request is not { AttackType: MsgAttackType.Physical } source ||
             !LegacyNativeMagicQueryClient.TryReadAttackSpeedCache(binding, out var speed) || speed is null ||
             current.Character.Agility is < 0 or > ushort.MaxValue) return false;
+        if (repeat.Monster is { } target &&
+            (!target.TryReadCurrent(out var monster, out _, out _) || source.OpponentUid != monster.Uid ||
+             !CanSeeMonster(current.Character, monster))) return false;
         var now = slot.Readiness.ReadLocalNow();
         var delay = CalculateBasicPhysicalOrdinaryDelay(speed, checked((ushort)current.Character.Agility));
         if (now < slot.AttackStamp || now < slot.AttackStamp.AddMilliseconds(delay))

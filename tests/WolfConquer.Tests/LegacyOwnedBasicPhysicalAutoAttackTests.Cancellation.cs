@@ -120,28 +120,37 @@ public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
     });
 
     [Fact]
-    public Task ActualSameValueStanceDuringInteractionCannotRearmTheCancelledAttempt() => Run(async f =>
+    public Task SameValueStanceQueuedDuringInteractionCancelsTheAcceptedRepeat() => Run(async f =>
     {
         await f.SitAsync();
         var before = f.Files(); var after = HpImage(f, before, 2000, 1700);
-        var stamp = f.Clock.GetLocalNow().DateTime; bool reentered = false;
+        var stamp = f.Clock.GetLocalNow().DateTime; Task? queuedStance = null;
         f.BeforeSend = (recipient, bytes) =>
         {
-            if (reentered || recipient != Actor || !IsPhysical(bytes)) return;
+            if (queuedStance is not null || recipient != Actor || !IsPhysical(bytes)) return;
             f.AssertFiles(after); f.AssertCoherent(1700); AssertCommittedActor(f, stamp);
             Assert.Equal(InteractionGolden(), bytes);
-            reentered = true;
-            // The actual transport observer reenters the real Frame. No
-            // private request, stamp, queue or cancellation bit is supplied.
-            f.Owner.SendAsync(Actor, new MsgActionPacket { Type = MsgActionType.ChangeStance, DwParam = 0 }
-                .ToFrameBytes()).GetAwaiter().GetResult();
+            // Queue the actual Frame while the physical Frame owns the lease;
+            // do not wait for it inside the transport observer.
+            queuedStance = f.Owner.SendAsync(Actor, new MsgActionPacket { Type = MsgActionType.ChangeStance, DwParam = 0 }
+                .ToFrameBytes());
+            Assert.False(queuedStance.IsCompleted);
         };
         await f.AttackAsync(); f.BeforeSend = null;
-        Assert.True(reentered); f.AssertFiles(after); f.AssertCoherent(1700); AssertCommittedActor(f, stamp);
+        Assert.NotNull(queuedStance); await queuedStance;
+        f.AssertFiles(after); f.AssertCoherent(1700); AssertCommittedActor(f, stamp);
         Assert.False(f.Binding().Client.OnAutoAttack);
+        var interactions = f.Order.Where(row => IsPhysical(row.Bytes)).ToArray();
+        Assert.Equal(new[] { Actor, Target }, interactions.Select(row => row.Recipient));
+        Assert.All(interactions, row => Assert.Equal(InteractionGolden(), row.Bytes));
+        var hpPair = f.Order.Where(row => IsHpPair(row.Bytes, Target)).ToArray();
+        Assert.Equal(2, hpPair.Length); Assert.All(hpPair, row => Assert.Equal(Target, row.Recipient));
+        Assert.Equal(MaximumGolden(Target), hpPair[0].Bytes);
+        Assert.Equal(HpGolden(Target, 1700), hpPair[1].Bytes);
+        Assert.True(f.Order.FindIndex(row => IsHpPair(row.Bytes, Target)) >
+            f.Order.FindLastIndex(row => IsPhysical(row.Bytes)));
         int outputs = f.Order.Count; f.Clock.Advance(OrdinaryDelay * 5); await f.TickAsync();
         f.AssertFiles(after); f.AssertCoherent(1700); AssertCommittedActor(f, stamp); Assert.Equal(outputs, f.Order.Count);
-        Assert.DoesNotContain(f.Order, row => IsHp(row.Bytes, Target));
     });
 
     [Fact]

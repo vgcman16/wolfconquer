@@ -13,14 +13,20 @@ public static partial class WorldPacketHandlers
     // Shared closed DATA calculation; the allocation/level-up owners remain separate.
     private static void PreflightOwnedEquipmentQuery(WorldPacketHandlerContext context, WorldSession source,
         LegacyOwnedPhysicalMetadataWitness metadata, LegacyEquipmentRebuildReason reason, bool restoreHitpoints = false)
+        => PreflightEquipmentQueryDataCore(source, context.WorldData, context.LegacyClock ?? LegacySignedMillisecondClock.System,
+            metadata, null, context, reason, restoreHitpoints);
+
+    private static void PreflightEquipmentQueryDataCore(WorldSession source, WorldDataCatalog? data, ILegacySignedMillisecondClock clock,
+        LegacyOwnedPhysicalMetadataWitness? metadata, LegacyOwnedPhysicalMetadataWitness.AdmissionQueryData? admissionData,
+        WorldPacketHandlerContext? nativeContext, LegacyEquipmentRebuildReason reason, bool restoreHitpoints = false)
     {
-        if (!LegacyEquipmentRebuildAdmission.ApplyCurrent(source, reason,
-                context.LegacyClock ?? LegacySignedMillisecondClock.System).Admitted ||
-            !LegacyEquipmentQueryExecution.CanPrepareDerivedSpells(context, source, out _))
+        if ((metadata is null) == (admissionData is null) ||
+            !LegacyEquipmentRebuildAdmission.ApplyCurrent(source, reason, clock).Admitted ||
+            !LegacyEquipmentQueryExecution.CanPrepareDerivedSpells(data, source, out _))
             throw new InvalidOperationException("attributeRebuildAdmissionUnavailable");
         var stable = CaptureEquipmentQueryInputs(source);
         var equipment = LegacyEquipmentQuerySelector.Select(stable);
-        var hp = PreflightAttributeHitpoints(stable, equipment, context.WorldData, metadata);
+        var hp = PreflightAttributeHitpoints(stable, equipment, data, metadata, admissionData);
         if (restoreHitpoints)
         {
             // UpdateLevel's final setter is signed int, even when Max is UInt32.
@@ -29,14 +35,14 @@ public static partial class WorldPacketHandlers
                          checked((uint)stable.Character.Uid), hp.Maximum, hp.Maximum))
                 _ = packet.ToFrameBytes();
         }
-        PreflightAttributeMagic(context, stable, equipment);
+        PreflightAttributeMagicCore(nativeContext, stable, equipment, data);
         uint uid = checked((uint)stable.Character.Uid);
-        _ = new LegacyPlayerStatusPacket(CalculateLegacyRuntimeStatusFields(stable, context.WorldData)).ToFrameBytes();
+        _ = new LegacyPlayerStatusPacket(CalculateLegacyRuntimeStatusFields(stable, data)).ToFrameBytes();
         _ = LegacyUserTotalRefineLevPacket.FromEquipmentPerfection(uid, stable.PlayerItems).ToFrameBytes();
         foreach (var packet in LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(uid, hp.Maximum, checked((uint)hp.Current)))
             _ = packet.ToFrameBytes();
         var vigor = LegacyEquipmentQueryBounds.ClampVigor(LegacyEquipmentQueryBounds.ReadVigor(stable.Character),
-            LegacyMaxHitpointsCalculator.CalculateQueryMaxVigor(equipment, context.WorldData));
+            LegacyMaxHitpointsCalculator.CalculateQueryMaxVigor(equipment, data));
         _ = WithEquipmentQueryVigor(stable.Character, vigor);
         _ = LegacyWindWalkerStatusProjection.Read(stable.Character);
     }

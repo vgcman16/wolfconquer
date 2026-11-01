@@ -5,9 +5,11 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private static void PreflightAttributeMagic(WorldPacketHandlerContext context, WorldSession source,
-        IReadOnlyList<PlayerItemSnapshotItem> equipment)
+        IReadOnlyList<PlayerItemSnapshotItem> equipment) => PreflightAttributeMagicCore(context, source, equipment, context.WorldData);
+
+    private static void PreflightAttributeMagicCore(WorldPacketHandlerContext? context, WorldSession source,
+        IReadOnlyList<PlayerItemSnapshotItem> equipment, WorldDataCatalog? data)
     {
-        var data = context.WorldData;
         var fields = LegacyEquipmentMagicArithmetic.Start(source.Character.Spirit);
         uint mana = 0, prestige = 0;
         foreach (var item in equipment)
@@ -37,8 +39,9 @@ public static partial class WorldPacketHandlers
         mana = checked(mana + LegacyEquipmentNativeMana.ClassAndSpirit(source.Character));
         fields = LegacyEquipmentMagicArithmetic.Add(fields, NativeMagicSubClass(source, data));
         bool interserver = HasLegacyPlayerMagicInterserverAttribute(source);
+        if (interserver && context is null) throw new InvalidOperationException("initialQueryDataRequiresInterserverHistoryOwner");
         var jiangHu = interserver
-            ? LegacyNativeMagicQueryClient.ReadJiangHu(context.Sessions, context.Connection, source.Character.Uid,
+            ? LegacyNativeMagicQueryClient.ReadJiangHu(context!.Sessions, context.Connection, source.Character.Uid,
                 source.NativeGameClient?.OrdinarySpellBinding?.NativeIdentity)
             : NativeMagicJiangHu(source, data);
         fields = LegacyEquipmentMagicArithmetic.Add(fields, jiangHu);

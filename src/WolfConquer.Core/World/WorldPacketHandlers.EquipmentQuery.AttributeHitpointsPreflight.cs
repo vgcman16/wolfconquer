@@ -5,7 +5,8 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     private static LegacyEquipmentQueryHitpointReplay PreflightAttributeHitpoints(WorldSession source,
-        IReadOnlyList<PlayerItemSnapshotItem> equipment, WorldDataCatalog? data, LegacyOwnedPhysicalMetadataWitness metadata)
+        IReadOnlyList<PlayerItemSnapshotItem> equipment, WorldDataCatalog? data, LegacyOwnedPhysicalMetadataWitness? metadata,
+        LegacyOwnedPhysicalMetadataWitness.AdmissionQueryData? admissionData = null)
     {
         var hp = new LegacyEquipmentQueryHitpointReplay(source.Character.MinHitPoints);
         _ = LegacyEquipmentQueryBounds.WithHitpoints(source.Character, hp.Current);
@@ -42,7 +43,9 @@ public static partial class WorldPacketHandlers
             TryGetLegacyEligibleEquippedRuneLevel(source, data, "Sacrifice", out _) &&
             LegacyMagicRuntime.TryResolveLearnedSpell(source.PlayerSpells, data, LegacySacrificeAttachStatusSpellId, out _, out var sacrifice))
         {
-            metadata.RequireRuntimeSpell(sacrifice);
+            if (metadata is not null) metadata.RequireRuntimeSpell(sacrifice);
+            else if (admissionData is not null) admissionData.RequireRuntimeSpell(sacrifice);
+            else throw new InvalidOperationException("equipmentQueryMetadataDataUnavailable");
             uint power = 0;
             if (LegacyMagicResourceCostCalculator.TryGetEquippedRuneItem(source.PlayerItems, data.ItemsById, "Sacrifice",
                     source.AlternateEquipmentActive, source.Character.Attributes, source.Character.Class, out var rune) && rune is { ItemId: 4_010_701 })

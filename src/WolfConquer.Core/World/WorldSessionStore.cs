@@ -55,6 +55,8 @@ public sealed partial class WorldSessionStore
                 using var nativeGateScope = EnterNativeConnectionGate();
                 var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
                 previous = holder.Read();
+                if (!LegacyExperienceContinuationFence.AllowsOrdinaryPublication(previous, session))
+                    throw new InvalidOperationException("experienceContinuationPendingRequiresOwner");
                 if (!LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, previous, session))
                     throw new InvalidOperationException("mailboxClaimRecoveryRequired:pendingPackageSessionWrite");
                 if (holder.SpellBinding is not null && (previous is null || !ReferenceEquals(previous.PlayerSpells, session.PlayerSpells)))

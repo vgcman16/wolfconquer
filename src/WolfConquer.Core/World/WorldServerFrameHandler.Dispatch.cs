@@ -87,6 +87,7 @@ public sealed partial class WorldServerFrameHandler
 
         if (frame.Header.Opcode == LegacyMsgLoginGamePacket.Opcode)
         {
+            using var ordinaryLogin = EnterOrdinaryLoginOperation(connection, frameOperation);
             await HandleLegacyWorldLoginAsync(connection, frame, cancellationToken).ConfigureAwait(false);
             return;
         }

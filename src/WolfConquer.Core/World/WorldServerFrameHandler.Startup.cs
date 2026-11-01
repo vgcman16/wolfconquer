@@ -22,7 +22,8 @@ public sealed partial class WorldServerFrameHandler
         CancellationToken cancellationToken,
         LegacyNativeGameClientRuntime? nativeLoadedClient = null,
         bool preserveMailboxRecoveryState = false,
-        LegacySpellPublicationOwner? loginSpells = null)
+        LegacySpellPublicationOwner? loginSpells = null,
+        PendingExperienceStartup? pendingExperience = null)
     {
         PrepareLegacyLocalServerIdentity(connection, snapshot.Uid);
         await SendLegacyWorldEntryStartupPrefixAsync(connection, cancellationToken).ConfigureAwait(false);
@@ -99,14 +100,17 @@ public sealed partial class WorldServerFrameHandler
             .ConfigureAwait(false);
         if (!preserveMailboxRecoveryState)
         {
-            if (!await SendLegacyEquipmentStartupSideEffectsAsync(
-                    connection,
-                    snapshot,
-                    playerItems,
-                    playerSpells,
-                    combatGear,
-                    cancellationToken).ConfigureAwait(false) ||
-                !TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out var afterEquipmentQuery)) return;
+            WorldSession afterEquipmentQuery;
+            if (pendingExperience is not null)
+            {
+                var actual = await pendingExperience.RunFirstAsync(cancellationToken).ConfigureAwait(false);
+                if (actual is null) return;
+                afterEquipmentQuery = actual;
+                loginSpells = pendingExperience.LoginSpells;
+            }
+            else if (!await SendLegacyEquipmentStartupSideEffectsAsync(connection, snapshot, playerItems, playerSpells,
+                         combatGear, cancellationToken).ConfigureAwait(false) ||
+                     !TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out afterEquipmentQuery)) return;
             snapshot = afterEquipmentQuery.Character;
             playerItems = afterEquipmentQuery.PlayerItems;
             playerSpells = afterEquipmentQuery.PlayerSpells;
@@ -279,14 +283,17 @@ public sealed partial class WorldServerFrameHandler
 
                 if (!preserveMailboxRecoveryState)
                 {
-                    if (!await SendLegacyEquipmentStartupSideEffectsAsync(
-                            connection,
-                            snapshot,
-                            playerItems,
-                            playerSpells,
-                            combatGear,
-                            cancellationToken).ConfigureAwait(false) ||
-                        !TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out var afterRevelatorQuery)) return;
+                    WorldSession afterRevelatorQuery;
+                    if (pendingExperience is not null)
+                    {
+                        var actual = await pendingExperience.RunRevelatorAsync(cancellationToken).ConfigureAwait(false);
+                        if (actual is null) return;
+                        afterRevelatorQuery = actual;
+                        loginSpells = pendingExperience.LoginSpells;
+                    }
+                    else if (!await SendLegacyEquipmentStartupSideEffectsAsync(connection, snapshot, playerItems, playerSpells,
+                                 combatGear, cancellationToken).ConfigureAwait(false) ||
+                             !TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out afterRevelatorQuery)) return;
                     snapshot = afterRevelatorQuery.Character;
                     playerItems = afterRevelatorQuery.PlayerItems;
                     playerSpells = afterRevelatorQuery.PlayerSpells;
@@ -318,6 +325,7 @@ public sealed partial class WorldServerFrameHandler
             await connection.SendAsync(donationUpdate.ToFrameBytes(), cancellationToken)
                 .ConfigureAwait(false);
         }
+        pendingExperience?.MarkStartupComplete();
     }
 
     private async ValueTask SendLegacyWorldEntryStartupFrameAsync(

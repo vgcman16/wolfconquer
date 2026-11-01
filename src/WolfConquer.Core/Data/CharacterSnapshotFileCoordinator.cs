@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using WolfConquer.Core.World;
 
 namespace WolfConquer.Core.Data;
 
@@ -52,6 +53,24 @@ internal static partial class CharacterSnapshotFileCoordinator
         IReadOnlyList<CharacterSnapshotSectionUpdate> sections,
         bool detailedIoFailures,
         out string reason)
+        => TryUpdateSectionsCore(path, expectedCharacterUid, sections, detailedIoFailures, null, out reason);
+
+    internal static bool TryUpdateExperienceEscrowRecovery(string path, long expectedCharacterUid,
+        IReadOnlyDictionary<string, string> values, LegacyTradeRecoveryState.ExperienceEscrowRecoveryPermit permit,
+        out string reason)
+    {
+        string[] allowed = ["Money", "ConquerPoints", LegacyTradeEscrowClaims.IdKey,
+            LegacyTradeEscrowClaims.MoneyKey, LegacyTradeEscrowClaims.CpKey];
+        if (values.Count != allowed.Length || allowed.Any(key => !values.ContainsKey(key)) ||
+            values.Keys.Any(key => !allowed.Contains(key, StringComparer.OrdinalIgnoreCase)))
+        { reason = "experienceEscrowRecoveryFieldsInvalid"; return false; }
+        return TryUpdateSectionsCore(path, expectedCharacterUid,
+            [new CharacterSnapshotSectionUpdate(CharacterSection, values, false, "characterSectionMissing")], false, permit, out reason);
+    }
+
+    private static bool TryUpdateSectionsCore(string path, long? expectedCharacterUid,
+        IReadOnlyList<CharacterSnapshotSectionUpdate> sections, bool detailedIoFailures,
+        LegacyTradeRecoveryState.ExperienceEscrowRecoveryPermit? recovery, out string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(sections);
@@ -60,6 +79,9 @@ internal static partial class CharacterSnapshotFileCoordinator
             ArgumentException.ThrowIfNullOrWhiteSpace(section.SectionName);
             ArgumentNullException.ThrowIfNull(section.Values);
             ArgumentException.ThrowIfNullOrWhiteSpace(section.MissingReason);
+            if (section.SectionName.Equals(CharacterSection, StringComparison.OrdinalIgnoreCase) &&
+                section.Values.Keys.Any(key => key.Equals(LegacyExperienceContinuationCodec.Key, StringComparison.OrdinalIgnoreCase)))
+            { reason = "experienceContinuationPendingRequiresOwner"; return false; }
         }
 
         reason = string.Empty;
@@ -102,12 +124,38 @@ internal static partial class CharacterSnapshotFileCoordinator
                     return false;
                 }
 
+                bool pending = LegacyExperienceContinuationFence.ContainsCharacterMarker(lines);
+                byte[]? exactRecoveryBefore = null;
+                LegacyExperienceContinuation? capturedPending = null;
+                long recoveryAccount = 0; uint recoveryUid = 0;
+                if (pending)
+                {
+                    if (recovery is null || !recovery.IsCurrentFor(path) || expectedCharacterUid is null ||
+                        expectedCharacterUid.Value <= 0 || expectedCharacterUid.Value > uint.MaxValue ||
+                        sections.Count != 1 || !LegacyTradeEscrowClaims.MatchesExperienceEscrowRefund(path, expectedCharacterUid.Value, sections[0].Values) ||
+                        !long.TryParse(Path.GetFileNameWithoutExtension(path), NumberStyles.None, CultureInfo.InvariantCulture, out var account) ||
+                        !CharacterSnapshotFileBaseline.TryReadBytes(path, "experienceEscrowRecovery", out var beforeImage, out _))
+                    { operationReason = "experienceContinuationPendingRequiresOwner"; return false; }
+                    try
+                    {
+                        capturedPending = LegacyExperienceContinuationCodec.ReadCharacterImage(beforeImage, account, checked((uint)expectedCharacterUid.Value));
+                        if (capturedPending is null)
+                        { operationReason = "experienceContinuationPendingRequiresOwner"; return false; }
+                        exactRecoveryBefore = beforeImage; recoveryAccount = account; recoveryUid = checked((uint)expectedCharacterUid.Value);
+                    }
+                    catch (Exception error) when (error is InvalidDataException or ArgumentException or OverflowException)
+                    { operationReason = "experienceContinuationPendingInvalid"; return false; }
+                }
+
                 if (expectedCharacterUid is { } expectedUid &&
                     !TryValidateCharacterUid(lines, expectedUid, out operationReason))
                 {
                     return false;
                 }
 
+                // The transformer mutates its input array in place. Retain the
+                // original ordered protected rows for the recovery-only proof.
+                var originalLines = pending ? lines.ToArray() : lines;
                 var updatedLines = lines;
                 foreach (var section in sections)
                 {
@@ -125,9 +173,26 @@ internal static partial class CharacterSnapshotFileCoordinator
                     return false;
                 }
 
+                if (pending && (recovery is null || !recovery.IsCurrentFor(path) ||
+                    !LegacyExperienceContinuationFence.RecoveryProtectedLinesUnchanged(originalLines, updatedLines)))
+                { operationReason = "experienceContinuationRecoveryProjectionChanged"; return false; }
+
                 try
                 {
-                    WriteAllLinesAtomically(path, updatedLines, encoding);
+                    if (pending)
+                    {
+                        if (exactRecoveryBefore is null || capturedPending is null || recovery is null || !recovery.IsCurrentFor(path) ||
+                            !CharacterSnapshotFileBaseline.TryReadBytes(path, "experienceEscrowRecoveryBeforeWrite", out var currentImage, out _) ||
+                            !currentImage.AsSpan().SequenceEqual(exactRecoveryBefore))
+                        { operationReason = "experienceContinuationRecoveryBaselineChanged"; return false; }
+                        var originalText = CharacterSnapshotFileEncoding.Decode(exactRecoveryBefore, out var originalEncoding);
+                        var projected = ProjectExperienceEscrow(originalText, sections[0].Values);
+                        var afterImage = originalEncoding.GetPreamble().Concat(originalEncoding.GetBytes(projected)).ToArray();
+                        if (!Equals(capturedPending, LegacyExperienceContinuationCodec.ReadCharacterImage(afterImage, recoveryAccount, recoveryUid)))
+                        { operationReason = "experienceContinuationRecoveryProjectionChanged"; return false; }
+                        WriteAtomically(path, temporary => File.WriteAllBytes(temporary, afterImage), retainBackup: false, out _);
+                    }
+                    else WriteAllLinesAtomically(path, updatedLines, encoding);
                     return true;
                 }
                 catch (IOException exception)
@@ -148,6 +213,11 @@ internal static partial class CharacterSnapshotFileCoordinator
                 catch (UnauthorizedAccessException)
                 {
                     operationReason = "snapshotWriteDenied";
+                    return false;
+                }
+                catch (Exception error) when (pending && error is (InvalidDataException or ArgumentException or OverflowException or NotSupportedException))
+                {
+                    operationReason = "experienceContinuationRecoveryProjectionInvalid:" + error.GetType().Name;
                     return false;
                 }
             }

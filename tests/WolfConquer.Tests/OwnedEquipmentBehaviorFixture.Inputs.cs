@@ -6,7 +6,7 @@ namespace WolfConquer.Tests;
 // Saved input data only; neither this record nor its factories grant authority.
 internal sealed record OwnedEquipmentBehaviorInput(CharacterSnapshot Character, PlayerItemSnapshot Items,
     PlayerSpellSnapshot? Spells = null, PlayerProficiencySnapshot? Proficiencies = null,
-    CombatGearSnapshot? CombatGear = null);
+    CombatGearSnapshot? CombatGear = null, bool OmitOptionalCharacterScalars = false);
 
 internal sealed partial class OwnedEquipmentBehaviorFixture
 {

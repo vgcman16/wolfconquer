@@ -70,6 +70,7 @@ public static partial class WorldPacketHandlers
 
         public bool Commit(Func<WorldSession, WorldSession> update)
         {
+            if (PendingContinuation() is { } pending) return CommitContinuationMutation(update, pending);
             Adopt(CommitLegacyEquipmentQueryMutation(Context, Session, Request.Scope, update));
             return Current.Completed;
         }
@@ -103,7 +104,11 @@ public static partial class WorldPacketHandlers
         public async ValueTask<bool> AssignAsync(int value)
         {
             if (!Refresh()) return false;
-            Adopt(await AssignLegacyPlayerHitpointsAsync(
+            if (PendingContinuation() is not null)
+            {
+                if (!await AssignContinuationHitpointsAsync(value).ConfigureAwait(false)) return false;
+            }
+            else Adopt(await AssignLegacyPlayerHitpointsAsync(
                     Context, Session, Request.Scope, value, CancellationToken).ConfigureAwait(false));
             if (!Current.Completed) return false;
             Receipt = Receipt with

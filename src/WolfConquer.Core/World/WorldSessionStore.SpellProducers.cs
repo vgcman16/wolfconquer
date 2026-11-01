@@ -29,6 +29,7 @@ public sealed partial class WorldSessionStore
                 using var scope = EnterNativeConnectionGate();
                 if (!_sessions.TryGetValue(connection, out var holder) || holder.Read() is not { } current ||
                     current.Character.Uid != uid || !ReferenceEquals(holder.NativeClientIdentity, identity)) return false;
+                if (!LegacyExperienceContinuationFence.AllowsOrdinaryPublication(current, current)) return false;
                 var proposed = update(current);
                 if (!ReferenceEquals(holder.Read(), current) || !ReferenceEquals(holder.NativeClientIdentity, identity) ||
                     !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, current, proposed)) return false;

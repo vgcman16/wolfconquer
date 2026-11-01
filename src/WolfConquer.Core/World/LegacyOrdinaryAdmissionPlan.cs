@@ -36,6 +36,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
     private WorldSessionStore.OrdinaryAdmissionLease? storeLease;
     private readonly DateTime preparedAt;
     private LegacyTradeJournalChange[]? preparedChanges;
+    private WorldPacketHandlers.InitialWorldEntryQueryData? pendingQueryData;
 
     private LegacyOrdinaryAdmissionPlan(WorldServerFrameHandler frame, ConquerTcpConnection connection, long account,
         string username, LegacyOrdinaryAdmissionRoots roots, Dictionary<LegacyTradeJournalFileKind, byte[]?> images,
@@ -107,29 +108,24 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
         {
             storeLease = lease;
             if (!IsCurrent() || !lease.IsCurrentEmpty(connection)) return false;
-            var items = normalization.RuleItems;
             // Every return object/image is prepared before the actual joint writer.
             var changes = CreateChanges();
             var inputs = images.Where(row => changes.All(change => change.Kind != row.Key))
                 .Select(row => new LegacyOrdinaryAdmissionInput(row.Key,
                     row.Key == LegacyTradeJournalFileKind.Character ? account : source.Uid, row.Value)).ToArray();
-            var stored = CharacterSnapshotParser.ParseText(CharacterSnapshotFileEncoding.Decode(characterAfter, out _),
-                Path.GetFileName(roots.PathFor(LegacyTradeJournalFileKind.Character, account))) with { PlayerQuests = baseCharacter.PlayerQuests };
-            Candidate = new(account, username, frame.ProjectOrdinaryStartupTitle(stored), items, normalization.Spells,
-                profs, CombatGear: gear, UsersRoot: roots.Users) { NativeGameClient = native };
-            if (frame.UsesOrdinarySpellBinding)
+            PrepareDetachedCandidate(lease, changes);
+            // The detached plan is not a completed query or live metadata
+            // owner. Pending admission requires its configured DATA proof
+            // here and the actual live query owner after publication.
+            if (Candidate is { } pendingCandidate && pendingCandidate.Character.Attributes.Keys.Any(key =>
+                    key.Equals(LegacyExperienceContinuationCodec.Key, StringComparison.OrdinalIgnoreCase)) &&
+                LegacyExperienceContinuationCodec.ReadCharacter(pendingCandidate.Character, account) is not null)
             {
-                var savedSpellImage = changes.FirstOrDefault(change => change.Kind == LegacyTradeJournalFileKind.Spells)?.After ??
-                    images.GetValueOrDefault(LegacyTradeJournalFileKind.Spells);
-                Candidate = lease.PrepareSpellAdmission(Candidate, Recovery, roots.Spells, savedSpellImage, prefix);
+                if (!frame.TryPrepareDetachedInitialQueryData(pendingCandidate, out var data) || data is null ||
+                    !PendingQueryDataIsCurrent(data, pendingCandidate))
+                { reason = "experienceContinuationDetachedQueryDataInvalid"; return false; }
+                pendingQueryData = data;
             }
-            if (!LegacySpellPublicationPlan.TryPrepare(Candidate.PlayerSpells, newLoginSpellIds, out var finalPublication) ||
-                finalPublication is null || finalPublication.Frames.Length != LoginSpellPublication.Frames.Length)
-                throw new InvalidDataException("Ordinary canonical spell publication is invalid.");
-            for (int index = 0; index < finalPublication.Frames.Length; index++)
-                if (!finalPublication.Frames[index].AsSpan().SequenceEqual(LoginSpellPublication.Frames[index]))
-                    throw new InvalidDataException("Ordinary canonical spell publication changed its prepared wire frames.");
-            LoginSpellPublication = finalPublication;
             if (!EntryCurrent() || !LegacyTradeJournal.AdmissionInputsAreCurrent(roots, account, source.Uid, images) ||
                 !lease.IsCurrentEmpty(connection))
             {
@@ -137,6 +133,8 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
                 return false;
             }
             if (!lease.ArmPreparedSpellProof()) return false;
+            if (pendingQueryData is not null && (Candidate is null || !PendingQueryDataIsCurrent(pendingQueryData, Candidate)))
+            { reason = "experienceContinuationDetachedQueryDataChanged"; return false; }
             preparedChanges = changes;
             using var permit = LegacyOrdinaryAdmissionMutationFence.EnterPreparedCommit(this);
             if (!LegacyTradeJournal.TryCommitOrdinaryAdmission(roots, changes, inputs, preparedAt, out reason, interruption))
@@ -164,6 +162,8 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             throw new InvalidOperationException("Ordinary admission has no current committed publication owner.");
         try
         {
+            if (pendingQueryData is not null && !PendingQueryDataIsCurrent(pendingQueryData, Candidate))
+                throw new InvalidOperationException("experienceContinuationDetachedQueryDataChangedAfterCommit");
             prefix?.PublishCommittedAdmission();
             if (native is not null && preparedEquipment is not null) native.RawEquipmentObservation = preparedEquipment;
             nativeGear?.Publish();

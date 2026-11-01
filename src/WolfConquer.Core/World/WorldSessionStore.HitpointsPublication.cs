@@ -7,12 +7,15 @@ public sealed partial class WorldSessionStore
     private bool TryPublishFrameOwnedHitpoints(PreparedSessionSpellPublication publication,
         SessionHolder holder, out string reason, PreparedSessionSpellPublication? observedPeer = null,
         SessionHolder? peerHolder = null, MonsterRuntimeStateStore.ClassicBuffTarget? monster = null,
-        LegacyRuneCastEligibility? runeEligibility = null, PreparedBasicPhysicalChange? basicPhysical = null)
+        LegacyRuneCastEligibility? runeEligibility = null, PreparedBasicPhysicalChange? basicPhysical = null,
+        WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery = null)
     {
         reason = string.Empty;
         publication.ArmFinalProof(); observedPeer?.ArmFinalProof();
         if (!publication.ConsumeBeforeWriterPlain() || observedPeer is not null && !observedPeer.ConsumeBeforeWriterPlain())
             throw InvalidSpellPublication();
+        if (continuationQuery is not null && (publication.Binding is not { } continuationBinding ||
+            !continuationQuery.TryConsumeBeforeWriter(continuationBinding))) return false;
         if (runeEligibility is not null && !runeEligibility.IsCurrentPlain()) return false;
         if (basicPhysical is not null && !basicPhysical.IsCurrentPlain()) return false;
         MonsterRuntimeStateStore.ClassicBuffLease? lease = null;
@@ -36,6 +39,7 @@ public sealed partial class WorldSessionStore
             }
             else if (monster is not null && !monster.TryEnter(out lease, out reason)) return false;
             if (!publication.IsCurrentPlain() || observedPeer is not null && !observedPeer.IsCurrentPlain() ||
+                continuationQuery is not null && (publication.Binding is not { } currentBinding || !continuationQuery.IsConsumedCurrentPlain(currentBinding)) ||
                 lease is not null && !lease.IsCurrentPlain() || runeEligibility is not null && !runeEligibility.IsCurrentPlain())
             {
                 lease?.Dispose(); lease = null;

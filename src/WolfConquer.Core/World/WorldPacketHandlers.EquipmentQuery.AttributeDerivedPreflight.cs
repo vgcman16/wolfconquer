@@ -7,8 +7,20 @@ public static partial class WorldPacketHandlers
     private static LegacyPreparedSpellFileWrite? PrepareAttributeDerivedFiles(WorldPacketHandlerContext context,
         LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed, LegacyOwnedPhysicalMetadataWitness metadata)
     {
+        var projected = ProjectAttributeDerivedSpells(proposed, context.WorldData);
+        if (projected.Changes.Count == 0) return null;
+        if (!PreparedAttributeRebuild.SameAttributeSpellRoot(context.PlayerSpellsRoot, binding.SpellsRoot) ||
+            !binding.Recovery.IsReadyForCharacterSpells(binding.UsersRoot, binding.SpellsRoot))
+            throw new InvalidOperationException("attributeRebuildSpellRouteUnavailable");
+        PreflightDerivedSpellFrames(checked((uint)binding.Uid), projected, metadata, null);
+        // Capture the actual saved baseline now. The later real private query
+        // must issue its own journal writer against the then-current Character.
+        return binding.Store.PrepareSpellFileWrite(binding.Connection, expected, binding.Recovery, binding.UsersRoot, binding.SpellsRoot);
+    }
+
+    private static LegacyDerivedSpellReconciliation.Model ProjectAttributeDerivedSpells(WorldSession proposed, WorldDataCatalog? data)
+    {
         var desired = new List<LegacyDerivedSpellDesiredRow>();
-        var data = context.WorldData;
         if (data is not null && proposed.Character.Class / 1000 is 2 or 4 or 7 or 13 or 14)
         {
             uint overall = LegacyEquipmentQueryExecution.NativePirateRank(data.CombatGearRanks, proposed.Character.Uid, 42);
@@ -25,21 +37,21 @@ public static partial class WorldPacketHandlers
             if (item.MythSoul != 0 && item.MythSoul % 1000 - level == 10) venom = checked((byte)(venom + level));
         }
         desired.Add(new(20_000, venom == 0 ? null : LegacyDerivedSpellOrigins.Granted(20_000, venom)));
-        var projected = LegacyDerivedSpellReconciliation.Project(proposed.Character, proposed.PlayerSpells, desired);
-        if (projected.Changes.Count == 0) return null;
-        if (!PreparedAttributeRebuild.SameAttributeSpellRoot(context.PlayerSpellsRoot, binding.SpellsRoot) ||
-            !binding.Recovery.IsReadyForCharacterSpells(binding.UsersRoot, binding.SpellsRoot))
-            throw new InvalidOperationException("attributeRebuildSpellRouteUnavailable");
+        return LegacyDerivedSpellReconciliation.Project(proposed.Character, proposed.PlayerSpells, desired);
+    }
+
+    private static void PreflightDerivedSpellFrames(uint uid, LegacyDerivedSpellReconciliation.Model projected,
+        LegacyOwnedPhysicalMetadataWitness? metadata, LegacyOwnedPhysicalMetadataWitness.AdmissionQueryData? admissionData)
+    {
         foreach (var row in projected.Changes)
             if (row.After is { } grant)
             {
-                metadata.RequireDerivedSpell(row.Id, grant.Level);
+                if (metadata is not null) metadata.RequireDerivedSpell(row.Id, grant.Level);
+                else if (admissionData is not null) admissionData.RequireDerivedSpell(row.Id, grant.Level);
+                else throw new InvalidOperationException("equipmentQueryMetadataDataUnavailable");
                 _ = LegacySpellPacket.FromSnapshot(grant).ToFrameBytes();
             }
-            else _ = new MsgActionPacket { ObjId = checked((uint)binding.Uid), DwParam = row.Id,
+            else _ = new MsgActionPacket { ObjId = uid, DwParam = row.Id,
                 Type = (MsgActionType)109 }.ToFrameBytes();
-        // Capture the actual saved baseline now. The later real private query
-        // must issue its own journal writer against the then-current Character.
-        return binding.Store.PrepareSpellFileWrite(binding.Connection, expected, binding.Recovery, binding.UsersRoot, binding.SpellsRoot);
     }
 }

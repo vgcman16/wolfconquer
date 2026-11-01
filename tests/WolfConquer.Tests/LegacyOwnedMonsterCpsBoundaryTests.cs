@@ -69,7 +69,7 @@ public sealed class LegacyOwnedMonsterCpsBoundaryTests
         Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); f.Data.AssertFiles(expected);
         Assert.DoesNotContain(f.ActorFrames, bytes => CpsFrame(bytes, out _) || ExperienceFrame(bytes));
         Assert.Contains("refused owned monster-death random CP", f.Log.ToString());
-        Assert.Contains("combatExperienceCharacterImageInvalid", f.Log.ToString());
+        Assert.Contains("WorldServer refused combat experience continuation reason=experienceCreditCharacterImageInvalid.", f.Log.ToString());
         Assert.False(states.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out _));
     });
 

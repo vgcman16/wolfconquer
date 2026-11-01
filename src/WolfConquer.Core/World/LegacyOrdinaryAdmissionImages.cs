@@ -8,6 +8,26 @@ internal static class LegacyOrdinaryAdmissionImages
     private static readonly string[] AllowedCharacterChanges =
         ["DonationNobility", "LastNobilityDonation", "NobilityRank", "NobilityPosition", "SecurityPass"];
 
+    // Preserve the actual map comparer and unrelated case-distinct keys. Only
+    // the field being written is required to have an unambiguous spelling.
+    internal static Dictionary<string, string> CopyRaw(IReadOnlyDictionary<string, string> source)
+    {
+        var proof = LegacyNativeAttributeMapProof.CaptureRaw(source);
+        var copy = new Dictionary<string, string>(proof.Fields, proof.CapturedComparer);
+        if (!proof.IsCurrentPlain()) throw new InvalidDataException("ordinaryAdmissionMapChanged");
+        return copy;
+    }
+
+    internal static Dictionary<string, string> CopyWithOwnedField(IReadOnlyDictionary<string, string> source,
+        string field, string value)
+    {
+        var copy = CopyRaw(source);
+        var matches = copy.Keys.Where(key => key.Equals(field, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (matches.Length > 1) throw new InvalidDataException("ordinaryAdmissionOwnedFieldAmbiguous");
+        copy[matches.Length == 0 ? field : matches[0]] = value;
+        return copy;
+    }
+
     internal static CharacterSnapshot PrepareSnapshot(CharacterSnapshot source, DateTime localNow,
         out LegacySecondaryPasswordState pin)
     {
@@ -16,8 +36,7 @@ internal static class LegacyOrdinaryAdmissionImages
             throw new InvalidDataException(reason);
         pin = pin.LoadAt(localNow, out var expired);
         if (!expired) return result;
-        return result with { Attributes = new Dictionary<string, string>(result.Attributes, StringComparer.OrdinalIgnoreCase)
-            { ["SecurityPass"] = pin.ToLegacyText() } };
+        return result with { Attributes = CopyWithOwnedField(result.Attributes, "SecurityPass", pin.ToLegacyText()) };
     }
 
     internal static byte[] Character(byte[] before, CharacterSnapshot prefix, CharacterSnapshot normalized)
@@ -52,7 +71,7 @@ internal static class LegacyOrdinaryAdmissionImages
     internal static byte[] ProjectCharacter(byte[] before, DateTime localNow)
     {
         var snapshot = CharacterSnapshotParser.ParseText(CharacterSnapshotFileEncoding.Decode(before, out _));
-        var attrs = new Dictionary<string, string>(snapshot.Attributes, StringComparer.OrdinalIgnoreCase) { ["Online"] = "1" };
+        var attrs = CopyWithOwnedField(snapshot.Attributes, "Online", "1");
         var source = snapshot with { Online = 1, Attributes = attrs };
         var normalized = PrepareSnapshot(source, localNow, out _);
         return Character(before, source, normalized);

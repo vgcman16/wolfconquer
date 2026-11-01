@@ -43,6 +43,8 @@ public sealed partial class WorldSessionStore
                 _enteredConnectionGateDepth = checked(_enteredConnectionGateDepth + 1); entered = true;
                 if (!store._sessions.TryGetValue(binding.Connection, out holder!) || holder.Read() is not { } current ||
                     !store.BindingIsCurrentPlain(binding, holder, current)) throw InvalidSpellPublication();
+                if (!LegacyExperienceContinuationFence.AllowsOrdinaryPublication(current, current))
+                    throw new InvalidOperationException("experienceContinuationPendingRequiresOwner");
                 expected = current;
                 if (!LegacyMailboxPackageMutationFence.CanMutateSession(store.MailboxPackages, expected, expected))
                     throw InvalidSpellPublication();

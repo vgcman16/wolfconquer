@@ -51,6 +51,7 @@ public sealed partial class WorldSessionStore
                     publication.PublishNative(); publication.PublishHolder(); writer.RegisterPublished(final);
                     publication.Dispose();
                     PersistFrameOwnedSessionChange(context.Connection, expected, final, identity, binding, completedDerivedSpells: writer);
+                    RecordDerivedContinuationRetirement(context, binding, expected, final, writer);
                 }
                 catch (Exception error)
                 {
@@ -60,7 +61,7 @@ public sealed partial class WorldSessionStore
                         finally { holder.Clear(); }
                         throw;
                     }
-                    if (error is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or
+                    if (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or
                         FormatException or OverflowException or System.Security.SecurityException)
                     { reason = "derivedSpellQuery23Preparation:" + error.GetType().Name; return false; }
                     throw;

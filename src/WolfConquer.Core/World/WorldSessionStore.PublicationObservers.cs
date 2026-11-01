@@ -67,6 +67,10 @@ public sealed partial class WorldSessionStore
 
     private void FenceObserverFailure(WorldSessionPublicationException failure)
     {
+        // Only an actual writer's latest checkpoint can take this branch.
+        // It is registered before invoking the observer, including when the
+        // query has not yet adopted the newly published holder.
+        if (TryRetireContinuationObserverFailure(failure)) return;
         // These are the retained original objects, never a pin re-resolved
         // after the callback. A newly issued holder must not be erased.
         BlockPublishedRecovery(failure);

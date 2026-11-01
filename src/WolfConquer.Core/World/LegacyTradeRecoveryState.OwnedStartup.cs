@@ -14,7 +14,8 @@ internal sealed partial class LegacyTradeRecoveryState
             {
                 if (LegacyTradeJournal.HasPending(expected.Users))
                 { reason = "ownedAdmissionJointJournalRecoveryRequired"; Block(reason); return false; }
-                if (!_initialized && !LegacyTradeEscrowClaims.TryRecoverAll(expected.Users, out _, out reason))
+                if (!_initialized && !LegacyTradeEscrowClaims.TryRecoverAll(expected.Users,
+                        CaptureExperienceEscrowRecoveryPermit(expected.Users), out _, out reason))
                 { Block(reason); return false; }
                 if (LegacyTradeJournal.HasPending(expected.Users))
                 { reason = "ownedAdmissionJointJournalRecoveryRequired"; Block(reason); return false; }

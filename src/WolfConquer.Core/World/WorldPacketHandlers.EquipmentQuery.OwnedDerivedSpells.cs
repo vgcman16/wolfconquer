@@ -6,7 +6,7 @@ namespace WolfConquer.Core.World;
 public static partial class WorldPacketHandlers
 {
     // Empty instances have no registration and cannot authorize a write.
-    internal sealed class OwnedDerivedSpellQueryPreparation
+    internal sealed partial class OwnedDerivedSpellQueryPreparation
     {
         private OwnedDerivedQueryData Data => DerivedQueryPreparations.TryGetValue(this, out var data) ? data :
             throw InvalidDerivedQueryPreparation();
@@ -86,19 +86,24 @@ public static partial class WorldPacketHandlers
                 _ => throw InvalidDerivedQueryPreparation() };
             var token = new OwnedDerivedSpellQueryPreparation();
             DerivedQueryPreparations.Add(token, new(this, Context, Session, source, desired, model, queryEpoch));
-            WorldSessionStore.DerivedSpellQueryPublication? publication;
-            string reason;
-            bool committed;
-            lock (trades.SyncRoot)
-                committed = store.TryCommitOwnedDerivedSpellQuery(Context, token, out publication, out reason);
-            if (!committed || publication is null)
+            BeginPendingDerived(token);
+            try
             {
-                Context.Log.WriteLine("WorldServer held owned derived spell query phase reason=" + reason + ".");
-                return false;
+                WorldSessionStore.DerivedSpellQueryPublication? publication;
+                string reason;
+                bool committed;
+                lock (trades.SyncRoot)
+                    committed = store.TryCommitOwnedDerivedSpellQuery(Context, token, out publication, out reason);
+                if (!committed || publication is null)
+                {
+                    Context.Log.WriteLine("WorldServer held owned derived spell query phase reason=" + reason + ".");
+                    return false;
+                }
+                Adopt(RefreshLegacyEquipmentQueryPublication(Context with { Session = publication.Published }, publication.Published, Request.Scope));
+                if (!Current.Completed || !await publication.SendAsync(CancellationToken).ConfigureAwait(false)) return false;
+                return Refresh();
             }
-            Adopt(RefreshLegacyEquipmentQueryPublication(Context with { Session = publication.Published }, publication.Published, Request.Scope));
-            if (!Current.Completed || !await publication.SendAsync(CancellationToken).ConfigureAwait(false)) return false;
-            return Refresh();
+            finally { EndPendingDerived(); }
         }
     }
 

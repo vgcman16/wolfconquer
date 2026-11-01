@@ -13,7 +13,7 @@ internal sealed partial class LegacyPreparedDerivedSpellQueryWrite
         { if (!writer.BeforeOwnerIsCurrent()) throw Invalid(); return new(writer); }
         internal LegacyDerivedSpellQueryOperation Operation => writer.Operation;
         internal bool IsCurrent() => ReferenceEquals(writer.journalOwner, this) && writer.committing &&
-            writer.committed is null && writer.BeforeOwnerIsCurrent();
+            writer.committed is null && writer.BeforeOwnerIsCurrent() && writer.PendingJournalIsCurrent();
         internal void RequireJournalTargets(string users, string items, string spells, IReadOnlyList<LegacyTradeJournalChange> changes)
         {
             if (!IsCurrent() || !SamePath(users, writer.binding.UsersRoot) || !SamePath(items, writer.itemsRoot) ||
@@ -31,7 +31,7 @@ internal sealed partial class LegacyPreparedDerivedSpellQueryWrite
             OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     }
 
-    internal sealed class Publication
+    internal sealed partial class Publication
     {
         private readonly LegacyPreparedDerivedSpellQueryWrite writer;
         private Publication(LegacyPreparedDerivedSpellQueryWrite writer) => this.writer = writer;
@@ -60,7 +60,7 @@ internal sealed partial class LegacyPreparedDerivedSpellQueryWrite
         SameFields(first.Attributes, second.Attributes) && SameFields(first.PaidNobility, second.PaidNobility);
     private static bool SameFields(IReadOnlyDictionary<string, string> first, IReadOnlyDictionary<string, string> second)
     {
-        var a = new LegacyNativeAttributeMapProof(first); var b = new LegacyNativeAttributeMapProof(second);
+        var a = LegacyNativeAttributeMapProof.CaptureRaw(first); var b = LegacyNativeAttributeMapProof.CaptureRaw(second);
         return a.Fields.Count == b.Fields.Count && a.Fields.All(pair => b.Fields.TryGetValue(pair.Key, out var value) && value == pair.Value) &&
             a.IsCurrentPlain() && b.IsCurrentPlain();
     }

@@ -33,6 +33,14 @@ public sealed partial class WorldSessionStore
                 if (!_sessions.TryGetValue(context.Connection, out var holder) || !ReferenceEquals(holder.Read(), expected) ||
                     !ReferenceEquals(holder.NativeClientIdentity, identity) || holder.SpellBinding is not { } binding ||
                     !BindingIsCurrentPlain(binding, holder, expected) || !frame.IsWindWalkerContext(this, context, expected)) return false;
+                LegacyExperienceContinuation? pending = null;
+                try
+                {
+                    pending = LegacyExperienceContinuationCodec.ReadCharacter(expected.Character, expected.AccountId);
+                    if (pending is not null && (query is null ||
+                        !HasPendingWindWalkerQueryOwner(scope, context, expected, expected, pending))) return false;
+                }
+                catch (InvalidDataException) { return false; }
                 using var actors = new SpellActorScope(binding);
                 if (binding.Player.BitVector is not { } vector) return false;
                 lock (vector.SyncRoot)
@@ -59,6 +67,7 @@ public sealed partial class WorldSessionStore
                     var projected = LegacyWindWalkerStatusProjection.Apply(expected.Character, change.Proposed);
                     var inputs = new WorldPacketHandlers.WindWalkerStatusInputs(expected, change.Proposed);
                     var proposed = ReferenceEquals(projected, expected.Character) ? expected : expected with { Character = inputs.Character };
+                    if (pending is not null && !HasPendingWindWalkerQueryOwner(scope, context, expected, proposed, pending)) return false;
                     if (CharacterSnapshotScalarPersistence.HasPersistedScalarChanges(expected.Character, proposed.Character) ||
                         !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expected, proposed)) return false;
                     bool visibleChange = change.Changed || ((beforeWords[LegacyWindWalkerStatusProjection.Word] &
@@ -90,10 +99,16 @@ public sealed partial class WorldSessionStore
                     { published = expected; notification = prepared; return true; }
                     written = proposed; issuedBinding = binding;
                     PersistFrameOwnedSessionChange(context.Connection, expected, proposed, identity, binding);
+                    if (pending is not null) RecordCommittedContinuationRetirement(context, binding, expected, proposed);
                 }
             }
         }
         NotifyPublishedSessionChange(context.Connection, expected, written!, identity, issuedBinding);
         published = written; notification = prepared; return true;
     }
+
+    private static bool HasPendingWindWalkerQueryOwner(LegacyEquipmentQueryPublicationScope? scope,
+        WorldPacketHandlerContext context, WorldSession expected, WorldSession proposed, LegacyExperienceContinuation pending) =>
+        scope is not null && ((scope.LevelUpRebuild?.CoversPendingQueryProjection(context, expected, proposed, pending) ?? false) ||
+            (scope.AdmissionContinuation?.CoversPendingQueryProjection(context, expected, proposed, pending) ?? false));
 }

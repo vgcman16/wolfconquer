@@ -1,3 +1,5 @@
+using WolfConquer.Core.Data;
+
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
@@ -8,6 +10,9 @@ public static partial class WorldPacketHandlers
         // Native query callbacks can change later state; the final Set path
         // repeats the required row lookup instead of granting a stale row.
         internal static bool CanPrepareDerivedSpells(WorldPacketHandlerContext context, WorldSession source, out string reason)
+            => CanPrepareDerivedSpells(context.WorldData, source, out reason);
+
+        internal static bool CanPrepareDerivedSpells(WorldDataCatalog? data, WorldSession source, out string reason)
         {
             reason = string.Empty;
             IReadOnlyDictionary<ushort, ushort> origins;
@@ -19,7 +24,6 @@ public static partial class WorldPacketHandlers
             catch (Exception error) when (error is InvalidDataException or InvalidOperationException or ArgumentException)
             { reason = "derived-origin-input:" + error.GetType().Name; return false; }
             bool Unmarked(ushort id) => source.PlayerSpells.ContainsSpell(id) && !origins.ContainsKey(id);
-            var data = context.WorldData;
             if (data is not null && source.Character.Class / 1000 is 2 or 4 or 7 or 13 or 14 &&
                 source.Character.Class is >= 7_000 and <= 7_051 && !Unmarked(21_930))
             {

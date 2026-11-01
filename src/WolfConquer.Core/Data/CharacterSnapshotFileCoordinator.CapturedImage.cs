@@ -1,3 +1,5 @@
+using WolfConquer.Core.World;
+
 namespace WolfConquer.Core.Data;
 
 internal static partial class CharacterSnapshotFileCoordinator
@@ -7,6 +9,16 @@ internal static partial class CharacterSnapshotFileCoordinator
     // not a second persistence mechanism or a callback that can accept a missing save.
     internal static bool TryReplaceCapturedImage(string path, ReadOnlyMemory<byte> before,
         ReadOnlyMemory<byte> after, out bool outcomeUncertain, out string reason)
+        => TryReplaceCapturedImageCore(path, before, after, null, out outcomeUncertain, out reason);
+
+    internal static bool TryReplaceContinuationCapturedImage(string path, ReadOnlyMemory<byte> before,
+        ReadOnlyMemory<byte> after, WorldSessionStore.ContinuationFilePermit permit,
+        out bool outcomeUncertain, out string reason)
+        => TryReplaceCapturedImageCore(path, before, after, permit, out outcomeUncertain, out reason);
+
+    private static bool TryReplaceCapturedImageCore(string path, ReadOnlyMemory<byte> before,
+        ReadOnlyMemory<byte> after, WorldSessionStore.ContinuationFilePermit? permit,
+        out bool outcomeUncertain, out string reason)
     {
         outcomeUncertain = false;
         reason = "capturedImageBoundsInvalid";
@@ -16,20 +28,24 @@ internal static partial class CharacterSnapshotFileCoordinator
         var candidate = after.ToArray();
         var uncertain = false;
         var failure = string.Empty;
-        var saved = ExecuteLocked(path, () => ReplaceCapturedImageLocked(path, expected, candidate, out uncertain, out failure));
+        var saved = ExecuteLocked(path, () => ReplaceCapturedImageLocked(path, expected, candidate, permit, out uncertain, out failure));
         outcomeUncertain = uncertain;
         reason = failure;
         return saved;
     }
 
     private static bool ReplaceCapturedImageLocked(string path, byte[] before, byte[] after,
-        out bool uncertain, out string reason)
+        WorldSessionStore.ContinuationFilePermit? permit, out bool uncertain, out string reason)
     {
         uncertain = false;
         reason = "capturedImageBaselineChanged";
         if (!CharacterSnapshotFileBaseline.TryReadBytes(path, "capturedImage", out var actual, out reason)) return false;
         if (!actual.AsSpan().SequenceEqual(before))
         { reason = "capturedImageBaselineChanged"; return false; }
+        if (Path.GetExtension(path).Equals(".ini", StringComparison.OrdinalIgnoreCase) &&
+            (ContainsContinuationMarker(before) || ContainsContinuationMarker(after)) &&
+            (permit is null || !permit.Consume(path, before, after)))
+        { reason = "experienceContinuationPendingRequiresOwner"; return false; }
         var failure = string.Empty;
         var backup = string.Empty;
         try { WriteAtomically(path, temporary => File.WriteAllBytes(temporary, after), retainBackup: true, out backup); }
@@ -51,6 +67,15 @@ internal static partial class CharacterSnapshotFileCoordinator
         // Keep any real backup retained by the writer for explicit reconciliation.
         reason = "capturedImageOutcomeUnproven:" + failure;
         return false;
+    }
+
+    private static bool ContainsContinuationMarker(byte[] image)
+    {
+        string text = CharacterSnapshotFileEncoding.Decode(image, out _);
+        using var reader = new StringReader(text);
+        var lines = new List<string>();
+        while (reader.ReadLine() is { } line) lines.Add(line);
+        return LegacyExperienceContinuationFence.ContainsCharacterMarker(lines);
     }
 
     private static void CleanupCapturedImageBackup(string backup)

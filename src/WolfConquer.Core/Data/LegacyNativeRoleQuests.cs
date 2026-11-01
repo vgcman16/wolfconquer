@@ -35,6 +35,8 @@ internal partial class LegacyNativeRoleQuests
                 return new(Outcome.Rejected, "invalidPlayer");
             lock (player.SpellAdmissionSyncRoot)
             {
+                if (!load && !HasClearBoundExperienceContinuation(user, player))
+                    return new(Outcome.Rejected, "experienceContinuationPendingRequiresOwner");
                 var book = player.QuestGUI;
                 if (book is null || !ReferenceEquals(book.Player, player) ||
                     !ReferenceEquals(book.PersistenceOwner, player))
@@ -57,4 +59,16 @@ internal partial class LegacyNativeRoleQuests
     private static bool IsOrdinaryFailure(Exception exception) => exception is IOException or
         InvalidDataException or UnauthorizedAccessException or InvalidOperationException or
         ArgumentException or OverflowException or NotSupportedException or System.Security.SecurityException;
+
+    // Called under the actual client/player gates. The holder read is atomic
+    // and does not acquire a Store gate in the reverse order.
+    private static bool HasClearBoundExperienceContinuation(LegacyNativeGameClientRuntime client, LegacyNativePlayerRuntime player)
+    {
+        var binding = client.OrdinarySpellBinding;
+        if (binding is null) return !player.HasOwnedActorScalarsAttachment;
+        return !binding.IsRetired && ReferenceEquals(binding.Client, client) && ReferenceEquals(binding.Player, player) &&
+            binding.Store.TryGet(binding.Connection, out var current) && current is not null &&
+            ReferenceEquals(current.NativeGameClient, client) && current.AccountId == binding.AccountId && current.Character.Uid == binding.Uid &&
+            LegacyExperienceContinuationFence.AllowsOrdinaryPublication(current, current);
+    }
 }

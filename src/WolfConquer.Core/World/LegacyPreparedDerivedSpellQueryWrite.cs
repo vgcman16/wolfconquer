@@ -75,6 +75,7 @@ internal sealed partial class LegacyPreparedDerivedSpellQueryWrite
             new LegacyTradeJournalChange(LegacyTradeJournalFileKind.Character, binding.AccountId, characterBefore, characterAfter),
             new LegacyTradeJournalChange(LegacyTradeJournalFileKind.Spells, binding.Uid, spellsBefore, spellsAfter),
         };
+        PrepareContinuationParticipation();
         journalOwner = JournalOwner.Prepare(this);
         if (!BeforeOwnerIsCurrent()) throw Invalid();
     }
@@ -102,7 +103,7 @@ internal sealed partial class LegacyPreparedDerivedSpellQueryWrite
         return (character, spells, items);
     }
 
-    private bool BeforeOwnerIsCurrent() => preparation.IsCurrentPlain(binding) &&
+    private bool BeforeOwnerIsCurrent() => preparation.IsCurrentPlain(binding) && PendingBeforeIsCurrent() &&
         store.IsDerivedSpellQueryWriteOwnerCurrent(frame, context, binding, preparation.Expected) &&
         query.IsBeforeCurrentPlain(binding, preparation.Expected) && metadata.IsCurrentPlain() &&
         ReferenceEquals(binding.SavedSpells, committed is null ? savedBefore : savedAfter);
@@ -112,6 +113,7 @@ internal sealed partial class LegacyPreparedDerivedSpellQueryWrite
         reason = "derivedSpellQuery23OwnerChanged";
         if (committing || committed is not null || !BeforeOwnerIsCurrent()) return Outcome.Rejected;
         if (!binding.Recovery.TryRequireLiveJournalClear(out reason)) return Outcome.RecoveryRequired;
+        if (!ConsumePendingJournalParticipation()) return Outcome.Rejected;
         committing = true;
         try
         {

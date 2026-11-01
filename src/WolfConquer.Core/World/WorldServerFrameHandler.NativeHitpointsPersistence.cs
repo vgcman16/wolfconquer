@@ -13,13 +13,14 @@ public sealed partial class WorldServerFrameHandler
         WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical = null,
         LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication = null,
         LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication = null,
-        WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null)
+        WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null,
+        WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery = null)
     {
         if (!ReferenceEquals(_sessions, store) || !store.IsFramePersistenceCurrent(this, connection, expected) ||
             _snapshotLoader is null || !string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(_snapshotLoader.UsersRoot)),
                 binding.UsersRoot, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
             throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsRegisteredFrameOwnerUnavailable");
         return LegacyBoundHitpointsScalarWrite.Prepare(this, store, connection, binding, expected, proposed, caprice, runePublication,
-            pairMovementPublication, movementPublication, basicPhysical, physicalDeathPublication, teleportPublication, classRetirement);
+            pairMovementPublication, movementPublication, basicPhysical, physicalDeathPublication, teleportPublication, classRetirement, continuationQuery);
     }
 }

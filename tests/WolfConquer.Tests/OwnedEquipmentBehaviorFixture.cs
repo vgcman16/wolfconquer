@@ -27,6 +27,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     internal LegacyOwnedAdmissionRuntime Runtime { get; private set; } = null!;
     internal WorldServerFrameHandler Handler { get; private set; } = null!;
     internal bool RetainEvidence;
+    internal byte[]? OmittedOptionalScalarInput { get; private set; }
     internal Action<uint, byte[]>? BeforeSend;
     internal Func<uint, byte[], ValueTask>? BeforeSendAsync;
     internal List<byte[]> ActorFrames => Frames(actorUid);
@@ -148,6 +149,10 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
         var uid = input.Character.Uid;
         var values = new Dictionary<string, string>(input.Character.Attributes, StringComparer.OrdinalIgnoreCase);
         foreach (var pair in CharacterSnapshotScalarPersistence.BuildPersistedValues(input.Character)) values[pair.Key] = pair.Value;
+        // Declared saved-input variant, applied before real bootstrap/admission.
+        // Parser semantics are MinMana fallback for MaxMana and zero for ExpBallUsed.
+        if (input.OmitOptionalCharacterScalars)
+        { values.Remove("MaxMana"); values.Remove("ExpBallUsed"); }
         values["Name"] = input.Character.Name;
         // Positive equipment fixtures explicitly use the genuine no-PIN stored
         // form. PIN-denial tests alter the real binding after actual admission.
@@ -156,6 +161,8 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
         if (input.Character.PaidNobility.Count != 0)
             text += "[PaidNobility]\r\n" + string.Join("\r\n", input.Character.PaidNobility.Select(pair => pair.Key + "=" + pair.Value)) + "\r\n";
         File.WriteAllText(CharacterPath(checked((uint)uid)), text, new UTF8Encoding(true));
+        if (input.OmitOptionalCharacterScalars)
+            OmittedOptionalScalarInput = File.ReadAllBytes(CharacterPath(checked((uint)uid)));
         new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(uid, input.Items);
         new PlayerSpellSnapshotLoader(Data.Spells).SaveByCharacterUid(uid, input.Spells ?? PlayerSpellSnapshot.Empty);
         new PlayerProficiencySnapshotLoader(Data.Proficiencies).SaveByCharacterUid(uid, input.Proficiencies ?? PlayerProficiencySnapshot.Empty);

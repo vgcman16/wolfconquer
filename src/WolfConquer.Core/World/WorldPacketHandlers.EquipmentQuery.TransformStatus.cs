@@ -30,6 +30,13 @@ public static partial class WorldPacketHandlers
         public async ValueTask<bool> UpdateTransformAsync(uint capturedMaximum)
         {
             if (!Refresh()) return false;
+            if (PendingContinuation() is not null)
+            {
+                // Keep the genuine private execution as the producer for each
+                // concrete HP/cache mutation; the public adapter cannot lend it.
+                return await AssignAsync(checked((int)capturedMaximum)).ConfigureAwait(false) &&
+                    SetMaximum(capturedMaximum) && await PairAsync().ConfigureAwait(false);
+            }
             Adopt(await UpdateLegacyClientTransformStatusAsync(
                     Context, Session, Request.Scope, capturedMaximum, CancellationToken).ConfigureAwait(false));
             if (!Current.Completed) return false;

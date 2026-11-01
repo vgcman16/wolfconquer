@@ -6,7 +6,7 @@ namespace WolfConquer.Core.World;
 // registered receive/death plan separately owns the actual current holders.
 internal sealed partial class LegacyOwnedPhysicalMetadataWitness
 {
-    private readonly LegacyOrdinarySpellBinding binding;
+    private readonly LegacyOrdinarySpellBinding? binding;
     private readonly WorldDataCatalog? catalog;
     private readonly bool preserveRawAttributes;
     private readonly Dictionary<object, ICurrent> collections = new(ReferenceEqualityComparer.Instance);
@@ -41,7 +41,7 @@ internal sealed partial class LegacyOwnedPhysicalMetadataWitness
 
     internal void Extend(WorldSession source)
     {
-        if (!IsCurrentPlain() || !ReferenceEquals(source.NativeGameClient, binding.Client) ||
+        if (binding is null || !IsCurrentPlain() || !ReferenceEquals(source.NativeGameClient, binding.Client) ||
             source.Character.Uid != binding.Uid || source.AccountId != binding.AccountId) throw Invalid();
         inputs.Add(new(source, preserveRawAttributes));
         LegacyPlayerStatusCalculator.CaptureOwnedPhysicalMetadata(this, source, catalog);
@@ -59,7 +59,7 @@ internal sealed partial class LegacyOwnedPhysicalMetadataWitness
 
     internal void RequireNativeQueryInputs(WorldSession source)
     {
-        if (!IsCurrentPlain() || !ReferenceEquals(source.NativeGameClient, binding.Client) ||
+        if (binding is null || !IsCurrentPlain() || !ReferenceEquals(source.NativeGameClient, binding.Client) ||
             source.AccountId != binding.AccountId || source.Character.Uid != binding.Uid) throw Invalid();
         inputs.Add(new(source, preserveRawAttributes));
         nativeQueryRequired = true;
@@ -67,7 +67,10 @@ internal sealed partial class LegacyOwnedPhysicalMetadataWitness
         if (!IsCurrentPlain()) throw Invalid();
     }
 
-    internal bool IsCurrentPlain() => binding.Store.IsOwnedPhysicalMetadataCatalogCurrent(binding, catalog) &&
+    internal bool IsCurrentPlain() => binding is not null && binding.Store.IsOwnedPhysicalMetadataCatalogCurrent(binding, catalog) &&
+        CapturedDataIsCurrent();
+
+    private bool CapturedDataIsCurrent() =>
         actualIndices.All(IsActualIndex) && actualRaw.All(IsActualRaw) &&
         inputs.All(input => input.IsCurrentPlain()) && collections.Values.All(value => value.IsCurrentPlain()) &&
         rows.Values.All(row => row.IsCurrentPlain()) && magicLevels.All(pair => pair.Value.IsCurrentFor(pair.Key.Fields)) &&

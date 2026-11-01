@@ -15,13 +15,16 @@ internal static class LegacyCombatCharacterImageInputs
             !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(disk, expected)) return false;
         foreach (var pair in disk.Attributes)
         {
-            // These three fields are live status/resource inputs, not fields
+            // These four fields are live status/resource inputs, not fields
             // owned by CharacterSnapshotScalarPersistence. Actual skill/ticker
-            // publications can change them without changing the saved seed.
+            // and equipment-query publications can change them without changing
+            // the saved seed. Vigor is the source GameClient runtime field;
+            // query clamps it and does not save its Character seed line.
             // The writer preserves their original raw lines, not live values.
             if (pair.Key.Equals("StatusFlags", StringComparison.OrdinalIgnoreCase) ||
                 pair.Key.Equals("XPCount", StringComparison.OrdinalIgnoreCase) ||
-                pair.Key.Equals("Stamina", StringComparison.OrdinalIgnoreCase)) continue;
+                pair.Key.Equals("Stamina", StringComparison.OrdinalIgnoreCase) ||
+                pair.Key.Equals("Vigor", StringComparison.OrdinalIgnoreCase)) continue;
             if (!expected.Attributes.TryGetValue(pair.Key, out var value) || value != pair.Value) return false;
         }
         return true;

@@ -32,7 +32,15 @@ public static partial class WorldPacketHandlers
             monsterFamily.Name);
     }
 
+    private readonly record struct LegacyMonsterExperienceOutcome(WorldSession Session, bool Completed);
+
     private static async ValueTask<WorldSession> TryApplyLegacyMonsterExperienceAsync(
+        WorldPacketHandlerContext context, WorldSession session, LegacyMonsterInstance monster,
+        Monster monsterFamily, uint requestedDamage, CancellationToken cancellationToken) =>
+        (await TryApplyLegacyMonsterExperienceWithOutcomeAsync(context, session, monster, monsterFamily, requestedDamage,
+            cancellationToken).ConfigureAwait(false)).Session;
+
+    private static async ValueTask<LegacyMonsterExperienceOutcome> TryApplyLegacyMonsterExperienceWithOutcomeAsync(
         WorldPacketHandlerContext context,
         WorldSession session,
         LegacyMonsterInstance monster,
@@ -43,7 +51,7 @@ public static partial class WorldPacketHandlers
         if (requestedDamage == 0 ||
             LegacyMonsterDamageRules.IsLegacyGuardFamily(monsterFamily))
         {
-            return session;
+            return new(session, true);
         }
 
         var adjustedExperience = AdjustLegacyMonsterExperience(
@@ -67,7 +75,7 @@ public static partial class WorldPacketHandlers
                     .ConfigureAwait(false);
             }
 
-            return updatedSession;
+            return new(updatedSession, true);
         }
 
         var beforeFinalExperience = updatedSession;
@@ -79,7 +87,7 @@ public static partial class WorldPacketHandlers
                 cancellationToken)
             .ConfigureAwait(false);
 
-        if (ReferenceEquals(updatedSession, beforeFinalExperience)) return updatedSession;
+        if (ReferenceEquals(updatedSession, beforeFinalExperience)) return new(updatedSession, false);
         await context.Log.WriteLineAsync(
                 "WorldServer sent legacy monster experience " +
                 $"{FormatSession(context with { Session = updatedSession })} monsterUid={monster.Uid} " +
@@ -88,7 +96,7 @@ public static partial class WorldPacketHandlers
                 $"experience={updatedSession.Character.Experience} level={updatedSession.Character.Level}; " +
                 "source=AttackHandler.Updates.IncreaseExperience.Up -> GameClient.IncreaseExperience.")
             .ConfigureAwait(false);
-        return updatedSession;
+        return new(updatedSession, true);
     }
 
     private static async ValueTask TryApplyLegacyMonsterTeamExperienceAsync(
@@ -261,6 +269,9 @@ public static partial class WorldPacketHandlers
         {
             if (context.Sessions is not { } store) return session;
             var purpose = IssueCombatExperience(context, connection, session, experienceGain, roster);
+            if (RequiresExperienceContinuation(session, context.WorldData, experienceGain))
+                return await CreditAndContinueExperienceAsync(context, connection, session, experienceGain, purpose, cancellationToken)
+                    .ConfigureAwait(false);
             if (!store.TryCommitCombatExperience(context, connection, session, experienceGain, purpose,
                     out var committed, out statProgression, out experienceReceipt, out var frames, out var rebuild, out var refusal) || committed is null || experienceReceipt is null)
             {
@@ -349,6 +360,16 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
 
         return updatedSession;
+    }
+
+    // Classification is DATA only. The actual credit writer separately proves
+    // its current catalog, exclusive Frame operation, owner and exact image.
+    private static bool RequiresExperienceContinuation(WorldSession session, WorldDataCatalog? catalog, ulong gain)
+    {
+        if (session.Character.Level is < 1 or >= 140 || session.Character.Experience < 0 || gain == 0 || catalog is null ||
+            !catalog.LevelExperienceByTypeAndLevel.TryGetValue((0, checked((int)session.Character.Level)), out var threshold) ||
+            threshold.Experience <= 0) return false;
+        return checked((ulong)session.Character.Experience + gain) >= checked((ulong)threshold.Experience);
     }
 
     private static LegacyExperienceGainInputs CreateLegacyExperienceGainInputs(

@@ -10,7 +10,8 @@ internal sealed partial class LegacyPreparedDerivedSpellQueryWrite
     {
         if (preparedFinal is not null || !BeforeOwnerIsCurrent() || !ProposalMatches(actual)) throw Invalid();
         preparedFinal = actual;
-        finalAttributes = new(actual.Character.Attributes); finalPaid = new(actual.Character.PaidNobility);
+        finalAttributes = LegacyNativeAttributeMapProof.CaptureRaw(actual.Character.Attributes);
+        finalPaid = LegacyNativeAttributeMapProof.CaptureRaw(actual.Character.PaidNobility);
     }
     // The Store calls this only after its actual native+holder plain stores.
     internal void RegisterPublished(WorldSession actual)
@@ -23,6 +24,7 @@ internal sealed partial class LegacyPreparedDerivedSpellQueryWrite
         store.TryGet(binding.Connection, out var current) && ReferenceEquals(current, actual) &&
         store.IsBoundSpellOwnerCurrent(binding) && frame.IsActionLifecycleCurrent(store, context) &&
         query.IsEpochCurrentPlain(binding, actual) && metadata.IsCurrentPlain() &&
+        PendingPublishedIsCurrent(actual) &&
         finalAttributes is not null && finalAttributes.IsCurrentPlain() && finalPaid is not null && finalPaid.IsCurrentPlain();
     internal bool CoversCommittedPublication(WorldServerFrameHandler actualFrame, WorldSessionStore actualStore,
         ConquerTcpConnection connection, WorldSession? previous, WorldSession current) =>

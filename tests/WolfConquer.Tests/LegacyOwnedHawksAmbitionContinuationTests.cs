@@ -8,6 +8,6 @@ public sealed class LegacyOwnedHawksAmbitionContinuationTests
         LegacyMagicAttackRuntimeTests.RunOwnedHawksAnimationEofAsync();
 
     [Fact]
-    public Task RealNestedFanQueryRefreshesTheNextHawksPhaseAfterActualRegistrationExpiry() =>
-        LegacyMagicAttackRuntimeTests.RunOwnedHawksNestedFanQueryAsync();
+    public Task RealSerializedFanQueryRefreshesTheNextHawksPhaseAfterActualRegistrationExpiry() =>
+        LegacyMagicAttackRuntimeTests.RunOwnedHawksSerializedFanQueryAsync();
 }

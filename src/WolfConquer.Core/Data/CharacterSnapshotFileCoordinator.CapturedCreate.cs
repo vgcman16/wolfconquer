@@ -24,6 +24,8 @@ internal static partial class CharacterSnapshotFileCoordinator
         uncertain = false;
         reason = "capturedImageLeafAlreadyExists";
         if (!CapturedImageLeafMissing(path)) return false;
+        if (Path.GetExtension(path).Equals(".ini", StringComparison.OrdinalIgnoreCase) && ContainsContinuationMarker(after))
+        { reason = "experienceContinuationPendingRequiresOwner"; return false; }
         var published = false;
         var failure = string.Empty;
         try

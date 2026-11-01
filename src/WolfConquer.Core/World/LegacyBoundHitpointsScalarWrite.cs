@@ -21,6 +21,7 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
     private readonly LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication;
     private readonly LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication;
     private readonly WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement;
+    private readonly WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery;
     internal WorldPacketHandlers.BoundHitpointsInputs Inputs { get; }
     internal WorldSession Proposed { get; }
     internal bool IsCommitted { get; private set; }
@@ -33,7 +34,8 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
         WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical,
         LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication,
         LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication,
-        WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement)
+        WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement,
+        WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery)
     {
         this.owner = owner; this.store = store; this.connection = connection; this.binding = binding; this.expected = expected;
         this.runePublication = runePublication;
@@ -42,6 +44,12 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
         this.basicPhysical = basicPhysical; this.physicalDeathPublication = physicalDeathPublication;
         this.teleportPublication = teleportPublication;
         this.classRetirement = classRetirement;
+        this.continuationQuery = continuationQuery;
+        if (continuationQuery is not null && (caprice is not null || runePublication is not null ||
+            pairMovementPublication is not null || movementPublication is not null || basicPhysical is not null ||
+            physicalDeathPublication is not null || teleportPublication is not null || classRetirement is not null ||
+            !ReferenceEquals(continuationQuery.Expected, expected) || !ReferenceEquals(continuationQuery.Proposed, proposed)))
+            throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignContinuationQueryPurpose");
         if (classRetirement is not null)
         {
             if (caprice is not null || runePublication is not null || pairMovementPublication is not null || movementPublication is not null ||
@@ -101,15 +109,17 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
         WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical = null,
         LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication = null,
         LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication = null,
-        WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null) =>
+        WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null,
+        WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery = null) =>
         new(owner, store, connection, binding, expected, proposed, caprice, runePublication, pairMovementPublication, movementPublication,
-            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement);
+            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement, continuationQuery);
     internal byte[] CopyBeforeImage() => before.ToArray();
     internal byte[] CopyAfterImage() => after.ToArray();
     private bool OwnerIsCurrent() => store.IsFramePersistenceCurrent(owner, connection, expected) &&
         ReferenceEquals(binding.Store, store) && ReferenceEquals(binding.Connection, connection) &&
         binding.PhysicalOwnerIsCurrentPlain() && binding.Recovery.IsReadyForUsers(binding.UsersRoot) &&
-        (basicPhysical is null || basicPhysical.IsCurrentPlain()) && (classRetirement is null || classRetirement.IsCurrentPlain());
+        (basicPhysical is null || basicPhysical.IsCurrentPlain()) && (classRetirement is null || classRetirement.IsCurrentPlain()) &&
+        (continuationQuery is null || continuationQuery.IsCurrentPlain(binding) || continuationQuery.IsConsumedCurrentPlain(binding));
 
     internal Outcome TryCommit(out string reason)
     {
@@ -138,7 +148,15 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
                 { failure = "ordinaryHitpointsCharacterBaselineStale"; return Outcome.Rejected; }
                 if (!OwnerIsCurrent()) return Outcome.Rejected;
                 phase = Outcome.RecoveryRequired;
-                if (CharacterSnapshotFileCoordinator.TryReplaceCapturedImage(path, before, after, out var uncertain, out failure))
+                bool saved; bool uncertain;
+                if (continuationQuery is null)
+                    saved = CharacterSnapshotFileCoordinator.TryReplaceCapturedImage(path, before, after, out uncertain, out failure);
+                else
+                {
+                    var permit = store.IssueContinuationQueryFilePermit(continuationQuery, binding, expected, path, before, after);
+                    saved = CharacterSnapshotFileCoordinator.TryReplaceContinuationCapturedImage(path, before, after, permit, out uncertain, out failure);
+                }
+                if (saved)
                 { IsCommitted = true; return Outcome.Committed; }
                 return uncertain ? Outcome.RecoveryRequired : Outcome.Rejected;
             });

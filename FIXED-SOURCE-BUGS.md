@@ -6,6 +6,87 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## Open full-gate repairs - 2026-11-01
 
+### FSB-288: Preserve unrelated runtime-key case in monster attack witnesses
+
+OPEN integrated qualification; follow-up to the owned physical input work. The
+actual monster reservation used the case-insensitive map proof even though this
+particular capture only checks currentness. A legitimate Ordinal runtime map
+with unrelated `Other`/`other` fields therefore refused before damage or XP;
+focused09 exposed the level140 positive remaining139. This witness now uses
+CaptureRaw and retains its full captured comparer/contents. Actual Action,
+DynamicID, status, native binding, readiness, Exclusive, cadence and target
+checks remain unchanged. Release build11 passed and focused10 completed138Passed/
+0Failed/0Skipped, including the full level-up/files/native/wire positive and actual
+owner/lease/target negatives. Dedicated owned-field ambiguity checks remain
+unchanged; the full Windows gate is still required. No saved-INI ambiguity rule,
+protocol field or gameplay authorization was relaxed.
+
+### FSB-287: Preserve saved Vigor while real queries clamp the live resource
+
+OPEN integrated qualification. Original GameClient.cs declares runtime Vigor;
+Equip.cs clamps it and emits ServerInfo. The managed scalar persistence contract
+does not own Vigor. A saved Vigor seed above the computed maximum therefore may
+legitimately differ from the current runtime value after startup or level query.
+The next intake adds only this source-supported runtime exemption to the shared
+disk comparison; all typed persisted/currency/Paid checks and other raw fields
+remain checked, and the actual writer preserves the original Vigor line. A real
+saved-Vigor9999 startup clamp and earned two-threshold/full-file control is
+qualified in focused10 (138P/0F/0skip), after focused09 overall664P/6F. Full integration
+remains OPEN; this is not a live-client or full persistence pass.
+
+### FSB-286: Fence continuation failures at their actual committed owner
+
+OPEN integrated qualification. The threshold route could discard credit refusal
+reasons, throw while beginning execution after a durable credit outside its
+cleanup catch, or fail while capturing a committed admission origin outside its
+catch. Source now logs the actual precredit refusal, fences the genuine issued
+credit receipt on begin failure, and permits denial-only cleanup from the actual
+committed admission plan/exact candidate when origin capture fails. Configured
+admission roots are pinned with the actual images. No new evidence or default
+accepting owner is invented. Genuine lease/refusal controls have scoped passing
+evidence in focused10 (138P/0F/0skip), including the exact updated credit-refusal
+diagnostics and complete wallet/file/native/output invariants; narrow
+postcommit origin/observer seams remain source-reviewed, not runtime-proven.
+
+### FSB-285: Require actual monster actor, operation and retirement ownership
+
+OPEN integrated qualification. The new repeat draft did not itself require this
+Frame's active Exclusive before reservation/damage/arm, and session-only native
+inspection could fall through to unbound damage with an attached/retired or
+foreign connection. The reviewed intake checks both real client attachments,
+same live binding/Store/current holder and the actual Frame lease before effects.
+Postdamage cleanup fences the real original actor even if its connection gate
+disappears, without retiring a replacement. Actual admitted invalid-lease,
+missing/foreign client/Store, retired-owner and output-loss controls passed in
+focused10 (138P/0F/0skip). Full monster/reward/XP crash atomicity
+and live acceptance remain open; FSB288 records its separate currentness defect.
+
+### FSB-284: Retire recoverable XP actors without clearing global uncertainty
+
+OPEN integrated qualification. A verified conserved continuation checkpoint could
+be followed by pure output loss, but cleanup unconditionally blocked the shared
+recovery domain. A query prefix also replaces the holder before status output,
+so stale-holder-only failure cleanup could block without retiring the actor.
+The new closed checkpoint lineage retains actual committed file/native/marker/
+spell identity and clears only that exact actor when real journal state is clear.
+It never clears a recovery block; uncertain/drifted outcomes still block and
+retire only the original binding. Historical cleanup reuse requires the exact
+same propagated exception. Actual focused04 was112Passed/6Failed; three recovery
+failures proved the outer monster-hit cleanup still reblocked the domain after
+that safe actor retirement. The next intake consumes only the actual historical
+checkpoint once, under the same live operation/binding/exact exception; no new
+retirement, missing-holder inference, exception-type bypass or unblock is used.
+Real earned below-cap cold/same-runtime no-recredit, file-lease, startup-output
+loss, committed-hit holder removal and tamper controls passed in focused09.
+Actual transport close now has a retirement-only check for the original ended
+registration and still-held operation; gameplay lifetime guards are unchanged.
+EOF recovery, changed-image EOF rejection and final EXP loss after marker clear
+also passed there. That broad run remained664P/6F. Updated legacy output-failure
+cases retain full checkpoint/file/native and genuine reconnect assertions;
+focused10 now completed138P/0F/0skip and includes all six formerly failed cases.
+Still OPEN full integration; observer/replacement/native
+interleavings without a genuine Frame seam remain explicit verification limits.
+
 ### FSB-283: Separate live XP/status inputs from persisted scalar equality
 
 OPEN full integration. The genuine admitted Maniac cast and due tick applied

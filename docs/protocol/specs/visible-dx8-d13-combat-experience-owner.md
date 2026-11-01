@@ -8,17 +8,15 @@ Prepare and compare the complete current Character before image, retain unrelate
 
 The XP transaction is per recipient. Damage, monster death, rewards and other team recipients may already be committed before this call; this increment does not claim joint crash atomicity or rollback of those actions. Peer recipients must resolve their own connection and current binding. Missing or stale catalog, persistence, identity or runtime ownership refuses safely. Existing unbound component models are not evidence of admitted ownership.
 
-Disk/runtime comparison retains UID, all modeled persisted scalars and currencies,
-PaidNobility and unrelated raw-key equality. Only the known live StatusFlags,
-XPCount and Stamina values may differ from a saved seed; the writer retains their
-original raw lines. These inputs never grant an award or replace the actual bound
-producer/operation/file proofs. A genuine periodic cast with9stamina cost and a
-deliberately changed saved CP balance verify successful runtime progression versus
-persisted-wallet refusal, with independent complete-file expectations.
-
 Qualification required: actual admitted hit and team-recipient level-up, no-level gain, threshold/malformed and file-lease refusal, exact native/holder/file/packet alignment, stale owner and postcommit failure, plus relevant full suite. Source-only drafting is unrun. Live client acceptance and end-to-end damage/reward/XP atomicity remain open.
 
-Only a single threshold transition is currently eligible. A gain that would cross multiple levels is refused before this recipient's XP commit until durable remaining-XP continuation owns each intermediate level/query step. Previously committed damage and rewards are not reversed.
+The mutable source now routes threshold-crossing awards through a durable continuation draft that credits the full award before individual level/query/restore steps, and routes pending cold login through a draft real admission/startup owner. Both routes are unqualified: integrated multi-threshold, interruption and cold-reopen tests have not run. The separately frozen check01 snapshot retains its earlier one-level boundary. Previously committed damage and rewards are not reversed.
+
+The draft closed retirement path requires the exact committed checkpoint, conserved award and absence of pending or uncertain journal work before retiring only that actor. Uncertain outcomes must still fence recovery. Same-runtime reconnect remains subject to integrated qualification.
+
+The final EXP frame follows the committed marker clear. If that output fails or the actual transport ends, a closed receipt may retire only the original actor when the complete cleared Character image, native state, sidecars and journal state remain proven. A later admission reads the settled image and must not issue the award again. The exact output may be lost: the protocol supplies no delivery acknowledgement. Any changed or uncertain committed image still fences recovery. The mutable implementation and the real output-loss/EOF controls require qualification.
+
+For a Character disk/current comparison, retain the typed persisted scalar, currency, UID, PaidNobility and unrelated raw-key checks. `StatusFlags`, `XPCount`, `Stamina` and `Vigor` are live runtime fields that may differ from their saved seed; the actual writer preserves their existing raw disk lines. Captured before/after images, continuation markers and recovery checkpoints remain exact byte proofs.
 # Current team boundary
 
 Admitted team experience captures a real roster identity and generation before

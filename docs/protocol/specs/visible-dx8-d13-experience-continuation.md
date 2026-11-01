@@ -24,6 +24,21 @@ qualification. Durable continuation does not promise exactly-once network
 delivery, and a fresh request without a durable request ID is not deduplicated
 by this marker.
 
+### Source-only pre-hit witness correction
+
+The older actual monster-hit level-up control adds runtime-only `Other`/`other`
+keys through the real Store with an Ordinal comparer. Focused09 stopped at
+level139 before XP credit. The actual monster-attempt currentness witness used
+the normalizing `LegacyNativeAttributeMapProof` constructor, which rejected
+those unrelated keys before reserving the attempt or damaging the monster.
+It now uses `CaptureRaw`; the unchanged final witness still proves the complete
+map and its comparer. Actual action/status parsers, native binding, readiness,
+exclusive lease, cadence, target and reservation checks remain required.
+The positive must still reach140, preserve both runtime values and prove its
+complete final files/native/query output. Owned-key ambiguity and unsupported
+map controls remain rejection cases. This correction is UNBUILT/UNRUN pending
+Root's qualification and ledger intake; it is not a passing-result claim.
+
 ## Catalog/table contract
 
 One reserved key, `ExperienceContinuation`, is stored in the actual
