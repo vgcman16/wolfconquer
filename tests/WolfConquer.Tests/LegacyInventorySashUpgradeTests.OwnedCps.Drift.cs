@@ -49,7 +49,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
 
                 await join.FrameAsync(PackageJoinRequest(claimAll));
 
-                Assert.Equal(catalogCallback, probe.Fired);
+                Assert.True(catalogCallback == probe.Fired, fixture.Log.ToString());
                 if (catalogCallback) Assert.True(probe.AfterCommitReads > 0); // Historical probe name; no commit is claimed here.
                 Assert.Equal(checked(bankBefore + 1), native.ConquerPointsSave);
                 Assert.Same(before.Owner, join.Current);
@@ -86,3 +86,4 @@ public sealed partial class LegacyInventorySashUpgradeTests
         if (failures.Count > 1) throw new AggregateException("Owned CP catalog assertion and/or cleanup failed.", failures);
     }
 }
+

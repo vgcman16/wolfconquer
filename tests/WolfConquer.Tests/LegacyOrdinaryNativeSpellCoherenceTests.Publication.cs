@@ -81,9 +81,11 @@ public sealed partial class LegacyOrdinaryNativeSpellCoherenceTests
                 case "soul": bad[0] = first with { UseSpellSoul = 5 }; break;
                 case "duplicate": bad.Add(first); break;
             }
-            Assert.Throws<InvalidOperationException>(() => f.Store.TryCompareAndSet(f.Connection, before, before with { PlayerSpells = new PlayerSpellSnapshot(bad) }));
+            var error = Assert.Throws<InvalidDataException>(() => f.Store.TryCompareAndSet(f.Connection, before, before with { PlayerSpells = new PlayerSpellSnapshot(bad) }));
+            Assert.Equal("derivedSpellMembershipInvalid", error.Message);
             Assert.Same(before, f.Current); Assert.Same(map, storage.ClientSpells);
             Assert.Equal(rows, map.ToArray()); f.RequireFiles(files); Assert.Equal(sends, f.Sent.Count);
         });
     }
 }
+

@@ -36,7 +36,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
 
             var ended = DateTime.Now; join.SendObserver = null;
             if (observed is not null) ExceptionDispatchInfo.Capture(observed).Throw();
-            Assert.True(observations > 0);
+            Assert.True(observations > 0, fixture.Log.ToString());
             Assert.Equal(expectedMoney, native.Player.Money);
             Assert.Equal(1031U, native.Player.ClassExperience);
             AssertPackageJoinCommitted(fixture, join, before, claimAll, 10);
@@ -49,3 +49,4 @@ public sealed partial class LegacyInventorySashUpgradeTests
             AssertPackageJoinFiles(fixture, committed); AssertPackageJoinReplay(fixture, claimAll, replay);
         });
 }
+

@@ -66,10 +66,12 @@ internal static partial class LegacyDerivedSpellOrigins
         if (origins.Count > 2 || origins.Any(pair => !IsDomain(pair.Key) || pair.Value is 0 or > byte.MaxValue)) throw Invalid();
         var encoded = string.Join(',', origins.OrderBy(pair => pair.Key).Select(pair =>
             pair.Key.ToString(CultureInfo.InvariantCulture) + ":" + pair.Value.ToString(CultureInfo.InvariantCulture)));
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var pair in Map(character.Attributes))
+        var source = CaptureMap(character.Attributes);
+        var values = new Dictionary<string, string>(source.CapturedComparer);
+        foreach (var pair in source.Fields)
             if (!pair.Key.Equals(Key, StringComparison.OrdinalIgnoreCase)) values.Add(pair.Key, pair.Value);
         if (encoded.Length != 0 || Encoded(character) is not null) values.Add(Key, encoded);
+        if (!source.IsCurrentPlain()) throw Invalid();
         var result = character with { Attributes = new ReadOnlyDictionary<string, string>(values) };
         _ = Read(result); return result;
     }
@@ -89,16 +91,32 @@ internal static partial class LegacyDerivedSpellOrigins
         Attributes = Map(character.Attributes), PaidNobility = Map(character.PaidNobility),
     };
 
+    private static LegacyNativeAttributeMapProof CaptureMap(IReadOnlyDictionary<string, string> source)
+    {
+        // Only the owned marker is case-insensitive. Unrelated saved fields may
+        // legally differ by case; retain their comparer and complete raw witness.
+        try { return LegacyNativeAttributeMapProof.CaptureRaw(source); }
+        catch (InvalidOperationException error) { throw new InvalidDataException("derivedSpellAttributesInvalid", error); }
+    }
+
     private static IReadOnlyDictionary<string, string> Map(IReadOnlyDictionary<string, string> source)
     {
-        try { return new LegacyNativeAttributeMapProof(source).Fields; }
-        catch (InvalidOperationException error) { throw new InvalidDataException("derivedSpellAttributesInvalid", error); }
+        var captured = CaptureMap(source);
+        if (!captured.IsCurrentPlain()) throw Invalid();
+        return captured.Fields;
     }
 
     private static string? Encoded(CharacterSnapshot character)
     {
         var fields = Map(character.Attributes);
-        return fields.TryGetValue(Key, out var value) ? value : null;
+        string? encoded = null;
+        foreach (var pair in fields)
+            if (pair.Key.Equals(Key, StringComparison.OrdinalIgnoreCase))
+            {
+                if (encoded is not null) throw Invalid();
+                encoded = pair.Value;
+            }
+        return encoded;
     }
 
     private static void RequireNoRuneOverlap(CharacterSnapshot character, IReadOnlyDictionary<ushort, ushort> origins)

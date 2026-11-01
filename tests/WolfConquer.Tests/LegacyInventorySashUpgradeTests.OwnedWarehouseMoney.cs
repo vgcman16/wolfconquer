@@ -39,7 +39,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
 
             var ended = DateTime.Now; join.SendObserver = null;
             if (observed is not null) ExceptionDispatchInfo.Capture(observed).Throw();
-            Assert.True(replies > 0);
+            Assert.True(replies > 0, fixture.Log.ToString());
             AssertCombinedWarehouseWallet(fixture, join, native, expectedMoney, expectedCps);
             AssertPackageJoinCommitted(fixture, join, before, claimAll, 10);
             // This is the real cold-client sequence; the warehouse participant
@@ -95,7 +95,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
 
                 await join.FrameAsync(PackageJoinRequest(claimAll));
 
-                Assert.Equal(catalogCallback, probe.Fired);
+                Assert.True(catalogCallback == probe.Fired, fixture.Log.ToString());
                 if (catalogCallback) Assert.True(probe.AfterCommitReads > 0); // Historical probe name; this operation did not commit.
                 Assert.Equal(CombinedWarehouseGold + 1, native.Player.WHMoney);
                 Assert.Same(before.Owner, join.Current);
@@ -173,3 +173,4 @@ public sealed partial class LegacyInventorySashUpgradeTests
         }
     }
 }
+

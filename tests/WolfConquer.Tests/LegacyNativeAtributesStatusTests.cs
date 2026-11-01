@@ -9,7 +9,7 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeAtributesStatusTests
 {
     [Fact]
-    public void InstantAndPlayerStatsKeepExactPublicUInt16FieldsDefaultsAndNativeTypo()
+    public void InstantFieldsAndPlayerStatsKeepUInt16DefaultsAndNativeTypo()
     {
         Assert.Equal(typeof(Dictionary<uint, Dictionary<ushort, Table.Instant>>), typeof(Table).BaseType);
         var instant = new Table.Instant();
@@ -25,7 +25,7 @@ public sealed partial class LegacyNativeAtributesStatusTests
         }
         Assert.Null(typeof(Table.Instant).GetField("Strength"));
         var player = Player();
-        foreach (string name in new[] { "Agility", "Vitality", "Spirit", "Strength" })
+        foreach (string name in new[] { "Vitality", "Spirit", "Strength" })
         {
             var field = typeof(LegacyNativePlayerRuntime).GetField(name, BindingFlags.Public | BindingFlags.Instance)!;
             Assert.Equal(typeof(ushort), field.FieldType);
@@ -35,6 +35,13 @@ public sealed partial class LegacyNativeAtributesStatusTests
             field.SetValue(player, ushort.MaxValue);
             Assert.Equal(ushort.MaxValue, field.GetValue(player));
         }
+        // Agility is now an owner-guarded property; retain its source width,
+        // unbound default and setter behavior without requiring a public field.
+        var agility = typeof(LegacyNativePlayerRuntime).GetProperty("Agility")!;
+        Assert.Equal(typeof(ushort), agility.PropertyType); Assert.True(agility.CanRead && agility.CanWrite);
+        Assert.Null(typeof(LegacyNativePlayerRuntime).GetField("Agility"));
+        Assert.Equal((ushort)0, agility.GetValue(player));
+        agility.SetValue(player, ushort.MaxValue); Assert.Equal(ushort.MaxValue, agility.GetValue(player));
     }
 
     [Theory]
@@ -127,8 +134,12 @@ public sealed partial class LegacyNativeAtributesStatusTests
         var player = Player();
         table.ResetStatsNonReborn(player);
         Assert.True(table.CheckStatus(player));
-        var member = typeof(LegacyNativePlayerRuntime).GetField(field)!;
-        member.SetValue(player, (ushort)((ushort)member.GetValue(player)! - 1));
+        if (field == "Agility") player.Agility--;
+        else
+        {
+            var member = typeof(LegacyNativePlayerRuntime).GetField(field)!;
+            member.SetValue(player, (ushort)((ushort)member.GetValue(player)! - 1));
+        }
         var before = Stats(player);
         Assert.False(table.CheckStatus(player));
         Assert.Equal(before, Stats(player));
@@ -247,10 +258,10 @@ public sealed partial class LegacyNativeAtributesStatusTests
     public void NullPlayerAndNullTableReceiverFaultWithoutChangingAnExistingPhysicalPlayer()
     {
         var table = new Table();
-        Assert.Throws<NullReferenceException>(() => table.ResetStatsNonReborn(null!));
+        Assert.Throws<ArgumentNullException>(() => table.ResetStatsNonReborn(null!));
         Assert.Throws<NullReferenceException>(() => table.CheckStatus(null!));
-        Assert.Throws<NullReferenceException>(() => table.GetStatus(null!));
-        Assert.Throws<NullReferenceException>(() => table.GetStatus(null!, true));
+        Assert.Throws<ArgumentNullException>(() => table.GetStatus(null!));
+        Assert.Throws<ArgumentNullException>(() => table.GetStatus(null!, true));
         var player = Player();
         Sentinel(player);
         var before = Stats(player);
@@ -262,3 +273,5 @@ public sealed partial class LegacyNativeAtributesStatusTests
         Assert.Equal(before, Stats(player));
     }
 }
+
+

@@ -76,7 +76,7 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
             await SashPinFrameAsync(owner, player, request, calls);
 
             witness = null;
-            Assert.Equal(2, observed);
+            Assert.True(observed == 2, owner.Log.ToString());
             AssertSashPinFiles(expectedFiles);
             var committed = Current(owner, player);
             Assert.Equal(before with { PlayerItems = committed.PlayerItems }, committed);
@@ -105,3 +105,4 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         if (errors.Count > 1) throw new AggregateException(errors);
     }
 }
+

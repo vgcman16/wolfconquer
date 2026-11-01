@@ -40,7 +40,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
 
             var ended = DateTime.Now; join.SendObserver = null;
             if (observed is not null) ExceptionDispatchInfo.Capture(observed).Throw();
-            Assert.True(replies > 0); Assert.Equal(expected, CombinedNativeCps(native));
+            Assert.True(replies > 0, fixture.Log.ToString()); Assert.Equal(expected, CombinedNativeCps(native));
             Assert.Equal(1031U, native.Player.ClassExperience); Assert.False(native.FullLoading);
             AssertPackageJoinCommitted(fixture, join, before, claimAll, 10);
             AssertColdCpClaimFrames(fixture, join, before, claimAll, started, ended);
@@ -93,3 +93,4 @@ public sealed partial class LegacyInventorySashUpgradeTests
         Assert.Equal(PackageJoinRequest(claimAll), actual[^1]);
     }
 }
+

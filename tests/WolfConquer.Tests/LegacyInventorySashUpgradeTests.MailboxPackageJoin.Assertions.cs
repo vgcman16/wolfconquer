@@ -38,6 +38,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
     private static LegacyItemUidProducerIntentSnapshot AssertPackageJoinAllocation(Fixture fixture, PackageJoin join)
     {
         Assert.True(join.Registry.TryReadProducerIntents(join.Domain, out var intents, out var reason), reason);
+        Assert.True(intents.Length > 0, fixture.Log.ToString());
         var intent = Assert.Single(intents);
         Assert.Equal(join.Domain, intent.DomainId);
         Assert.Equal(fixture.Account, intent.Request.AccountId);
@@ -141,3 +142,5 @@ public sealed partial class LegacyInventorySashUpgradeTests
         expected[path] = bytes;
     }
 }
+
+

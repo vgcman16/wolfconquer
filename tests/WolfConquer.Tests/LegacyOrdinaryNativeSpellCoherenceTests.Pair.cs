@@ -32,7 +32,8 @@ public sealed partial class LegacyOrdinaryNativeSpellCoherenceTests
                 writerCalled = true;
                 return LegacyTradeJournal.TryCommitCharacterSpells(f.Users, f.Spells, changes, out _);
             }, out finalFirst, out finalSecond);
-            if (invalidSecond) Assert.Throws<InvalidOperationException>(() => Commit());
+            if (invalidSecond)
+                Assert.Equal("derivedSpellMembershipInvalid", Assert.Throws<InvalidDataException>(() => Commit()).Message);
             else committed = Commit();
             if (invalidSecond)
             {
@@ -54,3 +55,4 @@ public sealed partial class LegacyOrdinaryNativeSpellCoherenceTests
         });
     }
 }
+

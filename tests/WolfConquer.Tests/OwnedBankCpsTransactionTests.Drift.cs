@@ -87,8 +87,15 @@ public sealed partial class OwnedBankCpsTransactionTests
         WithBank(async f =>
         {
             await f.Login(); await StageBank(f, deposit: true, 300);
-            var before = f.Current; var proposal = BankCpsProposal(before, deposit: true, 300);
-            var expectedFields = Assert.IsType<Dictionary<string, string>>(before.Character.Attributes);
+            // Admission exposes a read-only wrapper. Publish an equivalent
+            // real mutable BCL map before the writer so this control still
+            // exercises post-commit source/proposal mutation, not a cast failure.
+            var staged = f.Current;
+            var expectedFields = new Dictionary<string, string>(staged.Character.Attributes, StringComparer.OrdinalIgnoreCase);
+            f.Store.Set(f.Connection, staged with { Character = staged.Character with { Attributes = expectedFields } });
+            var before = f.Current;
+            Assert.Same(expectedFields, before.Character.Attributes);
+            var proposal = BankCpsProposal(before, deposit: true, 300);
             var proposedFields = Assert.IsType<Dictionary<string, string>>(proposal.Character.Attributes);
             int first = f.Sent.Count; bool saved = false; var reason = string.Empty;
             bool ActualWriterThenValueFault()
@@ -124,3 +131,4 @@ public sealed partial class OwnedBankCpsTransactionTests
         }
     }
 }
+

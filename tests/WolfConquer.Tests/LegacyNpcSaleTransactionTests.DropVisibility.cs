@@ -91,33 +91,36 @@ public sealed partial class LegacyNpcSaleTransactionTests
         var owner = NewOwner();
         var player = await LoginPinDrop(owner, uid);
         var current = Current(owner, player);
-        var attributes = new Dictionary<string, string>(current.Character.Attributes, StringComparer.Ordinal)
+        // Publish a valid equivalent BCL map first. The intentional malformed
+        // scope is an escaped post-admission input, never a valid Store proposal.
+        var attributes = new Dictionary<string, string>(current.Character.Attributes, StringComparer.Ordinal);
+        owner.Sessions.Set(player.Connection, current with { Character = current.Character with { Attributes = attributes } });
+        Assert.Same(attributes, Current(owner, player).Character.Attributes);
+        var originalDynamic = attributes["DynamicID"];
+        try
         {
-            ["DynamicID"] = scenario switch
+            attributes["DynamicID"] = scenario switch
             {
                 "malformed" => "bad",
                 "negative" => "-1",
                 "overflow" => "4294967296",
                 _ => "77",
-            },
-        };
-        if (scenario == "conflicting-aliases") attributes.Add("dynamicid", "88");
-        owner.Sessions.Set(player.Connection, current with
-        {
-            Character = current.Character with { Attributes = attributes },
-        });
-        Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(player.Connection, Current(owner, player)));
-        var before = Current(owner, player);
-        var droppedItem = Assert.Single(before.PlayerItems.InventoryItems, item => item.Uid == SoldUid);
-        uint counterBefore = ReadDropVisibilityFloorUidCounter();
+            };
+            if (scenario == "conflicting-aliases") attributes.Add("dynamicid", "88");
+            Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(player.Connection, Current(owner, player)));
+            var before = Current(owner, player);
+            var droppedItem = Assert.Single(before.PlayerItems.InventoryItems, item => item.Uid == SoldUid);
+            uint counterBefore = ReadDropVisibilityFloorUidCounter();
 
-        await AssertPinDropDenied(owner, player, expectedReason: "invalidDynamicId");
+            await AssertPinDropDenied(owner, player, expectedReason: "invalidDynamicId");
 
-        Assert.Equal(counterBefore, ReadDropVisibilityFloorUidCounter());
-        Assert.Same(before, Current(owner, player));
-        Assert.Same(droppedItem, Assert.Single(Current(owner, player).PlayerItems.InventoryItems, item => item.Uid == SoldUid));
-        Assert.Same(attributes, Current(owner, player).Character.Attributes);
-        Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
+            Assert.Equal(counterBefore, ReadDropVisibilityFloorUidCounter());
+            Assert.Same(before, Current(owner, player));
+            Assert.Same(droppedItem, Assert.Single(Current(owner, player).PlayerItems.InventoryItems, item => item.Uid == SoldUid));
+            Assert.Same(attributes, Current(owner, player).Character.Attributes);
+            Assert.False(LegacyTradeJournal.HasPending(UsersRoot));
+        }
+        finally { attributes.Remove("dynamicid"); attributes["DynamicID"] = originalDynamic; }
     }
 
     [Fact]
@@ -128,8 +131,7 @@ public sealed partial class LegacyNpcSaleTransactionTests
         var owner = NewOwner();
         var player = await Login(owner, uid);
         var before = Current(owner, player);
-        Assert.DoesNotContain(before.Character.Attributes.Keys,
-            key => string.Equals(key, "DynamicID", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("0", before.Character.Attributes["DynamicID"]);
         var characterBytes = File.ReadAllBytes(UserPath(uid));
         var first = player.Sent.Count;
 
@@ -160,3 +162,5 @@ public sealed partial class LegacyNpcSaleTransactionTests
         return unchecked((uint)Assert.IsType<int>(field.GetValue(null)));
     }
 }
+
+
