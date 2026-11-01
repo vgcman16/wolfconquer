@@ -48,7 +48,18 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
             new MsgItemUsagePacket(DeathArmorUid, 3, MsgItemUsageAction.Equip, 1234, 0, 0, 0).ToFrameBytes());
 
         Assert.Same(current, f.TargetSession);
-        Assert.True(f.Owner.Store.IsBoundSpellOwnerCurrent(binding));
+        Assert.True(context.TradeRecovery.IsBlocked);
+        Assert.False(f.Owner.Store.IsBoundSpellOwnerCurrent(binding)); // Recovery fences authority, not custody.
+        Assert.False(binding.IsRetired);
+        Assert.Same(f.Target, binding.Connection);
+        Assert.Same(f.Owner.Store, binding.Store);
+        Assert.Same(binding.Client, f.Target.NativeGameClient);
+        Assert.Same(binding.Client, current.NativeGameClient);
+        Assert.Same(binding, binding.Client.OrdinarySpellBinding);
+        Assert.Same(binding.Player, binding.Client.Player);
+        Assert.Same(binding.Client, binding.Player.Owner);
+        Assert.Same(binding.Storage, binding.Client.MySpells);
+        Assert.Same(binding.Snapshot, current.PlayerSpells);
         Assert.False(current.PlayerSpells.ContainsSpell(20000));
         Assert.False(binding.Storage.ClientSpells.ContainsKey(20000));
         Assert.Equal(output, f.Owner.Frames(DeathTargetAccount).Count);
