@@ -19,7 +19,7 @@ public sealed partial class WorldServerFrameHandler
             !string.Equals(root, binding.ProficienciesRoot, comparison)) throw InvalidBoundProficiencyPersistence();
         var baseline = binding.SavedProficiencies;
         if (!baseline.MatchesSnapshot(previous.PlayerProficiencies)) throw InvalidBoundProficiencyPersistence();
-        var image = PlayerProficiencySnapshotLoader.ToLegacyBytes(current.PlayerProficiencies);
+        var image = baseline.ProjectNext(current.PlayerProficiencies);
         var prepared = new LegacySavedProficiencyImage(image);
         var path = Path.Combine(root, binding.Uid.ToString(CultureInfo.InvariantCulture) + ".bin");
         SnapshotFileLockCoordinator.ExecuteLocked(path, () =>

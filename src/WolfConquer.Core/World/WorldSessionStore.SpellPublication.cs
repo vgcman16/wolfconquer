@@ -453,10 +453,4 @@ public sealed partial class WorldSessionStore
              LegacyNativeNinja.HasActiveOwnedPreparation(native))) throw InvalidSpellPublication();
     }
 
-    private void FailCommittedSpellPublication(SessionHolder holder, LegacyOrdinarySpellBinding? binding)
-    {
-        binding?.Recovery.Block("ordinarySpellRecoveryRequired:durableCommitPublicationUnproven");
-        holder.Clear();
-        throw new LegacyCommittedSpellPublicationException();
-    }
 }

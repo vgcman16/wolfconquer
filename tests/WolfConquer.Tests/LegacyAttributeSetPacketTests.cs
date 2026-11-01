@@ -7,6 +7,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
+[Collection("NativeItemCounterSourcePrerequisite")]
 public sealed class LegacyAttributeSetPacketTests : IDisposable
 {
     private readonly string _usersRoot = Path.Combine(Path.GetTempPath(), "wolf-attribute-set-handler-" + Guid.NewGuid());
@@ -36,35 +37,59 @@ public sealed class LegacyAttributeSetPacketTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerEchoesAcceptedAttributeSetAndUpdatesRemainingPoints()
+    public Task HandlerEchoesAcceptedAttributeSetAndUpdatesRemainingPoints()
     {
-        Directory.CreateDirectory(_usersRoot);
-        WriteSnapshot(accountId: 1293600, uid: 1293600, attributePoints: 12, maxHitpoints: 61_512);
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot));
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
-
-        await LoginAsync(handler, connection, characterUid: 1293600);
-        var countBeforeFirstRequest = sent.Count;
-
-        var accepted = new LegacyAttributeSetPacket(Strength: 3, Agility: 2, Vitality: 4, Spirit: 1);
-        await handler.HandleFrameAsync(connection, ReadFrame(accepted.ToFrameBytes()));
-
-        Assert.Equal(countBeforeFirstRequest + 4, sent.Count);
-        var echo = sent[countBeforeFirstRequest];
-        Assert.True(LegacyAttributeSetPacket.TryParse(ReadFrame(echo), out var parsedEcho));
-        Assert.Equal(accepted, parsedEcho);
-        AssertHitpointRefresh(sent[countBeforeFirstRequest + 1], sent[countBeforeFirstRequest + 2]);
-        Assert.True(
-            LegacyUserTotalRefineLevPacket.TryParse(ReadFrame(sent[countBeforeFirstRequest + 3]), out var refine));
-        Assert.Equal(0U, refine.Type);
-        Assert.Equal(1_293_600U, refine.Uid);
-
-        var countBeforeSecondRequest = sent.Count;
-        var overspendAfterMutation = new LegacyAttributeSetPacket(Strength: 3, Agility: 0, Vitality: 0, Spirit: 0);
-        await handler.HandleFrameAsync(connection, ReadFrame(overspendAfterMutation.ToFrameBytes()));
-
-        Assert.Equal(countBeforeSecondRequest, sent.Count);
+        var character = OwnedEquipmentBehaviorFixture.Character(classCode: 14005, agility: 0, strength: 0,
+            minHitPoints: 30) with { Vitality = 0, Spirit = 10, AttributePoints = 12 };
+        return OwnedEquipmentBehaviorFixture.RunAsync(new(character, PlayerItemSnapshot.Empty),
+            OwnedEquipmentBehaviorFixture.Catalog(), async f =>
+        {
+            var before = f.Current(); var binding = before.NativeGameClient!.OrdinarySpellBinding!;
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+            var expected = f.Data.Files().ToDictionary(row => row.Key, row => row.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+            string path = Path.GetRelativePath(f.Data.Root, f.CharacterPath());
+            string text = CharacterSnapshotFileEncoding.Decode(expected[path], out var encoding);
+            foreach (var (from, to) in new[] { ("Strength=0", "Strength=3"), ("Agility=0", "Agility=2"),
+                ("Vitaliti=0", "Vitaliti=4"), ("Spirit=10", "Spirit=11"), ("Atributes=12", "Atributes=2") })
+            {
+                string needle = "\r\n" + from + "\r\n";
+                Assert.Contains(needle, text);
+                text = text.Replace(needle, "\r\n" + to + "\r\n", StringComparison.Ordinal);
+            }
+            expected[path] = encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray();
+            int first = f.ActorFrames.Count;
+            var accepted = new LegacyAttributeSetPacket(3, 2, 4, 1);
+            await f.SendAsync(OwnedEquipmentBehaviorFixture.Actor, accepted.ToFrameBytes());
+            var current = f.Current();
+            Assert.Equal(3L, current.Character.Strength); Assert.Equal(2L, current.Character.Agility);
+            Assert.Equal(4L, current.Character.Vitality); Assert.Equal(11L, current.Character.Spirit);
+            Assert.Equal(2L, current.Character.AttributePoints);
+            Assert.Equal((ushort)3, binding.Player.Strength); Assert.Equal((ushort)2, binding.Player.Agility);
+            Assert.Equal((ushort)4, binding.Player.Vitality); Assert.Equal((ushort)11, binding.Player.Spirit);
+            Assert.Equal((ushort)2, binding.Player.Atributes); Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+            f.Data.AssertFiles(expected);
+            var frames = f.ActorFrames.Skip(first).ToArray();
+            Assert.Equal(new ushort[] { 2203, 2176, 2176, 2301, 2176, 2176, 2176, 2176, 2128 },
+                frames.Select(bytes => ReadFrame(bytes).Header.Opcode));
+            byte[] echo = [0x18, 0x00, 0x9B, 0x08, 0, 0, 0, 0, 3, 0, 0, 0,
+                2, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0];
+            byte[] max = [0x0F, 0, 0x80, 0x08, 0x08, 0xA0, 0xFA, 0x4E,
+                0x12, 0x05, 0x08, 0x01, 0x10, 0x90, 0x01];
+            byte[] pair = [0x13, 0, 0x80, 0x08, 0x08, 0xA0, 0xFA, 0x4E,
+                0x12, 0x05, 0x08, 0x01, 0x10, 0x90, 0x01, 0x12, 0x02, 0x10, 0x1E];
+            Assert.Equal(echo, frames[0]);
+            foreach (int index in new[] { 1, 4, 6 }) Assert.Equal(max, frames[index]);
+            foreach (int index in new[] { 2, 5, 7 }) Assert.Equal(pair, frames[index]);
+            Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(frames[3]), out var status));
+            Assert.Equal(144U, status.MaxHP); Assert.Equal(330U, status.MaxMana);
+            Assert.True(LegacyUserTotalRefineLevPacket.TryParse(ReadFrame(frames[8]), out var refine));
+            Assert.Equal(0U, refine.Type); Assert.Equal(OwnedEquipmentBehaviorFixture.Actor, refine.Uid);
+            var overspend = new LegacyAttributeSetPacket(3, 0, 0, 0);
+            int afterFirst = f.ActorFrames.Count;
+            await f.SendAsync(OwnedEquipmentBehaviorFixture.Actor, overspend.ToFrameBytes());
+            Assert.Same(current, f.Current()); Assert.Equal(afterFirst, f.ActorFrames.Count);
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); f.Data.AssertFiles(expected);
+        });
     }
 
     [Fact]

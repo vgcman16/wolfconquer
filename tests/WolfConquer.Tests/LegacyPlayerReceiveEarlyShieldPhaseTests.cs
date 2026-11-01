@@ -175,11 +175,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         private readonly StringWriter log = new();
         private readonly ManualRuntimeTimeProvider clock = new(new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero));
         private readonly WorldPacketHandlerContext context;
-        private readonly bool hawks;
 
-        public DirectEarlyShieldFixture(Func<DirectEarlyShieldFixture, uint, byte[], ValueTask> onSend, bool hawks = false)
+        public DirectEarlyShieldFixture(Func<DirectEarlyShieldFixture, uint, byte[], ValueTask> onSend)
         {
-            this.hawks = hawks;
             var casterRow = DirectOverlayItem(111_097, "EarlyShieldCasterHelmet");
             var casterFields = casterRow.Fields.ToArray();
             casterFields[18] = "500";
@@ -193,25 +191,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     range: 18, coolDown: 0, coldTime: 0),
                 CreateMagicRow(15_750, sort: 6, useMana: 0, useStamina: 0, damage: 100,
                     duration: 30, coolDown: 0, coldTime: 0),
-                .. (hawks ? new MagicType[]
-                {
-                    CreateMagicRow(DirectEarlyHawksSpell, sort: 6, useMana: 0, useStamina: 0, damage: 50,
-                        duration: 60, coolDown: 0, coldTime: 0),
-                    DirectEarlyHawksUseRuneRow(),
-                } : Array.Empty<MagicType>()),
             ], items:
             [
                 casterRow with { Fields = casterFields }, targetRow with { Fields = targetFields },
-                .. (hawks ? new ItemType[]
-                {
-                    DirectEarlyHawksWarmItem(111_099, "EarlyHawksWarmHelmet"),
-                    DirectEarlyHawksWarmItem(130_099, "EarlyHawksWarmArmor"),
-                } : Array.Empty<ItemType>()),
-            ], daoqiDictTypes: hawks ? [DirectEarlyHawksJade()] : [],
-                combatGear: hawks ? [CreateRootMissingArrowSourceGear() with
-                    { Id = 701, GearTypeId = 701, MagicTypeIds = [],
-                        SourceFile = "fixture://direct-early-hawks/loaded701" }] : []);
-            foreach (var uid in hawks ? new[] { PlayerUid, TargetPlayerUid, DirectEarlyHawksWarmUid } : new[] { PlayerUid, TargetPlayerUid })
+            ]);
+            foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
             {
                 connections[uid] = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
                     sendAsync: async (memory, token) =>
@@ -221,25 +205,17 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                         await onSend(this, uid, bytes);
                     });
                 var session = CreateSession(uid: uid, name: "EarlyShield" + uid,
-                    mapId: 1_000, x: uid == PlayerUid ? 830 : uid == TargetPlayerUid ? 832 : 834, y: 584,
-                    classCode: hawks && uid == PlayerUid ? 7_005 : 2_005, reborn: 2,
-                    strength: 0, spirit: 0, minHitPoints: uid == PlayerUid ? 500 : uid == TargetPlayerUid ? 300 : 100_000,
-                    minMana: 1_000, stamina: 100, spellIds: hawks
-                        ? uid == PlayerUid ? [1_000, DirectEarlyHawksSpell, DirectEarlyHawksUseRune]
-                            : uid == TargetPlayerUid ? [15_750, DirectEarlyHawksSpell] : []
-                        : uid == PlayerUid ? [1_000] : [15_750],
+                    mapId: 1_000, x: uid == PlayerUid ? 830 : 832, y: 584,
+                    classCode: 2_005, reborn: 2,
+                    strength: 0, spirit: 0, minHitPoints: uid == PlayerUid ? 500 : 300,
+                    minMana: 1_000, stamina: 100, spellIds: uid == PlayerUid ? [1_000] : [15_750],
                     attributes: new Dictionary<string, string>
                     {
                         ["PkMode"] = "0", ["BattlePower"] = "100", ["LegacyLightningShieldRoll"] = "0",
                     },
                     playerItems: PlayerItemSnapshot.Empty with
                     {
-                        EquipmentItems = uid == DirectEarlyHawksWarmUid
-                            ? [new PlayerItemSnapshotItem { Uid = uid + 100, ItemId = 111_099, Position = 1,
-                                    Durability = 100, MaximumDurability = 100 },
-                                new PlayerItemSnapshotItem { Uid = uid + 101, ItemId = 130_099, Position = 3,
-                                    Durability = 100, MaximumDurability = 100 }]
-                            : [new PlayerItemSnapshotItem { Uid = uid + 100,
+                        EquipmentItems = [new PlayerItemSnapshotItem { Uid = uid + 100,
                                 ItemId = uid == PlayerUid ? 111_097U : 111_098U, Position = 1,
                                 Durability = 100, MaximumDurability = 100 }],
                     });
@@ -277,46 +253,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 Damage: 0, KilledMonster: 0, ResponseDamage: 0, Effect: MsgAttackEffect.None,
                 Unknown: 0, SpellId: spell)).ToFrameBytes()));
         public Task HitAsync() => CastAsync(PlayerUid, TargetPlayerUid, 1_000);
-        public async Task EquipAttackUpJadeAndWarmAsync()
-        {
-            Assert.True(hawks);
-            var caster = Slot(PlayerUid);
-            Assert.False(HasLegacyStatusFlag(caster.Character.Attributes, LegacyAttackUpFlag));
-            Bind(PlayerUid, caster with
-            {
-                CombatGear = CombatGearSnapshot.Empty with
-                {
-                    Count = 1,
-                    Items = [new CombatGearSnapshotItem(701, 1, 0, 1, 0, 0, [[], []], [(uint)DirectEarlyHawksJadeId])],
-                },
-            });
-            // A real second public input must reach the native shared500ms boundary.
-            // The outer receive may resume afterward and must still read the newly earned AttackUp.
-            clock.Advance(TimeSpan.FromMilliseconds(500));
-            await CastAsync(PlayerUid, DirectEarlyHawksWarmUid, 1_000);
-            Assert.Equal(clock.GetUtcNow().ToString("O", System.Globalization.CultureInfo.InvariantCulture),
-                Slot(PlayerUid).Character.Attributes["LegacyAttackStampUtc"]);
-        }
         public async Task PrimeAsync()
         {
-            // Real query establishes native CURRENT MA/MaxHP, including the durable two-item warm target when present.
-            foreach (var uid in hawks ? new[] { PlayerUid, TargetPlayerUid, DirectEarlyHawksWarmUid } : new[] { PlayerUid, TargetPlayerUid })
+            // Existing unbound shield component control; owned Hawks uses its separate admitted fixture.
+            foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
                 await PacketHandlers.HandleAsync(Context(uid),
                     ReadFrame(new MsgActionPacket { ObjId = uid, Type = (MsgActionType)251 }.ToFrameBytes()));
             await CastAsync(TargetPlayerUid, TargetPlayerUid, 15_750);
             Assert.True(HasLegacyStatusFlag(Slot(TargetPlayerUid).Character.Attributes, LegacyLightningShieldFlag));
             Assert.False(HasLegacyStatusFlag(Slot(TargetPlayerUid).Character.Attributes, LegacyLightningShieldActivatedFlag));
-            if (hawks)
-            {
-                await CastAsync(PlayerUid, PlayerUid, DirectEarlyHawksSpell);
-                await CastAsync(TargetPlayerUid, TargetPlayerUid, DirectEarlyHawksSpell);
-                foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
-                {
-                    Assert.True(HasLegacyStatusFlag(Slot(uid).Character.Attributes, LegacyHawksAmbitionFlag));
-                    Assert.Equal("50", Slot(uid).Character.Attributes["HawksAmbitionPower"]);
-                }
-                Assert.False(HasLegacyStatusFlag(Slot(PlayerUid).Character.Attributes, LegacyAttackUpFlag));
-            }
             foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
             {
                 var start = Order.Count;

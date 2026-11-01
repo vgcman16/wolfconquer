@@ -21,7 +21,7 @@ public sealed partial class LegacyOwnedExperienceContinuationDriverTests
     }
 
     private static Task RunEarnedPhysicalSerialization(Func<OwnedEquipmentBehaviorFixture, LegacyMonsterInstance,
-        EarnedPhysicalClock, Task> body)
+        EarnedPhysicalClock, Task> body, bool opaqueProficiencies = false)
     {
         var family = new Monster(910, "EarnedPhysicalContinuation", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -52,7 +52,8 @@ public sealed partial class LegacyOwnedExperienceContinuationDriverTests
         var clock = new EarnedPhysicalClock();
         var options = new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), clock,
             LegacySignedMillisecondClock.FromTimeProvider(clock, 10_000));
-        return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(Input(EarnedActor, 137, 830, 5000, 5_337_721), catalog, options, async f =>
+        var actorInput = Input(EarnedActor, 137, 830, 5000, 5_337_721);
+        Func<OwnedEquipmentBehaviorFixture, Task> exercise = async f =>
         {
             var states = Assert.IsType<MonsterRuntimeStateStore>(typeof(WorldServerFrameHandler)
                 .GetField("_monsterStates", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(f.Handler));
@@ -63,7 +64,12 @@ public sealed partial class LegacyOwnedExperienceContinuationDriverTests
             Assert.True(f.Store.TryReadMonsterPhysicalRange(monster, family, out _));
             f.ActorFrames.Clear(); f.Frames(EarnedPeer).Clear();
             await body(f, monster, clock);
-        }, Input(EarnedPeer, 139, 831, 2000, 5_337_722));
+        };
+        var peerInput = Input(EarnedPeer, 139, 831, 2000, 5_337_722);
+        if (!opaqueProficiencies) return OwnedEquipmentBehaviorFixture.RunWithOptionsAsync(actorInput, catalog, options, exercise, peerInput);
+        var image = PlayerProficiencySnapshotLoader.ToLegacyBytes(actorInput.Proficiencies!);
+        image[13] = 0xA5; image[14] = 0xC7; image[15] = 0xD9;
+        return OwnedEquipmentBehaviorFixture.RunWithProficiencyImageAsync(actorInput, catalog, options, image, exercise, peerInput);
     }
 
     private static byte[] EarnedPhysicalRequest(bool pendingActor) => new MsgAttackPacket(new MsgAttackQuery(

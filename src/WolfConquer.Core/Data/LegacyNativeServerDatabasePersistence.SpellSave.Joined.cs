@@ -37,14 +37,14 @@ internal static partial class LegacyNativeServerDatabasePersistence
                 spells.PublishPreparedMap(); profs.PublishPreparedMap(); lease.PublishPrepared();
             }
         }
-        catch (LegacyCommittedSpellPublicationException)
+        catch (LegacyCommittedSpellPublicationException failure)
         {
-            lease.FailCommittedPublication();
+            lease.FailCommittedPublication(failure);
             throw;
         }
-        catch when (persisted)
+        catch (Exception failure) when (persisted)
         {
-            lease.FailCommittedPublication();
+            lease.FailCommittedPublication(failure);
             throw;
         }
         finally { lease.Dispose(); }

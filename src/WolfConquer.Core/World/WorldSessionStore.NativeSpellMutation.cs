@@ -106,7 +106,13 @@ public sealed partial class WorldSessionStore
         internal LegacyPreparedSpellFileWrite PrepareSpellFileWrite() => store.PrepareSpellFileWrite(binding.Connection,
             expected, binding.Recovery, binding.UsersRoot, binding.SpellsRoot);
 
-        internal void FailCommittedPublication() => store.FailCommittedSpellPublication(holder, binding);
+        internal void FailCommittedPublication(Exception? failure = null) =>
+            store.FailCommittedSpellPublication(holder, binding, failure switch
+            {
+                null => null,
+                LegacyCommittedSpellPublicationException committed => committed,
+                _ => new LegacyCommittedSpellPublicationException(failure),
+            });
 
         public void Dispose()
         {

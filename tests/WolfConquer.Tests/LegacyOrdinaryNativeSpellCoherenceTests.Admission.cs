@@ -33,6 +33,7 @@ public sealed partial class LegacyOrdinaryNativeSpellCoherenceTests
             var player = fixture.Player;
             Assert.Null(fixture.Native.MySpells);
             await fixture.LoginAsync();
+            Assert.True(fixture.Sent.Count != 0, "ordinaryStartupOutputMissing:\n" + fixture.Log);
 
             fixture.RequireCommitObserved();
             Assert.Same(player, fixture.Player);

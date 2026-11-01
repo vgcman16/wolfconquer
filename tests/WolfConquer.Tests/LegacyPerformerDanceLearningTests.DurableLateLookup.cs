@@ -22,27 +22,25 @@ public sealed partial class LegacyPerformerDanceLearningTests
                 Character = initial.Character with { Attributes = attributes },
                 PlayerSpells = new PlayerSpellSnapshot(source),
             };
-            store.Set(connection, original);
+            var accepted = initial with { PlayerSpells = original.PlayerSpells };
+            store.Set(connection, accepted);
             fixture.Seed(CharacterUid, original.PlayerSpells);
-            var before = new DurableSessionImage(original);
+            var before = new DurableSessionImage(accepted);
             comparer.Arm();
-            var handled = false;
-            var error = await Record.ExceptionAsync(async () =>
-            { handled = await fixture.InvokeAsync(connection, store, original); });
+            var error = Assert.Throws<InvalidOperationException>(() => store.Set(connection, original));
 
             fixture.RequireFilesUnchanged();
             before.RequireUnchanged();
             Assert.Same(source, original.PlayerSpells.Spells);
             Assert.Equal(new[] { CreateExistingSpell(), new PlayerSpellSnapshotEntry(901, 6, 2345, 2, 3, 2) }, source);
             Assert.True(store.TryGet(connection, out var current));
-            Assert.Same(original, current);
+            Assert.Same(accepted, current);
             Assert.Empty(fixture.Sent);
             Assert.False(comparer.Triggered);
-            // Phase lookup, prepared subclass lookup and the prepared input
-            // check occur before the Store rejects this unsupported comparer.
-            Assert.Equal(3, comparer.Reads);
-            Assert.False(handled);
-            Assert.Equal("derivedSpellAttributesInvalid", Assert.IsType<InvalidDataException>(error).Message);
+            // The callback comparer is refused by the continuation input proof
+            // before the NPC phase; it cannot exercise the former late lookup.
+            Assert.Equal(0, comparer.Reads);
+            Assert.Equal("experienceContinuationPendingRequiresOwner", error.Message);
             Assert.False(fixture.Recovery.IsBlocked);
             Assert.False(LegacyTradeJournal.HasPending(fixture.UsersRoot));
             Assert.Null(connection.NativeGameClient); Assert.Null(original.NativeGameClient);

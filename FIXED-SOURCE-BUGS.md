@@ -8,6 +8,24 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ### FSB-268: Commit target damage and actor weapon progression in one recoverable intent
 
+Focused real handler proficiency-origin repair - 2026-11-01:
+the actual bound helper now prepares its existing DATA/native graph and exact
+admitted file, commits its own atomic Profs writer, advances its immutable origin,
+publishes native+holder and supplies privately registered Frame receipt coverage
+before2041. Changed-before and unowned exact-after files cannot be adopted. Opaque
+bytes and later normal Frame writers retain their actual committed origin.
+Build18 passed0errors/163warnings1m11.71s. Focused19 actual252P/2F/0skip over254
+in4m14s: original earnedXP2 and new3before/refusal cases passed. Two new tests
+incorrectly assumed100damage; the established equal137-level multiplier makes
+it120:Profs100+(120*1000)/6=20100, later Frame20101, XP120-2=118. Root corrected
+independent literal/wire expectations, not production formulas. Test-only build20
+passed0errors/104warnings40.71s. Focused21 passed9/9,0failed/skipped18s: all5new
+writer cases, original2earnedXP serialization and both repaired owned Hawks.
+Required Frame lifecycle stays real; no unscheduled owner was fabricated.
+Monster HP/XP remain separate phases; earlier required Profs checks before a
+rejected hit remain the next concrete safety milestone. This is not full-gate,
+whole-hit/SQL/crash/outbox or live-client closure.
+
 Focused attribute-scope correction (qualified2026-11-01; full integration OPEN):
 the real joint-hit opaque-attribute control exposed generic WithCharacterAttribute
 collapsing Ordinal Other/other into an OrdinalIgnoreCase copy. The shared
@@ -20,6 +38,17 @@ Root build10 passed0errors/103reported warnings in39.84s. Focused11 passed169/16
 0failures/skips in18s; actual TRX includes all25new cases and the original opaque
 joint-hit regression. No currentness/receipt/fence was relaxed. The separate
 teleport reducer, SQL, crash safety and live acceptance remain open.
+
+The separate teleport reducer and cooperating visibility/persistence readers
+are now intaken: supported raw comparers and unique dynamic-key spellings survive
+actual reduction, public NPC file persistence and component teleport/Talk scope.
+Build16 passed0errors/163warnings1m07s. Focused17 actual268P/1F/0skip over269 in
+2m25s includes all21new teleport controls and all12earlier admission failures
+passed. Root corrected a stale ordinary fixture observer to require absent-before
+Profs remains absent; no file was manufactured. The sole17failure was a gear test
+expecting1jade slot; loader requires6 (jade plus5zeros). Exact6-slot assertion
+passes in19/21. Other independent Frame/MagicSupport readers, late-effect/fanout,
+native/client acceptance,SQL/crash and full parity remain open.
 
 OPEN integration. Build03 passed (0 errors, 162 reported warnings).
 Focused04 completed 522 passed / 8 failed / 0 skipped over530 in19m47s.
@@ -83,6 +112,34 @@ retained; later selected passes do not relabel that full selection green.
 
 Retained-intent recovery is not fresh-request deduplication, a power-loss or
 multi-process guarantee, SQL integration, live acceptance or full parity.
+
+## Bounded committed-failure cause correction - 2026-11-01
+
+### FSB-289: Retain actual persistence failure and attempt all required fencing
+
+OPEN broader qualification. The old Store single/pair/mailbox/autosave fences
+threw a new parameterless exception, losing the caught committed failure/cause/
+stack; one failed cleanup also prevented later required blocks/holder clears.
+The narrow native lease join now forwards its actual typed or generic cause.
+Existing writer/gate/publication prerequisites and failure classifications stay.
+Cleanup attempts each required real block/retirement in order; successful
+cleanup rethrows the exact original primary. Multiple failures remain ordered
+under the same typed committed classification. No save, accepting callback,
+rollback, refund, retry permission or owner is added. The real spell writer
+also retains its uncertain IO error and any later failed outcome observation.
+
+Root intook12 reviewed paths while preserving newer native flashing/proc joins.
+Build12 passed0errors/162warnings in1m09.61s. Focused13 actual124P/12F/0skip over136
+in1m50s includes all5new declared-failure controls passed. Those exercise real
+owned Store/native lease fencing with throwing no-write callbacks, not completed
+disk transactions or actual cleanup faults. Mailbox/autosave exceptional paths,
+changed-image uncertainty and dual-observation/cleanup aggregation remain open.
+The12 broader reds concern missing startup output; focused15's5/5 failures exposed
+a test observer reading an absent-before Profs file. Root corrected that stale
+observer to require continued absence, with no production file creation; rerun
+pending. All12 startup-output cases subsequently passed in focused17 after the exact
+absence-observer correction; the historical13/15 failures remain. Full CI/SQL/
+crash/client acceptance remain open.
 
 ## Open owned Physical proc integration - 2026-11-01
 

@@ -153,8 +153,8 @@ public sealed partial class WorldServerFrameHandlerTests
                     Assert.Equal(final, File.ReadAllBytes(path));
                 }
                 else if (kind == LegacyTradeJournalFileKind.Spells) AssertSavedSpellBytes(path, before);
-                else if (kind == LegacyTradeJournalFileKind.Proficiencies && before is null)
-                    Assert.Equal(new byte[4], File.ReadAllBytes(path));
+                // Ordinary admission retains a genuinely absent empty book;
+                // only its actual later writer may materialize the sidecar.
                 else if (before is null) Assert.False(File.Exists(path));
                 else Assert.Equal(before, File.ReadAllBytes(path));
             }

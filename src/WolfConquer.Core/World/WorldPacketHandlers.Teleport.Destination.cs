@@ -231,10 +231,9 @@ public static partial class WorldPacketHandlers
             ["PMapY"] = teleportedCharacter.PreviousMapY.ToString(CultureInfo.InvariantCulture),
             ["DynamicID"] = ReadCharacterDynamicId(teleportedCharacter).ToString(CultureInfo.InvariantCulture),
         };
-        var previousDynamicId = ReadAttributeString(
-            teleportedCharacter.Attributes,
-            "PDinamycID");
-        if (!string.IsNullOrWhiteSpace(previousDynamicId))
+        var attributes = LegacyCharacterAttributeMap.Copy(teleportedCharacter.Attributes);
+        if (LegacyCharacterAttributeMap.TryRead(attributes, "PDinamycID", out var previousDynamicId) &&
+            !string.IsNullOrWhiteSpace(previousDynamicId))
         {
             values["PDinamycID"] = previousDynamicId;
         }

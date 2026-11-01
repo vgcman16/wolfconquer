@@ -293,9 +293,14 @@ public static partial class WorldPacketHandlers
     {
         return character.MapId == other.MapId &&
             character.MapId != LegacyAlienWorldMapId &&
-            ReadAttributeUInt32(character.Attributes, "DynamicID", "DynamicId") ==
-                ReadAttributeUInt32(other.Attributes, "DynamicID", "DynamicId") &&
+            ReadPlayerViewDynamicId(character) == ReadPlayerViewDynamicId(other) &&
             LegacyGetDistance(character.X, character.Y, other.X, other.Y) <= LegacyViewThreshold;
+    }
+
+    private static uint ReadPlayerViewDynamicId(CharacterSnapshot character)
+    {
+        var dynamicId = ReadCharacterDynamicId(character);
+        return dynamicId > uint.MaxValue ? 0 : (uint)dynamicId;
     }
 
     private static bool TryGetVisibleSessionByUid(

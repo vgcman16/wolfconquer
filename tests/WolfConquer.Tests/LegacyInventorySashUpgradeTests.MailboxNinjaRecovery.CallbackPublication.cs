@@ -13,7 +13,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
     [Theory]
     [InlineData("MsgNinja", false)] [InlineData("ClassExperience", false)]
     [InlineData("MsgNinja", true)] [InlineData("ClassExperience", true)]
-    public Task ColdNinjaPublicationRechecksActualStoreAfterSameValueAttributeReads(string trigger, bool retire) =>
+    public Task ColdNinjaCallbackMapRefusesBeforeAdmissionOrCallback(string trigger, bool retire) =>
         RunAsync(async fixture =>
         {
             fixture.SeedMailboxPackageJoin(job: 5051);
@@ -30,15 +30,10 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 return ValueTask.CompletedTask;
             }, nativeGameClient: client);
             WorldSession? admitted = null;
-            InvalidOperationException? deniedReentry = null;
             var attributes = new NinjaPublicationAttributes(saved.Attributes, trigger, () =>
             {
-                if (!retire) return;
-                // Actual Store mutation from an input read during preparation is
-                // refused. This is not an after-publication observer callback.
-                deniedReentry = Assert.Throws<InvalidOperationException>(() => sessions.TryRemove(connection, out _));
-                Assert.Equal("ordinarySpellPublicationRequiresCurrentCompleteOwner", deniedReentry.Message);
-                ExceptionDispatchInfo.Capture(deniedReentry).Throw();
+                if (retire) sessions.TryRemove(connection, out _);
+                throw new InvalidOperationException("Unsupported callback map was unexpectedly read.");
             });
             var files = fixture.Files();
             var first = fixture.Sent.Count;
@@ -53,9 +48,6 @@ public sealed partial class LegacyInventorySashUpgradeTests
                     loader.LoadPlayerProficienciesByCharacterUid(Fixture.Uid),
                     CombatGear: loader.LoadCombatGearByCharacterUid(Fixture.Uid), UsersRoot: fixture.Users)
                 { NativeGameClient = client };
-                sessions.Set(connection, admitted);
-                Assert.True(scalars!.TryPublish(sessions, connection, admitted));
-                Assert.Equal(0, attributes.Callbacks);
                 Assert.True(prepared.IsDetachedCurrent());
                 var originalPin = client.OrdinarySpellBinding;
                 var originalNinja = client.MyNinja;
@@ -66,49 +58,20 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 { player.UID, player.Class, player.ClassExperience, client.FullLoading, client.Fake });
                 attributes.Armed = true;
 
-                if (retire)
-                {
-                    var propagated = Assert.Throws<InvalidOperationException>(() => prepared.TryPublish(sessions, connection, admitted));
-                    Assert.Same(deniedReentry, propagated);
-                }
-                else Assert.True(prepared.TryPublish(sessions, connection, admitted));
-
-                Assert.Equal(1, attributes.Callbacks);
+                // Exact-map admission refuses this declared hostile input before
+                // any caller callback or detached native publication can run.
+                var error = Assert.Throws<InvalidOperationException>(() => sessions.Set(connection, admitted));
+                Assert.Equal("experienceContinuationPendingRequiresOwner", error.Message);
+                Assert.Equal(0, attributes.Callbacks);
                 Assert.Equal(native, JsonSerializer.Serialize(new
                 { player.UID, player.Class, player.ClassExperience, client.FullLoading, client.Fake }));
                 Assert.Same(client, connection.NativeGameClient);
-                if (retire)
-                {
-                    Assert.True(sessions.TryGet(connection, out var retained));
-                    Assert.Same(admitted, retained);
-                    Assert.Same(client, retained!.NativeGameClient);
-                    Assert.Same(player, client.Player);
-                    Assert.Same(client, player.Owner);
-                    Assert.Same(originalPin, client.OrdinarySpellBinding);
-                    Assert.Same(originalNinja, client.MyNinja);
-                    Assert.Same(originalSpells, client.MySpells);
-                    Assert.Same(originalProficiencies, client.MyProfs);
-                    Assert.Same(originalGear, client.CombatGear);
-                    Assert.True(prepared.IsDetachedCurrent());
-                    Assert.False(prepared.IsPublishedCurrent());
-                }
-                else
-                {
-                    Assert.True(sessions.TryGet(connection, out var current));
-                    Assert.Same(admitted, current);
-                    var ninja = Assert.IsType<LegacyNativeNinja>(client.MyNinja);
-                    Assert.True(ninja.IsCombatOwnedBy(client));
-                    Assert.Equal(25U, ninja.Exp);
-                    Assert.Equal(2, ninja.Items.Count);
-                    Assert.Equal(41U, ninja.Items[100].UK);
-                    Assert.Equal(42U, ninja.Items[404].UK);
-                    Assert.True(prepared.IsPublishedCurrent());
-                    Assert.False(prepared.TryPublish(sessions, connection, admitted));
-                    Assert.Same(ninja, client.MyNinja);
-                    Assert.True(ninja.TryPrepareMailboxPoints(client, PackageJoinNinjaLine, 50, out var reward));
-                    Assert.Equal(PackageJoinNinjaPointsFrame(), reward!.CopyFrame());
-                    Assert.Equal(25U, ninja.Exp);
-                }
+                Assert.False(sessions.TryGet(connection, out _));
+                Assert.Same(player, client.Player); Assert.Same(client, player.Owner);
+                Assert.Same(originalPin, client.OrdinarySpellBinding); Assert.Same(originalNinja, client.MyNinja);
+                Assert.Same(originalSpells, client.MySpells); Assert.Same(originalProficiencies, client.MyProfs);
+                Assert.Same(originalGear, client.CombatGear);
+                Assert.True(prepared.IsDetachedCurrent()); Assert.False(prepared.IsPublishedCurrent());
                 fixture.AssertFiles(files);
                 Assert.Equal(first, fixture.Sent.Count);
                 Assert.Null(client.Socket);

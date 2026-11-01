@@ -26,10 +26,10 @@ public sealed partial class WorldSessionStore
             using var publication = new PreparedMailboxItemPublication(this, connection, producer, expected);
             WorldSession? updated;
             try { updated = prepareAndPersist(publication); }
-            catch (LegacyCommittedSpellPublicationException)
+            catch (LegacyCommittedSpellPublicationException failure)
             {
-                producer.Recovery.Block("mailboxClaimRecoveryRequired:packageSpellPublicationUnproven");
-                FailCommittedSpellPublication(holder, publication.Binding); throw;
+                FailCommittedMailboxPublication(holder, publication.Binding, producer,
+                    "mailboxClaimRecoveryRequired:packageSpellPublicationUnproven", failure); throw;
             }
             if (updated is null) return false;
             if (updated.Character.MinHitPoints != expected.Character.MinHitPoints ||
@@ -40,15 +40,15 @@ public sealed partial class WorldSessionStore
                 updated.AccountId != expected.AccountId || updated.Character.Uid != expected.Character.Uid ||
                 !ReferenceEquals(updated.NativeGameClient, expected.NativeGameClient) || !publication.IsCurrentPlain(updated))
             {
-                producer.Recovery.Block("mailboxClaimRecoveryRequired:packageSpellPublicationUnproven");
-                FailCommittedSpellPublication(holder, publication.Binding);
+                FailCommittedMailboxPublication(holder, publication.Binding, producer,
+                    "mailboxClaimRecoveryRequired:packageSpellPublicationUnproven");
             }
             publication.PublishNative();
             publication.PublishHolder();
             if (!producer.TryFinishSessionPublication(this, connection, updated))
             {
-                producer.Recovery.Block("mailboxClaimRecoveryRequired:packageSessionPublicationUnproven");
-                FailCommittedSpellPublication(holder, publication.Binding);
+                FailCommittedMailboxPublication(holder, publication.Binding, producer,
+                    "mailboxClaimRecoveryRequired:packageSessionPublicationUnproven");
             }
             return true;
         }

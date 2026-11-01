@@ -151,10 +151,11 @@ public sealed class LegacyTeleportDestinationReducerTests
     }
 
     [Fact]
-    public void DynamicIdAliasIsReadAndChangedBranchWritesCanonicalAttributeNames()
+    public void UniqueDynamicAliasesAreReadAndChangedBranchRetainsTheirSpelling()
     {
         var attributes = BaseAttributes();
         attributes["DynamicId"] = "44";
+        Assert.True(attributes.Remove("PDinamycID"));
         attributes["pdinamycid"] = "123";
         attributes["Unrelated"] = "kept";
         var source = Character(mapId: 1_015, x: 830, y: 584, attributes: attributes);
@@ -164,13 +165,15 @@ public sealed class LegacyTeleportDestinationReducerTests
             new LegacyTeleportDestination(1_000, 500, 650, DynamicId: 88),
             requestedMapExists: true);
 
-        Assert.Contains("DynamicID", result.FinalCharacter.Attributes.Keys);
-        Assert.Contains("PDinamycID", result.FinalCharacter.Attributes.Keys);
-        Assert.DoesNotContain("DynamicId", result.FinalCharacter.Attributes.Keys);
-        Assert.DoesNotContain("pdinamycid", result.FinalCharacter.Attributes.Keys);
+        Assert.Contains("DynamicId", result.FinalCharacter.Attributes.Keys, StringComparer.Ordinal);
+        Assert.Contains("pdinamycid", result.FinalCharacter.Attributes.Keys, StringComparer.Ordinal);
+        Assert.DoesNotContain("DynamicID", result.FinalCharacter.Attributes.Keys, StringComparer.Ordinal);
+        Assert.DoesNotContain("PDinamycID", result.FinalCharacter.Attributes.Keys, StringComparer.Ordinal);
         Assert.Equal("kept", result.FinalCharacter.Attributes["Unrelated"]);
         AssertCharacterLocation(result.FinalCharacter, mapId: 1_000, x: 500, y: 650, dynamicId: 88);
-        AssertHistory(result.FinalCharacter, mapId: 1_015, x: 830, y: 584, dynamicId: 44);
+        Assert.Equal((1_015L, 830L, 584L), (result.FinalCharacter.PreviousMapId,
+            result.FinalCharacter.PreviousMapX, result.FinalCharacter.PreviousMapY));
+        Assert.Equal("44", result.FinalCharacter.Attributes["pdinamycid"]);
     }
 
     [Fact]

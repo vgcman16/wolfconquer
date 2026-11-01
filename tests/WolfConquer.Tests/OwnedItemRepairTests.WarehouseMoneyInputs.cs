@@ -32,9 +32,9 @@ public sealed partial class OwnedItemRepairTests
             bool UnexpectedWriter() { writes++; throw new InvalidOperationException("Warehouse input callback reached persistence."); }
             try
             {
-                var error = Assert.Throws<InvalidDataException>(() =>
+                var error = Assert.Throws<InvalidOperationException>(() =>
                     f.Store.TryCommitSession(f.Connection, before, proposal, UnexpectedWriter));
-                Assert.Equal("derivedSpellAttributesInvalid", error.Message);
+                Assert.Equal("experienceContinuationPendingRequiresOwner", error.Message);
 
                 Assert.False(callback); Assert.Equal(0, probe.Enumerations);
                 Assert.Equal(0, writes); Assert.Same(before, f.Current);
@@ -109,9 +109,9 @@ public sealed partial class OwnedItemRepairTests
                     // The earlier derived-origin input proof must reject it
                     // before a custom view can acquire publication authority.
                     var files = f.Files();
-                    var error = Assert.Throws<InvalidDataException>(() =>
+                    var error = Assert.Throws<InvalidOperationException>(() =>
                         f.Store.TryCommitSession(f.Connection, before, proposal, ActualWriter));
-                    Assert.Equal("derivedSpellAttributesInvalid", error.Message);
+                    Assert.Equal("experienceContinuationPendingRequiresOwner", error.Message);
                     Assert.Null(outcome); Assert.Equal(-1, enumerationsAtWriter);
                     Assert.Equal(0, probe.Enumerations); Assert.Same(before, f.Current);
                     Assert.Equal(555L, f.Native.Player.WHMoney); Assert.Equal(1000L, f.Native.Player.Money);

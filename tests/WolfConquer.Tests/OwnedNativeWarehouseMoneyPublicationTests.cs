@@ -132,9 +132,9 @@ public sealed partial class OwnedNativeWarehouseMoneyPublicationTests
 
             if (fault == "null")
             {
-                var error = Assert.Throws<InvalidDataException>(() =>
+                var error = Assert.Throws<InvalidOperationException>(() =>
                     f.Store.TryCommitSession(f.Connection, before, proposal, UnexpectedWriter));
-                Assert.Equal("derivedSpellAttributesInvalid", error.Message);
+                Assert.Equal("experienceContinuationPendingRequiresOwner", error.Message);
             }
             else Assert.Throws<InvalidOperationException>(() =>
                 f.Store.TryCommitSession(f.Connection, before, proposal, UnexpectedWriter));

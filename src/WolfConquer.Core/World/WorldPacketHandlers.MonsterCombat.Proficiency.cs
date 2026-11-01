@@ -12,6 +12,15 @@ public static partial class WorldPacketHandlers
         CancellationToken cancellationToken,
         string activity = "monster weapon proficiency experience")
     {
+        if (session.NativeGameClient?.OrdinarySpellBinding is not null || context.Connection.NativeGameClient?.OrdinarySpellBinding is not null)
+        {
+            if (rawExperience == 0) return session;
+            var ownedIds = GetLegacyCurrentWeaponProficiencyIds(session);
+            if (ownedIds.Count == 0) return session;
+            return await ApplyOwnedSessionProficiencyAsync(context, session, rawExperience, ownedIds, activity, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         if (rawExperience == 0 ||
             string.IsNullOrWhiteSpace(context.PlayerProficienciesRoot))
         {

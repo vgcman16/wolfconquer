@@ -114,15 +114,19 @@ public sealed partial class LegacyNpcSaleTransactionTests
     {
         const uint uid = 1_299_183;
         Seed(uid);
+        var savedInput = File.ReadAllText(UserPath(uid));
+        Assert.Equal(2, savedInput.Split("Level=100", StringSplitOptions.None).Length);
+        File.WriteAllText(UserPath(uid), savedInput.Replace("Level=100", "Level=101", StringComparison.Ordinal));
         var owner = NewOwner();
         var player = await Login(owner, uid);
-        var stale = Current(owner, player);
-        var walletChanged = CompleteLoginWalletChange(stale);
+        var admitted = Current(owner, player);
+        Assert.Equal(101, admitted.Character.Level);
+        var stale = admitted with { Character = admitted.Character with { Level = 100 } };
+        var walletChanged = CompleteLoginWalletChange(admitted);
         var newer = walletChanged with
         {
             Character = walletChanged.Character with
             {
-                Level = 101,
                 Attributes = new Dictionary<string, string>(walletChanged.Character.Attributes, StringComparer.OrdinalIgnoreCase)
                 {
                     ["VipLevel"] = "6",

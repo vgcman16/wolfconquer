@@ -27,7 +27,8 @@ public sealed partial class WorldSessionStore
         if (!publication.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
         bool saved;
         try { saved = write.TryCommitCharacterSpells(changes, out reason); }
-        catch (LegacyCommittedSpellPublicationException) { FailCommittedSpellPublication(holder, binding); throw; }
+        catch (LegacyCommittedSpellPublicationException failure)
+        { FailCommittedSpellPublication(holder, binding, failure); throw; }
         if (!saved)
         {
             if (recovery.IsBlocked) FailCommittedSpellPublication(holder, binding);

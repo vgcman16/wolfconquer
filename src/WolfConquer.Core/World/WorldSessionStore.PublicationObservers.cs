@@ -27,9 +27,10 @@ public sealed partial class WorldSessionStore
         LegacyPreparedBasicPhysicalProficiencyWrite? completedProficiencies = null,
         BasicPhysicalPublication? completedPhysicalDeath = null,
         LegacyPreparedDerivedSpellQueryWrite? completedDerivedSpells = null,
-        OwnedDragonhowlDeathReceipt? completedDragonhowlDeath = null)
+        OwnedDragonhowlDeathReceipt? completedDragonhowlDeath = null,
+        OwnedProficiencyPublication? completedOwnedProficiencies = null)
     {
-        try { framePersistenceOwner?.PersistChangedSessionState(this, connection, previous, current, completedHitpoints, completedProficiencies, completedPhysicalDeath, completedDerivedSpells, completedDragonhowlDeath); }
+        try { framePersistenceOwner?.PersistChangedSessionState(this, connection, previous, current, completedHitpoints, completedProficiencies, completedPhysicalDeath, completedDerivedSpells, completedDragonhowlDeath, completedOwnedProficiencies); }
         catch (Exception cause)
         {
             var failure = new WorldSessionPublicationException(this, connection, publishedIdentity,

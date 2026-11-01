@@ -1,3 +1,4 @@
+using System.Globalization;
 using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
@@ -168,7 +169,9 @@ public static partial class WorldPacketHandlers
 
     private static ulong ReadCharacterDynamicId(CharacterSnapshot character)
     {
-        return ReadAttributeUInt64(character.Attributes, "DynamicID", "DynamicId");
+        var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        return LegacyCharacterAttributeMap.TryRead(attributes, "DynamicID", out var raw) &&
+            ulong.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
     }
 
     private static bool TryFindMonsterInstanceByUid(

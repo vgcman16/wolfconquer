@@ -80,11 +80,13 @@ internal sealed partial class LegacyPreparedSpellFileWrite
                 NotSupportedException or InvalidOperationException or System.Security.SecurityException)
             {
                 bool unchanged;
+                Exception? observationFailure = null;
                 try { unchanged = baseline.Matches(ReadImage(SpellsPath)); }
-                catch (Exception) { unchanged = false; }
+                catch (Exception observation) { unchanged = false; observationFailure = observation; }
                 if (unchanged) { failure = "ordinarySpellWriteFailed:" + error.GetType().Name; return false; }
                 Recovery.Block("ordinarySpellRecoveryRequired:spellFileOutcomeUnproven");
-                throw new LegacyCommittedSpellPublicationException();
+                throw new LegacyCommittedSpellPublicationException(observationFailure is null ? error :
+                    new AggregateException("Spell replacement and outcome observation failed.", error, observationFailure));
             }
             PublishCommittedEvidencePlain(); failure = string.Empty; return true;
         });

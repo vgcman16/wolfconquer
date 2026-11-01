@@ -1,35 +1,32 @@
 # Hit/proficiency offline checkpoint - 2026-11-01
 
-The full clean English server/client and newer-client integration goal is ACTIVE.
-Current Root check02 branch is an offline, unpublished draft; legacy client and
-updater execution hold remains active. Original full8996 result remains RED:
-Core33308P/91F/152actualNotExecuted;updater446P,later stages not run.
+Full clean English server/client and newer-client integration goal ACTIVE.
+Current isolated Root check02 branch is unpublished; legacy client/updater
+execution hold ACTIVE. Preserve original data/routes/restoreZIP,D:\cqclient,
+59held Guild/Union edits,AV settings and9unclaimed gear mails.
 
-- [x] Deliberately join actual target HP/death and actor Profs in journal24,
-  preserving newer proc/native/Frame/XP/EOF owners and independent wire goldens.
-- [x] First-use real absent Profs directories/files and native empty books:
-  32/32 controls pass inside focused04 (522P/8F/0skip over530,19m47s).
-- [x] Widen internal proficiency scaling/bonus/addition before thresholds;
-  real published/version24 failure classification controls pass in focused06.
-- [x] Fix genuine Hawks catalog collection shape; all4 Hawks controls pass in08.
-- [x] Preserve shared map comparers, unrelated case-distinct fields and unique
-  owned aliases; actual stance/Physical and SkyTower/Instance/NPC neighbors pass.
-  Build10:0errors/103warnings39.84s. Focused11:169P/0F/0skip18s,including25new.
-- [ ] Repair real monster Profs writer cooperation. Both new earnedXP/Physical
-  cases in08 remain RED before138: unregistered direct Profs save correctly
-  trips actual bound Frame saved-origin fence. Do not adopt equal-file state.
-- [ ] Join complete lethal rewards/TeamXP/future-recipient receive/death phases.
-- [ ] Complete separate teleport reducer comparer/alias preservation and tests.
-- [ ] Close remaining original91 regressions and appropriate full Windows gate.
-- [ ] Complete SQL/trade/crash/outbox,new-client runtime/cost/profile/English.
-- [ ] Perform actual-client acceptance and staged local routes after hold clears.
+- [x] Actual journal24 target HP/death + actor Profs and first-use absence joins.
+  focused04:522P/8F;32/32first-use controls passed. Historical red retained.
+- [x] Wide UInt128/native progression + published24 classification in06.
+- [x] Real Hawks catalog setup + map comparer/owned alias preservation in08/11.
+- [x] Actual committed failure causes retained; all5new cause controls pass.
+- [x] Correct stale admission observer; all12old startup cases pass in17.
+- [x] Teleport/visibility/NPC history preservation:21/21new cases in17.
+- [x] Correct exact6-slot saved jade assertion; actual Hawks passes in19/21.
+- [x] Cooperating monster Profs writer, actual origin/native/holder/Frame receipt
+  and2041 output fencing: all5new cases plus original earnedXP2 pass in21.
+- [ ] Move required nonplayer Profs checks before rejected hit mutations.
+- [ ] Integrate coherent complete lethal rewards/TeamXP/future recipient/death
+  batch with scalar,multiple-award,outside-line,floor and failure controls.
+- [ ] Validate selected XP rate inputs without invalid fallback acceptance.
+- [ ] Close remaining original91 regressions; appropriate full Windows gate.
+- [ ] Complete SQL/trade/crash/outbox,modern client runtime/cost/profile/English.
+- [ ] Actual-client acceptance/staged local routes after execution hold clears.
 
-Focused06:129P/5F;focused08:4P/2F;focused11:169P/0F. These selections overlap,
-and later passes do not relabel historical failures or establish full parity.
-Build09 failed one test import and three unrestored updater-project assets;
-that failed no-restore solution attempt is retained. Build10 corrected the import
-and targets the restored core test project, not a complete solution/full CI gate.
-
-Root alone integrates/executes/stages/commits/pushes. No push/live launch or
-original data/route/restore changes. Preserve9unclaimed gear mails, known-good
-D:\cqclient, original59Guild/Union edits and antivirus settings.
+Build18:0errors/163warnings1m11.71s;build20(test-only):0errors/104warnings40.71s.
+Focused17:268P/1F/0skip over269,2m25s. Focused19:252P/2F/0skip over254,4m14s.
+Focused21:9P/0F/0skip18s,including all currently corrected failing controls.
+Scopes overlap; no combined total/full-pass/parity percentage is inferred.
+Original full8996 red remains33308P/91F/152actualNotExecuted;updater446P,
+later stagesNOTRUN. No push/deployment/live-launch claim. Root only integrates,
+executes,stages,commits,pushes. Separate unrun reward freezes remain unqualified.

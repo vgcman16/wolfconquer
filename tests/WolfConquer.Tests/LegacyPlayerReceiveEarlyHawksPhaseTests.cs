@@ -5,6 +5,16 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
+[Collection("NativeItemCounterSourcePrerequisite")]
+public sealed class LegacyOwnedPlayerReceiveEarlyHawksPhaseTests
+{
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task RealHawksRemovalPrecedesShieldAfterCompletedAttackUpWarmup(bool earnAttackUp) =>
+        LegacyMagicAttackRuntimeTests.RunOwnedEarlyHawksReceiveAsync(earnAttackUp);
+}
+
 public sealed partial class LegacyMagicAttackRuntimeTests
 {
     private const uint DirectEarlyHawksWarmUid = TargetPlayerUid + 10;
@@ -12,39 +22,30 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     private const ushort DirectEarlyHawksUseRune = 21_730;
     private const int DirectEarlyHawksJadeId = 21_730_902;
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task DirectEarlyHawksRemovalPrecedesShieldAndReadsAttackUpEarnedDuringItsVector(bool earnAttackUp)
+    internal static Task RunOwnedEarlyHawksReceiveAsync(bool earnAttackUp) =>
+        OwnedEarlyHawksFixture.RunAsync(earnAttackUp, async fixture =>
     {
         var armed = false;
-        var mutations = 0;
-        using var fixture = new DirectEarlyShieldFixture(async (current, recipient, bytes) =>
+        var removalsObserved = 0;
+        fixture.Observe = (recipient, bytes) =>
         {
             if (!armed || recipient != TargetPlayerUid || !DirectEarlyHawksClearedVector(bytes) ||
-                Interlocked.CompareExchange(ref mutations, 1, 0) != 0) return;
-            var target = current.Slot(TargetPlayerUid);
+                Interlocked.CompareExchange(ref removalsObserved, 1, 0) != 0) return;
+            var target = fixture.Slot(TargetPlayerUid);
             Assert.Equal(300, target.Character.MinHitPoints);
             Assert.False(HasLegacyStatusFlag(target.Character.Attributes, LegacyHawksAmbitionFlag));
             Assert.False(HasLegacyStatusFlag(target.Character.Attributes, LegacyLightningShieldActivatedFlag));
             Assert.False(target.Character.Attributes.ContainsKey(LegacyPlayerDeathState.DeadStampAttribute));
-            Assert.False(HasLegacyStatusFlag(current.Slot(PlayerUid).Character.Attributes, LegacyAttackUpFlag));
-            if (earnAttackUp)
-            {
-                // Real public outgoing receive -> Pirate Update -> DB-selected UseRune.
-                // The status233 row is synthetic branch data; no status flag is seeded.
-                await current.EquipAttackUpJadeAndWarmAsync();
-                Assert.True(HasLegacyStatusFlag(current.Slot(PlayerUid).Character.Attributes, LegacyAttackUpFlag));
-                Assert.Equal("1", current.Slot(PlayerUid).Character.Attributes["DirectEarlyHawksAttackUpPower"]);
-                Assert.True(current.Slot(DirectEarlyHawksWarmUid).Character.MinHitPoints > 0);
-            }
-        }, hawks: true);
+            Assert.Equal(earnAttackUp, HasLegacyStatusFlag(fixture.Slot(PlayerUid).Character.Attributes, LegacyAttackUpFlag));
+            fixture.AssertCurrentOwners();
+            fixture.AssertFiles(killed: false);
+        };
         await fixture.PrimeAsync();
         var start = fixture.Order.Count;
         armed = true;
         await fixture.HitAsync();
         armed = false;
-        Assert.Equal(1, mutations);
+        Assert.Equal(1, removalsObserved);
         var frames = fixture.Order.ToArray().Skip(start).ToArray();
         var targetFrames = frames.Where(frame => frame.Recipient == TargetPlayerUid).Select(frame => frame.Bytes).ToArray();
         var hawksIndex = Array.FindIndex(targetFrames, DirectEarlyHawksClearedVector);
@@ -60,10 +61,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.True(azureIndices[0] < azureIndices[1]);
         for (var index = 0; index < azureIndices.Length; index++)
         {
+            Assert.Equal((ushort)2176, ReadFrame(targetFrames[azureIndices[index]]).Header.Opcode);
             Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(targetFrames[azureIndices[index]]), out var packet));
             var entry = Assert.Single(packet.Updates);
             Assert.Equal(LegacyMsgUpdateDataType.AzureShield, entry.Type);
             Assert.Equal((uint)LegacyLightningShieldActivatedFlag, entry.Flag);
+            if (index == 0) Assert.Equal(10U, entry.Time);
             Assert.Equal(index == 0 ? 20_000U : earnAttackUp ? 0U : 9_800U, entry.Damage);
             Assert.Equal(0U, entry.SpellLevel);
         }
@@ -75,7 +78,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var hp = ParseMsgUpdates(targetFrames).Where(packet => packet.Uid == TargetPlayerUid)
             .SelectMany(packet => packet.Updates).Where(entry => entry.Type == LegacyMsgUpdateDataType.Hitpoints)
             .Select(entry => entry.Value).ToArray();
-        // (40401+399) /2 =20400; real Hawks50% first leaves10200. Fresh AttackUp doubles back to20400.
+        // (40401+399) /2 =20400; real Hawks50% first leaves10200. Earned AttackUp doubles back to20400.
         // Source shield20000 therefore leaves9800/zero incoming, or leaves0/incoming400.
         Assert.Equal(earnAttackUp ? new ulong[] { 300, 300, 300, 0 } : new ulong[] { 300 }, hp);
         var targetAfter = fixture.Slot(TargetPlayerUid);
@@ -94,7 +97,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 packet => packet.SpellId == DirectEarlyHawksUseRune);
         }
         Assert.Equal(0, fixture.ScheduledTimers);
-    }
+        fixture.AssertCurrentOwners();
+        fixture.AssertFiles(killed: earnAttackUp);
+    });
 
     private static bool DirectEarlyHawksClearedVector(byte[] bytes) =>
         LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out var packet) && packet.Uid == TargetPlayerUid &&

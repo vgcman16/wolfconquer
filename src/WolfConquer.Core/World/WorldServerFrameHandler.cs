@@ -287,11 +287,16 @@ public sealed partial class WorldServerFrameHandler
         LegacyPreparedBasicPhysicalProficiencyWrite? completedProficiencies = null,
         WorldSessionStore.BasicPhysicalPublication? completedPhysicalDeath = null,
         LegacyPreparedDerivedSpellQueryWrite? completedDerivedSpells = null,
-        WorldSessionStore.OwnedDragonhowlDeathReceipt? completedDragonhowlDeath = null)
+        WorldSessionStore.OwnedDragonhowlDeathReceipt? completedDragonhowlDeath = null,
+        WorldSessionStore.OwnedProficiencyPublication? completedOwnedProficiencies = null)
     {
         if (!ReferenceEquals(_sessions, issuingStore) ||
             !issuingStore.IsFramePersistenceCurrent(this, connection, current))
             throw new InvalidOperationException("Frame persistence requires its current issued Store owner.");
+        if (completedOwnedProficiencies is not null && (completedHitpoints is not null || completedProficiencies is not null ||
+            completedPhysicalDeath is not null || completedDerivedSpells is not null || completedDragonhowlDeath is not null ||
+            !issuingStore.CoversOwnedProficiencyPublication(completedOwnedProficiencies, this, connection, previous, current)))
+            throw new InvalidOperationException("ownedProficiencyCommittedPurposeOrCoverageLost");
         if (completedDerivedSpells is not null && (completedHitpoints is not null || completedPhysicalDeath is not null || completedDragonhowlDeath is not null ||
             !completedDerivedSpells.CoversCommittedPublication(this, issuingStore, connection, previous, current)))
             throw new InvalidOperationException("derivedSpellQuery23CommittedPairCoverageLost");
@@ -305,9 +310,19 @@ public sealed partial class WorldServerFrameHandler
         if (completedPhysicalDeath is null && completedDerivedSpells is null && completedDragonhowlDeath is null) PersistChangedSessionPlayerSpells(connection, previous, current);
         else if (completedPhysicalDeath is not null && !completedPhysicalDeath.CoversCommittedDeathSpells(this, issuingStore, connection, previous, current))
             throw new InvalidOperationException("basicPhysicalCommittedSpellCoverageLost");
-        if (completedProficiencies is null) PersistChangedSessionPlayerProficiencies(previous, current);
-        else if (!completedProficiencies.CoversCommittedPublication(this, issuingStore, connection, previous, current))
-            throw new InvalidOperationException("ordinaryBasicPhysicalCommittedProficiencyCoverageLost");
+        if (completedProficiencies is not null && completedOwnedProficiencies is not null)
+            throw new InvalidOperationException("ownedProficiencyCommitPurposeConflict");
+        if (completedProficiencies is not null)
+        {
+            if (!completedProficiencies.CoversCommittedPublication(this, issuingStore, connection, previous, current))
+                throw new InvalidOperationException("ordinaryBasicPhysicalCommittedProficiencyCoverageLost");
+        }
+        else if (completedOwnedProficiencies is not null)
+        {
+            if (!issuingStore.CoversOwnedProficiencyPublication(completedOwnedProficiencies, this, connection, previous, current))
+                throw new InvalidOperationException("ownedProficiencyCommittedCoverageLost");
+        }
+        else PersistChangedSessionPlayerProficiencies(previous, current);
         PersistChangedSessionCombatGear(previous, current);
         PersistChangedSessionPlayerQuests(previous, current);
     }

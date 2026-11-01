@@ -71,4 +71,7 @@ internal sealed class LegacyCommittedSpellPublicationException : InvalidOperatio
 {
     internal LegacyCommittedSpellPublicationException()
         : base("ordinarySpellRecoveryRequired:durableCommitPublicationUnproven") { }
+
+    internal LegacyCommittedSpellPublicationException(Exception cause)
+        : base("ordinarySpellRecoveryRequired:durableCommitPublicationUnproven", cause) { }
 }

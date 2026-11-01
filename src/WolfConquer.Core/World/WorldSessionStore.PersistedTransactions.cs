@@ -61,7 +61,8 @@ public sealed partial class WorldSessionStore
             if (!publication.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
             bool persisted;
             try { persisted = persist(); }
-            catch (LegacyCommittedSpellPublicationException) { FailCommittedSpellPublication(holder, publication.Binding); throw; }
+            catch (LegacyCommittedSpellPublicationException failure)
+            { FailCommittedSpellPublication(holder, publication.Binding, failure); throw; }
             if (!persisted) return false;
             if (!publication.AcceptExternallyPersistedHitpoints() || !publication.IsCurrentPlain())
                 FailCommittedSpellPublication(holder, publication.Binding);
@@ -119,9 +120,9 @@ public sealed partial class WorldSessionStore
             if (!first.ConsumeBeforeWriterPlain() || !second.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
             bool persisted;
             try { persisted = persist(); }
-            catch (LegacyCommittedSpellPublicationException)
+            catch (LegacyCommittedSpellPublicationException failure)
             {
-                FailCommittedPairPublication(firstHolder, first.Binding, secondHolder, second.Binding); throw;
+                FailCommittedPairPublication(firstHolder, first.Binding, secondHolder, second.Binding, failure); throw;
             }
             if (!persisted) return false;
             if (!first.AcceptExternallyPersistedHitpoints() || !second.AcceptExternallyPersistedHitpoints() ||
@@ -135,14 +136,5 @@ public sealed partial class WorldSessionStore
             return true;
         }
     }
-    private static void FailCommittedPairPublication(SessionHolder firstHolder, LegacyOrdinarySpellBinding? first,
-        SessionHolder secondHolder, LegacyOrdinarySpellBinding? second)
-    {
-        first?.Recovery.Block("ordinarySpellRecoveryRequired:durablePairPublicationUnproven");
-        second?.Recovery.Block("ordinarySpellRecoveryRequired:durablePairPublicationUnproven");
-        firstHolder.Clear(); secondHolder.Clear();
-        throw new LegacyCommittedSpellPublicationException();
-    }
-
     private sealed record TransactionGateOrder(long Value);
 }
