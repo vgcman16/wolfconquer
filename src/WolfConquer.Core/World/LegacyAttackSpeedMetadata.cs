@@ -11,6 +11,7 @@ internal sealed partial class LegacyAttackSpeedMetadata
     private readonly Dictionary<int, IReadOnlyList<ItemType>>? index;
     private readonly KeyValuePair<int, IReadOnlyList<ItemType>>[] indexed;
     private readonly Row[] used;
+    private readonly bool noSelectedRows;
     internal ushort Right { get; }
     internal ushort Left { get; }
     internal ushort Ring { get; }
@@ -18,13 +19,15 @@ internal sealed partial class LegacyAttackSpeedMetadata
     internal LegacyAttackSpeedMetadata(WorldDataCatalog? catalog, uint right, uint left, uint ring)
     {
         this.catalog = catalog;
-        if (catalog is null)
+        noSelectedRows = right == 0 && left == 0 && ring == 0;
+        if (noSelectedRows)
         {
-            // No required selected row is a real source observation, not a
-            // default metadata row. Pin this exact null catalog identity.
-            if (right != 0 || left != 0 || ring != 0) throw Invalid();
+            // The actual selected slots contain no item. Their source values
+            // are zero without consulting unrelated catalog rows or wrappers.
+            // Pin the catalog identity; this DATA is not a query/attack owner.
             indexed = []; used = []; return;
         }
+        if (catalog is null) throw Invalid();
         raw = new(catalog.Items);
         if (catalog.ItemsById is null || catalog.ItemsById.GetType() != typeof(Dictionary<int, IReadOnlyList<ItemType>>)) throw Invalid();
         index = (Dictionary<int, IReadOnlyList<ItemType>>)catalog.ItemsById;
@@ -48,7 +51,8 @@ internal sealed partial class LegacyAttackSpeedMetadata
     internal bool IsCurrentPlain(WorldDataCatalog? actual)
     {
         if (!ReferenceEquals(catalog, actual)) return false;
-        if (catalog is null) return raw is null && index is null && used.Length == 0 && Right == 0 && Left == 0 && Ring == 0;
+        if (noSelectedRows) return raw is null && index is null && used.Length == 0 && Right == 0 && Left == 0 && Ring == 0;
+        if (catalog is null) return false;
         if (raw is null || index is null || !ReferenceEquals(catalog.Items, raw.Source) || !raw.IsCurrentPlain() ||
             !ReferenceEquals(catalog.ItemsById, index) || !ReferenceEquals(index.Comparer, EqualityComparer<int>.Default) ||
             index.Count != indexed.Length) return false;

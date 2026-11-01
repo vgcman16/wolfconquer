@@ -16,6 +16,27 @@ public sealed class LegacyAttackSpeedMetadataTests
         Assert.Throws<InvalidDataException>(() => new LegacyAttackSpeedMetadata(null, 626003, 0, 0));
     }
 
+    [Fact]
+    public void ZeroSelectedRowsDoNotReadUnrelatedOpaqueOrMalformedMetadata()
+    {
+        // DATA ONLY: identity is the only catalog input when no slot is selected.
+        // The read-only list and malformed fields must not become witnesses.
+        var fields = new[] { "not-an-id" };
+        var row = new ItemType(626003, "UnrelatedMalformed", Array.AsReadOnly(fields));
+        var rows = Array.AsReadOnly(new[] { row });
+        var catalog = LegacyItemWorldDataFixture.Create(rows, []);
+        Assert.Same(rows, catalog.Items);
+        var proof = new LegacyAttackSpeedMetadata(catalog, 0, 0, 0);
+        Assert.True(proof.IsCurrentPlain(catalog));
+        Assert.Equal((ushort)0, proof.Right); Assert.Equal((ushort)0, proof.Left); Assert.Equal((ushort)0, proof.Ring);
+        Assert.Equal((ushort)0, proof.RightRange); Assert.Equal((ushort)0, proof.LeftRange);
+        fields[0] = "still-malformed";
+        Assert.IsType<Dictionary<int, IReadOnlyList<ItemType>>>(catalog.ItemsById).Clear();
+        Assert.True(proof.IsCurrentPlain(catalog));
+        Assert.False(proof.IsCurrentPlain(LegacyItemWorldDataFixture.Create(rows, [])));
+        Assert.Throws<InvalidDataException>(() => new LegacyAttackSpeedMetadata(catalog, 626003, 0, 0));
+    }
+
     // DATA ONLY: metadata witnesses do not issue a query/cache/attack owner.
     [Theory]
     [InlineData("0", 0)]

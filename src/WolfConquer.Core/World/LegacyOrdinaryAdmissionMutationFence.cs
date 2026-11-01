@@ -4,13 +4,7 @@ namespace WolfConquer.Core.World;
 
 internal static partial class LegacyOrdinaryAdmissionMutationFence
 {
-    private static readonly object Gate = new();
-    private static readonly Dictionary<string, LegacyOrdinaryAdmissionUidOwner> Owners = new(StringComparer.OrdinalIgnoreCase);
     [ThreadStatic] private static LegacyOrdinaryAdmissionPlan? prepared;
-
-    internal static void Register(LegacyOrdinaryAdmissionUidOwner owner)
-    { lock (Gate) Owners[owner.Roots.Users] = owner; }
-    private static LegacyOrdinaryAdmissionUidOwner[] Snapshot() { lock (Gate) return Owners.Values.ToArray(); }
 
     internal static void RequireFileMutation(string path) => RequireFileMutation(path, null);
 
@@ -18,24 +12,24 @@ internal static partial class LegacyOrdinaryAdmissionMutationFence
     {
         var absolute = Path.GetFullPath(path);
         RequireConfiguredJournalWritable(absolute, recovery);
-        foreach (var owner in Snapshot())
-            foreach (var kind in owner.Roots.Kinds)
+        var directory = Path.GetDirectoryName(absolute);
+        var name = Path.GetFileName(absolute);
+        foreach (var participant in SnapshotParticipants(directory))
+        {
+            var owner = participant.Owner;
+            var extension = ParticipantExtension(participant.Kind);
+            if (!name.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ||
+                !uint.TryParse(name[..^extension.Length], NumberStyles.None, CultureInfo.InvariantCulture, out var account)) continue;
+            if (recovery is not null)
             {
-                if (!string.Equals(Path.GetDirectoryName(absolute), owner.Roots.Root(kind), StringComparison.OrdinalIgnoreCase)) continue;
-                var extension = kind is LegacyTradeJournalFileKind.Character or LegacyTradeJournalFileKind.CombatGear ? ".ini" : ".bin";
-                var name = Path.GetFileName(absolute);
-                if (!name.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ||
-                    !uint.TryParse(name[..^extension.Length], NumberStyles.None, CultureInfo.InvariantCulture, out var account)) continue;
-                if (recovery is not null)
-                {
-                    // A foreign live owner is not permission merely because it
-                    // currently reports no debt on a shared participant path.
-                    if (!recovery.PermitsOrdinaryOwner(owner, absolute))
-                        throw new IOException("ordinaryAdmissionRecoveryRequired:ownedStartupOwnerMismatch");
-                }
-                else if (owner.IsPending(account) && (prepared is null || !prepared.PermitsOrdinaryPath(owner, account, absolute)))
-                    throw new IOException("ordinaryAdmissionRecoveryRequired:pendingSnapshotWrite");
+                // A foreign live owner is not permission merely because it
+                // currently reports no debt on a shared participant path.
+                if (!recovery.PermitsOrdinaryOwner(owner, absolute))
+                    throw new IOException("ordinaryAdmissionRecoveryRequired:ownedStartupOwnerMismatch");
             }
+            else if (owner.IsPending(account) && (prepared is null || !prepared.PermitsOrdinaryPath(owner, account, absolute)))
+                throw new IOException("ordinaryAdmissionRecoveryRequired:pendingSnapshotWrite");
+        }
     }
 
     internal static bool CanMutateSession(WorldSession? previous, WorldSession next, LegacyOrdinaryAdmissionPlan? admission)
@@ -43,14 +37,23 @@ internal static partial class LegacyOrdinaryAdmissionMutationFence
         if (!LegacySessionStorageRoot.TryNormalize(previous?.UsersRoot, out var previousUsers) ||
             !LegacySessionStorageRoot.TryNormalize(next.UsersRoot, out var nextUsers) ||
             !ConfiguredSessionWritable(previousUsers) || !ConfiguredSessionWritable(nextUsers)) return false;
-        foreach (var owner in Snapshot())
-            foreach (var (session, users) in new[] { (previous, previousUsers), (next, nextUsers) })
-                if (session is not null && session.AccountId is > 0 and <= uint.MaxValue && users is not null &&
-                    string.Equals(users, owner.Roots.Users, StringComparison.OrdinalIgnoreCase) &&
-                    owner.IsPending((uint)session.AccountId) &&
-                    (admission is null || !admission.MatchesPendingOwner(owner, (uint)session.AccountId))) return false;
-        return true;
+        var owners = SnapshotSessionOwners(previousUsers, nextUsers);
+        return OwnerAllowsSessions(owners.First, previous, previousUsers, next, nextUsers, admission) &&
+            OwnerAllowsSessions(owners.Second, previous, previousUsers, next, nextUsers, admission);
     }
+
+    private static bool OwnerAllowsSessions(LegacyOrdinaryAdmissionUidOwner? owner,
+        WorldSession? previous, string? previousUsers, WorldSession next, string? nextUsers,
+        LegacyOrdinaryAdmissionPlan? admission) => owner is null ||
+        (OwnerAllowsSession(owner, previous, previousUsers, admission) &&
+         OwnerAllowsSession(owner, next, nextUsers, admission));
+
+    private static bool OwnerAllowsSession(LegacyOrdinaryAdmissionUidOwner owner,
+        WorldSession? session, string? users, LegacyOrdinaryAdmissionPlan? admission) =>
+        session is null || session.AccountId is <= 0 or > uint.MaxValue || users is null ||
+        !string.Equals(users, owner.Roots.Users, StringComparison.OrdinalIgnoreCase) ||
+        !owner.IsPending((uint)session.AccountId) ||
+        (admission is not null && admission.MatchesPendingOwner(owner, (uint)session.AccountId));
 
     internal static IDisposable EnterPreparedCommit(LegacyOrdinaryAdmissionPlan plan)
     {

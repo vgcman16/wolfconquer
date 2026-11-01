@@ -79,7 +79,8 @@ public sealed partial class OwnedEquipmentBasicBehaviorTests
                     DwParam3: 0,
                     DwParam4: 0).ToFrameBytes());
 
-            Assert.Equal(countBeforeRequest + 14, sent.Count);
+            Assert.True(countBeforeRequest + 14 == sent.Count,
+                $"Expected {countBeforeRequest + 14} complete equipment frames, observed {sent.Count}.\n{log}");
             LegacySelectedEquipmentQueryAssertions.PirateRankQuery(sent, countBeforeRequest + 3, 1_293_600U);
             AssertItemUsage(
                 sent[countBeforeRequest],
@@ -184,7 +185,8 @@ public sealed partial class OwnedEquipmentBasicBehaviorTests
                     DwParam3: 0,
                     DwParam4: 0).ToFrameBytes());
 
-            Assert.Equal(countBeforeRequest + 13, sent.Count);
+            Assert.True(countBeforeRequest + 13 == sent.Count,
+                $"Expected {countBeforeRequest + 13} complete equipment frames, observed {sent.Count}.\n{log}");
             LegacySelectedEquipmentQueryAssertions.NeutralQuery(sent, countBeforeRequest + 3, 1_293_600U);
             AssertItemUsage(
                 sent[countBeforeRequest],

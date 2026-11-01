@@ -20,10 +20,10 @@ public static partial class WorldPacketHandlers
         var decision = LegacyEquipmentRebuildAdmission.ApplyCurrent(
             execution.Session, request.Reason, context.LegacyClock ?? LegacySignedMillisecondClock.System);
         execution.Admitted = decision.Admitted;
-        if (decision.Admitted && !LegacyEquipmentQueryExecution.CanPrepareDerivedSpells(context, execution.Session))
+        if (decision.Admitted && !LegacyEquipmentQueryExecution.CanPrepareDerivedSpells(context, execution.Session, out var derivedReason))
         {
             execution.RefuseUnavailableDerivedSpell();
-            await context.Log.WriteLineAsync($"WorldServer equipment query refused phase=derived-prerequisites reason={request.Reason}.").ConfigureAwait(false);
+            await context.Log.WriteLineAsync($"WorldServer equipment query refused phase=derived-prerequisites reason={derivedReason} query={request.Reason}.").ConfigureAwait(false);
             return execution.Outcome();
         }
         if (!execution.Commit(current => current with
