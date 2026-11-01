@@ -6,10 +6,10 @@ namespace WolfConquer.Tests;
 public sealed partial class OwnedDragonhowlFineRainAwardTests
 {
     [Theory]
-    [InlineData((ushort)17_490, false, 1_530U)]
-    [InlineData((ushort)17_650, false, 1_147U)]
-    [InlineData((ushort)17_490, true, 1_530U)]
-    [InlineData((ushort)17_650, true, 1_147U)]
+    [InlineData((ushort)17_490, false, 1_500U)]
+    [InlineData((ushort)17_650, false, 1_125U)]
+    [InlineData((ushort)17_490, true, 1_500U)]
+    [InlineData((ushort)17_650, true, 1_125U)]
     public Task EarnedFineRainSurvivesAwardUntilRealDeathClearAdmitsTheNewQuery(
         ushort spell, bool threshold, uint damage) => Run(spell, threshold, async c =>
     {

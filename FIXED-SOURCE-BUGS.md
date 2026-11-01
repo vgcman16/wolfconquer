@@ -51,6 +51,14 @@ actual completed award/query, without demanding the final planned level early.
 Build39 passes;40 is14Passed/6Failed/0skipped over20, with multi-kill state/query/
 death assertions reaching the remaining animation-golden mismatch. Qualification
 and independent formula/FineRain audit remain OPEN.
+The existing DirectTriple source-row2857 contract independently includes zero
+player bonus candidates; plain2/33 are not encoded percentages. Strength1000
+base1000 plus neutral50% yields1500; Ironbone3/4 yields1125. New test DATA
+goldens/specs now use those literals; no production formula changed. Existing
+DirectTriple/Ironbone neighbor controls passed62/62 in42. FineRain remains OPEN.
+After test-only build43(0errors/170warnings1m08.16s),44 passed22/22,0failed/
+skipped1m10s: multiple-award, overlap, real output-loss and captured-power
+tamper controls. Full209 requalification and FineRain death maximum remain OPEN.
 
 Focused real handler proficiency-origin repair - 2026-11-01:
 the actual bound helper now prepares its existing DATA/native graph and exact

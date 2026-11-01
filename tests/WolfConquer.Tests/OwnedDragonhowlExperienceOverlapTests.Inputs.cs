@@ -22,6 +22,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             ["attack_speed"] = "1000", ["move_speed"] = "500", ["attack_min"] = "5", ["attack_max"] = "6",
             ["attack_user"] = "3", ["settings"] = "53",
         }, []);
+        // Source row2857 includes zero player MIN candidates: Human0 and
+        // plain33/2 are not encoded bonuses. Strength1000 gives base1000;
+        // neutral no-breakthrough adds50%=1500, then Ironbone3/4 gives1125.
+        // Existing DirectTriple source-contract controls independently cover
+        // this interpretation; no level multiplier or extra2% is introduced.
         var magic = CreateMagicRow(spellId, sort: 99, useMana: 7, damage: 30_250, range: 4,
             useStamina: 5, coolDown: 0, coldTime: 0, damageOnHuman: 0, damage2: 33,
             damage3: 2, damageOnMonster: 30_085, gDamage: spellId == 17_650 ? 200U : 100U);

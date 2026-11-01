@@ -26,7 +26,7 @@ award10 advances10→11/XP9, performs a real query and restores HP640 including
 FineRain100. Immediate scalar HP is130. Both paths still have a recent real
 stamp before death, but death clears the flags, performs its real admitted query,
 and finishes with base maxima30 or540 and HP0. Mana maxima300/600 and magic11/21
-remain source arithmetic. Original player damage1530/1147 and monster4200 are
+remain source arithmetic. Original player damage1500/1125 and monster4200 are
 independent goldens. CP+5 and7mana/5stamina are unchanged.
 
 The required order is actual monster death/CP, final XP, clear212/213 vector,

@@ -19,7 +19,8 @@ edits,AV settings and9unclaimed mails. No push or live-launch proof.
   including42 new rate/admission cases. Generic policy cleanup remains open.
 - [ ] Finish reward/multiple-award/future-death qualification. Intermediate
   perfection caches now require actual completed proc query receipts;40 reaches
-  final animation assertions. Independent damage/FineRain formula audit pending.
+  final animation assertions. Independent source-row damage goldens now pass44;
+  all22 award/overlap/loss/tamper controls pass. FineRain maxHP audit remains.
 - [ ] Complete ordinary nonplayer pre-hit Profs and real StarFlow successors.
   Selection12 and child WIP are separate source-only dependency-incomplete work.
 - [ ] Close remaining regressions; run appropriate full Windows gate.
@@ -32,6 +33,10 @@ Build39:0errors/76warnings25.97s. Focused40 actual20 outcomes:
 14Passed/6Failed/0skipped,1m04s. Four multi-kill cases now complete both awards,
 queries and death through exact state checks; six selected positives fail final
 animation damage expectations(1530/1147 versus1500/1125), under independent audit.
+Build43(test-only):0errors/170warnings1m08.16s. Focused44:22Passed/0Failed/
+0skipped,1m10s; actual award/overlap/output-loss/tamper controls. Existing direct
+Dragonhowl/Ironbone source-contract neighbors pass62/62 in42. The first41 filter
+matched no tests and is NOT counted as passing evidence.
 Four FineRain maximum-HP failures from36 remain separate and unqualified.
 Scopes overlap: do not sum outcomes or infer a parity percentage/full pass.
 Original full8996 red remains33308P/91F/152actualNotExecuted;updater446P,

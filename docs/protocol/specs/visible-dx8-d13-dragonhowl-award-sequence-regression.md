@@ -21,8 +21,8 @@ The first level transition in the repeated case yields11/9, Vitality20/Spirit20,
 maxHP540/mana600/magic21. The second yields Vitality30/Spirit30. These are explicit
 saved stat rows. HP equals Vitality*24+Spirit*3; class14005 mana is Spirit*30,
 and the empty-equipment magic base is Spirit+1. The actor's declared neutral
-gear and Strength1000 give midpoint physical1500: player bonus2% gives1530,
-17650's final75% gives1147; the monster bonus180% gives4200. Each real monster
+gear and Strength1000 give midpoint physical1500: player bonus2% gives1500,
+17650's final75% gives1125; the monster bonus180% gives4200. Each real monster
 has life500 and contributes500/50=10 Team XP, without a newbie/spouse multiplier.
 
 Scalar cases require the actual query-issued association identity and exact

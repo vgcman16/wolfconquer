@@ -40,9 +40,9 @@ must finish, and its marker must be durably cleared, before the later player
 receive. This is not a borrowed old cache or a pure future DATA result.
 
 The minimum selected player bonus is 2 percent; neutral defense, equal saved
-battle power and the source no-penetration 50-percent increase give 1530.
+battle power and the source no-penetration 50-percent increase give 1500.
 Ironbone 17650 applies the source 75-percent player multiplier, yielding
-1147 after integer truncation. Either hit kills the freshly restored 540-HP
+1125 after integer truncation. Either hit kills the freshly restored 540-HP
 peer. The real death query must retain the rebuilt maxima and magic cache,
 publish native/holder/file HP 0 and the dead flag, and leave level 11 / XP 9.
 

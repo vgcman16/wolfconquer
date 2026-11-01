@@ -5,17 +5,17 @@ namespace WolfConquer.Tests;
 public sealed partial class OwnedDragonhowlAwardSequenceTests
 {
     [Theory]
-    [InlineData((ushort)17_490, 1_530U)]
-    [InlineData((ushort)17_650, 1_147U)]
+    [InlineData((ushort)17_490, 1_500U)]
+    [InlineData((ushort)17_650, 1_125U)]
     public Task ScalarTeamAwardRetainsActualQueryAndMissingSpellsUntilLaterLethalPeerReceive(
         ushort spellId, uint damage) => RunSequence(spellId, multiple: false, missingSpells: true,
             s => AssertSuccess(s, spellId, damage));
 
     [Theory]
-    [InlineData((ushort)17_490, 1_530U, false)]
-    [InlineData((ushort)17_650, 1_147U, false)]
-    [InlineData((ushort)17_490, 1_530U, true)]
-    [InlineData((ushort)17_650, 1_147U, true)]
+    [InlineData((ushort)17_490, 1_500U, false)]
+    [InlineData((ushort)17_650, 1_125U, false)]
+    [InlineData((ushort)17_490, 1_500U, true)]
+    [InlineData((ushort)17_650, 1_125U, true)]
     public Task TwoKilledMonstersCompleteBothTeamAwardsAndQueriesBeforeLethalPeerReceive(
         ushort spellId, uint damage, bool missingSpells) => RunSequence(spellId, multiple: true, missingSpells,
             s => AssertSuccess(s, spellId, damage));

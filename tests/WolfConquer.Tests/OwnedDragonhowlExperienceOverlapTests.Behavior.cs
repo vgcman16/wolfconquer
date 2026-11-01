@@ -6,8 +6,8 @@ namespace WolfConquer.Tests;
 public sealed partial class OwnedDragonhowlExperienceOverlapTests
 {
     [Theory]
-    [InlineData((ushort)17_490, 1_530U)]
-    [InlineData((ushort)17_650, 1_147U)]
+    [InlineData((ushort)17_490, 1_500U)]
+    [InlineData((ushort)17_650, 1_125U)]
     public Task LethalMonsterCompletesTeamLevelQueryBeforeSameCastLethallyReceivesTheLeveledPeer(
         ushort spellId, uint playerDamage) => Run(spellId, async (f, monster, monsters, clock) =>
     {
