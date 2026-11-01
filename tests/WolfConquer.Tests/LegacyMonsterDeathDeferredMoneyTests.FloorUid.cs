@@ -55,26 +55,18 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
     }
 
     [Fact]
-    public async Task ActualMoneyHandlerFailedInitialSearchConsumesUidOnlyForLaterPositiveTile()
+    public async Task ActualMoneyHandlerFailedLocalSearchNeverConsumesUidForUnrelatedPositiveTile()
     {
         using var fixture = new Fixture(49, [6_000], ground: static (x, y) => x == 1 && y == 1);
         var before = ReadFloorUidCounter();
-        fixture.Attributes.BeforeMoneyRead = call =>
-        {
-            Assert.Equal(1, call);
-            AssertUidDelta(before, 0); // This valid payload has not allocated its UID yet.
-            Assert.Empty(fixture.Floor.SnapshotVisible(DateTimeOffset.UtcNow));
-        };
 
         await InvokeActualDropBodyAsync(fixture);
 
-        AssertUidDelta(before, 1);
-        Assert.Equal(1, fixture.Attributes.MoneyReads);
-        AssertMoneyPiles(fixture, [6_000], [1_091_000u]);
-        var packet = Assert.Single(FloorPackets(fixture));
-        Assert.Equal(unchecked(before + 1u), packet.Uid);
-        Assert.Equal((ushort)1, packet.X);
-        Assert.Equal((ushort)1, packet.Y);
+        AssertUidDelta(before, 0);
+        Assert.Equal(0, fixture.Attributes.MoneyReads);
+        Assert.True(fixture.Cells.Reads > 0);
+        Assert.Empty(FloorPackets(fixture));
+        Assert.Empty(fixture.Floor.SnapshotVisible(DateTimeOffset.UtcNow));
     }
 
     [Fact]

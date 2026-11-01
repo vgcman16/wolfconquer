@@ -19,7 +19,10 @@ internal static partial class LegacyNativeMagicQueryClient
         // Prepare every allocation while this proof is still inert. Once the
         // associations exist, final native publication is only plain writes.
         var proof = new CompletedMaximums();
-        var publication = new MaximumCompletion(binding, epoch, source, entry, status, expected, entry.Fields, entry.JiangHu);
+        var perfection = LegacyNativePerfectionClient.Read(binding.Store, binding.Connection, binding.Uid, binding.NativeIdentity);
+        var prestige = LegacyNativePerfectionClient.Prestige(binding.Store, binding.Connection, binding.Uid, binding.NativeIdentity);
+        var publication = new MaximumCompletion(binding, epoch, source, entry, status, expected, entry.Fields, entry.JiangHu,
+            perfection, prestige);
         MaximumCompletions.Add(proof, publication);
         CurrentMaximumCompletions.Remove(entry);
         CurrentMaximumCompletions.Add(entry, proof);

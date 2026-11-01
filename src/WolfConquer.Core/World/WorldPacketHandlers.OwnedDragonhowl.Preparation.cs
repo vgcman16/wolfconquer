@@ -36,8 +36,21 @@ public static partial class WorldPacketHandlers
         participants = [];
         if (context.Session is not { } actor || selection.Spell is not { Id: 17_490 or 17_650 } spell ||
             PrepareDragonhowlGeometry(context, actor, packet, spell) is not { } geometry) return false;
+        // Discovery only, before acquiring ordered actor gates. The actual
+        // killed-owner preparation separately captures and proves the complete
+        // native Team roster; this list cannot authorize an award. A missing or
+        // unbound member therefore refuses a selected lethal reward, rather
+        // than being replaced with an invented recipient owner.
+        HashSet<ConquerTcpConnection> rewardConnections = context.TeamStates is { } teams &&
+            EnumerateVisibleMonsterTargets(context, actor.Character).Any(row =>
+                geometry.Contains(row.Monster.X, row.Monster.Y) &&
+                CanLegacyPlayerAttackMonster(actor.Character, row.Monster, row.MonsterFamily, out _))
+            ? teams.GetConnections(context.Connection).ToHashSet() : [];
         participants = observed.Where(row => ReferenceEquals(row.Connection, context.Connection) ||
             ReferenceEquals(row.Connection, primary?.Connection) ||
+            rewardConnections.Contains(row.Connection) &&
+                row.Session.NativeGameClient?.OrdinarySpellBinding is { IsRetired: false } binding &&
+                ReferenceEquals(binding.Store, context.Sessions) && ReferenceEquals(binding.Connection, row.Connection) ||
             IsOwnedDragonhowlObservedPlayer(actor, row.Session) && row.Session.Character.MinHitPoints > 0 &&
             geometry.Contains(row.Session.Character.X, row.Session.Character.Y)).ToArray();
         return participants.Any(row => ReferenceEquals(row.Connection, context.Connection) && ReferenceEquals(row.Session, actor)) &&
@@ -50,25 +63,42 @@ public static partial class WorldPacketHandlers
         internal readonly DragonhowlAudience Audience;
         internal readonly IReadOnlyList<byte[]> Frames;
         internal readonly WorldSessionStore.OwnedDragonhowlDeath? Death;
+        internal readonly WorldSessionStore.OwnedDragonhowlFutureDeath? FutureDeath;
+        internal readonly WorldSessionStore.OwnedDragonhowlAwardPhase? FutureAward;
         internal readonly WorldSessionStore.OwnedDragonhowlNonPlayer? NonPlayer;
         internal readonly DragonhowlMonsterOutput? MonsterOutput;
         internal readonly DragonhowlSobOutput? SobOutput;
         internal readonly PreparedDragonhowlSobEvent? SobEvent;
         internal readonly DragonhowlFlashingName? Flashing;
+        internal readonly PreparedDragonhowlMonsterRewards? MonsterRewards;
+        internal readonly WorldSessionStore.OwnedDragonhowlTeamExperience? TeamExperience;
         private readonly LegacyNativeAttributeMapProof beforeAttributes, beforePaid, afterAttributes, afterPaid;
         private readonly DragonhowlCooldownInputs beforeCooldowns, afterCooldowns;
         internal DragonhowlPhase(ConquerTcpConnection connection, WorldSession before, WorldSession after,
             DragonhowlAudience audience, byte[][] frames, WorldSessionStore.OwnedDragonhowlDeath? death = null,
             WorldSessionStore.OwnedDragonhowlNonPlayer? nonPlayer = null, DragonhowlMonsterOutput? monsterOutput = null,
             DragonhowlSobOutput? sobOutput = null, PreparedDragonhowlSobEvent? sobEvent = null,
-            DragonhowlFlashingName? flashing = null)
+            DragonhowlFlashingName? flashing = null,
+            WorldSessionStore.OwnedDragonhowlFutureDeath? futureDeath = null,
+            PreparedDragonhowlMonsterRewards? monsterRewards = null,
+            WorldSessionStore.OwnedDragonhowlTeamExperience? teamExperience = null,
+            WorldSessionStore.OwnedDragonhowlAwardPhase? futureAward = null)
         {
             Connection = connection; Before = before; After = after; Audience = audience;
-            Death = death;
+            Death = death; FutureDeath = futureDeath;
+            FutureAward = futureAward;
+            if (futureAward is not null && (death is not null || futureDeath is not null || nonPlayer is not null || flashing is not null))
+                throw new InvalidDataException("ownedDragonhowlConflictingAwardPhase");
             NonPlayer = nonPlayer;
             MonsterOutput = monsterOutput; SobOutput = sobOutput; SobEvent = sobEvent;
             Flashing = flashing;
-            if (flashing is not null && (death is not null || nonPlayer is not null))
+            MonsterRewards = monsterRewards; TeamExperience = teamExperience;
+            if ((monsterRewards is null) != (teamExperience is null) || monsterRewards is not null &&
+                (nonPlayer is null || monsterOutput?.RequiresDeathContinuation != true || death is not null || futureDeath is not null))
+                throw new InvalidDataException("ownedDragonhowlConflictingMonsterRewardPhase");
+            if (futureDeath is not null && (death is not null || nonPlayer is not null))
+                throw new InvalidDataException("ownedDragonhowlConflictingFutureDeath");
+            if (flashing is not null && (death is not null || futureDeath is not null || nonPlayer is not null))
                 throw new InvalidDataException("ownedDragonhowlConflictingFlashingPhase");
             if (death is not null && nonPlayer is not null) throw new InvalidDataException("ownedDragonhowlConflictingTargets");
             if (new object?[] { monsterOutput, sobOutput, sobEvent }.Count(value => value is not null) > 1 ||
@@ -85,6 +115,9 @@ public static partial class WorldPacketHandlers
             afterAttributes.IsCurrentPlain() && afterPaid.IsCurrentPlain() &&
             beforeCooldowns.IsCurrentPlain(Before.MagicCooldowns) && afterCooldowns.IsCurrentPlain(After.MagicCooldowns) &&
             (NonPlayer is null || NonPlayer.InputsAreCurrentPlain()) && (SobEvent is null || SobEvent.IsCurrentPlain()) &&
+            (FutureDeath is null || FutureDeath.InputsAreCurrentPlain()) &&
+            (FutureAward is null || FutureAward.InputsAreCurrent()) &&
+            (MonsterRewards is null || MonsterRewards.RecordedInputsAreCurrent()) &&
             (Flashing is null || Flashing.IsCurrentPlain());
     }
 
@@ -138,12 +171,14 @@ public static partial class WorldPacketHandlers
 
         internal bool TryGetFinalProjection(ConquerTcpConnection connection, out WorldSession final) =>
             finals.TryGetValue(connection, out final!);
+        internal bool UsesRewardParticipant(ConquerTcpConnection connection) => Phases.Any(phase =>
+            phase.TeamExperience is { } team && Store.IsDragonhowlRewardParticipant(Owner, team, connection));
         internal bool ContainsWornSnapshot(LegacyOrdinarySpellBinding binding,
             LegacyNativeRuneItemStorage.BasicPhysicalWornSnapshot snapshot, WorldSession original) =>
             receives.Any(input => input.ContainsWornSnapshot(binding, snapshot, original));
-        internal bool InputsAreCurrentPlain() => metadata.All(row => row.IsCurrentPlain()) &&
-            receives.All(row => row.IsCurrentPlain(Store.IsDragonhowlReceiveCompleted(Owner, row.TargetConnection))) &&
-            (eligibility is null || eligibility.IsCurrentPlain()) && Phases.All(row => row.IsCurrentPlain());
+        internal bool ContainsPerfectionInputs(LegacyOrdinarySpellBinding binding, object inputs) =>
+            receives.Any(input => input.ContainsPerfectionInputs(binding, inputs));
+        internal bool InputsAreCurrentPlain() => TryReadCurrentInputs(out _);
 
         internal static bool TryPrepare(WorldSessionStore store, WorldSessionStore.OwnedDragonhowlOwner owner,
             WorldPacketHandlerContext context, MsgAttackPacket packet, WorldActiveSession? primary,
@@ -174,117 +209,147 @@ public static partial class WorldPacketHandlers
             var metadata = new List<LegacyOwnedPhysicalMetadataWitness>();
             var receives = new List<DragonhowlReceiveInputs>();
             var phases = new List<DragonhowlPhase>();
-            var finals = new Dictionary<ConquerTcpConnection, WorldSession>();
-            var animationTargets = new List<LegacySpellAnimationTarget>();
-            var source = actor;
-            var actorBinding = actor.NativeGameClient!.OrdinarySpellBinding!;
-            var ownMetadata = LegacyOwnedPhysicalMetadataWitness.CaptureDragonhowl(actorBinding, catalog, actor);
-            ownMetadata.RequireRuntimeSpell(spell); metadata.Add(ownMetadata);
-            var costActor = costs.Candidate with { Character = WithCharacterAttribute(costs.Candidate.Character, "Action", 0U) };
-            Append(context.Connection, ref source, costActor, DragonhowlAudience.Owner, costs.Frames);
-            if (!PrepareDragonhowlMonsterPhases(store, owner, context, spell, geometry, ownMetadata,
-                ref source, phases, finals, animationTargets, out reason)) return false;
-            foreach (var row in participants)
+            bool retainedRewards = false;
+            try
             {
-                if (ReferenceEquals(row.Connection, context.Connection) ||
-                    !InLine(row.Session.Character.X, row.Session.Character.Y) || row.Session.Character.MinHitPoints <= 0 ||
-                    HasLegacyStatusFlag(row.Session.Character, LegacyDeadFlag) || HasLegacyStatusFlag(row.Session.Character, LegacyGhostFlag)) continue;
-                var target = row.Session;
-                if (!CanLegacyPlayerMagicDamageTarget(context, source, target, spell, out _, out var failure))
+                var finals = new Dictionary<ConquerTcpConnection, WorldSession>();
+                var calculated = participants.ToDictionary(row => row.Connection, row => row.Session);
+                var recipientData = new Dictionary<ConquerTcpConnection, DragonhowlLevelExperienceData>();
+                var animationTargets = new List<LegacySpellAnimationTarget>();
+                var source = actor;
+                var actorBinding = actor.NativeGameClient!.OrdinarySpellBinding!;
+                var ownMetadata = LegacyOwnedPhysicalMetadataWitness.CaptureDragonhowl(actorBinding, catalog, actor);
+                ownMetadata.RequireRuntimeSpell(spell); metadata.Add(ownMetadata);
+                var costActor = costs.Candidate with { Character = WithCharacterAttribute(costs.Candidate.Character, "Action", 0U) };
+                Append(context.Connection, ref source, costActor, DragonhowlAudience.Owner, costs.Frames);
+                if (!PrepareDragonhowlMonsterPhases(store, owner, context, spell, geometry, ownMetadata,
+                    ref source, phases, finals, animationTargets, calculated, recipientData, out reason)) return false;
+                foreach (var row in participants)
                 {
-                    if (failure != LegacyPlayerMagicGateFailureEffect.None)
-                    { reason = "ownedDragonhowlUnjoined:permissionEffect"; return false; }
-                    continue;
-                }
-                var targetBinding = target.NativeGameClient!.OrdinarySpellBinding!;
-                var flashing = DragonhowlFlashingName.Prepare(context, actorBinding, source, target);
-                if (flashing is not null)
-                    Append(context.Connection, ref source, flashing.After, DragonhowlAudience.OwnerVisible,
-                        [flashing.Frame], flashing: flashing);
-                var witness = LegacyOwnedPhysicalMetadataWitness.CaptureDragonhowl(targetBinding, catalog, target);
-                metadata.Add(witness);
-                var input = new DragonhowlReceiveInputs(context, owner, packet, actorBinding, targetBinding, actor, target);
-                var damage = CalculateLegacyCombatGearTriple17490PlayerDamage(source, target, spell, catalog);
-                if (!input.TryPrepare(damage.Damage, out reason)) return false;
-                receives.Add(input);
-                if (HasLegacyStatusFlag(target.Character, LegacyHawksAmbitionFlag) ||
-                    HasLegacyStatusFlag(target.Character, LegacyIronShieldFlag) ||
-                    HasLegacyStatusFlag(target.Character, LegacyDragonSwingFlag) || HasLegacyStatusFlag(source.Character, LegacySlayerFlag))
-                { reason = "ownedDragonhowlUnjoined:consumedPhysicalModifier"; return false; }
-                var mutable = PrepareDragonhowlMutableStatus(context, source, target, catalog);
-                var flags = mutable.PublishesFrontBreak ? new[] { LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
-                    CheckedUInt32(source.Character.Uid, nameof(source.Character.Uid)), LegacyPlayerDeathState.CreateStatusFlagVector(
-                        mutable.ActorAfter.Character.Attributes, LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength)).ToFrameBytes() } : [];
-                Append(context.Connection, ref source, mutable.ActorAfter, DragonhowlAudience.OwnerVisible, flags);
-                Append(row.Connection, ref target, mutable.TargetAfter, DragonhowlAudience.TargetVisible, []);
-                var effect = mutable.EnteredCriticalBlock ? ResolveLegacyPlayerPlayerPhysicalEffectsCore(source, target, spell, catalog, damage) :
-                    new LegacyPlayerPlayerPhysicalEffectsResolution(damage);
-                if (effect.RefineEffect != LegacyRefineEffect.None)
-                {
-                    var refine = new LegacyMsgRefineEffectPacket(CheckedUInt32(source.Character.Uid, nameof(source.Character.Uid)),
-                        Param: 0, Effect: effect.RefineEffect).ToFrameBytes();
-                    Append(row.Connection, ref target, target, DragonhowlAudience.TargetVisible, [refine]);
-                }
-                var breakthrough = ApplyLegacyPlayerPlayerPhysicalSpellBreakthroughBranch(source, target, spell, catalog,
-                    effect.DamageResult, applyPenetrationCompensation: false);
-                damage = FinishLegacyCombatGearTriple17490PlayerDamage(source, target, spell, catalog,
-                    breakthrough.DamageResult, breakthrough.State);
-                damage = ApplyLegacyCombatGearTriple17490BattlePowerAdvantage(source, target, catalog, damage);
-                damage = ApplyLegacyPlayerPlayerPhysicalDefensiveStance(target, damage);
-                damage = ApplyLegacyPlayerPlayerPhysicalSpellInfinity(source, spell, damage);
-                damage = ApplyLegacyPlayerPlayerPhysicalSpellNoBreakthroughBonus(breakthrough.State, damage);
-                uint received = damage.Damage;
-                if (TryGetLegacyEligibleEquippedRuneLevel(source, catalog, "NoMercy", out _) && received < LegacyPhysicalNoMercyMinimumDamage)
-                    received = LegacyPhysicalNoMercyMinimumDamage;
-                if (TryGetLegacyEligibleEquippedRuneLevel(source, catalog, "Assassin", out _) && ReadAttributeBool(source.Character.Attributes, RuntimeAutoHuntAttribute))
-                    received = AddLegacySaturating(received, LegacyPhysicalAssassinAutoHuntDamage);
-                received = ApplyLegacyPlayerReceiveMudWall(target, catalog, received);
-                if (spell.Id == 17_650) received = MulDivToUInt32(received, 75, 100);
-                // This is the receive prefix after the spell's own 75% scale,
-                // not an extra spell-calculation multiplier. Consumed Hawks
-                // and shield branches require their separate concrete owners.
-                received = ApplyDragonhowlReceiveScalarModifiers(source.Character, received);
-                var previous = CheckedUInt32(target.Character.MinHitPoints, nameof(target.Character.MinHitPoints));
-                var sourceCharacter = WithCharacterAttribute(source.Character, RuntimeLegacyThundercloudSightAttribute,
-                    CheckedUInt32(target.Character.Uid, nameof(target.Character.Uid)));
-                sourceCharacter = WithCharacterAttribute(sourceCharacter, RuntimeLegacyAttackHitAttribute, "true");
-                Append(context.Connection, ref source, source with { Character = sourceCharacter }, DragonhowlAudience.Owner, []);
-                var targetCharacter = WithCharacterAttribute(target.Character, RuntimeLegacyThundercloudSightAttribute,
-                    CheckedUInt32(source.Character.Uid, nameof(source.Character.Uid)));
-                if (received >= previous)
-                {
-                    var death = store.PrepareDragonhowlDeath(owner, targetBinding,
-                        target with { Character = targetCharacter }, received);
-                    Append(row.Connection, ref target, death.Death.Proposed, DragonhowlAudience.Owner, [], death);
+                    if (ReferenceEquals(row.Connection, context.Connection) ||
+                        !InLine(row.Session.Character.X, row.Session.Character.Y) || row.Session.Character.MinHitPoints <= 0 ||
+                        HasLegacyStatusFlag(row.Session.Character, LegacyDeadFlag) || HasLegacyStatusFlag(row.Session.Character, LegacyGhostFlag)) continue;
+                    var target = calculated[row.Connection];
+                    if (!CanLegacyPlayerMagicDamageTarget(context, source, target, spell, out _, out var failure))
+                    {
+                        if (failure != LegacyPlayerMagicGateFailureEffect.None)
+                        { reason = "ownedDragonhowlUnjoined:permissionEffect"; return false; }
+                        continue;
+                    }
+                    var targetBinding = target.NativeGameClient!.OrdinarySpellBinding!;
+                    var flashing = DragonhowlFlashingName.Prepare(context, actorBinding, source, target);
+                    if (flashing is not null)
+                        Append(context.Connection, ref source, flashing.After, DragonhowlAudience.OwnerVisible,
+                            [flashing.Frame], flashing: flashing);
+                    var witness = LegacyOwnedPhysicalMetadataWitness.CaptureDragonhowl(targetBinding, catalog, target);
+                    metadata.Add(witness);
+                    recipientData.TryGetValue(context.Connection, out var actorAward);
+                    recipientData.TryGetValue(row.Connection, out var targetAward);
+                    var calculation = DragonhowlReceiveCalculationData.Create(context.ProtocolProfile, context.ProtocolProfile,
+                        actorAward?.FinalReceiveData, targetAward?.FinalReceiveData);
+                    var input = new DragonhowlReceiveInputs(context, owner, packet, actorBinding, targetBinding, actor, row.Session,
+                        source, target, actorAward?.FinalReceiveData, targetAward?.FinalReceiveData);
+                    var damage = CalculateLegacyCombatGearTriple17490PlayerDamage(source, target, spell, catalog, calculation);
+                    if (!input.TryPrepare(damage.Damage, out reason)) return false;
+                    receives.Add(input);
+                    if (HasLegacyStatusFlag(target.Character, LegacyHawksAmbitionFlag) ||
+                        HasLegacyStatusFlag(target.Character, LegacyIronShieldFlag) ||
+                        HasLegacyStatusFlag(target.Character, LegacyDragonSwingFlag) || HasLegacyStatusFlag(source.Character, LegacySlayerFlag))
+                    { reason = "ownedDragonhowlUnjoined:consumedPhysicalModifier"; return false; }
+                    var mutable = PrepareDragonhowlMutableStatus(context, source, target, catalog, calculation);
+                    var flags = mutable.PublishesFrontBreak ? new[] { LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
+                        CheckedUInt32(source.Character.Uid, nameof(source.Character.Uid)), LegacyPlayerDeathState.CreateStatusFlagVector(
+                            mutable.ActorAfter.Character.Attributes, LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength)).ToFrameBytes() } : [];
+                    Append(context.Connection, ref source, mutable.ActorAfter, DragonhowlAudience.OwnerVisible, flags);
+                    Append(row.Connection, ref target, mutable.TargetAfter, DragonhowlAudience.TargetVisible, []);
+                    var effect = mutable.EnteredCriticalBlock ? ResolveLegacyPlayerPlayerPhysicalEffectsCore(source, target, spell, catalog, damage, calculation) :
+                        new LegacyPlayerPlayerPhysicalEffectsResolution(damage);
+                    if (effect.RefineEffect != LegacyRefineEffect.None)
+                    {
+                        var refine = new LegacyMsgRefineEffectPacket(CheckedUInt32(source.Character.Uid, nameof(source.Character.Uid)),
+                            Param: 0, Effect: effect.RefineEffect).ToFrameBytes();
+                        Append(row.Connection, ref target, target, DragonhowlAudience.TargetVisible, [refine]);
+                    }
+                    var breakthrough = ApplyLegacyPlayerPlayerPhysicalSpellBreakthroughBranch(source, target, spell, catalog,
+                        effect.DamageResult, calculation, applyPenetrationCompensation: false);
+                    damage = FinishLegacyCombatGearTriple17490PlayerDamage(source, target, spell, catalog,
+                        breakthrough.DamageResult, breakthrough.State, calculation);
+                    damage = ApplyLegacyCombatGearTriple17490BattlePowerAdvantage(source, target, catalog, damage);
+                    damage = ApplyLegacyPlayerPlayerPhysicalDefensiveStance(target, damage);
+                    damage = ApplyLegacyPlayerPlayerPhysicalSpellInfinity(source, spell, damage);
+                    damage = ApplyLegacyPlayerPlayerPhysicalSpellNoBreakthroughBonus(breakthrough.State, damage);
+                    uint received = damage.Damage;
+                    if (TryGetLegacyEligibleEquippedRuneLevel(source, catalog, "NoMercy", out _) && received < LegacyPhysicalNoMercyMinimumDamage)
+                        received = LegacyPhysicalNoMercyMinimumDamage;
+                    if (TryGetLegacyEligibleEquippedRuneLevel(source, catalog, "Assassin", out _) && ReadAttributeBool(source.Character.Attributes, RuntimeAutoHuntAttribute))
+                        received = AddLegacySaturating(received, LegacyPhysicalAssassinAutoHuntDamage);
+                    received = ApplyLegacyPlayerReceiveMudWall(target, catalog, received);
+                    if (spell.Id == 17_650) received = MulDivToUInt32(received, 75, 100);
+                    // This is the receive prefix after the spell's own 75% scale,
+                    // not an extra spell-calculation multiplier. Consumed Hawks
+                    // and shield branches require their separate concrete owners.
+                    received = ApplyDragonhowlReceiveScalarModifiers(source.Character, received);
+                    var previous = CheckedUInt32(target.Character.MinHitPoints, nameof(target.Character.MinHitPoints));
+                    var sourceCharacter = WithCharacterAttribute(source.Character, RuntimeLegacyThundercloudSightAttribute,
+                        CheckedUInt32(target.Character.Uid, nameof(target.Character.Uid)));
+                    sourceCharacter = WithCharacterAttribute(sourceCharacter, RuntimeLegacyAttackHitAttribute, "true");
+                    Append(context.Connection, ref source, source with { Character = sourceCharacter }, DragonhowlAudience.Owner, []);
+                    var targetCharacter = WithCharacterAttribute(target.Character, RuntimeLegacyThundercloudSightAttribute,
+                        CheckedUInt32(source.Character.Uid, nameof(source.Character.Uid)));
+                    if (received >= previous)
+                    {
+                        if (targetAward is not null)
+                        {
+                            var futureDeath = store.PrepareDragonhowlFutureDeath(owner, targetBinding, source,
+                                target, target with { Character = targetCharacter }, received);
+                            Append(row.Connection, ref target, futureDeath.Projected, DragonhowlAudience.Owner, [], futureDeath: futureDeath);
+                            animationTargets.Add(new(CheckedUInt32(target.Character.Uid, nameof(target.Character.Uid)), received, true, damage.Effect));
+                            continue;
+                        }
+                        var death = store.PrepareDragonhowlDeath(owner, targetBinding,
+                            target with { Character = targetCharacter }, received);
+                        Append(row.Connection, ref target, death.Death.Proposed, DragonhowlAudience.Owner, [], death);
+                        animationTargets.Add(new(CheckedUInt32(target.Character.Uid, nameof(target.Character.Uid)), received, true, damage.Effect));
+                        continue;
+                    }
+                    var after = target with { Character = targetCharacter with { MinHitPoints = previous - received } };
+                    uint maximum = GetLegacyEquipmentRuntimeMaxHitpoints(after, catalog, previous);
+                    var hp = LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(
+                        CheckedUInt32(target.Character.Uid, nameof(target.Character.Uid)), maximum, previous - received)
+                        .Select(update => update.ToFrameBytes()).ToArray();
+                    Append(row.Connection, ref target, after, DragonhowlAudience.Owner, hp);
                     animationTargets.Add(new(CheckedUInt32(target.Character.Uid, nameof(target.Character.Uid)), received, true, damage.Effect));
-                    continue;
                 }
-                var after = target with { Character = targetCharacter with { MinHitPoints = previous - received } };
-                uint maximum = GetLegacyEquipmentRuntimeMaxHitpoints(after, catalog, previous);
-                var hp = LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(
-                    CheckedUInt32(target.Character.Uid, nameof(target.Character.Uid)), maximum, previous - received)
-                    .Select(update => update.ToFrameBytes()).ToArray();
-                Append(row.Connection, ref target, after, DragonhowlAudience.Owner, hp);
-                animationTargets.Add(new(CheckedUInt32(target.Character.Uid, nameof(target.Character.Uid)), received, true, damage.Effect));
-            }
-            if (!PrepareDragonhowlSobPhases(store, owner, context, spell, geometry, ownMetadata,
-                ref source, phases, finals, animationTargets, out reason)) return false;
-            var animation = new LegacySpellAnimationPacket(CheckedUInt32(actor.Character.Uid, nameof(actor.Character.Uid)),
-                0, iron?.EndpointX ?? geometry.Triple.AnchorX, iron?.EndpointY ?? geometry.Triple.AnchorY, spell.Id,
-                (byte)Math.Min(learned.Level, byte.MaxValue), 0, learned.UseSpellSoul, 0, animationTargets);
-            _ = animation.ToFrames();
-            var result = new OwnedDragonhowlPreparation(store, owner, context, packet, primary, selection,
-                phases.ToArray(), metadata.ToArray(), receives.ToArray(), eligibility, finals, animation);
-            if (!result.InputsAreCurrentPlain() || !store.IsOwnedDragonhowlBeforeCurrent(owner)) return false;
-            prepared = result; reason = string.Empty; return true;
+                if (!PrepareDragonhowlSobPhases(store, owner, context, spell, geometry, ownMetadata,
+                    ref source, phases, finals, animationTargets, out reason)) return false;
+                var animation = new LegacySpellAnimationPacket(CheckedUInt32(actor.Character.Uid, nameof(actor.Character.Uid)),
+                    0, iron?.EndpointX ?? geometry.Triple.AnchorX, iron?.EndpointY ?? geometry.Triple.AnchorY, spell.Id,
+                    (byte)Math.Min(learned.Level, byte.MaxValue), 0, learned.UseSpellSoul, 0, animationTargets);
+                _ = animation.ToFrames();
+                var result = new OwnedDragonhowlPreparation(store, owner, context, packet, primary, selection,
+                    phases.ToArray(), metadata.ToArray(), receives.ToArray(), eligibility, finals, animation);
+                if (!result.InputsAreCurrentPlain() || !store.IsOwnedDragonhowlBeforeCurrent(owner)) return false;
+                prepared = result; retainedRewards = true; reason = string.Empty; return true;
 
-            void Append(ConquerTcpConnection connection, ref WorldSession before, WorldSession after,
-                DragonhowlAudience audience, byte[][] frames, WorldSessionStore.OwnedDragonhowlDeath? death = null,
-                DragonhowlFlashingName? flashing = null)
+                void Append(ConquerTcpConnection connection, ref WorldSession before, WorldSession after,
+                    DragonhowlAudience audience, byte[][] frames, WorldSessionStore.OwnedDragonhowlDeath? death = null,
+                    DragonhowlFlashingName? flashing = null, WorldSessionStore.OwnedDragonhowlFutureDeath? futureDeath = null)
+                {
+                    after = after with { Character = new BoundHitpointsInputs(before.Character, after.Character).After };
+                    WorldSessionStore.OwnedDragonhowlAwardPhase? futureAward = null;
+                    if (recipientData.ContainsKey(connection) && death is null && futureDeath is null)
+                        futureAward = store.PrepareDragonhowlAwardPhase(owner,
+                            before.NativeGameClient!.OrdinarySpellBinding!, before, after);
+                    phases.Add(new(connection, before, after, audience, frames, death, flashing: flashing,
+                        futureDeath: futureDeath, futureAward: futureAward));
+                    finals[connection] = before = after;
+                    calculated[connection] = after;
+                }
+            }
+            finally
             {
-                after = after with { Character = new BoundHitpointsInputs(before.Character, after.Character).After };
-                phases.Add(new(connection, before, after, audience, frames, death, flashing: flashing));
-                finals[connection] = before = after;
+                if (!retainedRewards)
+                    foreach (var phase in phases) phase.MonsterRewards?.Dispose();
             }
         }
     }

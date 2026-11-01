@@ -18,7 +18,7 @@ public static partial class WorldPacketHandlers
                 Attributes = new Dictionary<string, string>(attributes.Fields, attributes.CapturedComparer),
                 PaidNobility = new Dictionary<string, string>(paid.Fields, paid.CapturedComparer),
             },
-            PlayerSpells = new(new LegacyPerformerSpellRows(spells.Rows)),
+            PlayerSpells = new(spells.Rows.ToArray()),
         };
         copy = items.WithOwnedItemsForPersistence(copy);
         if (!attributes.IsCurrentPlain() || !paid.IsCurrentPlain() || !spells.IsCurrent() || !items.IsCurrent(source.PlayerItems))

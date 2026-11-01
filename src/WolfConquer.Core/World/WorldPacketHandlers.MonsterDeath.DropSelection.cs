@@ -116,6 +116,30 @@ public static partial class WorldPacketHandlers
         return true;
     }
 
+    private static bool TryGenerateLegacyMonsterDeathDropItemId(
+        WorldSessionStore.OwnedDragonhowlDropQuality purpose,
+        CharacterSnapshot character, WorldDataCatalog worldData, Monster monsterFamily,
+        out LegacyMonsterDeathDropSelection selection, out uint candidate, out string noDropReason)
+    {
+        // Only the registered death/drop producer can select the real counter
+        // projection. Base/level RNG runs once here; no live generator is called.
+        selection = default; candidate = 0; noDropReason = string.Empty;
+        var forcedLevel = TryReadUInt32Attribute(character.Attributes, out var forcedLevelValue,
+            RuntimeLegacyMonsterDropItemLevelAttribute);
+        if (!TrySelectLegacyGeneratedItemBase(monsterFamily, character, forcedLevel, out var itemBase, out noDropReason)) return false;
+        uint level = forcedLevel ? forcedLevelValue : AlterLegacyGeneratedItemLevel(itemBase.Level, itemBase.Sort);
+        if (level > 99) { noDropReason = "source generated item level is outside the local item id range"; return false; }
+        byte quality;
+        if (TryReadUInt32Attribute(character.Attributes, out var forcedQuality, RuntimeLegacyMonsterDropItemQualityAttribute) && forcedQuality <= 9)
+            quality = (byte)forcedQuality;
+        else if (!purpose.TryPrepare(out quality)) throw new InvalidOperationException("ownedDragonhowlDropQualityUnavailable");
+        candidate = checked((uint)itemBase.Sort * 1000U + level * 10U + quality);
+        if (!TryUseKnownLegacyDropItemId(worldData, candidate, out var id))
+        { noDropReason = "source generated candidate is absent from itemtype"; return false; }
+        selection = new LegacyMonsterDeathDropSelection(id, FloorItemRuntimePickupKind.Item, Amount: 0);
+        return true;
+    }
+
     private static bool TrySelectLegacyGeneratedItemBase(
         Monster monsterFamily,
         CharacterSnapshot character,

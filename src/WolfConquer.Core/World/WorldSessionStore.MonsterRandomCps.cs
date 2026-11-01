@@ -23,8 +23,18 @@ public sealed partial class WorldSessionStore
         return TryCommitMonsterCps(context, expected, amount, out result, out receipt);
     }
 
+    private bool TryCommitDragonhowlDeathCps(WorldPacketHandlerContext context, WorldSession expected,
+        OwnedDragonhowlDeathCps step, out WorldSession? result, out ActionPublication? receipt)
+    {
+        result = null; receipt = null;
+        RefuseBoundSpellReentry(context.Connection);
+        if (!dragonhowlDeathCps.TryGetValue(step, out var state) || !state.Started || state.OutcomeConfirmed ||
+            !ReferenceEquals(state.Before, expected) || state.Data.Amount == 0) return false;
+        return TryCommitMonsterCps(context, expected, state.Data.Amount, out result, out receipt, step);
+    }
+
     private bool TryCommitMonsterCps(WorldPacketHandlerContext context, WorldSession expected, uint amount,
-        out WorldSession? result, out ActionPublication? receipt)
+        out WorldSession? result, out ActionPublication? receipt, OwnedDragonhowlDeathCps? dragonhowl = null)
     {
         result = null; receipt = null;
         if (framePersistenceOwner is not { } frame ||
@@ -35,6 +45,11 @@ public sealed partial class WorldSessionStore
         WorldSession final = null!; object identity = null!; LegacyOrdinarySpellBinding binding = null!; ActionPublication prepared = null!;
         lock (frame.RequireActionLifecycleGate(this))
         {
+            // The proc's complete participant scope is acquired before the
+            // ordinary wallet scopes and disposed before any publication observer.
+            IDisposable? dragonhowlScope = null;
+            if (dragonhowl is not null && !TryEnterDragonhowlCpsWriter(dragonhowl, context, expected, amount, out dragonhowlScope)) return false;
+            using var retainedDragonhowlScope = dragonhowlScope;
             using var package = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, expected);
             if (!_connectionGates.TryGetValue(context.Connection, out var gate)) return false;
             lock (gate)
@@ -69,7 +84,8 @@ public sealed partial class WorldSessionStore
                 using var publicationLease = publication;
                 if (publication.HitpointsWrite is not null) return false;
                 string path = Path.Combine(owner.UsersRoot, expected.AccountId.ToString(CultureInfo.InvariantCulture) + ".ini");
-                bool committed = SnapshotFileLockCoordinator.ExecuteLocked([path], () =>
+                var paths = dragonhowl is null ? new[] { path } : DragonhowlCpsFilePaths(dragonhowl, path);
+                bool committed = SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>
                 {
                     byte[] before, after;
                     try
@@ -90,8 +106,10 @@ public sealed partial class WorldSessionStore
                         OverflowException or ArgumentException or NotSupportedException or System.Security.SecurityException) { return false; }
                     final = publication.FinalSession; identity = publication.PublishedIdentity; binding = owner;
                     prepared = new(this, context, frame, identity, owner, final, LegacyActionState.RequireCurrent(final.Character));
+                    if (dragonhowl is not null && !PrepareDragonhowlCpsPublication(dragonhowl, expected, final, prepared)) return false;
                     publication.ArmFinalProof();
-                    if (!publication.ConsumeBeforeWriterPlain() || !proof.IsCurrentPlain() || !frame.IsActionLifecycleCurrent(this, context)) return false;
+                    if (!publication.ConsumeBeforeWriterPlain() || !proof.IsCurrentPlain() || !frame.IsActionLifecycleCurrent(this, context) ||
+                        dragonhowl is not null && !DragonhowlCpsPreparedCurrent(dragonhowl, expected, final, prepared)) return false;
                     bool saved; bool uncertain; string reason;
                     try { saved = CharacterSnapshotFileCoordinator.TryReplaceCapturedImage(path, before, after, out uncertain, out reason); }
                     catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or System.Security.SecurityException)
@@ -106,8 +124,11 @@ public sealed partial class WorldSessionStore
                     {
                         if (!CharacterSnapshotFileBaseline.TryReadBytes(path, "monsterRandomCpsCommitted", out var savedImage, out _) ||
                             !savedImage.AsSpan().SequenceEqual(after) || !publication.IsCurrentPlain() || !proof.IsCurrentPlain() ||
-                            !frame.IsActionLifecycleCurrent(this, context)) throw new InvalidOperationException("monsterDeathCpsCommittedOwnerChanged");
+                            !frame.IsActionLifecycleCurrent(this, context) ||
+                            dragonhowl is not null && !DragonhowlCpsPreparedCurrent(dragonhowl, expected, final, prepared))
+                            throw new InvalidOperationException("monsterDeathCpsCommittedOwnerChanged");
                         publication.PublishNative(); publication.PublishHolder(); prepared.ConfirmCommitted();
+                        if (dragonhowl is not null) ConfirmDragonhowlCpsPublication(dragonhowl, expected, final, prepared);
                     }
                     catch (Exception error) { FenceAttributeOutcome(holder, owner, error); throw; }
                     return true;

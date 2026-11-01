@@ -11,10 +11,22 @@ public static partial class WorldPacketHandlers
         LegacyMagicRuntimeSpell spell,
         WorldDataCatalog? worldData,
         LegacyPlayerPlayerPhysicalSpellDamageResult damageResult,
-        LegacyPlayerPlayerPhysicalBreakthroughState breakthroughState)
+        LegacyPlayerPlayerPhysicalBreakthroughState breakthroughState) =>
+        FinishLegacyCombatGearTriple17490PlayerDamageCore(attacker, target, spell, worldData, damageResult, breakthroughState, null);
+
+    private static LegacyPlayerPlayerPhysicalSpellDamageResult FinishLegacyCombatGearTriple17490PlayerDamage(
+        WorldSession attacker, WorldSession target, LegacyMagicRuntimeSpell spell, WorldDataCatalog? worldData,
+        LegacyPlayerPlayerPhysicalSpellDamageResult damageResult, LegacyPlayerPlayerPhysicalBreakthroughState breakthroughState,
+        DragonhowlReceiveCalculationData calculation) =>
+        FinishLegacyCombatGearTriple17490PlayerDamageCore(attacker, target, spell, worldData, damageResult, breakthroughState, calculation);
+
+    private static LegacyPlayerPlayerPhysicalSpellDamageResult FinishLegacyCombatGearTriple17490PlayerDamageCore(
+        WorldSession attacker, WorldSession target, LegacyMagicRuntimeSpell spell, WorldDataCatalog? worldData,
+        LegacyPlayerPlayerPhysicalSpellDamageResult damageResult, LegacyPlayerPlayerPhysicalBreakthroughState breakthroughState,
+        DragonhowlReceiveCalculationData? calculation)
     {
-        var attackerFields = CalculateLegacyRuntimeStatusFields(attacker, worldData);
-        var targetFields = CalculateLegacyRuntimeStatusFields(target, worldData);
+        var attackerFields = calculation?.ReadActorFields(attacker, worldData) ?? CalculateLegacyRuntimeStatusFields(attacker, worldData);
+        var targetFields = calculation?.ReadTargetFields(target, worldData) ?? CalculateLegacyRuntimeStatusFields(target, worldData);
         var damage = damageResult.Damage;
         var effect = damageResult.Effect;
         var tortoise = ResolveLegacyPlayerPlayerTargetTortoiseDamagePercent(target, targetFields);

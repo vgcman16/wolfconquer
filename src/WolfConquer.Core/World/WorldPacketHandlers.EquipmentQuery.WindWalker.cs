@@ -47,7 +47,7 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
-        private static bool HasEffectiveFans(IReadOnlyList<PlayerItemSnapshotItem> selected) =>
+        internal static bool HasEffectiveFans(IReadOnlyList<PlayerItemSnapshotItem> selected) =>
             selected.Any(row => row.Durability != 0 && row.Position % 50 == 4 && row.ItemId is >= 626_003 and <= 626_439) &&
             selected.Any(row => row.Durability != 0 && row.Position % 50 == 5 && row.ItemId is >= 626_003 and <= 626_439);
     }

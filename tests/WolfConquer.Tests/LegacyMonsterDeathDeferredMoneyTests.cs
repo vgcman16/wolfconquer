@@ -101,49 +101,36 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
     }
 
     [Fact]
-    public async Task ActualDropBodyRetriesRemainingPilesFromClearedOriginAfterFailedPlacement()
+    public async Task ActualDropBodyKeepsFailedMoneyRetriesAtTheirLastValidOrigin()
     {
+        // The only walkable cell is unrelated to the real origin(10,10).
+        // Retrying four piles must never teleport their search to(0,0).
         using var fixture = new Fixture(49, [6_000, 50_000],
             ground: static (x, y) => x == 1 && y == 1);
-        int cellReadsAtDemand = 0;
-        fixture.Attributes.BeforeMoneyRead = call =>
-        {
-            Assert.Equal(1, call);
-            Assert.True(fixture.Cells.Reads > 1);
-            cellReadsAtDemand = fixture.Cells.Reads;
-            Assert.Empty(fixture.Floor.SnapshotVisible(DateTimeOffset.UtcNow));
-            Assert.Empty(FloorPackets(fixture));
-        };
 
         await InvokeActualDropBodyAsync(fixture);
 
-        Assert.Equal(1, fixture.Attributes.MoneyReads);
-        AssertMoneyPiles(fixture, [6_000], [1_091_000u]);
-        var packet = Assert.Single(FloorPackets(fixture));
-        Assert.Equal((ushort)1, packet.X);
-        Assert.Equal((ushort)1, packet.Y);
-        Assert.True(fixture.Cells.Reads > cellReadsAtDemand);
-        Assert.Contains("kind=Money amount=6000 count=1", fixture.Log.ToString());
+        Assert.True(fixture.Cells.Reads > 0);
+        Assert.Equal(0, fixture.Attributes.MoneyReads);
+        Assert.Empty(FloorPackets(fixture));
+        Assert.Empty(fixture.Floor.SnapshotVisible(DateTimeOffset.UtcNow));
+        Assert.DoesNotContain("sent legacy monster death drop", fixture.Log.ToString());
     }
 
     [Fact]
-    public async Task ActualMoneyRetryRejectsZeroEdgesEvenWhenTerrainMarksThoseCellsWalkable()
+    public async Task ActualMoneyRetriesRejectZeroEdgesAroundTheirGenuineOriginalLocation()
     {
+        // Keep the zero-edge control reachable without a failed-origin reset.
+        // This actual registered monster starts at(1,1); only x0/y0 are walkable.
         using var fixture = new Fixture(49, [6_000, 50_000],
-            ground: static (x, y) => x <= 1 && y <= 1);
+            ground: static (x, y) => x == 0 || y == 0, monsterX: 1, monsterY: 1);
 
         await InvokeActualDropBodyAsync(fixture);
 
-        Assert.Equal(1, fixture.Attributes.MoneyReads);
-        AssertMoneyPiles(fixture, [6_000], [1_091_000u]);
-        var packet = Assert.Single(FloorPackets(fixture));
-        Assert.Equal((ushort)1, packet.X);
-        Assert.Equal((ushort)1, packet.Y);
-        Assert.All(fixture.Floor.SnapshotVisible(DateTimeOffset.UtcNow), entry =>
-        {
-            Assert.True(entry.Packet.X > 0);
-            Assert.True(entry.Packet.Y > 0);
-        });
+        Assert.True(fixture.Cells.Reads > 0);
+        Assert.Equal(0, fixture.Attributes.MoneyReads);
+        Assert.Empty(FloorPackets(fixture));
+        Assert.Empty(fixture.Floor.SnapshotVisible(DateTimeOffset.UtcNow));
     }
 
     [Fact]
@@ -374,7 +361,8 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
 
         internal Fixture(int roll, uint[] amounts, Func<int, int, bool>? ground = null,
             FloorItemRuntimeStateStore? floor = null, int mapId = 1002, bool worldDataLoaded = true,
-            uint monsterDynamicId = 0, uint killerDynamicId = 0, bool? deityLandRandomDrop = null)
+            uint monsterDynamicId = 0, uint killerDynamicId = 0, bool? deityLandRandomDrop = null,
+            ushort monsterX = 10, ushort monsterY = 10)
         {
             Attributes = new MoneyAttributes(roll, amounts, killerDynamicId, deityLandRandomDrop);
             Cells = new CountingCells(ground ?? (static (_, _) => true));
@@ -385,7 +373,7 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
                 ["defense"] = "0", ["defence"] = "0", ["defense2"] = "10000",
                 ["attack_range"] = "1", ["drop_hp"] = "1001000"
             }, []);
-            Monster = new LegacyMonsterInstance(450_000, mapId, 10, 10, 100, 1, 5_000, 5_000,
+            Monster = new LegacyMonsterInstance(450_000, mapId, monsterX, monsterY, 100, 1, 5_000, 5_000,
                 9_901, "DeferredMoneyFixture", false, 1, 0, DynamicId: monsterDynamicId);
             Monsters.RegisterDynamicMonster(Monster, Family);
             Session = new WorldSession(1, "deferred-money", new CharacterSnapshot(

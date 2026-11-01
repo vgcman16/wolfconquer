@@ -4,9 +4,53 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Offline reward corrections - 2026-11-01
+
+### FSB-294: Keep failed money retries at the last valid location
+
+Bounded offline correction qualified; full integration OPEN. Generic
+WorldPacketHandlers.MonsterDeath.Drops and owned
+WorldSessionStore.OwnedDragonhowl.MonsterDrops copied the emulator's failed
+placement reset to(0,0), allowing later piles near unrelated(1,1). Both now
+retain the last valid origin; successful advance, nonmoney stop, special drops,
+amount deferral, UID ownership and output fences remain. Three old tests that
+required the bad reset now enforce safe behavior. Actual owned controls use9
+local visible entries and free(1,1), valid terrain, plus4096 genuine pinned
+pickups. D13 death2135 and17650 range4 endpoint14,10 are corrected independent
+fixture goldens; no production packet/damage change. Build35:0errors/170warnings,
+1m07.54s. Focused36: all16 owned-floor and45 generic deferred-money cases Passed;
+combined209 is197Passed/12Failed/0skipped. Full Windows, SQL/crash/outbox/live
+remain OPEN. See visible-dx8-d13-money-drop-retry-origin spec.
+
+### FSB-295: Reject invalid selected Dragonhowl team-XP rate overrides
+
+Bounded proc correction qualified; generic XP reader OPEN.
+LegacyExperienceGainPolicy.TryReadDoubleAttribute skips malformed/nonfinite
+selected saved rates, falling through to lower sources/defaults. The proc's
+captured recipient view now validates its first present supported rate/cap/
+double-rate before calculation. Invalid/nonfinite/negative selected inputs refuse
+before cost/kill/reward; valid precedence, absent defaults, unused lower fields
+and ineligible rows retain existing reads. No writer authority is granted.
+Focused36 has all52 OutsideRoster cases Passed, including42 selected-rate/
+admission controls and10 prior roster cases. The overall run still has12 failures;
+this is not generic-policy, full-game, transaction or live-client completion.
+
 ## Open joint hit and proficiency durability correction - 2026-11-01
 
 ### FSB-268: Commit target damage and actor weapon progression in one recoverable intent
+
+Current overlay integration remains OPEN: final-clear validation compared a
+legitimately copied PaidNobility dictionary by reference. It now retains exact
+scalar checks and verifies both maps' comparer/content/currentness with the real
+query/clear/file/holder receipts. All23 earned-XP continuation cases pass27/36.
+Equipment DATA capture now uses a supported detached spell-row array, retaining
+existing raw row witnesses, instead of the incompatible private Performer wrapper.
+Build35 passes; remaining multi-kill/death/FineRain failures prohibit a full claim.
+Intermediate perfection inputs now accept only this proc's privately registered
+actual completed award/query, without demanding the final planned level early.
+Build39 passes;40 is14Passed/6Failed/0skipped over20, with multi-kill state/query/
+death assertions reaching the remaining animation-golden mismatch. Qualification
+and independent formula/FineRain audit remain OPEN.
 
 Focused real handler proficiency-origin repair - 2026-11-01:
 the actual bound helper now prepares its existing DATA/native graph and exact

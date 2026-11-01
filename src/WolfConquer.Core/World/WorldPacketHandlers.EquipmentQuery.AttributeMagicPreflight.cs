@@ -8,6 +8,15 @@ public static partial class WorldPacketHandlers
         IReadOnlyList<PlayerItemSnapshotItem> equipment) => PreflightAttributeMagicCore(context, source, equipment, context.WorldData);
 
     private static void PreflightAttributeMagicCore(WorldPacketHandlerContext? context, WorldSession source,
+        IReadOnlyList<PlayerItemSnapshotItem> equipment, WorldDataCatalog? data) =>
+        _ = ProjectEquipmentQueryMagicData(context, source, equipment, data);
+
+    private sealed record EquipmentQueryMagicData(LegacyNativeMagicQueryFields Fields,
+        LegacyNativeMagicQueryFields JiangHu, uint Mana, uint Prestige);
+
+    // The same checked phase arithmetic supplies preflight and future-receive
+    // DATA. It creates no native cache, query epoch or publication authority.
+    private static EquipmentQueryMagicData ProjectEquipmentQueryMagicData(WorldPacketHandlerContext? context, WorldSession source,
         IReadOnlyList<PlayerItemSnapshotItem> equipment, WorldDataCatalog? data)
     {
         var fields = LegacyEquipmentMagicArithmetic.Start(source.Character.Spirit);
@@ -52,6 +61,6 @@ public static partial class WorldPacketHandlers
             fields = LegacyEquipmentMagicArithmetic.Add(fields, new(13_000, 0, 0, 0));
         // These are arithmetic checks only. The later private query still owns
         // native publication, metadata currentness and every successful output.
-        _ = fields; _ = mana;
+        return new(fields, jiangHu, mana, prestige);
     }
 }

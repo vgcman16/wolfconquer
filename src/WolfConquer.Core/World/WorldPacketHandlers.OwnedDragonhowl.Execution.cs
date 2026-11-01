@@ -21,7 +21,8 @@ public static partial class WorldPacketHandlers
                     if (!Store.TryCommitDragonhowlPhase(this, index, out var published) || published is null)
                         throw new InvalidOperationException("ownedDragonhowlPreparedPhaseRefused:" + Store.DescribeDragonhowlPhaseFailure(this, index));
                     var phase = Phases[index];
-                    if (phase.Death is not null && !await Store.PublishDragonhowlDeathAsync(this, index, cancellationToken).ConfigureAwait(false))
+                    if ((phase.Death is not null || phase.FutureDeath is not null) &&
+                        !await Store.PublishDragonhowlDeathAsync(this, index, cancellationToken).ConfigureAwait(false))
                         throw new InvalidOperationException("ownedDragonhowlDeathOutputOwnerChanged");
                     if (phase.NonPlayer is { } nonPlayer)
                     {
@@ -31,6 +32,11 @@ public static partial class WorldPacketHandlers
                                 ? await Store.PublishDragonhowlSobEventAsync(this, nonPlayer, cancellationToken).ConfigureAwait(false)
                                 : phase.SobOutput is { } sob && await sob.PublishAsync(this, nonPlayer, cancellationToken).ConfigureAwait(false);
                         if (!complete) throw new InvalidOperationException("ownedDragonhowlNonPlayerOutputOwnerChanged");
+                        if (phase.MonsterRewards is { } rewards &&
+                            (!await rewards.PublishAsync(this, cancellationToken).ConfigureAwait(false) ||
+                             phase.TeamExperience is not { } team ||
+                             !await PublishDragonhowlTeamExperienceAsync(this, team, cancellationToken).ConfigureAwait(false)))
+                            throw new InvalidOperationException("ownedDragonhowlMonsterRewardContinuationChanged");
                     }
                     foreach (var frame in phase.Frames)
                         await SendPhaseAsync(phase.Connection, published, phase.Audience, frame, cancellationToken).ConfigureAwait(false);
@@ -54,7 +60,16 @@ public static partial class WorldPacketHandlers
                 return true;
             }
             catch (Exception error) { Store.ThrowDragonhowlFailure(this, error); throw; }
-            finally { Store.EndDragonhowl(this); }
+            finally
+            {
+                Store.EndDragonhowl(this);
+                DisposePreparedRewards();
+            }
+        }
+
+        internal void DisposePreparedRewards()
+        {
+            foreach (var phase in Phases) phase.MonsterRewards?.Dispose();
         }
 
         private async ValueTask SendPhaseAsync(ConquerTcpConnection connection, WorldSession source,

@@ -22,7 +22,21 @@ public static partial class WorldPacketHandlers
             LegacyMagicRuntimeSpell spell,
             WorldDataCatalog? worldData,
             LegacyPlayerPlayerPhysicalSpellDamageResult damageResult,
-            bool applyPenetrationCompensation = true)
+            bool applyPenetrationCompensation = true) =>
+        ApplyLegacyPlayerPlayerPhysicalSpellBreakthroughDataCore(attacker, target, spell, worldData,
+            damageResult, null, applyPenetrationCompensation);
+
+    private static LegacyPlayerPlayerPhysicalBreakthroughResult ApplyLegacyPlayerPlayerPhysicalSpellBreakthroughBranch(
+        WorldSession attacker, WorldSession target, LegacyMagicRuntimeSpell spell, WorldDataCatalog? worldData,
+        LegacyPlayerPlayerPhysicalSpellDamageResult damageResult, DragonhowlReceiveCalculationData calculation,
+        bool applyPenetrationCompensation = true) =>
+        ApplyLegacyPlayerPlayerPhysicalSpellBreakthroughDataCore(attacker, target, spell, worldData,
+            damageResult, calculation, applyPenetrationCompensation);
+
+    private static LegacyPlayerPlayerPhysicalBreakthroughResult ApplyLegacyPlayerPlayerPhysicalSpellBreakthroughDataCore(
+        WorldSession attacker, WorldSession target, LegacyMagicRuntimeSpell spell, WorldDataCatalog? worldData,
+        LegacyPlayerPlayerPhysicalSpellDamageResult damageResult, DragonhowlReceiveCalculationData? calculation,
+        bool applyPenetrationCompensation)
     {
         if (worldData is null)
         {
@@ -32,8 +46,8 @@ public static partial class WorldPacketHandlers
         }
 
         var state = new LegacyPlayerPlayerPhysicalBreakthroughState(IsModeled: true, Penetrated: false);
-        var attackerFields = CalculateLegacyRuntimeStatusFields(attacker, worldData);
-        var targetFields = CalculateLegacyRuntimeStatusFields(target, worldData);
+        var attackerFields = calculation?.ReadActorFields(attacker, worldData) ?? CalculateLegacyRuntimeStatusFields(attacker, worldData);
+        var targetFields = calculation?.ReadTargetFields(target, worldData) ?? CalculateLegacyRuntimeStatusFields(target, worldData);
         var priorPhysicalEffectMask =
             MsgAttackEffect.CriticalStrike |
             MsgAttackEffect.LuckyStrike |

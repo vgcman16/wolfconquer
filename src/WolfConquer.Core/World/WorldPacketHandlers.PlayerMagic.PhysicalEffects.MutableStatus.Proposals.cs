@@ -11,9 +11,19 @@ public static partial class WorldPacketHandlers
         WorldSession ActorAfter, WorldSession TargetAfter, bool EnteredCriticalBlock, bool PublishesFrontBreak);
 
     internal static DragonhowlMutableStatusProposal PrepareDragonhowlMutableStatus(
-        WorldPacketHandlerContext context, WorldSession actor, WorldSession target, WorldDataCatalog catalog)
+        WorldPacketHandlerContext context, WorldSession actor, WorldSession target, WorldDataCatalog catalog) =>
+        PrepareDragonhowlMutableStatusCore(context, actor, target, catalog, null);
+
+    internal static DragonhowlMutableStatusProposal PrepareDragonhowlMutableStatus(
+        WorldPacketHandlerContext context, WorldSession actor, WorldSession target, WorldDataCatalog catalog,
+        DragonhowlReceiveCalculationData calculation) =>
+        PrepareDragonhowlMutableStatusCore(context, actor, target, catalog, calculation);
+
+    private static DragonhowlMutableStatusProposal PrepareDragonhowlMutableStatusCore(
+        WorldPacketHandlerContext context, WorldSession actor, WorldSession target, WorldDataCatalog catalog,
+        DragonhowlReceiveCalculationData? calculation)
     {
-        var fields = CalculateLegacyRuntimeStatusFields(actor, catalog);
+        var fields = calculation?.ReadActorFields(actor, catalog) ?? CalculateLegacyRuntimeStatusFields(actor, catalog);
         if (fields[LegacyPlayerStatusPacket.CriticalStrikeIndex] == 0)
             return new(actor, target, actor, target, false, false);
         var afterActor = actor;
@@ -42,7 +52,7 @@ public static partial class WorldPacketHandlers
                 ReadLegacyPhysicalEffectRoll(target.Character, RuntimeLegacyPhysicalImpregnabilityRollAttribute)))
         {
             uint percent = impreg switch { 1 => 30, 2 => 32, 3 => 34, 4 => 36, 5 => 38, 6 => 40, 7 => 42, 8 => 45, 9 => 50, _ => 0 };
-            var targetFields = CalculateLegacyRuntimeStatusFields(target, catalog);
+            var targetFields = calculation?.ReadTargetFields(target, catalog) ?? CalculateLegacyRuntimeStatusFields(target, catalog);
             afterTarget = target with { PhysicalStatusOverlay = LegacyPhysicalStatusOverlay.ForOwner(target) with
             {
                 Counteraction = AddLegacyPhysicalMutableStatusPercent(

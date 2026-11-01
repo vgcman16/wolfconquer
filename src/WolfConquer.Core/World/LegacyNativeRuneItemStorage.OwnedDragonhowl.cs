@@ -12,12 +12,15 @@ internal sealed partial class LegacyNativeRuneItemStorage
             if (IsCurrentPlain()) return true;
             if (!binding.Store.TryReadDragonhowlWornSuccessor(purpose, binding, this, expected, out var current) ||
                 !OwnerIsCurrentPlain(storage, binding, current) || InvertedStorageOrder(binding.Items)) return false;
+            bool completedQuery = binding.Store.IsDragonhowlWornQuerySuccessor(purpose, binding, this, expected, current);
             var graph = binding.Items;
             lock (graph.Warehouse)
             lock (storage.StorageSyncRoot)
             lock (graph.Relic.SyncRoot)
             lock (graph.Gear.SyncRoot)
-                return CurrentUnderStorageGates(current);
+                return CurrentUnderStorageGates(current) || completedQuery &&
+                    OwnerIsCurrentPlain(storage, binding, current) && binding.Items.IsCurrentPlain() &&
+                    PlainStorage(storage) && storage.IsCurrent(context);
         }
     }
 }

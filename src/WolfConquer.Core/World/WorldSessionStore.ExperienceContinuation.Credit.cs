@@ -28,6 +28,8 @@ public sealed partial class WorldSessionStore
         object identity = null!; LegacyOrdinarySpellBinding binding = null!; ActionPublication published = null!;
         lock (frame.RequireActionLifecycleGate(this))
         {
+            if (!WorldPacketHandlers.TryEnterDragonhowlExperienceWriter(this, purpose, context, expected, out var procScope)) return false;
+            using var proc = procScope;
             using var package = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, expected);
             if (!_connectionGates.TryGetValue(recipient, out var gate)) return false;
             lock (gate)
@@ -129,6 +131,8 @@ public sealed partial class WorldSessionStore
                         identity = holder.NativeClientIdentity; binding = owner; final = proposed; savedState = credit;
                         holder.PublishPrepared(final, identity); published.ConfirmCommitted();
                         BeginCommittedContinuationRetirement(targetContext, owner, final, after);
+                        WorldPacketHandlers.ConfirmDragonhowlExperiencePublication(this, purpose, expected, final, published,
+                            continuationCredit: true);
                     }
                     catch (Exception error) { FenceContinuationOutcome(holder, owner, error); throw; }
                     return true;

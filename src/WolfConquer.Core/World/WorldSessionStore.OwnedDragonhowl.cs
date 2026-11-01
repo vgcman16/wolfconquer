@@ -24,6 +24,10 @@ public sealed partial class WorldSessionStore
         internal WorldPacketHandlers.OwnedDragonhowlPreparation? Plan;
         internal WorldServerFrameHandler.OwnedDragonhowlAttempt? Attempt;
         internal readonly Dictionary<int, PreparedDragonhowlDeath> Deaths = new();
+        internal readonly Dictionary<ConquerTcpConnection, DragonhowlExperienceAwardState> CompletedExperience = new();
+        internal readonly Dictionary<ConquerTcpConnection, DragonhowlExperienceAwardState> CompletedAwards = new();
+        internal readonly Dictionary<ConquerTcpConnection, DragonhowlExperienceAwardState> PlannedAwards = new();
+        internal readonly Dictionary<ConquerTcpConnection, DragonhowlScalarQueryOrigin> ScalarQueries = new();
         internal int NextPhase;
         internal string CommitStage = "notStarted";
         internal bool Started, Committed, Completed, Failed;
@@ -64,12 +68,13 @@ public sealed partial class WorldSessionStore
             var owner = new OwnedDragonhowlOwner();
             var state = new DragonhowlOwnerState(frame, actual, packet, primary, initialTarget.Player, request, participants);
             dragonhowlOwners.Add(owner, state);
+            WorldPacketHandlers.OwnedDragonhowlPreparation? plan = null;
             try
             {
                 using var permission = TeamSessionStateStore.OwnedDragonhowlPermission.Prepare(
                     actual.TeamStates ?? throw InvalidSpellPublication(), this, owner);
                 if (!WorldPacketHandlers.TryPrepareOwnedDragonhowlActual(this, owner, actual, packet, initialTarget.Player,
-                        selection, participants, out var plan, out reason) || plan is null)
+                        selection, participants, out plan, out reason) || plan is null)
                 { if (string.IsNullOrEmpty(reason)) reason = "ownedDragonhowlPlanUnavailable"; return false; }
                 if (!frame.OwnedDragonhowlSavedGearCurrent(request))
                 { reason = "ownedDragonhowlSavedGearChanged"; return false; }
@@ -82,9 +87,25 @@ public sealed partial class WorldSessionStore
                 for (int phaseIndex = 0; phaseIndex < plan.Phases.Count; phaseIndex++)
                 {
                     var phase = plan.Phases[phaseIndex];
+                    if (phase.FutureAward is { } futureAward)
+                    {
+                        if (!futureAward.IsPreparedPhase(phase)) return false;
+                        continue;
+                    }
+                    if (phase.FutureDeath is { } futureDeath)
+                    {
+                        // Exact future recipe/images are DATA here. A live
+                        // death writer cannot exist until this proc's actual
+                        // completed-XP successor reaches this phase.
+                        if (!futureDeath.IsPreparedPhase(phase)) return false;
+                        continue;
+                    }
                     if (phase.NonPlayer is not null)
                     {
                         if (!phase.NonPlayer.InputsAreCurrentPlain()) return false;
+                        if (phase.MonsterRewards is { } rewards &&
+                            (!rewards.IsPreparedCurrent() || phase.TeamExperience is not { } team ||
+                             !IsPreparedDragonhowlTeamExperienceCurrent(team))) return false;
                         if (phase.SobEvent is null) continue;
                         if (!phase.SobEvent.IsPreparedFor(phase.NonPlayer) || !phase.SobEvent.IsCurrentPlain()) return false;
                     }
@@ -108,7 +129,7 @@ public sealed partial class WorldSessionStore
                 permission.Dispose();
                 foreach (var connection in state.Current.Keys.ToArray())
                     if (!ReferenceEquals(connection, actual.Connection) && !ReferenceEquals(connection, initialTarget.Player?.Connection) &&
-                        !plan.TryGetFinalProjection(connection, out _))
+                        !plan.TryGetFinalProjection(connection, out _) && !plan.UsesRewardParticipant(connection))
                     { state.Current.Remove(connection); state.Bindings.Remove(connection); }
                 state.Plan = plan;
                 prepared = plan; reason = string.Empty;
@@ -116,7 +137,12 @@ public sealed partial class WorldSessionStore
             }
             catch (Exception error) when (error is InvalidDataException or InvalidOperationException or ArgumentException or
                 IOException or UnauthorizedAccessException or OverflowException or FormatException)
-            { reason = "ownedDragonhowlPreflight:" + error.GetType().Name; return false; }
+            {
+                var trace = string.Join(" | ", (error.StackTrace ?? string.Empty).Split('\n').Take(3)).Replace("\r", string.Empty);
+                reason = "ownedDragonhowlPreflight:" + error.GetType().Name + ":" + error.Message + " [" + trace + "]";
+                return false;
+            }
+            finally { if (prepared is null) plan?.DisposePreparedRewards(); }
         }
     }
 

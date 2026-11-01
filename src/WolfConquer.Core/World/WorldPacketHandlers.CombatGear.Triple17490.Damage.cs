@@ -9,10 +9,20 @@ public static partial class WorldPacketHandlers
         WorldSession attacker,
         WorldSession target,
         LegacyMagicRuntimeSpell spell,
-        WorldDataCatalog? worldData)
+        WorldDataCatalog? worldData) =>
+        CalculateLegacyCombatGearTriple17490PlayerDamageCore(attacker, target, spell, worldData, null);
+
+    private static LegacyPlayerPlayerPhysicalSpellDamageResult CalculateLegacyCombatGearTriple17490PlayerDamage(
+        WorldSession attacker, WorldSession target, LegacyMagicRuntimeSpell spell, WorldDataCatalog? worldData,
+        DragonhowlReceiveCalculationData calculation) =>
+        CalculateLegacyCombatGearTriple17490PlayerDamageCore(attacker, target, spell, worldData, calculation);
+
+    private static LegacyPlayerPlayerPhysicalSpellDamageResult CalculateLegacyCombatGearTriple17490PlayerDamageCore(
+        WorldSession attacker, WorldSession target, LegacyMagicRuntimeSpell spell, WorldDataCatalog? worldData,
+        DragonhowlReceiveCalculationData? calculation)
     {
-        var attackerFields = CalculateLegacyRuntimeStatusFields(attacker, worldData);
-        var targetFields = CalculateLegacyRuntimeStatusFields(target, worldData);
+        var attackerFields = calculation?.ReadActorFields(attacker, worldData) ?? CalculateLegacyRuntimeStatusFields(attacker, worldData);
+        var targetFields = calculation?.ReadTargetFields(target, worldData) ?? CalculateLegacyRuntimeStatusFields(target, worldData);
         var damage = GetLegacyDeterministicAttack(
             attackerFields[LegacyPlayerStatusPacket.MaxAttackIndex],
             attackerFields[LegacyPlayerStatusPacket.MinAttackIndex]);

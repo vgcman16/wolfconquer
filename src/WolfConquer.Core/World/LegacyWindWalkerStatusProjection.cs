@@ -39,7 +39,12 @@ internal static class LegacyWindWalkerStatusProjection
     }
 
     internal static CharacterSnapshot Apply(CharacterSnapshot character,
-        LegacyNativeStatusFlagsBigVector32.WindWalkerSnapshot native)
+        LegacyNativeStatusFlagsBigVector32.WindWalkerSnapshot native) =>
+        Apply(character, native.Present, native.RemoveOnDeath);
+
+    // DATA projection only; desired flags cannot create or consume a native
+    // prepared change. The real publication overload supplies its captured row.
+    internal static CharacterSnapshot Apply(CharacterSnapshot character, bool desired, bool removeOnDeath)
     {
         var words = Read(character);
         bool present = (words[Word] & Mask) != 0;
@@ -47,18 +52,18 @@ internal static class LegacyWindWalkerStatusProjection
         var proof = LegacyNativeAttributeMapProof.CaptureRaw(character.Attributes);
         var policyKeys = proof.Fields.Keys.Where(name => name.Equals(key, StringComparison.OrdinalIgnoreCase)).ToArray();
         if (policyKeys.Length > 1) throw Invalid();
-        bool policyMatches = native.Present
-            ? policyKeys.Length == 1 && proof.Fields[policyKeys[0]] == (native.RemoveOnDeath ? "true" : "false")
+        bool policyMatches = desired
+            ? policyKeys.Length == 1 && proof.Fields[policyKeys[0]] == (removeOnDeath ? "true" : "false")
             : policyKeys.Length == 0;
         if (!proof.IsCurrentPlain()) throw Invalid();
-        if (present == native.Present && policyMatches) return character;
-        words[Word] = native.Present ? words[Word] | Mask : words[Word] & ~Mask;
+        if (present == desired && policyMatches) return character;
+        words[Word] = desired ? words[Word] | Mask : words[Word] & ~Mask;
         var attributes = new Dictionary<string, string>(proof.Fields, proof.CapturedComparer);
         var aliases = attributes.Keys.Where(name => name.Equals("StatusFlags", StringComparison.OrdinalIgnoreCase) ||
             name.Equals("BitVector", StringComparison.OrdinalIgnoreCase)).ToArray();
         if (aliases.Length == 0) aliases = ["StatusFlags"];
         foreach (var alias in aliases) attributes[alias] = string.Join('/', words) + "/";
-        if (native.Present) attributes[policyKeys.Length == 0 ? key : policyKeys[0]] = native.RemoveOnDeath ? "true" : "false";
+        if (desired) attributes[policyKeys.Length == 0 ? key : policyKeys[0]] = removeOnDeath ? "true" : "false";
         else if (policyKeys.Length != 0) attributes.Remove(policyKeys[0]);
         if (!proof.IsCurrentPlain()) throw Invalid();
         return character with { Attributes = attributes };

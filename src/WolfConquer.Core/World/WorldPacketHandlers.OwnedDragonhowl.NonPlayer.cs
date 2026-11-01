@@ -11,7 +11,9 @@ public static partial class WorldPacketHandlers
     private static bool PrepareDragonhowlMonsterPhases(WorldSessionStore store, WorldSessionStore.OwnedDragonhowlOwner owner,
         WorldPacketHandlerContext context, LegacyMagicRuntimeSpell spell, DragonhowlGeometry geometry,
         LegacyOwnedPhysicalMetadataWitness metadata, ref WorldSession source, List<DragonhowlPhase> phases,
-        Dictionary<ConquerTcpConnection, WorldSession> finals, List<LegacySpellAnimationTarget> animation, out string reason)
+        Dictionary<ConquerTcpConnection, WorldSession> finals, List<LegacySpellAnimationTarget> animation,
+        Dictionary<ConquerTcpConnection, WorldSession> calculated,
+        Dictionary<ConquerTcpConnection, DragonhowlLevelExperienceData> recipientData, out string reason)
     {
         reason = string.Empty;
         var selected = new HashSet<uint>();
@@ -34,16 +36,17 @@ public static partial class WorldPacketHandlers
             damage = ApplyLegacySobNpcReceiveDamageModifiers(source, damage);
             AppendDragonhowlSource(context, ref source, source with { Character = WithCharacterAttribute(source.Character,
                 RuntimeLegacyAttackHitAttribute, "true") }, DragonhowlAudience.Owner, [], phases, finals);
-            // The death/drop/mail/team-XP owners must be prepared as an ordered
-            // continuation, not invoked as a mutating preflight. This explicit
-            // remaining join rejects the whole cast before any prepared phase.
-            if (damage >= monster.Hitpoints)
-            { reason = "ownedDragonhowlUnjoined:monsterDeathRewardContinuation"; return false; }
             var target = store.PrepareDragonhowlMonster(owner, source, monster, candidate.MonsterFamily, damage);
             if (target is null) { reason = "ownedDragonhowlMonsterIncarnationUnavailable"; return false; }
             if (!DragonhowlMonsterOutput.TryPrepare(source, monster, candidate.MonsterFamily, damage, out var output))
             { reason = "ownedDragonhowlMonsterOutputPreparationFailed"; return false; }
-            phases.Add(new(context.Connection, source, source, DragonhowlAudience.Owner, [], nonPlayer: target, monsterOutput: output));
+            calculated[context.Connection] = source;
+            if (output.RequiresDeathContinuation)
+            {
+                if (!AppendDragonhowlMonsterRewardPhase(store, owner, context, target, output, ref source,
+                    phases, finals, calculated, recipientData, out reason)) return false;
+            }
+            else phases.Add(new(context.Connection, source, source, DragonhowlAudience.Owner, [], nonPlayer: target, monsterOutput: output));
             animation.Add(new(monster.Uid, damage, true, MsgAttackEffect.None));
         }
         return true;

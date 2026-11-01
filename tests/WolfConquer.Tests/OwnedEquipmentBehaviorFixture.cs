@@ -90,14 +90,14 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
 
     private static async Task RunActualAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
         LegacyRuntimeUpdateLoopOptions options, Func<OwnedEquipmentBehaviorFixture, Task> exercise,
-        OwnedEquipmentBehaviorInput[] peers, bool useNativeGear = false)
+        OwnedEquipmentBehaviorInput[] peers, bool useNativeGear = false, LegacyGameMapTerrainQuery? terrain = null)
     {
         OwnedEquipmentBehaviorFixture? fixture = null;
         Exception? primary = null;
         try
         {
             fixture = new OwnedEquipmentBehaviorFixture();
-            await fixture.InitializeAsync(actor, catalog, options, peers, useNativeGear);
+            await fixture.InitializeAsync(actor, catalog, options, peers, useNativeGear, terrain);
             await exercise(fixture);
         }
         catch (Exception error) { primary = error; }
@@ -111,7 +111,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     }
 
     private async Task InitializeAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
-        LegacyRuntimeUpdateLoopOptions options, OwnedEquipmentBehaviorInput[] peers, bool useNativeGear)
+        LegacyRuntimeUpdateLoopOptions options, OwnedEquipmentBehaviorInput[] peers, bool useNativeGear, LegacyGameMapTerrainQuery? terrain = null)
     {
         ArgumentNullException.ThrowIfNull(actor); ArgumentNullException.ThrowIfNull(catalog);
         var inputs = new[] { actor }.Concat(peers).ToArray();
@@ -132,7 +132,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
         Assert.True(LegacyOwnedAdmissionRuntime.TryOpen(Data.Loader, Data.Options(), out var runtime, out var reason), reason);
         Runtime = Assert.IsType<LegacyOwnedAdmissionRuntime>(runtime);
         Handler = new WorldServerFrameHandler(Data.Loader, null, catalog, options,
-            Log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime, nativeCombatGear: NativeCombatGear);
+            Log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime, nativeCombatGear: NativeCombatGear, terrain: terrain);
         foreach (var input in inputs)
         {
             var uid = checked((uint)input.Character.Uid);
@@ -197,7 +197,15 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
         if (input.OmitOptionalCharacterScalars)
             OmittedOptionalScalarInput = File.ReadAllBytes(CharacterPath(checked((uint)uid)));
         new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(uid, input.Items);
-        new PlayerSpellSnapshotLoader(Data.Spells).SaveByCharacterUid(uid, input.Spells ?? PlayerSpellSnapshot.Empty);
+        if (input.OmitSpellsFile)
+        {
+            // Declared saved DATA before Bootstrap/admission. Never delete or
+            // replace a bound owner's file to manufacture a missing baseline.
+            if (input.Spells is { Spells.Count: > 0 })
+                throw new ArgumentException("Missing Spells input cannot contain learned rows.", nameof(input));
+            Assert.False(File.Exists(Path.Combine(Data.Spells, uid.ToString(CultureInfo.InvariantCulture) + ".bin")));
+        }
+        else new PlayerSpellSnapshotLoader(Data.Spells).SaveByCharacterUid(uid, input.Spells ?? PlayerSpellSnapshot.Empty);
         new PlayerProficiencySnapshotLoader(Data.Proficiencies).SaveByCharacterUid(uid, input.Proficiencies ?? PlayerProficiencySnapshot.Empty);
         new PlayerQuestSnapshotLoader(Data.Quests).SaveByCharacterUid(uid, input.Character.PlayerQuests);
         new CombatGearSnapshotLoader(Data.CombatGear).SaveByCharacterUid(uid, input.CombatGear ?? CombatGearSnapshot.Empty);

@@ -99,7 +99,7 @@ public static partial class WorldPacketHandlers
         }
     }
 
-    internal sealed class CompletedContinuationQuery
+    internal sealed partial class CompletedContinuationQuery
     {
         private readonly PreparedLevelUpRebuild owner;
         private int restoredOutputStarted;

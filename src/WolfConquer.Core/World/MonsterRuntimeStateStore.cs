@@ -1146,46 +1146,15 @@ public sealed partial class MonsterRuntimeStateStore
 
     private sealed class LegacyMonsterItemGeneratorState
     {
-        private int _refinedCount;
-        private int _uniqueCount;
-        private int _eliteCount;
-        private int _superCount;
+        internal LegacyMonsterQualityCounters Counters;
+        internal long Version;
 
         public byte GenerateQuality()
         {
-            if (AdvanceRateWatcher(ref _refinedCount, tick: 10))
-            {
-                return 6;
-            }
-
-            if (AdvanceRateWatcher(ref _uniqueCount, tick: 20))
-            {
-                return 7;
-            }
-
-            if (AdvanceRateWatcher(ref _eliteCount, tick: 25))
-            {
-                return 8;
-            }
-
-            if (AdvanceRateWatcher(ref _superCount, tick: 30))
-            {
-                return 9;
-            }
-
-            return 3;
-        }
-
-        private static bool AdvanceRateWatcher(ref int count, int tick)
-        {
-            count++;
-            if (count != tick)
-            {
-                return false;
-            }
-
-            count = 0;
-            return true;
+            var next = Counters.Advance(out var quality);
+            long version = checked(Version + 1);
+            Counters = next; Version = version;
+            return quality;
         }
     }
 

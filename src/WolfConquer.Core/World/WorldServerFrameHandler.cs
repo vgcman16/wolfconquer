@@ -112,7 +112,8 @@ public sealed partial class WorldServerFrameHandler
         LegacyOwnedAdmissionRuntime? ownedAdmission = null,
         UnknownPacketAndFieldLogger? wireDiagnostics = null,
         LegacyGmPolicy? gmPolicy = null,
-        LegacyNativeCombatGearRuntime? nativeCombatGear = null)
+        LegacyNativeCombatGearRuntime? nativeCombatGear = null,
+        LegacyGameMapTerrainQuery? terrain = null)
         : this(
             snapshotLoader,
             handoffService,
@@ -121,7 +122,7 @@ public sealed partial class WorldServerFrameHandler
             worldData,
             runtimeUpdateLoop,
             log,
-            terrain: null,
+            terrain,
             clientCompatibility,
             worldEntryStartupProbe,
             voteStates: null,

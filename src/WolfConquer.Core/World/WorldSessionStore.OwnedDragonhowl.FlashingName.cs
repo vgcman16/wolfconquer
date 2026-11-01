@@ -12,7 +12,7 @@ public sealed partial class WorldSessionStore
             !ReferenceEquals(binding, state.Bindings[state.Context.Connection]) ||
             !ReferenceEquals(expected, state.Current[binding.Connection])) return false;
         var phase = plan.Phases[index];
-        return ReferenceEquals(phase.Connection, binding.Connection) && phase.Death is null && phase.NonPlayer is null &&
+        return ReferenceEquals(phase.Connection, binding.Connection) && phase.Death is null && phase.FutureDeath is null && phase.NonPlayer is null &&
             phase.Flashing is { } flashing && ReferenceEquals(flashing.Native, native) && flashing.IsCurrentPlain() &&
             ReferenceEquals(proposed.Character, phase.After.Character) &&
             ReferenceEquals(proposed.CanAttackFlashingRegistration, phase.After.CanAttackFlashingRegistration) &&

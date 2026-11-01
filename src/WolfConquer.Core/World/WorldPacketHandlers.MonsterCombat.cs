@@ -787,7 +787,16 @@ public static partial class WorldPacketHandlers
 
     private static uint[] CalculateLegacyRuntimeStatusFields(
         WorldSession session,
-        WorldDataCatalog? worldData)
+        WorldDataCatalog? worldData) => CalculateLegacyStatusFieldsCore(session, worldData, null);
+
+    // Explicit profile DATA avoids reading a current native binding as evidence
+    // for a future calculated session. It grants no publication authority.
+    private static uint[] CalculateLegacyRuntimeStatusFields(WorldSession session,
+        WorldDataCatalog? worldData, ConquerProtocolProfile profile) =>
+        CalculateLegacyStatusFieldsCore(session, worldData, profile);
+
+    private static uint[] CalculateLegacyStatusFieldsCore(WorldSession session,
+        WorldDataCatalog? worldData, ConquerProtocolProfile? profile)
     {
         var uid = CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid));
         var combatGear = session.CombatGear ?? CombatGearSnapshot.Empty;
@@ -802,7 +811,7 @@ public static partial class WorldPacketHandlers
             combatGear,
             alternateEquipmentActive: session.AlternateEquipmentActive,
             playerSpells: session.PlayerSpells,
-            protocolProfile: GetLegacyRuntimeItemProfile(session, worldData));
+            protocolProfile: profile ?? GetLegacyRuntimeItemProfile(session, worldData));
         ApplyLegacyRuntimeStatusFieldOverrides(session.Character, fields);
         var overlay = LegacyPhysicalStatusOverlay.ForOwner(session);
         if (overlay.Breakthrough is { } breakthrough)

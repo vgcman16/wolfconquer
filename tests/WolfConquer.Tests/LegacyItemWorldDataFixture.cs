@@ -24,7 +24,8 @@ internal static class LegacyItemWorldDataFixture
         IReadOnlyList<MagicType>? magic = null,
         IReadOnlyList<LevelExperience>? levelExperience = null,
         IReadOnlyList<MonsterSpawn>? monsterSpawns = null,
-        IReadOnlyList<MagicEffect>? magicEffects = null)
+        IReadOnlyList<MagicEffect>? magicEffects = null,
+        IReadOnlyList<CombatGear>? combatGear = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -111,7 +112,7 @@ internal static class LegacyItemWorldDataFixture
             magicEffects: magicEffects ?? [],
             magicTypeOperations: magicTypeOperations ?? [],
             titleTypes: [],
-            combatGear: [],
+            combatGear: combatGear ?? [],
             traps: [],
             npcs: npcs ?? [],
             sobNpcs: sobNpcs ?? [],

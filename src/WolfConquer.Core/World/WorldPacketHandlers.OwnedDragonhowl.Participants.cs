@@ -13,18 +13,24 @@ public static partial class WorldPacketHandlers
         private readonly MsgAttackPacket Packet;
         private readonly LegacyOrdinarySpellBinding ActorBinding, TargetBinding;
         private readonly WorldSession ExpectedActor, ExpectedTarget;
+        private readonly WorldSession OriginalActor, OriginalTarget;
+        private readonly FutureEquipmentReceiveData? actorFuture, targetFuture;
         internal WolfConquer.Core.Networking.ConquerTcpConnection TargetConnection => TargetBinding.Connection;
         internal DragonhowlReceiveInputs(WorldPacketHandlerContext context, WorldSessionStore.OwnedDragonhowlOwner owner, MsgAttackPacket packet,
             LegacyOrdinarySpellBinding actor, LegacyOrdinarySpellBinding target,
-            WorldSession expectedActor, WorldSession expectedTarget)
+            WorldSession expectedActor, WorldSession expectedTarget,
+            WorldSession? calculatedActor = null, WorldSession? calculatedTarget = null,
+            FutureEquipmentReceiveData? actorFuture = null, FutureEquipmentReceiveData? targetFuture = null)
         {
             Context = context; Owner = owner; Packet = packet; ActorBinding = actor; TargetBinding = target;
-            ExpectedActor = expectedActor; ExpectedTarget = expectedTarget;
+            OriginalActor = expectedActor; OriginalTarget = expectedTarget;
+            ExpectedActor = calculatedActor ?? expectedActor; ExpectedTarget = calculatedTarget ?? expectedTarget;
+            this.actorFuture = actorFuture; this.targetFuture = targetFuture;
             modifierGateUtc = (context.TimeProvider ?? throw new InvalidOperationException("ownedDragonhowlClockMissing")).GetUtcNow();
         }
         private LegacyNativeRuneItemStorage.BasicPhysicalWornSnapshot? actorWorn, targetWorn;
         private LegacyNativeRuneItemStorage.BasicPhysicalRuneRow[] actorRunes = [], targetRunes = [];
-        private OwnedPhysicalPerfectionInputs? actorPerfection, targetPerfection;
+        private DragonhowlPerfectionInputs? actorPerfection, targetPerfection;
         private WorldSessionStore.OwnedHawksStatusProof? hawksStatus;
         private WorldSessionStore.OwnedHawksPowerProof? hawksPower;
         private readonly DateTimeOffset modifierGateUtc;
@@ -34,11 +40,11 @@ public static partial class WorldPacketHandlers
         {
             reason = "ordinaryBasicPhysicalWornOwnerChanged";
             if (!LegacyNativeRuneItemStorage.BasicPhysicalWornSnapshot.TryCapture(ActorBinding.Items.Rune,
-                    ActorBinding, ExpectedActor, out actorWorn) || actorWorn is null ||
+                    ActorBinding, OriginalActor, out actorWorn) || actorWorn is null ||
                 !LegacyNativeRuneItemStorage.BasicPhysicalWornSnapshot.TryCapture(TargetBinding.Items.Rune,
-                    TargetBinding, ExpectedTarget, out targetWorn) || targetWorn is null) return false;
+                    TargetBinding, OriginalTarget, out targetWorn) || targetWorn is null) return false;
             actorRunes = actorWorn.Rows; targetRunes = targetWorn.Rows; baseDamage = damage;
-            actorPerfection = new(ActorBinding); targetPerfection = new(TargetBinding);
+            actorPerfection = new(ActorBinding, Owner, actorFuture); targetPerfection = new(TargetBinding, Owner, targetFuture);
             if (HasLegacyStatusFlag(ExpectedTarget.Character, LegacyHawksAmbitionFlag) &&
                 (!WorldSessionStore.TryCaptureOwnedHawksStatus(TargetBinding, ExpectedTarget, out hawksStatus) || hawksStatus is null ||
                  !WorldSessionStore.TryCaptureOwnedHawksPower(TargetBinding, ExpectedTarget, out hawksPower) || hawksPower is null))
@@ -58,8 +64,12 @@ public static partial class WorldPacketHandlers
 
         internal bool ContainsWornSnapshot(LegacyOrdinarySpellBinding binding,
             LegacyNativeRuneItemStorage.BasicPhysicalWornSnapshot snapshot, WorldSession original) =>
-            ReferenceEquals(binding, ActorBinding) && ReferenceEquals(snapshot, actorWorn) && ReferenceEquals(original, ExpectedActor) ||
-            ReferenceEquals(binding, TargetBinding) && ReferenceEquals(snapshot, targetWorn) && ReferenceEquals(original, ExpectedTarget);
+            ReferenceEquals(binding, ActorBinding) && ReferenceEquals(snapshot, actorWorn) && ReferenceEquals(original, OriginalActor) ||
+            ReferenceEquals(binding, TargetBinding) && ReferenceEquals(snapshot, targetWorn) && ReferenceEquals(original, OriginalTarget);
+
+        internal bool ContainsPerfectionInputs(LegacyOrdinarySpellBinding binding, object inputs) =>
+            ReferenceEquals(binding, ActorBinding) && ReferenceEquals(inputs, actorPerfection) ||
+            ReferenceEquals(binding, TargetBinding) && ReferenceEquals(inputs, targetPerfection);
 
         private string? UnjoinedOwnedPhysicalBranch()
         {
@@ -150,7 +160,7 @@ public static partial class WorldPacketHandlers
             if (caprice is >= 1 and <= 27 && IsLegacyCapriceCooldownReady(actor, modifierGateUtc)) return "caprice";
             if (RuneLevel(targetRunes, LegacyReverseMagicRuneItemBase, LegacyReverseMagicRuneItemMax) != 0) return "reverseMagic";
             if (RuneLevel(actorRunes, LegacySlowPaceRuneItemBase, LegacySlowPaceRuneItemMax) != 0 &&
-                CalculateLegacyRuntimeStatusFields(ExpectedTarget, Context.WorldData)[LegacyPlayerStatusPacket.DodgeIndex] != 0)
+                ReadCalculatedTargetFields()[LegacyPlayerStatusPacket.DodgeIndex] != 0)
                 return "slowPace";
             if (IsLegacyPlayerOnXpSkill(actor) && RuneLevel(actorRunes, LegacyXpBoosterRuneItemBase, LegacyXpBoosterRuneItemMax) != 0 &&
                 ReadAttributeUInt32(actor.Attributes, RuntimeLegacyXpBoosterAttribute) > 0) return "xpBooster";
@@ -180,16 +190,21 @@ public static partial class WorldPacketHandlers
             var blood = GetLegacyReceiveAttackSpeffectLevel(ExpectedTarget, LegacySpeffectBloodthirstGroup,
                 "BloodthirstLevel", RuntimeLegacySpeffectLevelAttribute + ".Bloodthirst", RuntimeLegacySpeffectLevelAttribute + ".4");
             if (GetLegacyReceiveAttackBloodthirstRate(blood) > 0 &&
-                ExpectedTarget.Character.MinHitPoints < ComputeLegacyRuntimeMaxHitpoints(ExpectedTarget.Character,
+                ExpectedTarget.Character.MinHitPoints < (targetFuture?.MaximumHitpoints ?? ComputeLegacyRuntimeMaxHitpoints(ExpectedTarget.Character,
                     CheckedUInt32(ExpectedTarget.Character.MinHitPoints, nameof(ExpectedTarget.Character.MinHitPoints)),
                     ExpectedTarget.PlayerItems, ExpectedTarget.CombatGear ?? CombatGearSnapshot.Empty,
-                    Context.WorldData, ExpectedTarget.AlternateEquipmentActive)) return "bloodthirstSpeffect";
+                    Context.WorldData, ExpectedTarget.AlternateEquipmentActive))) return "bloodthirstSpeffect";
             var elan = GetLegacyReceiveAttackSpeffectLevel(ExpectedTarget, LegacySpeffectElanGroup,
                 "ElanLevel", RuntimeLegacySpeffectLevelAttribute + ".Elan", RuntimeLegacySpeffectLevelAttribute + ".5");
             if (ExpectedTarget.Character.MinMana < ExpectedTarget.Character.MaxMana && GetLegacyReceiveAttackElanPercent(elan) > 0 &&
                 Math.Floor(ExpectedTarget.Character.MaxMana * GetLegacyReceiveAttackElanPercent(elan) / 100.0) > 0) return "elanSpeffect";
             return null;
         }
+
+        private uint[] ReadCalculatedTargetFields() => targetFuture is null
+            ? CalculateLegacyRuntimeStatusFields(ExpectedTarget, Context.WorldData)
+            : DragonhowlReceiveCalculationData.Create(Context.ProtocolProfile, Context.ProtocolProfile,
+                targetFuture: targetFuture).ReadTargetFields(ExpectedTarget, Context.WorldData);
 
 
         private string? OwnedPhysicalGearBranch(WorldDataCatalog data)

@@ -35,13 +35,23 @@ public static partial class WorldPacketHandlers
         WorldSession target,
         LegacyMagicRuntimeSpell? spell,
         WorldDataCatalog worldData,
-        LegacyPlayerPlayerPhysicalSpellDamageResult damageResult)
+        LegacyPlayerPlayerPhysicalSpellDamageResult damageResult) =>
+        ResolveLegacyPlayerPlayerPhysicalEffectsDataCore(attacker, target, spell, worldData, damageResult, null);
+
+    private static LegacyPlayerPlayerPhysicalEffectsResolution ResolveLegacyPlayerPlayerPhysicalEffectsCore(
+        WorldSession attacker, WorldSession target, LegacyMagicRuntimeSpell? spell, WorldDataCatalog worldData,
+        LegacyPlayerPlayerPhysicalSpellDamageResult damageResult, DragonhowlReceiveCalculationData calculation) =>
+        ResolveLegacyPlayerPlayerPhysicalEffectsDataCore(attacker, target, spell, worldData, damageResult, calculation);
+
+    private static LegacyPlayerPlayerPhysicalEffectsResolution ResolveLegacyPlayerPlayerPhysicalEffectsDataCore(
+        WorldSession attacker, WorldSession target, LegacyMagicRuntimeSpell? spell, WorldDataCatalog worldData,
+        LegacyPlayerPlayerPhysicalSpellDamageResult damageResult, DragonhowlReceiveCalculationData? calculation)
     {
         // Outer entry was already accepted before the mutable313 publication.
         // Source489/490/535 read current inner stats without re-entering400.
-        var attackerFields = CalculateLegacyRuntimeStatusFields(attacker, worldData);
+        var attackerFields = calculation?.ReadActorFields(attacker, worldData) ?? CalculateLegacyRuntimeStatusFields(attacker, worldData);
         var criticalStrike = attackerFields[LegacyPlayerStatusPacket.CriticalStrikeIndex];
-        var targetFields = CalculateLegacyRuntimeStatusFields(target, worldData);
+        var targetFields = calculation?.ReadTargetFields(target, worldData) ?? CalculateLegacyRuntimeStatusFields(target, worldData);
         var criticalPercent = criticalStrike / 100;
         var immunityPercent = targetFields[LegacyPlayerStatusPacket.ImmunityIndex] / 100;
         var refineryPassed = criticalPercent > immunityPercent &&

@@ -80,7 +80,9 @@ public sealed partial class WorldSessionStore
         {
             using var scope = new DragonhowlOwnerScope(this, DragonhowlCurrentRows(state));
             state.CommitStage = "ownerInputs";
-            if (!DragonhowlHeldCurrent(state) || !plan.InputsAreCurrentPlain()) return false;
+            if (!DragonhowlHeldCurrent(state)) return false;
+            if (!plan.TryReadCurrentInputs(out var inputFailure))
+            { state.CommitStage = "ownerInputs:" + inputFailure; return false; }
             using var permission = TeamSessionStateStore.OwnedDragonhowlPermission.Prepare(
                 state.Context.TeamStates ?? throw InvalidSpellPublication(), this, plan.Owner);
             if (!state.Started)
@@ -102,14 +104,21 @@ public sealed partial class WorldSessionStore
                 return true; // The concrete target/event receipt owns its output.
             }
             binding = state.Bindings[phase.Connection]; before = state.Current[phase.Connection];
-            if (phase.Death is { } purpose && !BindDragonhowlDeath(plan, index, purpose)) return false;
+            if (phase.FutureAward is { } awardPhase && !ConsumeDragonhowlAwardPhase(plan, index, awardPhase, before)) return false;
+            var deathPurpose = phase.Death;
+            if (phase.FutureDeath is { } futureDeath)
+            {
+                if (!TryBindDragonhowlFutureDeath(plan, index, futureDeath, out deathPurpose) || deathPurpose is null) return false;
+            }
+            else if (deathPurpose is not null && !BindDragonhowlDeath(plan, index, deathPurpose)) return false;
             // Only the concrete phase's owned fields change. The actual prior
             // canonical publication supplies all other current owners.
-            var candidate = phase.Death is not null ? phase.After : before with { Character = phase.After.Character,
+            var candidate = deathPurpose is not null ? phase.FutureDeath is not null ? deathPurpose.Death.Proposed : phase.After
+                : before with { Character = phase.After.Character,
                 PhysicalStatusOverlay = phase.After.PhysicalStatusOverlay, MagicCooldowns = phase.After.MagicCooldowns,
                 CanAttackFlashingRegistration = phase.After.CanAttackFlashingRegistration };
             if (!_sessions.TryGetValue(phase.Connection, out var holder) || !ReferenceEquals(holder.Read(), before)) return false;
-            var deathWriter = phase.Death is null ? null : LegacyPreparedBasicPhysicalWrite.PrepareDragonhowl(state.Frame, this, phase.Death);
+            var deathWriter = deathPurpose is null ? null : LegacyPreparedBasicPhysicalWrite.PrepareDragonhowl(state.Frame, this, deathPurpose);
             var paths = state.Bindings.Values.Select(row => Path.Combine(row.UsersRoot,
                 row.AccountId.ToString(CultureInfo.InvariantCulture) + ".ini"))
                 .Append(state.Frame.RequireDragonhowlGearPath(state.Request))
@@ -122,8 +131,8 @@ public sealed partial class WorldSessionStore
                     !state.Frame.IsDragonhowlActive(state.Request, actualAttempt,
                         state.Current[actor.Connection], DragonhowlCurrentPrimary(state))) return false;
                 using var publication = new PreparedSessionSpellPublication(this, phase.Connection, holder, before, candidate,
-                    physicalDeath: phase.Death?.Death, physicalDeathPublication: deathWriter?.PreparePublication(), dragonhowlDeath: phase.Death);
-                using var death = phase.Death is null ? null : new PreparedDragonhowlDeath(this, state, phase.Death, deathWriter!, publication);
+                    physicalDeath: deathPurpose?.Death, physicalDeathPublication: deathWriter?.PreparePublication(), dragonhowlDeath: deathPurpose);
+                using var death = deathPurpose is null ? null : new PreparedDragonhowlDeath(this, state, deathPurpose, deathWriter!, publication);
                 var flashing = phase.Flashing?.Native.PreparePublication(plan, index, before, candidate);
                 LegacyNativeGameClientRuntime.OwnedBasicPhysicalPublication? native = null;
                 WorldServerFrameHandler.BasicPhysicalNativePublication? runtime = null;

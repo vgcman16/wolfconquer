@@ -102,20 +102,16 @@ public static partial class WorldPacketHandlers
             {
                 if (!TryAddLegacyMonsterDeathMoneyDrop(context, session.Character, worldData,
                         monster.MapId, monster.DynamicId, dropX, dropY, out entry,
-                        out selection, out var placementRejected, out var noDropReason))
+                        out selection, out _, out var noDropReason))
                 {
                     lastNoDropReason = noDropReason;
                     if (selection.ItemId != 0)
                     {
                         lastMoneyItemId = selection.ItemId;
                     }
-                    if (placementRejected)
-                    {
-                        // Native AddGroundItem clears both ref coordinates on
-                        // failure; MonsterRole retries the remaining money piles.
-                        dropX = 0;
-                        dropY = 0;
-                    }
+                    // Keep the last valid origin for remaining money piles.
+                    // A failed placement must not relocate a later retry near
+                    // (0,0); only a successful placement advances dropX/dropY.
                     continue;
                 }
             }
