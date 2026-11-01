@@ -3,7 +3,7 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-public sealed class LegacyRuntimeUpdateTicker
+public sealed partial class LegacyRuntimeUpdateTicker
 {
     public const int XpListFlag = 0x04;
     public const int OverwhelmFlag = 0xF3;

@@ -35,6 +35,15 @@ public sealed class LegacyTopInHoursInvitationScheduler
 
     private readonly HashSet<string> _sentSlots = [];
 
+    public LegacyTopInHoursInvitationScheduler() { }
+
+    private LegacyTopInHoursInvitationScheduler(LegacyTopInHoursInvitationScheduler source)
+    {
+        _sentSlots = new(source._sentSlots, source._sentSlots.Comparer);
+    }
+
+    internal LegacyTopInHoursInvitationScheduler CopyForPreparation() => new(this);
+
     public IReadOnlyList<byte[]> CreateDueFrameBytes(DateTimeOffset now)
     {
         var updates = CreateDueUpdates(now);

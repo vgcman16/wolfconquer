@@ -31,7 +31,18 @@ public sealed partial class WorldServerFrameHandlerTests
             CreateDeterministicMonsterRuntimeLoopOptions(interval, clock), async owner =>
         {
             var frames = new RuntimeThreadSafeFrameCapture();
-            owner.BeforeSend = (_, bytes) => frames.Add(bytes);
+            owner.BeforeSend = (_, bytes) =>
+            {
+                frames.Add(bytes);
+                if (LegacyMsgUpdatePacket.TryParse(ReadFrame(bytes), out var packet) &&
+                    packet.Uid == uid && packet.Updates.Any(value => value.Type == LegacyMsgUpdateDataType.XPCircle && value.Value == 1))
+                {
+                    var published = owner.Current();
+                    Assert.Equal("1", published.Character.Attributes["XPCount"]);
+                    Assert.True(owner.Store.IsBoundSpellOwnerCurrent(published.NativeGameClient!.OrdinarySpellBinding!));
+                    Assert.False(Monitor.IsEntered(owner.Handler.RequireActionLifecycleGate(owner.Store)));
+                }
+            };
             try
             {
                 await owner.SendAsync(uid, new MsgActionPacket { ObjId = uid, Timestamp = 1234, Type = MsgActionType.SetLocation }.ToFrameBytes());

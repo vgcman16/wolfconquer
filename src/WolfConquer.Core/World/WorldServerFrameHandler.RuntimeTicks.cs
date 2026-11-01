@@ -58,6 +58,7 @@ public sealed partial class WorldServerFrameHandler
         try
         {
             var timeProvider = _runtimeUpdateLoop.TimeProvider ?? TimeProvider.System;
+            if (!LegacyNativeClientPublication.TryCaptureIdentity(_sessions, connection, snapshot.Uid, out var workerIdentity)) return;
             var ticker = new LegacyRuntimeUpdateTicker(
                 snapshot,
                 timeProvider.GetUtcNow(),
@@ -94,26 +95,14 @@ public sealed partial class WorldServerFrameHandler
                     await SendDueLegacyStaminaUpdateAsync(connection, cancellationToken).ConfigureAwait(false);
                     _sessions.TryGet(connection, out currentSession);
                 }
-                var dueUpdates = ownedStamina
-                    ? ticker.CreateDueNonStaminaUpdates(now, currentSession?.Character)
-                    : ticker.CreateDueUpdates(now, currentSession?.Character);
+                if (!TryCommitPlayerRuntimeTick(connection, snapshot.Uid, workerIdentity, ticker, now, ownedStamina,
+                        out var nextTicker, out var dueUpdates)) continue;
+                ticker = nextTicker;
                 foreach (var update in dueUpdates)
                 {
+                    if (!LegacyNativeClientPublication.TryCurrent(_sessions, connection, snapshot.Uid, workerIdentity, out _)) break;
                     await connection.SendAsync(update.FrameBytes, cancellationToken)
                         .ConfigureAwait(false);
-
-                    if (update.RuntimeStamina is { } stamina)
-                    {
-                        ApplyLegacyRuntimeStaminaUpdate(connection, stamina);
-                    }
-
-                    if (update.RuntimeXpCount is not null || update.RuntimeXpListActive is not null)
-                    {
-                        ApplyLegacyRuntimeXpStateUpdate(
-                            connection,
-                            update.RuntimeXpCount,
-                            update.RuntimeXpListActive);
-                    }
 
                     if (update.MessageBoxPrompt is { } prompt)
                     {
@@ -279,19 +268,6 @@ public sealed partial class WorldServerFrameHandler
             $"surface={surface} sourceSeam={sourceSeam}{Environment.NewLine}{exception}");
     }
 
-    private void ApplyLegacyRuntimeStaminaUpdate(
-        ConquerTcpConnection connection,
-        ushort stamina)
-    {
-        if (!_sessions.TryGet(connection, out var session) ||
-            session is null)
-        {
-            return;
-        }
-
-        TryMergeLegacyRuntimeStaminaUpdate(_sessions, connection, session, stamina);
-    }
-
     internal static bool TryMergeLegacyRuntimeStaminaUpdate(
         WorldSessionStore sessions,
         ConquerTcpConnection connection,
@@ -302,35 +278,7 @@ public sealed partial class WorldServerFrameHandler
             sessions,
             connection,
             initialSession,
-            character =>
-            {
-                var attributes = new Dictionary<string, string>(
-                    character.Attributes,
-                    StringComparer.OrdinalIgnoreCase)
-                {
-                    ["Stamina"] = stamina.ToString(CultureInfo.InvariantCulture),
-                };
-                return character with { Attributes = attributes };
-            });
-    }
-
-    private void ApplyLegacyRuntimeXpStateUpdate(
-        ConquerTcpConnection connection,
-        ulong? xpCount,
-        bool? xpListActive)
-    {
-        if (!_sessions.TryGet(connection, out var session) ||
-            session is null)
-        {
-            return;
-        }
-
-        TryMergeLegacyRuntimeXpStateUpdate(
-            _sessions,
-            connection,
-            session,
-            xpCount,
-            xpListActive);
+            character => ProjectLegacyRuntimeStamina(character, stamina));
     }
 
     internal static bool TryMergeLegacyRuntimeXpStateUpdate(
@@ -344,42 +292,7 @@ public sealed partial class WorldServerFrameHandler
             sessions,
             connection,
             initialSession,
-            character =>
-            {
-                var attributes = new Dictionary<string, string>(
-                    character.Attributes,
-                    StringComparer.OrdinalIgnoreCase);
-                if (xpCount is { } count)
-                {
-                    attributes["XPCount"] = count.ToString(CultureInfo.InvariantCulture);
-                }
-
-                if (xpListActive is { } active)
-                {
-                    var key = attributes.ContainsKey("BitVector") && !attributes.ContainsKey("StatusFlags")
-                        ? "BitVector"
-                        : "StatusFlags";
-                    var flags = LegacyPlayerDeathState.CreateStatusFlagVector(
-                        attributes,
-                        LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength);
-                    var wordIndex = LegacyRuntimeUpdateTicker.XpListFlag / 32;
-                    var bitIndex = LegacyRuntimeUpdateTicker.XpListFlag % 32;
-                    if (active)
-                    {
-                        LegacyStatusFlagDeathRegistration.PrepareAdd(attributes, LegacyRuntimeUpdateTicker.XpListFlag);
-                        flags[wordIndex] |= 1UL << bitIndex;
-                    }
-                    else
-                    {
-                        attributes.Remove(LegacyStatusFlagDeathRegistration.Key(LegacyRuntimeUpdateTicker.XpListFlag));
-                        flags[wordIndex] &= ~(1UL << bitIndex);
-                    }
-
-                    attributes[key] = string.Join('/', flags) + "/";
-                }
-
-                return character with { Attributes = attributes };
-            });
+            character => ProjectLegacyRuntimeXpState(character, xpCount, xpListActive));
     }
 
     private static bool TryMergeLegacyRuntimeSessionUpdate(
