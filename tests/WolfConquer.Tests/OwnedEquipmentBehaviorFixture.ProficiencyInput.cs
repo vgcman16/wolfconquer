@@ -23,7 +23,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture
         try
         {
             fixture = new OwnedEquipmentBehaviorFixture { proficiencyInput = input };
-            await fixture.InitializeAsync(actor, catalog, options, peers);
+            await fixture.InitializeAsync(actor, catalog, options, peers, useNativeGear: false);
             await exercise(fixture);
         }
         catch (Exception error) { primary = error; }

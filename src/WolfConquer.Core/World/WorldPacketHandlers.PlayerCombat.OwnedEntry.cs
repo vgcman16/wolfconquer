@@ -18,11 +18,39 @@ public static partial class WorldPacketHandlers
         var matches = store.Snapshot().Where(row => row.Session.Character.Uid == packet.Query.OpponentUid).ToArray();
         var nonPlayers = ReadOwnedPhysicalNonPlayerTargets(context, actor, packet.Query.OpponentUid);
         if (matches.Length + nonPlayers.NamespaceCount != 1) return true;
-        if (matches.Length == 0) return !CanEnterOwnedPhysicalNonPlayer(context, actor, nonPlayers);
+        if (matches.Length == 0)
+        {
+            if (!CanEnterOwnedPhysicalNonPlayer(context, actor, nonPlayers)) return true;
+            if (!HasOwnedDragonhowlCandidate(actor)) return false;
+            OwnedDragonhowlPreparation? proc = null;
+            string reason = "ownedDragonhowlPrimaryUnavailable";
+            bool accepted = nonPlayers.Monster is { } monster && nonPlayers.Family is { } family
+                ? store.TryPrepareOwnedDragonhowlMonster(context, packet, monster, family, out proc, out reason)
+                : nonPlayers.Sob is { } sob && store.TryPrepareOwnedDragonhowlSob(context, packet, sob, out proc, out reason);
+            if (!accepted || proc is null)
+            {
+                await context.Log.WriteLineAsync($"WorldServer refused owned Dragonhowl physical {FormatSession(context)} reason={reason}.")
+                    .ConfigureAwait(false);
+                return true;
+            }
+            await proc.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
         var target = matches[0];
         if (ReferenceEquals(target.Connection, context.Connection) ||
             !CanOwnedBasicPhysicalDamageTarget(context, actor, target.Session,
                 (context.TimeProvider ?? throw new InvalidOperationException("basicPhysicalClockOwnerMissing")).GetUtcNow(), out _)) return true;
+        if (HasOwnedDragonhowlCandidate(actor))
+        {
+            if (!store.TryPrepareOwnedDragonhowl(context, packet, target, out var proc, out var procReason) || proc is null)
+            {
+                await context.Log.WriteLineAsync($"WorldServer refused owned Dragonhowl physical {FormatSession(context)} reason={procReason}.")
+                    .ConfigureAwait(false);
+                return true;
+            }
+            await proc.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
         if (!store.TryBeginBasicPhysical(context, packet, target, out var attempt) || attempt is null) return true;
         context = context with { BasicPhysicalAttempt = attempt };
         try

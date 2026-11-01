@@ -43,6 +43,7 @@ public sealed partial class WorldServerFrameHandler
         if (repeat.Monster is { } target &&
             (!target.TryReadCurrent(out var monster, out _, out _) || source.OpponentUid != monster.Uid ||
              !CanSeeMonster(current.Character, monster))) return false;
+        if (repeat.Dragonhowl is { } proc && !IsDragonhowlRepeatTargetCurrent(proc, current, source.OpponentUid)) return false;
         var now = slot.Readiness.ReadLocalNow();
         var delay = CalculateBasicPhysicalOrdinaryDelay(speed, checked((ushort)current.Character.Agility));
         if (now < slot.AttackStamp || now < slot.AttackStamp.AddMilliseconds(delay))

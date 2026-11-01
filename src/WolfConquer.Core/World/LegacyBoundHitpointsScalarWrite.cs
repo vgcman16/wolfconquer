@@ -18,6 +18,7 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
     private readonly LegacyPreparedPairMovementWrite.CharacterPublication? pairMovementPublication;
     private readonly LegacyPreparedMovementWrite.CharacterPublication? movementPublication;
     private readonly WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical;
+    private readonly WorldSessionStore.OwnedDragonhowlDeath? dragonhowlDeath;
     private readonly LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication;
     private readonly LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication;
     private readonly WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement;
@@ -35,16 +36,20 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
         LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication,
         LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication,
         WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement,
-        WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery)
+        WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery,
+        WorldSessionStore.OwnedDragonhowlDeath? dragonhowlDeath)
     {
         this.owner = owner; this.store = store; this.connection = connection; this.binding = binding; this.expected = expected;
         this.runePublication = runePublication;
         this.pairMovementPublication = pairMovementPublication;
         this.movementPublication = movementPublication;
         this.basicPhysical = basicPhysical; this.physicalDeathPublication = physicalDeathPublication;
+        this.dragonhowlDeath = dragonhowlDeath;
         this.teleportPublication = teleportPublication;
         this.classRetirement = classRetirement;
         this.continuationQuery = continuationQuery;
+        if (basicPhysical is not null && dragonhowlDeath is not null)
+            throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsConflictingPhysicalPurposes");
         if (continuationQuery is not null && (caprice is not null || runePublication is not null ||
             pairMovementPublication is not null || movementPublication is not null || basicPhysical is not null ||
             physicalDeathPublication is not null || teleportPublication is not null || classRetirement is not null ||
@@ -71,6 +76,16 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
                 !basicPhysical.IsCurrentPlain() || !basicPhysical.CanonicalOutcomesMatch(basicPhysical.Actor, proposed))
                 throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignBasicPhysicalPurpose");
             physicalDeathPublication?.RequireCurrent(store, connection, expected, proposed);
+        }
+        else if (dragonhowlDeath is not null)
+        {
+            if (caprice is not null || runePublication is not null || pairMovementPublication is not null || movementPublication is not null ||
+                teleportPublication is not null || classRetirement is not null || continuationQuery is not null ||
+                physicalDeathPublication is null || !ReferenceEquals(dragonhowlDeath.ExpectedTarget, expected) ||
+                !ReferenceEquals(dragonhowlDeath.TargetBinding, binding) || !dragonhowlDeath.IsCurrentPlain() ||
+                !dragonhowlDeath.Death.MatchesDragonhowlCanonical(proposed))
+                throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignDragonhowlDeathPurpose");
+            physicalDeathPublication.RequireCurrent(store, connection, expected, proposed);
         }
         else if (physicalDeathPublication is not null)
             throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsDeathPurposeMissing");
@@ -110,15 +125,17 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
         LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication = null,
         LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication = null,
         WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null,
-        WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery = null) =>
+        WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery = null,
+        WorldSessionStore.OwnedDragonhowlDeath? dragonhowlDeath = null) =>
         new(owner, store, connection, binding, expected, proposed, caprice, runePublication, pairMovementPublication, movementPublication,
-            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement, continuationQuery);
+            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement, continuationQuery, dragonhowlDeath);
     internal byte[] CopyBeforeImage() => before.ToArray();
     internal byte[] CopyAfterImage() => after.ToArray();
     private bool OwnerIsCurrent() => store.IsFramePersistenceCurrent(owner, connection, expected) &&
         ReferenceEquals(binding.Store, store) && ReferenceEquals(binding.Connection, connection) &&
         binding.PhysicalOwnerIsCurrentPlain() && binding.Recovery.IsReadyForUsers(binding.UsersRoot) &&
-        (basicPhysical is null || basicPhysical.IsCurrentPlain()) && (classRetirement is null || classRetirement.IsCurrentPlain()) &&
+        (basicPhysical is null || basicPhysical.IsCurrentPlain()) && (dragonhowlDeath is null || dragonhowlDeath.IsCurrentPlain()) &&
+        (classRetirement is null || classRetirement.IsCurrentPlain()) &&
         (continuationQuery is null || continuationQuery.IsCurrentPlain(binding) || continuationQuery.IsConsumedCurrentPlain(binding));
 
     internal Outcome TryCommit(out string reason)

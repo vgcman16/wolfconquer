@@ -22,6 +22,8 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     private readonly Dictionary<uint, ConquerTcpConnection> connections = new();
     private readonly List<CancellationTokenSource> closed = [];
     private Exception? observationFailure;
+    private NativeCombatGearProcFixture? nativeGearMetadata;
+    internal LegacyNativeCombatGearRuntime? NativeCombatGear => nativeGearMetadata?.Runtime;
     private uint actorUid;
     internal readonly StringWriter Log = new();
     internal LegacyOwnedAdmissionRuntime Runtime { get; private set; } = null!;
@@ -39,6 +41,10 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     internal static Task RunAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
         Func<OwnedEquipmentBehaviorFixture, Task> exercise, params OwnedEquipmentBehaviorInput[] peers) =>
         RunWithOptionsAsync(actor, catalog, LegacyRuntimeUpdateLoopOptions.Disabled, exercise, peers);
+
+    internal static Task RunWithNativeGearAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
+        Func<OwnedEquipmentBehaviorFixture, Task> exercise, params OwnedEquipmentBehaviorInput[] peers) =>
+        RunActualAsync(actor, catalog, LegacyRuntimeUpdateLoopOptions.Disabled, exercise, peers, useNativeGear: true);
 
     internal static async Task RunWithOptionsAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
         LegacyRuntimeUpdateLoopOptions options, Func<OwnedEquipmentBehaviorFixture, Task> exercise,
@@ -62,14 +68,14 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
 
     private static async Task RunActualAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
         LegacyRuntimeUpdateLoopOptions options, Func<OwnedEquipmentBehaviorFixture, Task> exercise,
-        OwnedEquipmentBehaviorInput[] peers)
+        OwnedEquipmentBehaviorInput[] peers, bool useNativeGear = false)
     {
         OwnedEquipmentBehaviorFixture? fixture = null;
         Exception? primary = null;
         try
         {
             fixture = new OwnedEquipmentBehaviorFixture();
-            await fixture.InitializeAsync(actor, catalog, options, peers);
+            await fixture.InitializeAsync(actor, catalog, options, peers, useNativeGear);
             await exercise(fixture);
         }
         catch (Exception error) { primary = error; }
@@ -83,7 +89,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     }
 
     private async Task InitializeAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
-        LegacyRuntimeUpdateLoopOptions options, OwnedEquipmentBehaviorInput[] peers)
+        LegacyRuntimeUpdateLoopOptions options, OwnedEquipmentBehaviorInput[] peers, bool useNativeGear)
     {
         ArgumentNullException.ThrowIfNull(actor); ArgumentNullException.ThrowIfNull(catalog);
         var inputs = new[] { actor }.Concat(peers).ToArray();
@@ -93,13 +99,18 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
         actorUid = checked((uint)actor.Character.Uid);
         foreach (var input in inputs) Save(input);
         ApplyProficiencyInputImage();
+        if (useNativeGear)
+        {
+            nativeGearMetadata = new NativeCombatGearProcFixture(Data.Root);
+            nativeGearMetadata.Load(catalog);
+        }
         // The shared Data fixture's original, unadmitted sentinel account remains
         // part of the actual scanned dataset unless it is one supplied input.
         Data.Bootstrap();
         Assert.True(LegacyOwnedAdmissionRuntime.TryOpen(Data.Loader, Data.Options(), out var runtime, out var reason), reason);
         Runtime = Assert.IsType<LegacyOwnedAdmissionRuntime>(runtime);
         Handler = new WorldServerFrameHandler(Data.Loader, null, catalog, options,
-            Log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime);
+            Log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime, nativeCombatGear: NativeCombatGear);
         foreach (var input in inputs)
         {
             var uid = checked((uint)input.Character.Uid);
@@ -200,7 +211,13 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
             try { await connection.DisconnectAsync(); } catch (Exception error) { errors.Add(error); }
             try { await connection.CompleteTransportCloseAsync(); } catch (Exception error) { errors.Add(error); }
         }
-        try { if (Runtime is not null) await Runtime.DisposeAsync(); } catch (Exception error) { errors.Add(error); }
+        var runtimeDrained = Runtime is null;
+        try { if (Runtime is not null) await Runtime.DisposeAsync(); runtimeDrained = true; }
+        catch (Exception error) { errors.Add(error); }
+        if (runtimeDrained)
+            try { nativeGearMetadata?.Dispose(); } catch (Exception error) { errors.Add(error); }
+        else if (nativeGearMetadata is not null)
+            errors.Add(new InvalidOperationException("Native gear metadata retained because the actual runtime did not drain."));
         foreach (var cancellation in closed) try { cancellation.Dispose(); } catch (Exception error) { errors.Add(error); }
         try { beasts.Dispose(); } catch (Exception error) { errors.Add(error); }
         try { Log.Dispose(); } catch (Exception error) { errors.Add(error); }

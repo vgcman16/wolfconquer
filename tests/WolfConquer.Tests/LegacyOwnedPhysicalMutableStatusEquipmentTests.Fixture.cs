@@ -28,6 +28,8 @@ public sealed partial class LegacyOwnedPhysicalMutableStatusEquipmentTests
     {
         internal readonly LegacyOwnedAdmissionRuntimeFixture Data = new(bootstrap: false);
         private readonly NativeLoginBeastMetadataScope beasts = new(1000);
+        private NativeCombatGearProcFixture? nativeGearMetadata;
+        internal LegacyNativeCombatGearRuntime NativeCombatGear => nativeGearMetadata!.Runtime;
         internal readonly ConcurrentQueue<byte[]> Captures = new(), AllFrames = new();
         internal readonly DirectOverlayEquipmentTimeProvider Clock = new();
         internal readonly StringWriter Log = new();
@@ -48,13 +50,15 @@ public sealed partial class LegacyOwnedPhysicalMutableStatusEquipmentTests
             var inputs = LegacyMagicAttackRuntimeTests.CreateOwnedPhysicalEquipmentInputs(scenario, PlayerUid, TargetPlayerUid);
             World = inputs.World;
             Save(inputs.Owner); Save(inputs.Striker);
+            nativeGearMetadata = new NativeCombatGearProcFixture(Data.Root);
+            nativeGearMetadata.Load(World);
             Data.Bootstrap();
             Assert.True(LegacyOwnedAdmissionRuntime.TryOpen(Data.Loader, Data.Options(), out var runtime, out var reason), reason);
             Runtime = Assert.IsType<LegacyOwnedAdmissionRuntime>(runtime);
             var options = new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), Clock,
                 LegacySignedMillisecondClock.FromTimeProvider(Clock, 10_000));
             Handler = new WorldServerFrameHandler(Data.Loader, null, World, options, Log,
-                protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime);
+                protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime, nativeCombatGear: NativeCombatGear);
             foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
             {
                 var native = new LegacyNativeGameClientRuntime();
@@ -127,7 +131,13 @@ public sealed partial class LegacyOwnedPhysicalMutableStatusEquipmentTests
             foreach (var connection in Connections.Values)
                 try { await connection.DisconnectAsync(); await connection.CompleteTransportCloseAsync(); }
                 catch (Exception error) { errors.Add(error); }
-            try { if (Runtime is not null) await Runtime.DisposeAsync(); } catch (Exception error) { errors.Add(error); }
+            var runtimeDrained = Runtime is null;
+            try { if (Runtime is not null) await Runtime.DisposeAsync(); runtimeDrained = true; }
+            catch (Exception error) { errors.Add(error); }
+            if (runtimeDrained)
+                try { nativeGearMetadata?.Dispose(); } catch (Exception error) { errors.Add(error); }
+            else if (nativeGearMetadata is not null)
+                errors.Add(new InvalidOperationException("Native gear metadata retained because the actual runtime did not drain."));
             try { beasts.Dispose(); Log.Dispose(); } catch (Exception error) { errors.Add(error); }
             if (errors.Count == 0 && !RetainEvidence) Data.Dispose();
             if (errors.Count == 1) ExceptionDispatchInfo.Capture(errors[0]).Throw();

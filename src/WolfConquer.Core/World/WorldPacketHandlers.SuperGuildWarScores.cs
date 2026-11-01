@@ -255,7 +255,8 @@ public static partial class WorldPacketHandlers
         CharacterSnapshot character,
         IReadOnlyList<LegacySuperGuildWarScoreEntry> scores)
     {
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
+        var attributes = CopyOwnedSobEventAttributes(character,
+            [LegacySuperGuildWarScoresAttribute, "LegacySuperGuildWarScores"]);
         attributes.Remove(LegacySuperGuildWarScoresAttribute);
         attributes.Remove("LegacySuperGuildWarScores");
         if (scores.Count > 0)
@@ -279,13 +280,16 @@ public static partial class WorldPacketHandlers
     {
         var guildId = winner.GuildId.ToString(CultureInfo.InvariantCulture);
         var score = winner.Score.ToString(CultureInfo.InvariantCulture);
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
-        foreach (var name in GetLegacySuperGuildWarAttributeNames("WinnerGuildID", "WinnerGuildId"))
+        var attributes = CopyOwnedSobEventAttributes(character, GetLegacySuperGuildWarAttributeNames(
+            "WinnerGuildID", "WinnerGuildId", "RoundOwnerGuildID", "RoundOwnerGuildId", "WinnerGuildName",
+            "RoundOwnerGuildName", "PoleOwnerName", "WinnerScore", "RoundOwnerScore", "Process", "Proces",
+            "PoleReset", "StampRoundSeconds"));
+        foreach (var name in GetLegacySuperGuildWarAttributeNames("WinnerGuildID", "WinnerGuildId").Distinct(StringComparer.OrdinalIgnoreCase))
         {
             attributes[name] = guildId;
         }
 
-        foreach (var name in GetLegacySuperGuildWarAttributeNames("RoundOwnerGuildID", "RoundOwnerGuildId"))
+        foreach (var name in GetLegacySuperGuildWarAttributeNames("RoundOwnerGuildID", "RoundOwnerGuildId").Distinct(StringComparer.OrdinalIgnoreCase))
         {
             attributes[name] = guildId;
         }

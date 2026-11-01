@@ -9,15 +9,23 @@ public sealed partial class OwnedEquipmentReentryTests
     public Task DirectQueryStagesAppendKeepsEarnedPairUntilSourceResetAndRebuildsCapturedGearAfterReentry()
     {
         var inputs = LegacyMagicAttackRuntimeTests.OwnedQueryAppendInputs();
-        return OwnedEquipmentBehaviorFixture.RunAsync(inputs.Actor, inputs.World, async f =>
+        // The actual Dragonhowl initial request permits range9. Preserve the
+        // saved x839 regression; ordinary range2 cannot replace proc selection.
+        return OwnedEquipmentBehaviorFixture.RunWithNativeGearAsync(inputs.Actor, inputs.World, async f =>
         {
+            Assert.Equal(830, f.Current(Actor).Character.X);
+            Assert.Equal(839, f.Current(Target).Character.X);
+            AssertAdmittedDragonhowlInputs(f, Actor, 17_490);
+            AssertAdmittedDragonhowlInputs(f, Target, 17_490);
+            Assert.Equal(100_000, f.Current(Actor).Character.MinHitPoints);
+            Assert.Equal(100_000, f.Current(Target).Character.MinHitPoints);
             var firstStart = f.ActorFrames.Count;
             await f.SendAsync(Actor, Attack(Actor, Target));
-            Assert.Equal(225u, Assert.Single(Animation(f.ActorFrames.Skip(firstStart), 17_490).Targets).Damage);
+            Assert.Equal(225u, Assert.Single(Animation(f.ActorFrames.Skip(firstStart), 17_490, f.Log.ToString()).Targets).Damage);
             Assert.Equal(66U, (await Status(f, Actor)).Breakthrough);
             var peerStart = f.Frames(Target).Count;
             await f.SendAsync(Target, Attack(Target, Actor));
-            Assert.Equal(225u, Assert.Single(Animation(f.Frames(Target).Skip(peerStart), 17_490).Targets).Damage);
+            Assert.Equal(225u, Assert.Single(Animation(f.Frames(Target).Skip(peerStart), 17_490, f.Log.ToString()).Targets).Damage);
             var earned = await Status(f, Actor);
             Assert.Equal(66U, earned.Breakthrough); Assert.Equal(75U, earned.Counteraction);
             Assert.Equal(99_775, f.Current().Character.MinHitPoints);

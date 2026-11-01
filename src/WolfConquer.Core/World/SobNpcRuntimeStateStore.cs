@@ -46,7 +46,9 @@ public sealed partial class SobNpcRuntimeStateStore
 
         lock (_gate)
         {
-            GetOrCreateNoLock(sobNpc).OwnerGuildId = ownerGuildId;
+            var state = GetOrCreateNoLock(sobNpc);
+            state.AdvanceMutationVersion();
+            state.OwnerGuildId = ownerGuildId;
         }
     }
 
@@ -62,6 +64,7 @@ public sealed partial class SobNpcRuntimeStateStore
         lock (_gate)
         {
             var state = GetOrCreateNoLock(sobNpc);
+            state.AdvanceMutationVersion();
             state.MaxHitpoints = maxHitpoints ?? state.SeedMaxHitpoints;
             state.Hitpoints = state.MaxHitpoints;
             state.DeadAt = null;
@@ -85,6 +88,7 @@ public sealed partial class SobNpcRuntimeStateStore
                 return false;
             }
 
+            state.AdvanceMutationVersion();
             state.GuildWarGateDestroyedNotified = true;
             return true;
         }
@@ -148,6 +152,7 @@ public sealed partial class SobNpcRuntimeStateStore
             {
                 if (deathMeshOverride is { } meshOverride)
                 {
+                    state.AdvanceMutationVersion();
                     state.MeshOverride = meshOverride;
                 }
 
@@ -177,6 +182,12 @@ public sealed partial class SobNpcRuntimeStateStore
             }
 
             var damage = Math.Min(requestedDamage, state.Hitpoints);
+            // Reject an unsupported state transition before changing HP. The
+            // checked version also fails before any part of this mutation.
+            if (deathBehavior is not (LegacySobNpcDeathBehavior.ResetHitpointsAndBroadcastDeathUpdates or
+                LegacySobNpcDeathBehavior.GateDemolition or LegacySobNpcDeathBehavior.PersistentDeath))
+                throw new ArgumentOutOfRangeException(nameof(deathBehavior), deathBehavior, "Unsupported SOB NPC death behavior.");
+            state.AdvanceMutationVersion();
             state.Hitpoints -= damage;
             var killed = state.Hitpoints == 0;
             if (killed)
@@ -220,6 +231,7 @@ public sealed partial class SobNpcRuntimeStateStore
         lock (_gate)
         {
             var state = GetOrCreateNoLock(sobNpc);
+            state.AdvanceMutationVersion();
             state.Hitpoints = state.MaxHitpoints;
             state.DeadAt = null;
             state.NameOverride = visibleNameOverride;
@@ -243,6 +255,7 @@ public sealed partial class SobNpcRuntimeStateStore
                 return false;
             }
 
+            state.AdvanceMutationVersion();
             state.MeshOverride = meshOverride;
             return true;
         }
@@ -290,6 +303,11 @@ public sealed partial class SobNpcRuntimeStateStore
     private sealed class SobNpcRuntimeState(uint hitpoints, uint maxHitpoints)
     {
         internal SobNpc? Birth { get; init; }
+
+        // Actual mutations/reset operations advance this before touching any
+        // field. A return to equal values cannot revive an earlier proc input.
+        internal ulong MutationVersion { get; private set; }
+        internal void AdvanceMutationVersion() => MutationVersion = checked(MutationVersion + 1);
 
         public uint Hitpoints { get; set; } = hitpoints;
 

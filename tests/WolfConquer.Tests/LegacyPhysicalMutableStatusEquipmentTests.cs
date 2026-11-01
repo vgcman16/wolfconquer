@@ -14,21 +14,22 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var alternate = scenario is "normal-equip-while-alternate" or "active-alternate-equip" or "normal-unequip-while-alternate";
         var alternateEquip = scenario is "inactive-alternate-equip" or "active-alternate-equip";
         var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [],
-        [
+        new MagicType[]
+        {
             CreateMagicRow(FineRainAttachStatusSpellId, sort: 6, useMana: 0, damage: 0,
                 duration: 60, coolDown: 0, coldTime: 0),
             CreateMagicRow(DirectOverlaySpellId, sort: 99, useMana: 0, damage: 30_250,
                 range: 4, damageOnHuman: 0, damage2: 33, damage3: 2, damageOnMonster: 30_085,
                 gDamage: 0, coolDown: 0, coldTime: 0),
-        ], items:
+        }, items:
         [
-            DirectOverlayItem(oldNormal, "OverlayEquipmentOldNormal", breakthrough: 60, counteraction: 50),
-            DirectOverlayItem(newNormal, "OverlayEquipmentNewNormal", breakthrough: 80, counteraction: 70),
-            DirectOverlayItem(oldAlternate, "OverlayEquipmentOldAlternate", breakthrough: 60, counteraction: 50),
-            DirectOverlayItem(newAlternate, "OverlayEquipmentNewAlternate", breakthrough: 80, counteraction: 70),
-            DirectOverlayItem(strikerHelmet, "OverlayEquipmentStriker", critical: 1_000, breakthrough: 100),
+            NativeCombatGearProcFixture.WithHitpoints(DirectOverlayItem(oldNormal, "OverlayEquipmentOldNormal", breakthrough: 60, counteraction: 50), 51_900),
+            NativeCombatGearProcFixture.WithHitpoints(DirectOverlayItem(newNormal, "OverlayEquipmentNewNormal", breakthrough: 80, counteraction: 70), 51_900),
+            NativeCombatGearProcFixture.WithHitpoints(DirectOverlayItem(oldAlternate, "OverlayEquipmentOldAlternate", breakthrough: 60, counteraction: 50), 51_900),
+            NativeCombatGearProcFixture.WithHitpoints(DirectOverlayItem(newAlternate, "OverlayEquipmentNewAlternate", breakthrough: 80, counteraction: 70), 51_900),
+            NativeCombatGearProcFixture.WithHitpoints(DirectOverlayItem(strikerHelmet, "OverlayEquipmentStriker", critical: 1_000, breakthrough: 100), 51_100),
             DirectOverlayItem(DirectOverlaySyntheticImpregnabilityRuneId, "Impregnability(+9)"),
-        ]);
+        ], combatGear: NativeCombatGearProcFixture.CatalogRows());
         PlayerItemSnapshotItem Item(uint uid, uint id, ushort slot) => new()
         {
             Uid = uid, ItemId = id, Position = slot, Durability = 100, MaximumDurability = 100, StackSize = 1,
@@ -43,16 +44,19 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             },
             attributes: new Dictionary<string, string>
             {
-                ["PkMode"] = "0", ["MaxHitpoints"] = "100000", ["BattlePower"] = "200",
+                ["PkMode"] = "0", ["BattlePower"] = "200",
                 ["LegacyPhysicalImpregnabilityRoll"] = "0",
             }) with { AlternateEquipmentActive = alternate };
-        // The real unarmed striker must be within the source two-tile range.
+        // The real FineRain self-cast adds100 HP. Start from99900 computed
+        // maximum so the later physical regression still owns exactly100000.
+        owner = owner with { Character = owner.Character with { Vitality = 2_000 } };
+        // Real saved stats plus the active helmet produce exactly100000 HP.
         var striker = CreateSession(uid: strikerUid, mapId: 1_000, x: 831, y: 584, classCode: 2_005,
             strength: 300, spirit: 0, minHitPoints: 100_000, stamina: 100, spellIds: [DirectOverlaySpellId],
             playerItems: PlayerItemSnapshot.Empty with { EquipmentItems = [Item(92_001, strikerHelmet, 1)] },
             attributes: new Dictionary<string, string>
             {
-                ["PkMode"] = "0", ["MaxHitpoints"] = "100000", ["BattlePower"] = "100",
+                ["PkMode"] = "0", ["BattlePower"] = "100",
                 ["LegacyCombatGearAttackSpellIndex"] = "3", ["LegacyCombatGearAttackRateRoll"] = "99",
                 ["LegacyPhysicalRefineryRoll"] = "0", ["LegacyPhysicalPlayerLuckyBranchRoll"] = "99",
                 ["LegacyPhysicalPlayerCriticalRoll"] = "99", ["LegacyPhysicalDashRoll"] = "0", ["DashRate"] = "0",
@@ -65,6 +69,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     Transform: 0, MasteryScore: 0, Animas: [], BlackJades: [])],
             },
         };
+        striker = striker with { Character = striker.Character with { Vitality = 2_000 } };
         return (world, owner, striker);
     }
 }

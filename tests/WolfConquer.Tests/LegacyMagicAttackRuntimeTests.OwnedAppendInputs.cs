@@ -15,12 +15,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             return row with { Fields = fields };
         }
         var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [],
-            [CreateMagicRow(DirectOverlaySpellId, sort: 99, useMana: 0, damage: 30_250, range: 4,
-                damageOnHuman: 0, damage2: 33, damage3: 2, damageOnMonster: 30_085, gDamage: 0, coolDown: 0, coldTime: 0)],
+            new MagicType[] { CreateMagicRow(DirectOverlaySpellId, sort: 99, useMana: 0, damage: 30_250, range: 4,
+                damageOnHuman: 0, damage2: 33, damage3: 2, damageOnMonster: 30_085, gDamage: 0, coolDown: 0, coldTime: 0) },
             items: [Hp(helmet, "QueryStageHelmet", 50_000, 1_000, 60, 50), Hp(armor, "QueryStageArmor", 49_100, 0, 0, 0),
                 Hp(replacement, "QueryStageReplacement", 50_000, 1_000, 80, 70), Hp(dummyHelmet, "QueryStageDummy", 50_000, 1_000, 100, 65),
                 DirectOverlayItem(DirectOverlayFrontBreakRuneId, "Front Break (+9)"),
-                DirectOverlayItem(DirectOverlaySyntheticImpregnabilityRuneId, "Impregnability(+9)")]);
+                DirectOverlayItem(DirectOverlaySyntheticImpregnabilityRuneId, "Impregnability(+9)")],
+            combatGear: NativeCombatGearProcFixture.CatalogRows());
         PlayerItemSnapshotItem Row(uint uid, uint id, ushort position) => new()
         { Uid = uid, ItemId = id, Position = position, Durability = 100, MaximumDurability = 100 };
         Dictionary<string, string> Attributes() => new()

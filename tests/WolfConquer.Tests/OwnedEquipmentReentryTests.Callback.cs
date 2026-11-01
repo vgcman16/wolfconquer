@@ -12,8 +12,11 @@ public sealed partial class OwnedEquipmentReentryTests
     public Task QueuedEquipKeepsOriginalRefineryBranchUntilAttackCompletes(ushort spellId, uint expectedDamage)
     {
         var inputs = LegacyMagicAttackRuntimeTests.OwnedOverlayReentryInputs(impregnation: false, spellId, callback: true);
-        return OwnedEquipmentBehaviorFixture.RunAsync(inputs.Actor, inputs.World, async f =>
+        return OwnedEquipmentBehaviorFixture.RunWithNativeGearAsync(inputs.Actor, inputs.World, async f =>
         {
+            AssertAdmittedDragonhowlInputs(f, Actor, spellId);
+            Assert.Equal(100_000, f.Current(Actor).Character.MinHitPoints);
+            Assert.Equal(100_000, f.Current(Target).Character.MinHitPoints);
             var observer = Actor + 50;
             var recipients = new List<uint>();
             using var producerCancellation = new CancellationTokenSource();
@@ -66,7 +69,7 @@ public sealed partial class OwnedEquipmentReentryTests
                 Assert.False(issued.Task.Result.IsCompleted, "The exclusive equip must wait for the entered Shared attack.");
             };
             Exception? outerFailure = null;
-            try { await f.SendAsync(Actor, Attack(Actor, Target)); Assert.True(scheduled); }
+            try { await f.SendAsync(Actor, Attack(Actor, Target)); Assert.True(scheduled, f.Log.ToString()); }
             catch (Exception error) { outerFailure = error; }
             f.BeforeSend = null;
             enqueue.TrySetResult(false);
@@ -94,7 +97,7 @@ public sealed partial class OwnedEquipmentReentryTests
             Assert.Equal(3, recipients.Count);
             Assert.Equal(Actor, recipients[0]);
             Assert.Equal(new[] { Target, observer }.Order(), recipients.Skip(1).Order());
-            var hit = Assert.Single(Animation(f.ActorFrames.Skip(start), spellId).Targets);
+            var hit = Assert.Single(Animation(f.ActorFrames.Skip(start), spellId, f.Log.ToString()).Targets);
             Assert.Equal(Target, hit.Uid); Assert.Equal(expectedDamage, hit.Damage); Assert.Equal(MsgAttackEffect.None, hit.Effect);
             Assert.Equal(100_000 - (long)expectedDamage, f.Current(Target).Character.MinHitPoints);
             Assert.Equal(90_002u, Assert.Single(f.Current().PlayerItems.EquipmentItems).Uid);

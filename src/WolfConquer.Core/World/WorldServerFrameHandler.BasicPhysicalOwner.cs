@@ -20,6 +20,7 @@ public sealed partial class WorldServerFrameHandler
         internal LegacyNativeGameClientRuntime.BasicPhysicalNativeSnapshot Native = native;
         internal BasicPhysicalAttempt? Attempt;
         internal WorldSessionStore.BasicPhysicalHitReceipt? Committed;
+        internal WorldSessionStore.OwnedDragonhowlCompletion? DragonhowlCommitted;
         internal BasicPhysicalRepeat? Repeat;
     }
     private sealed record BasicPhysicalRequestState(BasicPhysicalSlot Slot, long Generation, MsgAttackQuery Query,
@@ -93,7 +94,7 @@ public sealed partial class WorldServerFrameHandler
                 !LegacyNativeMagicQueryClient.TryReadAttackSpeedCache(attacker, out var speed) || speed is null) return false;
             using var nativeRead = BasicPhysicalReadScope.Enter(attacker);
             if (!slot.Native.IsCurrentPlain(attacker) || slot.Native.AttackStamp != slot.AttackStamp) return false;
-            var attributes = new LegacyNativeAttributeMapProof(expected.Character.Attributes);
+            var attributes = LegacyNativeAttributeMapProof.CaptureRaw(expected.Character.Attributes);
             if (expected.Character.Agility is < 0 or > ushort.MaxValue) return false;
             // Applicable special/status branches are joined separately. Do
             // not reinterpret them as the ordinary repeat algorithm.

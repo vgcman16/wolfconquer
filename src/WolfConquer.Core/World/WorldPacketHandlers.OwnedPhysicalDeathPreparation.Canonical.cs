@@ -14,7 +14,8 @@ public static partial class WorldPacketHandlers
             private readonly LegacyItemSaveGraph items;
             internal CanonicalDeathTarget(WorldSession target)
             {
-                Target = target; attributes = new(target.Character.Attributes); paid = new(target.Character.PaidNobility);
+                Target = target; attributes = LegacyNativeAttributeMapProof.CaptureRaw(target.Character.Attributes);
+                paid = LegacyNativeAttributeMapProof.CaptureRaw(target.Character.PaidNobility);
                 spells = new(target.PlayerSpells.Spells);
                 if (!LegacyItemSaveGraph.TryCapture(target.PlayerItems, out var graph) || graph is null)
                     throw InvalidOwnedPhysicalDeath();
@@ -31,8 +32,8 @@ public static partial class WorldPacketHandlers
                 !BoundHitpointsInputs.ScalarsEqual(target.Character, Proposed.Character) ||
                 target.Character.SourceFile != Proposed.Character.SourceFile ||
                 !ReferenceEquals(target.Character.PlayerQuests, Proposed.Character.PlayerQuests) ||
-                !FieldsEqual(new LegacyNativeAttributeMapProof(target.Character.Attributes).Fields, proposedAttributes.Fields) ||
-                !FieldsEqual(new LegacyNativeAttributeMapProof(target.Character.PaidNobility).Fields, proposedPaid.Fields) ||
+                !FieldsEqual(LegacyNativeAttributeMapProof.CaptureRaw(target.Character.Attributes).Fields, proposedAttributes.Fields) ||
+                !FieldsEqual(LegacyNativeAttributeMapProof.CaptureRaw(target.Character.PaidNobility).Fields, proposedPaid.Fields) ||
                 !PlayerItemSnapshotLoader.ToLegacyBytes(target.PlayerItems).AsSpan()
                     .SequenceEqual(PlayerItemSnapshotLoader.ToLegacyBytes(Proposed.PlayerItems)) ||
                 !PlayerSpellSnapshotLoader.ToLegacyBytes(target.PlayerSpells).AsSpan()
@@ -64,6 +65,7 @@ public static partial class WorldPacketHandlers
             ReferenceEquals(target.CanAttackFlashingRegistration, Proposed.CanAttackFlashingRegistration);
 
         private static bool FieldsEqual(IReadOnlyDictionary<string, string> left, IReadOnlyDictionary<string, string> right) =>
-            left.Count == right.Count && left.All(row => right.TryGetValue(row.Key, out var value) && row.Value == value);
+            left.Count == right.Count && left.All(row => right.Any(actual =>
+                string.Equals(row.Key, actual.Key, StringComparison.Ordinal) && row.Value == actual.Value));
     }
 }

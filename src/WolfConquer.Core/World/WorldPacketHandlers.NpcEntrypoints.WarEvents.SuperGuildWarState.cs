@@ -2,7 +2,7 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-internal sealed class LegacySuperGuildWarStateStore
+internal sealed partial class LegacySuperGuildWarStateStore
 {
     private const ulong SourceGuildLeaderRank = 1;
     private const ulong SourceDeputyLeaderRank = 2;
@@ -11,7 +11,8 @@ internal sealed class LegacySuperGuildWarStateStore
 
     private readonly object _sync = new();
     private readonly Dictionary<uint, LegacySuperGuildWarGateRuntimeState> _gates = [];
-    private readonly Dictionary<ulong, LegacySuperGuildWarScoreEntry> _scores = [];
+    private Dictionary<ulong, LegacySuperGuildWarScoreEntry> _scores = [];
+    private ulong _scoreVersion;
     private readonly HashSet<uint> _claimedLeaderRewards = [];
     private readonly HashSet<uint> _claimedDeputyRewards = [];
     private string? _rewardSeedKey;
@@ -158,11 +159,13 @@ internal sealed class LegacySuperGuildWarStateStore
                     GuildName = guildName,
                     Score = SaturatingAdd(existing.Score, damage),
                 };
+                AdvanceScoreVersion();
                 _scores[guildId] = updated;
                 return updated;
             }
 
             var created = new LegacySuperGuildWarScoreEntry(guildId, guildName, damage);
+            AdvanceScoreVersion();
             _scores[guildId] = created;
             return created;
         }
@@ -182,6 +185,7 @@ internal sealed class LegacySuperGuildWarStateStore
     {
         lock (_sync)
         {
+            AdvanceScoreVersion();
             _gates.Clear();
             _scores.Clear();
             _claimedLeaderRewards.Clear();
@@ -196,9 +200,12 @@ internal sealed class LegacySuperGuildWarStateStore
     {
         lock (_sync)
         {
+            AdvanceScoreVersion();
             _scores.Clear();
         }
     }
+
+    private void AdvanceScoreVersion() => _scoreVersion = checked(_scoreVersion + 1);
 
     private void SeedRewardsIfNeeded(GuildWarData? superGuildWarInfo)
     {

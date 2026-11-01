@@ -286,19 +286,23 @@ public sealed partial class WorldServerFrameHandler
         LegacyBoundHitpointsScalarWrite? completedHitpoints = null,
         LegacyPreparedBasicPhysicalProficiencyWrite? completedProficiencies = null,
         WorldSessionStore.BasicPhysicalPublication? completedPhysicalDeath = null,
-        LegacyPreparedDerivedSpellQueryWrite? completedDerivedSpells = null)
+        LegacyPreparedDerivedSpellQueryWrite? completedDerivedSpells = null,
+        WorldSessionStore.OwnedDragonhowlDeathReceipt? completedDragonhowlDeath = null)
     {
         if (!ReferenceEquals(_sessions, issuingStore) ||
             !issuingStore.IsFramePersistenceCurrent(this, connection, current))
             throw new InvalidOperationException("Frame persistence requires its current issued Store owner.");
-        if (completedDerivedSpells is not null && (completedHitpoints is not null || completedPhysicalDeath is not null ||
+        if (completedDerivedSpells is not null && (completedHitpoints is not null || completedPhysicalDeath is not null || completedDragonhowlDeath is not null ||
             !completedDerivedSpells.CoversCommittedPublication(this, issuingStore, connection, previous, current)))
             throw new InvalidOperationException("derivedSpellQuery23CommittedPairCoverageLost");
+        if (completedDragonhowlDeath is not null && (completedPhysicalDeath is not null || completedHitpoints is null ||
+            !completedDragonhowlDeath.CoversCommittedDeathSpells(this, issuingStore, connection, previous, current)))
+            throw new InvalidOperationException("ownedDragonhowlCommittedSpellCoverageLost");
         if (completedHitpoints is null && completedDerivedSpells is null) PersistChangedSessionCharacterScalars(connection, previous, current);
         else if (completedHitpoints is not null && !completedHitpoints.CoversCommittedPublication(this, issuingStore, connection, previous, current))
             throw new InvalidOperationException("ordinaryHitpointsCommittedScalarCoverageLost");
         PersistChangedSessionPlayerItems(previous, current);
-        if (completedPhysicalDeath is null && completedDerivedSpells is null) PersistChangedSessionPlayerSpells(connection, previous, current);
+        if (completedPhysicalDeath is null && completedDerivedSpells is null && completedDragonhowlDeath is null) PersistChangedSessionPlayerSpells(connection, previous, current);
         else if (completedPhysicalDeath is not null && !completedPhysicalDeath.CoversCommittedDeathSpells(this, issuingStore, connection, previous, current))
             throw new InvalidOperationException("basicPhysicalCommittedSpellCoverageLost");
         if (completedProficiencies is null) PersistChangedSessionPlayerProficiencies(previous, current);

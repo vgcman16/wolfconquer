@@ -12,13 +12,16 @@ public sealed partial class OwnedEquipmentReentryTests
         string scenario, bool impregnation, uint firstDamage, uint secondDamage, uint firstStatus, uint secondStatus)
     {
         var inputs = LegacyMagicAttackRuntimeTests.OwnedOverlayReentryInputs(impregnation, 17_490, callback: false);
-        return OwnedEquipmentBehaviorFixture.RunAsync(inputs.Actor, inputs.World, async f =>
+        return OwnedEquipmentBehaviorFixture.RunWithNativeGearAsync(inputs.Actor, inputs.World, async f =>
         {
+            AssertAdmittedDragonhowlInputs(f, Actor, 17_490);
+            Assert.Equal(100_000, f.Current(Actor).Character.MinHitPoints);
+            Assert.Equal(100_000, f.Current(Target).Character.MinHitPoints);
             f.Log.WriteLine("Original scenario: " + scenario);
             var operationStart = f.ActorFrames.Count;
             var start = operationStart;
             await f.SendAsync(Actor, Attack(Actor, Target));
-            var first = Assert.Single(Animation(f.ActorFrames.Skip(start), 17_490).Targets);
+            var first = Assert.Single(Animation(f.ActorFrames.Skip(start), 17_490, f.Log.ToString()).Targets);
             Assert.Equal(Target, first.Uid); Assert.True(first.Hit); Assert.Equal(firstDamage, first.Damage);
             Assert.Equal(MsgAttackEffect.Penetration, first.Effect);
             Assert.Equal(firstStatus, impregnation ? (await Status(f, Target)).Counteraction : (await Status(f, Actor)).Breakthrough);
@@ -31,7 +34,7 @@ public sealed partial class OwnedEquipmentReentryTests
             if (!impregnation) Assert.True(Flag(f.Current(Actor), 313));
             start = f.ActorFrames.Count;
             await f.SendAsync(Actor, Attack(Actor, Target));
-            var second = Assert.Single(Animation(f.ActorFrames.Skip(start), 17_490).Targets);
+            var second = Assert.Single(Animation(f.ActorFrames.Skip(start), 17_490, f.Log.ToString()).Targets);
             Assert.Equal(Target, second.Uid); Assert.True(second.Hit); Assert.Equal(secondDamage, second.Damage);
             Assert.Equal(impregnation ? MsgAttackEffect.Penetration : MsgAttackEffect.None, second.Effect);
             Assert.Equal(secondStatus, impregnation ? (await Status(f, Target)).Counteraction : (await Status(f, Actor)).Breakthrough);

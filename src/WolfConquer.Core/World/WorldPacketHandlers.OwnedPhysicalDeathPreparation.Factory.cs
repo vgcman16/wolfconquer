@@ -2,6 +2,8 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
+    internal static OwnedPhysicalDeathPreparation PrepareOwnedDragonhowlDeath(WorldSessionStore.OwnedDragonhowlDeath purpose) =>
+        OwnedPhysicalDeathPreparation.PrepareActualDragonhowl(purpose);
     // The actual paired Store preparation holds both connection/actor gates.
     // The decision's private registry, not caller-supplied after-state, owns
     // the calculation passed to the pure death/query builder.
@@ -12,6 +14,16 @@ public static partial class WorldPacketHandlers
 
     internal sealed partial class OwnedPhysicalDeathPreparation
     {
+        internal bool MatchesDragonhowlCanonical(WorldSession target) => Dragonhowl is not null &&
+            IsCurrentPlain(TargetBinding) && CanonicalTargetMatches(target);
+
+        internal static OwnedPhysicalDeathPreparation PrepareActualDragonhowl(WorldSessionStore.OwnedDragonhowlDeath purpose)
+        {
+            if (!purpose.IsCurrentPlain()) throw InvalidOwnedPhysicalDeath();
+            var context = purpose.ActorBinding.Store.RequireOwnedDragonhowlDeathContext(purpose);
+            return new OwnedPhysicalDeathBuilder(context, null, null, purpose.ActorBinding, purpose.TargetBinding,
+                purpose.ExpectedActor, purpose.ExpectedTarget, purpose.Calculated, purpose).Build();
+        }
         // Construction stays in this actual nested type. Its private builder can
         // use the private constructor without widening arbitrary recipe authority.
         internal static OwnedPhysicalDeathPreparation PrepareActual(WorldPacketHandlerContext context,

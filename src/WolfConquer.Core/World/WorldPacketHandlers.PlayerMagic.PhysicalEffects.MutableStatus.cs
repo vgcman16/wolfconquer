@@ -117,7 +117,8 @@ public static partial class WorldPacketHandlers
 
     private static uint AddLegacyPhysicalMutableStatusPercent(uint current, uint percent)
     {
-        // Match the source uint multiply/add widths, including unchecked wrap.
-        return unchecked(current + current * percent / 100U);
+        // Preserve valid source arithmetic while rejecting an unrepresentable
+        // status before the prepared proc can publish costs or flags.
+        return checked(current + checked(current * percent) / 100U);
     }
 }

@@ -4,6 +4,37 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Open owned Physical proc integration - 2026-11-01
+
+### FSB-293: Execute selected Dragonhowl through the actual Physical owner
+
+OPEN, NOT QUALIFIED. An admitted Physical request with native Dragonhowl gear
+could enter the basic-hit owner before the existing proc selector, so valid
+17490/17650 outcomes never earned the expected mutable combat status or output.
+The draft captures the real request/cadence/operation, configured legacy19
+metadata, saved constructor gear origin, target bindings/incarnations and
+ordered phase writers. It keeps exact canonical successors before observers,
+reuses genuine player death settlement and fences committed failures. No direct
+Magic packet, fabricated Basic damage decision or accepting owner substitutes
+for the actual Physical request.
+
+Build10 passed0errors/100warnings. Gear06 remains red:2Passed/10Failed/0Skipped
+over12. Genuine FineRain-backed input correction now preserves100000HP, while
+the five reentry Frame logs identify unimplemented flashingNamePrefix before
+FrontBreak/animation. The real30-second native flashing status and its output
+phase are still implementation work. Admission11 passed2/2,0failed/0skipped:
+real saved-gear mismatch and a genuine complete native reload refuse without
+cost, HP, status, native attack/repeat, file or success-output changes. The
+metadata control replaces an actual loaded table owner; a source-file edit
+alone does not invalidate its immutable loaded image. Earlier admission08 red
+(1P/1F) remains retained; it exposed that incorrect fixture assumption.
+
+Lethal monster reward chains, remaining selected effect/event families,
+complete original91 regression repair and full-suite/live acceptance remain
+open. Ordered actor/target phases are not all-target crash atomicity or an
+outbox. Current source remains a private local checkpoint and never launches
+the held client/updater.
+
 ## Open managed Character publication repair - 2026-11-01
 
 ### FSB-292: Keep managed query saves and live Character mirrors coherent

@@ -440,7 +440,8 @@ public static partial class WorldPacketHandlers
         CharacterSnapshot character,
         IReadOnlyList<CaptureTheFlagBaseScore> scores)
     {
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
+        var attributes = CopyOwnedSobEventAttributes(character,
+            ["CaptureTheFlagBaseScores", "CtfBaseScores", "CTFBaseScores"]);
         RemoveCaptureTheFlagBaseScoreAttributes(attributes);
         if (scores.Count > 0)
         {
@@ -486,7 +487,7 @@ public static partial class WorldPacketHandlers
         CharacterSnapshot character,
         IReadOnlyList<(uint Uid, ushort X, ushort Y, ulong CapturerGuildId, bool X2, bool Viable)> bases)
     {
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
+        var attributes = CopyOwnedSobEventAttributes(character, ["CaptureTheFlagBases", "CtfBases", "CTFBases"]);
         attributes.Remove("CaptureTheFlagBases");
         attributes.Remove("CtfBases");
         attributes.Remove("CTFBases");

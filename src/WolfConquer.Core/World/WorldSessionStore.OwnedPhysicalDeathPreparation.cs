@@ -2,6 +2,13 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class WorldSessionStore
 {
+    internal WorldPacketHandlerContext RequireOwnedDragonhowlDeathContext(OwnedDragonhowlDeath purpose)
+    {
+        if (framePersistenceOwner is not { } frame || !dragonhowlDeaths.TryGetValue(purpose, out var data) ||
+            !ReferenceEquals(data.Owner.Frame, frame) || !purpose.IsCurrentPlain())
+            throw new InvalidOperationException("ownedDragonhowlDeathActualOwnerChanged");
+        return frame.CreateOwnedDragonhowlDeathContext(this, purpose);
+    }
     internal WorldPacketHandlerContext RequireOwnedPhysicalDeathContext(WorldPacketHandlerContext context,
         WorldPacketHandlers.BasicPhysicalReceiveDecision decision, WorldServerFrameHandler.BasicPhysicalAttempt attempt,
         LegacyOrdinarySpellBinding actor, LegacyOrdinarySpellBinding target, WorldSession expectedActor, WorldSession expectedTarget)
@@ -24,8 +31,12 @@ public sealed partial class WorldSessionStore
 
     internal bool IsOwnedPhysicalDeathPlanCurrent(WorldPacketHandlers.OwnedPhysicalDeathPreparation plan)
     {
+        if (plan.Dragonhowl is { } proc)
+            return plan.Decision is null && plan.Attempt is null && dragonhowlDeaths.TryGetValue(proc, out var data) &&
+                (data.Death is null || ReferenceEquals(data.Death, plan)) && proc.IsCurrentPlain() &&
+                ReferenceEquals(plan.ActorBinding, proc.ActorBinding) && ReferenceEquals(plan.TargetBinding, proc.TargetBinding);
         var actor = plan.ActorBinding; var target = plan.TargetBinding;
-        if (framePersistenceOwner is not { } frame || !ReferenceEquals(plan.Context.Sessions, this) ||
+        if (plan.Attempt is null || plan.Decision is null || framePersistenceOwner is not { } frame || !ReferenceEquals(plan.Context.Sessions, this) ||
             !ReferenceEquals(actor.Store, this) || !ReferenceEquals(target.Store, this) ||
             !frame.TryGetBasicPhysicalAttemptRoles(plan.Context, plan.Attempt, out var own, out var peer) ||
             !ReferenceEquals(own, actor) || !ReferenceEquals(peer, target) ||

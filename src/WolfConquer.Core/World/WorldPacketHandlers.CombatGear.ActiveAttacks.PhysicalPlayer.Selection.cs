@@ -11,6 +11,12 @@ public static partial class WorldPacketHandlers
         out uint gearItemId,
         out ushort spellId,
         out bool piratePassive)
+        => TrySelectLegacyDirectPhysicalCombatGearSpell(session, worldData, target.X, target.Y,
+            out gearItemId, out spellId, out piratePassive);
+
+    private static bool TrySelectLegacyDirectPhysicalCombatGearSpell(
+        WorldSession session, WorldDataCatalog? worldData, long targetX, long targetY,
+        out uint gearItemId, out ushort spellId, out bool piratePassive)
     {
         gearItemId = 0;
         spellId = 0;
@@ -59,7 +65,7 @@ public static partial class WorldPacketHandlers
             selectedSpells = LegacyCombatGearDragonhowlAttackSpells;
             if (worldData is not null)
             {
-                if (LegacyGetDistance(session.Character.X, session.Character.Y, target.X, target.Y) <= 3 &&
+                if (LegacyGetDistance(session.Character.X, session.Character.Y, targetX, targetY) <= 3 &&
                     CheckLegacyDirectPhysicalCombatGearLearnedRateSpell(session, worldData, 17_490, 1))
                 {
                     spellId = 17_490;
@@ -79,7 +85,7 @@ public static partial class WorldPacketHandlers
             gearItemId = LegacyCombatGearBloodlustItemId;
             selectedSpells = LegacyCombatGearBloodlustAttackSpells;
             if (worldData is not null &&
-                LegacyGetDistance(session.Character.X, session.Character.Y, target.X, target.Y) <= 3 &&
+                LegacyGetDistance(session.Character.X, session.Character.Y, targetX, targetY) <= 3 &&
                 CheckLegacyDirectPhysicalCombatGearLearnedRateSpell(session, worldData, 17_530, 1))
             {
                 spellId = 17_530;
@@ -92,7 +98,7 @@ public static partial class WorldPacketHandlers
             gearItemId = LegacyCombatGearRedcurseItemId;
             selectedSpells = LegacyCombatGearRedcurseAttackSpells;
             if (worldData is not null &&
-                LegacyGetDistance(session.Character.X, session.Character.Y, target.X, target.Y) <= 3 &&
+                LegacyGetDistance(session.Character.X, session.Character.Y, targetX, targetY) <= 3 &&
                 CheckLegacyDirectPhysicalCombatGearLearnedRateSpell(session, worldData, 17_530, 1) &&
                 session.PlayerSpells.ContainsSpell(17_570))
             {

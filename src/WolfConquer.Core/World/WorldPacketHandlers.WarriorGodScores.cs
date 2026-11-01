@@ -404,7 +404,7 @@ public static partial class WorldPacketHandlers
         string scoresAttribute,
         IReadOnlyList<LegacyClassPolePlayerScoreEntry> scores)
     {
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
+        var attributes = CopyOwnedSobEventAttributes(character, [scoresAttribute, "Legacy" + scoresAttribute]);
         attributes.Remove(scoresAttribute);
         attributes.Remove("Legacy" + scoresAttribute);
         if (scores.Count > 0)
@@ -429,16 +429,15 @@ public static partial class WorldPacketHandlers
     {
         var playerUid = roundOwner.PlayerUid.ToString(CultureInfo.InvariantCulture);
         var score = roundOwner.Score.ToString(CultureInfo.InvariantCulture);
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
+        var attributes = CopyOwnedSobEventAttributes(character, GetLegacyClassPoleWarAttributeNames(scheduleName,
+            "RoundOwnerPlayerUID", "RoundOwnerPlayerUid", "RoundOwnerName", "RoundOwnerScore",
+            "PoleOwnerName", "PoleReset", "PoleHitPoints", "PoleName"));
 
         foreach (var alias in GetLegacyClassPoleWarScheduleAliases(scheduleName))
         {
             attributes["Legacy" + alias + "RoundOwnerPlayerUID"] = playerUid;
-            attributes["Legacy" + alias + "RoundOwnerPlayerUid"] = playerUid;
             attributes[alias + "RoundOwnerPlayerUID"] = playerUid;
-            attributes[alias + "RoundOwnerPlayerUid"] = playerUid;
             attributes["Runtime" + alias + "RoundOwnerPlayerUID"] = playerUid;
-            attributes["Runtime" + alias + "RoundOwnerPlayerUid"] = playerUid;
             attributes["Legacy" + alias + "RoundOwnerName"] = roundOwner.PlayerName;
             attributes[alias + "RoundOwnerName"] = roundOwner.PlayerName;
             attributes["Runtime" + alias + "RoundOwnerName"] = roundOwner.PlayerName;
@@ -476,10 +475,11 @@ public static partial class WorldPacketHandlers
         IReadOnlyList<byte[]> ScorePanelFrames);
 }
 
-internal sealed class LegacyClassPolePlayerScoreStateStore
+internal sealed partial class LegacyClassPolePlayerScoreStateStore
 {
     private readonly object _sync = new();
-    private readonly Dictionary<uint, LegacyClassPolePlayerScoreEntry> _scores = [];
+    private Dictionary<uint, LegacyClassPolePlayerScoreEntry> _scores = [];
+    private ulong _scoreVersion;
 
     public LegacyClassPolePlayerScoreEntry UpdateScore(
         uint playerUid,
@@ -502,11 +502,13 @@ internal sealed class LegacyClassPolePlayerScoreStateStore
                     PlayerName = playerName,
                     Score = LegacyCombatDamageCalculator.AddLegacySaturating(existing.Score, damage),
                 };
+                AdvanceScoreVersion();
                 _scores[playerUid] = updated;
                 return updated;
             }
 
             var created = new LegacyClassPolePlayerScoreEntry(playerUid, playerName, damage);
+            AdvanceScoreVersion();
             _scores[playerUid] = created;
             return created;
         }
@@ -527,9 +529,12 @@ internal sealed class LegacyClassPolePlayerScoreStateStore
     {
         lock (_sync)
         {
+            AdvanceScoreVersion();
             _scores.Clear();
         }
     }
+
+    private void AdvanceScoreVersion() => _scoreVersion = checked(_scoreVersion + 1);
 }
 
 internal readonly record struct LegacyClassPolePlayerScoreEntry(

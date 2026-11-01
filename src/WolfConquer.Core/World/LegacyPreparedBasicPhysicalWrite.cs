@@ -10,7 +10,7 @@ internal sealed partial class LegacyPreparedBasicPhysicalWrite
     internal enum Outcome { Rejected, Committed, RecoveryRequired }
     internal readonly WorldServerFrameHandler Frame;
     internal readonly WorldSessionStore Store;
-    internal readonly WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation Plan;
+    internal readonly LegacyOwnedPhysicalDeathPurpose Plan;
     internal readonly LegacyOrdinarySpellBinding Binding;
     internal readonly WorldServerFrameHandler.BasicPhysicalFileRoots Roots;
     internal readonly string CharacterPath, ItemPath, SpellPath;
@@ -24,7 +24,7 @@ internal sealed partial class LegacyPreparedBasicPhysicalWrite
     internal WorldSession Proposed => Plan.Target;
 
     private LegacyPreparedBasicPhysicalWrite(WorldServerFrameHandler frame, WorldSessionStore store,
-        WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation plan)
+        LegacyOwnedPhysicalDeathPurpose plan)
     {
         Frame = frame; Store = store; Plan = plan; Binding = plan.TargetBinding;
         if (plan.Death is null || !plan.IsCurrentPlain()) throw Unavailable();
@@ -74,7 +74,9 @@ internal sealed partial class LegacyPreparedBasicPhysicalWrite
     }
 
     internal static LegacyPreparedBasicPhysicalWrite Prepare(WorldServerFrameHandler frame, WorldSessionStore store,
-        WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation plan) => new(frame, store, plan);
+        WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation plan) => new(frame, store, LegacyOwnedPhysicalDeathPurpose.FromBasic(plan));
+    internal static LegacyPreparedBasicPhysicalWrite PrepareDragonhowl(WorldServerFrameHandler frame, WorldSessionStore store,
+        WorldSessionStore.OwnedDragonhowlDeath purpose) => new(frame, store, LegacyOwnedPhysicalDeathPurpose.FromDragonhowl(purpose));
     private string[] Paths => [CharacterPath, ItemPath, SpellPath];
     internal bool IsCurrent() => Plan.IsCurrentPlain() && spells.OwnerIsCurrentPlain();
     internal bool IsActualCommittedSpellWriter(LegacyPreparedSpellFileWrite actual) => ReferenceEquals(spells, actual) &&

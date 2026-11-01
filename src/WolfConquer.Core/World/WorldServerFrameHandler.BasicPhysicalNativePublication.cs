@@ -4,7 +4,7 @@ public sealed partial class WorldServerFrameHandler
 {
     private sealed record BasicPhysicalRepeat(LegacyOrdinarySpellBinding? Target,
         LegacyNativeGameClientRuntime.BasicPhysicalNativeSnapshot Native, long Generation,
-        MonsterRuntimeStateStore.OwnedMonsterRepeatTarget? Monster = null);
+        MonsterRuntimeStateStore.OwnedMonsterRepeatTarget? Monster = null, DragonhowlPrimaryState? Dragonhowl = null);
 
     internal sealed class BasicPhysicalNativePublication
     {
@@ -16,15 +16,17 @@ public sealed partial class WorldServerFrameHandler
         private readonly LegacyNativeGameClientRuntime.BasicPhysicalNativeKind kind;
         private readonly BasicPhysicalRepeat? repeat;
         private readonly BasicPhysicalAttemptState? hit;
+        private readonly DragonhowlAttemptState? proc;
 
         private BasicPhysicalNativePublication(WorldServerFrameHandler frame, BasicPhysicalSlot slot,
             LegacyNativeGameClientRuntime.BasicPhysicalNativeSnapshot before,
             LegacyNativeGameClientRuntime.BasicPhysicalNativeSnapshot after,
             LegacyNativeGameClientRuntime.BasicPhysicalNativeKind kind, BasicPhysicalRepeat? repeat,
-            BasicPhysicalAttemptState? hit)
+            BasicPhysicalAttemptState? hit, DragonhowlAttemptState? proc = null)
         {
             this.frame = frame; this.slot = slot; this.before = before; this.after = after; this.kind = kind; this.repeat = repeat;
             this.hit = hit;
+            this.proc = proc;
             generation = slot.Generation; nextGeneration = checked(generation + 1); stamp = after.AttackStamp;
         }
 
@@ -47,7 +49,9 @@ public sealed partial class WorldServerFrameHandler
                 if (armAttempt is null || !frame.basicPhysicalAttempts.TryGetValue(armAttempt, out var issued) ||
                     !ReferenceEquals(issued.Slot, slot) || !ReferenceEquals(slot.Attempt, armAttempt) ||
                     issued.CommittedGeneration < 0 || slot.Generation != issued.CommittedGeneration ||
-                    slot.Committed is null) throw new InvalidOperationException("basicPhysicalArmRequiresCommittedAttempt");
+                    slot.Committed is null && (slot.DragonhowlCommitted is not { } proc ||
+                        !store.IsActualDragonhowlCompletion(proc, binding, armAttempt)))
+                    throw new InvalidOperationException("basicPhysicalArmRequiresCommittedAttempt");
                 repeat = new(issued.Target, native.After, slot.Generation);
             }
             else if (kind == LegacyNativeGameClientRuntime.BasicPhysicalNativeKind.CommittedHit)
@@ -62,19 +66,49 @@ public sealed partial class WorldServerFrameHandler
             return result;
         }
 
+        internal static BasicPhysicalNativePublication PrepareDragonhowl(WorldServerFrameHandler frame, WorldSessionStore store,
+            LegacyOrdinarySpellBinding binding, WorldSessionStore.BasicPhysicalNativeChange change,
+            LegacyNativeGameClientRuntime.OwnedBasicPhysicalPublication native, OwnedDragonhowlAttempt attempt)
+        {
+            if (!ReferenceEquals(store, frame._sessions) || !frame.dragonhowlAttempts.TryGetValue(attempt, out var proc) ||
+                !frame.DragonhowlAttemptCurrent(attempt, proc.Request, out _) || !ReferenceEquals(proc.Source.Actor, binding) ||
+                !native.IsPreparedFor(binding, change) ||
+                !change.TryReadPreparedProposal(binding, out var before, out var kind, out _, out _) ||
+                !ReferenceEquals(before, proc.Source.Wire.Slot.Native))
+                throw new InvalidOperationException("ownedDragonhowlNativeSlotChanged");
+            var slot = proc.Source.Wire.Slot;
+            BasicPhysicalRepeat? repeat = null;
+            if (kind == LegacyNativeGameClientRuntime.BasicPhysicalNativeKind.ArmRepeat)
+            {
+                if (proc.CommittedGeneration < 0 || slot.DragonhowlCommitted is not { } completion ||
+                    !store.IsActualDragonhowlCompletion(completion, binding, attempt) ||
+                    !frame.dragonhowlPrimaries.TryGetValue(proc.Source.Primary, out var primary))
+                    throw new InvalidOperationException("ownedDragonhowlArmRequiresActualCompletion");
+                repeat = primary.Binding is { } player
+                    ? new(player, native.After, slot.Generation)
+                    : new(null, native.After, slot.Generation, Dragonhowl: primary);
+            }
+            else if (kind != LegacyNativeGameClientRuntime.BasicPhysicalNativeKind.CommittedHit || proc.CommittedGeneration >= 0)
+                throw new InvalidOperationException("ownedDragonhowlNativeKindInvalid");
+            var result = new BasicPhysicalNativePublication(frame, slot, before!, native.After, kind, repeat, null, proc);
+            if (!result.IsCurrentPlain()) throw new InvalidOperationException("ownedDragonhowlNativeSlotChanged");
+            return result;
+        }
+
         internal void PublishPrepared()
         {
             slot.Native = after; slot.AttackStamp = stamp;
             if (kind == LegacyNativeGameClientRuntime.BasicPhysicalNativeKind.CancelRepeat)
             {
                 slot.Generation = nextGeneration;
-                slot.Attempt = null; slot.Committed = null; slot.Repeat = null;
+                slot.Attempt = null; slot.Committed = null; slot.DragonhowlCommitted = null; slot.Repeat = null;
             }
             else if (kind == LegacyNativeGameClientRuntime.BasicPhysicalNativeKind.CommittedHit)
             {
                 slot.Generation = nextGeneration;
-                hit!.CommittedGeneration = nextGeneration;
-                slot.Committed = null; slot.Repeat = null;
+                if (proc is not null) proc.RecordCommittedGeneration(nextGeneration);
+                else hit!.CommittedGeneration = nextGeneration;
+                slot.Committed = null; slot.DragonhowlCommitted = null; slot.Repeat = null;
             }
             else slot.Repeat = repeat;
         }
@@ -84,4 +118,9 @@ public sealed partial class WorldServerFrameHandler
         LegacyOrdinarySpellBinding binding, WorldSessionStore.BasicPhysicalNativeChange change,
         LegacyNativeGameClientRuntime.OwnedBasicPhysicalPublication native, BasicPhysicalAttempt? armAttempt = null)
         => BasicPhysicalNativePublication.Prepare(this, store, binding, change, native, armAttempt);
+
+    internal BasicPhysicalNativePublication PrepareDragonhowlNativePublication(WorldSessionStore store,
+        LegacyOrdinarySpellBinding binding, WorldSessionStore.BasicPhysicalNativeChange change,
+        LegacyNativeGameClientRuntime.OwnedBasicPhysicalPublication native, OwnedDragonhowlAttempt attempt)
+        => BasicPhysicalNativePublication.PrepareDragonhowl(this, store, binding, change, native, attempt);
 }

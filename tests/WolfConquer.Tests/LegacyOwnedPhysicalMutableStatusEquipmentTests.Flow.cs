@@ -56,10 +56,26 @@ public sealed partial class LegacyOwnedPhysicalMutableStatusEquipmentTests
         Assert.Equal((uint?)50, LegacyPhysicalStatusOverlay.ForOwner(fineRain).Counteraction);
         if (!distinct)
         {
+            var striker = f.Current(TargetPlayerUid);
+            Assert.Equal(100_000, striker.Character.MinHitPoints);
+            Assert.Equal(100_000, f.Owner.Character.MinHitPoints);
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(striker.NativeGameClient!.OrdinarySpellBinding);
+            Assert.True(f.Sessions.IsBoundSpellOwnerCurrent(binding));
+            Assert.True(f.NativeCombatGear.IsCurrentFor(f.World));
+            var nativeGear = Assert.IsType<LegacyNativeMyCombatGear>(striker.NativeGameClient.CombatGear);
+            Assert.True(nativeGear.IsCombatOwnedBy(striker.NativeGameClient));
+            Assert.True(nativeGear.IsAdmissionOriginCurrent(binding, striker));
+            Assert.Contains(Assert.IsType<CombatGearSnapshot>(striker.CombatGear).Items,
+                row => row.ItemID == 201 && row.Equip == 1);
+            Assert.Contains(new CombatGearSnapshotLoader(f.Data.CombatGear).LoadByCharacterUid(TargetPlayerUid).Items,
+                row => row.ItemID == 201 && row.Equip == 1);
+            Assert.True(striker.PlayerSpells.ContainsSpell(17_490));
+            Assert.True(new PlayerSpellSnapshotLoader(f.Data.Spells).LoadByCharacterUid(TargetPlayerUid).ContainsSpell(17_490));
             await f.Dispatch(TargetPlayerUid, new MsgAttackPacket(new MsgAttackQuery(Uid: TargetPlayerUid, OpponentUid: PlayerUid,
                 X: 830, Y: 584, AttackType: MsgAttackType.Physical, Damage: 0, KilledMonster: 0,
                 ResponseDamage: 0, Effect: MsgAttackEffect.None, Unknown: 0)).ToFrameBytes());
-            Assert.Equal(75U, (await f.QueryAsync()).Counteraction);
+            var warmedCounteraction = (await f.QueryAsync()).Counteraction;
+            Assert.True(warmedCounteraction == 75U, $"Expected actual Imp receive to earn75; got{warmedCounteraction}. Frame log:\n{f.Log}");
         }
         f.Clock.AdvanceMilliseconds(admitted ? 6_000 : 1_000);
         var beforeItems = File.ReadAllBytes(f.ItemsPath);

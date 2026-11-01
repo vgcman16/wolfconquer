@@ -275,7 +275,8 @@ public static partial class WorldPacketHandlers
         CharacterSnapshot character,
         IReadOnlyList<LegacyNobilityPoleScoreEntry> scores)
     {
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
+        var attributes = CopyOwnedSobEventAttributes(character,
+            [LegacyNobilityPoleScoresAttribute, "LegacyNobilityPoleScores"]);
         attributes.Remove(LegacyNobilityPoleScoresAttribute);
         attributes.Remove("LegacyNobilityPoleScores");
         if (scores.Count > 0)
@@ -301,7 +302,7 @@ public static partial class WorldPacketHandlers
         var playerUid = roundOwner.PlayerUid.ToString(CultureInfo.InvariantCulture);
         var score = roundOwner.Score.ToString(CultureInfo.InvariantCulture);
         var scheduleName = roundOwner.ScheduleName;
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase)
+        var updates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["Legacy" + scheduleName + "RoundOwnerPlayerUID"] = playerUid,
             ["Legacy" + scheduleName + "RoundOwnerPlayerUid"] = playerUid,
@@ -338,6 +339,8 @@ public static partial class WorldPacketHandlers
             ["LegacyNobilityPolePoleReset"] = "true",
             ["NobilityPolePoleReset"] = "true",
         };
+        var attributes = CopyOwnedSobEventAttributes(character, updates.Keys.ToArray());
+        foreach (var row in updates) attributes.Add(row.Key, row.Value);
         return character with { Attributes = attributes };
     }
 
@@ -349,10 +352,11 @@ public static partial class WorldPacketHandlers
         IReadOnlyList<byte[]> ScorePanelFrames);
 }
 
-internal sealed class LegacyNobilityPoleScoreStateStore
+internal sealed partial class LegacyNobilityPoleScoreStateStore
 {
     private readonly object _sync = new();
-    private readonly Dictionary<LegacyNobilityPoleScoreKey, LegacyNobilityPoleScoreEntry> _scores = [];
+    private Dictionary<LegacyNobilityPoleScoreKey, LegacyNobilityPoleScoreEntry> _scores = [];
+    private ulong _scoreVersion;
 
     public LegacyNobilityPoleScoreEntry UpdateScore(
         string scheduleName,
@@ -381,6 +385,7 @@ internal sealed class LegacyNobilityPoleScoreStateStore
                     PlayerName = playerName,
                     Score = SaturatingAdd(existing.Score, damage),
                 };
+                AdvanceScoreVersion();
                 _scores[key] = updated;
                 return updated;
             }
@@ -391,6 +396,7 @@ internal sealed class LegacyNobilityPoleScoreStateStore
                 playerUid,
                 playerName,
                 damage);
+            AdvanceScoreVersion();
             _scores[key] = created;
             return created;
         }
@@ -426,6 +432,7 @@ internal sealed class LegacyNobilityPoleScoreStateStore
     {
         lock (_sync)
         {
+            AdvanceScoreVersion();
             _scores.Clear();
         }
     }
@@ -436,6 +443,7 @@ internal sealed class LegacyNobilityPoleScoreStateStore
 
         lock (_sync)
         {
+            AdvanceScoreVersion();
             foreach (var key in _scores.Keys
                 .Where(key => key.ScheduleName.Equals(scheduleName, StringComparison.Ordinal))
                 .ToArray())
@@ -444,6 +452,8 @@ internal sealed class LegacyNobilityPoleScoreStateStore
             }
         }
     }
+
+    private void AdvanceScoreVersion() => _scoreVersion = checked(_scoreVersion + 1);
 
     private static uint SaturatingAdd(uint left, uint right)
     {

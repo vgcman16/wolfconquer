@@ -18,11 +18,13 @@ public static partial class WorldPacketHandlers
         private sealed partial class OwnedPhysicalDeathBuilder
         {
             private readonly WorldPacketHandlerContext context;
-            private readonly BasicPhysicalReceiveDecision decision;
-            private readonly WorldServerFrameHandler.BasicPhysicalAttempt attempt;
+            private readonly BasicPhysicalReceiveDecision? decision;
+            private readonly WorldServerFrameHandler.BasicPhysicalAttempt? attempt;
+            private readonly WorldSessionStore.OwnedDragonhowlDeath? dragonhowl;
             private readonly LegacyOrdinarySpellBinding actorBinding, targetBinding;
             private readonly WorldSession actor, target;
-            private readonly LegacySpellMutationInputs sourceInputs;
+            private readonly LegacySpellMutationInputs? sourceInputs;
+            private readonly LegacyOwnedPhysicalMetadataWitness? procInputs;
             private readonly LegacyOwnedPhysicalMetadataWitness metadata;
             private readonly List<OwnedPhysicalDeathFrame> frames = [];
             private WorldSession current, querySource;
@@ -36,23 +38,38 @@ public static partial class WorldPacketHandlers
             private PlayerItemSnapshot SourceItems => current.PlayerItems with { EquipmentItems = equipment };
             private uint Maximum => GetLegacyEquipmentRuntimeMaxHitpoints(current, Data);
 
-            internal OwnedPhysicalDeathBuilder(WorldPacketHandlerContext context, BasicPhysicalReceiveDecision decision,
-                WorldServerFrameHandler.BasicPhysicalAttempt attempt, LegacyOrdinarySpellBinding actorBinding,
-                LegacyOrdinarySpellBinding targetBinding, WorldSession actor, WorldSession target, WorldSession calculated)
+            internal OwnedPhysicalDeathBuilder(WorldPacketHandlerContext context, BasicPhysicalReceiveDecision? decision,
+                WorldServerFrameHandler.BasicPhysicalAttempt? attempt, LegacyOrdinarySpellBinding actorBinding,
+                LegacyOrdinarySpellBinding targetBinding, WorldSession actor, WorldSession target, WorldSession calculated,
+                WorldSessionStore.OwnedDragonhowlDeath? dragonhowl = null)
             {
                 this.context = context; this.decision = decision; this.attempt = attempt;
+                this.dragonhowl = dragonhowl;
                 this.actorBinding = actorBinding; this.targetBinding = targetBinding;
                 this.actor = actor; this.target = target;
                 nativeStatus = new(targetBinding);
-                sourceInputs = new(calculated, captureItems: true);
-                sourceInputs.ArmPlainProof();
                 // This builder privately owns a closed array for each virtual
                 // spell view. The original source retains its separate proof;
                 // no metadata witness needs to trust a private custom indexer.
-                current = querySource = sourceInputs.Stable with
-                    { PlayerSpells = new PlayerSpellSnapshot(sourceInputs.Spells.Rows.ToArray()) };
-                metadata = LegacyOwnedPhysicalMetadataWitness.Capture(targetBinding,
-                    context.WorldData ?? throw InvalidOwnedPhysicalDeath(), current);
+                if (dragonhowl is null)
+                {
+                    sourceInputs = new(calculated, captureItems: true);
+                    sourceInputs.ArmPlainProof();
+                    current = querySource = sourceInputs.Stable with
+                        { PlayerSpells = new PlayerSpellSnapshot(sourceInputs.Spells.Rows.ToArray()) };
+                    metadata = LegacyOwnedPhysicalMetadataWitness.Capture(targetBinding,
+                        context.WorldData ?? throw InvalidOwnedPhysicalDeath(), current);
+                }
+                else
+                {
+                    if (decision is not null || attempt is not null || !dragonhowl.IsCurrentPlain()) throw InvalidOwnedPhysicalDeath();
+                    procInputs = LegacyOwnedPhysicalMetadataWitness.CaptureDragonhowl(targetBinding,
+                        context.WorldData ?? throw InvalidOwnedPhysicalDeath(), calculated);
+                    var copy = CaptureEquipmentQueryInputs(calculated);
+                    current = querySource = copy with { PlayerSpells = new PlayerSpellSnapshot(
+                        new LegacyPerformerSpellSource(copy.PlayerSpells.Spells).Rows.ToArray()) };
+                    metadata = LegacyOwnedPhysicalMetadataWitness.CaptureDragonhowl(targetBinding, context.WorldData, current);
+                }
                 magic = LegacyNativeMagicQueryClient.Read(targetBinding.Store, targetBinding.Connection,
                     targetBinding.Uid, targetBinding.NativeIdentity);
                 jiangHu = LegacyNativeMagicQueryClient.ReadJiangHu(targetBinding.Store, targetBinding.Connection,
@@ -75,10 +92,11 @@ public static partial class WorldPacketHandlers
                 RemoveExplicitFlag(LegacyTyrantAuraStatusFlag);
                 RemoveExplicitFlag(LegacyFendAuraStatusFlag);
                 metadata.Extend(current);
-                if (!sourceInputs.ConsumeCurrentPlain() || !metadata.IsCurrentPlain()) throw InvalidOwnedPhysicalDeath();
+                if ((sourceInputs is not null ? !sourceInputs.ConsumeCurrentPlain() : procInputs?.IsCurrentPlain() != true) ||
+                    !metadata.IsCurrentPlain()) throw InvalidOwnedPhysicalDeath();
                 var values = new OwnedPhysicalDeathQueryValues(admitted, querySource, magic, jiangHu, prestige, perfection);
                 var result = new OwnedPhysicalDeathPreparation(context, decision, attempt, actorBinding, targetBinding,
-                    actor, target, current, values, nativeStatus, metadata)
+                    actor, target, current, values, nativeStatus, metadata, dragonhowl)
                 {
                     historicalFrames = frames.ToArray(),
                     derivedSpells = Array.AsReadOnly(derivedSpells.ToArray()),

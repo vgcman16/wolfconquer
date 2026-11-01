@@ -22,6 +22,7 @@ public sealed partial class WorldSessionStore
         private readonly LegacyPreparedPairMovementWrite.CharacterPublication? pairMovementPublication;
         private readonly LegacyPreparedMovementWrite.CharacterPublication? movementPublication;
         private readonly WorldPacketHandlers.OwnedPhysicalDeathPreparation? physicalDeath;
+        private readonly OwnedDragonhowlDeath? dragonhowlDeath;
         private readonly OwnedHawksAmbitionPublication? hawks;
         private readonly WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical;
         private readonly LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication;
@@ -60,7 +61,8 @@ public sealed partial class WorldSessionStore
             LegacyPreparedDerivedSpellQueryWrite.Publication? derivedSpellQueryPublication = null,
             WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null,
             OwnedAttributeChange? attributeChange = null,
-            WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery = null)
+            WorldPacketHandlers.OwnedContinuationQueryMutation? continuationQuery = null,
+            OwnedDragonhowlDeath? dragonhowlDeath = null)
         {
             bool pendingContinuation = !LegacyExperienceContinuationFence.AllowsOrdinaryPublication(expected, proposed);
             if (pendingContinuation && (continuationQuery is not null ? derivedSpellQueryPublication is not null :
@@ -73,6 +75,7 @@ public sealed partial class WorldSessionStore
             this.pairMovementPublication = pairMovementPublication;
             this.movementPublication = movementPublication;
             this.physicalDeath = physicalDeath;
+            this.dragonhowlDeath = dragonhowlDeath;
             this.basicPhysical = basicPhysical; this.physicalDeathPublication = physicalDeathPublication;
             this.teleportPublication = teleportPublication;
             this.derivedSpellQueryPublication = derivedSpellQueryPublication;
@@ -111,9 +114,15 @@ public sealed partial class WorldSessionStore
                 runePublication is not null || pairMovementPublication is not null || movementPublication is not null || ownedHawksCast is not null ||
                 !ReferenceEquals(basicPhysical.ExpectedTarget, expected) || !ReferenceEquals(basicPhysical.Death, physicalDeath)))
                 throw InvalidSpellPublication();
-            if (physicalDeathPublication is not null && (basicPhysical?.Death is null || !ReferenceEquals(basicPhysical.Death, physicalDeath)))
+            if (dragonhowlDeath is not null && (basicPhysical is not null || expected is null ||
+                physicalDeathPublication is null || !ReferenceEquals(dragonhowlDeath.Death, physicalDeath) ||
+                !ReferenceEquals(dragonhowlDeath.ExpectedTarget, expected) || !dragonhowlDeath.IsCurrentPlain()))
                 throw InvalidSpellPublication();
-            if (physicalDeath is not null && (basicPhysical is null || physicalDeathPublication is null))
+            if (physicalDeathPublication is not null && (dragonhowlDeath is null
+                    ? basicPhysical?.Death is null || !ReferenceEquals(basicPhysical.Death, physicalDeath)
+                    : !ReferenceEquals(dragonhowlDeath.Death, physicalDeath)))
+                throw InvalidSpellPublication();
+            if (physicalDeath is not null && (basicPhysical is null && dragonhowlDeath is null || physicalDeathPublication is null))
                 throw InvalidSpellPublication();
             if (ownedHawksCast is not null && (caprice is not null || deferItems || runePublication is not null ||
                 pairMovementPublication is not null || movementPublication is not null || physicalDeath is not null))
@@ -218,11 +227,11 @@ public sealed partial class WorldSessionStore
                         final = final with { PlayerItems = itemImage.FinalSnapshot };
                 }
                 hitpoints = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareBound(binding, expected, final);
-                if (teleportPublication is not null || basicPhysical is not null || movementPublication is not null || pairMovementPublication is not null || expected.Character.MinHitPoints != final.Character.MinHitPoints ||
+                if (teleportPublication is not null || basicPhysical is not null || dragonhowlDeath is not null || movementPublication is not null || pairMovementPublication is not null || expected.Character.MinHitPoints != final.Character.MinHitPoints ||
                     expected.Character.MinMana != final.Character.MinMana || caprice is not null)
                     HitpointsWrite = (store.framePersistenceOwner ?? throw InvalidSpellPublication())
                         .PrepareNativeHitpointsWrite(store, connection, binding, expected, final, caprice, runePublication, pairMovementPublication, movementPublication,
-                            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement, continuationQuery);
+                            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement, continuationQuery, dragonhowlDeath);
                 FinalSession = HitpointsWrite?.Proposed ?? final;
                 if (continuationQuery is not null && !SameContinuationQuerySession(continuationQuery.Proposed, FinalSession))
                     throw InvalidSpellPublication();

@@ -13,12 +13,14 @@ public static partial class WorldPacketHandlers
     internal sealed partial class OwnedPhysicalDeathPreparation
     {
         internal WorldPacketHandlerContext Context { get; }
-        internal BasicPhysicalReceiveDecision Decision { get; }
-        internal WorldServerFrameHandler.BasicPhysicalAttempt Attempt { get; }
+        internal BasicPhysicalReceiveDecision? Decision { get; }
+        internal WorldServerFrameHandler.BasicPhysicalAttempt? Attempt { get; }
+        internal WorldSessionStore.OwnedDragonhowlDeath? Dragonhowl { get; }
         internal LegacyOrdinarySpellBinding ActorBinding { get; }
         internal LegacyOrdinarySpellBinding TargetBinding { get; }
-        internal WorldSession ExpectedActor { get; }
-        internal WorldSession ExpectedTarget { get; }
+        private readonly WorldSession expectedActor, expectedTarget;
+        internal WorldSession ExpectedActor => Dragonhowl?.ExpectedActor ?? expectedActor;
+        internal WorldSession ExpectedTarget => Dragonhowl?.ExpectedTarget ?? expectedTarget;
         internal WorldSession Proposed { get; }
         private readonly OwnedPhysicalDeathQueryValues query;
         private readonly LegacyOwnedPhysicalMetadataWitness metadata;
@@ -30,21 +32,28 @@ public static partial class WorldPacketHandlers
 
         // Only the real normal-death builder in this containing type creates
         // this plan after complete phase calculation. No public recipe factory.
-        private OwnedPhysicalDeathPreparation(WorldPacketHandlerContext context, BasicPhysicalReceiveDecision decision,
-            WorldServerFrameHandler.BasicPhysicalAttempt attempt, LegacyOrdinarySpellBinding actorBinding,
+        private OwnedPhysicalDeathPreparation(WorldPacketHandlerContext context, BasicPhysicalReceiveDecision? decision,
+            WorldServerFrameHandler.BasicPhysicalAttempt? attempt, LegacyOrdinarySpellBinding actorBinding,
             LegacyOrdinarySpellBinding targetBinding, WorldSession actor, WorldSession target,
             WorldSession proposed, OwnedPhysicalDeathQueryValues query, OwnedDeathNativeStatus nativeStatus,
-            LegacyOwnedPhysicalMetadataWitness metadata)
+            LegacyOwnedPhysicalMetadataWitness metadata, WorldSessionStore.OwnedDragonhowlDeath? dragonhowl = null)
         {
+            if (dragonhowl is null ? decision is null || attempt is null : decision is not null || attempt is not null)
+                throw InvalidOwnedPhysicalDeath();
             Context = context; Decision = decision; Attempt = attempt;
+            Dragonhowl = dragonhowl;
             ActorBinding = actorBinding; TargetBinding = targetBinding;
-            ExpectedActor = actor; ExpectedTarget = target;
+            expectedActor = actor; expectedTarget = target;
             Proposed = proposed with { Character = new BoundHitpointsInputs(target.Character, proposed.Character).After };
             this.query = query; this.nativeStatus = nativeStatus; this.metadata = metadata;
-            actorAttributes = new(actor.Character.Attributes); actorPaid = new(actor.Character.PaidNobility);
-            targetAttributes = new(target.Character.Attributes); targetPaid = new(target.Character.PaidNobility);
-            proposedAttributes = new(Proposed.Character.Attributes); proposedPaid = new(Proposed.Character.PaidNobility);
-            queryAttributes = new(query.QuerySource.Character.Attributes); queryPaid = new(query.QuerySource.Character.PaidNobility);
+            actorAttributes = LegacyNativeAttributeMapProof.CaptureRaw(actor.Character.Attributes);
+            actorPaid = LegacyNativeAttributeMapProof.CaptureRaw(actor.Character.PaidNobility);
+            targetAttributes = LegacyNativeAttributeMapProof.CaptureRaw(target.Character.Attributes);
+            targetPaid = LegacyNativeAttributeMapProof.CaptureRaw(target.Character.PaidNobility);
+            proposedAttributes = LegacyNativeAttributeMapProof.CaptureRaw(Proposed.Character.Attributes);
+            proposedPaid = LegacyNativeAttributeMapProof.CaptureRaw(Proposed.Character.PaidNobility);
+            queryAttributes = LegacyNativeAttributeMapProof.CaptureRaw(query.QuerySource.Character.Attributes);
+            queryPaid = LegacyNativeAttributeMapProof.CaptureRaw(query.QuerySource.Character.PaidNobility);
             beforeSpells = new(target.PlayerSpells.Spells); proposedSpells = new(Proposed.PlayerSpells.Spells);
             if (!LegacyItemSaveGraph.TryCapture(target.PlayerItems, out var graph) || graph is null)
                 throw InvalidOwnedPhysicalDeath();
