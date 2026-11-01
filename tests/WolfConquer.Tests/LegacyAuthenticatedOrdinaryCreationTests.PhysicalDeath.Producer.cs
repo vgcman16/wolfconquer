@@ -16,38 +16,43 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
     {
         internal async Task EquipAndAttackAsync(LegacyJournalInterruption? fault = null)
         {
-            bool triggered = false, inside = false;
+            var clock = Assert.IsType<PhysicalDeathClock>(Owner.DeathClock);
+            Assert.Equal(10_000, clock.Now);
+            Assert.True(LegacyPlayerDeathState.HasStatusFlag(TargetSession.Character.Attributes, 212));
+            Assert.Equal(10_000, LegacyFineRainEquipmentAdmission.ForOwner(TargetSession).StampMilliseconds);
+            // Login genuinely established FineRain's guard. Equip completes
+            // under its own Frame lease; its query refuses within six seconds.
+            await Owner.SendOnAsync(Target,
+                new MsgItemUsagePacket(DeathArmorUid, 3, MsgItemUsageAction.Equip, 1234, 0, 0, 0).ToFrameBytes());
+            Assert.Contains(Owner.Frames(DeathTargetAccount), bytes => bytes.AsSpan().SequenceEqual(
+                LegacyMsgMessagePacket.SystemTalk("You Shoud wait 6 seconds.").ToFrameBytes()));
+            var armor = Assert.Single(TargetSession.PlayerItems.EquipmentItems);
+            Assert.Equal(DeathArmorUid, armor.Uid); Assert.Equal((ushort)3, armor.Position);
+            Assert.False(TargetSession.PlayerSpells.ContainsSpell(20000));
+            Assert.Equal(200L, TargetSession.Character.MinHitPoints);
+            Assert.False(LegacyTradeJournal.HasPending(Owner.Data.Users));
+            var targetBinding = Assert.IsType<LegacyOrdinarySpellBinding>(TargetSession.NativeGameClient!.OrdinarySpellBinding);
+            Assert.True(Owner.Store.IsBoundSpellOwnerCurrent(targetBinding));
+            Assert.False(targetBinding.Storage.ClientSpells.ContainsKey(20000));
+            Assert.False(LegacyEquipmentRebuildAdmission.ApplyCurrent(TargetSession,
+                LegacyEquipmentRebuildReason.PlayerDeath, clock).Admitted);
+            Before = CapturePhysicalDeathBefore(this);
+            Owner.Frames(CreationFixture.RuneActor).Clear(); Owner.Frames(DeathTargetAccount).Clear();
+            clock.Now = 16_001; // The real death query now clears the six-second guard.
+            Assert.True(LegacyEquipmentRebuildAdmission.ApplyCurrent(TargetSession,
+                LegacyEquipmentRebuildReason.PlayerDeath, clock).Admitted);
             Owner.BeforeSend = (account, bytes) =>
             {
-                if (!triggered && account == DeathTargetAccount)
-                {
-                    triggered = true;
-                    var armor = Assert.Single(TargetSession.PlayerItems.EquipmentItems);
-                    Assert.Equal(DeathArmorUid, armor.Uid); Assert.Equal((ushort)3, armor.Position);
-                    Assert.False(TargetSession.PlayerSpells.ContainsSpell(20000));
-                    Assert.Equal(200L, TargetSession.Character.MinHitPoints);
-                    Assert.False(LegacyTradeJournal.HasPending(Owner.Data.Users));
-                    Before = CapturePhysicalDeathBefore(this);
-                    // Equip has released Exclusive and all Store/native gates.
-                    // This OTHER real connection enters normal Shared +the real
-                    // ordered two-owner physical publisher before Equip's query.
-                    Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
-                    inside = true; Owner.Handler.PhysicalDeathJournalInterruption = fault;
-                    try { Owner.SendOnAsync(Actor, DeathAttackRequest()).GetAwaiter().GetResult(); }
-                    finally { Owner.Handler.PhysicalDeathJournalInterruption = null; inside = false; }
-                    return;
-                }
-                if (!inside) return;
                 PhysicalFrames.Add((account, bytes.ToArray()));
                 BeforePhysicalSend?.Invoke(account, bytes);
             };
+            Owner.Handler.PhysicalDeathJournalInterruption = fault;
             try
             {
-                await Owner.SendOnAsync(Target,
-                    new MsgItemUsagePacket(DeathArmorUid, 3, MsgItemUsageAction.Equip, 1234, 0, 0, 0).ToFrameBytes());
+                await Owner.SendOnAsync(Actor, DeathAttackRequest());
             }
-            finally { Owner.BeforeSend = null; }
-            Assert.True(triggered, Owner.Log.ToString()); Assert.NotNull(Before);
+            finally { Owner.Handler.PhysicalDeathJournalInterruption = null; Owner.BeforeSend = null; }
+            Assert.NotNull(Before);
         }
     }
 

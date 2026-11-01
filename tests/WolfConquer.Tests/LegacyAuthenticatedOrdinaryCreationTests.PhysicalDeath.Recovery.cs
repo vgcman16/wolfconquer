@@ -12,13 +12,12 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
         RunPhysicalDeathAsync(async f =>
         {
             var captured = await CapturePhysicalDeathAsync(f, boundary, flushed);
-            // The only output outside the failed physical producer is the
-            // already committed Equip's in-flight first notification. No
-            // physical/death/derived query output is authorized by pending22.
+            // The completed Equip notifications were separately observed and
+            // cleared before attack; pending22 authorizes no physical output.
             Assert.Empty(f.Owner.Frames(CreationFixture.RuneActor));
-            Assert.Single(f.Owner.Frames(DeathTargetAccount)); Assert.Empty(f.Owner.Sent);
+            Assert.Empty(f.Owner.Frames(DeathTargetAccount)); Assert.Empty(f.Owner.Sent);
             await RestartPhysicalDeathAsync(f, captured.Before, captured.TransactionId);
-        });
+        }, deferredDeathQuery: true);
 
     internal static async Task RestartPhysicalDeathAsync(PhysicalDeathFixture f, PhysicalDeathBefore before, string? transaction = null)
     {

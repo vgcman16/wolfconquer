@@ -43,5 +43,5 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
             await f.Owner.Handler.SendDueBasicPhysicalAttacksAsync(CancellationToken.None);
             Assert.Equal(count, f.PhysicalFrames.Count); AssertPhysicalDeathPublished(f);
             await RestartPhysicalDeathAsync(f, before);
-        }, changed);
+        }, changed, deferredDeathQuery: true);
 }

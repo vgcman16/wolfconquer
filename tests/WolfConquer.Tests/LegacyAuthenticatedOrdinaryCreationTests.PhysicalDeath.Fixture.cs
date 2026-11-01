@@ -11,7 +11,7 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
     internal const uint DeathTargetAccount = CreationFixture.Account + 1, DeathTargetUid = 1_293_601;
     private const uint DeathArmorUid = 5_337_700, DeathArmorType = 130_009;
 
-    internal static Task RunPhysicalDeathAsync(Func<PhysicalDeathFixture, Task> body, bool changed = true) => Run(async f =>
+    internal static Task RunPhysicalDeathAsync(Func<PhysicalDeathFixture, Task> body, bool changed = true, bool deferredDeathQuery = false) => Run(async f =>
     {
         await CreateAndAssert(f); await DepositNewbornMoney(f); await f.ConnectRuneActorAsync();
         var target = f.NewConnection(DeathTargetAccount);
@@ -27,7 +27,7 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
             .Where(row => row.Type == LegacyMsgUpdateDataType.MaxHitpoints).Last().Value;
         f.Sent.Clear(); f.Frames(CreationFixture.RuneActor).Clear(); f.Frames(DeathTargetAccount).Clear();
         await body(new PhysicalDeathFixture(f, target, changed, maximum));
-    }, beforeBootstrap: f => f.ConfigurePhysicalDeathInputs(changed));
+    }, beforeBootstrap: f => f.ConfigurePhysicalDeathInputs(changed, deferredDeathQuery));
 
     internal sealed partial class PhysicalDeathFixture(CreationFixture owner, ConquerTcpConnection target, bool changed, ulong maximum)
     {
@@ -51,13 +51,25 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
 
     internal sealed partial class CreationFixture
     {
-        internal void ConfigurePhysicalDeathInputs(bool changed)
+        internal LegacyRuntimeUpdateLoopOptions RuntimeOptions = LegacyRuntimeUpdateLoopOptions.Disabled;
+        internal PhysicalDeathClock? DeathClock;
+
+        internal void ConfigurePhysicalDeathInputs(bool changed, bool deferredDeathQuery = false)
         {
             // This existing hook runs BEFORE Bootstrap. Newborn is absent and
             // never receives invented combat stats, items or eligibility.
             var actor = DeathSavedCharacter(RuneActor, "DeathActor", 6000, 830, 5000, 300);
             WriteDeathCharacter(Data.UserPath, actor);
             var target = DeathSavedCharacter(DeathTargetUid, "DeathTarget", 7051, 831, 200, 0);
+            if (deferredDeathQuery)
+            {
+                var flags = new ulong[16]; flags[212 / 32] = 1UL << (212 % 32);
+                var attributes = new Dictionary<string, string>(target.Attributes, StringComparer.OrdinalIgnoreCase)
+                    { ["StatusFlags"] = string.Join('/', flags) };
+                target = target with { Attributes = attributes };
+                DeathClock = new PhysicalDeathClock();
+                RuntimeOptions = LegacyRuntimeUpdateLoopOptions.Disabled with { LegacyClock = DeathClock };
+            }
             WriteDeathCharacter(DeathFile(this, LegacyTradeJournalFileKind.Character), target);
             new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(DeathTargetUid, new(
                 new PlayerItemSnapshotItem[] { new() { Uid = DeathArmorUid, ItemId = DeathArmorType, Position = 0,
@@ -72,6 +84,12 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
             new LegacyMailboxStore(Data.Root).Save(DeathTargetUid);
             Catalog = BuildPhysicalDeathCatalog(Catalog);
         }
+    }
+
+    internal sealed class PhysicalDeathClock : ILegacySignedMillisecondClock
+    {
+        internal int Now = 10_000;
+        public int GetMilliseconds() => Now;
     }
 
     private static CharacterSnapshot DeathSavedCharacter(uint uid, string name, long job, long x, long hp, long strength)

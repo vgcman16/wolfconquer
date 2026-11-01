@@ -64,5 +64,5 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
                 f.Owner.Data.AssertFiles(files); AssertDeathHistoryUnchanged(f, captured.Before);
             }
             using var lease = new FileStream(f.Owner.Data.OwnerLease, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-        });
+        }, deferredDeathQuery: true);
 }

@@ -94,7 +94,7 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
             Assert.True(LegacyOwnedAdmissionRuntime.TryOpen(Data.Loader, Data.Options(), out var opened, out var reason), reason);
             var owner = Assert.IsType<LegacyOwnedAdmissionRuntime>(opened); owners.Add(owner); Runtime = owner; return owner;
         }
-        private WorldServerFrameHandler NewHandler() => new(Data.Loader, Handoff, Catalog, LegacyRuntimeUpdateLoopOptions.Disabled,
+        private WorldServerFrameHandler NewHandler() => new(Data.Loader, Handoff, Catalog, RuntimeOptions,
             Log, clientCompatibility: ClientCompatibility, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime, nativeCombatGear: NativeCombatGear);
         internal ConquerTcpConnection NewConnection(uint account = Account)
         {
