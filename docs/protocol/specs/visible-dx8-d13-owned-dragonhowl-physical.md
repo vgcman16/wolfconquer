@@ -158,28 +158,36 @@ replaced by an accepting substitute.
 
 ## Current bounded result - 2026-11-01
 
-Release build25 passed (0 errors, 160 warnings). Focused26 passed34/34, with no
-failed/skipped cases; actual TRX nodes were counted. This includes the original
-12 gear cases, 2 admission refusals, 6 lifecycle cases, 8 non-player cases and
-6 worn-input controls. The earlier18-case result overlaps and is not additive.
+Release build33 passed (0 errors, 103 reported warnings). Focused34 passed49/49,
+0 failed/skipped, 1m41s; actual TRX nodes were counted. This includes the prior
+34 cases, 13 generic publication/expiry loss controls and two real changed194
+death cases. Earlier passing scopes overlap and are not additive.
 
 Executed behavior includes native flashing2176 before FrontBreak/targetHP/2239,
-real worker expiry at29/30 seconds, earned native-0 removal on a real lethal
-Basic hit,1050-damage monster/SOB primary and repeat, real target lineage/reset
-refusal, and postcommit corruption/output-loss fencing. A real non-player proc
-reservation does not grant Basic authority. Original17490/17650 damage/status/
-wire and file goldens remain; defensive array edits retain582/Penetration.
+real worker expiry at29/30 seconds, native-0 removal on a real lethal Basic hit,
+1050-damage monster/SOB primary and repeat, lineage/reset refusal, mutable input
+and output-loss fencing, and original17490/17650 damage/status/wire/file goldens.
+The non-player reservation cannot grant Basic authority.
 
-Preflight uses before-writer proof, not an already-committed HP proof. Worn
-currentness follows only the actual private proc's committed successor with
-original binding/snapshot/native graph. Basic behavior stays strict. Per-phase
-diagnostics report data and grant no authority. Earlier failed runs are retained.
+A valid class16051 victim earns FineRain, actually unequips its left fan during
+the six-second defer window, then dies after that window. Both Basic and proc
+publish the real changed194 token exactly once. Proc preflight only observes
+the token; its first applicable flashing output sees it still pending. After the
+same death writer commits, the original token is consumed and the independent
+three-vector, zero-HP/max10764 and full saved-image goldens hold.
 
-Monster fixtures now provide the adopted raw ID and explicit catalog array;
-FineRain data backs100000 HP after its100HP buff. Neither changes damage goldens.
-A complete native table publisher transition, rather than a source-file edit
-alone, invalidates the immutable old loaded metadata owner in refusal tests.
+Before-writer proofs stay strict. After journal22 replaces saved-Spells state,
+proc publication now checks the same real committed writer/anchor/afterimages,
+not its expired before owner. The same purpose/native/query/wind/cancellation/
+notification participants remain required. This fixes the concrete postcommit
+refusal exposed by the new regression. Failed runs28/30/32 remain retained.
 
-Still required: genuinely changed194 death, explicit generic orphan guard and
-expiry output-loss controls, broader/full Windows checks, lethal monster rewards,
-Team XP, remaining effects/events, SQL/crash/outbox and live client acceptance.
+The changed-fan fixture preserves and checks physical WAL row order, changing
+only the actual left-row Position. Parsed logical and native item graphs are
+checked separately. Its proc inputs use DynamicID0 before admission because
+instanced maps correctly suppress the flashing prefix used for observation.
+No successful packet, damage, resource or ownership golden was relaxed.
+
+Still required: broader/full Windows checks, complete lethal monster rewards,
+Team XP and future overlapping recipients, joint proficiency, remaining effects/
+events, SQL/crash/outbox and live-client acceptance after the execution hold.

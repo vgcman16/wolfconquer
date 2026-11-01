@@ -60,8 +60,16 @@ public sealed partial class WorldSessionStore
             if (!IsCurrentPlain()) { Dispose(); throw InvalidSpellPublication(); }
         }
 
-        internal bool IsCurrentPlain() => !published && Purpose.IsCurrentPlain() && Writer.IsCurrent() &&
+        private bool PreparedParticipantsCurrentPlain() => !published && Purpose.IsCurrentPlain() &&
             query.IsCurrentPlain() && wind.IsCurrentPlain() && cancellation.IsCurrentPlain() && Notifications.IsCurrentPlain();
+
+        internal bool IsCurrentPlain() => Writer.IsCurrent() && PreparedParticipantsCurrentPlain();
+
+        // Successful journal publication expires the before-Spells owner. This
+        // same writer's actual saved anchor and complete afterimages replace it;
+        // the original prepared live/native participants must still be current.
+        internal bool IsCommittedWriterCurrentPlain() => hitpoints.IsCommitted &&
+            Writer.MatchesActualCommittedAfterImages() && PreparedParticipantsCurrentPlain();
 
         internal bool ConsumeBeforeWriterPlain() => IsCurrentPlain() && wind.ConsumeBeforeWriterPlain();
 

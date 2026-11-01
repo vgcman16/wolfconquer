@@ -166,7 +166,7 @@ public sealed partial class WorldSessionStore
                 }
                 state.CommitStage = "afterWriter";
                 if (!publication.IsCurrentPlain() || !DragonhowlHeldCurrent(state) || !permission.IsCurrentPlain() ||
-                    death is not null && !death.IsCurrentPlain() ||
+                    death is not null && !death.IsCommittedWriterCurrentPlain() ||
                     flashing is not null && !flashing.IsCurrentPlain() ||
                     native is not null && (!native.IsCurrentPlain() || runtime?.IsCurrentPlain() != true))
                     throw new InvalidOperationException("ownedDragonhowlPublicationChanged");

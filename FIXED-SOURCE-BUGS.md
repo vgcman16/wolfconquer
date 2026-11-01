@@ -8,48 +8,60 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ### FSB-293: Execute selected Dragonhowl through the actual Physical owner
 
-OPEN full integration. Release build 25 passed (0 errors, 160 warnings).
-Focused run 26 passed 34/34, with 0 failed and 0 skipped; actual TRX nodes were
-counted. The earlier 18-case result overlaps this run and is not additive.
+OPEN full integration. Release build 33 passed (0 errors, 103 reported warnings,
+40.32 seconds). Focused run 34 passed 49/49, with 0 failed and 0 skipped in
+1m41s; actual TRX result nodes were counted. Earlier 18/34-case scopes overlap.
 
 The original equipment/reentry cases retain independent 17490/17650 damage,
-range-nine, native19 gear, complete saved-file and packet expectations. New
-controls prove real native flashing order, saved-gear/table-publisher refusal,
-learned-spell refusal, connection-loss fencing, exposed rune/catalog drift,
-worker-driven expiry at 30 seconds, earned native-0 removal on a lethal Basic
-hit, and monster/SOB primary/repeat/replacement/respawn/reset behavior. The actual
-non-player reservation cannot enter Basic authority or be consumed by Basic
-cleanup. Defensive array edits preserve the original 582-damage positive.
+range-nine, native19 gear, complete saved-file and packet expectations. Controls
+prove native flashing order, saved gear/table publisher and learned-spell
+refusal, connection-loss fencing, mutable rune/catalog drift, worker-driven
+expiry at 30 seconds, earned native-0 removal on lethal Basic death, and
+monster/SOB primary/repeat/replacement/respawn/reset behavior. The non-player
+reservation cannot enter Basic authority. Defensive array edits retain the
+original 582-damage positive.
+
+The additional 13 cases exercise unchanged generic publication, rejected
+managed/native orphaning or replacement, and actual owner/peer expiry output
+loss. Two genuine deferred fan-removal cases now execute changed native194
+through both Basic and Dragonhowl death. They prove the original token remains
+unconsumed during proc preflight and is consumed by the actual death writer,
+with exact status vectors, HP/maxima, saved files and no successful replay.
 
 The real Physical request owns command, cadence, configured legacy19 metadata,
 saved constructor gear, target lineage and ordered phase writers. Native and
-managed flashing state commit before status2176, FrontBreak, target HP and
-animation2239. The private native lease follows its original binding, row,
-registration and clock. Generic publication preserves it or needs a real typed
-expiry/death participant. Real expiry removes both halves before output; real
-physical death composes native-0 removal with the genuine 194 after graph.
+managed flashing commit before status2176, FrontBreak, target HP and animation
+2239. The private lease follows its original binding, row, registration and
+clock. Generic publication preserves it or needs typed expiry/death authority.
+Real expiry removes both halves before output; physical death composes native-0
+removal with the genuine194 after graph.
 
-Integration corrected two ownership defects: preflight required a postcommit
-HP proof before any writer, and worn-rune proof pinned the original holder after
-this proc legitimately published its successor. Preflight now consumes the real
-before-writer proof; actual post-write checks stay. Only this registered plan's
-original binding/snapshot/session can follow its actual committed successor;
-native rune objects/context, class/level/reborn and rows remain checked. Basic
-consumers retain strict original-holder behavior. Death preflight observes the
-actual prepared 194 token; only real Basic/proc writers consume it once, followed
-by the full proof after a possible comparer call.
+Integration corrected preflight requiring an already-committed HP proof, and
+worn-rune proof pinning the original holder after this proc's real successor.
+Only the registered plan's original binding/snapshot/session may follow its
+actual committed successor. Native objects/context, class/level/reborn and rows
+remain checked; Basic consumers remain strict. Death preflight only observes
+the prepared194 token; the real writer consumes it once and rechecks all proofs.
 
-Fixture corrections preserve the independent goldens: actual FineRain adds
-100 HP to a genuine 99900 base; monster input supplies its adopted raw ID and an
-explicit supported catalog array. Earlier compiler, gear, focused, admission and
-nonplayer23 reds remain retained, not relabeled or waived.
+The new death regression also exposed a postcommit defect: the proc checked
+the precommit saved-Spells owner after its successful journal had replaced that
+anchor. The after-writer check now requires this same writer's actual committed
+HP proof, private operation, saved-Spells anchor and complete Character/Items/
+Spells afterimages, plus the unchanged purpose and native/query/wind/cancellation/
+notification proofs. Before-writer ownership is unchanged. Earlier failed runs
+28, 30 and 32 remain retained, not relabeled.
 
-Still open: a genuinely changed-194 death execution, explicit generic orphan
-guard and expiry output-loss controls, broader/full-suite acceptance, lethal
-monster reward/Team XP chains, remaining effect/event families, original full91
-closure, other unbound save origins, SQL, and live client acceptance. Ordered
-phases are not an all-target crash transaction or output outbox. This is a local
-checkpoint; no push or legacy client/updater launch is implied.
+Fixture corrections preserve independent goldens: genuine FineRain adds100 HP;
+monster input supplies its raw ID and supported catalog array. The changed-fan
+fixture asserts both exact retained WAL row order (only Position changes) and
+parsed logical/native state. Its proc actor and victim use DynamicID0 before
+bootstrap so the observed flashing prefix is actually applicable.
+
+Still open: broader/full-suite acceptance, lethal monster reward/Team XP chains,
+remaining effects/events, original full91 closure, other unbound save origins,
+SQL, and live-client acceptance. Ordered phases are not an all-target crash
+transaction or output outbox. This is local qualification, not a source push or
+legacy client/updater launch.
 
 ## Open managed Character publication repair - 2026-11-01
 
