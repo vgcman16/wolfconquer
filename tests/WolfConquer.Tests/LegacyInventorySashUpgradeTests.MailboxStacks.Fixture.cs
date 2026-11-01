@@ -60,7 +60,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
             fields[ItemType.StackSizeFieldIndex] = (row.Id == splitItem ? limit : 1000).ToString(CultureInfo.InvariantCulture);
             return new ItemType(checked((int)row.Id), fields[1], fields);
         });
-        return LegacyItemWorldDataFixture.Create(items.ToArray());
+        return LegacyItemWorldDataFixture.Create(items.Append(PackageJoinEquippedMeteor()).ToArray());
     }
 
     private sealed partial class Fixture

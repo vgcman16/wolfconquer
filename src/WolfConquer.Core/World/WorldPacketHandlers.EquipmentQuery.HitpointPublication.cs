@@ -41,6 +41,14 @@ public static partial class WorldPacketHandlers
             loss |= LegacyEquipmentQueryPublicationLoss.OwnerLost;
         }
 
+        if (scope.PhysicalReceiveOwner is { } physical &&
+            (context.Sessions is not { } store || !ReferenceEquals(physical.Connection, context.Connection) ||
+             !ReferenceEquals(owner?.NativeGameClient, physical.Client) || !store.IsBoundSpellOwnerCurrent(physical)))
+        {
+            owner = null;
+            loss |= LegacyEquipmentQueryPublicationLoss.OwnerLost;
+        }
+
         if (owner is not null && scope.ExpectedItems is { } items &&
             !ReferenceEquals(owner.PlayerItems, items))
         {

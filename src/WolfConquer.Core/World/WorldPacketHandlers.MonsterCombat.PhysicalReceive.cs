@@ -7,11 +7,10 @@ public static partial class WorldPacketHandlers
 
     private static async ValueTask<LegacyPhysicalMonsterReceiveResult> ApplyLegacyPhysicalMonsterHitAsync(
         WorldPacketHandlerContext context, WorldSession session, LegacyMonsterInstance monster,
-        uint damage, CancellationToken cancellationToken)
+        uint damage, LegacyEquipmentQueryPublicationScope scope, CancellationToken cancellationToken)
     {
         // Native CheckForOponnentDead holds Player BEFORE RemovePick can publish.
         var nativePlayerReceiver = session.NativePlayer;
-        var scope = new LegacyEquipmentQueryPublicationScope(session.Character.Uid);
         var current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
         if (!current.Completed) return default;
         session = current.Session!;

@@ -25,7 +25,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
         fields[ItemType.DurabilityFieldIndex] = "321";
         fields[ItemType.StackSizeFieldIndex] = ushort.MaxValue.ToString(CultureInfo.InvariantCulture);
         return new ItemType(checked((int)row.Id), fields[1], fields);
-    }).ToArray());
+    }).Append(PackageJoinEquippedMeteor()).ToArray());
 
     private static void SeedHistoryMails(Fixture fixture, int count)
     {

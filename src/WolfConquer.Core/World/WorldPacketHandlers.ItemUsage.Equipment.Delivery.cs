@@ -32,7 +32,11 @@ public static partial class WorldPacketHandlers
                     new LegacyEquipmentQueryRequest(LegacyEquipmentRebuildReason.EquipmentMutation,
                         new LegacyEquipmentQueryPublicationScope(owner.Expected.Character.Uid, committedItems)
                         { OwnerNativeClientIdentity = owner.Identity }), cancellationToken).ConfigureAwait(false);
-                if (!query.Completed) return;
+                if (!query.Completed)
+                {
+                    await context.Log.WriteLineAsync($"WorldServer equipment move query stopped operation={plan.Operation} loss={query.Loss}.").ConfigureAwait(false);
+                    return;
+                }
                 session = query.Session!;
             }
             else

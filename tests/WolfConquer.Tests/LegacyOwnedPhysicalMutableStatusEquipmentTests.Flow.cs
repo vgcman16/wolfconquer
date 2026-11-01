@@ -57,7 +57,7 @@ public sealed partial class LegacyOwnedPhysicalMutableStatusEquipmentTests
         if (!distinct)
         {
             await f.Dispatch(TargetPlayerUid, new MsgAttackPacket(new MsgAttackQuery(Uid: TargetPlayerUid, OpponentUid: PlayerUid,
-                X: 120, Y: 121, AttackType: MsgAttackType.Physical, Damage: 0, KilledMonster: 0,
+                X: 830, Y: 584, AttackType: MsgAttackType.Physical, Damage: 0, KilledMonster: 0,
                 ResponseDamage: 0, Effect: MsgAttackEffect.None, Unknown: 0)).ToFrameBytes());
             Assert.Equal(75U, (await f.QueryAsync()).Counteraction);
         }

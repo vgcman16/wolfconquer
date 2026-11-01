@@ -45,7 +45,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["LegacyPhysicalImpregnabilityRoll"] = "0",
             }) with { CombatGear = CombatGearSnapshot.Empty with { Count = 1,
                 Items = [new CombatGearSnapshotItem(201, 1, 0, 1, 0, 0, [], [])] } };
-        var target = CreateSession(uid: TargetPlayerUid, name: "OwnedOverlayTarget", mapId: 1_000, x: 839, y: 584,
+        // These are positive unarmed physical actions: put the actual admitted
+        // target within the source two-tile player range before owner birth.
+        var target = CreateSession(uid: TargetPlayerUid, name: "OwnedOverlayTarget", mapId: 1_000, x: 831, y: 584,
             classCode: 2_005, reborn: impregnation || callback ? 2 : 0, strength: 0, spirit: 0, minHitPoints: 100_000, spellIds: [],
             playerItems: Items(91_001, DirectOverlayTargetHelmetId,
                 impregnation || callback ? DirectOverlaySyntheticImpregnabilityRuneId : null,

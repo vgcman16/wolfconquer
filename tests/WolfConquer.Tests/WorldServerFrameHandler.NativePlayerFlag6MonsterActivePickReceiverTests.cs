@@ -10,10 +10,9 @@ namespace WolfConquer.Tests;
 
 public sealed partial class WorldServerFrameHandlerTests
 {
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task NativeFlag6PublicMonsterLoopRetainsReceiverAcrossActivePick(bool originalVisible)
+    // Historical detached-client MODEL retained for source comparison. The
+    // owner-qualified scheduler regressions are in Flag6OwnedMonsterTests.
+    private async Task NativeFlag6DetachedModelRetainsReceiverAcrossActivePick(bool originalVisible)
     {
         const uint uid = 1_293_602;
         const ushort x = 197;

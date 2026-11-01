@@ -18,7 +18,7 @@ public sealed partial class LegacyOrdinarySpellCallerTests
             Assert.True(await FullAccount(f, before));
             Assert.True(f.CurrentOrNull is not null, f.Log.ToString());
             var after = f.Current;
-            Assert.NotSame(before, after); Assert.Equal(2005, after.Character.Class); Assert.Equal(140, after.Character.Level);
+            Assert.True(!ReferenceEquals(before, after), f.Log.ToString()); Assert.Equal(2005, after.Character.Class); Assert.Equal(140, after.Character.Level);
             Assert.Equal(before.Character.Money, after.Character.Money); Assert.Equal(before.Character.ConquerPoints, after.Character.ConquerPoints);
             Assert.Same(before.PlayerItems, after.PlayerItems); AssertNative(f);
             byte[] saved = File.ReadAllBytes(f.SpellPath); Assert.Equal(prior.AsSpan(4, 12).ToArray(), saved.AsSpan(4, 12).ToArray());
@@ -65,3 +65,4 @@ public sealed partial class LegacyOrdinarySpellCallerTests
         }, lineage: false);
     }
 }
+

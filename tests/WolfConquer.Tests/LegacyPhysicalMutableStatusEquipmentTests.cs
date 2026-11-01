@@ -46,7 +46,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["PkMode"] = "0", ["MaxHitpoints"] = "100000", ["BattlePower"] = "200",
                 ["LegacyPhysicalImpregnabilityRoll"] = "0",
             }) with { AlternateEquipmentActive = alternate };
-        var striker = CreateSession(uid: strikerUid, mapId: 1_000, x: 839, y: 584, classCode: 2_005,
+        // The real unarmed striker must be within the source two-tile range.
+        var striker = CreateSession(uid: strikerUid, mapId: 1_000, x: 831, y: 584, classCode: 2_005,
             strength: 300, spirit: 0, minHitPoints: 100_000, stamina: 100, spellIds: [DirectOverlaySpellId],
             playerItems: PlayerItemSnapshot.Empty with { EquipmentItems = [Item(92_001, strikerHelmet, 1)] },
             attributes: new Dictionary<string, string>

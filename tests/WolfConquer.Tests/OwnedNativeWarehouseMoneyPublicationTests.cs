@@ -130,11 +130,19 @@ public sealed partial class OwnedNativeWarehouseMoneyPublicationTests
             var files = f.Data.Files(); var native = WarehouseNativeTuple(f); int first = f.Sent.Count, writes = 0;
             bool UnexpectedWriter() { writes++; throw new InvalidOperationException("Invalid warehouse proposal reached persistence."); }
 
-            Assert.Throws<InvalidOperationException>(() =>
+            if (fault == "null")
+            {
+                var error = Assert.Throws<InvalidDataException>(() =>
+                    f.Store.TryCommitSession(f.Connection, before, proposal, UnexpectedWriter));
+                Assert.Equal("derivedSpellAttributesInvalid", error.Message);
+            }
+            else Assert.Throws<InvalidOperationException>(() =>
                 f.Store.TryCommitSession(f.Connection, before, proposal, UnexpectedWriter));
 
             Assert.Equal(0, writes); Assert.Same(before, f.Current); Assert.Equal(native, WarehouseNativeTuple(f));
             Assert.Equal(first, f.Sent.Count); f.Data.AssertFiles(files);
+            Assert.False(f.Native.OrdinarySpellBinding!.IsRetired); Assert.False(f.Runtime!.Recovery.IsBlocked);
+            Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
         });
 
     [Fact]

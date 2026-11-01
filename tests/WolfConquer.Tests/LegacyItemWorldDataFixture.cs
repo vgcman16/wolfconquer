@@ -20,7 +20,8 @@ internal static class LegacyItemWorldDataFixture
         IReadOnlyList<ClientConfigRecord>? clientConfigs = null,
         IReadOnlyList<PrestigeRankEntry>? prestigeRanks = null,
         IReadOnlyList<CombatGearRankEntry>? combatGearRanks = null,
-        IReadOnlyList<Monster>? monsters = null)
+        IReadOnlyList<Monster>? monsters = null,
+        IReadOnlyList<MagicType>? magic = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -103,7 +104,7 @@ internal static class LegacyItemWorldDataFixture
             questTaskTypes: [],
             questMissions: [],
             quizQuestions: [],
-            magic: [],
+            magic: magic ?? [],
             magicEffects: [],
             magicTypeOperations: magicTypeOperations ?? [],
             titleTypes: [],

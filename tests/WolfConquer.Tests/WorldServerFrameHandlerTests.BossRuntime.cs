@@ -18,24 +18,12 @@ public sealed partial class WorldServerFrameHandlerTests
         const ushort expectedSpellId = 10_001;
         var tickInterval = TimeSpan.FromSeconds(1);
 
-        Directory.CreateDirectory(_usersRoot);
-        WriteSnapshot(
-            playerUid,
-            uid: playerUid,
-            mapId: mapId,
-            x: x,
-            y: y,
-            minHitPoints: 1_000_000,
-            extraCharacterLines:
-                DisableLegacyWeaponProcLines + "\r\n" +
-                "LegacyBossSpellIndex=1\r\n" +
-                "LegacyBossStatusRoll=0");
-
         var bossFamily = new Monster(
             7_981,
             "SchedulerBoss7981",
             new Dictionary<string, string>
             {
+                ["id"] = "7981",
                 ["life"] = "10000000",
                 ["Boss"] = "1",
                 ["lookface"] = "7981",
@@ -83,38 +71,27 @@ public sealed partial class WorldServerFrameHandlerTests
             worldData.GetLegacyMonsterRuntimeUidBase(bossSpawn)));
         Assert.True(bossInstance.Boss);
 
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var ticket = handoff.Issue(playerUid, "user02", ConquerRuntimeDefaults.WorldServer);
         var timeProvider = new BossRuntimeManualTimeProvider(DateTimeOffset.UtcNow.AddSeconds(20));
-        using var log = new RuntimeThreadSafeStringWriter();
-        using var cancel = new CancellationTokenSource();
-        var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(_usersRoot),
-            handoff,
-            worldData,
-            new LegacyRuntimeUpdateLoopOptions(
-                Enabled: true,
-                tickInterval,
-                timeProvider),
-            log);
-        var sent = new RuntimeThreadSafeFrameCapture();
-        var connection = CreateSendingConnection(sent);
-
-        try
+        var actor = OwnedEquipmentBehaviorFixture.Character(playerUid, mapId: mapId, x: x, y: y, minHitPoints: 1_000_000) with
         {
-            await handler.HandleFrameAsync(
-                connection,
-                ReadFrame(new InternalWorldEnterRequestPacket(ticket.Token).ToFrameBytes()),
-                cancel.Token);
-            await handler.HandleFrameAsync(
-                connection,
-                ReadFrame(new MsgActionPacket
+            Attributes = new Dictionary<string, string>
+            {
+                ["LegacyWeaponSpellOuterRateRoll"] = "99", ["LegacyWeaponSpellDirectRateRoll"] = "99",
+                ["LegacyWeaponSpellRateRoll"] = "99", ["LegacyBossSpellIndex"] = "1", ["LegacyBossStatusRoll"] = "0",
+            },
+        };
+        await OwnedEquipmentBehaviorFixture.RunWithEnabledSchedulingAsync(new(actor, PlayerItemSnapshot.Empty), worldData,
+            CreateDeterministicMonsterRuntimeLoopOptions(tickInterval, timeProvider), async owner =>
+        {
+            var sent = new RuntimeThreadSafeFrameCapture();
+            owner.BeforeSend = (_, bytes) => sent.Add(bytes);
+            var log = owner.Log;
+            await owner.SendAsync(playerUid, new MsgActionPacket
                 {
                     ObjId = playerUid,
                     Timestamp = 1234,
                     Type = MsgActionType.SetLocation,
-                }.ToFrameBytes()),
-                cancel.Token);
+                }.ToFrameBytes());
             await WaitForMonsterRuntimeTimerRegistrationAsync(timeProvider);
 
             var monster = sent.ToArray()
@@ -123,9 +100,7 @@ public sealed partial class WorldServerFrameHandlerTests
             Assert.NotNull(monster);
 
             var hitStart = sent.Count;
-            await handler.HandleFrameAsync(
-                connection,
-                ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
+            await owner.SendAsync(playerUid, new MsgAttackPacket(new MsgAttackQuery(
                     Uid: playerUid,
                     OpponentUid: monster.Uid,
                     X: monster.X,
@@ -135,8 +110,7 @@ public sealed partial class WorldServerFrameHandlerTests
                     KilledMonster: 0,
                     ResponseDamage: 0,
                     Effect: MsgAttackEffect.None,
-                    Unknown: 0)).ToFrameBytes()),
-                cancel.Token);
+                    Unknown: 0)).ToFrameBytes());
             var immediateEnd = sent.Count;
 
             var (playerHitIndex, _) = AssertServerAppliedSurvivingMonsterPhysicalHitAfter(
@@ -165,7 +139,7 @@ public sealed partial class WorldServerFrameHandlerTests
                     update.Uid == playerUid &&
                     update.Type == LegacyGameUpdateDataType.Flustered);
 
-            var afterPlayerHit = GetSession(handler, connection);
+            var afterPlayerHit = owner.Current(playerUid);
             Assert.False(HasLegacyStatusFlag(
                 LegacyPlayerSpawnPacket.FromSnapshot(afterPlayerHit.Character).StatusFlags,
                 LegacyBossStatusEffect.FrightenedFlag));
@@ -245,7 +219,7 @@ public sealed partial class WorldServerFrameHandlerTests
             Assert.Equal(6U, frightened.Time);
             Assert.Equal(0U, frightened.Amount);
 
-            var afterScheduler = GetSession(handler, connection);
+            var afterScheduler = owner.Current(playerUid);
             Assert.Equal(
                 afterPlayerHit.Character.MinHitPoints - spellTarget.Damage,
                 afterScheduler.Character.MinHitPoints);
@@ -260,11 +234,8 @@ public sealed partial class WorldServerFrameHandlerTests
             Assert.Contains("WorldServer sent legacy boss physical spell retaliation", output);
             Assert.Contains("spellId=10001", output);
             Assert.Contains("statusApplied=True", output);
-        }
-        finally
-        {
-            await cancel.CancelAsync();
-        }
+            owner.BeforeSend = null;
+        });
     }
 
     [Fact]
@@ -279,21 +250,12 @@ public sealed partial class WorldServerFrameHandlerTests
         const ushort expectedSpellId = 9_999;
         var tickInterval = TimeSpan.FromMilliseconds(100);
 
-        Directory.CreateDirectory(_usersRoot);
-        WriteSnapshot(
-            playerUid,
-            uid: playerUid,
-            mapId: mapId,
-            x: playerX,
-            y: playerY,
-            minHitPoints: 1_000_000,
-            extraCharacterLines: DisableLegacyWeaponProcLines);
-
         var bossFamily = new Monster(
             9_180,
             "EighteenTileBoss",
             new Dictionary<string, string>
             {
+                ["id"] = "9180",
                 ["life"] = "3000000",
                 ["Boss"] = "1",
                 ["lookface"] = "9180",
@@ -344,35 +306,20 @@ public sealed partial class WorldServerFrameHandlerTests
         Assert.True(bossInstance.Hitpoints >= 2_000_000U);
         Assert.Equal(18, LegacyTestDistance(bossInstance.X, bossInstance.Y, playerX, playerY));
 
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var ticket = handoff.Issue(playerUid, "user02", ConquerRuntimeDefaults.WorldServer);
         var timeProvider = new BossRuntimeManualTimeProvider(DateTimeOffset.UtcNow.AddSeconds(20));
-        using var log = new RuntimeThreadSafeStringWriter();
-        using var cancel = new CancellationTokenSource();
-        var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(_usersRoot),
-            handoff,
-            worldData,
-            CreateDeterministicMonsterRuntimeLoopOptions(tickInterval, timeProvider),
-            log);
-        var sent = new RuntimeThreadSafeFrameCapture();
-        var connection = CreateSendingConnection(sent);
-
-        try
+        var actor = OwnedEquipmentBehaviorFixture.Character(playerUid, mapId: mapId, x: playerX, y: playerY, minHitPoints: 1_000_000);
+        await OwnedEquipmentBehaviorFixture.RunWithEnabledSchedulingAsync(new(actor, PlayerItemSnapshot.Empty), worldData,
+            CreateDeterministicMonsterRuntimeLoopOptions(tickInterval, timeProvider), async owner =>
         {
-            await handler.HandleFrameAsync(
-                connection,
-                ReadFrame(new InternalWorldEnterRequestPacket(ticket.Token).ToFrameBytes()),
-                cancel.Token);
-            await handler.HandleFrameAsync(
-                connection,
-                ReadFrame(new MsgActionPacket
+            var sent = new RuntimeThreadSafeFrameCapture();
+            owner.BeforeSend = (_, bytes) => sent.Add(bytes);
+            var log = owner.Log;
+            await owner.SendAsync(playerUid, new MsgActionPacket
                 {
                     ObjId = playerUid,
                     Timestamp = 1234,
                     Type = MsgActionType.SetLocation,
-                }.ToFrameBytes()),
-                cancel.Token);
+                }.ToFrameBytes());
             await WaitForMonsterRuntimeTimerRegistrationAsync(timeProvider);
 
             Assert.Contains(
@@ -380,6 +327,15 @@ public sealed partial class WorldServerFrameHandlerTests
                 frame => LegacyMonsterSpawnPacket.TryParse(ReadFrame(frame), out var spawn) &&
                     spawn.Uid == bossInstance.Uid);
             var schedulerStart = sent.Count;
+            timeProvider.Advance(tickInterval);
+            await WaitUntilAsync(() => FindFrameIndexAfter(sent, schedulerStart, frame =>
+                MsgMovementPacket.TryParse(frame, out var movement) && movement.Uid == bossInstance.Uid) >= schedulerStart,
+                TimeSpan.FromSeconds(3));
+            await WaitUntilAsync(() => log.ToString().Contains("WorldServer sent proactive monster movement", StringComparison.Ordinal),
+                TimeSpan.FromSeconds(3));
+            Assert.DoesNotContain(sent.ToArray().Skip(schedulerStart), frame =>
+                LegacySpellAnimationPacket.TryParse(ReadFrame(frame), out var spell) && spell.AttackerUid == bossInstance.Uid);
+            schedulerStart = sent.Count;
             timeProvider.Advance(tickInterval);
             await WaitForProactiveMonsterActionAsync(
                 () => FindFrameIndexAfter(
@@ -407,11 +363,8 @@ public sealed partial class WorldServerFrameHandlerTests
             Assert.Equal(playerUid, target.Uid);
             Assert.True(target.Hit);
             Assert.True(target.Damage > 0);
-        }
-        finally
-        {
-            await cancel.CancelAsync();
-        }
+            owner.BeforeSend = null;
+        });
     }
 
     private sealed class BossRuntimeManualTimeProvider : TimeProvider

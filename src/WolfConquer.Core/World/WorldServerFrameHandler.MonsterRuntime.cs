@@ -441,7 +441,8 @@ public sealed partial class WorldServerFrameHandler
                             target.Session,
                             visible,
                             monsterFamily,
-                            cancellationToken)
+                            cancellationToken,
+                            requireOwnedPhysicalReceiver: true)
                         .ConfigureAwait(false);
                     attackCount++;
                     continue;

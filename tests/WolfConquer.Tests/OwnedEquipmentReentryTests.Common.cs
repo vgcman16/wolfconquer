@@ -10,7 +10,7 @@ public sealed partial class OwnedEquipmentReentryTests
 {
     private const uint Actor = OwnedEquipmentBehaviorFixture.Actor, Target = OwnedEquipmentBehaviorFixture.Peer;
     private static byte[] Attack(uint actor, uint target) => new MsgAttackPacket(new MsgAttackQuery(
-        Uid: actor, OpponentUid: target, X: 120, Y: 121, AttackType: MsgAttackType.Physical,
+        Uid: actor, OpponentUid: target, X: target == Target ? (ushort)831 : (ushort)830, Y: 584, AttackType: MsgAttackType.Physical,
         Damage: 0, KilledMonster: 0, ResponseDamage: 0, Effect: MsgAttackEffect.None, Unknown: 0)).ToFrameBytes();
     private static async Task<LegacyPlayerStatusPacket> Status(OwnedEquipmentBehaviorFixture f, uint uid)
     {

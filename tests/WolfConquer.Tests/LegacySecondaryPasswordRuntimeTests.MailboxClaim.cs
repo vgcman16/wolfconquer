@@ -23,7 +23,7 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
             SenderName = "System", Content = "Preserve currency and raw bytes", Timer = new DateTime(2099, 1, 1).Ticks,
         });
         mailboxes.Save(uid);
-        var owner = NewOwner();
+        var owner = NewOwner(worldData: PinMailboxCatalog());
         Action<byte[]>? witness = null;
         Player? player = null;
         var errors = new List<Exception>();
@@ -104,5 +104,14 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         if (errors.Count == 1) ExceptionDispatchInfo.Capture(errors[0]).Throw();
         if (errors.Count > 1) throw new AggregateException(errors);
     }
+
+    // SashPinSetupItems retains a Meteor in equipment position 4. This is an
+    // explicit no-combat-bonus test row for the genuine initial equipment query.
+    private static WorldDataCatalog PinMailboxCatalog() => LegacyItemWorldDataFixture.Create(
+        OwnedEquipmentBehaviorFixture.Item(1_088_001, "Meteor", new Dictionary<int, string>
+        {
+            [ItemType.FrequencyFieldIndex] = "0", [31] = "0",
+            [ItemType.DurabilityFieldIndex] = "10", [ItemType.StackSizeFieldIndex] = "1000",
+        }));
 }
 

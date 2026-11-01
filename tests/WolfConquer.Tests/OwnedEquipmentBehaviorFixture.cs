@@ -28,6 +28,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     internal WorldServerFrameHandler Handler { get; private set; } = null!;
     internal bool RetainEvidence;
     internal Action<uint, byte[]>? BeforeSend;
+    internal Func<uint, byte[], ValueTask>? BeforeSendAsync;
     internal List<byte[]> ActorFrames => Frames(actorUid);
     internal WorldSessionStore Store => Assert.IsType<WorldSessionStore>(typeof(WorldServerFrameHandler)
         .GetField("_sessions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Handler));
@@ -107,14 +108,18 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
             var cancellation = new CancellationTokenSource();
             closed.Add(cancellation);
             var connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
-                (memory, token) =>
+                async (memory, token) =>
                 {
                     token.ThrowIfCancellationRequested();
                     var bytes = memory.ToArray();
-                    try { BeforeSend?.Invoke(uid, bytes); }
+                    try
+                    {
+                        BeforeSend?.Invoke(uid, bytes);
+                        if (BeforeSendAsync is { } beforeSendAsync)
+                            await beforeSendAsync(uid, bytes).ConfigureAwait(false);
+                    }
                     catch (Exception error) { observationFailure ??= error; throw; }
                     output.Add(bytes);
-                    return ValueTask.CompletedTask;
                 }, _ => { cancellation.Cancel(); return ValueTask.CompletedTask; }, native);
             connections.Add(uid, connection);
             await SendAsync(uid, new LegacyMsgLoginGamePacket(uid).ToFrameBytes());
@@ -171,6 +176,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         BeforeSend = null;
+        BeforeSendAsync = null;
         var errors = new List<Exception>();
         foreach (var connection in connections.Values)
         {

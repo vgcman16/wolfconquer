@@ -24,7 +24,9 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
     [InlineData(49, 4)]
     public async Task D13PhysicalKillDispatcherKeepsForcedAmountOnEveryRealMoneyPile(int roll, int count)
     {
-        using var fixture = new Fixture(roll, [50_000]);
+        // Dispatcher publications require an ordinary data map. The source-body
+        // ordering tests below retain their separate MoneyReads instrumentation.
+        using var fixture = new Fixture(roll, [50_000], plainAttributes: true);
         var primed = fixture.Monsters.ApplyDamage(fixture.Monster, 4_999, DateTimeOffset.UtcNow);
         Assert.False(primed.Killed);
 
@@ -362,7 +364,8 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
 
         internal Fixture(int roll, uint[] amounts, Func<int, int, bool>? ground = null,
             FloorItemRuntimeStateStore? floor = null, int mapId = 1002, bool worldDataLoaded = true,
-            uint monsterDynamicId = 0, uint killerDynamicId = 0, bool? deityLandRandomDrop = null)
+            uint monsterDynamicId = 0, uint killerDynamicId = 0, bool? deityLandRandomDrop = null,
+            bool plainAttributes = false)
         {
             Attributes = new MoneyAttributes(roll, amounts, killerDynamicId, deityLandRandomDrop);
             Cells = new CountingCells(ground ?? (static (_, _) => true));
@@ -384,7 +387,7 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
                 Vitality: 100, Spirit: 0, AttributePoints: 0, MinHitPoints: 5000,
                 MinMana: 0, Money: 0, ConquerPoints: 0, BoundConquerPoints: 0,
                 BankConquerPoints: 0, PkPoints: 0, Online: 1,
-                SourceFile: "fixture://deferred-money", Attributes: Attributes,
+                SourceFile: "fixture://deferred-money", Attributes: plainAttributes ? Attributes.CopyPlain() : Attributes,
                 PaidNobility: new Dictionary<string, string>()),
                 PlayerItemSnapshot.Empty, PlayerSpellSnapshot.Empty, PlayerProficiencySnapshot.Empty);
             var connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
@@ -417,6 +420,10 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
         private readonly uint[] amounts;
         internal int MoneyReads { get; private set; }
         internal Action<int>? BeforeMoneyRead { get; set; }
+
+        // Plain dispatcher/broadcast inputs carry the same actual forced
+        // attribute values without callback-bearing publication input.
+        internal Dictionary<string, string> CopyPlain() => new(values, StringComparer.OrdinalIgnoreCase);
 
         internal MoneyAttributes(int roll, uint[] amounts, uint dynamicId = 0, bool? deityLandRandomDrop = null)
         {

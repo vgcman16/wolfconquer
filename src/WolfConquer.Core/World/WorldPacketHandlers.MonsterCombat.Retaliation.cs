@@ -12,7 +12,8 @@ public static partial class WorldPacketHandlers
         WorldSession session,
         LegacyMonsterInstance monster,
         Monster monsterFamily,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool requireOwnedPhysicalReceiver = false)
     {
         if (IsLegacyAttackingTargetExtraBoss(monster))
         {
@@ -98,6 +99,20 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        var scope = new LegacyEquipmentQueryPublicationScope(session.Character.Uid);
+        if (requireOwnedPhysicalReceiver || session.NativeGameClient?.Player?.HasOwnedActionAttachment == true ||
+            session.NativeGameClient?.OrdinarySpellBinding is not null)
+        {
+            if (context.Sessions is not { } store || session.NativeGameClient?.OrdinarySpellBinding is not { } binding ||
+                !ReferenceEquals(binding.Connection, context.Connection) || !store.IsBoundSpellOwnerCurrent(binding) ||
+                !LegacyNativeClientPublication.TryCaptureIdentity(store, context.Connection, session.Character.Uid, out var identity))
+                return;
+            scope = scope with { OwnerNativeClientIdentity = identity, PhysicalReceiveOwner = binding };
+        }
+        var current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
+        if (!current.Completed) return;
+        session = current.Session!;
+
         var responseDamage = await TrySendLegacyMonsterResponseDamageAsync(
                 context,
                 session,
@@ -106,6 +121,9 @@ public static partial class WorldPacketHandlers
                 cancellationToken)
             .ConfigureAwait(false);
         session = responseDamage.Session;
+        current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
+        if (!current.Completed) return;
+        session = current.Session!;
         if (responseDamage.InterruptsRetaliation)
         {
             return;
@@ -134,6 +152,9 @@ public static partial class WorldPacketHandlers
                 damageResult.ConsumesHawksAmbition,
                 cancellationToken)
             .ConfigureAwait(false);
+        current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
+        if (!current.Completed) return;
+        session = current.Session!;
         var shieldResult = await TryApplyLegacyLightningShieldPhysicalMonsterHitAsync(
                 context,
                 session,
@@ -142,6 +163,9 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
         if (shieldResult is not { } shield) return;
         session = shield.Session;
+        current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
+        if (!current.Completed) return;
+        session = current.Session!;
         damage = damageResult.Dodged ? 0 : shield.Damage;
         var attack = new MsgAttackPacket(new MsgAttackQuery(
             Uid: monster.Uid,
@@ -156,11 +180,11 @@ public static partial class WorldPacketHandlers
             Unknown: 0));
         var published = await SendLegacyPhysicalMonsterInteractionAsync(
                 context with { Session = session }, session, session.Character.Uid,
-                monster, attack, aroundMonster: true, cancellationToken)
+                monster, attack, aroundMonster: true, scope, cancellationToken)
             .ConfigureAwait(false);
         if (published is null) return;
         var receive = await ApplyLegacyPhysicalMonsterHitAsync(
-                context with { Session = published }, published, monster, damage, cancellationToken)
+                context with { Session = published }, published, monster, damage, scope, cancellationToken)
             .ConfigureAwait(false);
         if (receive.Session is not { } updatedSession || !receive.Entered) return;
         currentHitpoints = receive.PreviousHitpoints;

@@ -39,7 +39,7 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
     public async Task ActualTypedOrdinaryBroadcasterChecksOriginDistanceInsteadOfUnconditionallySending(
         FloorItemRuntimePickupKind kind)
     {
-        using var fixture = new Fixture(40, [50_000], monsterDynamicId: 77, killerDynamicId: 77);
+        using var fixture = new Fixture(40, [50_000], monsterDynamicId: 77, killerDynamicId: 77, plainAttributes: true);
         var entry = VisibilityEntry(fixture, kind);
         fixture.Floor.AddVisible(entry);
         var origin = fixture.Session.Character with { X = 28, Y = 10 };

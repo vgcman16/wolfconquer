@@ -48,7 +48,7 @@ public sealed partial class LegacyInventorySashUpgradeTests
             fields[ItemType.StackSizeFieldIndex] = "1000";
             return new ItemType(checked((int)row.Id), name,
                 row.Id == RankOnePackageRows[0].Id ? new DeliveryCatalogFields(fields, probe) : fields);
-        }).ToArray();
+        }).Append(PackageJoinEquippedMeteor()).ToArray();
         return LegacyItemWorldDataFixture.Create(rows);
     }
 

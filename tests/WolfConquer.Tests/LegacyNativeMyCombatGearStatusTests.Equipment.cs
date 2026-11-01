@@ -74,10 +74,10 @@ public sealed partial class LegacyNativeMyCombatGearStatusTests
                 Assert.Equal(456u, fixture.Owner.Status.Defence);
                 var learned = Assert.Single(fixture.Storage.ClientSpells).Value;
                 Assert.Equal((ushort)21930, learned.ID);
-                Assert.Equal((ushort)0, learned.Level); // Overall-only rank: native weekly-dependent level remains0.
+                Assert.Equal((ushort)10, learned.Level); // Overall rank 1 supplies the selected rank when weekly is absent.
                 var wire = NativeSpellTestFixture.ReadSpell(fixture.Queue.Dequeue());
                 Assert.Equal((ushort)21930, wire.ID);
-                Assert.Equal((ushort)0, wire.Level);
+                Assert.Equal((ushort)10, wire.Level);
                 Assert.Empty(fixture.Queue);
                 Ranks.Ranks[Ranks.Type.Overall_Pirate].RankingList.Clear();
                 gear.Status();

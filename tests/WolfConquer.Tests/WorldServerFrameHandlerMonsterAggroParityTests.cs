@@ -9,6 +9,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
+[Collection("NativeItemCounterSourcePrerequisite")]
 public sealed class WorldServerFrameHandlerMonsterAggroParityTests
 {
     private const uint PlayerUid = 1_293_600;
@@ -40,20 +41,15 @@ public sealed class WorldServerFrameHandlerMonsterAggroParityTests
             settingsGuardSpawn,
             settingsGuardFamily,
             worldData.GetLegacyMonsterRuntimeUidBase(settingsGuardSpawn)));
-        using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(
-            snapshotLoader: null,
-            handoffService: null,
-            worldData,
-            LegacyRuntimeUpdateLoopOptions.Disabled,
-            log);
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
-        GetSessions(handler).Set(connection, CreateSession());
-
-        await InvokeMonsterAttackTickAsync(
-            handler,
-            new DateTimeOffset(2026, 7, 14, 12, 0, 0, TimeSpan.Zero));
+        var actor = OwnedEquipmentBehaviorFixture.Character(PlayerUid, mapId: MapId, x: 200, y: 200, minHitPoints: 1_000_000);
+        await OwnedEquipmentBehaviorFixture.RunAsync(new(actor, PlayerItemSnapshot.Empty), worldData, async owner =>
+        {
+        var sent = owner.ActorFrames;
+        sent.Clear();
+        var now = DateTimeOffset.UtcNow;
+        Assert.True(GetMonsterStates(owner.Handler).TryGetVisibleInstance(standardMonster, now, out var visible));
+        Assert.True(owner.Store.TryReadMonsterPhysicalRange(visible, standardFamily, out _));
+        await InvokeMonsterAttackTickAsync(owner.Handler, now);
 
         var attacks = new List<MsgAttackPacket>();
         foreach (var bytes in sent)
@@ -72,6 +68,7 @@ public sealed class WorldServerFrameHandlerMonsterAggroParityTests
             attacks,
             attack => attack.Query.Uid == settingsGuard.Uid &&
                 attack.Query.OpponentUid == PlayerUid);
+        });
     }
 
     [Fact]
@@ -85,25 +82,26 @@ public sealed class WorldServerFrameHandlerMonsterAggroParityTests
             settings: 0x35,
             attackRange: 1);
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(monsters: [family]);
-        using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(
-            snapshotLoader: null,
-            handoffService: null,
-            worldData,
-            LegacyRuntimeUpdateLoopOptions.Disabled,
-            log);
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
-        GetSessions(handler).Set(connection, CreateSession(dynamicId));
-        var monster = CreateDynamicMonster(family, dynamicId);
-        var otherInstanceMonster = CreateDynamicMonster(family, dynamicId + 1, uid: 900_001);
-        var monsterStates = GetMonsterStates(handler);
+        var actor = OwnedEquipmentBehaviorFixture.Character(PlayerUid, mapId: MapId, x: 200, y: 200, minHitPoints: 1_000_000) with
+        {
+            Attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["DynamicID"] = dynamicId.ToString(CultureInfo.InvariantCulture),
+            },
+        };
+        await OwnedEquipmentBehaviorFixture.RunAsync(new(actor, PlayerItemSnapshot.Empty), worldData, async owner =>
+        {
+        var sent = owner.ActorFrames;
+        sent.Clear();
+        var monsterStates = GetMonsterStates(owner.Handler);
+        var monster = CreateDynamicMonster(family, dynamicId, monsterStates.NextLegacyDynamicMonsterUid());
+        var otherInstanceMonster = CreateDynamicMonster(family, dynamicId + 1, monsterStates.NextLegacyDynamicMonsterUid());
         monsterStates.RegisterDynamicMonster(monster, family);
         monsterStates.RegisterDynamicMonster(otherInstanceMonster, family);
+        Assert.True(owner.Store.TryReadMonsterPhysicalRange(monster, family, out _));
+        Assert.True(owner.Store.TryReadMonsterPhysicalRange(otherInstanceMonster, family, out _));
 
-        await InvokeMonsterAttackTickAsync(
-            handler,
-            new DateTimeOffset(2026, 7, 14, 12, 0, 0, TimeSpan.Zero));
+        await InvokeMonsterAttackTickAsync(owner.Handler, DateTimeOffset.UtcNow);
 
         var attacks = new List<MsgAttackPacket>();
         foreach (var bytes in sent)
@@ -121,6 +119,7 @@ public sealed class WorldServerFrameHandlerMonsterAggroParityTests
         Assert.DoesNotContain(
             attacks,
             attack => attack.Query.Uid == otherInstanceMonster.Uid);
+        });
     }
 
     [Fact]
@@ -191,6 +190,7 @@ public sealed class WorldServerFrameHandlerMonsterAggroParityTests
             name,
             new Dictionary<string, string>
             {
+                ["id"] = id.ToString(CultureInfo.InvariantCulture),
                 ["life"] = "100",
                 ["lookface"] = id.ToString(CultureInfo.InvariantCulture),
                 ["level"] = "1",

@@ -10,7 +10,11 @@ public static partial class WorldPacketHandlers
     {
         var execution = new LegacyEquipmentQueryExecution(context, session, request)
         { CancellationToken = cancellationToken };
-        if (!execution.Refresh()) return execution.Outcome();
+        if (!execution.Refresh())
+        {
+            await context.Log.WriteLineAsync($"WorldServer equipment query refused phase=initial-owner loss={execution.Current.Loss}.").ConfigureAwait(false);
+            return execution.Outcome();
+        }
 
         // ONE admission decision per actual source query, before AppendItems.
         var decision = LegacyEquipmentRebuildAdmission.ApplyCurrent(
@@ -19,6 +23,7 @@ public static partial class WorldPacketHandlers
         if (decision.Admitted && !LegacyEquipmentQueryExecution.CanPrepareDerivedSpells(context, execution.Session))
         {
             execution.RefuseUnavailableDerivedSpell();
+            await context.Log.WriteLineAsync($"WorldServer equipment query refused phase=derived-prerequisites reason={request.Reason}.").ConfigureAwait(false);
             return execution.Outcome();
         }
         if (!execution.Commit(current => current with
@@ -27,7 +32,10 @@ public static partial class WorldPacketHandlers
                 PhysicalStatusOverlay = decision.Admitted
                     ? current.PhysicalStatusOverlay : decision.Session.PhysicalStatusOverlay,
             }))
+        {
+            await context.Log.WriteLineAsync($"WorldServer equipment query refused phase=admission-commit loss={execution.Current.Loss}.").ConfigureAwait(false);
             return execution.Outcome();
+        }
         if (!decision.Admitted)
         {
             await execution.SendAsync(

@@ -22,7 +22,7 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
             Timer = new DateTime(2099, 1, 1).Ticks,
         });
         mailboxes.Save(uid);
-        var owner = NewOwner();
+        var owner = NewOwner(worldData: PinMailboxCatalog());
         Player? player = null;
         var errors = new List<Exception>();
         try

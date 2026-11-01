@@ -1,11 +1,12 @@
 using WolfConquer.Core.Data;
+using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
 public sealed partial class LegacyPerformerDanceLearningTests
 {
     [Fact]
-    public async Task LateSubclassDictionaryLookupCannotHideAChangedActualSourceSpellRow()
+    public async Task UnsupportedSubclassComparerRefusesAtStoreProofBeforeItsLateSourceMutation()
     {
         await WithDurableDanceAsync(async fixture =>
         {
@@ -30,22 +31,28 @@ public sealed partial class LegacyPerformerDanceLearningTests
             { handled = await fixture.InvokeAsync(connection, store, original); });
 
             fixture.RequireFilesUnchanged();
-            before.RequireResources(original);
+            before.RequireUnchanged();
             Assert.Same(source, original.PlayerSpells.Spells);
-            Assert.Equal(new[] { CreateExistingSpell(), changed }, source);
+            Assert.Equal(new[] { CreateExistingSpell(), new PlayerSpellSnapshotEntry(901, 6, 2345, 2, 3, 2) }, source);
             Assert.True(store.TryGet(connection, out var current));
             Assert.Same(original, current);
             Assert.Empty(fixture.Sent);
-            Assert.True(comparer.Triggered);
-            Assert.Equal(5, comparer.Reads);
-            Assert.True(handled);
-            Assert.Null(error);
-            Assert.Contains("reason=sessionChanged", fixture.Log.ToString());
+            Assert.False(comparer.Triggered);
+            // Phase lookup, prepared subclass lookup and the prepared input
+            // check occur before the Store rejects this unsupported comparer.
+            Assert.Equal(3, comparer.Reads);
+            Assert.False(handled);
+            Assert.Equal("derivedSpellAttributesInvalid", Assert.IsType<InvalidDataException>(error).Message);
+            Assert.False(fixture.Recovery.IsBlocked);
+            Assert.False(LegacyTradeJournal.HasPending(fixture.UsersRoot));
+            Assert.Null(connection.NativeGameClient); Assert.Null(original.NativeGameClient);
+            Assert.DoesNotContain("WorldServer handled LegacyNpc Performer dance learning", fixture.Log.ToString());
+            Assert.DoesNotContain("reason=sessionChanged", fixture.Log.ToString());
         });
     }
 
-    // A real Dictionary comparer performs the caller mutation on the final
-    // SubProfInfo lookup inside the real Store/file commit path.
+    // Declared negative caller code. Its formerly fifth lookup must never run
+    // now that the actual Store requires a supported BCL attribute comparer.
     private sealed class LatePerformerAttributeComparer(Action change) : IEqualityComparer<string>
     {
         private bool armed;

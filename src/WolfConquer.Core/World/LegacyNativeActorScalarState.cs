@@ -20,7 +20,7 @@ internal static class LegacyNativeActorScalarState
     {
         ArgumentNullException.ThrowIfNull(session);
         var proof = new NativeValueProof(session.Character, allowAbsentDynamicId: true);
-        var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var fields = new Dictionary<string, string>(proof.CapturedComparer);
         foreach (var pair in proof.CapturedFields)
             if (!string.Equals(pair.Key, "DynamicID", StringComparison.OrdinalIgnoreCase)) fields.Add(pair.Key, pair.Value);
         // The source runtime's absent dynamic-map identity is zero. This key
@@ -40,6 +40,7 @@ internal static class LegacyNativeActorScalarState
         internal Values Value { get; }
         internal string? DynamicIdText { get; }
         internal IReadOnlyDictionary<string, string> CapturedFields => attributes.Fields;
+        internal IEqualityComparer<string> CapturedComparer => attributes.CapturedComparer;
 
         internal NativeValueProof(CharacterSnapshot character, bool allowAbsentDynamicId = false)
         {
@@ -47,8 +48,11 @@ internal static class LegacyNativeActorScalarState
                 character.Agility is < ushort.MinValue or > ushort.MaxValue ||
                 character.X is < ushort.MinValue or > ushort.MaxValue || character.Y is < ushort.MinValue or > ushort.MaxValue ||
                 character.MapId is < uint.MinValue or > uint.MaxValue) throw Invalid();
-            attributes = new(character.Attributes);
-            var present = attributes.Fields.TryGetValue("DynamicID", out var text);
+            attributes = LegacyNativeAttributeMapProof.CaptureRaw(character.Attributes);
+            var matches = attributes.Fields.Where(pair => string.Equals(pair.Key, "DynamicID", StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (matches.Length > 1) throw Invalid();
+            var present = matches.Length == 1;
+            var text = present ? matches[0].Value : null;
             uint dynamicId = 0;
             if (!present && !allowAbsentDynamicId || present &&
                 !uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out dynamicId)) throw Invalid();

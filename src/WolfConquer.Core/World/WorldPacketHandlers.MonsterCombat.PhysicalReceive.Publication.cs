@@ -6,10 +6,9 @@ public static partial class WorldPacketHandlers
 {
     private static async ValueTask<WorldSession?> SendLegacyPhysicalMonsterInteractionAsync(
         WorldPacketHandlerContext context, WorldSession session, long ownerUid,
-        LegacyMonsterInstance monster, MsgAttackPacket packet, bool aroundMonster,
+        LegacyMonsterInstance monster, MsgAttackPacket packet, bool aroundMonster, LegacyEquipmentQueryPublicationScope scope,
         CancellationToken cancellationToken)
     {
-        var scope = new LegacyEquipmentQueryPublicationScope(ownerUid);
         var current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
         if (!current.Completed) return null;
         var frame = packet.ToFrameBytes();

@@ -102,6 +102,16 @@ public sealed partial class LegacyInventorySashUpgradeTests
         AirPowers = CombatGearAirPowersSnapshot.Empty with { Points = 19 },
     };
 
+    // The shared sash seed explicitly places this modeled Meteor in position 4.
+    // Its fixture row has no weapon frequency, range, or combat bonuses; it is
+    // independent of the package grant rows and their fault-injection fields.
+    private static ItemType PackageJoinEquippedMeteor() => OwnedEquipmentBehaviorFixture.Item(
+        1_088_001, "Meteor", new Dictionary<int, string>
+        {
+            [ItemType.FrequencyFieldIndex] = "0", [31] = "0",
+            [ItemType.DurabilityFieldIndex] = "10", [ItemType.StackSizeFieldIndex] = "1000",
+        });
+
     private static WorldDataCatalog PackageJoinCatalog(string? fault = null)
     {
         var rows = RankOnePackageRows.Select(row =>
@@ -118,6 +128,6 @@ public sealed partial class LegacyInventorySashUpgradeTests
             return new ItemType(checked((int)row.Id), name, fields);
         });
         if (fault == "missing") rows = rows.Where(row => row.Id != 3_330_770);
-        return LegacyItemWorldDataFixture.Create(rows.ToArray());
+        return LegacyItemWorldDataFixture.Create(rows.Append(PackageJoinEquippedMeteor()).ToArray());
     }
 }

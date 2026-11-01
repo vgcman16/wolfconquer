@@ -34,7 +34,7 @@ public static partial class WorldPacketHandlers
             KilledMonster: 0, ResponseDamage: 0, Effect: MsgAttackEffect.None, Unknown: 0));
         return await SendLegacyPhysicalMonsterInteractionAsync(
                 context with { Session = current.Session }, current.Session!, scope.OwnerUid,
-                monster, packet, aroundMonster: false, cancellationToken)
+                monster, packet, aroundMonster: false, scope, cancellationToken)
             .ConfigureAwait(false);
     }
 }

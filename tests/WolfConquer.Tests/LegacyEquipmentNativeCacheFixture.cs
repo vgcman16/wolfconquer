@@ -43,7 +43,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     "700", "0", "0", "23", value.ToString(CultureInfo.InvariantCulture), "0"]);
             var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [],
                 [CreateMagicRow(14_500, sort: 6, useMana: 0, useStamina: 0,
-                    damage: 1, duration: 60, range: 18, coolDown: 0, coldTime: 0)],
+                    damage: 1, duration: 60, range: 18, coolDown: 0, coldTime: 0),
+                 MagicTypeParser.ParseLine("20002@@20000@@16@@Venom@@1@@0@@1@@8@@1@@0@@30150@@0@@350@@2@@16@@16@@355@@0@@0@@0@@1@@0@@0@@3@@16@@0@@0@@0@@0@@0@@1@@0@@0@@800@@0@@1000@@1@@20@@0@@0@@0@@0@@0@@0@@30100@@0@@0@@800@@1000@@0@@0@@0@@0@@")],
                 items: [Item(111_095, 10, 5_000), Item(110_099, 20), Item(410_095, 30),
                     Item(150_095, 40), Item(120_095, 50)],
                 daoqiDictTypes: pirateAndJiang ? [Jade()] : null,
