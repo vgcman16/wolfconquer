@@ -108,8 +108,14 @@ public static partial class WorldPacketHandlers
             {
                 if (!await AssignContinuationHitpointsAsync(value).ConfigureAwait(false)) return false;
             }
-            else Adopt(await AssignLegacyPlayerHitpointsAsync(
-                    Context, Session, Request.Scope, value, CancellationToken).ConfigureAwait(false));
+            else
+            {
+                var scope = Request.Scope;
+                if (Context.Connection.NativeGameClient is null && Session.NativeGameClient is null && Context.Sessions is not null)
+                    scope = scope with { ManagedHitpoints = IssueManagedQueryHitpoints(Context, Session, value) };
+                Adopt(await AssignLegacyPlayerHitpointsAsync(
+                    Context, Session, scope, value, CancellationToken).ConfigureAwait(false));
+            }
             if (!Current.Completed) return false;
             Receipt = Receipt with
             {

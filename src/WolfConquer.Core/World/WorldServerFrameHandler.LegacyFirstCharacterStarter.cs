@@ -16,7 +16,8 @@ public sealed partial class WorldServerFrameHandler
     private async ValueTask<LegacyFirstCharacterStarterState> EnsureLegacyFirstCharacterStarterStateAsync(
         CharacterSnapshot snapshot,
         PlayerItemSnapshot playerItems,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ManagedStartupPersistenceState? managedStartup = null)
     {
         if (!TryGetLegacyFirstCharacterStarterProfile(snapshot.Class, out var profile) ||
             !ShouldApplyLegacyFirstCharacterStarterState(snapshot, playerItems, profile))
@@ -26,8 +27,12 @@ public sealed partial class WorldServerFrameHandler
 
         var starterItems = CreateLegacyFirstCharacterStarterItems(snapshot, profile);
         var updated = ApplyLegacyFirstCharacterStarterScalars(snapshot, starterItems, profile);
-        await PersistLegacyFirstCharacterStarterStateAsync(updated, starterItems, cancellationToken)
-            .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (managedStartup is not null)
+            updated = managedStartup.CommitStarter(snapshot, updated, playerItems, starterItems);
+        else
+            await PersistLegacyFirstCharacterStarterStateAsync(updated, starterItems, cancellationToken)
+                .ConfigureAwait(false);
 
         await _log.WriteLineAsync(
                 "WorldServer applied tuned legacy first-character starter state " +
@@ -271,21 +276,10 @@ public sealed partial class WorldServerFrameHandler
         CharacterSnapshot snapshot,
         uint maxHitpoints)
     {
-        return new Dictionary<string, string>(snapshot.Attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            ["Strength"] = snapshot.Strength.ToString(CultureInfo.InvariantCulture),
-            ["Agility"] = snapshot.Agility.ToString(CultureInfo.InvariantCulture),
-            ["Vitaliti"] = snapshot.Vitality.ToString(CultureInfo.InvariantCulture),
-            ["Spirit"] = snapshot.Spirit.ToString(CultureInfo.InvariantCulture),
-            ["Level"] = snapshot.Level.ToString(CultureInfo.InvariantCulture),
-            ["Experience"] = snapshot.Experience.ToString(CultureInfo.InvariantCulture),
-            ["Atributes"] = snapshot.AttributePoints.ToString(CultureInfo.InvariantCulture),
-            ["MinHitPoints"] = maxHitpoints.ToString(CultureInfo.InvariantCulture),
-            ["MinMana"] = snapshot.MinMana.ToString(CultureInfo.InvariantCulture),
-            ["MaxMana"] = snapshot.MaxMana.ToString(CultureInfo.InvariantCulture),
-            ["Money"] = snapshot.Money.ToString(CultureInfo.InvariantCulture),
-            ["ConquerPoints"] = snapshot.ConquerPoints.ToString(CultureInfo.InvariantCulture),
-        };
+        // Pure projection only: preserve the actual raw comparer and unrelated
+        // case-distinct fields instead of rebuilding an ignore-case map.
+        return new WorldPacketHandlers.BoundHitpointsInputs(snapshot,
+            snapshot with { MinHitPoints = maxHitpoints }).After.Attributes;
     }
 
     private static bool IsLegacyFirstGenerationStarterCandidate(CharacterSnapshot snapshot)

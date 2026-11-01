@@ -119,8 +119,8 @@ public static partial class WorldPacketHandlers
             current = new(committed, current.RequiredParticipantSession);
         }
         else
-            current = CommitLegacyEquipmentQueryMutation(context, session, scope,
-                owner => ProjectAssignedLegacyHitpoints(context, owner, scope.OwnerUid, value));
+            current = CommitAssignedManagedOrLegacyHitpoints(context, session, scope, value,
+                current.RequiredParticipantSession);
         if (!current.Completed) return current;
         session = current.Session!;
 

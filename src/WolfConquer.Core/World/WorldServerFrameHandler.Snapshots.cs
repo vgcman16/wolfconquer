@@ -27,12 +27,13 @@ public sealed partial class WorldServerFrameHandler
         await SendSnapshotForAccountAsync(connection, request.AccountId, cancellationToken).ConfigureAwait(false);
     }
 
-    private readonly record struct SnapshotReply(CharacterSnapshot? Snapshot, WorldSnapshotWireStatus Status);
+    private readonly record struct SnapshotReply(CharacterSnapshot? Snapshot, WorldSnapshotWireStatus Status,
+        CharacterSnapshotLoader.ManagedOriginLoad? ManagedOrigin = null);
 
     private async ValueTask<SnapshotReply> SendSnapshotForAccountAsync(
         ConquerTcpConnection connection,
         long accountId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool captureManagedOrigin = false)
     {
         if (_snapshotLoader is null)
         {
@@ -49,7 +50,27 @@ public sealed partial class WorldServerFrameHandler
             return new(null, WorldSnapshotWireStatus.SnapshotsUnavailable);
         }
 
-        var loadResult = _snapshotLoader.TryLoadByAccountId(accountId);
+        CharacterSnapshotLoader.ManagedOriginLoad? managedOrigin = null;
+        CharacterSnapshotLoadResult loadResult;
+        try
+        {
+            string path = Path.Combine(_snapshotLoader.UsersRoot, accountId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".ini");
+            if (captureManagedOrigin && connection.NativeGameClient is null && File.Exists(path))
+            {
+                managedOrigin = _snapshotLoader.LoadManagedOrigin(accountId);
+                loadResult = managedOrigin.Result;
+            }
+            else loadResult = _snapshotLoader.TryLoadByAccountId(accountId);
+        }
+        catch (InvalidDataException error)
+        {
+            if (error.Message.StartsWith("managedOriginExpiryOutcomeUnproven:", StringComparison.Ordinal))
+                _tradeRecovery.Block("managedOriginExpiryOutcomeUnproven");
+            await SendResponseAsync(connection, WorldSnapshotWireStatus.SnapshotError, accountId, null, cancellationToken)
+                .ConfigureAwait(false);
+            await _log.WriteLineAsync($"WorldServer managed origin refused: {error.Message}.").ConfigureAwait(false);
+            return new(null, WorldSnapshotWireStatus.SnapshotError);
+        }
         if (loadResult.Status is CharacterSnapshotLoadStatus.SnapshotReadFailed or
             CharacterSnapshotLoadStatus.SnapshotReadDenied or
             CharacterSnapshotLoadStatus.SnapshotParseFailed or
@@ -83,6 +104,14 @@ public sealed partial class WorldServerFrameHandler
             return new(null, WorldSnapshotWireStatus.MissingSnapshot);
         }
 
+        if (captureManagedOrigin && connection.NativeGameClient is null && managedOrigin is null)
+        {
+            await SendResponseAsync(connection, WorldSnapshotWireStatus.SnapshotError, accountId, null, cancellationToken)
+                .ConfigureAwait(false);
+            await _log.WriteLineAsync("WorldServer managed origin unavailable after snapshot load.").ConfigureAwait(false);
+            return new(null, WorldSnapshotWireStatus.SnapshotError);
+        }
+
         var snapshot = loadResult.Snapshot;
         if (snapshot is null)
         {
@@ -99,6 +128,6 @@ public sealed partial class WorldServerFrameHandler
         await _log.WriteLineAsync(
                 $"WorldServer snapshot Success for {accountId} uid={snapshot.Uid} map={snapshot.MapId}.")
             .ConfigureAwait(false);
-        return new(snapshot, WorldSnapshotWireStatus.Success);
+        return new(snapshot, WorldSnapshotWireStatus.Success, managedOrigin);
     }
 }

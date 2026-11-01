@@ -4,6 +4,22 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Open managed Character publication repair - 2026-11-01
+
+### FSB-292: Keep managed query saves and live Character mirrors coherent
+
+OPEN integration. Build04 passed; focused05 passed36/36,0failed/0skipped. Broader06 failed76, passed669, skipped120 across865: ordinary unbound admission/creation still need their actual committed origin joins. The managed InternalWorldEnter query could write
+missing scalar defaults to Character while its holder kept an older raw map;
+the item/spell writer correctly refused that stale baseline. Runtime Vigor
+clamping must also stay distinct from its saved seed. The reviewed draft uses
+actual configured-loader origin, captured scalar writer/journal receipts and
+closed query publication to preserve both images and refuse external edits.
+
+New source tests cover full files, actual five-packet skill-book success,
+missing composite/defaults, saved Vigor/Money drift, startup byte drift and real
+Windows sharing refusal. Those focused controls passed; the broader result remains red and is not waived. Starter
+Character/Items remain ordered per-file, not crash-atomic; separate sidecars,
+SQL, complete subsystem ambiguity validation and live-client proof remain open.
 ## Open full91 integration repairs - 2026-11-01
 
 ### FSB-291: Clamp unsigned Vigor before narrowing it

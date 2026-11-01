@@ -9,7 +9,14 @@ internal static class LegacyOrdinaryAdmissionCharacterText
     private sealed record Line(string Text, string Ending);
 
     internal static string Project(string text, IReadOnlyDictionary<string, string> character,
-        IReadOnlyDictionary<string, string>? paid)
+        IReadOnlyDictionary<string, string>? paid) => ProjectCore(text, character, paid, null);
+
+    // This does not validate other subsystems' keys or grant admission authority.
+    internal static string ProjectManagedScalars(string text, IReadOnlyDictionary<string, string> character,
+        ISet<string> owned) => ProjectCore(text, character, null, owned);
+
+    private static string ProjectCore(string text, IReadOnlyDictionary<string, string> character,
+        IReadOnlyDictionary<string, string>? paid, ISet<string>? managedOwned)
     {
         var lines = Split(text);
         var newline = lines.Select(row => row.Ending).FirstOrDefault(value => value.Length != 0) ?? Environment.NewLine;
@@ -39,7 +46,8 @@ internal static class LegacyOrdinaryAdmissionCharacterText
                 var equals = content.IndexOf('=');
                 if (equals <= 0) throw new InvalidDataException("Malformed admission field.");
                 var key = content[..equals].Trim();
-                if (!keys.Add(key)) throw new InvalidDataException("Ambiguous admission field.");
+                if (!keys.Add(key) && (managedOwned is null || values != character || character.ContainsKey(key) || managedOwned.Contains(key)))
+                    throw new InvalidDataException("Ambiguous admission field.");
                 if (values is not null && values.TryGetValue(key, out var replacement))
                 {
                     var old = content[(equals + 1)..];

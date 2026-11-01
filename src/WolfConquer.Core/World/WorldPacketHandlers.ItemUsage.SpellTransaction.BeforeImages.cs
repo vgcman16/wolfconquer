@@ -41,7 +41,10 @@ public static partial class WorldPacketHandlers
             if (!encoding.GetPreamble().Concat(encoding.GetBytes(text)).SequenceEqual(baseline.Bytes))
                 throw new LegacySpellMutationRefusalException("itemSpellCharacterEncodingUnproven");
             var disk = CharacterSnapshotParser.ParseText(text);
-            if (!FullAccountCharacterScalarsEqual(disk, stable.Character) || !FullAccountStoredFieldsMatch(disk.Attributes, stable.Character.Attributes) ||
+            bool managedMatches = context.Sessions!.MatchesManagedItemSpellImage(context, expected, stable,
+                paths[0], baseline.Bytes, out var managedOrigin);
+            if (managedOrigin ? !managedMatches :
+                !FullAccountCharacterScalarsEqual(disk, stable.Character) || !FullAccountStoredFieldsMatch(disk.Attributes, stable.Character.Attributes) ||
                 !FullAccountStoredFieldsMatch(disk.PaidNobility, stable.Character.PaidNobility))
                 throw new LegacySpellMutationRefusalException("itemSpellCharacterBaselineStale");
             if (!CharacterSnapshotFileBaseline.TryReadBytes(paths[1], "itemSpell", out var itemBefore, out reason))

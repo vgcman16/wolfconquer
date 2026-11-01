@@ -13,8 +13,7 @@ public static partial class WorldPacketHandlers
                 CapturedEquipment, Context.WorldData);
             var vigor = LegacyEquipmentQueryBounds.ClampVigor(
                 LegacyEquipmentQueryBounds.ReadVigor(Session.Character), maximum);
-            if (!Commit(session => session with
-                { Character = WithEquipmentQueryVigor(session.Character, vigor) }))
+            if (!CommitManagedOrLegacyVigor(vigor))
                 return false;
             if (!Request.CallItems) return true;
             if (!await SendAsync(new LegacyServerInfoPacket(vigor).ToFrameBytes(),

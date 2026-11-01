@@ -608,12 +608,12 @@ public sealed partial class WorldServerFrameHandler
         }
 
         var ticket = redeemed.Ticket!;
-        var reply = await SendSnapshotForAccountAsync(connection, ticket.AccountId, cancellationToken)
+        var reply = await SendSnapshotForAccountAsync(connection, ticket.AccountId, cancellationToken, captureManagedOrigin: true)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         if (reply.Snapshot is { } snapshot)
         {
-            await StartWorldSessionAsync(connection, ticket.AccountId, ticket.Username, snapshot, cancellationToken)
+            await StartWorldSessionAsync(connection, ticket.AccountId, ticket.Username, snapshot, cancellationToken, managedOrigin: reply.ManagedOrigin)
                 .ConfigureAwait(false);
         }
         else if (reply.Status == WorldSnapshotWireStatus.MissingSnapshot && HasOrdinaryUidNamespace() &&

@@ -134,6 +134,7 @@ public static partial class WorldPacketHandlers
                     : context.Sessions!.TryCommitRuneItemSpellSession(context.Connection, expected, candidate, runePublication, Writer, out published);
                 if (!committed) { reason = failure; return false; }
                 if (published is null) { owner.Recovery.Block("ordinarySpellRecoveryRequired:itemSpellPublicationUnproven"); throw new LegacyCommittedSpellPublicationException(); }
+                context.Sessions!.CompleteManagedItemSpellImage(context, expected, published, spellWrite);
                 rankLease?.Publish();
                 result = published; output = prepared.Frames; issuedIdentity = identity;
             }

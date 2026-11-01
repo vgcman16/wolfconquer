@@ -12,17 +12,23 @@ public sealed partial class WorldServerFrameHandler
         CharacterSnapshot snapshot,
         CancellationToken cancellationToken,
         Func<WorldSession, CancellationToken, ValueTask>? afterStartupBeforeRuntime = null,
-        LegacyNativeGameClientRuntime? nativeLoadedClient = null)
+        LegacyNativeGameClientRuntime? nativeLoadedClient = null,
+        CharacterSnapshotLoader.ManagedOriginLoad? managedOrigin = null)
     {
+        if (managedOrigin is not null && (connection.NativeGameClient is not null ||
+            !ReferenceEquals(managedOrigin.Result.Snapshot, snapshot))) return;
         if (await TryStartMailboxDebtRecoverySessionAsync(connection, accountId, username, snapshot,
                 nativeLoadedClient, cancellationToken).ConfigureAwait(false)) return;
+        var managedStartup = managedOrigin is null ? null :
+            new ManagedStartupPersistenceState(this, connection, accountId, snapshot, managedOrigin);
         var nativeEquipment = BeginLegacyNativeEquipmentRawLoad(connection);
         var playerItems = _snapshotLoader?.LoadPlayerItemsByCharacterUid(snapshot.Uid,
-            bytes => nativeEquipment?.CaptureRawLoad(bytes)) ?? PlayerItemSnapshot.Empty;
+            bytes => { nativeEquipment?.CaptureRawLoad(bytes); managedStartup?.CaptureItemsLoad(bytes); }) ?? PlayerItemSnapshot.Empty;
         var starterState = await EnsureLegacyFirstCharacterStarterStateAsync(
                 snapshot,
                 playerItems,
-                cancellationToken)
+                cancellationToken,
+                managedStartup)
             .ConfigureAwait(false);
         snapshot = starterState.Snapshot;
         playerItems = starterState.PlayerItems;
@@ -55,8 +61,10 @@ public sealed partial class WorldServerFrameHandler
                 snapshot,
                 playerItems,
                 combatGear,
-                cancellationToken)
+                cancellationToken,
+                managedStartup)
             .ConfigureAwait(false);
+        managedOrigin = managedStartup?.CompleteReceipt() ?? managedOrigin;
         snapshot = WithLegacyClassPkWarStartupTitle(snapshot);
         var session = new WorldSession(
             accountId,
@@ -72,7 +80,13 @@ public sealed partial class WorldServerFrameHandler
         };
         session = PrepareLegacySecondaryPasswordSession(connection, session);
         if (_tradeRecovery.IsBlocked) return;
-        _sessions.Set(connection, session);
+        _sessions.Set(connection, session, out session);
+        if (managedOrigin is not null && !TryBindUnboundCharacterOrigin(connection, session, managedOrigin))
+        {
+            _sessions.TryRemoveUnboundOriginExact(connection, session);
+            await _log.WriteLineAsync("WorldServer refused managed Character origin before startup.").ConfigureAwait(false);
+            return;
+        }
         await PublishLegacyAdmittedSessionStartupAsync(connection, session, cancellationToken,
             afterStartupBeforeRuntime, nativeLoadedClient).ConfigureAwait(false);
     }

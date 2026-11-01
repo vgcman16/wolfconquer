@@ -9,7 +9,8 @@ public sealed partial class WorldServerFrameHandler
         CharacterSnapshot snapshot,
         PlayerItemSnapshot playerItems,
         CombatGearSnapshot combatGear,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ManagedStartupPersistenceState? managedStartup = null)
     {
         if (_worldData is null)
         {
@@ -36,7 +37,10 @@ public sealed partial class WorldServerFrameHandler
             return snapshot;
         }
 
-        if (_snapshotLoader is not null &&
+        cancellationToken.ThrowIfCancellationRequested();
+        if (managedStartup is not null)
+            updated = managedStartup.CommitClassStats(snapshot, updated);
+        else if (_snapshotLoader is not null &&
             !CharacterSnapshotScalarPersistence.TryPersist(
                 _snapshotLoader.UsersRoot,
                 updated,

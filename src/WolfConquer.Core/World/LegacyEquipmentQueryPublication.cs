@@ -24,6 +24,7 @@ internal sealed record LegacyEquipmentQueryPublicationScope(
     internal WorldPacketHandlers.PreparedAttributeRebuild? AttributeRebuild { get; init; }
     internal WorldPacketHandlers.PreparedLevelUpRebuild? LevelUpRebuild { get; init; }
     internal WorldPacketHandlers.PreparedAdmissionContinuationQuery? AdmissionContinuation { get; init; }
+    internal WorldPacketHandlers.ManagedQueryHitpointsPurpose? ManagedHitpoints { get; init; }
 }
 
 internal readonly record struct LegacyEquipmentQueryPublicationResult(

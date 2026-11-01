@@ -33,6 +33,7 @@ internal sealed partial class LegacyPreparedSpellFileWrite
             throw Unavailable();
         if (!Path.IsPathFullyQualified(itemsRoot) || !Recovery.IsReadyForCharacterItemsSpells(UsersRoot, itemsRoot, SpellsRoot))
             throw Unavailable();
+        var managedCommit = binding is null ? ManagedCharacterCommit.Create(this, itemsRoot, owned) : null;
         var failure = "ordinarySpellSavedImageChanged";
         var success = SnapshotFileLockCoordinator.ExecuteLocked([CharacterPath,
             Path.Combine(itemsRoot, expected.Character.Uid.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin"), SpellsPath], () =>
@@ -57,7 +58,8 @@ internal sealed partial class LegacyPreparedSpellFileWrite
                 ? LegacyTradeJournal.TryCommitCharacterItemsSpells(UsersRoot, itemsRoot, SpellsRoot, owned, interruption, out failure)
                 : LegacyTradeJournal.TryCommitRuneOperation(UsersRoot, itemsRoot, SpellsRoot, owned, runeOperation, interruption, out failure);
             if (!committed) return false;
-            PublishCommittedEvidencePlain(); committedRuneCharacter = runePublication; failure = string.Empty; return true;
+            PublishCommittedEvidencePlain(); committedManagedCharacter = managedCommit;
+            committedRuneCharacter = runePublication; failure = string.Empty; return true;
         });
         if (!success && failure.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal)) Recovery.Block(failure);
         reason = failure; return success;
