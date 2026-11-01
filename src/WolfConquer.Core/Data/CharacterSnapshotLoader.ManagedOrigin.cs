@@ -20,10 +20,14 @@ public sealed partial class CharacterSnapshotLoader
             // This is the real configured loader, without its older implicit
             // expiry write. Its receipt-aware expiry write follows below.
             var loaded = TryLoadByAccountId(accountId, persistExpiry: false);
-            if (!loaded.Succeeded || loaded.Snapshot is not { } snapshot || snapshot.Uid != accountId ||
-                !CharacterSnapshotFileBaseline.TryReadBytes(path, "managedOrigin", out var current, out _) ||
+            if (!CharacterSnapshotFileBaseline.TryReadBytes(path, "managedOrigin", out var current, out _) ||
                 !current.AsSpan().SequenceEqual(before))
                 throw new InvalidDataException("managedOriginLoaderImageChanged");
+            // Preserve the real loader's error status/diagnostic. An unsuccessful
+            // read result cannot be bound as a successful startup origin.
+            if (!loaded.Succeeded || loaded.Snapshot is not { } snapshot)
+                return new ManagedOriginLoad(loaded, path, before);
+            if (snapshot.Uid != accountId) throw new InvalidDataException("managedOriginLoaderUidChanged");
             var updated = PrepareExpiredPaidNobility(snapshot);
             if (ReferenceEquals(updated, snapshot)) return new ManagedOriginLoad(loaded, path, before);
 

@@ -5,6 +5,22 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class WorldSessionStore
 {
+    internal bool TryRegisterUnboundCharacterOrigin(WorldServerFrameHandler frame, ConquerTcpConnection connection,
+        WorldSession expected, WorldServerFrameHandler.UnboundOriginRegistration registration)
+    {
+        RefuseBoundSpellReentry(connection);
+        using var package = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, expected);
+        if (!_connectionGates.TryGetValue(connection, out var gate)) return false;
+        lock (gate)
+        {
+            using var native = EnterNativeConnectionGate();
+            return ReferenceEquals(framePersistenceOwner, frame) && _sessions.TryGetValue(connection, out var holder) &&
+                ReferenceEquals(holder.Read(), expected) && holder.SpellBinding is null &&
+                connection.NativeGameClient is null && expected.NativeGameClient is null &&
+                frame.CompleteUnboundOriginRegistration(this, connection, expected, registration);
+        }
+    }
+
     internal bool TryCommitUnboundQueryCharacter(WorldPacketHandlerContext context, WorldSession expected,
         WorldPacketHandlers.ManagedQueryHitpointsPurpose purpose, int value, bool vigor,
         out bool applicable, out WorldSession? final)
@@ -27,6 +43,19 @@ public sealed partial class WorldSessionStore
                     WorldPacketHandlers.ProjectAssignedLegacyHitpoints(context, expected, expected.Character.Uid, value);
                 if (!LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expected, proposed)) return false;
                 uint nextVigor = LegacyEquipmentQueryBounds.ReadVigor(proposed.Character);
+                if (!CharacterSnapshotScalarPersistence.HasPersistedScalarChanges(expected.Character, proposed.Character))
+                {
+                    using var runtime = new PreparedSessionSpellPublication(this, context.Connection, holder, expected, proposed);
+                    runtime.ArmFinalProof();
+                    if (!runtime.ConsumeBeforeWriterPlain() || !runtime.IsCurrentPlain()) throw InvalidSpellPublication();
+                    runtime.PublishNative(); runtime.PublishHolder();
+                    final = runtime.FinalSession; identity = runtime.PublishedIdentity;
+                    framePersistenceOwner!.RecordCompletedUnboundQueryRuntime(this, context, expected, final,
+                        purpose, value, vigor, nextVigor);
+                    // An unchanged HP assignment/runtime Vigor clamp has no
+                    // scalar save and must not acquire a disk mutation owner.
+                    return true;
+                }
                 var write = WorldServerFrameHandler.UnboundQueryCharacterWrite.Prepare(framePersistenceOwner!,
                     this, context.Connection, expected, proposed, writesFile: !vigor, nextVigor);
                 using var publication = new PreparedSessionSpellPublication(this, context.Connection, holder, expected, write.Proposed);

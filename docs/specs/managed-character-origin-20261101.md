@@ -28,6 +28,6 @@ all legacy parser collapsing. Default strict admission text projection remains.
 Required controls: real InternalWorldEnter missing-default/composite positives,
 item/spell and complete file/wire checks, saved Vigor clamp versus external drift,
 external Money and snapshot-to-bind drift, real Windows write-sharing refusal,
-and independent scalar byte/encoding regressions. No test has qualified this new
-batch yet. SQL, live-client acceptance, sidecar crash recovery and overall parity
+and independent scalar byte/encoding regressions. Build12 and broader15 now pass745 checks,0failures,120actual not-executed cases; the complete suite is still unqualified. SQL, live-client acceptance, sidecar crash recovery and overall parity
 remain separate open requirements.
+Actual ordinary-admission and managed-creation receipts also feed the origin. Pure runtime/no-op query phases retain their limited nonpersistent behavior. Other scalar/journal writers need explicit origin succession before claiming complete unbound-profile support.

@@ -8,18 +8,25 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ### FSB-292: Keep managed query saves and live Character mirrors coherent
 
-OPEN integration. Build04 passed; focused05 passed36/36,0failed/0skipped. Broader06 failed76, passed669, skipped120 across865: ordinary unbound admission/creation still need their actual committed origin joins. The managed InternalWorldEnter query could write
-missing scalar defaults to Character while its holder kept an older raw map;
-the item/spell writer correctly refused that stale baseline. Runtime Vigor
-clamping must also stay distinct from its saved seed. The reviewed draft uses
-actual configured-loader origin, captured scalar writer/journal receipts and
-closed query publication to preserve both images and refuse external edits.
+OPEN full integration. Build12 passed0errors/73reported warnings. Focused05
+passed36/36, repair14 passed113/113, and broader15 passed745/0failed/120actual
+NotExecuted over865. These overlapping scopes are not additive. Earlier red
+broader06 (669P/76F) and repair09/11 receipts remain retained, not relabeled.
 
-New source tests cover full files, actual five-packet skill-book success,
-missing composite/defaults, saved Vigor/Money drift, startup byte drift and real
-Windows sharing refusal. Those focused controls passed; the broader result remains red and is not waived. Starter
-Character/Items remain ordered per-file, not crash-atomic; separate sidecars,
-SQL, complete subsystem ambiguity validation and live-client proof remain open.
+The configured loader, committed ordinary admission and actual new-character
+writer now supply saved-image origins. Real HP saves publish coherent scalar
+mirrors; runtime-only/no-op query phases do not acquire unrelated disk writers.
+Private Vigor state stays distinct from its saved seed. Actual item/spell
+journal receipts advance the origin; external Money/Vigor/complete-byte drift
+is refused. New-account setup creates its configured item route before Character
+commit. Tests retain independent wire/file, composite/default, real Windows
+sharing failure, opaque-byte and first-character world-entry checks.
+
+Other Character writers that lack origin succession receipts remain an open
+unbound-profile integration seam; a later item operation can refuse after such
+a write. Starter/creation sidecars are ordered phases, not a multi-file crash
+transaction. Full-suite, SQL, complete subsystem ambiguity validation and live
+client acceptance remain open. No source push or legacy execution follows.
 ## Open full91 integration repairs - 2026-11-01
 
 ### FSB-291: Clamp unsigned Vigor before narrowing it

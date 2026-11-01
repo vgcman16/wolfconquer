@@ -39,6 +39,12 @@ public static partial class WorldPacketHandlers
     internal static WorldSession ProjectManagedQueryVigor(WorldSession expected, ushort value) => expected with
         { Character = WithEquipmentQueryVigor(expected.Character, value) };
 
+    internal static bool IsConsumedManagedQueryHitpoints(ManagedQueryHitpointsPurpose purpose,
+        WorldPacketHandlerContext context, WorldSession expected, int value, bool vigor) =>
+        ManagedQueryHitpoints.TryGetValue(purpose, out var data) && data.Consumed && data.Value == value && data.Vigor == vigor &&
+        ReferenceEquals(data.Context.Connection, context.Connection) && ReferenceEquals(data.Context.Sessions, context.Sessions) &&
+        ReferenceEquals(data.Expected, expected);
+
     private static LegacyEquipmentQueryPublicationResult CommitAssignedManagedOrLegacyHitpoints(
         WorldPacketHandlerContext context, WorldSession session, LegacyEquipmentQueryPublicationScope scope,
         int value, WorldSession? required)

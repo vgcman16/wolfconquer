@@ -68,6 +68,14 @@ public sealed partial class WorldServerFrameHandler
             return;
         }
         LegacySpellPublicationOwner? loginSpells = null;
+        if (!TryBindUnboundAdmissionOrigin(connection, admitted, plan))
+        {
+            plan.Recovery.Block("ordinaryAdmissionRecoveryRequired:committedCharacterOriginUnavailable");
+            _sessions.TryRemoveUnboundOriginExact(connection, admitted);
+            await _log.WriteLineAsync($"WorldServer ordinary admission committed but Character origin changed key={accountId}.")
+                .ConfigureAwait(false);
+            return;
+        }
         if (plan.LoginSpellPublication.Frames.Length != 0 &&
             !LegacySpellPublicationOwner.TryBind(_sessions, _tradeStates, connection, admitted,
                 plan.LoginSpellPublication, out loginSpells)) return;

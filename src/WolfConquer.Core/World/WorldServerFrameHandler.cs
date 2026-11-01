@@ -712,18 +712,25 @@ public sealed partial class WorldServerFrameHandler
         }
 
         CharacterSnapshot snapshot;
+        CharacterSnapshotLoader.ManagedOriginLoad? managedCreation = null;
+        ManagedStartupPersistenceState? creationState = null;
         try
         {
-            snapshot = _snapshotLoader.CreateLegacyFirstCharacterSnapshot(
-                pending.CharacterUid,
-                name,
-                request.Body,
-                classCode);
-            var playerItems = _snapshotLoader.LoadPlayerItemsByCharacterUid(snapshot.Uid);
+            if (connection.NativeGameClient is null)
+            {
+                managedCreation = _snapshotLoader.CreateManagedFirstCharacterSnapshot(
+                    pending.CharacterUid, name, request.Body, classCode);
+                snapshot = managedCreation.Result.Snapshot!;
+                creationState = new(this, connection, pending.CharacterUid, snapshot, managedCreation);
+            }
+            else snapshot = _snapshotLoader.CreateLegacyFirstCharacterSnapshot(
+                pending.CharacterUid, name, request.Body, classCode);
+            var playerItems = _snapshotLoader.LoadPlayerItemsByCharacterUid(snapshot.Uid,
+                bytes => creationState?.CaptureItemsLoad(bytes));
             var starterState = await EnsureLegacyFirstCharacterStarterStateAsync(
                     snapshot,
                     playerItems,
-                    cancellationToken)
+                    cancellationToken, creationState)
                 .ConfigureAwait(false);
             snapshot = starterState.Snapshot;
             var playerSpells = _snapshotLoader.LoadPlayerSpellsByCharacterUid(snapshot.Uid);
@@ -737,9 +744,12 @@ public sealed partial class WorldServerFrameHandler
                 .ConfigureAwait(false);
             await PersistLegacyFirstCharacterCreationSidecarsAsync(snapshot, cancellationToken)
                 .ConfigureAwait(false);
+            managedCreation = creationState?.CompleteReceipt();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException)
         {
+            if (managedCreation is not null || ex.Message.StartsWith("managedCreationOutcomeUnproven:", StringComparison.Ordinal))
+                _tradeRecovery.Block("managedCreationOutcomeUnproven");
             await _log.WriteLineAsync(
                     $"WorldServer legacy NewRole snapshot create error uid={pending.CharacterUid}: {ex.Message}")
                 .ConfigureAwait(false);
@@ -749,7 +759,7 @@ public sealed partial class WorldServerFrameHandler
         _pendingCreations.Remove(connection);
         await connection.SendAsync(LegacyMsgMessagePacket.AnswerOk().ToFrameBytes(), cancellationToken)
             .ConfigureAwait(false);
-        await StartWorldSessionAsync(connection, pending.CharacterUid, snapshot.Name, snapshot, cancellationToken)
+        await StartWorldSessionAsync(connection, pending.CharacterUid, snapshot.Name, snapshot, cancellationToken, managedOrigin: managedCreation)
             .ConfigureAwait(false);
         await _log.WriteLineAsync(
                 $"WorldServer legacy NewRole Success uid={snapshot.Uid} name={snapshot.Name} class={snapshot.Class} body={snapshot.Body}.")

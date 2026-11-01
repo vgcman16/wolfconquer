@@ -518,9 +518,10 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     [Fact]
     public async Task HandlerLegacyNewRoleCreatesFirstSnapshotAndStartsLegacyWorldSession()
     {
-        Directory.CreateDirectory(_usersRoot);
+        var usersRoot = Path.Combine(_usersRoot, "Users");
+        Directory.CreateDirectory(usersRoot);
         using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(_usersRoot), log);
+        var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(usersRoot), log);
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
@@ -531,7 +532,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             connection,
             ReadFrame(new LegacyNewRolePacket("FirstRole", 1008, 12).ToFrameBytes()));
 
-        Assert.True(sent.Count > 2);
+        Assert.True(sent.Count > 2, log.ToString());
         Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[0]), out var newRole));
         Assert.Equal("NEW_ROLE", newRole.Content[3]);
         Assert.True(LegacyMsgMessagePacket.TryParse(ReadFrame(sent[1]), out var createOk));
@@ -543,7 +544,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         Assert.True(LegacyProtoHeroInfoPacket.TryParse(ReadFrame(sent[6]), out _));
         Assert.True(LegacyChiInfoPacket.TryParse(ReadFrame(sent[7]), out _));
 
-        var snapshotPath = Path.Combine(_usersRoot, "1293600.ini");
+        var snapshotPath = Path.Combine(usersRoot, "1293600.ini");
         Assert.True(File.Exists(snapshotPath));
         var snapshot = CharacterSnapshotParser.ParseText(File.ReadAllText(snapshotPath));
         Assert.Equal(1293600, snapshot.Uid);

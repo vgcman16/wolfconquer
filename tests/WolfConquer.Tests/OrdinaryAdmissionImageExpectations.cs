@@ -52,8 +52,14 @@ internal static class OrdinaryAdmissionImageExpectations
         Assert.InRange(epic.Length, 0, 1);
         if (epic.Length == 0)
             lines.Insert(end, "EpicTrojan=0/0/0/0/1/1/0/0/0/0/0/0/0/0/1/0/0/0/1/0/");
-        // File.WriteAllLines is a later runtime save and normalizes line endings.
-        var body = encoding.GetBytes(string.Join(Environment.NewLine, lines) + Environment.NewLine);
+        // These synthetic fixtures use one newline style. The captured writer
+        // preserves the original terminal-newline presence; separate byte goldens
+        // cover mixed line endings and opaque fields.
+        var ending = text.EndsWith("\r\n", StringComparison.Ordinal) ? "\r\n" :
+            text.EndsWith("\n", StringComparison.Ordinal) ? "\n" : text.EndsWith("\r", StringComparison.Ordinal) ? "\r" : "";
+        var separator = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" :
+            text.Contains("\n", StringComparison.Ordinal) ? "\n" : "\r";
+        var body = encoding.GetBytes(string.Join(separator, lines) + ending);
         return encoding.GetPreamble().Concat(body).ToArray();
     }
 }
