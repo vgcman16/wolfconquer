@@ -30,9 +30,22 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
         if (scenario is "OrdinaryGearMissingTables" or "OrdinaryGearSchema22Refused")
         {
             Assert.Null(client.CombatGear);
-            Assert.NotNull(client.OrdinarySpellBinding);
+            var heldBinding = Assert.IsType<LegacyOrdinarySpellBinding>(client.OrdinarySpellBinding);
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(heldBinding));
+            Assert.Equal(1L, session.Character.Online);
             Assert.Contains("native CombatGear held", f.Log.ToString());
-            f.Data.AssertFiles(allBefore);
+            // Successful ordinary admission persists the independently known
+            // Online transition even though native populated gear stays held.
+            var expected = allBefore.ToDictionary(pair => pair.Key, pair => pair.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+            var characterKey = Path.GetRelativePath(f.Data.Root, f.Data.UserPath);
+            var text = CharacterSnapshotFileEncoding.Decode(expected[characterKey], out var encoding);
+            const string beforeOnline = "\r\nOnline=0\r\n";
+            Assert.Contains(beforeOnline, text, StringComparison.Ordinal);
+            Assert.Equal(text.IndexOf(beforeOnline, StringComparison.Ordinal), text.LastIndexOf(beforeOnline, StringComparison.Ordinal));
+            text = text.Replace(beforeOnline, "\r\nOnline=1\r\n", StringComparison.Ordinal);
+            expected[characterKey] = encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray();
+            f.Data.AssertFiles(expected);
+            Assert.False(f.Runtime.Recovery.IsBlocked);
             return;
         }
         var binding = Assert.IsType<LegacyOrdinarySpellBinding>(client.OrdinarySpellBinding);
