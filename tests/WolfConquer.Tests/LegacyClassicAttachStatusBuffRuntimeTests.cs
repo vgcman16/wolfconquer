@@ -332,31 +332,69 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         var monsterFamily = CreateMonsterFamily();
         var spawn = CreateMonsterSpawn();
-        var worldData = CreateClassicAttachStatusCatalog(monsterFamily, spawn, ClassicAttachStatusInvisibilitySpellId);
-        var now = DateTimeOffset.UtcNow;
-        var expiresAt = now.AddSeconds(ClassicAttachStatusDurationSeconds);
-        var clock = new ManualRuntimeTimeProvider(now);
-        var declared = CreateSession(spellIds: [ClassicAttachStatusInvisibilitySpellId], mapId: spawn.MapId,
-            attributes: new Dictionary<string, string>
+        var rows = new[] { (byte)0, (byte)1 }.Select(level => CreateMagicRow(
+            ClassicAttachStatusInvisibilitySpellId, sort: 6, level: level, useMana: 7,
+            useStamina: 4, experience: 1_000, range: 18, coolDown: 0, coldTime: 0,
+            duration: ClassicAttachStatusDurationSeconds)).ToArray();
+        var head = OwnedEquipmentBehaviorFixture.Item(111_003, "ClassicExpiryHead",
+            new Dictionary<int, string> { [18] = "5000", [19] = "5000" });
+        var worldData = CreateMagicCatalogCore(monsterFamily, [spawn], [], rows, items: [head]);
+        var clock = new ManualRuntimeTimeProvider(DateTimeOffset.UtcNow);
+        var items = PlayerItemSnapshot.Empty with
+        {
+            EquipmentItems = new[] { new PlayerItemSnapshotItem
             {
-                ["StatusFlags"] = BuildStatusFlags(ClassicAttachStatusInvisibilityFlag),
-                [ClassicAttachStatusInvisibilityExpiresAtUtcAttribute] = expiresAt.ToString("O", CultureInfo.InvariantCulture),
-                [ClassicAttachStatusInvisibilityRemoveOnDeadAttribute] = bool.TrueString,
-            });
+                Uid = PlayerUid + 70_000, ItemId = 111_003, Position = 1,
+                Durability = 100, MaximumDurability = 100, StackSize = 1,
+            } },
+        };
+        var declared = CreateSession(spellIds: [ClassicAttachStatusInvisibilitySpellId], mapId: spawn.MapId,
+            minHitPoints: 1_000, minMana: 500, stamina: 100, playerItems: items);
         var options = new LegacyRuntimeUpdateLoopOptions(true, TimeSpan.FromMilliseconds(10), clock);
         return OwnedEquipmentBehaviorFixture.RunWithEnabledSchedulingAsync(
             new(declared.Character, declared.PlayerItems, declared.PlayerSpells, declared.PlayerProficiencies),
             worldData, options, async f =>
         {
-            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(f.Current().NativeGameClient!.OrdinarySpellBinding);
-            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
-            Assert.True(HasLegacyStatusFlag(f.Current().Character.Attributes, ClassicAttachStatusInvisibilityFlag));
+            await f.SendAsync(PlayerUid, new MsgActionPacket
+                { ObjId = PlayerUid, Type = MsgActionType.AllowAnimation }.ToFrameBytes());
+            var initial = f.Current();
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(initial.NativeGameClient!.OrdinarySpellBinding);
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); Assert.True(binding.Player.Alive);
+            Assert.False(HasLegacyStatusFlag(initial.Character.Attributes, ClassicAttachStatusInvisibilityFlag));
             f.ActorFrames.Clear();
+            var beforeRefusal = f.Data.Files();
+            await f.SendAsync(PlayerUid, new MsgAttackPacket(new MsgAttackQuery(PlayerUid,
+                ClassicAttachStatusUnknownTargetUid, 832, 584, MsgAttackType.Magic, 0, 0, 0,
+                MsgAttackEffect.None, 0, SpellId: ClassicAttachStatusInvisibilitySpellId)).ToFrameBytes());
+            Assert.Same(initial, f.Current()); f.Data.AssertFiles(beforeRefusal);
+            Assert.Equal(500L, f.Current().Character.MinMana);
+            Assert.Equal("100", f.Current().Character.Attributes["Stamina"]); Assert.Empty(f.ActorFrames);
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+
+            // A genuine cast owns the SET. Admission has already initialized
+            // the native cache, so a tick need not resend an unchanged flag.
+            var beforeCast = DateTimeOffset.UtcNow;
+            await f.SendAsync(PlayerUid, new MsgAttackPacket(new MsgAttackQuery(PlayerUid, PlayerUid,
+                checked((ushort)initial.Character.X), checked((ushort)initial.Character.Y), MsgAttackType.Magic,
+                0, 0, 0, MsgAttackEffect.None, 0, SpellId: ClassicAttachStatusInvisibilitySpellId)).ToFrameBytes());
+            var afterCast = DateTimeOffset.UtcNow;
+            var cast = f.Current(); Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+            Assert.True(HasLegacyStatusFlag(cast.Character.Attributes, ClassicAttachStatusInvisibilityFlag), f.Log.ToString());
+            Assert.Equal(493L, cast.Character.MinMana); Assert.Equal("96", cast.Character.Attributes["Stamina"]);
+            var expiresAt = DateTimeOffset.Parse(cast.Character.Attributes[ClassicAttachStatusInvisibilityExpiresAtUtcAttribute],
+                CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+            Assert.InRange(expiresAt, beforeCast.AddSeconds(ClassicAttachStatusDurationSeconds),
+                afterCast.AddSeconds(ClassicAttachStatusDurationSeconds));
+            Assert.Equal(bool.TrueString, cast.Character.Attributes[ClassicAttachStatusInvisibilityRemoveOnDeadAttribute]);
+            var castFrames = SnapshotFrames(f.ActorFrames);
+            var set = AssertClassicAttachStatusVectorFrame(castFrames, PlayerUid, ClassicAttachStatusInvisibilityFlag, true);
+            var progress = AssertClassicAttachStatusProgressFrame(castFrames, ClassicAttachStatusInvisibilitySpellId);
+            var animation = AssertClassicAttachStatusAnimationFrame(castFrames, ClassicAttachStatusInvisibilitySpellId,
+                PlayerUid, checked((ushort)initial.Character.X), checked((ushort)initial.Character.Y));
+            Assert.True(set < progress && progress < animation);
             await WaitUntilAsync(() => clock.ScheduledTimerCount >= 2, TimeSpan.FromSeconds(2));
             clock.Advance(TimeSpan.FromMilliseconds(10));
-            await WaitUntilAsync(() => ParseMsgUpdates(f.ActorFrames).Any(update => update.Uid == PlayerUid &&
-                update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag && entry.Values is not null &&
-                    IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag))), TimeSpan.FromSeconds(2));
+            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 2, TimeSpan.FromSeconds(2));
             Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
             Assert.True(HasLegacyStatusFlag(f.Current().Character.Attributes, ClassicAttachStatusInvisibilityFlag));
             Assert.DoesNotContain(ParseMsgUpdates(f.ActorFrames), update => update.Uid == PlayerUid &&
@@ -364,7 +402,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     !IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag)));
             Assert.Equal(expiresAt.ToString("O", CultureInfo.InvariantCulture),
                 f.Current().Character.Attributes[ClassicAttachStatusInvisibilityExpiresAtUtcAttribute]);
-            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 2, TimeSpan.FromSeconds(2));
             clock.Advance(expiresAt - clock.GetUtcNow() + TimeSpan.FromSeconds(1));
             await WaitUntilAsync(() => ParseMsgUpdates(f.ActorFrames).Any(update => update.Uid == PlayerUid &&
                 update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag && entry.Values is not null &&

@@ -19,7 +19,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             return new ItemType(checked((int)id), fields[1], fields);
         }
         var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [],
-            [MagicTypeParser.ParseLine("20002@@20000@@16@@Venom@@1@@0@@1@@8@@1@@0@@30150@@0@@350@@2@@16@@16@@355@@0@@0@@0@@1@@0@@0@@3@@16@@0@@0@@0@@0@@0@@1@@0@@0@@800@@0@@1000@@1@@20@@0@@0@@0@@0@@0@@0@@30100@@0@@0@@800@@1000@@0@@0@@0@@0@@")],
+            new MagicType[] { MagicTypeParser.ParseLine("20002@@20000@@16@@Venom@@1@@0@@1@@8@@1@@0@@30150@@0@@350@@2@@16@@16@@355@@0@@0@@0@@1@@0@@0@@3@@16@@0@@0@@0@@0@@0@@1@@0@@0@@800@@0@@1000@@1@@20@@0@@0@@0@@0@@0@@0@@30100@@0@@0@@800@@1000@@0@@0@@0@@0@@") },
             items: [Item(111_095, 10, 5_000), Item(110_099, 20), Item(410_095, 30),
                 Item(150_095, 40), Item(120_095, 50), Item(triggerType, 0)]);
         var equipped = new PlayerItemSnapshotItem[]
@@ -105,7 +105,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             };
             try { await f.DispatchAsync(new MsgItemUsagePacket(triggerUid, 3, MsgItemUsageAction.Equip, 0, 0, 0, 0)); }
             finally { f.BeforeSend = null; }
-            Assert.NotNull(atEquip); Assert.NotNull(afterGrant); f.Data.AssertFiles(afterGrant!);
+            Assert.NotNull(atEquip); Assert.NotNull(afterGrant);
+            Assert.True(f.Current().PlayerSpells.ContainsSpell(20000), f.Log.ToString());
+            f.Data.AssertFiles(afterGrant!);
             var final = f.Current(); Assert.Equal(20L, final.Character.Spirit); Assert.Equal(2L, final.Character.AttributePoints);
             Assert.Equal(5000L, final.Character.MinHitPoints); Assert.Equal(5000, binding.Player.HitPoints);
             Assert.Equal(750U, LegacyPhysicalStatusOverlay.ForOwner(final).MaxMana);

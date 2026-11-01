@@ -43,67 +43,50 @@ public sealed partial class LegacyOwnedAdmissionRuntimeTests
     }
 
     [Fact]
-    public async Task ABlockedActualPlayerRuntimeSendRetainsOwnershipUntilTheReturnedWorkersReallyFinish()
+    public Task ABlockedActualPlayerRuntimeSendRetainsOwnershipUntilTheReturnedWorkersReallyFinish()
     {
-        var beasts = new NativeLoginBeastMetadataScope(1000);
-        var fixture = new LegacyOwnedAdmissionRuntimeFixture();
-        LegacyOwnedAdmissionRuntime? runtime = null;
-        WorldServerFrameHandler? handler = null;
-        ConquerTcpConnection? connection = null;
-        var log = new StringWriter();
+        var actor = OwnedEquipmentBehaviorFixture.Character(classCode: 7051, strength: 10, agility: 10,
+            mapId: 1002, x: 430, y: 380, minHitPoints: 330) with
+        {
+            Vitality = 10, Spirit = 10, AttributePoints = 0, MinMana = 50, MaxMana = 50,
+        };
+        var loop = LegacyRuntimeUpdateLoopOptions.EnabledDefault with { TickInterval = TimeSpan.FromMilliseconds(10) };
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var sent = new ConcurrentQueue<byte[]>();
         var blocked = 0;
-        Task? drain = null;
-        Exception? primary = null;
-        try
+        return OwnedEquipmentBehaviorFixture.RunWithEnabledSchedulingAsync(
+            new(actor, PlayerItemSnapshot.Empty), OwnedEquipmentBehaviorFixture.Catalog(), loop, async f =>
         {
-            runtime = Open(fixture);
-            var loop = LegacyRuntimeUpdateLoopOptions.EnabledDefault with { TickInterval = TimeSpan.FromMilliseconds(10) };
-            handler = new(fixture.Loader, null, LegacyItemWorldDataFixture.Create(
-                new ItemType[] { OwnedEquipmentBehaviorFixture.Item(1_000_000) }, []), loop,
-                log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: runtime);
-            connection = new(null, new IPEndPoint(IPAddress.Loopback, 9958), async (bytes, _) =>
-            {
-                var copy = bytes.ToArray();
-                if (LegacyMsgUpdatePacket.TryParse(Frame(copy), out var update) &&
-                    update.Updates.Any(row => row.Type == LegacyMsgUpdateDataType.XPCircle && row.Value == 1) &&
-                    Interlocked.CompareExchange(ref blocked, 1, 0) == 0)
-                {
-                    // A genuine returned runtime send delays cancellation until
-                    // released. Its real worker must retain namespace ownership.
-                    entered.TrySetResult();
-                    await release.Task.ConfigureAwait(false);
-                }
-                sent.Enqueue(copy);
-            }, nativeGameClient: new LegacyNativeGameClientRuntime());
-            await handler.HandleFrameAsync(connection, Frame(new LegacyMsgLoginGamePacket(LegacyOwnedAdmissionRuntimeFixture.Uid).ToFrameBytes()));
-            Assert.Contains(sent, IsAnswerOk);
+            var connection = f.Connection(OwnedEquipmentBehaviorFixture.Actor);
+            Assert.True(f.ActorFrames.Any(IsAnswerOk), "Real native admission did not send ANSWER_OK.\n" + f.Log);
             var admitted = Assert.IsType<LegacyOrdinarySpellBinding>(connection.NativeGameClient!.OrdinarySpellBinding);
-            Assert.False(admitted.IsRetired);
-            Assert.True(Field<WorldSessionStore>(handler, "_sessions").IsBoundSpellOwnerCurrent(admitted));
-            await entered.Task.WaitAsync(TimeSpan.FromSeconds(20));
-            var workers = handler.CaptureLegacyRuntimeWorkerTasks();
-            Assert.NotEmpty(workers);
-            Assert.Contains(workers, task => !task.IsCompleted);
-            Assert.Throws<InvalidOperationException>(() => runtime.Dispose());
-            AssertRegistryLeaseHeld(fixture);
-
-            drain = runtime.DisposeAsync().AsTask();
-            Assert.False(drain.IsCompleted);
-            AssertRegistryLeaseHeld(fixture);
-            release.TrySetResult();
-
-            await drain.WaitAsync(TimeSpan.FromSeconds(20));
-            Assert.All(workers, task => Assert.True(task.IsCompleted));
-            Assert.Equal(0, handler.LegacyRuntimeFaultedWorkerCount);
-            using var reopened = Open(fixture);
-        }
-        catch (Exception error) { primary = error; }
-
-        await FinishOwnedLifetimeAsync(fixture, runtime, handler, primary,
-            () => release.TrySetResult(), drain, connection, log, beasts);
+            Assert.False(admitted.IsRetired); Assert.True(f.Store.IsBoundSpellOwnerCurrent(admitted));
+            f.BeforeSendAsync = async (uid, bytes) =>
+            {
+                if (uid != OwnedEquipmentBehaviorFixture.Actor ||
+                    !LegacyMsgUpdatePacket.TryParse(Frame(bytes), out var update) ||
+                    !update.Updates.Any(row => row.Type == LegacyMsgUpdateDataType.XPCircle && row.Value == 1) ||
+                    Interlocked.CompareExchange(ref blocked, 1, 0) != 0) return;
+                entered.TrySetResult();
+                await release.Task.ConfigureAwait(false);
+            };
+            try
+            {
+                await entered.Task.WaitAsync(TimeSpan.FromSeconds(20));
+                var workers = f.Handler.CaptureLegacyRuntimeWorkerTasks();
+                Assert.NotEmpty(workers); Assert.Contains(workers, task => !task.IsCompleted);
+                Assert.Throws<InvalidOperationException>(() => f.Runtime.Dispose());
+                AssertRegistryLeaseHeld(f.Data);
+                var drain = f.Runtime.DisposeAsync().AsTask();
+                Assert.False(drain.IsCompleted); AssertRegistryLeaseHeld(f.Data);
+                release.TrySetResult();
+                await drain.WaitAsync(TimeSpan.FromSeconds(20));
+                Assert.All(workers, task => Assert.True(task.IsCompleted));
+                Assert.Equal(0, f.Handler.LegacyRuntimeFaultedWorkerCount);
+                using var reopened = Open(f.Data);
+            }
+            finally { release.TrySetResult(); f.BeforeSendAsync = null; }
+        });
     }
 
     private static async Task FinishOwnedLifetimeAsync(LegacyOwnedAdmissionRuntimeFixture fixture,
