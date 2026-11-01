@@ -4,6 +4,32 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Owned death native cache correction - 2026-11-01
+
+### FSB-296: Publish the actual death query native HP/mana maximums
+
+Bounded offline qualification passed; full Windows/live remain OPEN. Focused46
+proved a real omission in LegacyNativeMagicQueryClient.OwnedPhysicalDeath:
+a new actual death epoch and cleared212/213 published managed30/540 maximums,
+but the original native Status retained130/640. The real prepared death-query
+participant now captures its Status identity/before pair and exact admitted
+canonical HP/overlay-mana result, validates both before and published state, and
+writes the pair under existing native gates alongside its Entry/epoch. Denied
+queries retain the captured pair. No late sync, fabricated owner or second query.
+
+All original metadata, native, journal22, spell/character, holder and perfection
+proofs remain. MaxMana comes from the actual overlay, not Character.MaxMana.
+Build47:0errors/170warnings1m40.54s. Focused48 actual269Passed/0Failed/0skipped,
+7m29s: all18FineRain(including8new observer/native-drift/sender-loss controls),
+54owned basic,23earned-XP,52roster,45generic money and16owned floor cases pass.
+Other classes and exact failed historical runs remain in the retained TRXs.
+Scopes overlap; this is not full parity or a sum of earlier test runs.
+
+Actual14500 removes212 before death admission, so denied-death runtime coverage
+is not claimed. Native attack/defence Status fields still lack a coherent actual
+query publication in this managed path and remain separate roadmap work; they
+were not populated from guessed aliases. See owned-death-native-maximums spec.
+
 ## Offline reward corrections - 2026-11-01
 
 ### FSB-294: Keep failed money retries at the last valid location

@@ -38,10 +38,10 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
         try { await f.SendAsync(Actor, c.Request()); }
         finally { f.BeforeSend = null; }
         Assert.Equal(1, awards); Assert.NotNull(awardedQuery);
-        AssertDead(c, peer); f.Data.AssertFiles(expected);
-        // The real death prefix clears212 before querying, so this is a real
-        // admitted new epoch even though the pre-death stamp was unexpired.
+        // Prove the actual death query epoch before arithmetic/flag assertions
+        // can mask whether the query ran at all.
         Assert.NotSame(awardedQuery.Epoch, ReadEpoch(peer));
+        AssertDead(c, peer); f.Data.AssertFiles(expected);
         Assert.Equal(beforeSpell, PlayerSpellSnapshotLoader.ToLegacyBytes(f.Current(Peer).PlayerSpells));
         Assert.Equal(493U, actor.Player.Mana); Assert.Equal(95, (int)actor.Player.Stamina);
         Assert.Equal(639_778_909U, actor.Player.ConquerPoints); Assert.Equal(0UL, actor.Player.Experience);

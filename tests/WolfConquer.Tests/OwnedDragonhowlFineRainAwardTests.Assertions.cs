@@ -81,20 +81,31 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
     {
         var current = c.Owner.Current(Peer);
         Assert.Same(peer, current.NativeGameClient!.OrdinarySpellBinding); Assert.True(c.Owner.Store.IsBoundSpellOwnerCurrent(peer));
+        var epoch = ReadEpoch(peer);
+        string rawFields = string.Join(";", current.Character.Attributes.Where(pair =>
+                new[] { "StatusFlags", "BitVector", "MaxHitpoints", "MaxHitPoints", "MaxLife" }
+                    .Contains(pair.Key, StringComparer.OrdinalIgnoreCase))
+            .Select(pair => pair.Key + "=" + pair.Value[..Math.Min(pair.Value.Length, 224)]));
+        string diagnostic = $"FineRain post-death: threshold={c.Threshold};spell={c.Spell};" +
+            $"hp={current.Character.MinHitPoints};managedMax={current.EquipmentHitpointsStatus?.MaximumHitpoints};" +
+            $"nativeMax={peer.Client.Status.MaxHitpoints};epoch={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(epoch):x};" +
+            $"sameInitialEpoch={ReferenceEquals(c.InitialQuery.Epoch, epoch)};{rawFields}";
+        // Diagnose the actual clear/admission boundary before testing arithmetic.
+        // All existing expectations remain: no retained212/213 policy/deadline.
+        foreach (int flag in new[] { 212, 213 })
+        {
+            Assert.False(LegacyPlayerDeathState.HasStatusFlag(current.Character.Attributes, flag), diagnostic);
+            Assert.False(LegacyStatusFlagDeathRegistration.TryRead(current.Character, flag, out _), diagnostic);
+            Assert.DoesNotContain($"LegacyFineRain{flag - 211}ExpiresAtUtc", current.Character.Attributes.Keys);
+            Assert.DoesNotContain($"LegacyFineRain{flag - 211}RemoveOnDead", current.Character.Attributes.Keys);
+        }
         Assert.Equal(0L, current.Character.MinHitPoints); Assert.Equal(0, peer.Player.HitPoints);
-        Assert.Equal(c.AfterDeathMaximum, current.EquipmentHitpointsStatus!.MaximumHitpoints);
+        Assert.True(c.AfterDeathMaximum == current.EquipmentHitpointsStatus!.MaximumHitpoints, diagnostic);
         Assert.Equal(c.AfterDeathMaximum, peer.Client.Status.MaxHitpoints);
         Assert.Equal(c.Threshold ? 600U : 300U, peer.Client.Status.MaxMana);
         Assert.True(LegacyNativeMagicQueryClient.TryRead(c.Owner.Store, c.Owner.Connection(Peer), Peer, out var fields, peer.NativeIdentity));
         Assert.Equal(c.Threshold ? 21U : 11U, fields.MagicAttack);
         Assert.True(LegacyPlayerDeathState.HasStatusFlag(current.Character.Attributes, LegacyPlayerDeathState.DeadStatusFlag));
-        foreach (int flag in new[] { 212, 213 })
-        {
-            Assert.False(LegacyPlayerDeathState.HasStatusFlag(current.Character.Attributes, flag));
-            Assert.False(LegacyStatusFlagDeathRegistration.TryRead(current.Character, flag, out _));
-            Assert.DoesNotContain($"LegacyFineRain{flag - 211}ExpiresAtUtc", current.Character.Attributes.Keys);
-            Assert.DoesNotContain($"LegacyFineRain{flag - 211}RemoveOnDead", current.Character.Attributes.Keys);
-        }
         Assert.Equal("100", current.Character.Attributes["FineRainPower"]); Assert.Equal("100", current.Character.Attributes["defFineRainPower"]);
         Assert.Equal(c.Stamp, LegacyFineRainEquipmentAdmission.ForOwner(current).StampMilliseconds);
         AssertOpaque(current);

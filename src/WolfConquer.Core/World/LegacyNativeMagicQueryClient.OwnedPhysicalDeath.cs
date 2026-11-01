@@ -11,6 +11,8 @@ internal static partial class LegacyNativeMagicQueryClient
         private readonly WorldPacketHandlers.OwnedPhysicalDeathPreparation preparation;
         private readonly WorldSession canonicalTarget;
         private readonly Entry entry;
+        private readonly LegacyNativeMsgStatus status;
+        private readonly uint beforeMaximumHitpoints, beforeMaximumMana, afterMaximumHitpoints, afterMaximumMana;
         private readonly bool beforeInitialized, admitted;
         private readonly LegacyNativeMagicQueryFields beforeFields, beforeJiangHu, afterFields, afterJiangHu;
         private readonly QueryEpoch? beforeEpoch, afterEpoch;
@@ -28,8 +30,18 @@ internal static partial class LegacyNativeMagicQueryClient
             beforeInitialized = entry.Initialized; beforeFields = entry.Fields; beforeJiangHu = entry.JiangHu;
             beforeEpoch = entry.Epoch; beforeMonk = entry.Monk; beforeAttackSpeed = entry.AttackSpeed;
             admitted = values.Admitted;
+            status = binding.Client.Status ?? throw InvalidDeathQuery();
+            beforeMaximumHitpoints = status.MaxHitpoints; beforeMaximumMana = status.MaxMana;
             if (admitted)
             {
+                // The same complete query that rebuilds Entry also owns these
+                // native maxima. The scalar/HP publisher does not rebuild them.
+                // Capture only the actual canonical death result, never an alias
+                // answer or a late recomputation after holder publication.
+                if (canonicalTarget.EquipmentHitpointsStatus is not { } hitpoints || hitpoints.OwnerUid != binding.Uid ||
+                    canonicalTarget.PhysicalStatusOverlay is not { MaxMana: { } mana } overlay || overlay.OwnerUid != binding.Uid)
+                    throw InvalidDeathQuery();
+                afterMaximumHitpoints = hitpoints.MaximumHitpoints; afterMaximumMana = mana;
                 var source = new QueryState(binding.Store, binding.Connection, binding.Uid,
                     binding.NativeIdentity, entry, values.QuerySource);
                 if (!source.InputsMatch(canonicalTarget) || values.Fields.RightWeaponItemId != source.Right ||
@@ -65,6 +77,8 @@ internal static partial class LegacyNativeMagicQueryClient
             ReferenceEquals(current, entry) && entry.Initialized == beforeInitialized && entry.Fields == beforeFields &&
             entry.JiangHu == beforeJiangHu && ReferenceEquals(entry.Epoch, beforeEpoch) &&
             ReferenceEquals(entry.Monk, beforeMonk) && ReferenceEquals(entry.AttackSpeed, beforeAttackSpeed) &&
+            ReferenceEquals(binding.Client.Status, status) && status.MaxHitpoints == beforeMaximumHitpoints &&
+            status.MaxMana == beforeMaximumMana &&
             (afterMetadata is null || afterMetadata.IsCurrentPlain(binding.ItemCatalog)) &&
             perfection.IsCurrentPlain();
 
@@ -84,6 +98,9 @@ internal static partial class LegacyNativeMagicQueryClient
             ReferenceEquals(entry.Epoch, admitted ? afterEpoch : beforeEpoch) &&
             ReferenceEquals(entry.Monk, admitted ? afterMonk : beforeMonk) &&
             ReferenceEquals(entry.AttackSpeed, admitted ? afterAttackSpeed : beforeAttackSpeed) &&
+            ReferenceEquals(binding.Client.Status, status) &&
+            status.MaxHitpoints == (admitted ? afterMaximumHitpoints : beforeMaximumHitpoints) &&
+            status.MaxMana == (admitted ? afterMaximumMana : beforeMaximumMana) &&
             (afterMetadata is null || afterMetadata.IsCurrentPlain(binding.ItemCatalog)) &&
             perfection.IsPublishedCurrentPlain();
 
@@ -96,6 +113,10 @@ internal static partial class LegacyNativeMagicQueryClient
                 entry.Epoch = afterEpoch;
                 entry.Monk = afterMonk;
                 entry.AttackSpeed = afterAttackSpeed;
+                // Plain assignments on the original captured Status object,
+                // under the existing actual Store/native publication gates.
+                status.MaxHitpoints = afterMaximumHitpoints;
+                status.MaxMana = afterMaximumMana;
                 entry.Initialized = true;
             }
             perfection.PublishPrepared();
