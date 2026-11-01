@@ -262,11 +262,13 @@ public static partial class WorldPacketHandlers
             if (context.Sessions is not { } store) return session;
             var purpose = IssueCombatExperience(context, connection, session, experienceGain, roster);
             if (!store.TryCommitCombatExperience(context, connection, session, experienceGain, purpose,
-                    out var committed, out statProgression, out experienceReceipt, out var frames, out var refusal) || committed is null || experienceReceipt is null)
+                    out var committed, out statProgression, out experienceReceipt, out var frames, out var rebuild, out var refusal) || committed is null || experienceReceipt is null)
             {
                 await context.Log.WriteLineAsync($"WorldServer refused combat experience reason={refusal}.").ConfigureAwait(false);
                 return session;
             }
+            if (rebuild is not null)
+                return await SendCommittedLevelExperienceAsync(connection, committed, experienceReceipt, rebuild, frames, cancellationToken).ConfigureAwait(false);
             await SendCommittedCombatExperienceAsync(connection, committed, experienceReceipt, frames, cancellationToken).ConfigureAwait(false);
             return committed;
         }

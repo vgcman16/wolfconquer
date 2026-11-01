@@ -64,7 +64,13 @@ public sealed partial class WorldSessionStore
         // The 2203 Character image is already durable when this is called.
         // Fence the shared recovery owner and clear only this exact binding;
         // a later replacement holder is never cleared on the old receipt.
-        internal void FenceCommittedAttributeFailure(Exception primary)
+        internal void FenceCommittedAttributeFailure(Exception primary) => FenceCommittedQueryFailure(primary,
+            "ownedAttributeSetRecoveryRequired:queryPublicationUnproven", "Committed attribute allocation and recovery fencing failed.");
+
+        internal void FenceCommittedLevelUpFailure(Exception primary) => FenceCommittedQueryFailure(primary,
+            "ownedLevelUpRecoveryRequired:queryPublicationUnproven", "Committed level-up and recovery fencing failed.");
+
+        private void FenceCommittedQueryFailure(Exception primary, string reason, string aggregateMessage)
         {
             var errors = new List<Exception> { primary };
             try
@@ -78,7 +84,7 @@ public sealed partial class WorldSessionStore
                         lock (gate)
                         {
                             using var nativeGate = EnterNativeConnectionGate();
-                            try { binding.Recovery.Block("ownedAttributeSetRecoveryRequired:queryPublicationUnproven"); }
+                            try { binding.Recovery.Block(reason); }
                             catch (Exception error) { errors.Add(error); }
                             if (store._sessions.TryGetValue(context.Connection, out var holder) &&
                                 ReferenceEquals(holder.NativeClientIdentity, identity) && ReferenceEquals(holder.SpellBinding, binding))
@@ -94,18 +100,18 @@ public sealed partial class WorldSessionStore
                         }
                     }
                     else
-                        try { binding.Recovery.Block("ownedAttributeSetRecoveryRequired:queryPublicationUnproven"); }
+                        try { binding.Recovery.Block(reason); }
                         catch (Exception error) { errors.Add(error); }
                 }
             }
             catch (Exception error)
             {
                 errors.Add(error);
-                try { binding.Recovery.Block("ownedAttributeSetRecoveryRequired:queryPublicationUnproven"); }
+                try { binding.Recovery.Block(reason); }
                 catch (Exception fence) { errors.Add(fence); }
             }
             if (errors.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(primary).Throw();
-            throw new AggregateException("Committed attribute allocation and recovery fencing failed.", errors);
+            throw new AggregateException(aggregateMessage, errors);
         }
 
         private bool NativeMatches() => scalars.IsCurrentPlain() && (uint)binding.Player.Action == action &&

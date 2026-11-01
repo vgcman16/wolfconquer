@@ -16,6 +16,8 @@ public static partial class WorldPacketHandlers
                     {
                         if (scope.AttributeRebuild is { } rebuild && !rebuild.IsQueryCurrent(context, current.Session!, owner))
                             throw new InvalidOperationException("attributeRebuildHolderChanged");
+                        if (scope.LevelUpRebuild is { } levelUp && !levelUp.IsQueryCurrent(context, current.Session!, owner))
+                            throw new InvalidOperationException("levelUpRebuildHolderChanged");
                         return update(owner);
                     }, out var written))
                 return new(null, current.RequiredParticipantSession,

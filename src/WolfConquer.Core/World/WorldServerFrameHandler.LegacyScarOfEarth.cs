@@ -8,6 +8,16 @@ public sealed partial class WorldServerFrameHandler
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
+        using var operation = await _worldOperations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false);
+        if (_tradeRecovery.IsBlocked || !_tradeRecovery.TryRequireLiveJournalClear(out _)) return;
+        await SendDueLegacyScarOfEarthRuntimeHeldAsync(now, cancellationToken, operation).ConfigureAwait(false);
+    }
+
+    private async ValueTask SendDueLegacyScarOfEarthRuntimeHeldAsync(
+        DateTimeOffset now, CancellationToken cancellationToken, IDisposable operation)
+    {
+        if (!_worldOperations.OwnsActiveExclusiveLease(operation))
+            throw new InvalidOperationException("periodicCombatOperationRequiresExclusiveLease");
         var activeSessions = _sessions.Snapshot();
         foreach (var active in activeSessions)
         {
@@ -18,7 +28,7 @@ public sealed partial class WorldServerFrameHandler
 
             var current = active with { Session = currentSession };
             await WorldPacketHandlers.TrySendDueLegacyPlayerScarOfEarthTickAsync(
-                    CreateMonsterRuntimeContext(current),
+                    CreateMonsterRuntimeOperationContext(current, operation),
                     now,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -61,7 +71,7 @@ public sealed partial class WorldServerFrameHandler
                             visible,
                             entry.MonsterFamily,
                             now,
-                            activeSessions,
+                            activeSessions, operation,
                             cancellationToken)
                         .ConfigureAwait(false);
                 }
@@ -81,7 +91,7 @@ public sealed partial class WorldServerFrameHandler
                         entry.Instance,
                         entry.MonsterFamily,
                         now,
-                        activeSessions,
+                        activeSessions, operation,
                         cancellationToken)
                     .ConfigureAwait(false);
             }
@@ -93,8 +103,11 @@ public sealed partial class WorldServerFrameHandler
         Monster monsterFamily,
         DateTimeOffset now,
         IReadOnlyList<WorldActiveSession> activeSessions,
+        IDisposable operation,
         CancellationToken cancellationToken)
     {
+        if (!_worldOperations.OwnsActiveExclusiveLease(operation))
+            throw new InvalidOperationException("periodicCombatOperationRequiresExclusiveLease");
         var tick = _monsterStates.ConsumeScarOfEarthTick(
             monster,
             WorldPacketHandlers.LegacyScarOfEarthFlag,
@@ -130,7 +143,7 @@ public sealed partial class WorldServerFrameHandler
         }
 
         await WorldPacketHandlers.TrySendDueLegacyMonsterScarOfEarthTickAsync(
-                CreateMonsterRuntimeContext(caster),
+                CreateMonsterRuntimeOperationContext(caster, operation),
                 monster,
                 monsterFamily,
                 scar,

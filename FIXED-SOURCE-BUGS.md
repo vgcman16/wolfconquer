@@ -6,6 +6,67 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## Open full-gate repairs - 2026-11-01
 
+### FSB-283: Separate live XP/status inputs from persisted scalar equality
+
+OPEN full integration. The genuine admitted Maniac cast and due tick applied
+3600damage but the XP writer refused combatExperienceCharacterImageInvalid.
+Focused27 established savedScalarMismatch=False and exact raw differences only
+StatusFlags/XPCount; these are live runtime transitions, not owned scalar writes.
+The previous all-attribute equality also conflated live stamina with a saved seed.
+The shared narrow comparison retains UID, every modeled persisted scalar and
+currency, PaidNobility and all other raw-key checks. Only StatusFlags/XPCount/
+Stamina may differ; actual file projection preserves their saved raw lines.
+No owner, gain, native, file-lock, marker or exact checkpoint proof is relaxed.
+The actual periodic control now spends9stamina, then must either level/query/
+restore with exact complete files or refuse a deliberately changed saved CP
+balance. Build27 passed; focused28 passed39/39,0failed/0skipped, including both
+actual runtime-status and changed-wallet cases. A wider affected-family check is
+running; full-gate and live acceptance remain open.
+
+### FSB-282: Persist random monster-death CP rewards before publishing success
+
+OPEN implementation. Focused25 reproduced a genuine random NonBossVipLadder
+reward of4CP: the real death handler called generic Sessions.Set and sent the
+wallet result without saving Character. The killer's later owned XP transaction
+correctly refused combatExperienceCharacterImageInvalid because saved CP remained
+639778904 while the holder had639778908. This explains a nondeterministic actual
+team-XP regression; disabling rewards or relaxing the full-image XP check is not
+a correction. A real reward-specific file/native/holder transaction and genuine
+deterministic reward-to-XP/refusal/output-loss controls are being implemented.
+The combined random and fixed boss-family correction has now passed all six
+genuine focused27 controls after build26: deterministic2CP and500CP before XP,
+file-lease refusal and committed-output-loss fencing. Random/boss/XP remain
+separate ordered commits, not a joint crash transaction. The same run retained
+36P/2F overall (periodic runtime-map mismatch and obsolete random team-file
+expectation). Team reward inputs now deterministically exercise2CP and assert
+that exact saved/native delta. No full-suite or live-client claim follows.
+
+### FSB-281: Require Maniac Dance XPList before charging admission costs
+
+OPEN full integration. The real sort83/spell12700 handler prepared stamina/mana and
+cooldown costs before checking XPList. The common admission eligibility validator
+omitted this exact skill, so an invalid cast could spend resources and then stop.
+The reviewed correction checks the actual current saved status flag in the common
+pure preflight before pricing/CAS/resource persistence; the later check remains.
+Genuine admitted negative and positive cast tests assert unchanged complete files,
+holder/native stamina, cooldowns and output on rejection, versus actual activation
+and stamina100to91 on success. Both actual admission controls passed after
+build24 (focused25 overall30P/2F; failures are separate periodic/CP joins). No
+full-gate, live-client or complete-cast transaction claim is made yet.
+
+### FSB-280: Complete the real equipment query after combat level-up
+
+OPEN full integration. Original GameClient.UpdateLevel invokes the complete
+equipment query and then restores HP. The first owned combat-XP draft committed
+class stats but retained old derived query caches: actual admitted auto-stat test
+expected HP5540 and observed5030. The correction acquires the real outer Exclusive
+combat operation before effects and uses the actual full CallItems:false query,
+one-use completion, owned HP restore and final XP publication. The genuine level
+test now passes with HP5540/Mana750/magicAttack21, currentMana400 retained. Direct,
+team, no-level retention and interrupted-query controls have focused passing
+evidence. The per-threshold durable multi-level continuation, cold admission and
+all affected-writer/recovery joins remain unqualified, not a completed feature.
+
 ### FSB-279: Join combat level/XP and legitimate stat writers to native ownership
 
 OPEN full integration. The reviewed draft compiled and focused20 passed395/395,
@@ -29,9 +90,9 @@ lock order. The actual Character coordinator lock must span final comparison,
 replacement and native/holder publication. These checks do not establish full
 level-up behavior: ORIGINAL GameClient.UpdateLevel also runs the complete
 equipment query, and the draft still needs that genuine owner join to refresh
-completed HP/mana/magic caches after automatic source-stat gains. A real auto-stat
-regression/spec and non-level XP retention test are authored separately but
-unbuilt/unrun. Damage, each recipient award and other rewards remain
+completed HP/mana/magic caches after automatic source-stat gains. The actual auto-stat and no-level retention controls now pass; FSB280 and FSB283
+record the genuine full query and runtime-map corrections.
+Damage, each recipient award and other rewards remain
 separate transactions; the draft does not claim all-combat crash atomicity.
 
 ### FSB-278: Commit allocated attributes and their derived caches coherently

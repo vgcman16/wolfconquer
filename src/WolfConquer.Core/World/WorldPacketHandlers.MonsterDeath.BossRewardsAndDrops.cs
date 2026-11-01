@@ -392,6 +392,42 @@ public static partial class WorldPacketHandlers
         }
 
         var conquerPoints = ReadLegacyMonsterDeathRandomConquerPoints(killerSession.Character, reward);
+        if (killerSession.NativeGameClient?.OrdinarySpellBinding is { } binding)
+        {
+            if (context.Sessions is not { } store) return killerSession;
+            long newPoints;
+            try { newPoints = checked(killerSession.Character.ConquerPoints + conquerPoints); }
+            catch (OverflowException) { return killerSession; }
+            if (newPoints is < 0 or > 2_000_000_000L) return killerSession;
+            var frames = new List<byte[]>
+            {
+                new LegacyMsgUpdatePacket(checked((uint)killerSession.Character.Uid),
+                    [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.ConquerPoints, checked((ulong)newPoints))]).ToFrameBytes(),
+            };
+            if (reward.FormatSystemMessage(conquerPoints) is { } text)
+                frames.Add(LegacyMsgMessagePacket.SystemTalk(text).ToFrameBytes());
+            var award = IssueMonsterRandomCpsAward(context, killerSession, monster, monsterFamily.Id, conquerPoints);
+            if (!store.TryCommitMonsterRandomCps(context, killerSession, award, out var committed, out var receipt) ||
+                committed is null || receipt is null)
+            {
+                await context.Log.WriteLineAsync("WorldServer refused owned monster-death random CP before publication.")
+                    .ConfigureAwait(false);
+                return killerSession;
+            }
+            try
+            {
+                foreach (var frame in frames)
+                {
+                    if (!receipt.TryCurrent(out var current) || !ReferenceEquals(current, committed) || binding.Player.ConquerPoints != newPoints)
+                        throw new InvalidOperationException("monsterRandomCpsOutputOwnerChanged");
+                    await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+                    if (!receipt.TryCurrent(out current) || !ReferenceEquals(current, committed) || binding.Player.ConquerPoints != newPoints)
+                        throw new InvalidOperationException("monsterRandomCpsOutputOwnerChanged");
+                }
+            }
+            catch (Exception error) { store.FenceMonsterDeathCps(context, binding, error); throw; }
+            return committed;
+        }
         var updatedCharacter = killerSession.Character with
         {
             ConquerPoints = checked(killerSession.Character.ConquerPoints + conquerPoints),
@@ -532,6 +568,43 @@ public static partial class WorldPacketHandlers
                 out var reward))
         {
             return killerSession;
+        }
+
+        if (killerSession.NativeGameClient?.OrdinarySpellBinding is { } binding)
+        {
+            if (context.Sessions is not { } store) return killerSession;
+            long newPoints;
+            try { newPoints = checked(killerSession.Character.ConquerPoints + reward.TotalConquerPoints); }
+            catch (OverflowException) { return killerSession; }
+            if (newPoints is < 0 or > 2_000_000_000L) return killerSession;
+            var frames = new List<byte[]>
+            {
+                new LegacyMsgUpdatePacket(checked((uint)killerSession.Character.Uid),
+                    [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.ConquerPoints, checked((ulong)newPoints))]).ToFrameBytes(),
+            };
+            var message = LegacyMsgMessagePacket.SystemTalk(reward.FormatLastHitterMessage(monster.Name)).ToFrameBytes();
+            for (int index = 0; index < reward.InvocationCount; index++) frames.Add(message);
+            var award = IssueMonsterBossCpsAward(context, killerSession, monster, monsterFamily.Id, reward);
+            if (!store.TryCommitMonsterBossCps(context, killerSession, award, out var committed, out var receipt) ||
+                committed is null || receipt is null)
+            {
+                await context.Log.WriteLineAsync("WorldServer refused owned monster-death boss CP before publication.")
+                    .ConfigureAwait(false);
+                return killerSession;
+            }
+            try
+            {
+                foreach (var frame in frames)
+                {
+                    if (!receipt.TryCurrent(out var current) || !ReferenceEquals(current, committed) || binding.Player.ConquerPoints != newPoints)
+                        throw new InvalidOperationException("monsterBossCpsOutputOwnerChanged");
+                    await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+                    if (!receipt.TryCurrent(out current) || !ReferenceEquals(current, committed) || binding.Player.ConquerPoints != newPoints)
+                        throw new InvalidOperationException("monsterBossCpsOutputOwnerChanged");
+                }
+            }
+            catch (Exception error) { store.FenceMonsterDeathCps(context, binding, error); throw; }
+            return committed;
         }
 
         var updatedCharacter = killerSession.Character with

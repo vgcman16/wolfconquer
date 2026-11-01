@@ -8,6 +8,12 @@ public static partial class WorldPacketHandlers
         WorldSession expected, LegacyMagicRuntimeSpell spell, out string reason)
     {
         reason = string.Empty;
+        if (spell.Sort == LegacyMagicSort.ManiacDance && spell.Id == LegacyManiacDanceSpellId &&
+            !HasLegacyStatusFlag(expected.Character, LegacyRuntimeUpdateTicker.XpListFlag))
+        {
+            reason = "ManiacDance: XPList status flag is not active";
+            return false;
+        }
         if (spell.Sort == LegacyMagicSort.AttachStatus &&
             TryGetLegacyAttachStatusXpBuff(spell.Id, out var buff))
         {

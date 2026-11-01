@@ -145,84 +145,103 @@ public sealed partial class WorldServerFrameHandler
                 await Task.Delay(_runtimeUpdateLoop.TickInterval, timeProvider, cancellationToken)
                     .ConfigureAwait(false);
 
-                using var operation = await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
-                if (_tradeRecovery.IsBlocked) continue;
-                var now = timeProvider.GetUtcNow();
-                RemoveExpiredLegacyQualifierMatches(now);
-                await TickLegacyGuildWarRuntimeAsync(now, timeProvider.LocalTimeZone).ConfigureAwait(false);
-                await SendDueLegacyClanWarCurrentScorePanelFramesAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDuePaidNobilityExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDuePlayerGhostTransitionsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueGuardMonsterActionsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueReviverMonsterRevivesAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDuePlayerDeathPromptsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDuePlayerBlackSpotExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyEagleEyeCountdownExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyRideExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyTransformExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                DateTimeOffset now;
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    if (_tradeRecovery.IsBlocked) continue;
+                    now = timeProvider.GetUtcNow();
+                    RemoveExpiredLegacyQualifierMatches(now);
+                    await TickLegacyGuildWarRuntimeAsync(now, timeProvider.LocalTimeZone).ConfigureAwait(false);
+                    await SendDueLegacyClanWarCurrentScorePanelFramesAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDuePaidNobilityExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDuePlayerGhostTransitionsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueGuardMonsterActionsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueReviverMonsterRevivesAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDuePlayerDeathPromptsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDuePlayerBlackSpotExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyEagleEyeCountdownExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyRideExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyTransformExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                }
                 await SendDueLegacyScarOfEarthRuntimeAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyMonsterTimedStatusFlagExpirationsAsync(now, cancellationToken)
-                    .ConfigureAwait(false);
-                await SendDueMonsterBlackSpotInactivePacketsAsync(now, cancellationToken).ConfigureAwait(false);
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    if (_tradeRecovery.IsBlocked) continue;
+                    await SendDueLegacyMonsterTimedStatusFlagExpirationsAsync(now, cancellationToken)
+                        .ConfigureAwait(false);
+                    await SendDueMonsterBlackSpotInactivePacketsAsync(now, cancellationToken).ConfigureAwait(false);
+                }
                 await SendDueLegacyShurikenVortexAttacksAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyXpSkillExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    if (_tradeRecovery.IsBlocked) continue;
+                    await SendDueLegacyXpSkillExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                }
                 await SendDueLegacyManiacDanceAttacksAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyShieldBlockExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyInvisibilityAttachStatusExpirationsAsync(now, cancellationToken)
-                    .ConfigureAwait(false);
-                await SendDueLegacyCombatGearAttachStatusExpirationsAsync(now, cancellationToken)
-                    .ConfigureAwait(false);
-                await SendDueLegacyArrowAndFlashingFlagExpirationsAsync(cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyWindWalkerFanExpirationsAsync(cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyHookMoonExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyStigmaMagicShieldExpirationsAsync(now, cancellationToken)
-                    .ConfigureAwait(false);
-                await SendDueLegacyCleanSweepExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyAxeShadowCelestialDanceExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyBloodTideExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyPlayerReceiveXpRuneExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyMirrorOfSinXpListExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyKillingFlashXpListExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyDivineGuardExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyKineticSparkExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyPathOfShadowExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyFreezeWarExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyFreezeWarRuntimeUpdatesAsync(now, timeProvider.LocalTimeZone, cancellationToken)
-                    .ConfigureAwait(false);
-                await SendDueLegacyFootballBallExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyDragonWarRuntimeUpdatesAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyIntensifyFocusUpdatesAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyDragonSwingExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyAutoHuntAttachStatusExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyCastPrayExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyInfiniteMistExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyInfinityFlyExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacySacrificeExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyRiseOfTaoismExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyIronGuardExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyIronShieldExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyFineRainExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyPhysicalStatusOverlayExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyAuraExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyMagicDefenderExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyCrackStarExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyBackfireExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyDefensiveStanceExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyLightningShieldExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyImmortalForceExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyPoisonStarExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyFrostArrowsExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacySoulShackleExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyRevengeTailExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyVenomExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyPoisonedExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueMonsterDeathRemovalsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueMonsterRespawnsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyBossFrightenedExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueLegacyDustSigilStunnExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueMonsterAttacksAsync(now, cancellationToken).ConfigureAwait(false);
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    if (_tradeRecovery.IsBlocked) continue;
+                    await SendDueLegacyShieldBlockExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyInvisibilityAttachStatusExpirationsAsync(now, cancellationToken)
+                        .ConfigureAwait(false);
+                    await SendDueLegacyCombatGearAttachStatusExpirationsAsync(now, cancellationToken)
+                        .ConfigureAwait(false);
+                    await SendDueLegacyArrowAndFlashingFlagExpirationsAsync(cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyWindWalkerFanExpirationsAsync(cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyHookMoonExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyStigmaMagicShieldExpirationsAsync(now, cancellationToken)
+                        .ConfigureAwait(false);
+                    await SendDueLegacyCleanSweepExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyAxeShadowCelestialDanceExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyBloodTideExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyPlayerReceiveXpRuneExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyMirrorOfSinXpListExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyKillingFlashXpListExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyDivineGuardExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyKineticSparkExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyPathOfShadowExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyFreezeWarExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyFreezeWarRuntimeUpdatesAsync(now, timeProvider.LocalTimeZone, cancellationToken)
+                        .ConfigureAwait(false);
+                    await SendDueLegacyFootballBallExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyDragonWarRuntimeUpdatesAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyIntensifyFocusUpdatesAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyDragonSwingExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyAutoHuntAttachStatusExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyCastPrayExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyInfiniteMistExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyInfinityFlyExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacySacrificeExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyRiseOfTaoismExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyIronGuardExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyIronShieldExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyFineRainExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyPhysicalStatusOverlayExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyAuraExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyMagicDefenderExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyCrackStarExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyBackfireExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyDefensiveStanceExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyLightningShieldExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyImmortalForceExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyPoisonStarExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyFrostArrowsExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacySoulShackleExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyRevengeTailExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyVenomExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyPoisonedExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueMonsterDeathRemovalsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueMonsterRespawnsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyBossFrightenedExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueLegacyDustSigilStunnExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                    await SendDueMonsterAttacksAsync(now, cancellationToken).ConfigureAwait(false);
+                }
                 await SendDueFloorSpellEffectsAsync(now, cancellationToken).ConfigureAwait(false);
-                await SendDueFloorItemExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    if (_tradeRecovery.IsBlocked) continue;
+                    await SendDueFloorItemExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

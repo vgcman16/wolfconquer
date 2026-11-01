@@ -7,15 +7,28 @@ public static partial class WorldPacketHandlers
     // DATA preparation uses the same source calculators/selectors. It neither
     // publishes a native query nor substitutes for its later real execution.
     private static void PreflightAttributeQuery(WorldPacketHandlerContext context, WorldSession source,
-        LegacyOwnedPhysicalMetadataWitness metadata)
+        LegacyOwnedPhysicalMetadataWitness metadata) =>
+        PreflightOwnedEquipmentQuery(context, source, metadata, LegacyEquipmentRebuildReason.AttributeAllocation);
+
+    // Shared closed DATA calculation; the allocation/level-up owners remain separate.
+    private static void PreflightOwnedEquipmentQuery(WorldPacketHandlerContext context, WorldSession source,
+        LegacyOwnedPhysicalMetadataWitness metadata, LegacyEquipmentRebuildReason reason, bool restoreHitpoints = false)
     {
-        if (!LegacyEquipmentRebuildAdmission.ApplyCurrent(source, LegacyEquipmentRebuildReason.AttributeAllocation,
+        if (!LegacyEquipmentRebuildAdmission.ApplyCurrent(source, reason,
                 context.LegacyClock ?? LegacySignedMillisecondClock.System).Admitted ||
             !LegacyEquipmentQueryExecution.CanPrepareDerivedSpells(context, source, out _))
             throw new InvalidOperationException("attributeRebuildAdmissionUnavailable");
         var stable = CaptureEquipmentQueryInputs(source);
         var equipment = LegacyEquipmentQuerySelector.Select(stable);
         var hp = PreflightAttributeHitpoints(stable, equipment, context.WorldData, metadata);
+        if (restoreHitpoints)
+        {
+            // UpdateLevel's final setter is signed int, even when Max is UInt32.
+            _ = LegacyEquipmentQueryBounds.WithHitpoints(stable.Character, checked((int)hp.Maximum));
+            foreach (var packet in LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(
+                         checked((uint)stable.Character.Uid), hp.Maximum, hp.Maximum))
+                _ = packet.ToFrameBytes();
+        }
         PreflightAttributeMagic(context, stable, equipment);
         uint uid = checked((uint)stable.Character.Uid);
         _ = new LegacyPlayerStatusPacket(CalculateLegacyRuntimeStatusFields(stable, context.WorldData)).ToFrameBytes();

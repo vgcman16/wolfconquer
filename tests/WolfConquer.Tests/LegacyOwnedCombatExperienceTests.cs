@@ -10,6 +10,40 @@ namespace WolfConquer.Tests;
 public sealed class LegacyOwnedCombatExperienceTests
 {
     [Fact]
+    public Task EquipmentStatusOutputFailureAfterLevelCommitFencesWithoutRestoringHitpoints() =>
+        RunHitAsync(async (f, monster, family, states) =>
+        {
+            var before = f.Current();
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(before.NativeGameClient!.OrdinarySpellBinding);
+            var files = f.Data.Files();
+            var path = Path.GetRelativePath(f.Data.Root, f.CharacterPath());
+            var text = Encoding.UTF8.GetString(files[path]);
+            text = ReplaceLine(text, "Level=139", "Level=140");
+            text = ReplaceLine(text, "Atributes=12", "Atributes=15");
+            files[path] = Encoding.UTF8.GetBytes(text);
+            int interrupted = 0;
+            f.BeforeSend = (_, bytes) =>
+            {
+                if (binding.Player.Level != 140 ||
+                    OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode != LegacyPlayerStatusPacket.Opcode) return;
+                Assert.Equal(0, interrupted++);
+                Assert.Equal(5000L, f.Current().Character.MinHitPoints);
+                Assert.Equal(5000, binding.Player.HitPoints);
+                f.Data.AssertFiles(files);
+                throw new IOException("owned XP equipment status interruption");
+            };
+            try { await Assert.ThrowsAnyAsync<Exception>(() => HitAsync(f, monster)); }
+            finally { f.BeforeSend = null; }
+            Assert.Equal(1, interrupted);
+            Assert.True(f.Recovery.IsBlocked);
+            Assert.False(f.Store.TryGet(f.Connection(OwnedEquipmentBehaviorFixture.Actor), out _));
+            Assert.True(binding.IsRetired);
+            f.Data.AssertFiles(files);
+            Assert.True(states.TryGetVisibleInstance(monster, DateTimeOffset.UtcNow, out var damaged));
+            Assert.True(damaged.Hitpoints < monster.Hitpoints);
+        });
+
+    [Fact]
     public Task ActualOutputFailureAfterCommittedLevelFencesTheHolder() =>
         RunHitAsync(async (f, monster, family, states) =>
         {
@@ -71,10 +105,6 @@ public sealed class LegacyOwnedCombatExperienceTests
             expectedText = ReplaceLine(expectedText, "Level=139", "Level=140");
             expectedText = ReplaceLine(expectedText, "Atributes=12", "Atributes=15");
             expectedText = ReplaceLine(expectedText, "MinHitPoints=5000", "MinHitPoints=11136");
-            expectedText = ReplaceLine(expectedText, "MinMana=5000", "MinMana=0");
-            // This non-magic class has no gear mana: the canonical writer
-            // persists both the calculated maximum and current mana as zero.
-            expectedText = ReplaceLine(expectedText, "MaxMana=5000", "MaxMana=0");
             files[characterPath] = Encoding.UTF8.GetBytes(expectedText);
             f.ActorFrames.Clear();
             int? xpStart = null;
@@ -108,18 +138,18 @@ public sealed class LegacyOwnedCombatExperienceTests
             Assert.True(xpStart.Value > 0); // The actual hit response precedes XP.
             var frames = f.ActorFrames.Skip(xpStart.Value).ToArray();
             var uid = OwnedEquipmentBehaviorFixture.Actor;
-            var expectedFrames = new[]
-            {
-                Update(uid, (LegacyMsgUpdateDataType.Level, 140)),
-                Update(uid, (LegacyMsgUpdateDataType.Atributes, 15)),
-                Update(uid, (LegacyMsgUpdateDataType.MaxHitpoints, 11136)),
-                Update(uid, (LegacyMsgUpdateDataType.MaxHitpoints, 11136), (LegacyMsgUpdateDataType.Hitpoints, 11136)),
-                Update(uid, (LegacyMsgUpdateDataType.MaxMana, 0)),
-                Update(uid, (LegacyMsgUpdateDataType.MaxMana, 0), (LegacyMsgUpdateDataType.Mana, 0)),
-                Update(uid, (LegacyMsgUpdateDataType.Experience, 0)),
-            };
-            Assert.Equal(expectedFrames.Length, frames.Length);
-            for (int i = 0; i < frames.Length; i++) Assert.Equal(expectedFrames[i], frames[i]);
+            int level = Array.FindIndex(frames, bytes => bytes.AsSpan().SequenceEqual(Update(uid, (LegacyMsgUpdateDataType.Level, 140))));
+            int points = Array.FindIndex(frames, bytes => bytes.AsSpan().SequenceEqual(Update(uid, (LegacyMsgUpdateDataType.Atributes, 15))));
+            int status = Array.FindIndex(frames, bytes => OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode == LegacyPlayerStatusPacket.Opcode);
+            int refine = Array.FindIndex(frames, bytes => OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode == LegacyUserTotalRefineLevPacket.Opcode);
+            int restored = Array.FindIndex(frames, bytes => bytes.AsSpan().SequenceEqual(Update(uid,
+                (LegacyMsgUpdateDataType.MaxHitpoints, 11136), (LegacyMsgUpdateDataType.Hitpoints, 11136))));
+            Assert.True(level >= 0 && level < points && points < status && status < refine && refine < restored);
+            Assert.True(LegacyPlayerStatusPacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(frames[status]), out var queryStatus));
+            Assert.Equal(11136U, queryStatus.MaxHP); Assert.Equal(0U, queryStatus.MaxMana);
+            Assert.Contains(frames.Skip(status + 1).Take(refine - status - 1), bytes => bytes.AsSpan().SequenceEqual(Update(uid,
+                (LegacyMsgUpdateDataType.MaxHitpoints, 11136), (LegacyMsgUpdateDataType.Hitpoints, 5000))));
+            Assert.Equal(Update(uid, (LegacyMsgUpdateDataType.Experience, 0)), frames[^1]);
         });
 
     private static byte[] Update(uint uid, params (LegacyMsgUpdateDataType Type, ulong Value)[] entries) =>
@@ -146,6 +176,7 @@ public sealed class LegacyOwnedCombatExperienceTests
         var actor = OwnedEquipmentBehaviorFixture.Character(classCode: 1000, level: 139, reborn: 1,
             strength: 100, mapId: 1011, x: 430, y: 380, minHitPoints: 5000) with
         {
+            MinMana = 0, MaxMana = 0,
             Attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 { ["DynamicID"] = "77", ["Action"] = "0", ["Stamina"] = "100", ["UserExpRate"] = "1" },
         };

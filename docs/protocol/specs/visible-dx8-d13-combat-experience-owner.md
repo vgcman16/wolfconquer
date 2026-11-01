@@ -2,13 +2,23 @@
 
 Target: VisibleDx8D13 managed server, existing client-directed experience, level, source-stat, HP and mana update packets. Preserve the existing successful order and widths. The producer is the existing server-calculated final experience gain in monster/team and magic callers; an arbitrary caller-provided number or saved file is not an independent combat authorization.
 
-For each actual recipient, bind the issuing Frame, Store, exact connection, current holder, native client/player and admission binding. Freeze the actual gain, catalog inputs, level thresholds, item/gear inputs, before character and independently prepared resulting character. Validate bounds and all owner/currentness witnesses before any recipient file, native, holder or success output. A closed, privately registered XP purpose permits exactly its computed level, experience, source attributes, points and vitals; generic publications gain no new authority.
+For each actual recipient, bind the issuing Frame, Store, exact connection, current holder, native client/player and admission binding. Freeze the actual gain, catalog inputs, level thresholds, item/gear inputs, before character and independently prepared resulting character. Validate bounds and all owner/currentness witnesses before any recipient file, native, holder or success output. A closed, privately registered XP purpose permits exactly its computed level, experience, source attributes and points; generic publications gain no new authority. A level transition also requires the actual exclusive Frame lease and preflight of a dedicated equipment-query and HP restoration owner. The level/stat commit retains the prior current HP and MP until that real query and restoration complete.
 
 Prepare and compare the complete current Character before image, retain unrelated bytes and project the bounded result. Serialize under the real owner and file locks, replace the exact captured image, and only then publish matching native attributes, level, experience and holder. A clean precommit refusal publishes no XP output or debit. If replacement outcome is uncertain, or a postcommit owner/publication/output failure prevents proving coherence, fence the affected owner and require recovery; never reapply merely because output was lost.
 
 The XP transaction is per recipient. Damage, monster death, rewards and other team recipients may already be committed before this call; this increment does not claim joint crash atomicity or rollback of those actions. Peer recipients must resolve their own connection and current binding. Missing or stale catalog, persistence, identity or runtime ownership refuses safely. Existing unbound component models are not evidence of admitted ownership.
 
+Disk/runtime comparison retains UID, all modeled persisted scalars and currencies,
+PaidNobility and unrelated raw-key equality. Only the known live StatusFlags,
+XPCount and Stamina values may differ from a saved seed; the writer retains their
+original raw lines. These inputs never grant an award or replace the actual bound
+producer/operation/file proofs. A genuine periodic cast with9stamina cost and a
+deliberately changed saved CP balance verify successful runtime progression versus
+persisted-wallet refusal, with independent complete-file expectations.
+
 Qualification required: actual admitted hit and team-recipient level-up, no-level gain, threshold/malformed and file-lease refusal, exact native/holder/file/packet alignment, stale owner and postcommit failure, plus relevant full suite. Source-only drafting is unrun. Live client acceptance and end-to-end damage/reward/XP atomicity remain open.
+
+Only a single threshold transition is currently eligible. A gain that would cross multiple levels is refused before this recipient's XP commit until durable remaining-XP continuation owns each intermediate level/query step. Previously committed damage and rewards are not reversed.
 # Current team boundary
 
 Admitted team experience captures a real roster identity and generation before

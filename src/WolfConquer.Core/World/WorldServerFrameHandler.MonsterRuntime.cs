@@ -43,10 +43,32 @@ public sealed partial class WorldServerFrameHandler
         };
     }
 
+    private WorldPacketHandlerContext CreateMonsterRuntimeOperationContext(WorldActiveSession active, IDisposable operation)
+    {
+        if (!_worldOperations.OwnsActiveExclusiveLease(operation))
+            throw new InvalidOperationException("periodicCombatOperationRequiresExclusiveLease");
+        return CreateMonsterRuntimeContext(active) with
+        {
+            TradeOperations = _worldOperations,
+            FrameOperationLease = operation,
+            PlayerProficienciesRoot = _snapshotLoader?.PlayerProficienciesRoot,
+        };
+    }
+
     private async ValueTask SendDueFloorSpellEffectsAsync(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
+        using var operation = await _worldOperations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false);
+        if (_tradeRecovery.IsBlocked || !_tradeRecovery.TryRequireLiveJournalClear(out _)) return;
+        await SendDueFloorSpellEffectsHeldAsync(now, cancellationToken, operation).ConfigureAwait(false);
+    }
+
+    private async ValueTask SendDueFloorSpellEffectsHeldAsync(
+        DateTimeOffset now, CancellationToken cancellationToken, IDisposable operation)
+    {
+        if (!_worldOperations.OwnsActiveExclusiveLease(operation))
+            throw new InvalidOperationException("periodicCombatOperationRequiresExclusiveLease");
         var activeSessions = _sessions.Snapshot();
         if (activeSessions.Count == 0)
         {
@@ -54,10 +76,7 @@ public sealed partial class WorldServerFrameHandler
         }
 
         var active = activeSessions[0];
-        var context = CreateMonsterRuntimeContext(active) with
-        {
-            PlayerProficienciesRoot = _snapshotLoader?.PlayerProficienciesRoot,
-        };
+        var context = CreateMonsterRuntimeOperationContext(active, operation);
         await WorldPacketHandlers.SendDueLegacyTideTrapFloorSpellsAsync(context, now, cancellationToken)
             .ConfigureAwait(false);
         await WorldPacketHandlers.SendDueLegacyLayTrapFloorSpellsAsync(context, now, cancellationToken)

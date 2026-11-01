@@ -12,4 +12,5 @@ public enum LegacyEquipmentRebuildReason
     AllowAnimation,
     RiseOfTaoismChange,
     AttributeAllocation,
+    LevelUp,
 }

@@ -29,7 +29,8 @@ public sealed partial class WorldServerFrameHandler
             // cross an awaited handler that will later publish an older session.
             using var operation = HandlerOwnsOperation(frame, _protocolProfile, ActiveNpcForOperationRouting(connection))
                 ? null
-                : frame.Header.Opcode is WorldPacketOpcodes.LegacyAttributeSet or WorldPacketOpcodes.LegacyMsgLoginGame or
+                : CombatRequiresExclusiveOperation(frame, _protocolProfile) ||
+                    frame.Header.Opcode is WorldPacketOpcodes.LegacyAttributeSet or WorldPacketOpcodes.LegacyMsgLoginGame or
                     WorldPacketOpcodes.InternalWorldEnterRequest or WorldPacketOpcodes.LegacyNewRole
                     ? await _worldOperations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false)
                     : await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);

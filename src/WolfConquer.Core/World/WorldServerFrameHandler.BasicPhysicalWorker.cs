@@ -90,12 +90,14 @@ public sealed partial class WorldServerFrameHandler
         try
         {
             using var worker = runtime.EnterWorker();
-            using var operation = await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
-            if (_tradeRecovery.IsBlocked || !_tradeRecovery.TryRequireLiveJournalClear(out _))
-            { StopBasicPhysicalGenerations(); return; }
             foreach (var active in _sessions.Snapshot())
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                // One due actor owns its complete attack/query operation. Do
+                // not retain a shared batch lease and upgrade after its hit.
+                using var operation = await _worldOperations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false);
+                if (_tradeRecovery.IsBlocked || !_tradeRecovery.TryRequireLiveJournalClear(out _))
+                { StopBasicPhysicalGenerations(); return; }
                 BasicPhysicalRepeatTicket? ticket = null;
                 try
                 {

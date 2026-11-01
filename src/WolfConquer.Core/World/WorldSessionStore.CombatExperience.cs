@@ -9,10 +9,10 @@ public sealed partial class WorldSessionStore
     internal bool TryCommitCombatExperience(WorldPacketHandlerContext context, ConquerTcpConnection recipient,
         WorldSession expected, ulong gain, WorldPacketHandlers.OwnedCombatExperience purpose,
         out WorldSession? result, out LegacyClassLevelStatProgressionChange progression, out ActionPublication? receipt,
-        out byte[][] frames, out string refusal)
+        out byte[][] frames, out WorldPacketHandlers.PreparedLevelUpRebuild? rebuild, out string refusal)
     {
         RefuseBoundSpellReentry(recipient);
-        result = null; progression = default; receipt = null; frames = []; refusal = "combatExperienceOwnerOrInputUnproven";
+        result = null; progression = default; receipt = null; frames = []; rebuild = null; refusal = "combatExperienceOwnerOrInputUnproven";
         if (!purpose.Covers(this, context, recipient, expected, gain) || framePersistenceOwner is not { } frame ||
             context.WorldData is not { } catalog) return false;
         var recipientContext = context with { Connection = recipient, Session = expected };
@@ -44,6 +44,13 @@ public sealed partial class WorldSessionStore
                         (!catalog.LevelExperienceByTypeAndLevel.TryGetValue((0, checked((int)expected.Character.Level)), out var threshold) ||
                          threshold.Experience <= 0)) return false;
                     projection = LegacyCombatExperienceProjection.Create(expected, catalog, gain);
+                    if (projection.After.Level - expected.Character.Level > 1)
+                    { refusal = "combatExperienceMultipleLevelsRequireContinuationOwner"; return false; }
+                    if (projection.LevelChanged)
+                    {
+                        if (recipientContext.TradeOperations?.OwnsActiveExclusiveLease(recipientContext.FrameOperationLease) != true)
+                        { refusal = "combatExperienceLevelUpExclusiveLeaseUnavailable"; return false; }
+                    }
                     projection = projection with { After = new WorldPacketHandlers.BoundHitpointsInputs(
                         expected.Character, projection.After).After };
                     preparedFrames = WorldPacketHandlers.PrepareCombatExperienceFrames(projection);
@@ -61,9 +68,13 @@ public sealed partial class WorldSessionStore
                 if (!LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, expected, proposed)) return false;
                 LegacyNativePlayerRuntime.OwnedHitpointsPublication vitals;
                 LegacyNativePlayerRuntime.OwnedActorScalarsPublication scalars;
+                WorldPacketHandlers.PreparedLevelUpRebuild? query = null;
                 try
                 {
                     purpose.Bind(owner, proposed);
+                    if (projection.LevelChanged &&
+                        (!WorldPacketHandlers.PreparedLevelUpRebuild.TryPrepare(recipientContext, purpose, owner, expected, proposed, out query) || query is null))
+                    { refusal = "combatExperienceLevelUpRebuildOwnerUnavailable"; return false; }
                     vitals = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareBound(owner, expected, proposed);
                     scalars = LegacyNativePlayerRuntime.OwnedActorScalarsPublication.PrepareBound(owner, expected, proposed,
                         combatExperience: purpose);
@@ -74,7 +85,8 @@ public sealed partial class WorldSessionStore
                 { return false; }
                 string path = Path.Combine(owner.UsersRoot, expected.AccountId.ToString(CultureInfo.InvariantCulture) + ".ini");
                 string fileRefusal = "combatExperienceCharacterImageInvalid";
-                bool published = CharacterSnapshotFileCoordinator.ExecuteLocked(path, () =>
+                string[] paths = query?.LockedSpellPath is { } spellPath ? [path, spellPath] : [path];
+                bool published = SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>
                 {
                 byte[] before, after;
                 try
@@ -83,15 +95,14 @@ public sealed partial class WorldSessionStore
                     var text = CharacterSnapshotFileEncoding.Decode(before, out var encoding);
                     if (!encoding.GetPreamble().Concat(encoding.GetBytes(text)).SequenceEqual(before)) return false;
                     var disk = CharacterSnapshotParser.ParseText(text);
-                    if (disk.Uid != expected.Character.Uid || CharacterSnapshotScalarPersistence.HasPersistedScalarChanges(disk, expected.Character) ||
-                        disk.Attributes.Any(pair => !expected.Character.Attributes.TryGetValue(pair.Key, out var value) || value != pair.Value) ||
-                        !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(disk, expected.Character)) return false;
+                    if (!LegacyCombatCharacterImageInputs.Matches(disk, expected.Character)) return false;
                     after = LegacyBoundHitpointsScalarWrite.ProjectAfterImage(before, projection.After);
                 }
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or
                     InvalidOperationException or OverflowException or ArgumentException or NotSupportedException or System.Security.SecurityException)
                 { return false; }
-                if (teamScope is not null && !teamScope.IsCurrentPlain() ||
+                query?.BindCommitted(proposed);
+                if (teamScope is not null && !teamScope.IsCurrentPlain() || query is not null && !query.IsCurrentPlain() ||
                     !metadata.IsCurrentPlain() || !physical.IsCurrentPlain() || !purpose.IsCurrentPlain() ||
                     !vitals.IsCurrentPlain() || !scalars.IsCurrentPlain() || !frame.IsActionLifecycleCurrent(this, recipientContext)) return false;
                 bool saved; bool uncertain; string reason;
@@ -108,7 +119,7 @@ public sealed partial class WorldSessionStore
                 {
                     if (!CharacterSnapshotFileBaseline.TryReadBytes(path, "combatExperienceCommitted", out var savedImage, out _) ||
                         !savedImage.AsSpan().SequenceEqual(after) || teamScope is not null && !teamScope.IsCurrentPlain() ||
-                        !metadata.IsCurrentPlain() || !physical.IsCurrentPlain() || !purpose.IsCurrentPlain() ||
+                        query is not null && !query.IsCurrentPlain() || !metadata.IsCurrentPlain() || !physical.IsCurrentPlain() || !purpose.IsCurrentPlain() ||
                         !vitals.IsCurrentPlain() || !scalars.IsCurrentPlain() || !frame.IsActionLifecycleCurrent(this, recipientContext))
                         throw new InvalidOperationException("combatExperienceCommittedOwnerChanged");
                     vitals.PublishPrepared(); scalars.PublishPrepared();
@@ -120,6 +131,7 @@ public sealed partial class WorldSessionStore
                 return true;
                 });
                 if (!published) { refusal = fileRefusal; return false; }
+                rebuild = query;
                 progression = projection.StatProgression;
             }
         }

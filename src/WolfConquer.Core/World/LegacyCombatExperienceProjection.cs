@@ -24,10 +24,10 @@ internal sealed record LegacyCombatExperienceProjection(
         }
         bool changedLevel = level != before.Level;
         var leveled = before with { Experience = level >= 140 ? 0 : experience, Level = level };
-        var after = LegacyClassLevelStatProgression.Apply(leveled, catalog, before.Level, out var progression);
-        if (changedLevel)
-            after = LegacyClassLevelStatProgression.RefreshVitals(after, session.PlayerItems,
-                session.CombatGear ?? CombatGearSnapshot.Empty, catalog);
+        LegacyClassLevelStatProgressionChange progression = default;
+        var after = changedLevel ? LegacyClassLevelStatProgression.Apply(leveled, catalog, before.Level, out progression) : leveled;
+        // A real level-up query and its owned HP restoration run after this
+        // stat step; do not substitute modeled vitals for completed caches.
         return new(before, after, appliedGain, changedLevel, progression);
     }
 }

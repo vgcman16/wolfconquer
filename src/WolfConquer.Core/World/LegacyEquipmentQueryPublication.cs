@@ -22,6 +22,7 @@ internal sealed record LegacyEquipmentQueryPublicationScope(
     internal object? RequiredNativeClientIdentity { get; init; }
     internal LegacyOrdinarySpellBinding? PhysicalReceiveOwner { get; init; }
     internal WorldPacketHandlers.PreparedAttributeRebuild? AttributeRebuild { get; init; }
+    internal WorldPacketHandlers.PreparedLevelUpRebuild? LevelUpRebuild { get; init; }
 }
 
 internal readonly record struct LegacyEquipmentQueryPublicationResult(

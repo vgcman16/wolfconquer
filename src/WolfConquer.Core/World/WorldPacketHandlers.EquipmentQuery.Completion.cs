@@ -19,7 +19,11 @@ public static partial class WorldPacketHandlers
                     if (!ReferenceEquals(identity, Request.Scope.OwnerNativeClientIdentity)) return;
                     lock (binding.Client.SpellAdmissionSyncRoot)
                     lock (binding.Player.SpellAdmissionSyncRoot)
-                        completed = LegacyNativeMagicQueryClient.PublishCompletedMaximums(binding, Session, queryEpoch);
+                    {
+                        completed = LegacyNativeMagicQueryClient.PublishCompletedMaximums(binding, Session, queryEpoch, out var proof);
+                        if (completed && Request.Scope.LevelUpRebuild is { } levelUp)
+                            completed = proof is not null && levelUp.AcceptQueryCompletion(Context, Session, proof);
+                    }
                 });
             return completed;
         }

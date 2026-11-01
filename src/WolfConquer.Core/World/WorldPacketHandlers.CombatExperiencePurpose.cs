@@ -31,6 +31,14 @@ public static partial class WorldPacketHandlers
             ReferenceEquals(current, expected);
         internal bool IsCurrentPlain() => CombatExperienceSources.TryGetValue(this, out var source) &&
             binding is { } owner && proposed is { } candidate && CoversAttributes(owner, source.Expected, candidate);
+        internal bool CoversRebuild(WorldPacketHandlerContext context, LegacyOrdinarySpellBinding owner,
+            WorldSession expected, WorldSession candidate) =>
+            CombatExperienceSources.TryGetValue(this, out var source) && CoversAttributes(owner, expected, candidate) &&
+            ReferenceEquals(context.Connection, source.Recipient) && ReferenceEquals(context.Sessions, source.Context.Sessions) &&
+            ReferenceEquals(context.WorldData, source.Context.WorldData) &&
+            ReferenceEquals(context.TradeOperations, source.Context.TradeOperations) &&
+            ReferenceEquals(context.FrameOperationLease, source.Context.FrameOperationLease) &&
+            context.TradeOperations?.OwnsActiveExclusiveLease(context.FrameOperationLease) == true;
         internal bool Covers(WorldSessionStore store, WorldPacketHandlerContext context,
             ConquerTcpConnection recipient, WorldSession expected, ulong gain) =>
             CombatExperienceSources.TryGetValue(this, out var source) &&
@@ -61,12 +69,6 @@ public static partial class WorldPacketHandlers
             if (projection.StatProgression.AddedAttributePoints)
                 frames.Add(LegacyMsgUpdatePacket.CreateLegacyRuntimeAttributePointsUpdate(uid,
                     CheckedUInt64(character.AttributePoints, nameof(character.AttributePoints))).ToFrameBytes());
-            frames.AddRange(LegacyMsgUpdatePacket.CreateLegacyPlayerHitpointUpdatePair(uid,
-                CheckedUInt32(character.MinHitPoints, nameof(character.MinHitPoints)),
-                CheckedUInt32(character.MinHitPoints, nameof(character.MinHitPoints))).Select(row => row.ToFrameBytes()));
-            frames.AddRange(LegacyMsgUpdatePacket.CreateLegacyPlayerManaUpdatePair(uid,
-                CheckedUInt64(character.MaxMana, nameof(character.MaxMana)),
-                CheckedUInt64(character.MinMana, nameof(character.MinMana))).Select(row => row.ToFrameBytes()));
         }
         frames.Add(LegacyMsgUpdatePacket.CreateLegacyRuntimeExperienceUpdate(uid, checked((ulong)character.Experience)).ToFrameBytes());
         return frames.ToArray();
@@ -85,6 +87,38 @@ public static partial class WorldPacketHandlers
             try { await connection.SendAsync(bytes, cancellationToken).ConfigureAwait(false); }
             catch (Exception error) { receipt.FenceCommittedAttributeFailure(error); throw; }
             if (!Current()) receipt.FenceCommittedAttributeFailure(new InvalidOperationException("combatExperienceOutputOwnerChanged"));
+        }
+    }
+
+    private static async ValueTask<WorldSession> SendCommittedLevelExperienceAsync(ConquerTcpConnection connection,
+        WorldSession committed, WorldSessionStore.ActionPublication receipt, PreparedLevelUpRebuild rebuild,
+        byte[][] frames, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (frames.Length < 2) throw new InvalidOperationException("combatLevelExperienceFramesInvalid");
+            for (int i = 0; i < frames.Length - 1; i++)
+            {
+                if (!receipt.TryCurrent(out var current) || !ReferenceEquals(current, committed))
+                    throw new InvalidOperationException("combatLevelPrefixOwnerChanged");
+                await connection.SendAsync(frames[i], cancellationToken).ConfigureAwait(false);
+                if (!receipt.TryCurrent(out current) || !ReferenceEquals(current, committed))
+                    throw new InvalidOperationException("combatLevelPrefixOwnerChanged");
+            }
+            var completed = await rebuild.RebuildAndRestoreAsync(receipt, cancellationToken).ConfigureAwait(false);
+            if (completed is null || !completed.TryCurrent(out var result) || !ReferenceEquals(result, completed.Session) ||
+                result.Character.Level != committed.Character.Level || result.Character.Experience != committed.Character.Experience)
+                throw new InvalidOperationException("combatLevelRebuildUnproven");
+            await connection.SendAsync(frames[^1], cancellationToken).ConfigureAwait(false);
+            if (!completed.TryCurrent(out result) || !ReferenceEquals(result, completed.Session) ||
+                result.Character.Level != committed.Character.Level || result.Character.Experience != committed.Character.Experience)
+                throw new InvalidOperationException("combatLevelExperienceOwnerChanged");
+            return result;
+        }
+        catch (Exception error)
+        {
+            receipt.FenceCommittedLevelUpFailure(error);
+            throw;
         }
     }
 }
