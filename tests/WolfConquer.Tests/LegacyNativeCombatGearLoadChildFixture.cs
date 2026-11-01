@@ -86,9 +86,22 @@ internal static class LegacyNativeCombatGearLoadChildFixture
                 Task.WhenAll(outCopy, errCopy).GetAwaiter().GetResult();
             }
         }
-        string text = new UTF8Encoding(false, true).GetString(stdout.ToArray());
-        string error = new UTF8Encoding(false, true).GetString(stderr.ToArray());
         output.WriteLine($"Scenario={scenario}; native PID={process.Id}; actual exit={process.ExitCode}; creator-owned handle retained through exit.");
+        string Decode(byte[] bytes, string stream)
+        {
+            try { return new UTF8Encoding(false, true).GetString(bytes); }
+            catch (DecoderFallbackException failure)
+            {
+                int index = Math.Clamp(failure.Index, 0, bytes.Length);
+                int start = Math.Max(0, index - 32);
+                int length = Math.Min(bytes.Length - start, 96);
+                output.WriteLine($"Invalid UTF-8 in {stream}: length={bytes.Length}; index={failure.Index}; bytes[{start}..{start + length})=\\x" +
+                    string.Join("\\x", bytes.AsSpan(start, length).ToArray().Select(value => value.ToString("X2"))));
+                throw;
+            }
+        }
+        string text = Decode(stdout.ToArray(), "stdout");
+        string error = Decode(stderr.ToArray(), "stderr");
         output.WriteLine(text);
         if (error.Length != 0) output.WriteLine(error);
         Assert.Equal(0, process.ExitCode);
@@ -111,6 +124,9 @@ internal static class LegacyNativeCombatGearLoadChildFixture
     }
 
     private const string Script = """
+        $utf8=[Text.UTF8Encoding]::new($false,$true)
+        [Console]::OutputEncoding=$utf8
+        $OutputEncoding=$utf8
         $ErrorActionPreference='Stop'
         Set-StrictMode -Version Latest
         if ($PSVersionTable.PSVersion.Major -ne 7) { throw 'Measured PS7 required' }
