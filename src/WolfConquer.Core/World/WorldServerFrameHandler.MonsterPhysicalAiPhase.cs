@@ -38,6 +38,30 @@ public sealed partial class WorldServerFrameHandler
         return tick;
     }
 
+    private bool TryAdvanceSelectedMonsterPhysicalAi(MonsterPhysicalAiTick tick,
+        LegacyMonsterInstance instance, Monster family,
+        int scanRange, TimeSpan interval, DateTimeOffset now, out bool hasTarget, out WorldActiveSession target,
+        out LegacyMonsterTargetLockResult result, out MonsterPhysicalAiRefusal reason)
+    {
+        // The owned stamina worker publishes a new holder under this exact
+        // lifecycle gate. Select and issue inside it, rather than carrying an
+        // obsolete target record into the Store after waiting for that worker.
+        // Store still proves the exact holder and enters package/connection/
+        // native actor/monster gates in its established order. Nothing is
+        // refreshed after issuance, including a replaced binding or actor.
+        lock (RequireActionLifecycleGate(_sessions))
+        {
+            var candidates = _sessions.Snapshot();
+            _monsterStates.TryGetTargetLockState(instance, now, out var targetLock);
+            hasTarget = TryFindMonsterTargetLockCandidate(candidates, instance, scanRange,
+                targetLock.LastTargetUid, out target, out var snapshot);
+            var phase = PrepareMonsterPhysicalAiPhase(tick, instance, family,
+                hasTarget ? target : null, hasTarget ? snapshot : null, scanRange, interval, out reason);
+            result = default;
+            return phase is not null && _sessions.TryAdvanceMonsterPhysicalAi(this, phase, out result, out reason);
+        }
+    }
+
     // Issued only at the actual private loop's selected phase, after its real
     // instance/family/current target resolution. No caller timestamp/event API.
     private MonsterPhysicalAiPhase? PrepareMonsterPhysicalAiPhase(MonsterPhysicalAiTick tick,

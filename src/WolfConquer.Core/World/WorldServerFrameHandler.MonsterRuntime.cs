@@ -420,21 +420,12 @@ public sealed partial class WorldServerFrameHandler
                 var visible = entry.Instance;
                 var attackInterval = GetLegacyMonsterAttackInterval(monsterFamily);
                 var effectiveScanRange = ResolveLegacyMonsterTargetScanRange(visible, attackRange, viewRange);
-                _monsterStates.TryGetTargetLockState(visible, now, out var targetLock);
-                var hasTarget = TryFindMonsterTargetLockCandidate(
-                    activeSessions,
-                    visible,
-                    effectiveScanRange,
-                    targetLock.LastTargetUid,
-                    out var target,
-                    out var targetSnapshot);
+                var advanced = TryAdvanceSelectedMonsterPhysicalAi(physicalAiTick, visible, monsterFamily,
+                    CheckedInt32(effectiveScanRange, nameof(effectiveScanRange)), attackInterval,
+                    now, out var hasTarget, out var target, out var targetDecision, out var refusal);
                 if (!hasTarget)
                     await LogMonsterPhysicalAiRefusalAsync(MonsterPhysicalAiRefusal.TargetAbsent).ConfigureAwait(false);
-                var physicalPhase = PrepareMonsterPhysicalAiPhase(physicalAiTick, visible, monsterFamily,
-                    hasTarget ? target : null, hasTarget ? targetSnapshot : null,
-                    CheckedInt32(effectiveScanRange, nameof(effectiveScanRange)), attackInterval, out var refusal);
-                if (physicalPhase is null || !_sessions.TryAdvanceMonsterPhysicalAi(this, physicalPhase,
-                        out var targetDecision, out refusal))
+                if (!advanced)
                 {
                     await LogMonsterPhysicalAiRefusalAsync(refusal).ConfigureAwait(false);
                     continue;
