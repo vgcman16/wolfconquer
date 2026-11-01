@@ -6,6 +6,29 @@ namespace WolfConquer.Tests;
 
 public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
 {
+    [Fact]
+    public Task RealJointHitPreservesCaseDistinctOpaqueAttributesOnBothOwners() =>
+        RunProficiencyAsync(true, async f =>
+        {
+            foreach (var uid in new[] { Actor, Target })
+            {
+                var before = f.Current(uid);
+                var attributes = new Dictionary<string, string>(before.Character.Attributes, StringComparer.Ordinal)
+                    { ["Other"] = "upper", ["other"] = "lower" };
+                f.Owner.Store.Set(f.Owner.Connection(uid), before with
+                    { Character = before.Character with { Attributes = attributes } });
+                Assert.True(f.Owner.Store.IsBoundSpellOwnerCurrent(f.Binding(uid)));
+            }
+
+            await AssertProficiencyHitAsync(f, existing: true);
+            foreach (var uid in new[] { Actor, Target })
+            {
+                Assert.Equal("upper", f.Current(uid).Character.Attributes["Other"]);
+                Assert.Equal("lower", f.Current(uid).Character.Attributes["other"]);
+                Assert.True(f.Owner.Store.IsBoundSpellOwnerCurrent(f.Binding(uid)));
+            }
+        });
+
     private sealed record ProficiencyRefusal(WorldSession ActorSession, WorldSession TargetSession,
         Dictionary<string, byte[]> Files, DateTime Stamp, object Map, object[] Rows);
 
@@ -36,7 +59,6 @@ public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
         var hpCommitted = HpImage(f, before, 2000, 1700);
         var profCommitted = hpCommitted.ToDictionary(pair => pair.Key, pair => pair.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
         profCommitted[Path.GetRelativePath(f.Owner.Data.Root, ProficiencyPath(f))] = afterProfs;
-        var beforeBook = f.Current().PlayerProficiencies;
         var afterBook = PlayerProficiencySnapshotLoader.Parse(afterProfs);
         var unrelated = f.Binding().Client.MyProfs!.ClientProf[420];
         var stamp = f.Clock.GetLocalNow().DateTime;
@@ -50,9 +72,11 @@ public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
                 Assert.Equal(Actor, recipient); Assert.Equal(410U, proficiency.Id);
                 Assert.Equal(ProficiencyGolden(existing), bytes);
             }
-            f.AssertFiles(sawProficiency ? profCommitted : hpCommitted);
+            // Joint journal24 publishes both durable participants and their
+            // native holders before the first interaction frame.
+            f.AssertFiles(profCommitted);
             f.AssertCoherent(1700); AssertCommittedActor(f, stamp);
-            AssertProficiencyMap(f, sawProficiency ? afterBook : beforeBook);
+            AssertProficiencyMap(f, afterBook);
             Assert.Same(unrelated, f.Binding().Client.MyProfs!.ClientProf[420]);
             // Real source repeat is armed only after accepted progression output.
             Assert.False(f.Binding().Client.OnAutoAttack);

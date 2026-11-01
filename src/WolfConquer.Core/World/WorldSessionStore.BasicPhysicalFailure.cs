@@ -6,9 +6,9 @@ public sealed partial class WorldSessionStore
     {
         var primary = new LegacyBasicPhysicalRecoveryRequiredException(reason, cause);
         var errors = new List<Exception> { primary };
-        try { actual.ActorBinding.Recovery.Block(reason); } catch (Exception error) { errors.Add(error); }
         foreach (var binding in new[] { actual.ActorBinding, actual.TargetBinding })
         {
+            try { binding.Recovery.Block(reason); } catch (Exception error) { errors.Add(error); }
             try { FenceBasicPhysicalBinding(binding); }
             catch (Exception error) { errors.Add(error); }
         }

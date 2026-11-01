@@ -85,6 +85,7 @@ internal static partial class LegacyTradeJournal
     }
 
     private static string[] AdmissionLockPaths(JournalRoots roots, JournalRecord record, JournalTarget[] targets) =>
+        record.Version == 24 ? targets.Select(target => target.Path).Concat(HitProgressionReferencePaths(roots, record)).ToArray() :
         record.Version == 23 ? targets.Select(target => target.Path).Append(DerivedSpellQueryItemsPath(roots, record)).ToArray() :
         record.Version == 22 ? targets.Select(target => target.Path).Append(PhysicalDeathItemsPath(roots, record)).ToArray() :
         record.Version == 19 ? AuthenticatedCreationPaths(roots.Admission!, roots.Mailbox!, checked((uint)record.Changes[0].FileId)).Values.ToArray() :

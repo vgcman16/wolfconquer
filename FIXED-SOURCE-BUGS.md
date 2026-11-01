@@ -4,6 +4,56 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Open joint hit and proficiency durability correction - 2026-11-01
+
+### FSB-268: Commit target damage and actor weapon progression in one recoverable intent
+
+OPEN integration. Build03 passed (0 errors, 162 reported warnings).
+Focused04 completed 522 passed / 8 failed / 0 skipped over530 in19m47s.
+Actual TRX result nodes were counted, including32/32 first-use controls.
+The eight failures remain unqualified: one old level0 assertion, three
+published InvalidOperation classifications, three Hawks stance setups and one
+opaque-key preservation control. No full-suite or fixed-subsystem claim follows. The earlier ordinary player
+physical path durably saved target HP/death before Interaction, HP and death
+output, then separately saved actor Profs. Output failure or process loss in
+that gap could retain the hit without its proficiency outcome. A writable-file
+preflight or an in-process lock cannot reconcile those separate saves.
+
+This source joins the actual prepared basic hit, target HP/death writer and
+actor progression writer in one version24 intent: Character(target account),
+optional Spells(target player UID), then Profs(actor player UID). Initial native
+and session publication includes the same captured proficiency outcome before
+output; successful order remains Interaction, HP/death, proficiency, repeat arm.
+Post-intent uncertainty fences both owners and retains the intent for configured
+custody recovery. Recovery validates images, read-only Items, account/UID mapping,
+configured roots and legal replacement/stage prefixes before replacing files.
+
+The held 8996-based intake was deliberately rebased onto current Root production
+cda6b65ba3ee3fcef3fbef42a0662c62dbe5ab3a. The death-purpose join accepts only the
+exact actual basic receiver in the current closed basic/proc union; a Dragonhowl
+purpose cannot become a basic hit. Current managed-origin/receipt pointers,
+native committed generations and XP/EOF/currentness fences remain in place.
+Genuine producer, transport-loss, recovery-prefix and corrupt-input controls
+were exercised in focused04; the eight listed failures keep integration OPEN.
+Root alone integrates and qualifies.
+
+A source-only first-use follow-on now retains legitimate missing empty Profs
+through the actual configured admission read and detached native binding. The
+immutable saved-Profs origin is checked by the real joint writer and advanced
+only by actual committed joint/Frame file writers. Existing SavedSpells already
+retains genuine absence. Later same-value insertion/deletion cannot mint a new
+saved origin. The replacement DATA helper's zero-threshold early break was also
+wrong: real native CheckUpdate promotes level0 without consuming XP. The source
+now retains that bounded promotion and refuses a malformed previous-level jump
+past20. Independent DATA and actual second-hit controls pin the native outcomes.
+First-use, create/recovery prefixes, corruption, pre-intent refusal, subsequent
+real-writer and genuinely missing-directory controls passed32/32 in focused04.
+This is focused evidence within the522/8 overall red run, not full integration.
+Actual earned-XP/Physical serialization coverage is prepared separately; direct
+marker-fence reachability is not claimed by that serialized route.
+Retained-intent recovery is not fresh-request deduplication, a power-loss or
+multi-process guarantee, SQL integration, live acceptance or full parity.
+
 ## Open owned Physical proc integration - 2026-11-01
 
 ### FSB-293: Execute selected Dragonhowl through the actual Physical owner

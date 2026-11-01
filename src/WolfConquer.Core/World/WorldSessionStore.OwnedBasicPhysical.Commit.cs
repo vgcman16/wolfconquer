@@ -14,6 +14,9 @@ public sealed partial class WorldSessionStore
         using var permissionScope = permission;
         if (!WorldPacketHandlers.TryPrepareOwnedBasicPhysicalReceive(context, packet, selected, permission, out var plan, out reason) || plan is null)
             return false;
+        if (!LegacyExperienceContinuationFence.AllowsOrdinaryPublication(plan.ExpectedActor, plan.Actor) ||
+            !LegacyExperienceContinuationFence.AllowsOrdinaryPublication(plan.ExpectedTarget, plan.Target))
+        { reason = "basicPhysicalPendingExperienceRequiresContinuationOwner"; return false; }
         LegacyPreparedBasicPhysicalProficiencyWrite progression;
         LegacyPreparedBasicPhysicalWrite? death;
         try
@@ -27,11 +30,13 @@ public sealed partial class WorldSessionStore
             reason = "basicPhysicalFilePreflight:" + error.GetType().Name;
             return false; // No actual writer or native/holder publication has run.
         }
-        using var actorPublication = new PreparedSessionSpellPublication(this, actor.Connection, own, plan.ExpectedActor, plan.Actor);
+        using var actorPublication = new PreparedSessionSpellPublication(this, actor.Connection, own, plan.ExpectedActor,
+            progression.Plan.HasChanges ? plan.Actor with { PlayerProficiencies = progression.Plan.After } : plan.Actor);
         using var targetPublication = new PreparedSessionSpellPublication(this, target.Connection, peer, plan.ExpectedTarget, plan.Target,
             physicalDeath: plan.Death, basicPhysical: plan, physicalDeathPublication: death?.PreparePublication());
         var canonicalActor = actorPublication.FinalSession; var canonicalTarget = targetPublication.FinalSession;
-        if (!plan.CanonicalOutcomesMatch(canonicalActor, canonicalTarget) ||
+        if (!(progression.Plan.HasChanges ? plan.CanonicalProgressionOutcomesMatch(canonicalActor, canonicalTarget, progression.Plan) :
+                plan.CanonicalOutcomesMatch(canonicalActor, canonicalTarget)) ||
             !frame.TryReadBasicPhysicalHitProposal(this, context, plan.Decision, out var before, out var generation, out var stamp) || before is null)
             throw InvalidSpellPublication();
         var change = IssueBasicPhysicalChange(frame, actor, plan.ExpectedActor, before, generation,
@@ -46,6 +51,14 @@ public sealed partial class WorldSessionStore
             deathWind, progression, actorPublication.PreparedSpellGraph, actorPublication.PreparedProficiencyGraph,
             targetPublication.PreparedSpellGraph, targetPublication.PreparedProficiencyGraph, targetCancellation?.After, death);
         basicPhysicalPublications.Add(token, data); // Prepared/inert until its real writer pointer is assigned.
+        var hp = targetPublication.HitpointsWrite ?? throw InvalidSpellPublication();
+        if (progression.Plan.HasChanges)
+        {
+            try { data.JointProgressionWriter = LegacyPreparedBasicPhysicalHitProgressionWrite.Prepare(frame, this, plan, progression, death, hp, token); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or
+                ArgumentException or OverflowException or FormatException)
+            { reason = "basicPhysicalJointPreflight:" + error.GetType().Name; return false; }
+        }
         var hitReceipt = PrepareOwnedBasicPhysicalHitReceipt(plan, token);
         using var notifications = plan.Death?.PrepareNotifications(token, canonicalActor, canonicalTarget);
         data.DeathNotifications = notifications;
@@ -56,9 +69,15 @@ public sealed partial class WorldSessionStore
             notifications is not null && !notifications.IsCurrentPlain() ||
             !actorPublication.ConsumeBeforeWriterPlain() || !targetPublication.ConsumeBeforeWriterPlain() ||
             deathWind is not null && !deathWind.ConsumeBeforeWriterPlain()) throw InvalidSpellPublication();
-        var hp = targetPublication.HitpointsWrite ?? throw InvalidSpellPublication();
         bool committed;
-        if (death is null)
+        if (data.JointProgressionWriter is { } joint)
+        {
+            var outcome = joint.TryCommit(context.PhysicalDeathJournalInterruption, out reason);
+            committed = outcome == LegacyPreparedBasicPhysicalHitProgressionWrite.Outcome.Committed;
+            if (outcome == LegacyPreparedBasicPhysicalHitProgressionWrite.Outcome.RecoveryRequired)
+                throw FenceBasicPhysicalPersistence(data, "basicPhysicalHitProgressionOutcomeUnproven:" + reason);
+        }
+        else if (death is null)
         {
             var outcome = hp.TryCommit(out reason);
             committed = outcome == LegacyBoundHitpointsScalarWrite.Outcome.Committed;
@@ -73,19 +92,30 @@ public sealed partial class WorldSessionStore
                 throw FenceBasicPhysicalPersistence(data, "basicPhysicalDeathOutcomeUnproven:" + reason);
         }
         if (!committed) return false;
-        if (!permission.IsCurrentPlain() || !targetPublication.AcceptExternallyPersistedHitpoints() || !actorPublication.IsCurrentPlain() ||
-            !targetPublication.IsCurrentPlain() || !native.IsCurrentPlain() || !runtime.IsCurrentPlain() ||
-            deathNative is not null && !deathNative.IsCurrentPlain() || deathWind is not null && !deathWind.IsCurrentPlain() ||
-            targetCancellation is not null && !targetCancellation.IsCurrentPlain() ||
-            notifications is not null && !notifications.IsCurrentPlain())
-            throw FenceBasicPhysicalPersistence(data, "basicPhysicalCommittedPublicationUnproven");
-        actorPublication.PublishNative(); targetPublication.PublishNative();
-        deathNative?.PublishPrepared(); deathWind?.PublishPrepared(); notifications?.PublishPrepared();
-        native.PublishPrepared(); runtime.PublishPrepared();
-        targetCancellation?.PublishPrepared();
-        actorPublication.PublishHolder(); targetPublication.PublishHolder();
-        data.CommittedWriter = hp; // Actual same writer/publication, never a supplied success boolean.
-        CommitOwnedBasicPhysicalHitReceipt(hitReceipt, token, data);
+        try
+        {
+            if (!permission.IsCurrentPlain() || !targetPublication.AcceptExternallyPersistedHitpoints() || !actorPublication.IsCurrentPlain() ||
+                !targetPublication.IsCurrentPlain() || !native.IsCurrentPlain() || !runtime.IsCurrentPlain() ||
+                deathNative is not null && !deathNative.IsCurrentPlain() || deathWind is not null && !deathWind.IsCurrentPlain() ||
+                targetCancellation is not null && !targetCancellation.IsCurrentPlain() ||
+                notifications is not null && !notifications.IsCurrentPlain())
+                throw FenceBasicPhysicalPersistence(data, "basicPhysicalCommittedPublicationUnproven");
+            actorPublication.PublishNative(); targetPublication.PublishNative();
+            deathNative?.PublishPrepared(); deathWind?.PublishPrepared(); notifications?.PublishPrepared();
+            native.PublishPrepared(); runtime.PublishPrepared();
+            targetCancellation?.PublishPrepared();
+            actorPublication.PublishHolder(); targetPublication.PublishHolder();
+            data.CommittedWriter = hp; // Actual same writer/publication, never a supplied success boolean.
+            if (data.JointProgressionWriter is not null)
+            {
+                data.ActorBeforeProficiency = plan.ExpectedActor;
+                data.ProficiencyCompleted = true;
+                progression.RegisterPublished(token, plan.ExpectedActor, canonicalActor);
+            }
+            CommitOwnedBasicPhysicalHitReceipt(hitReceipt, token, data);
+        }
+        catch (Exception error)
+        { throw FenceBasicPhysicalPersistence(data, "basicPhysicalCommittedPublicationFailed", error); }
         notifications?.Dispose(); // Same synchronous thread; no await holds team preparation.
         actorPublication.Dispose(); targetPublication.Dispose();
         bool actorFirst = GetConnectionGateOrder(actor.Connection) < GetConnectionGateOrder(target.Connection);
@@ -93,7 +123,8 @@ public sealed partial class WorldSessionStore
         using var secondItems = (actorFirst ? target : actor).Items.EnterCurrentReadScope();
         try
         {
-            PersistFrameOwnedSessionChange(actor.Connection, plan.ExpectedActor, canonicalActor, actor.NativeIdentity, actor, actorPublication.HitpointsWrite);
+            PersistFrameOwnedSessionChange(actor.Connection, plan.ExpectedActor, canonicalActor, actor.NativeIdentity, actor, actorPublication.HitpointsWrite,
+                completedProficiencies: data.JointProgressionWriter is null ? null : progression);
             PersistFrameOwnedSessionChange(target.Connection, plan.ExpectedTarget, canonicalTarget, target.NativeIdentity, target, hp,
                 completedPhysicalDeath: death is null ? null : token);
         }

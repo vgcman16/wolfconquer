@@ -688,8 +688,15 @@ public static partial class WorldPacketHandlers
         bool mapLegacyBladeToSword,
         out ushort weaponType)
     {
+        return TryGetCurrentWeaponType(session.PlayerItems, session.AlternateEquipmentActive, normalizedPosition,
+            mapLegacyBladeToSword, out weaponType);
+    }
+
+    private static bool TryGetCurrentWeaponType(PlayerItemSnapshot items, bool alternate,
+        ushort normalizedPosition, bool mapLegacyBladeToSword, out ushort weaponType)
+    {
         weaponType = 0;
-        foreach (var item in LegacyEquipmentSelector.SelectCurrentEquipment(session.PlayerItems, session.AlternateEquipmentActive))
+        foreach (var item in LegacyEquipmentSelector.SelectCurrentEquipment(items, alternate))
         {
             if (item.Durability == 0 ||
                 item.ItemId == 0 ||

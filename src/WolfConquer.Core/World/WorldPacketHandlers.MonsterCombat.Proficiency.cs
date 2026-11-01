@@ -97,16 +97,19 @@ public static partial class WorldPacketHandlers
             : (uint)rawExperience;
     }
 
-    private static IReadOnlyList<uint> GetLegacyCurrentWeaponProficiencyIds(WorldSession session)
+    private static IReadOnlyList<uint> GetLegacyCurrentWeaponProficiencyIds(WorldSession session) =>
+        GetLegacyCurrentWeaponProficiencyIds(session.PlayerItems, session.AlternateEquipmentActive);
+
+    internal static IReadOnlyList<uint> GetLegacyCurrentWeaponProficiencyIds(PlayerItemSnapshot items, bool alternate)
     {
         var ids = new List<uint>(capacity: 2);
-        if (TryGetCurrentWeaponType(session, normalizedPosition: 4, mapLegacyBladeToSword: false, out var rightWeaponType) &&
+        if (TryGetCurrentWeaponType(items, alternate, normalizedPosition: 4, mapLegacyBladeToSword: false, out var rightWeaponType) &&
             LegacyProficiencyPacket.IsLegacyWeaponProficiencyId(rightWeaponType))
         {
             ids.Add(rightWeaponType);
         }
 
-        if (TryGetCurrentWeaponType(session, normalizedPosition: 5, mapLegacyBladeToSword: false, out var leftWeaponType) &&
+        if (TryGetCurrentWeaponType(items, alternate, normalizedPosition: 5, mapLegacyBladeToSword: false, out var leftWeaponType) &&
             leftWeaponType != rightWeaponType &&
             LegacyProficiencyPacket.IsLegacyWeaponProficiencyId(leftWeaponType))
         {

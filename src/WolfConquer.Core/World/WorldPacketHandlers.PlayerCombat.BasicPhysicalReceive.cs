@@ -19,16 +19,18 @@ public static partial class WorldPacketHandlers
         {
             Attempt = attempt; Kind = kind; Previous = previous; Damage = damage; Expected = expected;
             ObservedHitpoints = calculated.Character.MinHitPoints;
-            attributes = new(calculated.Character.Attributes); paid = new(calculated.Character.PaidNobility);
+            attributes = LegacyNativeAttributeMapProof.CaptureRaw(calculated.Character.Attributes);
+            paid = LegacyNativeAttributeMapProof.CaptureRaw(calculated.Character.PaidNobility);
             // Private BCL copies compose with the existing runtime input reader,
             // including empty paid maps. Their own witnesses prevent an escaped
             // projection edit from inheriting the source decision's authority.
             Projection = expected with { Character = calculated.Character with
             {
-                Attributes = new Dictionary<string, string>(attributes.Fields, StringComparer.OrdinalIgnoreCase),
-                PaidNobility = new Dictionary<string, string>(paid.Fields, StringComparer.OrdinalIgnoreCase),
+                Attributes = new Dictionary<string, string>(attributes.Fields, attributes.CapturedComparer),
+                PaidNobility = new Dictionary<string, string>(paid.Fields, paid.CapturedComparer),
             } };
-            projectionAttributes = new(Projection.Character.Attributes); projectionPaid = new(Projection.Character.PaidNobility);
+            projectionAttributes = LegacyNativeAttributeMapProof.CaptureRaw(Projection.Character.Attributes);
+            projectionPaid = LegacyNativeAttributeMapProof.CaptureRaw(Projection.Character.PaidNobility);
             if (!IsCurrentPlain()) throw new InvalidOperationException("basicPhysicalCalculatedInputsChanged");
         }
         internal bool IsCurrentPlain() => attributes.IsCurrentPlain() && paid.IsCurrentPlain() &&

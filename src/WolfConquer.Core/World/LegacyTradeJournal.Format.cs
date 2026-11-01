@@ -6,6 +6,7 @@ internal static partial class LegacyTradeJournal
 {
     private static byte[] Serialize(JournalRecord record)
     {
+        if (record.Version == 24) return SerializeHitProgressionRecord(record);
         var bytes = JsonSerializer.SerializeToUtf8Bytes(record);
         if (bytes.Length > MaxJournalBytes) throw new ArgumentException("Journal is too large.");
         return bytes;
@@ -27,6 +28,7 @@ internal static partial class LegacyTradeJournal
     private static JournalRecord ParseRecord(byte[] bytes)
     {
         if (bytes.Length is <= 0 or > MaxJournalBytes) throw new JsonException("Invalid journal size.");
+        PreflightHitProgressionEnvelope(bytes);
         using var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 8 });
         var rootElement = document.RootElement;
         var candidateVersion = 0;
@@ -55,10 +57,11 @@ internal static partial class LegacyTradeJournal
             21 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "PairMovement"),
             22 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "PhysicalDeath"),
             23 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "DerivedSpellQuery"),
+            24 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "HitProgressionDomain", "PhysicalHitProgression"),
             _ => GetProperties(rootElement, "Version", "TransactionId", "Changes"),
         };
         if (root["Version"].ValueKind != JsonValueKind.Number ||
-            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23) ||
+            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23 or 24) ||
             root["TransactionId"].ValueKind != JsonValueKind.String)
             throw new JsonException("Unsupported journal version or identity.");
         var transactionId = root["TransactionId"].GetString();
@@ -66,7 +69,7 @@ internal static partial class LegacyTradeJournal
             throw new JsonException("Invalid transaction identity.");
         var array = root["Changes"];
         if (array.ValueKind != JsonValueKind.Array ||
-            (IsOrdinaryAdmissionVersion(version) ? array.GetArrayLength() is < 1 or > 4 : array.GetArrayLength() != TargetCount(version)))
+            (IsOrdinaryAdmissionVersion(version) ? array.GetArrayLength() is < 1 or > 4 : version == 24 ? array.GetArrayLength() is < 2 or > 3 : array.GetArrayLength() != TargetCount(version)))
             throw new JsonException("Invalid target count.");
         var changes = new List<LegacyTradeJournalChange>(TargetCount(version));
         foreach (var element in array.EnumerateArray())
@@ -108,10 +111,13 @@ internal static partial class LegacyTradeJournal
             PairMovement = version == 21 ? ReadPairMovement(root["PairMovement"]) : null,
             PhysicalDeath = version == 22 ? ReadPhysicalDeath(root["PhysicalDeath"]) : null,
             DerivedSpellQuery = version == 23 ? ReadDerivedSpellQuery(root["DerivedSpellQuery"]) : null,
+            HitProgressionDomain = version == 24 ? ReadHitProgressionDomain(root["HitProgressionDomain"]) : null,
+            PhysicalHitProgression = version == 24 ? ReadHitProgressionOperation(root["PhysicalHitProgression"]) : null,
         };
         if (version == 21) ValidateRecordedPairMovementImages(record);
         if (version == 22) ValidateRecordedPhysicalDeathImages(record);
         if (version == 23) ValidateRecordedDerivedSpellQueryImages(record);
+        if (version == 24) ValidateRecordedHitProgressionImages(record);
         return record;
     }
 

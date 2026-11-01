@@ -10,6 +10,7 @@ internal static partial class LegacyTradeJournal
         internal string? Mailbox { get; init; }
         internal string? CombatGear { get; init; }
         internal string? Spells { get; init; }
+        internal string? Proficiencies { get; init; }
         internal LegacyOrdinaryAdmissionRoots? Admission { get; init; }
     }
 
@@ -62,6 +63,12 @@ internal static partial class LegacyTradeJournal
         public LegacyDerivedSpellQueryOperation? DerivedSpellQuery { get; init; }
         [System.Text.Json.Serialization.JsonIgnore]
         public LegacyPreparedDerivedSpellQueryWrite.JournalOwner? DerivedSpellQueryOwner { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public HitProgressionJournalDomain? HitProgressionDomain { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public LegacyPhysicalHitProgressionOperation? PhysicalHitProgression { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public LegacyPreparedBasicPhysicalHitProgressionWrite.JournalOwner? PhysicalHitProgressionOwner { get; init; }
     }
 
     private sealed record JournalTarget(string Path, LegacyTradeJournalChange Change);
@@ -87,7 +94,7 @@ internal static partial class LegacyTradeJournal
     private static JournalRecord CreateRecord(IReadOnlyList<LegacyTradeJournalChange> changes, int version)
     {
         ArgumentNullException.ThrowIfNull(changes);
-        if (IsOrdinaryAdmissionVersion(version) ? changes.Count is < 1 or > 4 : changes.Count != TargetCount(version))
+        if (IsOrdinaryAdmissionVersion(version) ? changes.Count is < 1 or > 4 : version == 24 ? changes.Count is < 2 or > 3 : changes.Count != TargetCount(version))
             throw new ArgumentException("Invalid target count.");
         foreach (var change in changes)
             if (change is null || change.After is null || change.After.Length > MaxTargetBytes ||
@@ -117,6 +124,7 @@ internal static partial class LegacyTradeJournal
         9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 => 3,
         11 or 21 or 22 or 23 => 2,
         19 => 6,
+        24 => 3, // Variable2..3, closed recipe fixes presence of Spells.
         _ => throw new ArgumentException("Unsupported journal version."),
     };
 
@@ -135,6 +143,7 @@ internal static partial class LegacyTradeJournal
         if (version == 21) { ValidatePairMovementChanges(changes); return; }
         if (version == 22) { RequirePhysicalDeathOrder(changes); return; }
         if (version == 23) { RequireDerivedSpellQueryOrder(changes); return; }
+        if (version == 24) { RequireHitProgressionOrder(changes); return; }
         if (version == 5)
         {
             ValidateMailboxGearChanges(changes);
@@ -178,6 +187,7 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 21) return GetPairMovementTargets(roots, record);
         if (record.Version == 22) return GetPhysicalDeathTargets(roots, record);
         if (record.Version == 23) return GetDerivedSpellQueryTargets(roots, record);
+        if (record.Version == 24) return GetHitProgressionTargets(roots, record);
         var targets = record.Changes.Select(change => new JournalTarget(Path.Combine(
             change.Kind == LegacyTradeJournalFileKind.Character ? roots.Users : roots.Items,
             change.FileId.ToString(CultureInfo.InvariantCulture) +

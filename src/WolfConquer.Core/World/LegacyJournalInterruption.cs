@@ -99,7 +99,7 @@ internal sealed class LegacyJournalInterruption : IDisposable
                 targetCount < 1 || targetCount > (journalVersion == 19 ? 6 : 4) || boundary > targetCount ||
                 (kind is LegacyJournalFault.TargetReadLease or LegacyJournalFault.TargetExclusiveLease) &&
                     (ordinal < 0 || ordinal >= targetCount) ||
-                kind == LegacyJournalFault.StopAfterStageFlushed && journalVersion is not (1 or 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23) ||
+                kind == LegacyJournalFault.StopAfterStageFlushed && journalVersion is not (1 or 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23 or 24) ||
                 kind == LegacyJournalFault.PendingReadLease && boundary != targetCount)
                 throw new ArgumentException("Interruption boundary/target is invalid or already consumed.");
             consumed = true;

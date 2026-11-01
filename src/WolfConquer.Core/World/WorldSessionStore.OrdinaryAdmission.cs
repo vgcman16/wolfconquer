@@ -88,12 +88,14 @@ public sealed partial class WorldSessionStore
             ReferenceEquals(expected, connection) && store._sessions.TryGetValue(connection, out var actual) &&
             ReferenceEquals(actual, holder) && holder.Read() is null &&
             store.Snapshot().All(row => row.Session.AccountId != account && row.Session.Character.Uid != uid);
-        internal WorldSession PrepareSpellAdmission(WorldSession proposed, LegacyTradeRecoveryState recovery, string? spellsRoot, byte[]? savedSpellImage, LegacyNativeExistingCharacterPrefix? prefix)
+        internal WorldSession PrepareSpellAdmission(WorldSession proposed, LegacyTradeRecoveryState recovery,
+            string? spellsRoot, byte[]? savedSpellImage, string? proficienciesRoot, byte[]? savedProficiencyImage,
+            LegacyNativeExistingCharacterPrefix? prefix)
         {
             if (!IsCurrentEmpty(connection) || spells is not null) throw InvalidSpellPublication();
             if (connection.NativeGameClient is null) return proposed;
             spells = new(store, connection, holder, proposed, recovery, spellsRoot, savedSpellImage,
-                prefix ?? throw InvalidSpellPublication());
+                proficienciesRoot, savedProficiencyImage, prefix ?? throw InvalidSpellPublication());
             return spells.FinalSession;
         }
         private bool EmptyOwnerIsCurrentPlain() => active && Monitor.IsEntered(gate) &&

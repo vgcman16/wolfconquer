@@ -6,7 +6,7 @@ internal static partial class LegacyTradeJournal
 {
     private static void EnsureAdmissionStagesCleared(JournalRecord record, JournalTarget[] targets)
     {
-        if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23)) return;
+        if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23 or 24)) return;
         foreach (var target in targets)
             if (!TryDelete(StagePath(target, record.TransactionId)))
                 throw new IOException(record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20

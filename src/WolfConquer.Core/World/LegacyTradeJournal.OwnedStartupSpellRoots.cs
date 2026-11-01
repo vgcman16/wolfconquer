@@ -40,7 +40,9 @@ internal static partial class LegacyTradeJournal
         internal void PrepareDirectories()
         {
             RequireCurrent();
-            if (capture.Record.Version == 23)
+            if (capture.Record.Version == 24)
+                PrepareHitProgressionDirectories(capture.Roots, capture.Record, capture.Targets);
+            else if (capture.Record.Version == 23)
                 PrepareDerivedSpellQueryDirectories(capture.Roots, capture.Record, capture.Targets);
             else if (capture.Record.Version == 22)
                 PreparePhysicalDeathDirectories(capture.Roots, capture.Record, capture.Targets);

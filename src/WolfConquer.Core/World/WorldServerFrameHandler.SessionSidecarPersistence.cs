@@ -23,6 +23,12 @@ public sealed partial class WorldServerFrameHandler
             return;
         }
 
+        if (current.NativeGameClient?.OrdinarySpellBinding is { } binding)
+        {
+            PersistBoundSessionProficiencies(binding, previous, current, _snapshotLoader.PlayerProficienciesRoot);
+            return; // Failures escape to the existing real Frame publication fence.
+        }
+
         try
         {
             var loader = new PlayerProficiencySnapshotLoader(_snapshotLoader.PlayerProficienciesRoot);

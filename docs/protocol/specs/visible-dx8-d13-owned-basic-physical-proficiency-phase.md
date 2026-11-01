@@ -1,7 +1,7 @@
 # D13 owned basic-physical proficiency phase
 
 ## Identity and scope
-- Revision1, 2026-10-31; Root-approved source implementation within Action/basic-physical260.
+- Revision2, 2026-11-01; source-only journal24 rebase onto Root checkpoint `cda6b65ba3ee3fcef3fbef42a0662c62dbe5ab3a`, within Action/basic-physical260. The held check01 candidate is a donor, not current execution evidence.
 - Retained VisibleDx8D13 source-shaped behavior. No live client or7937 activation claim.
 - Only the actual admitted basic-physical producer's private calculated hit may issue this phase. Other spell/monster/proficiency writers remain separate owners.
 
@@ -20,10 +20,9 @@
 - Resolve Profs root only from the same actual Frame snapshot loader/current Runtime and admitted binding; UID alone is not authority.
 - Before the target HP writer, derive immutable proficiency outcome/packet bytes from the private prepared hit, capture complete bounded physical before image under the actual snapshot lock and preflight known I/O refusal.
 - Genuine absent file within the existing configured Profs directory and with an actual empty bound snapshot may use the existing create-only coordinator. A missing/unreadable directory refuses before HP commitment; this phase does not mint a directory-creation owner. A present file must match the complete native/Store before graph and remain exact at final write.
-- Only the same private committed basic-physical publication, after its base notifications completed and while both actual participants/generation remain current, may consume the prepared proficiency phase.
-- Use the existing exact-before atomic replacement or create-only coordinator. Publish native proficiency COW and canonical Store snapshot only after the actual file outcome is proven. No unrestricted loader save, accepting callback or generic completion flag grants permission.
+- Non-neutral actor proficiency and target HP, including actual optional death-derived Spells, participate in the same closed journal24 intent. Validate the actual actor/target, native graphs, configured roots, complete before images, current lease and continuation/marker guards before commit. Publish the canonical holder and native proficiency/HP participants only after the genuine combined durable outcome is proven. The live committed publication retains its existing ordered output phase; no unrestricted loader save, accepting callback or generic completion flag grants permission.
 - Zero requested damage or no actual current weapon proficiency produces no file or proficiency packet; the closed producer still completes its required neutral phase before repeat arming.
-- A post-HP proficiency failure fences the actual committed action and prevents repeat arming; it cannot refund/retry the target HP hit. The target HP and later proficiency file are separate durable phases. Crash recovery between them remains an OPEN reconciliation gap and this feature is not whole-attack crash atomicity.
+- A pre-intent refusal leaves HP and proficiency unchanged; a post-intent uncertain outcome fences the actual owners and recovery completes only the retained validated transaction. A post-commit output failure preserves the durable outcome and cannot reapply it. This journal does not make XP, rewards, SQL, fresh requests or transport delivery atomic with the hit.
 
 ## Expected wire behavior and fixtures
 - Genuine owned weapon hit with an existing proficiency: exact independent packet and complete file before first progress output, native/Store agreement, then repeat eligibility.
@@ -41,5 +40,6 @@
 | Exact file outcome | Existing CharacterSnapshotFileCoordinator captured replace/create-only | Existing mechanism, no new global authority |
 
 ## Implementation and qualification
-- New focused pure plan, prepared file writer, actual Store proficiency continuation and Frame configured-root join; actual basic-physical publication owns issuance/completion.
-- SOURCE ONLY, UNBUILT/UNRUN. Root alone qualifies/integrates. General proficiency writers, all combat branches, HP→Profs crash reconciliation and full native/client parity remain active.
+- The actual basic-physical hit owns issuance; the closed combined writer and recovery path, not a DATA calculation, own journal24 persistence. Neutral hits retain their existing path. Preserve the current real receipt pointers, managed origins, native committed-generation publication and proc closed-purpose union; this basic-physical spec does not confer Dragonhowl/proc authority.
+- The rebased tests include exact joint images before the first Interaction output, ordinary successful 2041 progression, Hawk zero-applied-damage, actual producer-issued recovery intents and first-Interaction/2041 transport loss. Their declared source cases have not been executed here. Missing-before Profs cannot be positively exercised by deleting an admitted bound file; the genuine lifecycle remains open.
+- SOURCE ONLY, UNBUILT/UNRUN for this rebase. Root alone qualifies/integrates. General proficiency writers, other combat branches, fresh-request deduplication, full native/client parity and actual client acceptance remain open.

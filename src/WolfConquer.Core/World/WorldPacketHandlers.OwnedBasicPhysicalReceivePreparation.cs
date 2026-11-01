@@ -27,6 +27,12 @@ public static partial class WorldPacketHandlers
         internal bool IsCurrentPlain() => OwnedBasicPhysicalReceives.TryGetValue(this, out var data) && data.IsCurrentPlain();
         internal bool CanonicalOutcomesMatch(WorldSession actor, WorldSession target) =>
             OwnedBasicPhysicalReceives.TryGetValue(this, out var data) && data.CanonicalOutcomesMatch(actor, target);
+        internal bool CanonicalProgressionOutcomesMatch(WorldSession actor, WorldSession target,
+            OwnedBasicPhysicalProficiencyPlan progression) => ReferenceEquals(progression.Hit, this) &&
+            ReferenceEquals(progression.Before, ExpectedActor.PlayerProficiencies) &&
+            ReferenceEquals(actor.PlayerProficiencies, progression.After) && progression.HasChanges &&
+            OwnedBasicPhysicalReceives.TryGetValue(this, out var data) &&
+            data.CanonicalOutcomesMatch(actor, target, progression.After);
     }
 
     internal enum OwnedBasicPhysicalReceiveAudience { Target, TargetScreen }
@@ -90,15 +96,17 @@ public static partial class WorldPacketHandlers
             teamPermission = permission;
             modifierGateUtc = (context.TimeProvider ?? throw new InvalidOperationException("ordinaryBasicPhysicalClockOwnerMissing")).GetUtcNow();
             ExpectedActor = Actor = expectedActor; ExpectedTarget = Target = expectedTarget;
-            actorAttributes = new(expectedActor.Character.Attributes); actorPaid = new(expectedActor.Character.PaidNobility);
-            targetAttributes = new(expectedTarget.Character.Attributes); targetPaid = new(expectedTarget.Character.PaidNobility);
+            actorAttributes = LegacyNativeAttributeMapProof.CaptureRaw(expectedActor.Character.Attributes);
+            actorPaid = LegacyNativeAttributeMapProof.CaptureRaw(expectedActor.Character.PaidNobility);
+            targetAttributes = LegacyNativeAttributeMapProof.CaptureRaw(expectedTarget.Character.Attributes);
+            targetPaid = LegacyNativeAttributeMapProof.CaptureRaw(expectedTarget.Character.PaidNobility);
             actorSpells = new(expectedActor.PlayerSpells.Spells); targetSpells = new(expectedTarget.PlayerSpells.Spells);
             if (!LegacyItemSaveGraph.TryCapture(expectedActor.PlayerItems, out var own) || own is null ||
                 !LegacyItemSaveGraph.TryCapture(expectedTarget.PlayerItems, out var peer) || peer is null)
                 throw new InvalidDataException("ordinaryBasicPhysicalItemInputInvalid");
             actorItems = own; targetItems = peer;
-            actorMetadata = LegacyOwnedPhysicalMetadataWitness.Capture(actor, context.WorldData, expectedActor);
-            targetMetadata = LegacyOwnedPhysicalMetadataWitness.Capture(target, context.WorldData, expectedTarget);
+            actorMetadata = LegacyOwnedPhysicalMetadataWitness.CaptureBasicPhysical(actor, context.WorldData, expectedActor);
+            targetMetadata = LegacyOwnedPhysicalMetadataWitness.CaptureBasicPhysical(target, context.WorldData, expectedTarget);
         }
 
         internal bool TryCalculate(out string reason)
@@ -146,8 +154,10 @@ public static partial class WorldPacketHandlers
                 Target = Death.Proposed;
             }
             else Target = ProjectAssignedLegacyHitpoints(Context, receiveTarget, TargetBinding.Uid, checked((int)(previous - applied)));
-            actorAfterAttributes = new(Actor.Character.Attributes); actorAfterPaid = new(Actor.Character.PaidNobility);
-            targetAfterAttributes = new(Target.Character.Attributes); targetAfterPaid = new(Target.Character.PaidNobility);
+            actorAfterAttributes = LegacyNativeAttributeMapProof.CaptureRaw(Actor.Character.Attributes);
+            actorAfterPaid = LegacyNativeAttributeMapProof.CaptureRaw(Actor.Character.PaidNobility);
+            targetAfterAttributes = LegacyNativeAttributeMapProof.CaptureRaw(Target.Character.Attributes);
+            targetAfterPaid = LegacyNativeAttributeMapProof.CaptureRaw(Target.Character.PaidNobility);
             Phases = PrepareOwnedPhysicalReceivePhases(receiveTarget, Target, hawks, killed);
             reason = string.Empty; return true;
         }

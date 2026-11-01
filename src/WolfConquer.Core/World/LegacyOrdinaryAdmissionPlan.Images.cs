@@ -22,9 +22,10 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             if (before is not null || changed)
                 result.Add(new(LegacyTradeJournalFileKind.Spells, source.Uid, before, changed ? spellAfter : before!));
         }
-        if (roots.Proficiencies is not null)
-            result.Add(new(LegacyTradeJournalFileKind.Proficiencies, source.Uid, images[LegacyTradeJournalFileKind.Proficiencies],
-                images[LegacyTradeJournalFileKind.Proficiencies] ?? PlayerProficiencySnapshotLoader.ToLegacyBytes(profs)));
+        // A genuinely absent empty book remains an explicit read-only admission
+        // input. The first real progression owns its later atomic creation.
+        if (roots.Proficiencies is not null && images[LegacyTradeJournalFileKind.Proficiencies] is { } profBefore)
+            result.Add(new(LegacyTradeJournalFileKind.Proficiencies, source.Uid, profBefore, profBefore));
         return result.ToArray();
     }
 

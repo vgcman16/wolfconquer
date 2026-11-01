@@ -7,7 +7,16 @@ internal static partial class LegacyTradeJournal
         out JournalRoots roots, out string reason)
     {
         roots = null!; reason = string.Empty;
-        if (record.Version == 19)
+        if (record.Version == 24)
+        {
+            if (admissionRoots?.Items is not { } configuredItems || admissionRoots.Spells is not { } configuredSpells ||
+                admissionRoots.Proficiencies is not { } configuredProficiencies)
+            { reason = RecoveryRequired + ":hitProgressionConfiguredRootsMissing"; return false; }
+            roots = GetHitProgressionRoots(admissionRoots.Users, configuredItems, configuredSpells, configuredProficiencies);
+            if (!SameQuestRoot(usersRoot, roots.Users) || !SameQuestRoot(itemsRoot, roots.Items))
+            { reason = RecoveryRequired + ":hitProgressionConfiguredRootsMismatch"; return false; }
+        }
+        else if (record.Version == 19)
         {
             if (admissionRoots is null || mailboxRoot is null)
             { reason = RecoveryRequired + ":authenticatedCreationConfiguredRootsMissing"; return false; }

@@ -17,6 +17,10 @@ internal sealed class LegacyOwnedPhysicalDeathPurpose
     internal WorldSession Actor => basic?.Actor ?? dragonhowl!.ExpectedActor;
     internal WorldSession Target => basic?.Target ?? dragonhowl!.Death.Proposed;
     internal WorldPacketHandlers.OwnedPhysicalDeathPreparation Death => basic?.Death ?? dragonhowl!.Death;
+    // Journal24 may join only the exact actual basic receiver inside this
+    // closed purpose; a proc death purpose cannot become a basic hit by shape.
+    internal bool IsActualBasic(WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation actual) =>
+        basic is not null && dragonhowl is null && ReferenceEquals(basic, actual) && basic.IsCurrentPlain();
     internal bool IsCurrentPlain() => basic is not null ? basic.IsCurrentPlain() : dragonhowl!.IsCurrentPlain();
     internal bool CanonicalOutcomesMatch(WorldSession actor, WorldSession target) => basic is not null
         ? basic.CanonicalOutcomesMatch(actor, target)

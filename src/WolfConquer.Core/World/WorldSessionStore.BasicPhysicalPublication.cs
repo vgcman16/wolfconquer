@@ -17,7 +17,8 @@ public sealed partial class WorldSessionStore
             store.basicPhysicalPublications.TryGetValue(this, out var actual) && actual.CommittedWriter is null &&
             ReferenceEquals(actual.Plan.Death, preparation) && ReferenceEquals(actual.Actor, canonicalActor) &&
             ReferenceEquals(actual.Target, canonicalTarget) && actual.Plan.IsCurrentPlain() &&
-            actual.Plan.CanonicalOutcomesMatch(canonicalActor, canonicalTarget) && preparation.IsCurrentPlain(actual.TargetBinding);
+            (actual.ProficiencyWrite.Plan.HasChanges ? actual.Plan.CanonicalProgressionOutcomesMatch(canonicalActor, canonicalTarget, actual.ProficiencyWrite.Plan) :
+                actual.Plan.CanonicalOutcomesMatch(canonicalActor, canonicalTarget)) && preparation.IsCurrentPlain(actual.TargetBinding);
 
         internal bool TryReadCommittedDeathPublication(WorldPacketHandlers.OwnedPhysicalDeathPreparation preparation,
             WorldSession canonicalActor, WorldSession canonicalTarget, out WorldPacketHandlerContext context)
@@ -55,6 +56,7 @@ public sealed partial class WorldSessionStore
         internal LegacyNativeProficiencyStorage.PreparedSessionProficiencyMap ActorProficiencyGraph;
         internal readonly LegacyNativeSpellStorage.PreparedSessionSpellMap TargetSpellGraph;
         internal readonly LegacyNativeProficiencyStorage.PreparedSessionProficiencyMap TargetProficiencyGraph;
+        internal LegacyPreparedBasicPhysicalHitProgressionWrite? JointProgressionWriter;
         internal LegacyBoundHitpointsScalarWrite? CommittedWriter;
         internal WorldPacketHandlers.OwnedPhysicalDeathNotifications? DeathNotifications;
         internal bool OutputStarted, DeathOutputStarted, BaseOutputCompleted, ProficiencyCompleted, CompletedOutput;
@@ -83,8 +85,10 @@ public sealed partial class WorldSessionStore
             ActorSpellGraph = actorSpellGraph; ActorProficiencyGraph = actorProficiencyGraph;
             TargetSpellGraph = targetSpellGraph; TargetProficiencyGraph = targetProficiencyGraph;
             if (!proficiencyWrite.IsPreparedFor(plan)) throw InvalidSpellPublication();
-            ActorAttributes = new(actor.Character.Attributes); TargetAttributes = new(target.Character.Attributes);
-            ActorPaid = new(actor.Character.PaidNobility); TargetPaid = new(target.Character.PaidNobility);
+            ActorAttributes = LegacyNativeAttributeMapProof.CaptureRaw(actor.Character.Attributes);
+            TargetAttributes = LegacyNativeAttributeMapProof.CaptureRaw(target.Character.Attributes);
+            ActorPaid = LegacyNativeAttributeMapProof.CaptureRaw(actor.Character.PaidNobility);
+            TargetPaid = LegacyNativeAttributeMapProof.CaptureRaw(target.Character.PaidNobility);
             ActorScalars = new(actor.Character); TargetScalars = new(target.Character);
             ActorAction = new(actor.Character); TargetAction = new(target.Character);
             ActorStamina = LegacyStaminaState.RequireCurrent(actor.Character);

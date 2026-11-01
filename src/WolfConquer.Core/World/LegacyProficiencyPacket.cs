@@ -156,7 +156,9 @@ public readonly record struct LegacyProficiencyPacket(
         while (level < 20)
         {
             var neededExperience = GetNeededExperience(level);
-            if (neededExperience == 0 || experience < neededExperience)
+            // Level0 has a genuine zero threshold. The bounded level<20 loop
+            // promotes it without subtracting experience; it must not stall.
+            if (experience < neededExperience)
             {
                 break;
             }
@@ -175,6 +177,8 @@ public readonly record struct LegacyProficiencyPacket(
                 level >= proficiency.PreviousLevel / 2 &&
                 level < proficiency.PreviousLevel)
             {
+                if (proficiency.PreviousLevel > 20)
+                    throw new InvalidDataException("Proficiency previous level exceeds the native cap.");
                 level = proficiency.PreviousLevel;
                 experience = 0;
             }

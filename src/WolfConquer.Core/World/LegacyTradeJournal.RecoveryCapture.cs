@@ -39,6 +39,7 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 21) ValidateRecordedPairMovementImages(record);
         if (record.Version == 22) ValidateRecordedPhysicalDeathImages(record);
         if (record.Version == 23) ValidateRecordedDerivedSpellQueryImages(record);
+        if (record.Version == 24) ValidateRecordedHitProgressionImages(record);
         if (!TryResolveRecoveryRoots(usersRoot, itemsRoot, questsRoot, mailboxRoot, combatGearRoot,
             admissionRoots, record, out var roots, out reason)) return false;
         capture = new(roots, record, GetTargets(roots, record), pending);
@@ -49,6 +50,8 @@ internal static partial class LegacyTradeJournal
         OwnedStartupItemRecovery? ownedStartup = null)
     {
         recovered = 0; reason = string.Empty;
+        if (capture.Record.Version == 24 && ownedStartup is null)
+        { reason = RecoveryRequired + ":hitProgressionOwnedCustodyRequired"; return false; }
         if (capture.Record.Version == 23 && ownedStartup is null)
         { reason = RecoveryRequired + ":derivedSpellQueryOwnedCustodyRequired"; return false; }
         if (capture.Record.Version is 21 or 22 && ownedStartup is null)

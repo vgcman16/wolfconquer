@@ -8,9 +8,10 @@ public static partial class WorldPacketHandlers
     {
         private readonly List<OwnedPhysicalCanonicalOutcome> canonicalOutcomes = [];
 
-        internal bool CanonicalOutcomesMatch(WorldSession actor, WorldSession target)
+        internal bool CanonicalOutcomesMatch(WorldSession actor, WorldSession target, PlayerProficiencySnapshot? progression = null)
         {
-            if (!IsCurrentPlain() || !SameOwnedPhysicalOutcome(Actor, actor) || !SameOwnedPhysicalOutcome(Target, target)) return false;
+            var expectedActor = progression is null ? Actor : Actor with { PlayerProficiencies = progression };
+            if (!IsCurrentPlain() || !SameOwnedPhysicalOutcome(expectedActor, actor) || !SameOwnedPhysicalOutcome(Target, target)) return false;
             if (!canonicalOutcomes.Any(row => ReferenceEquals(row.Actor, actor) && ReferenceEquals(row.Target, target)))
                 canonicalOutcomes.Add(new(actor, target));
             return IsCurrentPlain();
@@ -32,8 +33,8 @@ public static partial class WorldPacketHandlers
         internal OwnedPhysicalCanonicalOutcome(WorldSession actor, WorldSession target)
         {
             Actor = actor; Target = target;
-            actorAttributes = new(actor.Character.Attributes); actorPaid = new(actor.Character.PaidNobility);
-            targetAttributes = new(target.Character.Attributes); targetPaid = new(target.Character.PaidNobility);
+            actorAttributes = LegacyNativeAttributeMapProof.CaptureRaw(actor.Character.Attributes); actorPaid = LegacyNativeAttributeMapProof.CaptureRaw(actor.Character.PaidNobility);
+            targetAttributes = LegacyNativeAttributeMapProof.CaptureRaw(target.Character.Attributes); targetPaid = LegacyNativeAttributeMapProof.CaptureRaw(target.Character.PaidNobility);
             actorSpells = new(actor.PlayerSpells.Spells); targetSpells = new(target.PlayerSpells.Spells);
             if (!LegacyItemSaveGraph.TryCapture(actor.PlayerItems, out var own) || own is null ||
                 !LegacyItemSaveGraph.TryCapture(target.PlayerItems, out var peer) || peer is null)
@@ -51,12 +52,13 @@ public static partial class WorldPacketHandlers
                 PlayerSpells = actual.PlayerSpells, PlayerProficiencies = actual.PlayerProficiencies }) != actual ||
             (expected.Character with { Attributes = actual.Character.Attributes, PaidNobility = actual.Character.PaidNobility }) != actual.Character)
             return false;
-        var expectedAttributes = new LegacyNativeAttributeMapProof(expected.Character.Attributes);
-        var actualAttributes = new LegacyNativeAttributeMapProof(actual.Character.Attributes);
-        var expectedPaid = new LegacyNativeAttributeMapProof(expected.Character.PaidNobility);
-        var actualPaid = new LegacyNativeAttributeMapProof(actual.Character.PaidNobility);
+        var expectedAttributes = LegacyNativeAttributeMapProof.CaptureRaw(expected.Character.Attributes);
+        var actualAttributes = LegacyNativeAttributeMapProof.CaptureRaw(actual.Character.Attributes);
+        var expectedPaid = LegacyNativeAttributeMapProof.CaptureRaw(expected.Character.PaidNobility);
+        var actualPaid = LegacyNativeAttributeMapProof.CaptureRaw(actual.Character.PaidNobility);
         bool Same(IReadOnlyDictionary<string, string> left, IReadOnlyDictionary<string, string> right) =>
-            left.Count == right.Count && left.All(row => right.TryGetValue(row.Key, out var value) && value == row.Value);
+            left.Count == right.Count && left.OrderBy(row => row.Key, StringComparer.Ordinal)
+                .SequenceEqual(right.OrderBy(row => row.Key, StringComparer.Ordinal));
         return Same(expectedAttributes.Fields, actualAttributes.Fields) && Same(expectedPaid.Fields, actualPaid.Fields) &&
             PlayerItemSnapshotLoader.ToLegacyBytes(expected.PlayerItems).AsSpan().SequenceEqual(PlayerItemSnapshotLoader.ToLegacyBytes(actual.PlayerItems)) &&
             PlayerSpellSnapshotLoader.ToLegacyBytes(expected.PlayerSpells).AsSpan().SequenceEqual(PlayerSpellSnapshotLoader.ToLegacyBytes(actual.PlayerSpells)) &&

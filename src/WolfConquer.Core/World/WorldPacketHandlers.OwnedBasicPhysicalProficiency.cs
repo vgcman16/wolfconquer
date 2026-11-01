@@ -9,6 +9,7 @@ public static partial class WorldPacketHandlers
     internal sealed class OwnedBasicPhysicalProficiencyPlan
     {
         internal readonly OwnedBasicPhysicalReceivePreparation Hit;
+        internal readonly BasicPhysicalProficiencyCalculation Calculation;
         internal readonly PlayerProficiencySnapshot Before, After;
         internal readonly IReadOnlyList<ReadOnlyMemory<byte>> Frames;
         internal readonly uint RawExperience, RatedExperience;
@@ -23,34 +24,10 @@ public static partial class WorldPacketHandlers
             if (!ReferenceEquals(Before, hit.ExpectedActor.PlayerProficiencies)) throw Invalid();
             RawExperience = hit.ProficiencyDamage;
             WeaponIds = Array.AsReadOnly(GetLegacyCurrentWeaponProficiencyIds(hit.Actor).ToArray());
-            RatedExperience = ApplyLegacyProficiencyExperienceRate(RawExperience);
-            var rows = Before.Proficiencies.ToList();
-            var frames = new List<ReadOnlyMemory<byte>>();
-            if (RawExperience != 0 && RatedExperience != 0)
-            {
-                foreach (uint id in WeaponIds)
-                {
-                    int index = rows.FindIndex(row => row.Id == id);
-                    if (index < 0)
-                    {
-                        // Retained Proficiency.Add(ID,0,0,0), not invented
-                        // first-hit experience on a newly created row.
-                        var added = new PlayerProficiencySnapshotEntry(id, 0, 0, 0,
-                            LegacyProficiencyPacket.GetNeededExperience(0));
-                        rows.Add(added);
-                        frames.Add(LegacyProficiencyPacket.FromSnapshot(added).ToFrameBytes());
-                    }
-                    else
-                    {
-                        var result = LegacyProficiencyPacket.ApplyExperience(rows[index], RatedExperience);
-                        if (!result.Updated) continue;
-                        rows[index] = result.Proficiency;
-                        frames.Add(result.Packet.ToFrameBytes());
-                    }
-                }
-            }
-            After = frames.Count == 0 ? Before : LegacyNativeProficiencyStorage.FreezeSessionSnapshot(new PlayerProficiencySnapshot(rows));
-            Frames = frames.AsReadOnly();
+            var calculation = Calculation = new BasicPhysicalProficiencyCalculation(Before, WeaponIds, RawExperience);
+            RatedExperience = calculation.RatedExperience;
+            After = calculation.After;
+            Frames = calculation.Frames;
             if (!hit.IsCurrentPlain()) throw Invalid();
         }
 
