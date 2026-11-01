@@ -328,117 +328,59 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task RuntimeLoopExpiresClassicPlayerInvisibilityAndSendsClearedStatusVector()
+    public Task RuntimeLoopExpiresClassicPlayerInvisibilityAndSendsClearedStatusVector()
     {
-        using var log = new StringWriter();
-        using var cancel = new CancellationTokenSource();
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
         var monsterFamily = CreateMonsterFamily();
         var spawn = CreateMonsterSpawn();
-        var worldData = CreateClassicAttachStatusCatalog(
-            monsterFamily,
-            spawn,
-            ClassicAttachStatusInvisibilitySpellId);
+        var worldData = CreateClassicAttachStatusCatalog(monsterFamily, spawn, ClassicAttachStatusInvisibilitySpellId);
         var now = DateTimeOffset.UtcNow;
         var expiresAt = now.AddSeconds(ClassicAttachStatusDurationSeconds);
         var clock = new ManualRuntimeTimeProvider(now);
-        var handler = new WorldServerFrameHandler(
-            snapshotLoader: null,
-            handoffService: null,
-            worldData: worldData,
-            runtimeUpdateLoop: new LegacyRuntimeUpdateLoopOptions(
-                Enabled: true,
-                TimeSpan.FromMilliseconds(10),
-                clock),
-            log: log);
-        var session = CreateSession(
-            spellIds: [ClassicAttachStatusInvisibilitySpellId],
-            mapId: spawn.MapId,
+        var declared = CreateSession(spellIds: [ClassicAttachStatusInvisibilitySpellId], mapId: spawn.MapId,
             attributes: new Dictionary<string, string>
             {
                 ["StatusFlags"] = BuildStatusFlags(ClassicAttachStatusInvisibilityFlag),
-                [ClassicAttachStatusInvisibilityExpiresAtUtcAttribute] =
-                    expiresAt.ToString("O", CultureInfo.InvariantCulture),
+                [ClassicAttachStatusInvisibilityExpiresAtUtcAttribute] = expiresAt.ToString("O", CultureInfo.InvariantCulture),
                 [ClassicAttachStatusInvisibilityRemoveOnDeadAttribute] = bool.TrueString,
             });
-        SetHandlerSession(handler, connection, session);
-
-        try
+        var options = new LegacyRuntimeUpdateLoopOptions(true, TimeSpan.FromMilliseconds(10), clock);
+        return OwnedEquipmentBehaviorFixture.RunWithEnabledSchedulingAsync(
+            new(declared.Character, declared.PlayerItems, declared.PlayerSpells, declared.PlayerProficiencies),
+            worldData, options, async f =>
         {
-            // Existing white-box loop-start fixture; no claim of public login/cast admission coverage.
-            StartHandlerRuntimeUpdateLoop(handler, connection, session, cancel.Token);
-            await WaitUntilAsync(() => clock.ScheduledTimerCount == 2, TimeSpan.FromSeconds(1));
-            clock.Advance(TimeSpan.FromMilliseconds(10)); // Actual player/global Task.Delay callbacks, BEFORE expiry.
-            await WaitUntilAsync(
-                () => ParseMsgUpdates(sent).Any(update =>
-                    update.Uid == PlayerUid &&
-                    update.Updates.Any(entry =>
-                        entry.Type == LegacyMsgUpdateDataType.StatusFlag &&
-                        entry.Values is not null &&
-                        IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag))),
-                TimeSpan.FromSeconds(1));
-            Assert.True(GetHandlerSessions(handler).TryGet(connection, out var activeSession));
-            Assert.NotNull(activeSession);
-            Assert.True(HasLegacyStatusFlag(activeSession.Character.Attributes, ClassicAttachStatusInvisibilityFlag));
-            Assert.Equal(expiresAt.ToString("O", CultureInfo.InvariantCulture),
-                activeSession.Character.Attributes[ClassicAttachStatusInvisibilityExpiresAtUtcAttribute]);
-            Assert.DoesNotContain(ParseMsgUpdates(sent), update => update.Uid == PlayerUid &&
-                update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag &&
-                    entry.Values is not null &&
+            var binding = Assert.IsType<LegacyOrdinarySpellBinding>(f.Current().NativeGameClient!.OrdinarySpellBinding);
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+            Assert.True(HasLegacyStatusFlag(f.Current().Character.Attributes, ClassicAttachStatusInvisibilityFlag));
+            f.ActorFrames.Clear();
+            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 2, TimeSpan.FromSeconds(2));
+            clock.Advance(TimeSpan.FromMilliseconds(10));
+            await WaitUntilAsync(() => ParseMsgUpdates(f.ActorFrames).Any(update => update.Uid == PlayerUid &&
+                update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag && entry.Values is not null &&
+                    IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag))), TimeSpan.FromSeconds(2));
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+            Assert.True(HasLegacyStatusFlag(f.Current().Character.Attributes, ClassicAttachStatusInvisibilityFlag));
+            Assert.DoesNotContain(ParseMsgUpdates(f.ActorFrames), update => update.Uid == PlayerUid &&
+                update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag && entry.Values is not null &&
                     !IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag)));
-            await WaitUntilAsync(() => clock.ScheduledTimerCount == 2, TimeSpan.FromSeconds(1));
-            // Only an observed real SET publication opens the second phase. Never seed a cleared result.
+            Assert.Equal(expiresAt.ToString("O", CultureInfo.InvariantCulture),
+                f.Current().Character.Attributes[ClassicAttachStatusInvisibilityExpiresAtUtcAttribute]);
+            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 2, TimeSpan.FromSeconds(2));
             clock.Advance(expiresAt - clock.GetUtcNow() + TimeSpan.FromSeconds(1));
-            await WaitUntilAsync(
-                () => ParseMsgUpdates(sent).Any(update =>
-                    update.Uid == PlayerUid &&
-                    update.Updates.Any(entry =>
-                        entry.Type == LegacyMsgUpdateDataType.StatusFlag &&
-                        entry.Values is not null &&
-                        !IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag))),
-                TimeSpan.FromSeconds(1));
-
-            Assert.True(GetHandlerSessions(handler).TryGet(connection, out var updatedSession));
-            Assert.NotNull(updatedSession);
-            Assert.False(HasLegacyStatusFlag(
-                updatedSession.Character.Attributes,
-                ClassicAttachStatusInvisibilityFlag));
-            Assert.DoesNotContain(
-                ClassicAttachStatusInvisibilityExpiresAtUtcAttribute,
-                updatedSession.Character.Attributes.Keys);
-            Assert.DoesNotContain(
-                ClassicAttachStatusInvisibilityRemoveOnDeadAttribute,
-                updatedSession.Character.Attributes.Keys);
-            var clearedUpdates = ParseMsgUpdates(sent)
-                .Where(update => update.Uid == PlayerUid)
-                .SelectMany(update => update.Updates)
-                .Where(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag)
-                .ToArray();
-            Assert.NotEmpty(clearedUpdates);
-            Assert.Contains(
-                clearedUpdates,
-                entry =>
-                    entry.Values is not null &&
-                    IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag));
-            Assert.Contains(
-                clearedUpdates,
-                entry =>
-                    entry.Values is not null &&
-                    !IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag));
-            var setIndex = Array.FindIndex(clearedUpdates, entry => entry.Values is not null &&
+            await WaitUntilAsync(() => ParseMsgUpdates(f.ActorFrames).Any(update => update.Uid == PlayerUid &&
+                update.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag && entry.Values is not null &&
+                    !IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag))), TimeSpan.FromSeconds(2));
+            var current = f.Current(); Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+            Assert.False(HasLegacyStatusFlag(current.Character.Attributes, ClassicAttachStatusInvisibilityFlag));
+            Assert.DoesNotContain(ClassicAttachStatusInvisibilityExpiresAtUtcAttribute, current.Character.Attributes.Keys);
+            Assert.DoesNotContain(ClassicAttachStatusInvisibilityRemoveOnDeadAttribute, current.Character.Attributes.Keys);
+            var statuses = ParseMsgUpdates(f.ActorFrames).Where(update => update.Uid == PlayerUid)
+                .SelectMany(update => update.Updates).Where(entry => entry.Type == LegacyMsgUpdateDataType.StatusFlag).ToArray();
+            var setIndex = Array.FindIndex(statuses, entry => entry.Values is not null &&
                 IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag));
-            var clearIndex = Array.FindIndex(clearedUpdates, entry => entry.Values is not null &&
+            var clearIndex = Array.FindIndex(statuses, entry => entry.Values is not null &&
                 !IsLegacyStatusFlagSet(entry.Values, ClassicAttachStatusInvisibilityFlag));
-            Assert.True(setIndex < clearIndex, "Actual SET publication must precede actual expiry CLEAR publication.");
-        }
-        finally
-        {
-            await cancel.CancelAsync();
-            await WaitUntilAsync(() => clock.ScheduledTimerCount == 0 &&
-                Equals(0, typeof(WorldServerFrameHandler).GetField("_legacyRuntimeGlobalLoopStarted",
-                    BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(handler)), TimeSpan.FromSeconds(1));
-        }
+            Assert.True(setIndex >= 0 && clearIndex > setIndex);
+        });
     }
 
     [Fact]

@@ -15,7 +15,7 @@ internal static class LegacyEquipmentQueryBounds
         Math.Min(Hitpoints(current), checked((int)maximum));
 
     internal static ushort ClampVigor(uint current, ushort maximum) =>
-        checked((ushort)Math.Min(checked((int)current), maximum));
+        checked((ushort)Math.Min(current, (uint)maximum));
 
     internal static uint ReadVigor(CharacterSnapshot character)
     {

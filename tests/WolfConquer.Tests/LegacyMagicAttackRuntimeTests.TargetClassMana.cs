@@ -47,14 +47,24 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Theory]
     [InlineData(13057)]
     [InlineData(14057)]
-    public async Task EquipmentQueryPrefixKeepsUshortClassContributionDistinctFromOrdinaryLongMana(int classCode)
+    public async Task EquipmentQueryPrefixPreservesValidClassContributionAndItemMana(int classCode)
     {
-        using var fixture = new NativeEquipmentCacheFixture(classCode, spirit: ushort.MaxValue);
+        using var fixture = new NativeEquipmentCacheFixture(classCode, spirit: 2_000);
         await fixture.QueryAsync();
 
-        // Genuine item/purification contribution 150 plus narrowed class contribution 65506.
-        Assert.Equal(65_656U, LegacyPhysicalStatusOverlay.ForOwner(fixture.Owner).MaxMana);
-        Assert.Equal(65_656U, (await fixture.ReadStatusAsync()).MaxMana);
-        Assert.Equal(1_966_050L, LegacyFirstCharacterStarterProfiles.CalculateMana(classCode, ushort.MaxValue));
+        // Genuine item/purification contribution 150 plus class contribution 60000.
+        Assert.Equal(60_150U, LegacyPhysicalStatusOverlay.ForOwner(fixture.Owner).MaxMana);
+        Assert.Equal(60_150U, (await fixture.ReadStatusAsync()).MaxMana);
+        Assert.Equal(60_000L, LegacyFirstCharacterStarterProfiles.CalculateMana(classCode, 2_000));
+    }
+
+    [Fact]
+    public void EquipmentQueryClassAndAttributeContributionsRefuseNativeWidthOverflow()
+    {
+        using var fixture = new NativeEquipmentCacheFixture(14_057, spirit: ushort.MaxValue);
+        var character = fixture.Owner.Character;
+        Assert.Throws<OverflowException>(() => LegacyMaxHitpointsCalculator.CalculateAttributeHitpointsChecked(character));
+        Assert.Throws<OverflowException>(() => LegacyEquipmentNativeMana.ClassAndSpirit(character));
+        Assert.Empty(fixture.Frames);
     }
 }

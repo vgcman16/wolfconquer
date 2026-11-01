@@ -13,7 +13,6 @@ public sealed class LegacyOwnedAttributeArithmeticTests
 
     [Theory]
     [InlineData("BloodTideHP", "4294967295")]
-    [InlineData("Vigor", "4294967295")]
     public Task InvalidIntermediateArithmeticRefusesBeforeAllocation(string key, string value) =>
         OwnedEquipmentBehaviorFixture.RunAsync(Input(), OwnedEquipmentBehaviorFixture.Catalog(), async f =>
         {
@@ -23,6 +22,38 @@ public sealed class LegacyOwnedAttributeArithmeticTests
             f.Store.Set(f.Connection(Actor), admitted with { Character = admitted.Character with { Attributes = fields } });
             await AssertRefusedAsync(f);
         });
+
+    [Fact]
+    public Task SavedMaximumVigorClampsForRuntimeWithoutRewritingSavedValue()
+    {
+        var input = Input();
+        var attributes = new Dictionary<string, string>(input.Character.Attributes, StringComparer.OrdinalIgnoreCase)
+            { ["Vigor"] = "4294967295" };
+        input = input with { Character = input.Character with { Attributes = attributes } };
+        return OwnedEquipmentBehaviorFixture.RunAsync(input, OwnedEquipmentBehaviorFixture.Catalog(), async f =>
+        {
+            var before = f.Current(); var binding = before.NativeGameClient!.OrdinarySpellBinding!;
+            Assert.Equal("0", before.Character.Attributes["Vigor"]); // No equipped crop or steed.
+            var expected = f.Data.Files().ToDictionary(row => row.Key, row => row.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+            string key = Path.GetRelativePath(f.Data.Root, f.CharacterPath());
+            string text = CharacterSnapshotFileEncoding.Decode(expected[key], out var encoding);
+            Assert.Contains("\r\nVigor=4294967295\r\n", text);
+            Assert.Contains("\r\nSpirit=10\r\n", text); Assert.Contains("\r\nAtributes=12\r\n", text);
+            text = text.Replace("\r\nSpirit=10\r\n", "\r\nSpirit=20\r\n", StringComparison.Ordinal)
+                .Replace("\r\nAtributes=12\r\n", "\r\nAtributes=2\r\n", StringComparison.Ordinal);
+            expected[key] = encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray();
+            int start = f.ActorFrames.Count;
+            await f.SendAsync(Actor, new LegacyAttributeSetPacket(0, 0, 0, 10).ToFrameBytes());
+            var after = f.Current();
+            Assert.Equal("0", after.Character.Attributes["Vigor"]);
+            Assert.Equal(20L, after.Character.Spirit); Assert.Equal(2L, after.Character.AttributePoints);
+            Assert.Equal((ushort)20, binding.Player.Spirit); Assert.Equal((ushort)2, binding.Player.Atributes);
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); Assert.False(binding.Recovery.IsBlocked);
+            f.Data.AssertFiles(expected);
+            Assert.Equal(new ushort[] { 2203, 2176, 2176, 2301, 2176, 2176, 2176, 2176, 2128 },
+                f.ActorFrames.Skip(start).Select(bytes => OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode));
+        });
+    }
 
     [Fact]
     public Task CumulativeMagicOverflowAfterNewSpiritRefusesBeforeAllocation()

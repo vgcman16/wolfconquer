@@ -26,7 +26,7 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
     {
         // Dispatcher publications require an ordinary data map. The source-body
         // ordering tests below retain their separate MoneyReads instrumentation.
-        using var fixture = new Fixture(roll, [50_000], plainAttributes: true);
+        using var fixture = new Fixture(roll, [50_000]);
         var primed = fixture.Monsters.ApplyDamage(fixture.Monster, 4_999, DateTimeOffset.UtcNow);
         Assert.False(primed.Killed);
 
@@ -302,14 +302,24 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
     // selector or RNG helper. They are not dispatcher-entry or live-client proof.
     private static async ValueTask InvokeActualDropBodyAsync(Fixture fixture, WorldPacketHandlerContext? context = null)
     {
+        // This source-body ordering probe is deliberately not a published
+        // session or an admission/XP capability. Store and broadcast viewers
+        // retain the equivalent plain-map fixture session throughout.
+        var observed = fixture.Session with
+        {
+            Character = fixture.Session.Character with { Attributes = fixture.Attributes }
+        };
+        var observedContext = (context ?? fixture.Context) with { Session = observed };
         var method = typeof(WorldPacketHandlers).GetMethod("TrySendLegacyMonsterDeathDropAsync",
             BindingFlags.Static | BindingFlags.NonPublic, binder: null,
             [typeof(WorldPacketHandlerContext), typeof(WorldSession), typeof(LegacyMonsterInstance),
                 typeof(Monster), typeof(CancellationToken)], modifiers: null);
         Assert.NotNull(method);
         var invoked = method.Invoke(null,
-            [context ?? fixture.Context, fixture.Session, fixture.Monster, fixture.Family, CancellationToken.None]);
+            [observedContext, observed, fixture.Monster, fixture.Family, CancellationToken.None]);
         await Assert.IsType<ValueTask>(invoked);
+        Assert.True(fixture.Sessions.TryGet(fixture.Context.Connection, out var current));
+        Assert.Same(fixture.Session, current);
     }
 
     private static void AssertMoneyPiles(Fixture fixture, IReadOnlyList<long> amounts, IReadOnlyList<uint> ids)
@@ -364,8 +374,7 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
 
         internal Fixture(int roll, uint[] amounts, Func<int, int, bool>? ground = null,
             FloorItemRuntimeStateStore? floor = null, int mapId = 1002, bool worldDataLoaded = true,
-            uint monsterDynamicId = 0, uint killerDynamicId = 0, bool? deityLandRandomDrop = null,
-            bool plainAttributes = false)
+            uint monsterDynamicId = 0, uint killerDynamicId = 0, bool? deityLandRandomDrop = null)
         {
             Attributes = new MoneyAttributes(roll, amounts, killerDynamicId, deityLandRandomDrop);
             Cells = new CountingCells(ground ?? (static (_, _) => true));
@@ -387,7 +396,7 @@ public sealed partial class LegacyMonsterDeathDeferredMoneyTests
                 Vitality: 100, Spirit: 0, AttributePoints: 0, MinHitPoints: 5000,
                 MinMana: 0, Money: 0, ConquerPoints: 0, BoundConquerPoints: 0,
                 BankConquerPoints: 0, PkPoints: 0, Online: 1,
-                SourceFile: "fixture://deferred-money", Attributes: plainAttributes ? Attributes.CopyPlain() : Attributes,
+                SourceFile: "fixture://deferred-money", Attributes: Attributes.CopyPlain(),
                 PaidNobility: new Dictionary<string, string>()),
                 PlayerItemSnapshot.Empty, PlayerSpellSnapshot.Empty, PlayerProficiencySnapshot.Empty);
             var connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),

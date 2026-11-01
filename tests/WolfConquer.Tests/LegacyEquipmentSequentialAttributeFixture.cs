@@ -52,10 +52,25 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             f.Data.AssertFiles(expected);
             Assert.Equal((ushort)20, binding.Player.Spirit); Assert.Equal((ushort)2, binding.Player.Atributes);
             Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
-            Assert.Equal(new ushort[] { LegacyAttributeSetPacket.Opcode, LegacyPlayerStatusPacket.Opcode,
+            // AddRuneAtributes always assigns HP before the status frame, even
+            // when the retained BloodTide contribution is zero.
+            Assert.Equal(new ushort[] { LegacyAttributeSetPacket.Opcode, LegacyMsgUpdatePacket.Opcode,
+                LegacyMsgUpdatePacket.Opcode, LegacyPlayerStatusPacket.Opcode,
                 LegacyMsgUpdatePacket.Opcode, LegacyMsgUpdatePacket.Opcode, LegacyMsgUpdatePacket.Opcode,
                 LegacyMsgUpdatePacket.Opcode, LegacyUserTotalRefineLevPacket.Opcode },
                 f.ActorFrames.Select(bytes => OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode));
+            // Independent D13 bytes: actor 1293600, maximum 5060, current HP 5000.
+            byte[] echo = [0x18, 0x00, 0x9B, 0x08, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0];
+            byte[] maxHp = [0x0F, 0x00, 0x80, 0x08, 0x08, 0xA0, 0xFA, 0x4E,
+                0x12, 0x05, 0x08, 0x01, 0x10, 0xC4, 0x27];
+            byte[] hpPair = [0x14, 0x00, 0x80, 0x08, 0x08, 0xA0, 0xFA, 0x4E,
+                0x12, 0x05, 0x08, 0x01, 0x10, 0xC4, 0x27, 0x12, 0x03, 0x10, 0x88, 0x27];
+            Assert.Equal(echo, f.ActorFrames[0]);
+            foreach (int index in new[] { 1, 4, 6 }) Assert.Equal(maxHp, f.ActorFrames[index]);
+            foreach (int index in new[] { 2, 5, 7 }) Assert.Equal(hpPair, f.ActorFrames[index]);
+            Assert.True(LegacyPlayerStatusPacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(f.ActorFrames[3]), out var initialStatus));
+            Assert.Equal(5060U, initialStatus.MaxHP); Assert.Equal(750U, initialStatus.MaxMana);
 
             Dictionary<string, byte[]>? atEquip = null; Dictionary<string, byte[]>? afterGrant = null;
             f.BeforeSend = (uid, bytes) =>

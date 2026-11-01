@@ -21,7 +21,8 @@ public sealed partial class LegacyInventorySashUpgradeTests
             playersCombatGearRoot: fixture.PackageGearRoot, playerQuestsRoot: null);
         var saved = Assert.IsType<CharacterSnapshot>(loader.LoadByAccountId(fixture.Account));
         var attributes = new PirateRecoveryAttributes(saved.Attributes);
-        saved = saved with { Attributes = attributes }; // Same exact real saved values; callback arms only after admission.
+        if (fault.StartsWith("callback-", StringComparison.Ordinal))
+            saved = saved with { Attributes = attributes }; // Declared callback-backed negative input only.
         var client = new LegacyNativeGameClientRuntime();
         var player = client.Player;
         var connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958), (frame, _) =>
@@ -47,12 +48,27 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 loader.LoadPlayerProficienciesByCharacterUid(Fixture.Uid),
                 CombatGear: loader.LoadCombatGearByCharacterUid(Fixture.Uid), UsersRoot: fixture.Users)
             { NativeGameClient = client };
+            if (fault.StartsWith("callback-", StringComparison.Ordinal))
+            {
+                // The current raw-map fence rejects callback-backed maps before
+                // read-only admission. This proves the refusal boundary; it no
+                // longer claims a late Store/player reentry was exercised.
+                attributes.OnExperienceRead = () => throw new InvalidOperationException("unexpected callback invocation");
+                Assert.False(sessions.TrySetMailboxRecoveryOwner(connection, candidate, producer, out var refused, out reason));
+                Assert.Null(refused); Assert.Equal("mailboxClaimRecoveryRequired:packageReadOnlyAdmission", reason);
+                Assert.False(attributes.Fired); Assert.False(sessions.TryGet(connection, out _));
+                Assert.Null(client.CombatGear); Assert.Equal(0U, player.UID);
+                Assert.Equal(0U, player.Class); Assert.Equal(0U, player.ClassExperience);
+                Assert.Same(client, connection.NativeGameClient); Assert.Same(player, client.Player);
+                Assert.False(client.FullLoading); Assert.True(prepared.IsDetachedCurrent());
+                Assert.Equal(first, fixture.Sent.Count); AssertPackageJoinFiles(fixture, files);
+                AssertNinjaRecoveryIntentRetained(join, intent); Assert.Null(client.Socket);
+            }
+            else
+            {
             Assert.True(sessions.TrySetMailboxRecoveryOwner(connection, candidate, producer, out var admitted, out reason), reason);
             Assert.Same(candidate, admitted);
             Assert.True(scalars!.TryPublish(sessions, connection, candidate));
-            var issuedPlayer = client.Player;
-            var issuedPin = client.OrdinarySpellBinding;
-            var preparationStoreReentryDenied = false;
             switch (fault)
             {
                 case "unadmitted": Assert.True(sessions.TryRemove(connection, out _)); break;
@@ -64,18 +80,6 @@ public sealed partial class LegacyInventorySashUpgradeTests
                     Assert.True(sessions.TrySetMailboxRecoveryOwner(connection, candidate with { Username = "New real owner" },
                         producer, out _, out reason), reason);
                     break;
-                case "callback-store":
-                    // This dictionary read occurs under the actual Store preparation
-                    // gate. It is not the public, after-publication observer phase.
-                    attributes.OnExperienceRead = () =>
-                    {
-                        var denied = Assert.Throws<InvalidOperationException>(() => sessions.TryRemove(connection, out _));
-                        Assert.Equal("ordinarySpellPublicationRequiresCurrentCompleteOwner", denied.Message);
-                        preparationStoreReentryDenied = true;
-                        ExceptionDispatchInfo.Capture(denied).Throw();
-                    };
-                    break;
-                case "callback-exp": attributes.OnExperienceRead = () => client.Player.ClassExperience = 32; break;
             }
             var previousSlot = client.CombatGear;
             var nativeBefore = JsonSerializer.Serialize(new
@@ -96,34 +100,13 @@ public sealed partial class LegacyInventorySashUpgradeTests
                 AssertPirateRecoveryNative(gear, PirateRecoveryGear()); // Preparation never credits the reward.
             }
             else Assert.Same(previousSlot, client.CombatGear);
-            if (fault == "callback-exp")
-            {
-                Assert.Equal(32U, client.Player.ClassExperience);
-                Assert.Equal(Fixture.Uid, client.Player.UID);
-                Assert.Equal(7051U, client.Player.Class);
-                Assert.False(client.FullLoading);
-            }
-            else Assert.Equal(nativeBefore, JsonSerializer.Serialize(new
+            Assert.Equal(nativeBefore, JsonSerializer.Serialize(new
             { client.Player.UID, client.Player.Class, client.Player.ClassExperience, client.FullLoading }));
-            if (fault.StartsWith("callback-", StringComparison.Ordinal)) Assert.True(attributes.Fired);
-            if (fault == "callback-store")
-            {
-                Assert.True(preparationStoreReentryDenied);
-                Assert.True(sessions.TryGet(connection, out var retained));
-                Assert.Same(candidate, retained);
-                Assert.Same(client, connection.NativeGameClient);
-                Assert.Same(client, retained!.NativeGameClient);
-                Assert.Same(issuedPlayer, client.Player);
-                Assert.Same(client, issuedPlayer.Owner);
-                Assert.Same(issuedPin, client.OrdinarySpellBinding);
-                Assert.Same(previousSlot, client.CombatGear);
-                Assert.True(prepared.IsDetachedCurrent());
-                Assert.False(prepared.IsPublishedCurrent());
-            }
             Assert.Equal(first, fixture.Sent.Count);
             AssertPackageJoinFiles(fixture, files);
             AssertNinjaRecoveryIntentRetained(join, intent);
             Assert.Null(client.Socket);
+            }
         }
         catch (Exception error) { errors.Add(error); }
         try

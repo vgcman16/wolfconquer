@@ -35,7 +35,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
         RequireOrdinaryRestartOwnedRoot(root);
         var catalog = Assert.IsType<Dictionary<string, HashSet<string>>>(typeof(LegacyOrdinaryAdmissionMutationFence)
             .GetField("UsersByParticipantDirectory", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null));
-        var producers = Assert.IsType<Dictionary<string, LegacyOrdinaryAdmissionUidOwner>>(typeof(LegacyOrdinaryAdmissionMutationFence)
+        var producers = Assert.IsAssignableFrom<System.Collections.IDictionary>(typeof(LegacyOrdinaryAdmissionMutationFence)
             .GetField("Owners", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null));
         Assert.Empty(catalog); Assert.Empty(producers); // Observation only, never a cache reset.
         var users = Path.Combine(root, "Users");

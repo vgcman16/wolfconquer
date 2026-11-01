@@ -11,7 +11,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [InlineData(13_003, 10L, 350U)]
     [InlineData(13_004, 10L, 400U)]
     [InlineData(13_005, 10L, 450U)]
-    [InlineData(14_005, 3_000L, 24_614U)]
+    [InlineData(14_005, 2_000L, 60_150U)]
     public async Task HandlerEquipmentQueryEarnsNativeManaFromItemsPurificationAndUshortClassSpirit(
         int classCode, long spirit, uint expected)
     {

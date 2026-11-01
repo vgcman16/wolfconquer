@@ -14,13 +14,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [Theory]
     [InlineData("crop", 65_536U, 1_000U, 500U)]
     [InlineData("crop", 2_147_483_647U, 1_000U, 500U)]
-    [InlineData("crop", 2_147_483_649U, 1U, 500U)]
-    [InlineData("crop", 4_294_967_295U, 65_535U, 500U)]
+    [InlineData("crop", 2_147_483_649U, 1_000U, 500U)]
+    [InlineData("crop", 4_294_967_295U, 1_000U, 500U)]
     [InlineData("crop-then-steed", 65_536U, 50U, 600U)]
     [InlineData("steed-then-crop", 65_536U, 1_050U, 600U)]
     [InlineData("crop-then-unplussed-steed", 65_536U, 1_000U, 500U)]
     [InlineData("broken-crop", 500U, 0U, 500U)]
-    public async Task DirectQueryVigorUsesSourceSignedIntClampAndOrderedActualCropSteedContributions(
+    public async Task DirectQueryVigorClampsUnsignedInputToOrderedActualCropSteedContributions(
         string scenario, uint incomingVigor, uint expectedVigor, uint expectedMaximum)
     {
         using var fixture = new DirectQueryVigorFixture(scenario, incomingVigor);

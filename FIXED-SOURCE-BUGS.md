@@ -4,6 +4,22 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Open full91 integration repairs - 2026-11-01
+
+### FSB-291: Clamp unsigned Vigor before narrowing it
+
+OPEN full integration; selected correction now executed. Equipment query bounds converted a
+valid UInt32 current Vigor to Int32 before applying its actual UInt16 maximum,
+so inputs above Int32.MaxValue threw before clamping. Compare unsigned values
+first and narrow only the bounded result. Tests replace signed-wrap expectations
+with the real crop/steed maximum, preserve independent HP/wire fields, and keep
+the distinction between saved raw Vigor and normalized runtime Vigor.
+
+The exact8996 full run failed91Core cases overall; this one-line production
+correction does not resolve or qualify that entire run. The selected bound/query and
+genuine owned scalar controls passed in first-wave03 (91P/3F/0skip over94 overall). Missing proc/HP publication seams,
+full integration, SQL and live-client acceptance remain open.
+
 ## Open full-gate repairs - 2026-11-01
 
 ### FSB-288: Preserve unrelated runtime-key case in monster attack witnesses

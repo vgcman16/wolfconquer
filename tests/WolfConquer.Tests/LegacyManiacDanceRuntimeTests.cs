@@ -15,12 +15,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     private static readonly TimeSpan ManiacDanceRecurringAttackDelay = TimeSpan.FromSeconds(1);
 
     [Fact]
-    public async Task HandlerManiacDanceWithoutXpListPreparesResourcesThenSilentlyStops()
+    public async Task HandlerManiacDanceWithoutXpListRejectsBeforeResourceDebitOrOutput()
     {
         var result = await RunManiacDanceCastAsync(hasXpList: false);
 
-        Assert.Equal(493, result.Session.Character.MinMana);
-        Assert.Equal("91", result.Session.Character.Attributes["Stamina"]);
+        Assert.Equal(500, result.Session.Character.MinMana);
+        Assert.Equal("100", result.Session.Character.Attributes["Stamina"]);
         Assert.Equal("37", result.Session.Character.Attributes["XPCount"]);
         Assert.True(HasLegacyStatusFlag(result.Session.Character.Attributes, LegacySupermanFlag));
         Assert.False(HasLegacyStatusFlag(result.Session.Character.Attributes, LegacyXpListFlag));
@@ -30,26 +30,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.False(result.Session.Character.Attributes.ContainsKey(
             WorldPacketHandlers.RuntimeLegacyManiacDanceNextAttackAtUtcAttribute));
 
-        var updates = ParseMsgUpdates(result.Sent);
-        Assert.Contains(updates, update => update.Uid == PlayerUid &&
-            update.Updates.SequenceEqual(
-                [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Stamina, 91)]));
-        Assert.Contains(updates, update => update.Uid == PlayerUid &&
-            update.Updates.SequenceEqual(
-                [new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Mana, 493)]));
-        Assert.DoesNotContain(updates, update => update.Updates.Any(entry =>
-            entry.Type is LegacyMsgUpdateDataType.XPList or
-                LegacyMsgUpdateDataType.XPCircle or
-                LegacyMsgUpdateDataType.StatusFlag));
-        Assert.Empty(ParseSpellAnimations(result.Sent));
-        Assert.DoesNotContain(result.Sent, bytes =>
-            LegacySpellPacket.TryParse(ReadFrame(bytes), out var packet) &&
-            packet.Id == ManiacDanceRuntimeSpellId);
-
-        Assert.Contains(
-            "WorldServer source-backed returned legacy ManiacDance magic after resource preparation",
-            result.Log);
-        Assert.Contains("XPList status flag is not active", result.Log);
+        Assert.Empty(result.Sent);
+        Assert.Contains("xpAdmissionRejected=ManiacDance: XPList status flag is not active", result.Log);
     }
 
     [Fact]
@@ -606,6 +588,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
+        if (!hasXpList) Assert.Same(session, updatedSession);
         Assert.True(monsterStates.TryGetVisibleInstance(monster, afterCast, out var visibleMonster));
         Assert.Equal(monster.MaxLife, visibleMonster.Hitpoints);
         return new ManiacDanceCastResult(

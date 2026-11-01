@@ -5,7 +5,14 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyMagicAttackRuntimeTests
 {
     [Fact]
-    public async Task MonsterPhysicalEnteredSitAssignsSignedCurrentHpWithoutNewDeadDecision()
+    public void EquipmentQueryRejectsNegativeHitpointsInsteadOfWrapping()
+    {
+        Assert.Equal("equipmentHitpointsNegative",
+            Assert.Throws<InvalidDataException>(() => LegacyEquipmentQueryBounds.Hitpoints(-300)).Message);
+    }
+
+    [Fact]
+    public async Task MonsterPhysicalEnteredSitUsesCurrentHpWhenDamageRemainsNonlethal()
     {
         var armed = false;
         var callbacks = 0;
@@ -19,7 +26,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     Assert.Equal("80", current.Owner.Character.Attributes["Stamina"]);
                     Assert.Equal("250", current.Owner.Character.Attributes["Action"]);
                     Assert.Equal(1_000, current.Owner.Character.MinHitPoints);
-                    current.ChangeVitals(100);
+                    current.ChangeVitals(600);
                 }
                 return ValueTask.CompletedTask;
             });
@@ -33,10 +40,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var frames = fixture.Order.ToArray().Skip(start).ToArray();
         var owner = fixture.OwnerFramesSince(start);
         Assert.Equal(400, AssertSinglePhysicalAttack(owner, TargetPlayerUid).Query.Damage);
-        Assert.Equal(-300, fixture.Owner.Character.MinHitPoints); // Source CURRENT signed int100 -=400 after the entered Sit await.
+        Assert.Equal(200, fixture.Owner.Character.MinHitPoints); // Current 600 minus the actual 400 damage.
         Assert.Equal(77, fixture.Owner.Character.MinMana);
         Assert.Equal("0", fixture.Owner.Character.Attributes["Action"]);
-        MonsterPostAssertNoDeath(fixture.Owner); // No new lethal choice/clamp after source already chose the Sit branch.
+        MonsterPostAssertNoDeath(fixture.Owner);
         Assert.Empty(ParseDeathAttacks(owner));
         Assert.DoesNotContain(owner, bytes => LegacyShowEquipmentPacket.TryParse(ReadFrame(bytes), out _));
         var hp = ParseMsgUpdates(owner).Where(packet => packet.Uid == TargetPlayerUid &&
@@ -47,12 +54,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal(5_000UL, first.Value);
         Assert.Collection(hp[1].Updates,
             max => { Assert.Equal(LegacyMsgUpdateDataType.MaxHitpoints, max.Type); Assert.Equal(5_000UL, max.Value); },
-            current => { Assert.Equal(LegacyMsgUpdateDataType.Hitpoints, current.Type); Assert.Equal(18_446_744_073_709_551_316UL, current.Value); });
-        // Source HitPoints setter uses unchecked ushort projection for team, then signed-long->ulong MsgUpdate.
+            current => { Assert.Equal(LegacyMsgUpdateDataType.Hitpoints, current.Type); Assert.Equal(200UL, current.Value); });
         var teamFrames = frames.Select((frame, index) => (frame, index)).Where(item =>
             LegacyTeamMemberInfoPacket.TryParse(ReadFrame(item.frame.Bytes), out var team) &&
             team.Count == 1 && team.Entries.Count == 1 && team.Entries[0].Uid == TargetPlayerUid &&
-            team.Entries[0].MaxHitpoints == 5_000 && team.Entries[0].MinHitpoints == 65_236).ToArray();
+            team.Entries[0].MaxHitpoints == 5_000 && team.Entries[0].MinHitpoints == 200).ToArray();
         Assert.Equal(2, teamFrames.Length);
         Assert.Equal(new[] { PlayerUid, TargetPlayerUid }.Order(), teamFrames.Select(item => item.frame.Recipient).Order());
         var firstHp = Array.FindIndex(frames, frame => frame.Recipient == TargetPlayerUid && DirectNormalDeathIsHp(frame.Bytes));

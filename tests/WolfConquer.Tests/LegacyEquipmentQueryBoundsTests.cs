@@ -61,6 +61,6 @@ public sealed class LegacyEquipmentQueryBoundsTests
         Assert.Throws<OverflowException>(() => LegacyEquipmentMagicArithmetic.NatureChant(almost, 9));
         Assert.Equal(124U, LegacyEquipmentMagicArithmetic.NatureChant(new(100, 0, 0, 0), 9).MagicAttack);
         Assert.Equal((ushort)1000, LegacyEquipmentQueryBounds.ClampVigor(2000, 1000));
-        Assert.Throws<OverflowException>(() => LegacyEquipmentQueryBounds.ClampVigor(uint.MaxValue, 1000));
+        Assert.Equal((ushort)1000, LegacyEquipmentQueryBounds.ClampVigor(uint.MaxValue, 1000));
     }
 }

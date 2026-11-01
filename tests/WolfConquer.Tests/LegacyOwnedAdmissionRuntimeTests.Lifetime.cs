@@ -8,6 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
+[Collection("NativeItemCounterSourcePrerequisite")]
 public sealed partial class LegacyOwnedAdmissionRuntimeTests
 {
     [Fact]
@@ -44,6 +45,7 @@ public sealed partial class LegacyOwnedAdmissionRuntimeTests
     [Fact]
     public async Task ABlockedActualPlayerRuntimeSendRetainsOwnershipUntilTheReturnedWorkersReallyFinish()
     {
+        var beasts = new NativeLoginBeastMetadataScope(1000);
         var fixture = new LegacyOwnedAdmissionRuntimeFixture();
         LegacyOwnedAdmissionRuntime? runtime = null;
         WorldServerFrameHandler? handler = null;
@@ -59,7 +61,8 @@ public sealed partial class LegacyOwnedAdmissionRuntimeTests
         {
             runtime = Open(fixture);
             var loop = LegacyRuntimeUpdateLoopOptions.EnabledDefault with { TickInterval = TimeSpan.FromMilliseconds(10) };
-            handler = new(fixture.Loader, null, LegacyItemWorldDataFixture.Create([], []), loop,
+            handler = new(fixture.Loader, null, LegacyItemWorldDataFixture.Create(
+                new ItemType[] { OwnedEquipmentBehaviorFixture.Item(1_000_000) }, []), loop,
                 log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: runtime);
             connection = new(null, new IPEndPoint(IPAddress.Loopback, 9958), async (bytes, _) =>
             {
@@ -74,9 +77,12 @@ public sealed partial class LegacyOwnedAdmissionRuntimeTests
                     await release.Task.ConfigureAwait(false);
                 }
                 sent.Enqueue(copy);
-            });
+            }, nativeGameClient: new LegacyNativeGameClientRuntime());
             await handler.HandleFrameAsync(connection, Frame(new LegacyMsgLoginGamePacket(LegacyOwnedAdmissionRuntimeFixture.Uid).ToFrameBytes()));
             Assert.Contains(sent, IsAnswerOk);
+            var admitted = Assert.IsType<LegacyOrdinarySpellBinding>(connection.NativeGameClient!.OrdinarySpellBinding);
+            Assert.False(admitted.IsRetired);
+            Assert.True(Field<WorldSessionStore>(handler, "_sessions").IsBoundSpellOwnerCurrent(admitted));
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(20));
             var workers = handler.CaptureLegacyRuntimeWorkerTasks();
             Assert.NotEmpty(workers);
@@ -97,12 +103,13 @@ public sealed partial class LegacyOwnedAdmissionRuntimeTests
         catch (Exception error) { primary = error; }
 
         await FinishOwnedLifetimeAsync(fixture, runtime, handler, primary,
-            () => release.TrySetResult(), drain, connection, log);
+            () => release.TrySetResult(), drain, connection, log, beasts);
     }
 
     private static async Task FinishOwnedLifetimeAsync(LegacyOwnedAdmissionRuntimeFixture fixture,
         LegacyOwnedAdmissionRuntime? runtime, WorldServerFrameHandler? handler, Exception? primary,
-        Action release, Task? drain, ConquerTcpConnection? connection = null, TextWriter? log = null)
+        Action release, Task? drain, ConquerTcpConnection? connection = null, TextWriter? log = null,
+        IDisposable? metadata = null)
     {
         var failures = new List<Exception>();
         if (primary is not null) AddOwnedLifetimeFailure(failures, primary);
@@ -139,6 +146,7 @@ public sealed partial class LegacyOwnedAdmissionRuntimeTests
         {
             try { log?.Dispose(); } catch (Exception error) { AddOwnedLifetimeFailure(failures, error); }
             try { fixture.Dispose(); } catch (Exception error) { AddOwnedLifetimeFailure(failures, error); }
+            try { metadata?.Dispose(); } catch (Exception error) { AddOwnedLifetimeFailure(failures, error); }
         }
         if (failures.Count == 1) ExceptionDispatchInfo.Capture(failures[0]).Throw();
         if (failures.Count > 1) throw new AggregateException("Owned lifetime assertion and/or cleanup failed.", failures);

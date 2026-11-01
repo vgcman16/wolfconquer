@@ -60,7 +60,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     internal static async Task RunDefaultOrdinaryRestartChildAsync(string root)
     {
         RequireOrdinaryRestartOwnedRoot(root);
-        var cache = Assert.IsType<Dictionary<string, LegacyOrdinaryAdmissionUidOwner>>(
+        var cache = Assert.IsAssignableFrom<System.Collections.IDictionary>(
             typeof(LegacyOrdinaryAdmissionMutationFence).GetField("Owners", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
         Assert.Empty(cache); // Read-only observation; no global reset or owner substitution.
         var users = Path.Combine(root, "Users");

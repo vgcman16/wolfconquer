@@ -9,7 +9,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
-[Collection("LegacySobNpcEventRuntime")]
+[Collection("NativeItemCounterSourcePrerequisite")]
 public sealed partial class LegacyMagicAttackRuntimeTests
 {
     private const uint PlayerUid = 1_293_600;
