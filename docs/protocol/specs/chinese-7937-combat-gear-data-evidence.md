@@ -11,8 +11,9 @@ client. The packed file contains 120,430 bytes.
 An in-memory, read-only application of the existing 12-byte
 `ClientItemCatalogThreeWay` catalog decoder and its existing tail transform
 produced a fully numeric table. That codec was previously qualified for other
-item catalogs; this particular file has not been independently checked against a
-native reader, re-encoded, or exercised in a client. No decoded table was
+item catalogs. The managed C# reader has now re-encoded this exact input and
+verified its packed-byte inverse; it has not been checked against a native reader
+or exercised in a client. No decoded table was
 installed or exported by this observation.
 
 ## Observed structure
@@ -82,3 +83,19 @@ client format limits. Synthetic fixtures cover the grammar, size and overflow
 refusals, byte-preserving roundtrips and defensive copying. A transport inverse
 alone does not establish client compatibility, table semantics, or authority
 to replace the official file.
+
+## Actual managed verification - 2026-11-01 UTC
+
+All13Chinese7937CombatGearCatalogTests passed in repair-check01 focused06.
+The read-only `client-combat-gear7937-inspect` command also exited0 on the
+official staged file: declared7937,1083rows,22fields,120430packed bytes,
+ExactPackedInverse=true, OutputFilesWritten=false, RuntimeActivated=false.
+The packed SHA256 is
+`C217A0655501E3EFB359EA5F2B6567D50D64D5CF3AADE09CC747856642C04651`.
+The real command log is retained locally as
+`root-action260-repair-check01/official7937-gear-inspection01.log`.
+
+The C# implementation is `Chinese7937CombatGearCatalogDocument`/`CatalogRow`;
+the CLI lives in `Program.Chinese7937CombatGearInspection.cs`. These checks
+qualify raw structure and exact transport reconstruction only. Field semantics,
+native owner alignment, protocol activation and live-client behavior remain open.
