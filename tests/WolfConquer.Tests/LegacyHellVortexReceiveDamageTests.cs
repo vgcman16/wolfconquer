@@ -86,7 +86,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var caster = CreateSession(spellIds: [HellVortexSpellId], attributes: new Dictionary<string, string>
         {
             ["StatusFlags"] = BuildStatusFlags(attackerNeptuneCurse ? [LegacyNeptuneCurseFlag] : []),
-            ["HawksAmbitionPower"] = "25",
         });
         var targetSession = CreateSession(
             uid: TargetPlayerUid, name: "ReceivePhaseTarget", x: 840, y: 584, minHitPoints: 100_000,
@@ -96,6 +95,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["StatusFlags"] = BuildStatusFlags(
                     LegacyNeptuneCurseFlag, HellVortexReceiveEnvelopeHawksFlag, LegacyLightningShieldActivatedFlag),
                 ["MaxHitpoints"] = "100000",
+                ["HawksAmbitionPower"] = "25",
                 ["LightningShieldLeft"] = "100",
             });
         var sessions = new WorldSessionStore();

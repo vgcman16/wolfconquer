@@ -8,7 +8,12 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
     private static (string Path, byte[] Before, byte[] After) PrepareImages(LegacyOrdinarySpellBinding binding,
         WorldSession expected, WorldPacketHandlers.BoundHitpointsInputs inputs,
         WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null,
-        LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication = null)
+        LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication = null,
+        LegacyPreparedPairMovementWrite.CharacterPublication? pairMovementPublication = null,
+        LegacyPreparedMovementWrite.CharacterPublication? movementPublication = null,
+        LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication = null,
+        LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication = null,
+        WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null)
     {
         var path = Path.Combine(binding.UsersRoot, expected.AccountId.ToString(CultureInfo.InvariantCulture) + ".ini");
         return SnapshotFileLockCoordinator.ExecuteLocked(path, () =>
@@ -26,8 +31,18 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
                 !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(disk, inputs.Before) ||
                 !WorldPacketHandlers.BoundHitpointsInputs.PaidEqual(inputs.Before, inputs.After))
                 throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsCharacterBaselineStale");
-            var bytes = runePublication is null ? ProjectAfterImage(baseline.Bytes, inputs.After, caprice)
-                : runePublication.RequireAfterImage(binding, expected, inputs.After, baseline.Bytes);
+            var bytes = classRetirement is not null
+                ? classRetirement.RequireAfterImage(binding, expected, inputs.After, baseline.Bytes)
+                : teleportPublication is not null
+                ? teleportPublication.RequireAfterImage(binding, expected, inputs.After, baseline.Bytes)
+                : physicalDeathPublication is not null
+                ? physicalDeathPublication.RequireAfterImage(binding, expected, inputs.After, baseline.Bytes)
+                : movementPublication is not null
+                ? movementPublication.RequireAfterImage(binding, expected, inputs.After, baseline.Bytes)
+                : pairMovementPublication is not null
+                ? pairMovementPublication.RequireAfterImage(binding, expected, inputs.After, baseline.Bytes)
+                : runePublication is not null ? runePublication.RequireAfterImage(binding, expected, inputs.After, baseline.Bytes)
+                : ProjectAfterImage(baseline.Bytes, inputs.After, caprice);
             return (path, baseline.Bytes, bytes);
         });
     }

@@ -240,6 +240,7 @@ public sealed partial class WorldServerFrameHandler
         _teamArenaStatistics = teamArenaStatistics ?? TeamArenaStatisticsProvider.Empty;
         _packetHandlers = DefaultPacketHandlers;
         _worldData = worldData;
+        if (worldData is not null) _monsterStates.ConfigurePhysicalRangeOwner(this, worldData);
         _runeRankings = new LegacyRuneRankingState(worldData?.RuneRankings);
         _terrain = terrain;
         _teleportTerrain = terrain ??
@@ -276,17 +277,27 @@ public sealed partial class WorldServerFrameHandler
         ConquerTcpConnection connection,
         WorldSession? previous,
         WorldSession current,
-        LegacyBoundHitpointsScalarWrite? completedHitpoints = null)
+        LegacyBoundHitpointsScalarWrite? completedHitpoints = null,
+        LegacyPreparedBasicPhysicalProficiencyWrite? completedProficiencies = null,
+        WorldSessionStore.BasicPhysicalPublication? completedPhysicalDeath = null,
+        LegacyPreparedDerivedSpellQueryWrite? completedDerivedSpells = null)
     {
         if (!ReferenceEquals(_sessions, issuingStore) ||
             !issuingStore.IsFramePersistenceCurrent(this, connection, current))
             throw new InvalidOperationException("Frame persistence requires its current issued Store owner.");
-        if (completedHitpoints is null) PersistChangedSessionCharacterScalars(connection, previous, current);
-        else if (!completedHitpoints.CoversCommittedPublication(this, issuingStore, connection, previous, current))
+        if (completedDerivedSpells is not null && (completedHitpoints is not null || completedPhysicalDeath is not null ||
+            !completedDerivedSpells.CoversCommittedPublication(this, issuingStore, connection, previous, current)))
+            throw new InvalidOperationException("derivedSpellQuery23CommittedPairCoverageLost");
+        if (completedHitpoints is null && completedDerivedSpells is null) PersistChangedSessionCharacterScalars(connection, previous, current);
+        else if (completedHitpoints is not null && !completedHitpoints.CoversCommittedPublication(this, issuingStore, connection, previous, current))
             throw new InvalidOperationException("ordinaryHitpointsCommittedScalarCoverageLost");
         PersistChangedSessionPlayerItems(previous, current);
-        PersistChangedSessionPlayerSpells(connection, previous, current);
-        PersistChangedSessionPlayerProficiencies(previous, current);
+        if (completedPhysicalDeath is null && completedDerivedSpells is null) PersistChangedSessionPlayerSpells(connection, previous, current);
+        else if (completedPhysicalDeath is not null && !completedPhysicalDeath.CoversCommittedDeathSpells(this, issuingStore, connection, previous, current))
+            throw new InvalidOperationException("basicPhysicalCommittedSpellCoverageLost");
+        if (completedProficiencies is null) PersistChangedSessionPlayerProficiencies(previous, current);
+        else if (!completedProficiencies.CoversCommittedPublication(this, issuingStore, connection, previous, current))
+            throw new InvalidOperationException("ordinaryBasicPhysicalCommittedProficiencyCoverageLost");
         PersistChangedSessionCombatGear(previous, current);
         PersistChangedSessionPlayerQuests(previous, current);
     }
@@ -1338,7 +1349,9 @@ public sealed partial class WorldServerFrameHandler
                 LegacyWorldLoginSnapshotLoadStatus.Unavailable);
         }
 
-        var loadResult = _snapshotLoader.TryLoadByAccountIdForAdmission(characterUid);
+        var loadResult = HasOrdinaryUidNamespace()
+            ? _snapshotLoader.TryLoadConfiguredAccountForAdmission(characterUid)
+            : _snapshotLoader.TryLoadByAccountIdForAdmission(characterUid);
         if (loadResult.Status is CharacterSnapshotLoadStatus.SnapshotReadFailed or
             CharacterSnapshotLoadStatus.SnapshotReadDenied or
             CharacterSnapshotLoadStatus.SnapshotParseFailed or

@@ -86,41 +86,26 @@ public static partial class WorldPacketHandlers
             WorldSession session,
             LegacyEquipmentQueryPublicationScope scope,
             int value,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            BasicPhysicalReceiveDecision? basicDeath = null)
     {
         var current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
         if (!current.Completed) return current;
         session = current.Session!;
-        current = CommitLegacyEquipmentQueryMutation(context, session, scope, owner =>
+        if (basicDeath is not null)
         {
-            // Source HitPoints assignment never changes independent Status.Max.
-            if (!LegacyEquipmentHitpointsStatus.TryGetForOwner(owner, out _))
-            {
-                var previousHitpoints = owner.Character.MinHitPoints > 0
-                    ? CheckedUInt32(owner.Character.MinHitPoints, nameof(owner.Character.MinHitPoints)) : 0U;
-                owner = owner with
-                {
-                    EquipmentHitpointsStatus = new LegacyEquipmentHitpointsStatus(scope.OwnerUid,
-                        GetLegacyEquipmentRuntimeMaxHitpoints(owner, context.WorldData, previousHitpoints)),
-                };
-            }
-            if (owner.Character.MinHitPoints == value) return owner;
-            // The real Frame scalar callback persists the typed value. Its
-            // duplicated saved-field mirror must agree before publication too;
-            // retain every unrelated attribute, including opaque source fields.
-            var changed = owner.Character with { MinHitPoints = value };
-            var attributes = new Dictionary<string, string>(owner.Character.Attributes, StringComparer.OrdinalIgnoreCase);
-            // Mirror exactly the fields the real scalar saver will persist,
-            // including absent defaults/explicit storage aliases. Typed values
-            // and their saved-field mirror remain one prepared publication.
-            foreach (var pair in CharacterSnapshotScalarPersistence.BuildPersistedValues(changed))
-                attributes[pair.Key] = pair.Value;
-            // The scalar saver can materialize EpicTrojan's composite even
-            // when it was absent. The parser projects its modeled slots back
-            // into runtime attributes; prepare that same schema projection now.
-            CharacterSnapshotEpicTrojanSchema.ProjectRuntimeAttributes(attributes, attributes);
-            return owner with { Character = changed with { Attributes = attributes } };
-        });
+            if (value != 0 || !ReferenceEquals(context.BasicPhysicalReceiveDecision, basicDeath) ||
+                !TryReadBasicPhysicalReceive(basicDeath, out _, out var kind, out _, out _, out _) ||
+                kind != BasicPhysicalReceiveKind.NormalDeath)
+                throw new InvalidOperationException("basicPhysicalDeathAssignmentInvalid");
+            if (context.Sessions is not { } actualStore ||
+                !actualStore.TryCommitBasicPhysicalReceive(context, basicDeath, new(context.Connection, session), out var committed) || committed is null)
+                return new(null, current.RequiredParticipantSession, LegacyEquipmentQueryPublicationLoss.OwnerLost);
+            current = new(committed, current.RequiredParticipantSession);
+        }
+        else
+            current = CommitLegacyEquipmentQueryMutation(context, session, scope,
+                owner => ProjectAssignedLegacyHitpoints(context, owner, scope.OwnerUid, value));
         if (!current.Completed) return current;
         session = current.Session!;
 

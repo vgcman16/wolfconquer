@@ -13,10 +13,21 @@ public sealed partial class WorldSessionStore
         private readonly LegacyOrdinarySpellBinding? binding;
         private readonly object finalIdentity;
         private readonly LegacyNativePlayerRuntime.OwnedHitpointsPublication? hitpoints;
+        private LegacyNativePlayerRuntime.OwnedActionPublication? action;
+        private LegacyNativePlayerRuntime.OwnedActorScalarsPublication? actorScalars;
         private readonly LegacyNativeEquipItemStorage.OwnedAlternatePublication? alternateEquipment;
         private readonly LegacyNativePlayerRuntime.OwnedRuneBagPublication? runeBag;
         private readonly OwnedWindWalkerProjection? windWalker;
         private readonly LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication;
+        private readonly LegacyPreparedPairMovementWrite.CharacterPublication? pairMovementPublication;
+        private readonly LegacyPreparedMovementWrite.CharacterPublication? movementPublication;
+        private readonly WorldPacketHandlers.OwnedPhysicalDeathPreparation? physicalDeath;
+        private readonly OwnedHawksAmbitionPublication? hawks;
+        private readonly WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical;
+        private readonly LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication;
+        private readonly LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication;
+        private readonly LegacyPreparedDerivedSpellQueryWrite.Publication? derivedSpellQueryPublication;
+        private readonly WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement;
         private LegacyNativePlayerRuntime.OwnedMoneyPublication? money;
         private LegacyNativePlayerRuntime.OwnedCpsPublication? cps;
         private LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication? warehouseMoney;
@@ -32,15 +43,84 @@ public sealed partial class WorldSessionStore
         internal WorldSession FinalSession { get; private set; }
         internal LegacyOrdinarySpellBinding? Binding => binding;
         internal object PublishedIdentity => finalIdentity;
+        internal LegacyNativeSpellStorage.PreparedSessionSpellMap PreparedSpellGraph => map ?? throw InvalidSpellPublication();
+        internal LegacyNativeProficiencyStorage.PreparedSessionProficiencyMap PreparedProficiencyGraph => proficiencies ?? throw InvalidSpellPublication();
 
         internal PreparedSessionSpellPublication(WorldSessionStore store, ConquerTcpConnection connection,
             SessionHolder holder, WorldSession? expected, WorldSession proposed,
             WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null, bool deferItems = false,
-            LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication = null)
+            LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication = null,
+            LegacyPreparedPairMovementWrite.CharacterPublication? pairMovementPublication = null,
+            LegacyPreparedMovementWrite.CharacterPublication? movementPublication = null,
+            WorldPacketHandlers.OwnedPhysicalDeathPreparation? physicalDeath = null,
+            WorldPacketHandlers.OwnedHawksAmbitionCast? ownedHawksCast = null,
+            WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical = null,
+            LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication = null,
+            LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication = null,
+            LegacyPreparedDerivedSpellQueryWrite.Publication? derivedSpellQueryPublication = null,
+            WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null)
         {
             this.store = store; this.connection = connection; this.holder = holder; this.expected = expected;
             this.deferItems = deferItems;
             this.runePublication = runePublication;
+            this.pairMovementPublication = pairMovementPublication;
+            this.movementPublication = movementPublication;
+            this.physicalDeath = physicalDeath;
+            this.basicPhysical = basicPhysical; this.physicalDeathPublication = physicalDeathPublication;
+            this.teleportPublication = teleportPublication;
+            this.derivedSpellQueryPublication = derivedSpellQueryPublication;
+            this.classRetirement = classRetirement;
+            if (classRetirement is not null)
+            {
+                if (expected is null || caprice is not null || deferItems || runePublication is not null ||
+                    pairMovementPublication is not null || movementPublication is not null || physicalDeath is not null ||
+                    ownedHawksCast is not null || basicPhysical is not null || physicalDeathPublication is not null ||
+                    teleportPublication is not null || derivedSpellQueryPublication is not null) throw InvalidSpellPublication();
+                classRetirement.RequireCurrent(store, connection, expected, proposed);
+            }
+            if (expected is not null && physicalDeathPublication is null && derivedSpellQueryPublication is null && classRetirement is null)
+                LegacyDerivedSpellOrigins.RequireUnchanged(expected.Character, expected.PlayerSpells, proposed.Character, proposed.PlayerSpells);
+            if (derivedSpellQueryPublication is not null)
+            {
+                if (expected is null || caprice is not null || deferItems || runePublication is not null ||
+                    pairMovementPublication is not null || movementPublication is not null || physicalDeath is not null ||
+                    ownedHawksCast is not null || basicPhysical is not null || physicalDeathPublication is not null || teleportPublication is not null)
+                    throw InvalidSpellPublication();
+                derivedSpellQueryPublication.RequireCurrent(store, connection, expected, proposed);
+            }
+            if (teleportPublication is not null)
+            {
+                if (expected is null || caprice is not null || deferItems || runePublication is not null ||
+                    pairMovementPublication is not null || movementPublication is not null || physicalDeath is not null ||
+                    ownedHawksCast is not null || basicPhysical is not null || physicalDeathPublication is not null) throw InvalidSpellPublication();
+                teleportPublication.RequireCurrent(store, connection, expected, proposed);
+            }
+            if (basicPhysical is not null && (expected is null || caprice is not null || deferItems ||
+                runePublication is not null || pairMovementPublication is not null || movementPublication is not null || ownedHawksCast is not null ||
+                !ReferenceEquals(basicPhysical.ExpectedTarget, expected) || !ReferenceEquals(basicPhysical.Death, physicalDeath)))
+                throw InvalidSpellPublication();
+            if (physicalDeathPublication is not null && (basicPhysical?.Death is null || !ReferenceEquals(basicPhysical.Death, physicalDeath)))
+                throw InvalidSpellPublication();
+            if (physicalDeath is not null && (basicPhysical is null || physicalDeathPublication is null))
+                throw InvalidSpellPublication();
+            if (ownedHawksCast is not null && (caprice is not null || deferItems || runePublication is not null ||
+                pairMovementPublication is not null || movementPublication is not null || physicalDeath is not null))
+                throw InvalidSpellPublication();
+            if (physicalDeath is not null && (expected is null || caprice is not null || deferItems ||
+                runePublication is not null || pairMovementPublication is not null || movementPublication is not null))
+                throw InvalidSpellPublication();
+            if (movementPublication is not null)
+            {
+                if (expected is null || caprice is not null || deferItems || runePublication is not null || pairMovementPublication is not null)
+                    throw InvalidSpellPublication();
+                movementPublication.RequireCurrent(store, connection, expected, proposed);
+            }
+            if (pairMovementPublication is not null)
+            {
+                if (expected is null || caprice is not null || deferItems || runePublication is not null)
+                    throw InvalidSpellPublication();
+                pairMovementPublication.RequireCurrent(store, connection, expected, proposed);
+            }
             if (runePublication is not null)
             {
                 if (expected is null || caprice is not null || deferItems) throw InvalidSpellPublication();
@@ -51,11 +131,18 @@ public sealed partial class WorldSessionStore
                 expected.Character.Uid == proposed.Character.Uid ? holder.NativeClientIdentity : new object();
             if (binding is null)
             {
+                if (derivedSpellQueryPublication is not null) throw InvalidSpellPublication();
+                if (ownedHawksCast is not null) throw InvalidSpellPublication();
+                if (basicPhysical is not null || physicalDeathPublication is not null) throw InvalidSpellPublication();
                 // A retired/foreign attachment is never an unbound fallback.
                 if (connection.NativeGameClient?.OrdinarySpellBinding is not null ||
                     proposed.NativeGameClient?.OrdinarySpellBinding is not null ||
                     connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true ||
                     proposed.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true ||
+                    connection.NativeGameClient?.Player?.HasOwnedActionAttachment == true ||
+                    proposed.NativeGameClient?.Player?.HasOwnedActionAttachment == true ||
+                    connection.NativeGameClient?.Player?.HasOwnedActorScalarsAttachment == true ||
+                    proposed.NativeGameClient?.Player?.HasOwnedActorScalarsAttachment == true ||
                     connection.NativeGameClient?.Player?.HasOwnedMoneyAttachment == true ||
                     proposed.NativeGameClient?.Player?.HasOwnedMoneyAttachment == true ||
                     connection.NativeGameClient?.Player?.HasOwnedCpsAttachment == true ||
@@ -72,7 +159,23 @@ public sealed partial class WorldSessionStore
             actors = new(binding);
             try
             {
-                windWalker = OwnedWindWalkerProjection.PrepareBound(binding, proposed);
+                if (basicPhysical is not null && (!ReferenceEquals(basicPhysical.TargetBinding, binding) ||
+                    !basicPhysical.IsCurrentPlain() || !basicPhysical.CanonicalOutcomesMatch(basicPhysical.Actor, proposed)))
+                    throw InvalidSpellPublication();
+                physicalDeathPublication?.RequireCurrent(store, connection, expected, proposed);
+                if (physicalDeath is not null)
+                {
+                    // The actual death plan already projects its privately
+                    // derived194 outcome against this exact before vector.
+                    // Reapplying the generic old194 snapshot would overwrite
+                    // that result. This typed plan is the only alternate path.
+                    if (!ReferenceEquals(physicalDeath.TargetBinding, binding) ||
+                        !ReferenceEquals(physicalDeath.ExpectedTarget, expected) ||
+                        !Monitor.IsEntered(binding.Player.BitVector.SyncRoot) ||
+                        !physicalDeath.TryReadNativeWindWalkerProposal(binding, proposed, out _, out _, out _))
+                        throw InvalidSpellPublication();
+                }
+                else windWalker = OwnedWindWalkerProjection.PrepareBound(binding, proposed);
                 if (windWalker is not null)
                 {
                     if (runePublication is not null && !ReferenceEquals(proposed.Character, windWalker.Proposed.Character))
@@ -96,11 +199,15 @@ public sealed partial class WorldSessionStore
                         final = final with { PlayerItems = itemImage.FinalSnapshot };
                 }
                 hitpoints = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareBound(binding, expected, final);
-                if (expected.Character.MinHitPoints != final.Character.MinHitPoints ||
+                if (teleportPublication is not null || basicPhysical is not null || movementPublication is not null || pairMovementPublication is not null || expected.Character.MinHitPoints != final.Character.MinHitPoints ||
                     expected.Character.MinMana != final.Character.MinMana || caprice is not null)
                     HitpointsWrite = (store.framePersistenceOwner ?? throw InvalidSpellPublication())
-                        .PrepareNativeHitpointsWrite(store, connection, binding, expected, final, caprice, runePublication);
+                        .PrepareNativeHitpointsWrite(store, connection, binding, expected, final, caprice, runePublication, pairMovementPublication, movementPublication,
+                            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement);
                 FinalSession = HitpointsWrite?.Proposed ?? final;
+                hawks = OwnedHawksAmbitionPublication.PrepareBound(binding, expected, FinalSession, ownedHawksCast);
+                action = LegacyNativePlayerRuntime.OwnedActionPublication.PrepareBound(binding, expected, FinalSession);
+                actorScalars = LegacyNativePlayerRuntime.OwnedActorScalarsPublication.PrepareBound(binding, expected, FinalSession, pairMovementPublication, movementPublication, teleportPublication);
                 money = LegacyNativePlayerRuntime.OwnedMoneyPublication.PrepareBound(binding, expected, FinalSession);
                 cps = LegacyNativePlayerRuntime.OwnedCpsPublication.PrepareBound(binding, expected, FinalSession);
                 warehouseMoney = LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication.PrepareBound(binding, expected, FinalSession);
@@ -140,9 +247,15 @@ public sealed partial class WorldSessionStore
             deferredItemsPrepared = true;
             if (binding is not null)
             {
+                if (LegacyActionState.RequireCurrent(proposed.Character) != LegacyActionState.RequireCurrent(expected.Character))
+                    throw InvalidSpellPublication();
+                if (LegacyNativeActorScalarState.RequireCurrent(proposed.Character) !=
+                    LegacyNativeActorScalarState.RequireCurrent(expected.Character)) throw InvalidSpellPublication();
                 PrepareItems(proposed);
                 proposed = proposed with { PlayerItems = itemImage!.FinalSnapshot,
                     PlayerSpells = map!.FinalSnapshot, PlayerProficiencies = proficiencies!.FinalSnapshot };
+                action = LegacyNativePlayerRuntime.OwnedActionPublication.PrepareBound(binding, expected, proposed);
+                actorScalars = LegacyNativePlayerRuntime.OwnedActorScalarsPublication.PrepareBound(binding, expected, proposed);
                 money = LegacyNativePlayerRuntime.OwnedMoneyPublication.PrepareBound(binding, expected, proposed);
                 cps = LegacyNativePlayerRuntime.OwnedCpsPublication.PrepareBound(binding, expected, proposed);
                 warehouseMoney = LegacyNativePlayerRuntime.OwnedWarehouseMoneyPublication.PrepareBound(binding, expected, proposed);
@@ -179,12 +292,18 @@ public sealed partial class WorldSessionStore
             map?.RequireCurrentBeforeWriter();
             proficiencies?.RequireCurrentBeforeWriter();
             items?.RequireCurrentBeforeWriter();
-            if (hitpoints is not null && !hitpoints.IsCurrentPlain() || money is not null && !money.IsCurrentPlain() ||
+            if (hitpoints is not null && !hitpoints.IsCurrentPlain() || action is not null && !action.IsCurrentPlain() ||
+                actorScalars is not null && !actorScalars.IsCurrentPlain() || money is not null && !money.IsCurrentPlain() ||
                 cps is not null && !cps.IsCurrentPlain() || warehouseMoney is not null && !warehouseMoney.IsCurrentPlain() ||
                 alternateEquipment is not null && !alternateEquipment.IsCurrentPlain(FinalSession.AlternateEquipmentActive) ||
                 runeBag is not null && !runeBag.IsCurrentPlain())
                 throw InvalidSpellPublication();
             if (windWalker is not null && !windWalker.IsCurrentPlain()) throw InvalidSpellPublication();
+            if (physicalDeath is not null && !physicalDeath.IsCurrentPlain(binding!)) throw InvalidSpellPublication();
+            if (hawks is not null && !hawks.IsCurrentPlain()) throw InvalidSpellPublication();
+            if (basicPhysical is not null && !basicPhysical.IsCurrentPlain()) throw InvalidSpellPublication();
+            if (derivedSpellQueryPublication is not null && !derivedSpellQueryPublication.IsCurrentPlain()) throw InvalidSpellPublication();
+            if (classRetirement is not null && !classRetirement.IsCurrentPlain()) throw InvalidSpellPublication();
             if (binding is not null && !store.BindingIsCurrentPlain(binding, holder, expected!)) throw InvalidSpellPublication();
         }
 
@@ -197,19 +316,29 @@ public sealed partial class WorldSessionStore
             HitpointsWrite?.Inputs.Arm();
         }
         internal bool ConsumeBeforeWriterPlain() => ReferenceEquals(holder.Read(), expected) &&
+            (classRetirement is null || classRetirement.IsCurrentPlain()) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeBeforeWriterPlain() &&
-                proficiencies!.ConsumeBeforeWriterPlain() && items!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() &&
+                proficiencies!.ConsumeBeforeWriterPlain() && items!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() && action!.IsCurrentPlain() && actorScalars!.IsCurrentPlain() &&
                 money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) && (runeBag is null || runeBag.IsCurrentPlain()) &&
                 (windWalker is null || windWalker.IsCurrentPlain()) &&
+                (physicalDeath is null || physicalDeath.IsCurrentPlain(binding)) &&
+                (hawks is null || hawks.IsCurrentPlain()) &&
+                (basicPhysical is null || basicPhysical.IsCurrentPlain()) &&
+                (derivedSpellQueryPublication is null || derivedSpellQueryPublication.IsCurrentPlain()) &&
                 (HitpointsWrite is null || HitpointsWrite.Inputs.ConsumeBeforePlain()));
 
         // The raw map enumerator was allocated before the writer. Consume it
         // once, without a comparer or a fresh iterator at this final boundary.
         internal bool IsCurrentPlain() => ReferenceEquals(holder.Read(), expected) &&
+            (classRetirement is null || classRetirement.IsCurrentPlain()) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeCurrentPlain() &&
-                proficiencies!.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() &&
+                proficiencies!.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() && action!.IsCurrentPlain() && actorScalars!.IsCurrentPlain() &&
                 money!.IsCurrentPlain() && cps!.IsCurrentPlain() && warehouseMoney!.IsCurrentPlain() && alternateEquipment!.IsCurrentPlain(FinalSession.AlternateEquipmentActive) && (runeBag is null || runeBag.IsCurrentPlain()) &&
                 (windWalker is null || windWalker.IsCurrentPlain()) &&
+                (physicalDeath is null || physicalDeath.IsCurrentPlain(binding)) &&
+                (hawks is null || hawks.IsCurrentPlain()) &&
+                (basicPhysical is null || basicPhysical.IsCurrentPlain()) &&
+                (derivedSpellQueryPublication is null || derivedSpellQueryPublication.IsCurrentPlain()) &&
                 (HitpointsWrite is null || HitpointsWrite.IsCommitted && HitpointsWrite.Inputs.ConsumeAfterPlain()));
 
         // Call only after the final plain proof and actual successful writer.
@@ -224,13 +353,17 @@ public sealed partial class WorldSessionStore
             binding.PublishSnapshots(FinalSession.PlayerSpells, FinalSession.PlayerProficiencies);
             binding.PublishItemSnapshot(FinalSession.PlayerItems);
             hitpoints!.PublishPrepared();
+            action!.PublishPrepared();
+            actorScalars!.PublishPrepared();
             money!.PublishPrepared();
             cps!.PublishPrepared();
             warehouseMoney!.PublishPrepared();
+            hawks?.PublishPrepared();
         }
 
         internal bool AcceptExternallyPersistedHitpoints() => HitpointsWrite is not null
-            ? HitpointsWrite.RequireExternallyCommitted() : runePublication?.RequireCommittedCharacter() ?? true;
+            ? HitpointsWrite.RequireExternallyCommitted() : classRetirement?.RequireCommittedPair() ?? derivedSpellQueryPublication?.RequireCommittedPair() ??
+                movementPublication?.RequireCommittedCharacter() ?? pairMovementPublication?.RequireCommittedCharacter() ?? runePublication?.RequireCommittedCharacter() ?? true;
 
         internal void PublishHolder() => holder.PublishPrepared(FinalSession, finalIdentity);
 

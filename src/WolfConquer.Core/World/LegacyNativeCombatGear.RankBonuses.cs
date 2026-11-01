@@ -159,19 +159,13 @@ internal partial class LegacyNativeCombatGear
         }
         case Promotion.Pirate:
         {
-            uint myRank = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Pirate);
-            if (myRank >= 1 && myRank <= 10)
+            uint overall = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.Overall_Pirate);
+            uint weekly = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Pirate);
+            uint rank = weekly is >= 1 and <= 10 ? weekly : overall;
+            if (rank is >= 1 and <= 10)
             {
                 vRANK.Magic = 21930;
-            }
-            myRank = snapshot.GetMyRank(LegacyNativeCombatGearRankTable.Type.WEEK_Pirate);
-            if (myRank >= 1 && myRank <= 10)
-            {
-                vRANK.Magic = 21930;
-            }
-            if (myRank >= 1 && myRank <= 10)
-            {
-                vRANK.MagicLevel = (ushort)(10 - (myRank - 1));
+                vRANK.MagicLevel = checked((ushort)(11 - rank));
             }
             break;
         }

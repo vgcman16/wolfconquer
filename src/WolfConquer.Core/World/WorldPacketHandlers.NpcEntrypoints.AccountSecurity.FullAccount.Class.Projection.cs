@@ -104,6 +104,9 @@ public static partial class WorldPacketHandlers
                 Reborn = 2,
                 Class = grant.TargetClass,
             });
+        LegacyDerivedSpellOrigins.RequireRows(character, session.PlayerSpells);
+        if (grant.ClearExistingSpells)
+            updatedCharacter = LegacyDerivedSpellOrigins.WithOrigins(updatedCharacter, new Dictionary<ushort, ushort>());
         var updatedSpellEntries = grant.ClearExistingSpells
             ? new List<PlayerSpellSnapshotEntry>()
             : session.PlayerSpells.Spells.ToList();
@@ -199,7 +202,7 @@ public static partial class WorldPacketHandlers
     private static IReadOnlyDictionary<string, string> CreateLegacyFullAccountClassPersistenceValues(
         CharacterSnapshot character)
     {
-        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["Class"] = character.Class.ToString(CultureInfo.InvariantCulture),
             ["Reborn"] = character.Reborn.ToString(CultureInfo.InvariantCulture),
@@ -211,5 +214,8 @@ public static partial class WorldPacketHandlers
             ["Atributes"] = character.AttributePoints.ToString(CultureInfo.InvariantCulture),
             ["MinHitPoints"] = character.MinHitPoints.ToString(CultureInfo.InvariantCulture),
         };
+        if (character.Attributes.TryGetValue(LegacyDerivedSpellOrigins.Key, out var origins))
+            values.Add(LegacyDerivedSpellOrigins.Key, origins);
+        return values;
     }
 }

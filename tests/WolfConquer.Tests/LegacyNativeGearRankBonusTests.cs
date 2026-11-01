@@ -4,7 +4,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LegacyNativeGearRankBonusTests
+public sealed partial class LegacyNativeGearRankBonusTests
 {
     [Theory]
     [InlineData(2001u, 2d, 5d, 0d, 0u, 0u, 0u, 0u, 0, 0)]

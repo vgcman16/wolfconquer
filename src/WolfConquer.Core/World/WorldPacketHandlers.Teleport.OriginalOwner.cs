@@ -85,7 +85,9 @@ public static partial class WorldPacketHandlers
         ReadOnlyMemory<byte> frame, CancellationToken cancellationToken)
     {
         RequireLegacyTeleportOwner(context);
+        context.OwnedHawksOutput?.RequireCurrent(context);
         await recipient.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+        context.OwnedHawksOutput?.RequireCurrent(context);
         RequireLegacyTeleportOwner(context);
     }
 

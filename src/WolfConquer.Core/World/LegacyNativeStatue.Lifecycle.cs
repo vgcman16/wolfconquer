@@ -21,6 +21,19 @@ internal partial class LegacyNativeStatue
 
 public static void ElitePkStatue(LegacyNativeGameClientRuntime user)
 	{
+		var player = user.Player;
+		if (player.HasOwnedActionAttachment) return;
+		if (Monitor.IsEntered(player.SpellAdmissionSyncRoot) && !Monitor.IsEntered(user.SpellAdmissionSyncRoot)) return;
+		lock (user.SpellAdmissionSyncRoot)
+		lock (player.SpellAdmissionSyncRoot)
+		{
+			if (!ReferenceEquals(user.Player, player) || !ReferenceEquals(player.Owner, user) || player.HasOwnedActionAttachment) return;
+			CreateElitePkStatueCore(user);
+		}
+	}
+
+	private static void CreateElitePkStatueCore(LegacyNativeGameClientRuntime user)
+	{
 		if (StaticStatue == null && StaticSobNpc == null)
 		{
 			CreateStatue(user, 301, 141, 0, 0, Static: true);

@@ -371,7 +371,7 @@ public sealed partial class WorldServerFrameHandler
             revivedSession.CombatGear ?? CombatGearSnapshot.Empty,
             _worldData);
         var spawn = LegacyPlayerSpawnPacket.FromSnapshot(
-                revivedSession.Character,
+                revivedSession,
                 revivedSession.PlayerItems,
                 alternateEquipmentActive: revivedSession.AlternateEquipmentActive,
                 maxLife: maxHitpoints)

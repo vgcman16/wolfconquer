@@ -65,7 +65,9 @@ internal static partial class LegacyTradeJournal
         var all = record.Changes.Select(change => (change.Kind, change.FileId))
             .Concat(inputs.Select(input => (input.Kind, input.FileId))).ToArray();
         var id = record.Changes.Single(change => change.Kind == LegacyTradeJournalFileKind.Character).FileId;
-        if (all.Any(row => row.FileId != id) || all.Select(row => row.Kind).Distinct().Count() != all.Length ||
+        long uid = AdmissionPlayerUid(record);
+        if (all.Any(row => row.FileId != (row.Kind == LegacyTradeJournalFileKind.Character ? id : uid)) ||
+            all.Select(row => row.Kind).Distinct().Count() != all.Length ||
             !all.Select(row => row.Kind).Order().SequenceEqual(domain.Kinds.Order()))
             throw new ArgumentException("Admission image/input membership is incomplete.");
         if (inputs.Any(input => input.Image?.Length > MaxTargetBytes)) throw new ArgumentException("Admission input is too large.");
@@ -76,12 +78,15 @@ internal static partial class LegacyTradeJournal
             if (input.Kind == LegacyTradeJournalFileKind.Quests) _ = PlayerQuestSnapshotLoader.Parse(input.Image);
             if (input.Kind == LegacyTradeJournalFileKind.CombatGear) ValidateMailboxGearImage(input.Image);
         }
-        var targets = record.Changes.Select(change => new JournalTarget(domain.PathFor(change.Kind, id), change)).ToArray();
+        var targets = record.Changes.Select(change => new JournalTarget(domain.PathFor(change.Kind, change.FileId), change)).ToArray();
         foreach (var path in AdmissionLockPaths(roots, record, targets)) EnsureSafePath(path);
+        RequireExistingAdmissionAccountMapping(roots, record);
         return targets;
     }
 
     private static string[] AdmissionLockPaths(JournalRoots roots, JournalRecord record, JournalTarget[] targets) =>
+        record.Version == 23 ? targets.Select(target => target.Path).Append(DerivedSpellQueryItemsPath(roots, record)).ToArray() :
+        record.Version == 22 ? targets.Select(target => target.Path).Append(PhysicalDeathItemsPath(roots, record)).ToArray() :
         record.Version == 19 ? AuthenticatedCreationPaths(roots.Admission!, roots.Mailbox!, checked((uint)record.Changes[0].FileId)).Values.ToArray() :
         !IsOrdinaryAdmissionVersion(record.Version) ? targets.Select(target => target.Path).ToArray() : targets.Select(target => target.Path)
             .Concat(record.AdmissionInputs!.Select(input => roots.Admission!.PathFor(input.Kind, input.FileId))).ToArray();
@@ -90,6 +95,7 @@ internal static partial class LegacyTradeJournal
     {
         if (record.Version == 19) { EnsureAuthenticatedCreationInputs(roots, record); return; }
         if (!IsOrdinaryAdmissionVersion(record.Version)) return;
+        RequireExistingAdmissionAccountMapping(roots, record);
         foreach (var input in record.AdmissionInputs!)
             if (!Matches(ReadTarget(roots.Admission!.PathFor(input.Kind, input.FileId)), input.Image))
                 throw new IOException("Required admission input changed.");

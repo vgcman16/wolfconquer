@@ -375,6 +375,7 @@ public sealed partial class WorldServerFrameHandler
 
         var attackCount = 0;
         var movementCount = 0;
+        using var physicalAiTick = BeginMonsterPhysicalAiTick();
         foreach (var scope in activeScopes)
         {
             var visibleMonsters = GetVisibleProactiveMonsterEntries(
@@ -402,11 +403,12 @@ public sealed partial class WorldServerFrameHandler
                     continue;
                 }
 
-                var attackRange = LegacyMonsterFamilyRuntimeRules.ResolveAttackRange(monsterFamily);
-                if (attackRange == 0)
+                if (!_monsterStates.TryReadPhysicalRange(this, worldData, entry.Instance, monsterFamily, out var actualRange) ||
+                    actualRange <= 0)
                 {
                     continue;
                 }
+                var attackRange = checked((uint)actualRange);
 
                 var viewRange = ReadMonsterAttributeUInt32(monsterFamily.Attributes, "view_range", "ViewRange");
                 if (viewRange == 0)
@@ -425,14 +427,11 @@ public sealed partial class WorldServerFrameHandler
                     targetLock.LastTargetUid,
                     out var target,
                     out var targetSnapshot);
-                var targetDecision = _monsterStates.AdvanceTargetLock(
-                    visible,
-                    hasTarget ? targetSnapshot : null,
-                    LegacyMonsterTargetLockLifecycle.Alive,
-                    CheckedInt32(attackRange, nameof(attackRange)),
-                    CheckedInt32(effectiveScanRange, nameof(effectiveScanRange)),
-                    now,
-                    attackInterval);
+                var physicalPhase = PrepareMonsterPhysicalAiPhase(physicalAiTick, visible, monsterFamily,
+                    hasTarget ? target : null, hasTarget ? targetSnapshot : null,
+                    CheckedInt32(effectiveScanRange, nameof(effectiveScanRange)), attackInterval);
+                if (physicalPhase is null || !_sessions.TryAdvanceMonsterPhysicalAi(this, physicalPhase,
+                        out var targetDecision)) continue;
 
                 if (targetDecision.AttackDue && hasTarget)
                 {

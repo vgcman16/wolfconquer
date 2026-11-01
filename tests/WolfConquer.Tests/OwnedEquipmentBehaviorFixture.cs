@@ -45,6 +45,23 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(options);
         if (options.Enabled || options.TimeProvider is null)
             throw new ArgumentException("Owned equipment behavior fixtures require explicit disabled runtime options with a real clock.", nameof(options));
+        await RunActualAsync(actor, catalog, options, exercise, peers);
+    }
+
+    internal static async Task RunWithEnabledSchedulingAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
+        LegacyRuntimeUpdateLoopOptions options, Func<OwnedEquipmentBehaviorFixture, Task> exercise,
+        params OwnedEquipmentBehaviorInput[] peers)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.Enabled || options.TimeProvider is null)
+            throw new ArgumentException("Enabled scheduling fixtures require enabled runtime options and a real clock.", nameof(options));
+        await RunActualAsync(actor, catalog, options, exercise, peers);
+    }
+
+    private static async Task RunActualAsync(OwnedEquipmentBehaviorInput actor, WorldDataCatalog catalog,
+        LegacyRuntimeUpdateLoopOptions options, Func<OwnedEquipmentBehaviorFixture, Task> exercise,
+        OwnedEquipmentBehaviorInput[] peers)
+    {
         OwnedEquipmentBehaviorFixture? fixture = null;
         Exception? primary = null;
         try
@@ -73,6 +90,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
             throw new ArgumentException("Owned test inputs require distinct valid saved character identities.");
         actorUid = checked((uint)actor.Character.Uid);
         foreach (var input in inputs) Save(input);
+        ApplyProficiencyInputImage();
         // The shared Data fixture's original, unadmitted sentinel account remains
         // part of the actual scanned dataset unless it is one supplied input.
         Data.Bootstrap();

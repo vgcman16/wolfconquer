@@ -78,7 +78,7 @@ public sealed partial class LegacyNativeAttackDispatchTests
     });
 
     [Fact]
-    public Task CreateAutoAttackCopiesOnlyTenNativeFieldsExcludesOtherWireFieldsAndRetainsPublicationBeforeFault() => NativePacketTestThread.Run(() =>
+    public Task CreateAutoAttackCopiesOnlyTenNativeFieldsAndRejectsNullBeforePublication() => NativePacketTestThread.Run(() =>
     {
         using var s = new Scope(); var source = new LegacyNativeInteractQuery
         {
@@ -92,8 +92,8 @@ public sealed partial class LegacyNativeAttackDispatchTests
         Assert.Equal((source.SpellID, source.SpellLevel, source.UID, source.X, source.Y), (actual.SpellID, actual.SpellLevel, actual.UID, actual.X, actual.Y));
         Assert.Equal(0ul, actual.CombatGear); Assert.Equal(0, actual.KilledMonster); Assert.Equal(0u, actual.Unknown);
         source.Damage = 9; Assert.Equal(-1, actual.Damage);
-        Assert.Throws<NullReferenceException>(() => LegacyNativeMsgAttackPacket.CreateAutoAtack(null!, s.Client));
-        Assert.True(s.Client.OnAutoAttack); Assert.NotSame(actual, s.Client.AutoAttack); Assert.Equal(0, s.Client.AutoAttack!.Damage);
+        Assert.Throws<ArgumentNullException>(() => LegacyNativeMsgAttackPacket.CreateAutoAtack(null!, s.Client));
+        Assert.True(s.Client.OnAutoAttack); Assert.Same(actual, s.Client.AutoAttack); Assert.Equal(-1, s.Client.AutoAttack!.Damage);
         Assert.Empty(s.Queue);
     });
 

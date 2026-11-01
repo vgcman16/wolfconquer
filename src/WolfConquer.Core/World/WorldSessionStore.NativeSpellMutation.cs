@@ -72,6 +72,7 @@ public sealed partial class WorldSessionStore
             if (!active || prepared is not null || !store.BindingIsCurrentPlain(binding, holder, expected))
                 throw InvalidSpellPublication();
             var frozen = LegacyNativeSpellStorage.FreezeSessionSnapshot(snapshot);
+            LegacyDerivedSpellOrigins.RequireUnchanged(expected.Character, expected.PlayerSpells, expected.Character, frozen);
             prepared = ReferenceEquals(frozen, expected.PlayerSpells) ? expected : expected with { PlayerSpells = frozen };
             if (!IsCurrentPlain()) throw InvalidSpellPublication();
         }
@@ -81,6 +82,7 @@ public sealed partial class WorldSessionStore
             if (!active || prepared is not null || !store.BindingIsCurrentPlain(binding, holder, expected))
                 throw InvalidSpellPublication();
             var frozenSpells = LegacyNativeSpellStorage.FreezeSessionSnapshot(snapshot);
+            LegacyDerivedSpellOrigins.RequireUnchanged(expected.Character, expected.PlayerSpells, expected.Character, frozenSpells);
             var frozenProficiencies = LegacyNativeProficiencyStorage.FreezeSessionSnapshot(proficiencies);
             prepared = ReferenceEquals(frozenSpells, expected.PlayerSpells) &&
                 ReferenceEquals(frozenProficiencies, expected.PlayerProficiencies) ? expected :

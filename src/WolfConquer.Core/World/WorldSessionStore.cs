@@ -227,9 +227,22 @@ public sealed partial class WorldSessionStore
 
         public void Clear()
         {
-            SpellBinding?.Retire();
-            NativeClientIdentity = retiredIdentity;
-            Volatile.Write(ref _session, null);
+            var binding = SpellBinding;
+            try
+            {
+                if (binding is not null)
+                {
+                    binding.Store.RetireInteractionInvitations(binding);
+                    binding.Store.RetireOwnedHawksAmbition(binding);
+                    binding.Store.RetireBasicPhysicalBinding(this, binding);
+                }
+            }
+            finally
+            {
+                binding?.Retire();
+                NativeClientIdentity = retiredIdentity;
+                Volatile.Write(ref _session, null);
+            }
         }
     }
 }

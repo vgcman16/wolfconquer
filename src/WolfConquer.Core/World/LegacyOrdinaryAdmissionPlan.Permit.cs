@@ -10,7 +10,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
 
     internal bool PermitsOrdinaryPath(LegacyOrdinaryAdmissionUidOwner owner, uint id, string path) =>
         MatchesPendingOwner(owner, id) && IsJournalPrepared &&
-        preparedChanges!.Any(row => string.Equals(roots.PathFor(row.Kind, account), path, StringComparison.OrdinalIgnoreCase));
+        preparedChanges!.Any(row => string.Equals(roots.PathFor(row.Kind, row.FileId), path, StringComparison.OrdinalIgnoreCase));
 
     internal bool PermitsOrdinaryJournal(IReadOnlyList<string> paths, IReadOnlyList<LegacyTradeJournalChange> changes)
     {
@@ -19,7 +19,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
         {
             var actual = changes[index];
             var expected = preparedChanges.SingleOrDefault(row => row.Kind == actual.Kind && row.FileId == actual.FileId);
-            if (expected is null || !string.Equals(paths[index], roots.PathFor(actual.Kind, account), StringComparison.OrdinalIgnoreCase) ||
+            if (expected is null || !string.Equals(paths[index], roots.PathFor(actual.Kind, actual.FileId), StringComparison.OrdinalIgnoreCase) ||
                 !Same(expected.Before, actual.Before) || !expected.After.AsSpan().SequenceEqual(actual.After)) return false;
         }
         return true;

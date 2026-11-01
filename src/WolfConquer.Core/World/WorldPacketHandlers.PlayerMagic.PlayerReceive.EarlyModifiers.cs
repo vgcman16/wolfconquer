@@ -39,7 +39,7 @@ public static partial class WorldPacketHandlers
         if (HasLegacyStatusFlag(phase.Target.Session.Character, LegacyHawksAmbitionFlag))
         {
             var reduction = MulDivToUInt32(phase.Damage,
-                ReadAttributeUInt32(phase.Attacker.Attributes, "HawksAmbitionPower"), 100);
+                ReadAttributeUInt32(phase.Target.Session.Character.Attributes, "HawksAmbitionPower"), 100);
             phase.Damage = reduction >= phase.Damage ? 0 : phase.Damage - reduction;
             if (!phase.CommitTarget(current => WithoutLegacyStatusFlag(current, LegacyHawksAmbitionFlag)))
                 return phase.Complete();

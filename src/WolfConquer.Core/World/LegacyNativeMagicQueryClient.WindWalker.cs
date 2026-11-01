@@ -25,6 +25,7 @@ internal static partial class LegacyNativeMagicQueryClient
         internal readonly byte[] Items;
         internal readonly bool Alternate, ShieldSpell;
         internal readonly uint Right, Left;
+        internal readonly LegacyAttackSpeedMetadata? AttackSpeedMetadata;
         internal QueryState(WorldSessionStore world, ConquerTcpConnection connection, long uid,
             object identity, Entry entry, WorldSession source)
         {
@@ -36,6 +37,14 @@ internal static partial class LegacyNativeMagicQueryClient
             var selected = LegacyEquipmentQuerySelector.Select(source).Where(row => row.Durability != 0).ToArray();
             Right = selected.SingleOrDefault(row => row.Position % 50 == 4)?.ItemId ?? 0;
             Left = selected.SingleOrDefault(row => row.Position % 50 == 5)?.ItemId ?? 0;
+            var ring = selected.SingleOrDefault(row => row.Position % 50 == 6)?.ItemId ?? 0;
+            if (source.NativeGameClient?.OrdinarySpellBinding is { } binding)
+            {
+                if (!ReferenceEquals(binding.Store, world) || !ReferenceEquals(binding.Connection, connection) ||
+                    !ReferenceEquals(binding.NativeIdentity, identity) || !world.IsBoundSpellOwnerCurrent(binding))
+                    throw new InvalidOperationException("attackSpeedQueryOwnerChanged");
+                AttackSpeedMetadata = new(binding.ItemCatalog, Right, Left, ring);
+            }
         }
         internal bool Matches(WorldSessionStore? world, ConquerTcpConnection connection, long uid,
             object identity, Entry entry) => ReferenceEquals(World, world) && ReferenceEquals(Connection, connection) &&

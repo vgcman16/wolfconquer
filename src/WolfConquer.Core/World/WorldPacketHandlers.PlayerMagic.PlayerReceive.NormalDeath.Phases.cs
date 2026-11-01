@@ -48,7 +48,7 @@ public static partial class WorldPacketHandlers
                 new LegacyEquipmentQueryRequest(LegacyEquipmentRebuildReason.PlayerDeath, scope), cancellationToken)
             .ConfigureAwait(false);
         if (!death.AdoptNormalDeathQuery(query)) return death.Current;
-        if (!await death.AssignAsync(0).ConfigureAwait(false)) return death.Current;
+        if (!await death.AssignNormalDeathHitpointsAsync().ConfigureAwait(false)) return death.Current;
         // HP0 setter/team/self pair COMPLETE before source AddFlag(Dead).
         if (!death.Commit(AddLegacyNormalDeathFlag) ||
             !await death.SendNormalDeathVectorAsync().ConfigureAwait(false) ||

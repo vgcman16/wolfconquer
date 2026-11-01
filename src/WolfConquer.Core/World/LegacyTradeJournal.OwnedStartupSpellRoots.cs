@@ -8,11 +8,13 @@ internal static partial class LegacyTradeJournal
     {
         private void RequireConfiguredSpellsRoot()
         {
-            if (capture.Record.Version is not (9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20)) return;
+            if (capture.Record.Version is not (9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 22 or 23)) return;
             var configured = custody.Configuration;
             if (capture.Roots.Spells is not { } spells || !SamePath(spells, configured.SpellsRoot))
                 throw new InvalidDataException("Owned item/spell recovery differs from its configured Spells root.");
-            RequireCharacterItemsSpellsTargetsCurrent(capture.Roots, capture.Record, capture.Targets);
+            if (capture.Record.Version == 22) RequirePhysicalDeathTargetsCurrent();
+            else if (capture.Record.Version == 23) RequireDerivedSpellQueryTargetsCurrent();
+            else RequireCharacterItemsSpellsTargetsCurrent(capture.Roots, capture.Record, capture.Targets);
             var targets = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Spells).ToArray();
             if (!Directory.Exists(spells))
             {
@@ -38,7 +40,11 @@ internal static partial class LegacyTradeJournal
         internal void PrepareDirectories()
         {
             RequireCurrent();
-            if (capture.Record.Version == 19)
+            if (capture.Record.Version == 23)
+                PrepareDerivedSpellQueryDirectories(capture.Roots, capture.Record, capture.Targets);
+            else if (capture.Record.Version == 22)
+                PreparePhysicalDeathDirectories(capture.Roots, capture.Record, capture.Targets);
+            else if (capture.Record.Version == 19)
                 PrepareAuthenticatedCreationDirectories(capture.Roots, capture.Record, capture.Targets);
             else if (capture.Record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20)
                 PrepareCharacterItemsSpellsDirectories(capture.Roots, capture.Record, capture.Targets);

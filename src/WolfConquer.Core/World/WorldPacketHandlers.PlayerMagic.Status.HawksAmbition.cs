@@ -24,48 +24,39 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
-        var resourceSession = await TryPrepareLegacyPlayerMagicCastAsync(
+        var admission = await TryPrepareOwnedHawksAmbitionAdmissionAsync(
                 context,
                 session,
+                playerSpell,
                 spell,
                 cancellationToken)
             .ConfigureAwait(false);
-        if (resourceSession is null)
+        if (admission is null)
         {
             return true;
         }
 
+        var resourceSession = admission.Session;
+        var output = admission.Output;
         var casterUid = CheckedUInt32(resourceSession.Character.Uid, nameof(resourceSession.Character.Uid));
-        var resourceContext = context with { Session = resourceSession };
+        var resourceContext = context with { Session = resourceSession, OwnedHawksOutput = output };
         var interaction = new MsgAttackPacket(query with { Uid = casterUid });
+        output.RequireCurrent(resourceContext);
         await resourceContext.Connection.SendAsync(interaction.ToFrameBytes(), cancellationToken)
             .ConfigureAwait(false);
+        output.RequireCurrent(resourceContext);
 
-        if (HasLegacyStatusFlag(resourceSession.Character, LegacyHawksAmbitionFlag))
+        using (var phase = output.CapturePhase(resourceContext))
         {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped legacy HawksAmbition AttachStatus magic " +
-                    $"{FormatSession(resourceContext)} spellId={spell.Id}; status flag is already active.")
-                .ConfigureAwait(false);
-            return true;
+            await SendPlayerStatusFlagVectorToVisibleAsync(phase.Context, phase.Session, cancellationToken).ConfigureAwait(false);
+            output.RequireCurrent(phase.Context);
         }
-
-        var updatedSession = ApplyLegacyHawksAmbitionStatus(resourceSession, spell, DateTimeOffset.UtcNow);
-        context.Sessions?.Set(context.Connection, updatedSession);
-        var updatedContext = context with { Session = updatedSession };
-
-        await SendPlayerStatusFlagVectorToVisibleAsync(updatedContext, updatedSession, cancellationToken)
-            .ConfigureAwait(false);
-        await SendLegacyCombatGearArchiveSkillUpdateAsync(
-                updatedContext,
-                updatedSession,
-                LegacyHawksAmbitionFlag,
-                spell.Duration,
-                damage: 0,
-                spellLevel: 0,
-                visible: false,
-                cancellationToken)
-            .ConfigureAwait(false);
+        using (var phase = output.CapturePhase(resourceContext))
+        {
+            await SendLegacyCombatGearArchiveSkillUpdateAsync(phase.Context, phase.Session, LegacyHawksAmbitionFlag,
+                    spell.Duration, damage: 0, spellLevel: 0, visible: false, cancellationToken).ConfigureAwait(false);
+            output.RequireCurrent(phase.Context);
+        }
 
         var animation = new LegacySpellAnimationPacket(
             casterUid,
@@ -78,10 +69,24 @@ public static partial class WorldPacketHandlers
             LevelHu: playerSpell.UseSpellSoul,
             SpellEffect: 0,
             [new LegacySpellAnimationTarget(casterUid, 0, Hit: true, MsgAttackEffect.None)]);
-        await SendPlayerSpellAnimationToVisibleAsync(updatedContext, updatedSession, animation, cancellationToken)
-            .ConfigureAwait(false);
-        await SendPlayerEquipmentAppearanceRefreshAsync(updatedContext, updatedSession, cancellationToken)
-            .ConfigureAwait(false);
+        using (var phase = output.CapturePhase(resourceContext))
+        {
+            await SendPlayerSpellAnimationToVisibleAsync(phase.Context, phase.Session, animation, cancellationToken).ConfigureAwait(false);
+            output.RequireCurrent(phase.Context);
+        }
+        using (var phase = output.CapturePhase(resourceContext))
+        {
+            await SendPlayerEquipmentAppearanceRefreshAsync(phase.Context, phase.Session, cancellationToken).ConfigureAwait(false);
+            output.RequireCurrent(phase.Context);
+        }
+
+        WorldSession updatedSession;
+        WorldPacketHandlerContext updatedContext;
+        using (var phase = output.CapturePhase(resourceContext))
+        {
+            updatedSession = phase.Session;
+            updatedContext = resourceContext with { Session = updatedSession, OwnedHawksPhase = null };
+        } // A phase is retired BEFORE the legitimate XP writer replaces its holder.
 
         updatedSession = await TryApplyLegacyPlayerMagicSpellExperienceAsync(
                 updatedContext,
@@ -91,6 +96,8 @@ public static partial class WorldPacketHandlers
                 500,
                 cancellationToken)
             .ConfigureAwait(false);
+
+        output.RequireCurrent(updatedContext);
 
         await context.Log.WriteLineAsync(
                 "WorldServer handled legacy HawksAmbition AttachStatus magic " +
@@ -111,16 +118,13 @@ public static partial class WorldPacketHandlers
             WithLegacyStatusFlag(session.Character, LegacyHawksAmbitionFlag),
             "HawksAmbitionPower",
             spell.Damage);
-        if (spell.Duration > 0)
-        {
-            updatedCharacter = WithCharacterAttribute(
+        updatedCharacter = WithCharacterAttribute(
                 updatedCharacter,
                 RuntimeLegacyHawksAmbitionExpiresAtUtcAttribute,
                 nowUtc
                     .ToUniversalTime()
                     .AddSeconds(spell.Duration)
                     .ToString("O", CultureInfo.InvariantCulture));
-        }
 
         updatedCharacter = WithCharacterAttribute(
             updatedCharacter,

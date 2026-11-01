@@ -167,7 +167,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["PkMode"] = "0",
                 ["LegacyNinjaLevels"] = "17",
                 ["LegacyNinjaSageModeRoll"] = "0",
-                ["HawksAmbitionPower"] = "25",
             },
             playerItems: CreateRangeStatusEquipment(RangeStatusPhysicalIncreaseItemId, position: 10));
         var targetItems = CreateRangeStatusEquipment(RangeStatusPhysicalDecreaseItemId, position: 11) with
@@ -192,6 +191,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             attributes: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["StatusFlags"] = BuildStatusFlags(targetFlags),
+                ["HawksAmbitionPower"] = "25",
                 ["MaxHitpoints"] = "100000",
                 [StarArrowNatureShieldRollAttribute] = natureShieldAvoids ? "0" : "99",
                 ["LegacySpeffectLevel.Solid"] = "4",

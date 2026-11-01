@@ -54,11 +54,14 @@ internal static partial class LegacyTradeJournal
         { reason = "ordinaryAdmissionJournalInvalid:" + error.GetType().Name; return false; }
     }
 
-    private static void ValidateAdmissionChanges(LegacyTradeJournalChange[] changes)
+    private static void ValidateAdmissionChanges(LegacyTradeJournalChange[] changes, int version)
     {
         if (changes.Length is < 1 or > 4 || changes.Count(row => row.Kind == LegacyTradeJournalFileKind.Character) != 1 ||
             changes.Select(row => row.Kind).Distinct().Count() != changes.Length)
             throw new ArgumentException("Invalid ordinary-admission target shape.");
+        var character = changes.Single(row => row.Kind == LegacyTradeJournalFileKind.Character);
+        long uid = version == 7 ? ReadCharacterUid(character.Before ?? throw new InvalidDataException(
+            "Existing admission lacks its Character preimage.")) : character.FileId;
         foreach (var row in changes)
         {
             if (row.Kind is not (LegacyTradeJournalFileKind.Character or LegacyTradeJournalFileKind.Items or
@@ -66,8 +69,8 @@ internal static partial class LegacyTradeJournal
                 row.After is null || row.After.Length > MaxTargetBytes || row.Before?.Length > MaxTargetBytes ||
                 row.Kind == LegacyTradeJournalFileKind.Character && row.Before is null)
                 throw new ArgumentException("Invalid ordinary-admission image.");
-            ValidateAdmissionSavedImage(row, row.Before);
-            ValidateAdmissionSavedImage(row, row.After);
+            ValidateAdmissionSavedImage(row, row.Before, uid);
+            ValidateAdmissionSavedImage(row, row.After, uid);
         }
     }
 }

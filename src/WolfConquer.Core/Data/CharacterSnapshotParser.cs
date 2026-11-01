@@ -264,7 +264,12 @@ public sealed partial class CharacterSnapshotLoader
     internal CharacterSnapshotLoadResult TryLoadByAccountIdForAdmission(long accountId)
         => TryLoadByAccountId(accountId, persistExpiry: false);
 
-    private CharacterSnapshotLoadResult TryLoadByAccountId(long accountId, bool persistExpiry)
+    // Raw configured account-file read only. The actual ordinary admission plan
+    // must separately prove unique account-to-player ownership before publishing.
+    internal CharacterSnapshotLoadResult TryLoadConfiguredAccountForAdmission(long accountId)
+        => TryLoadByAccountId(accountId, persistExpiry: false, allowSeparatePlayerUid: true);
+
+    private CharacterSnapshotLoadResult TryLoadByAccountId(long accountId, bool persistExpiry, bool allowSeparatePlayerUid = false)
     {
         var path = Path.Combine(_usersRoot, accountId.ToString(CultureInfo.InvariantCulture) + ".ini");
         if (!File.Exists(path))
@@ -316,7 +321,8 @@ public sealed partial class CharacterSnapshotLoader
                 ex.Message);
         }
 
-        if (snapshot.Uid != accountId)
+        if (!allowSeparatePlayerUid && snapshot.Uid != accountId ||
+            allowSeparatePlayerUid && snapshot.Uid is <= 0 or > uint.MaxValue)
         {
             return new CharacterSnapshotLoadResult(
                 null,

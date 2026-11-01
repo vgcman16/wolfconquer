@@ -30,7 +30,7 @@ public static partial class WorldPacketHandlers
 
         await context.Connection.SendAsync(
                 LegacyPlayerSpawnPacket.FromSnapshot(
-                    targetSession.Character,
+                    targetSession,
                     targetSession.PlayerItems,
                     alternateEquipmentActive: targetSession.AlternateEquipmentActive,
                     windowSpawn: true,

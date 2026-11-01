@@ -25,13 +25,21 @@ internal static partial class LegacyTradeJournal
             if (!SameQuestRoot(usersRoot, roots.Users))
             { reason = RecoveryRequired + ":characterSpellsUsersMismatch"; return false; }
         }
-        else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20)
+        else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 22 or 23)
         {
             if (admissionRoots?.Items is not { } configuredItems || admissionRoots.Spells is not { } configuredSpells)
             { reason = RecoveryRequired + ":characterItemsSpellsRootMissing"; return false; }
             roots = GetCharacterItemsSpellsRoots(admissionRoots.Users, configuredItems, configuredSpells);
             if (!SameQuestRoot(usersRoot, roots.Users) || !SameQuestRoot(itemsRoot, roots.Items))
             { reason = RecoveryRequired + ":characterItemsSpellsRootsMismatch"; return false; }
+        }
+        else if (record.Version == 21)
+        {
+            if (admissionRoots?.Items is not { } configuredItems ||
+                !SameQuestRoot(usersRoot, admissionRoots.Users) || !SameQuestRoot(itemsRoot, configuredItems))
+            { reason = RecoveryRequired + ":pairMovementConfiguredRootsRequired"; return false; }
+            roots = GetRoots(admissionRoots.Users, configuredItems);
+            _ = GetCharacterResourcesRoots(roots.Users);
         }
         else if (record.Version == 11) roots = GetCharacterResourcesRoots(usersRoot);
         else roots = GetRoots(usersRoot, itemsRoot);

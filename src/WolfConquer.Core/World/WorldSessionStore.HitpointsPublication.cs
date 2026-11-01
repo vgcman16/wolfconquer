@@ -7,13 +7,14 @@ public sealed partial class WorldSessionStore
     private bool TryPublishFrameOwnedHitpoints(PreparedSessionSpellPublication publication,
         SessionHolder holder, out string reason, PreparedSessionSpellPublication? observedPeer = null,
         SessionHolder? peerHolder = null, MonsterRuntimeStateStore.ClassicBuffTarget? monster = null,
-        LegacyRuneCastEligibility? runeEligibility = null)
+        LegacyRuneCastEligibility? runeEligibility = null, PreparedBasicPhysicalChange? basicPhysical = null)
     {
         reason = string.Empty;
         publication.ArmFinalProof(); observedPeer?.ArmFinalProof();
         if (!publication.ConsumeBeforeWriterPlain() || observedPeer is not null && !observedPeer.ConsumeBeforeWriterPlain())
             throw InvalidSpellPublication();
         if (runeEligibility is not null && !runeEligibility.IsCurrentPlain()) return false;
+        if (basicPhysical is not null && !basicPhysical.IsCurrentPlain()) return false;
         MonsterRuntimeStateStore.ClassicBuffLease? lease = null;
         try
         {
@@ -43,7 +44,12 @@ public sealed partial class WorldSessionStore
                 if (publication.HasCommittedHitpoints) FailCommittedSpellPublication(holder, publication.Binding);
                 throw InvalidSpellPublication();
             }
-            publication.PublishNative(); publication.PublishHolder(); return true;
+            if (basicPhysical is not null && !basicPhysical.IsCurrentPlain())
+            {
+                if (publication.HasCommittedHitpoints) FailCommittedSpellPublication(holder, publication.Binding);
+                throw InvalidSpellPublication();
+            }
+            publication.PublishNative(); basicPhysical?.PublishPrepared(); publication.PublishHolder(); return true;
         }
         finally { lease?.Dispose(); }
     }

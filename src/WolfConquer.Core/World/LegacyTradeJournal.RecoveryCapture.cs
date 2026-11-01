@@ -36,6 +36,9 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 18) ValidateRecordedRuneDecomposeImages(record, uint.MaxValue);
         if (record.Version == 20) ValidateRecordedRuneBagImages(record, uint.MaxValue);
         if (record.Version == 19) _ = ValidateAuthenticatedCreationImages(record, uint.MaxValue);
+        if (record.Version == 21) ValidateRecordedPairMovementImages(record);
+        if (record.Version == 22) ValidateRecordedPhysicalDeathImages(record);
+        if (record.Version == 23) ValidateRecordedDerivedSpellQueryImages(record);
         if (!TryResolveRecoveryRoots(usersRoot, itemsRoot, questsRoot, mailboxRoot, combatGearRoot,
             admissionRoots, record, out var roots, out reason)) return false;
         capture = new(roots, record, GetTargets(roots, record), pending);
@@ -46,6 +49,11 @@ internal static partial class LegacyTradeJournal
         OwnedStartupItemRecovery? ownedStartup = null)
     {
         recovered = 0; reason = string.Empty;
+        if (capture.Record.Version == 23 && ownedStartup is null)
+        { reason = RecoveryRequired + ":derivedSpellQueryOwnedCustodyRequired"; return false; }
+        if (capture.Record.Version is 21 or 22 && ownedStartup is null)
+        { reason = RecoveryRequired + (capture.Record.Version == 22 ? ":physicalDeathOwnedCustodyRequired" :
+            ":pairMovementOwnedCustodyRequired"); return false; }
         if (capture.Record.Version is 18 or 19 or 20 && ownedStartup is null)
         { reason = RecoveryRequired + (capture.Record.Version == 19 ? ":authenticatedCreationOwnedCustodyRequired" :
             capture.Record.Version == 20 ? ":runeBagOwnedCustodyRequired" : ":runeDecomposeOwnedCustodyRequired"); return false; }

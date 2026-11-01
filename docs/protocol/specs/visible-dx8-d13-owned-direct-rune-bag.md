@@ -356,13 +356,3 @@ the final deliberate source corrections and precise executed verification in
 `FIXED-SOURCE-BUGS.md` under FSB257 only after qualification, and update the
 current checklist/handoff. This draft is not a fixed claim. Original
 `CONQUER-HANDOFF.md`'s executable/AV/session/route/save/retained-mail hold applies.
-
-## Root qualification update - 2026-10-31
-
-This supersedes the earlier source-only status. All94new bag/planner/creator-
-lifecycle outcomes have actual passing evidence; original fixture failures are
-retained. The combined128new RuneBag/WindWalker set passes across overlapping
-runs. Builds have zero errors and no changed-path warnings. Exact raw images,
-registered UID custody, native/Store publication and restart assertions remain.
-Reviewed source is intaken; its new exact-public full gate is pending. No SQL,
-power-loss, protected native authentication or live/newer-client proof is added.

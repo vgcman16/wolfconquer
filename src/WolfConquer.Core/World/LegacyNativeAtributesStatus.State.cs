@@ -59,12 +59,22 @@ internal partial class LegacyNativeAtributesStatus : Dictionary<uint, Dictionary
 
     public void ResetStatsNonReborn(LegacyNativePlayerRuntime player)
     {
-        Dictionary<ushort, Instant> dictionary = base[PositionArray(player.Class)];
-        Instant instant = dictionary[(byte)Math.Min(120, (int)player.Level)];
-        player.Strength = instant.Strenght;
-        player.Vitality = instant.Vitality;
-        player.Spirit = instant.Spirit;
-        player.Agility = instant.Agility;
+        ArgumentNullException.ThrowIfNull(player);
+        player.RequireUnboundActorScalarMutation();
+        lock (player.Owner.SpellAdmissionSyncRoot)
+        lock (player.SpellAdmissionSyncRoot)
+        {
+            player.RequireUnboundActorScalarMutation();
+            Dictionary<ushort, Instant> dictionary = base[PositionArray(player.Class)];
+            Instant instant = dictionary[(byte)Math.Min(120, (int)player.Level)];
+            // A table comparer must not attach an owner between the whole
+            // executor preflight and its earlier Strength/Vitality effects.
+            player.RequireUnboundActorScalarMutation();
+            player.Strength = instant.Strenght;
+            player.Vitality = instant.Vitality;
+            player.Spirit = instant.Spirit;
+            player.Agility = instant.Agility;
+        }
     }
 
     public bool CheckStatus(LegacyNativePlayerRuntime player)
@@ -85,14 +95,22 @@ internal partial class LegacyNativeAtributesStatus : Dictionary<uint, Dictionary
 
     public void GetStatus(LegacyNativePlayerRuntime player, bool Atreborn = false)
     {
-        if (Atreborn || (player.Level <= 120 && player.Reborn <= 0))
+        ArgumentNullException.ThrowIfNull(player);
+        player.RequireUnboundActorScalarMutation();
+        lock (player.Owner.SpellAdmissionSyncRoot)
+        lock (player.SpellAdmissionSyncRoot)
         {
-            Dictionary<ushort, Instant> dictionary = base[PositionArray(player.Class)];
-            Instant instant = dictionary[player.Level];
-            player.Strength = instant.Strenght;
-            player.Agility = instant.Agility;
-            player.Spirit = instant.Spirit;
-            player.Vitality = instant.Vitality;
+            player.RequireUnboundActorScalarMutation();
+            if (Atreborn || (player.Level <= 120 && player.Reborn <= 0))
+            {
+                Dictionary<ushort, Instant> dictionary = base[PositionArray(player.Class)];
+                Instant instant = dictionary[player.Level];
+                player.RequireUnboundActorScalarMutation();
+                player.Strength = instant.Strenght;
+                player.Agility = instant.Agility;
+                player.Spirit = instant.Spirit;
+                player.Vitality = instant.Vitality;
+            }
         }
     }
 }

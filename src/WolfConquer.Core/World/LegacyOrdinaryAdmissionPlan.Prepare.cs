@@ -13,21 +13,21 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
         plan = null; reason = "ordinaryAdmissionPreparationRefused";
         try
         {
-            if (accountId is <= 0 or > uint.MaxValue || raw.Uid != accountId || recovery.IsBlocked) return false;
+            if (accountId is <= 0 or > uint.MaxValue || raw.Uid is <= 0 or > uint.MaxValue || recovery.IsBlocked) return false;
             if (!LegacyOrdinaryAdmissionReconciliation.TryRequireOwner(loader, uids, out reason)) return false;
             if (uids?.IsPending(checked((uint)accountId)) == true)
             { reason = "ordinaryAdmissionRecoveryRequired:unsafeRetainedWorkRequiresReconciliation"; return false; }
             LegacyOrdinaryAdmissionValidation.ValidateStartupCharacter(raw);
             LegacyNativeExistingCharacterPrefix? prefix = null;
             if (connection.NativeGameClient is not null &&
-                !LegacyNativeExistingCharacterPrefix.TryPrepare(connection, raw, loader.UsersRoot, out prefix, out reason)) return false;
+                !LegacyNativeExistingCharacterPrefix.TryPrepare(connection, raw, accountId, loader.UsersRoot, out prefix, out reason)) return false;
             var roots = LegacyOrdinaryAdmissionRoots.FromLoader(loader);
-            var images = LegacyTradeJournal.CaptureOrdinaryAdmissionInputs(roots, accountId);
+            var images = LegacyTradeJournal.CaptureOrdinaryAdmissionInputs(roots, accountId, raw.Uid);
             if (!images.TryGetValue(LegacyTradeJournalFileKind.Character, out var characterImage) || characterImage is null ||
                 !LegacyNativeExistingCharacterPrefix.AdmissionMatchesSnapshot(raw, characterImage,
                     roots.PathFor(LegacyTradeJournalFileKind.Character, accountId)) ||
                 prefix is not null && !characterImage.AsSpan().SequenceEqual(prefix.CopyAdmissionBeforeImage())) return false;
-            LegacyTradeJournal.ValidateOrdinaryAdmissionCharacterImage(characterImage, accountId);
+            LegacyTradeJournal.ValidateOrdinaryAdmissionCharacterImage(characterImage, raw.Uid);
             var loadedSource = prefix?.AdmissionSnapshot ?? raw;
             var source = loadedSource with
             {

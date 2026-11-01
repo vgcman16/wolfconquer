@@ -52,10 +52,13 @@ internal static partial class LegacyTradeJournal
             18 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "RuneDecompose"),
             20 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "RuneBag"),
             19 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "AdmissionDomain", "CreationMailbox", "OrdinaryCreation"),
+            21 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "PairMovement"),
+            22 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "PhysicalDeath"),
+            23 => GetProperties(rootElement, "Version", "TransactionId", "Changes", "CharacterItemsSpellsDomain", "DerivedSpellQuery"),
             _ => GetProperties(rootElement, "Version", "TransactionId", "Changes"),
         };
         if (root["Version"].ValueKind != JsonValueKind.Number ||
-            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20) ||
+            !root["Version"].TryGetInt32(out var version) || version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23) ||
             root["TransactionId"].ValueKind != JsonValueKind.String)
             throw new JsonException("Unsupported journal version or identity.");
         var transactionId = root["TransactionId"].GetString();
@@ -80,7 +83,10 @@ internal static partial class LegacyTradeJournal
         if (version == 5) RequireMailboxGearOrder(result);
         if (version == 8) RequireCharacterSpellsOrder(result);
         if (version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20) RequireCharacterItemsSpellsOrder(result);
-        return new(version, transactionId!, result)
+        if (version == 21) RequirePairMovementOrder(result);
+        if (version == 22) RequirePhysicalDeathOrder(result);
+        if (version == 23) RequireDerivedSpellQueryOrder(result);
+        var record = new JournalRecord(version, transactionId!, result)
         {
             Domain = version == 3 ? ReadQuestDomain(root["Domain"]) : null,
             MailboxDomain = version == 4 ? ReadMailboxDomain(root["MailboxDomain"]) : null,
@@ -89,7 +95,7 @@ internal static partial class LegacyTradeJournal
             AdmissionInputs = IsOrdinaryAdmissionVersion(version) ? ReadAdmissionInputs(root["AdmissionInputs"]) : null,
             AdmissionPreparedAt = version == 7 ? ReadAdmissionTime(root["AdmissionPreparedAt"]) : null,
             CharacterSpellsDomain = version == 8 ? ReadCharacterSpellsDomain(root["CharacterSpellsDomain"]) : null,
-            CharacterItemsSpellsDomain = version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 ? ReadCharacterItemsSpellsDomain(root["CharacterItemsSpellsDomain"]) : null,
+            CharacterItemsSpellsDomain = version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 22 or 23 ? ReadCharacterItemsSpellsDomain(root["CharacterItemsSpellsDomain"]) : null,
             CharacterResourcesDomain = version == 11 ? ReadCharacterResourcesDomain(root["CharacterResourcesDomain"]) : null,
             RuneOperation = version is 12 or 14 ? ReadRuneOperation(root["RuneOperation"], version == 14) : null,
             RuneContainer = version is 13 or 15 ? ReadRuneContainer(root["RuneContainer"], version == 15) : null,
@@ -99,7 +105,14 @@ internal static partial class LegacyTradeJournal
             RuneBag = version == 20 ? ReadRuneBag(root["RuneBag"]) : null,
             CreationMailbox = version == 19 ? ReadCreationMailbox(root["CreationMailbox"]) : null,
             OrdinaryCreation = version == 19 ? ReadAuthenticatedCreation(root["OrdinaryCreation"]) : null,
+            PairMovement = version == 21 ? ReadPairMovement(root["PairMovement"]) : null,
+            PhysicalDeath = version == 22 ? ReadPhysicalDeath(root["PhysicalDeath"]) : null,
+            DerivedSpellQuery = version == 23 ? ReadDerivedSpellQuery(root["DerivedSpellQuery"]) : null,
         };
+        if (version == 21) ValidateRecordedPairMovementImages(record);
+        if (version == 22) ValidateRecordedPhysicalDeathImages(record);
+        if (version == 23) ValidateRecordedDerivedSpellQueryImages(record);
+        return record;
     }
 
     private static Dictionary<string, JsonElement> GetProperties(JsonElement element, params string[] names)

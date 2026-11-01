@@ -84,6 +84,9 @@ internal static partial class LegacyTradeJournal
         {
             EnsureTargetsMatch(targets, allowAfter: false);
             EnsureAdmissionInputs(roots, record);
+            RequirePairMovementBoundary(roots, record);
+            RequirePhysicalDeathBoundary(roots, record);
+            RequireDerivedSpellQueryBoundary(roots, record);
             if (record.Version == 19) RequireAuthenticatedCreationMutation(record, targets);
             else LegacyMailboxPackageMutationFence.RequireJournalMutation(paths, record.Changes);
         }
@@ -114,11 +117,17 @@ internal static partial class LegacyTradeJournal
             EnsureTargetsMatch(targets, allowAfter: false);
             EnsureAdmissionInputs(roots, record);
             RequireAuthenticatedCreationBoundary(record);
-            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20)) Directory.CreateDirectory(roots.Items);
+            RequirePairMovementBoundary(roots, record);
+            RequirePhysicalDeathBoundary(roots, record);
+            RequireDerivedSpellQueryBoundary(roots, record);
+            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23)) Directory.CreateDirectory(roots.Items);
             Directory.CreateDirectory(roots.Journal);
             EnsureSafePath(roots.Journal);
             WriteFlushed(preparing, Serialize(record));
             RequireAuthenticatedCreationBoundary(record);
+            RequirePairMovementBoundary(roots, record);
+            RequirePhysicalDeathBoundary(roots, record);
+            RequireDerivedSpellQueryBoundary(roots, record);
             File.Move(preparing, pending); // No overwrite: only one transaction can publish.
             published = true;
             if (interrupt?.AtBoundary(0, paths, pending) == true)
@@ -126,7 +135,9 @@ internal static partial class LegacyTradeJournal
                 reason = RecoveryRequired + ":interrupted";
                 return false;
             }
-            if (record.Version == 19) PrepareAuthenticatedCreationDirectories(roots, record, targets);
+            if (record.Version == 23) PrepareDerivedSpellQueryDirectories(roots, record, targets);
+            else if (record.Version == 22) PreparePhysicalDeathDirectories(roots, record, targets);
+            else if (record.Version == 19) PrepareAuthenticatedCreationDirectories(roots, record, targets);
             else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
             else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
             else PrepareAdmissionDirectories(roots, record, targets);
@@ -134,6 +145,9 @@ internal static partial class LegacyTradeJournal
             {
                 var target = targets[index];
                 RequireAuthenticatedCreationBoundary(record);
+                RequirePairMovementBoundary(roots, record);
+                RequirePhysicalDeathBoundary(roots, record);
+                RequireDerivedSpellQueryBoundary(roots, record);
                 if (!IsOrdinaryAdmissionVersion(record.Version) || !Matches(ReadTarget(target.Path), target.Change.After))
                 {
                     Stage(target, target.Change.After, record.TransactionId);
@@ -148,6 +162,9 @@ internal static partial class LegacyTradeJournal
             for (var index = 0; index < targets.Length; index++)
             {
                 RequireAuthenticatedCreationBoundary(record);
+                RequirePairMovementBoundary(roots, record);
+                RequirePhysicalDeathBoundary(roots, record);
+                RequireDerivedSpellQueryBoundary(roots, record);
                 if (!IsOrdinaryAdmissionVersion(record.Version) || !Matches(ReadTarget(targets[index].Path), targets[index].Change.After))
                     ReplaceStaged(targets[index], record.TransactionId);
                 if (interrupt?.AtBoundary(index + 1, paths, pending) == true)
@@ -160,6 +177,9 @@ internal static partial class LegacyTradeJournal
             EnsureAdmissionInputs(roots, record);
             EnsureAdmissionStagesCleared(record, targets);
             RequireAuthenticatedCreationBoundary(record);
+            RequirePairMovementBoundary(roots, record);
+            RequirePhysicalDeathBoundary(roots, record);
+            RequireDerivedSpellQueryBoundary(roots, record);
             try { DeleteRecord(pending); }
             catch (Exception ex) when (IsJournalException(ex))
             {

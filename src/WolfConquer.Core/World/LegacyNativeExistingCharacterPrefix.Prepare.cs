@@ -7,6 +7,10 @@ namespace WolfConquer.Core.World;
 internal sealed partial class LegacyNativeExistingCharacterPrefix
 {
     internal static bool TryPrepare(ConquerTcpConnection connection, CharacterSnapshot snapshot, string usersRoot,
+        out LegacyNativeExistingCharacterPrefix? prepared, out string reason) =>
+        TryPrepare(connection, snapshot, snapshot?.Uid ?? 0, usersRoot, out prepared, out reason);
+
+    internal static bool TryPrepare(ConquerTcpConnection connection, CharacterSnapshot snapshot, long accountId, string usersRoot,
         out LegacyNativeExistingCharacterPrefix? prepared, out string reason)
     {
         prepared = null; reason = "normalPrefixPreparationRefused";
@@ -15,13 +19,13 @@ internal sealed partial class LegacyNativeExistingCharacterPrefix
             if (snapshot?.Attributes is null || snapshot.PaidNobility is null ||
                 connection.NativeGameClient is not { } client || client.Player is not { } player ||
                 !ReferenceEquals(player.Owner, client) || client.FullLoading || client.Fake ||
-                snapshot.Uid is <= 0 or > uint.MaxValue || string.IsNullOrWhiteSpace(usersRoot)) return false;
+                snapshot.Uid is <= 0 or > uint.MaxValue || accountId is <= 0 or > uint.MaxValue || string.IsNullOrWhiteSpace(usersRoot)) return false;
             // Capture every native participant before ANY caller dictionary or
             // genuine INI converter delegate can execute same-value callbacks.
             var playerBefore = new LegacyNativeExistingPrefixBefore(client);
             var beastsBefore = new LegacyNativeBeastsRuntime.PrefixBefore(client);
             var hairfaceBefore = new LegacyNativeHairfaceStorageRuntime.PrefixBefore(client);
-            var path = Path.GetFullPath(Path.Combine(usersRoot, snapshot.Uid.ToString(CultureInfo.InvariantCulture) + ".ini"));
+            var path = Path.GetFullPath(Path.Combine(usersRoot, accountId.ToString(CultureInfo.InvariantCulture) + ".ini"));
             var input = snapshot with
             {
                 Attributes = new Dictionary<string, string>(snapshot.Attributes, StringComparer.OrdinalIgnoreCase),

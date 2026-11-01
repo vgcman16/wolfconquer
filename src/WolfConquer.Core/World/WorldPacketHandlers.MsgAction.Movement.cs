@@ -427,15 +427,21 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        WorldActiveSession interactionPartner = default!;
+        var hasInteractionJump =
+            TryGetMovementInteractionPartner(context, session, out interactionPartner) &&
+            interactionPartner.Session.Character.X == character.X &&
+            interactionPartner.Session.Character.Y == character.Y;
         var legacyJumpDistance = LegacyGetDistance(character.X, character.Y, x, y);
         var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase)
         {
             ["Angle"] = packet.Facing.ToString(CultureInfo.InvariantCulture),
+            ["Action"] = "100", // Native Jump: full runtime value, no earlier dead/pullback mutation.
         };
-        var removedActivePick = HasActivePick(character);
+        var removedActivePick = !hasInteractionJump && HasActivePick(character);
         var removedFocusedFlag = HasLegacyStatusFlag(character, LegacyFocusedFlag);
         var removedMagicDefenderFlag = HasLegacyStatusFlag(character, LegacyMagicDefenderFlag);
-        var steedVigor = HasLegacyStatusFlag(character, LegacyRideFlag)
+        var steedVigor = !hasInteractionJump && HasLegacyStatusFlag(character, LegacyRideFlag)
             ? DecrementJumpRideVigor(character, legacyJumpDistance)
             : (uint?)null;
         if (steedVigor is { } vigor)
@@ -456,40 +462,45 @@ public static partial class WorldPacketHandlers
             jumpedCharacter = WithoutCharacterAttribute(jumpedCharacter, "ActivePick");
         }
 
-        WorldActiveSession interactionPartner = default!;
-        var hasInteractionJump =
-            TryGetMovementInteractionPartner(context, session, out interactionPartner) &&
-            interactionPartner.Session.Character.X == character.X &&
-            interactionPartner.Session.Character.Y == character.Y;
-
         var updatedSession = session with { Character = jumpedCharacter };
         WorldSession? updatedPartnerSession = null;
         ConquerTcpConnection? updatedPartnerConnection = null;
+        WorldSessionStore.PairMovementPublication? pairPublication = null;
+        WorldSessionStore.ActionPublication? movementPublication = null;
+        byte[]? pairFrame = null;
         if (hasInteractionJump && context.Sessions is { } interactionSessions)
         {
-            var partnerCharacter = interactionPartner.Session.Character with
-            {
-                X = x,
-                Y = y,
-                Attributes = WithCharacterAttribute(
-                    interactionPartner.Session.Character,
-                    "Angle",
-                    packet.Facing).Attributes,
-            };
-            updatedPartnerSession = interactionPartner.Session with { Character = partnerCharacter };
+            pairFrame = LegacyInterActionWalkPacket.ForJump(
+                CheckedUInt32(character.Uid, nameof(character.Uid)),
+                CheckedUInt32(interactionPartner.Session.Character.Uid, nameof(interactionPartner.Session.Character.Uid)),
+                CheckedUInt16(x, nameof(x)), CheckedUInt16(y, nameof(y))).ToFrameBytes();
+            if (!interactionSessions.TryCommitPairMovement(context, interactionPartner, LegacyPairMovementKind.Jump,
+                    CheckedUInt16(x, nameof(x)), CheckedUInt16(y, nameof(y)), packet.Facing,
+                    out pairPublication) || pairPublication is null || !pairPublication.IsCurrent()) return;
+            updatedSession = pairPublication.Actor;
+            updatedPartnerSession = pairPublication.Partner;
             updatedPartnerConnection = interactionPartner.Connection;
-            interactionSessions.Set(context.Connection, updatedSession);
-            interactionSessions.Set(updatedPartnerConnection, updatedPartnerSession);
         }
         else
         {
-            context.Sessions?.Set(context.Connection, updatedSession);
+            if (session.NativeGameClient?.Player?.HasOwnedActionAttachment == true ||
+                context.Connection.NativeGameClient?.Player?.HasOwnedActionAttachment == true)
+            {
+                if (context.Sessions is not { } ownedStore ||
+                    !ownedStore.TryCommitOwnedMovement(context, PrepareOwnedJump(session, jumpedCharacter), out movementPublication) ||
+                    movementPublication is null || !movementPublication.TryCurrent(out updatedSession)) return;
+            }
+            else if (context.Sessions is { } singleStore)
+                singleStore.Set(context.Connection, updatedSession, out updatedSession);
         }
+        jumpedCharacter = updatedSession.Character;
 
         if (movementSideEffects.ClearedAway)
         {
             await SendPlayerSpawnToVisiblePeersAsync(context, updatedSession, cancellationToken)
                 .ConfigureAwait(false);
+            if (pairPublication is not null && !pairPublication.IsCurrent()) return;
+            if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
             await context.Log.WriteLineAsync(
                     "WorldServer cleared MsgAction Jump Away " +
                     $"{FormatSession(context)}; legacy MsgDataPacket.PlayerJump clears Player.Away and refreshes visible role spawn.")
@@ -502,12 +513,16 @@ public static partial class WorldPacketHandlers
                 removedMagicDefenderFlag,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (pairPublication is not null && !pairPublication.IsCurrent()) return;
+        if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
         await SendMovementFocusedCancelIfNeededAsync(
                 context,
                 session,
                 removedFocusedFlag || cancelledArmedFocus,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (pairPublication is not null && !pairPublication.IsCurrent()) return;
+        if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
 
         var visiblePeerCount = 0;
         if (hasInteractionJump)
@@ -517,8 +532,10 @@ public static partial class WorldPacketHandlers
                 CheckedUInt32(interactionPartner.Session.Character.Uid, nameof(interactionPartner.Session.Character.Uid)),
                 CheckedUInt16(x, nameof(x)),
                 CheckedUInt16(y, nameof(y)));
-            var frame = interactionJump.ToFrameBytes();
+            var frame = pairFrame!;
             await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+            if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
+            if (pairPublication is null || !pairPublication.IsCurrent()) return;
 
             if (context.Sessions is { } sessions)
             {
@@ -532,6 +549,8 @@ public static partial class WorldPacketHandlers
                     }
 
                     await active.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+                    if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
+                    if (!pairPublication.IsCurrent()) return;
                     visiblePeerCount++;
                 }
             }
@@ -554,6 +573,7 @@ public static partial class WorldPacketHandlers
             };
             var frame = response.ToFrameBytes();
             await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+            if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
 
             if (context.Sessions is { } sessions)
             {
@@ -567,6 +587,7 @@ public static partial class WorldPacketHandlers
                     }
 
                     await active.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+                    if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
                     visiblePeerCount++;
                 }
             }
@@ -577,6 +598,8 @@ public static partial class WorldPacketHandlers
                 jumpedCharacter,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (pairPublication is not null && !pairPublication.IsCurrent()) return;
+        if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
         if (updatedPartnerSession is { } partnerSession &&
             updatedPartnerConnection is { } partnerConnection)
         {
@@ -589,11 +612,16 @@ public static partial class WorldPacketHandlers
                     partnerSession.Character,
                     cancellationToken)
                 .ConfigureAwait(false);
+            if (pairPublication is not null && !pairPublication.IsCurrent()) return;
         }
         await SendVisibleMonstersAsync(context, jumpedCharacter, cancellationToken, character)
             .ConfigureAwait(false);
+        if (pairPublication is not null && !pairPublication.IsCurrent()) return;
+        if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
         await SendVisibleFloorItemsAsync(context, jumpedCharacter, cancellationToken, character)
             .ConfigureAwait(false);
+        if (pairPublication is not null && !pairPublication.IsCurrent()) return;
+        if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
         await SendVisiblePokerTablesAsync(context, jumpedCharacter, cancellationToken)
             .ConfigureAwait(false);
         await SendVisibleSobNpcTailObjectsAsync(

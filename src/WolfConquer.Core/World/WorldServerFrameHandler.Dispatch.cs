@@ -70,7 +70,7 @@ public sealed partial class WorldServerFrameHandler
         ConquerTcpConnection connection,
         PacketFrame frame,
         CancellationToken cancellationToken,
-        IDisposable? frameOperation)
+        IDisposable? frameOperation, BasicPhysicalRequest? serverBasicPhysical = null)
     {
         if (frame.Header.Opcode == WorldPacketOpcodes.InternalSnapshotRequest)
         {
@@ -161,10 +161,21 @@ public sealed partial class WorldServerFrameHandler
                 TradeJournalInterruption = TradeJournalInterruption,
                 VendorJournalInterruption = VendorJournalInterruption,
                 ItemSpellJournalInterruption = ItemSpellJournalInterruption,
+                PairMovementJournalInterruption = PairMovementJournalInterruption,
+                PhysicalDeathJournalInterruption = PhysicalDeathJournalInterruption,
                 MailboxPackages = _mailboxPackages,
                 FrameOperationLease = frameOperation,
                 LocalServerIdentity = _runtimeUpdateLoop.LocalServerIdentity,
             };
+            if (!_sessions.TryCompleteEndedInteractionCleanup(context, out var interactionCurrent)) return;
+            context = interactionCurrent;
+            if (serverBasicPhysical is not null)
+            {
+                context = context with { BasicPhysicalRequest = serverBasicPhysical };
+                if (!MsgAttackPacket.TryParse(frame, out var issuedPacket) ||
+                    !IsActualBasicPhysicalServerRequest(context, issuedPacket)) return;
+            }
+            else context = context with { BasicPhysicalRequest = CaptureBasicPhysicalRequest(context, frame) };
             try
             {
                 await handler(context, frame, cancellationToken).ConfigureAwait(false);
@@ -172,6 +183,10 @@ public sealed partial class WorldServerFrameHandler
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 throw;
+            }
+            catch (LegacyCommittedHawksOutputException ex) when (IsActualCommittedHawksOutput(connection, ex))
+            {
+                await ReportCommittedHawksOutputAsync(frame, ex).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

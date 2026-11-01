@@ -2,7 +2,7 @@ using WolfConquer.Core.Data;
 
 namespace WolfConquer.Core.World;
 
-public sealed class SobNpcRuntimeStateStore
+public sealed partial class SobNpcRuntimeStateStore
 {
     private readonly object _gate = new();
     private readonly Dictionary<SobNpcRuntimeKey, SobNpcRuntimeState> _states = new();
@@ -255,7 +255,7 @@ public sealed class SobNpcRuntimeStateStore
         {
             var maxHitpoints = GetSeedMaxHitpoints(sobNpc);
             var hitpoints = Math.Min(GetSeedHitpoints(sobNpc), maxHitpoints);
-            state = new SobNpcRuntimeState(hitpoints, maxHitpoints);
+            state = new SobNpcRuntimeState(hitpoints, maxHitpoints) { Birth = sobNpc };
             _states.Add(key, state);
         }
 
@@ -289,6 +289,8 @@ public sealed class SobNpcRuntimeStateStore
 
     private sealed class SobNpcRuntimeState(uint hitpoints, uint maxHitpoints)
     {
+        internal SobNpc? Birth { get; init; }
+
         public uint Hitpoints { get; set; } = hitpoints;
 
         public uint SeedMaxHitpoints { get; } = maxHitpoints;

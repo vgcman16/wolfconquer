@@ -12,8 +12,10 @@ internal sealed partial class LegacyPreparedSpellFileWrite
         var success = SnapshotFileLockCoordinator.ExecuteLocked([CharacterPath, SpellsPath], () =>
         {
             if (!RequireReady(out failure)) return false;
+            preparedClassRetirement?.RequireBeforeCommit(this, owned);
             if (!LegacyTradeJournal.TryCommitCharacterSpells(UsersRoot, SpellsRoot, owned, out failure)) return false;
-            PublishCommittedEvidencePlain(); failure = string.Empty; return true;
+            PublishCommittedEvidencePlain(); committedClassRetirement = preparedClassRetirement;
+            failure = string.Empty; return true;
         });
         if (!success && failure.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal)) Recovery.Block(failure);
         reason = failure; return success;

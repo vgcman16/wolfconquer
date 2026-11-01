@@ -90,6 +90,9 @@ public static partial class WorldPacketHandlers
         private readonly LegacyPreparedSpellFileWrite spellWrite;
         private readonly string characterPath, spellsPath;
         internal bool DurableCommitted { get; private set; }
+        internal OwnedFullAccountClassSpellRetirement OriginRetirement { get; }
+        internal LegacyPreparedSpellFileWrite OriginSpellWriter => spellWrite;
+        internal IReadOnlyList<LegacyTradeJournalChange> OriginChanges => changes;
 
         internal LegacyFullAccountClassPrepared(LegacyFullAccountClassOwner owner, LegacyFullAccountClassGrant grant)
         {
@@ -109,7 +112,8 @@ public static partial class WorldPacketHandlers
             peers = CaptureFullAccountClassPeers(owner, Projection);
             spellWrite = owner.Context.Sessions!.PrepareSpellFileWrite(owner.Context.Connection, owner.Expected,
                 owner.Recovery, owner.UsersRoot, owner.SpellsRoot);
-            spellWrite.PrepareImage(Updated.PlayerSpells);
+            OriginRetirement = CaptureFullAccountClassRetirement(this);
+            spellWrite.PrepareClassRetirementImage(Updated.PlayerSpells, OriginRetirement);
             (characterPath, spellsPath, changes) = PrepareFullAccountClassImages(owner, Updated, spellWrite);
             if (!owner.IsCurrent(owner.Expected, checkInputs: true)) throw InvalidFullAccountClassState();
         }

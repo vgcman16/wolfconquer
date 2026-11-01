@@ -126,7 +126,13 @@ public static partial class WorldPacketHandlers
             return null;
         }
 
-        if (TryCommitOwnedLegacyTeleport(context, expectedSession, destinationSession, out var final))
+        WorldSession? final;
+        var published = expectedSession.NativeGameClient?.Player?.HasOwnedActionAttachment == true ||
+            context.Connection.NativeGameClient?.Player?.HasOwnedActionAttachment == true
+            ? sessions.TryCommitOwnedTeleportDestination(context,
+                PrepareOwnedTeleportDestination(context, expectedSession, destinationSession), out final)
+            : TryCommitOwnedLegacyTeleport(context, expectedSession, destinationSession, out final);
+        if (published)
         {
             return final;
         }

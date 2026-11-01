@@ -68,7 +68,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
     internal bool IsCurrent()
     {
         if (published || committed || !Recovery.IsReadyForUsers(roots.Users) || !EntryCurrent() ||
-            !LegacyTradeJournal.AdmissionInputsAreCurrent(roots, account, images)) return false;
+            !LegacyTradeJournal.AdmissionInputsAreCurrent(roots, account, source.Uid, images)) return false;
         var current = frame.PrepareOrdinaryNormalization(baseCharacter, savedItems, savedSpells, gear);
         return current.NeedsFreshItemIds == normalization.NeedsFreshItemIds &&
             PlayerItemSnapshotLoader.ToLegacyBytes(current.RuleItems).AsSpan()
@@ -105,7 +105,8 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             // Every return object/image is prepared before the actual joint writer.
             var changes = CreateChanges();
             var inputs = images.Where(row => changes.All(change => change.Kind != row.Key))
-                .Select(row => new LegacyOrdinaryAdmissionInput(row.Key, account, row.Value)).ToArray();
+                .Select(row => new LegacyOrdinaryAdmissionInput(row.Key,
+                    row.Key == LegacyTradeJournalFileKind.Character ? account : source.Uid, row.Value)).ToArray();
             var stored = CharacterSnapshotParser.ParseText(CharacterSnapshotFileEncoding.Decode(characterAfter, out _),
                 Path.GetFileName(roots.PathFor(LegacyTradeJournalFileKind.Character, account))) with { PlayerQuests = baseCharacter.PlayerQuests };
             Candidate = new(account, username, frame.ProjectOrdinaryStartupTitle(stored), items, normalization.Spells,
@@ -123,7 +124,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
                 if (!finalPublication.Frames[index].AsSpan().SequenceEqual(LoginSpellPublication.Frames[index]))
                     throw new InvalidDataException("Ordinary canonical spell publication changed its prepared wire frames.");
             LoginSpellPublication = finalPublication;
-            if (!EntryCurrent() || !LegacyTradeJournal.AdmissionInputsAreCurrent(roots, account, images) ||
+            if (!EntryCurrent() || !LegacyTradeJournal.AdmissionInputsAreCurrent(roots, account, source.Uid, images) ||
                 !lease.IsCurrentEmpty(connection))
             {
                 reason = "ordinaryAdmissionOwnerChanged";
@@ -165,7 +166,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
 
     internal bool IsPublishedNativeOwnerCurrent() => published && ReferenceEquals(connection.NativeGameClient, native) &&
         (native is null || ReferenceEquals(native.Player, player) && ReferenceEquals(player!.Owner, native) &&
-            player.UID == account && ReferenceEquals(native.RawEquipmentObservation, preparedEquipment ?? previousEquipment)) &&
+            player.UID == source.Uid && ReferenceEquals(native.RawEquipmentObservation, preparedEquipment ?? previousEquipment)) &&
         (prefix is null || prefix.IsPublishedAdmissionOwnerCurrent());
 
     internal bool MatchesConnection(ConquerTcpConnection expected) => ReferenceEquals(connection, expected);

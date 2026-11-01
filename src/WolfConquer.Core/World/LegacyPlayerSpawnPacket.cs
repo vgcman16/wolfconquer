@@ -327,6 +327,57 @@ public sealed partial class LegacyPlayerSpawnPacket
         uint? maxLife = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
+        return BuildSnapshot(snapshot, playerItems, alternateEquipmentActive, serverId, windowSpawn, maxLife,
+            unchecked((ushort)ReadAttributeUInt64(snapshot.Attributes, "Action")));
+    }
+
+    // The existing codec/data entry has no admission requirement. Actual
+    // session consumers supply their current owner here, so a retired or
+    // misbound native attachment cannot fall back to permissive scalar reads.
+    internal static LegacyPlayerSpawnPacket FromSnapshot(
+        WorldSession session,
+        PlayerItemSnapshot? appearanceItems = null,
+        bool? alternateEquipmentActive = null,
+        ushort serverId = 2,
+        bool windowSpawn = false,
+        uint? maxLife = null)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ulong action;
+        if (session.NativeGameClient is { } client &&
+            (client.OrdinarySpellBinding is not null || client.Player.HasOwnedActionAttachment))
+        {
+            var binding = client.OrdinarySpellBinding;
+            if (binding is null || binding.IsRetired || !ReferenceEquals(binding.Client, client) ||
+                !ReferenceEquals(binding.Player, client.Player) || !ReferenceEquals(client.Player.Owner, client) ||
+                !ReferenceEquals(client.Player.AttachedActionBinding, binding) ||
+                session.AccountId != binding.AccountId || session.Character.Uid != binding.Uid ||
+                !string.Equals(session.UsersRoot, binding.SessionUsersRoot, StringComparison.Ordinal) ||
+                !binding.Store.TryGet(binding.Connection, out var current) || !ReferenceEquals(current, session) ||
+                !binding.Store.IsBoundSpellOwnerCurrent(binding))
+                throw new InvalidOperationException("ordinarySpawnActionOwnerChanged");
+            action = LegacyActionState.RequireCurrent(session.Character);
+            if (action != (uint)client.Player.Action)
+                throw new InvalidOperationException("ordinarySpawnActionPhysicalStateChanged");
+        }
+        else action = ReadAttributeUInt64(session.Character.Attributes, "Action");
+        // Original Player.GetArray4849/4971 narrows only the outgoing value;
+        // protobuf field31 keeps its existing numeric width and framing.
+        return BuildSnapshot(session.Character, appearanceItems ?? session.PlayerItems,
+            alternateEquipmentActive ?? session.AlternateEquipmentActive, serverId, windowSpawn, maxLife,
+            unchecked((ushort)action));
+    }
+
+    private static LegacyPlayerSpawnPacket BuildSnapshot(
+        CharacterSnapshot snapshot,
+        PlayerItemSnapshot playerItems,
+        bool alternateEquipmentActive,
+        ushort serverId,
+        bool windowSpawn,
+        uint? maxLife,
+        ushort action)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(playerItems);
 
         var nobilityRank = ReadNobilityRank(snapshot);
@@ -351,7 +402,7 @@ public sealed partial class LegacyPlayerSpawnPacket
         numeric[YField] = CheckedUInt64(snapshot.Y, nameof(snapshot.Y));
         numeric[HairStyleField] = CheckedUInt64(snapshot.Hair, nameof(snapshot.Hair));
         numeric[FacingField] = ReadAttributeUInt64(snapshot.Attributes, "Angle", "Facing");
-        numeric[ActionField] = ReadAttributeUInt64(snapshot.Attributes, "Action");
+        numeric[ActionField] = action;
         numeric[RebornField] = CheckedUInt64(snapshot.Reborn, nameof(snapshot.Reborn));
         numeric[LevelField] = CheckedUInt64(snapshot.Level, nameof(snapshot.Level));
         numeric[WindowSpawnField] = windowSpawn ? 1UL : 0;

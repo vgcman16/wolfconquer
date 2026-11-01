@@ -19,7 +19,8 @@ public sealed partial class WorldSessionStore
         {
             using var scope = EnterNativeConnectionGate();
             var holder = _sessions.GetValue(connection, static _ => new SessionHolder());
-            if (holder.Read() is not null || Snapshot().Any(row => row.Session.AccountId == plan.Baseline.AccountId) ||
+            if (holder.Read() is not null || Snapshot().Any(row => row.Session.AccountId == plan.Baseline.AccountId ||
+                    row.Session.Character.Uid == plan.Baseline.Character.Uid) ||
                 !LegacyMailboxPackageMutationFence.CanMutateSession(MailboxPackages, null, plan.Baseline, plan) || plan.Recovery.IsBlocked) return false;
             // Unbound managed callers have no fabricated native lock/owner.
             if (plan.NativeGate is { } nativeGate)
@@ -38,7 +39,7 @@ public sealed partial class WorldSessionStore
         admitted = null;
         lock (LegacySecondaryPasswordRuntime.SyncRoot)
         {
-            using var lease = OrdinaryAdmissionLease.Capture(this, connection, plan.Baseline.AccountId);
+            using var lease = OrdinaryAdmissionLease.Capture(this, connection, plan.Baseline.AccountId, plan.Baseline.Character.Uid);
             if (lease is null) { reason = "ordinaryAdmissionStoreLeaseUnavailable"; return false; }
             if (!plan.TryCommitDurable(lease, out reason, interruption) || plan.Candidate is not { } final) return false;
             if (!lease.IsCurrentEmptyPlain())
@@ -72,20 +73,20 @@ public sealed partial class WorldSessionStore
         private readonly ConquerTcpConnection connection;
         private readonly SessionHolder holder;
         private readonly object gate;
-        private readonly long account;
+        private readonly long account, uid;
         private bool active = true;
         private PreparedOrdinarySpellAdmission? spells;
         private bool spellProofConsumed;
-        private OrdinaryAdmissionLease(WorldSessionStore store, ConquerTcpConnection connection, SessionHolder holder, object gate, long account)
-        { this.store = store; this.connection = connection; this.holder = holder; this.gate = gate; this.account = account; }
-        internal static OrdinaryAdmissionLease? Capture(WorldSessionStore store, ConquerTcpConnection connection, long account) =>
+        private OrdinaryAdmissionLease(WorldSessionStore store, ConquerTcpConnection connection, SessionHolder holder, object gate, long account, long uid)
+        { this.store = store; this.connection = connection; this.holder = holder; this.gate = gate; this.account = account; this.uid = uid; }
+        internal static OrdinaryAdmissionLease? Capture(WorldSessionStore store, ConquerTcpConnection connection, long account, long uid) =>
             store._connectionGates.TryGetValue(connection, out var gate) && Monitor.IsEntered(gate) &&
             store._sessions.TryGetValue(connection, out var holder) && holder.Read() is null
-                ? new(store, connection, holder, gate, account) : null;
+                ? new(store, connection, holder, gate, account, uid) : null;
         internal bool IsCurrentEmpty(ConquerTcpConnection expected) => active && Monitor.IsEntered(gate) &&
             ReferenceEquals(expected, connection) && store._sessions.TryGetValue(connection, out var actual) &&
             ReferenceEquals(actual, holder) && holder.Read() is null &&
-            store.Snapshot().All(row => row.Session.AccountId != account);
+            store.Snapshot().All(row => row.Session.AccountId != account && row.Session.Character.Uid != uid);
         internal WorldSession PrepareSpellAdmission(WorldSession proposed, LegacyTradeRecoveryState recovery, string? spellsRoot, byte[]? savedSpellImage, LegacyNativeExistingCharacterPrefix? prefix)
         {
             if (!IsCurrentEmpty(connection) || spells is not null) throw InvalidSpellPublication();

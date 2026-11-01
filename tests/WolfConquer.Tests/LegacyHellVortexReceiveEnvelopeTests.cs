@@ -209,7 +209,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             ["PkMode"] = "0",
             ["LegacyNinjaLevels"] = "17",
             ["LegacyNinjaSageModeRoll"] = ninjaRoll.ToString(CultureInfo.InvariantCulture),
-            ["HawksAmbitionPower"] = "25",
         };
         var casterFlags = new List<int>();
         if (infinitySpellPercent > 0)
@@ -272,6 +271,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             attributes: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["StatusFlags"] = BuildStatusFlags(targetFlags.ToArray()),
+                ["HawksAmbitionPower"] = "25",
                 ["MaxHitpoints"] = targetHitpoints.ToString(CultureInfo.InvariantCulture),
                 ["LegacySpeffectLevel.Solid"] = "4",
                 ["LegacySpeffectRoll.Solid"] = "0",

@@ -711,7 +711,10 @@ public sealed partial class MonsterRuntimeStateStore
                 instance.Y,
                 instance.MaxLife,
                 LegacyMonsterLifecycleSchedule.ResolveRespawnTimeSeconds(instance, _legacyMonsterRespawnRandom),
-                requiresObservedRemovalBeforeRespawn: true);
+                requiresObservedRemovalBeforeRespawn: true)
+            {
+                PhysicalRange = CapturePhysicalRangeBirthNoLock(instance, monsterFamily),
+            };
             return instance;
         }
     }
@@ -882,7 +885,10 @@ public sealed partial class MonsterRuntimeStateStore
                 instance.X,
                 instance.Y,
                 instance.MaxLife,
-                LegacyMonsterLifecycleSchedule.ResolveRespawnTimeSeconds(instance, _legacyMonsterRespawnRandom));
+                LegacyMonsterLifecycleSchedule.ResolveRespawnTimeSeconds(instance, _legacyMonsterRespawnRandom))
+            {
+                PhysicalRange = CapturePhysicalRangeBirthNoLock(instance),
+            };
             _states.Add(key, state);
         }
 
@@ -1046,6 +1052,8 @@ public sealed partial class MonsterRuntimeStateStore
         int respawnTimeSeconds,
         bool requiresObservedRemovalBeforeRespawn = false)
     {
+        internal MonsterPhysicalRangeState? PhysicalRange { get; init; }
+
         internal object ClassicBuffIncarnation { get; set; } = new();
 
         public ushort X { get; set; } = x;

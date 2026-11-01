@@ -18,6 +18,8 @@ public static partial class WorldPacketHandlers
             if (!Refresh()) return false;
             if (!LegacyNativeMagicQueryClient.RetireStaminaCacheAtStatsBegin(Context.Sessions, Context.Connection,
                     Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity)) return false;
+            if (!LegacyNativeMagicQueryClient.RetireAttackSpeedCacheAtStatsBegin(Context.Sessions, Context.Connection,
+                    Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity)) return false;
             if (!LegacyNativePerfectionClient.BeginQuery(Context.Sessions, Context.Connection,
                     Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity)) return false;
             var rawSource = Session with
@@ -136,6 +138,9 @@ public static partial class WorldPacketHandlers
             // perfection transport. FineRain denial never enters this rebuild.
             if (Session.NativeGameClient?.OrdinarySpellBinding is not null &&
                 !LegacyNativeMagicQueryClient.TryCompleteStaminaCache(Context.Sessions, Context.Connection,
+                    Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity, queryEpoch)) return false;
+            if (Session.NativeGameClient?.OrdinarySpellBinding is not null &&
+                !LegacyNativeMagicQueryClient.TryCompleteAttackSpeedCache(Context.Sessions, Context.Connection,
                     Request.Scope.OwnerUid, Request.Scope.OwnerNativeClientIdentity, queryEpoch)) return false;
             return true;
         }

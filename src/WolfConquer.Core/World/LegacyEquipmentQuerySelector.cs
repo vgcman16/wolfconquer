@@ -4,17 +4,23 @@ namespace WolfConquer.Core.World;
 
 internal static partial class LegacyEquipmentQuerySelector
 {
-    internal static IReadOnlyList<PlayerItemSnapshotItem> Select(WorldSession session)
+    internal static IReadOnlyList<PlayerItemSnapshotItem> Select(WorldSession session) =>
+        Select(session.Character, session.PlayerItems, session.AlternateEquipmentActive, session.PlayerSpells);
+
+    // Pure historical reconstruction has these exact data inputs and no live
+    // WorldSession owner. Keep one selection implementation for both callers.
+    internal static IReadOnlyList<PlayerItemSnapshotItem> Select(CharacterSnapshot character, PlayerItemSnapshot items,
+        bool alternate, PlayerSpellSnapshot spells)
     {
         // OnDequeue's dictionary: current NON-weapons first, then ComputeWeapons
         // Item1 and eligible Item2. Relative nonweapon source enumeration is not canonical.
         var result = LegacyEquipmentSelector.SelectCurrentEquipment(
-                session.PlayerItems, session.AlternateEquipmentActive)
+                items, alternate)
             .Where(item => item.Position % 50 is not (4 or 5)).ToList();
-        var (right, left) = ComputeWeapons(session);
+        var (right, left) = ComputeWeapons(items, alternate, spells);
         if (right is null) return result;
         Add(right);
-        if (left is not null && IsEligibleLeftWeapon(session.Character, session.PlayerSpells, right, left)) Add(left);
+        if (left is not null && IsEligibleLeftWeapon(character, spells, right, left)) Add(left);
         return result;
 
         void Add(PlayerItemSnapshotItem item)
@@ -22,9 +28,6 @@ internal static partial class LegacyEquipmentQuerySelector
             if (!result.Any(existing => existing.Position == item.Position)) result.Add(item);
         }
     }
-
-    private static (PlayerItemSnapshotItem? Right, PlayerItemSnapshotItem? Left) ComputeWeapons(
-        WorldSession session) => ComputeWeapons(session.PlayerItems, session.AlternateEquipmentActive, session.PlayerSpells);
 
     internal static PlayerItemSnapshotItem? SelectLeftWeapon(CharacterSnapshot character, PlayerItemSnapshot items,
         bool alternateEquipmentActive, PlayerSpellSnapshot? spells)

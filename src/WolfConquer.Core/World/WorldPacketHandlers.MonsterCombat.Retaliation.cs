@@ -75,7 +75,7 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        var attackRange = ResolveLegacyAttackingTargetRange(monster, monsterFamily);
+        var attackRange = ResolveLegacyAttackingTargetRange(context, monster, monsterFamily);
         if (attackRange == 0 ||
             LegacyGetDistance(session.Character.X, session.Character.Y, monster.X, monster.Y) > attackRange)
         {
@@ -216,14 +216,20 @@ public static partial class WorldPacketHandlers
             monster.MaxLife < 7_000_000;
     }
 
-    private static uint ResolveLegacyAttackingTargetRange(
+    private static int ResolveLegacyAttackingTargetRange(
+        WorldPacketHandlerContext context,
         LegacyMonsterInstance monster,
         Monster monsterFamily)
     {
+        if (context.Session?.NativeGameClient?.Player?.HasOwnedActionAttachment == true)
+        {
+            if (context.Sessions is { } store && store.TryReadMonsterPhysicalRange(monster, monsterFamily, out var actual)) return actual;
+            return 0;
+        }
         var attackRange = LegacyMonsterFamilyRuntimeRules.ResolveAttackRange(monsterFamily);
-        return monster.Boss && monster.Hitpoints >= 2_000_000U
+        return checked((int)(monster.Boss && monster.Hitpoints >= 2_000_000U
             ? Math.Max(attackRange, 18U)
-            : attackRange;
+            : attackRange));
     }
 
     private static async ValueTask TrySendLegacyMagicMonsterRetaliationAsync(
@@ -236,7 +242,7 @@ public static partial class WorldPacketHandlers
         LegacyShockCasterOwner? capturedOwner = null)
     {
         if (capturedOwner is not null && !capturedOwner.IsCurrent(context, session)) return;
-        var attackRange = ResolveLegacyAttackingTargetRange(monster, monsterFamily);
+        var attackRange = ResolveLegacyAttackingTargetRange(context, monster, monsterFamily);
         if (attackRange == 0 ||
             LegacyGetDistance(session.Character.X, session.Character.Y, monster.X, monster.Y) > attackRange)
         {

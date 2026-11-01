@@ -48,26 +48,14 @@ public static partial class WorldPacketHandlers
         MsgAttackPacket packet,
         CancellationToken cancellationToken)
     {
-        if (session.Character.MapId == 5040 ||
-            session.InteractionPartnerUid is not null ||
-            !TryGetVisibleSessionByUid(context, session, packet.Query.OpponentUid, out var partner) ||
-            partner.Session.InteractionPartnerUid is not null)
-        {
-            return;
-        }
-
-        var activeDance = packet.Query.ResponseDamage;
-        var requester = session with { ActiveInteractionDance = activeDance };
-        var requested = partner.Session with { ActiveInteractionDance = activeDance };
-        context.Sessions?.Set(context.Connection, requester);
-        context.Sessions?.Set(partner.Connection, requested);
-
-        var frame = packet.ToFrameBytes();
-        await partner.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
-        await partner.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+        if (!TryCommitInteractionInvitation(context, session, packet, out var committed) || committed is null) return;
+        if (!committed.IsCurrent()) return;
+        await committed.PartnerConnection.SendAsync(committed.Frame, cancellationToken).ConfigureAwait(false);
+        if (!committed.IsCurrent()) return;
+        await committed.PartnerConnection.SendAsync(committed.Frame, cancellationToken).ConfigureAwait(false);
         await context.Log.WriteLineAsync(
                 "WorldServer requested MsgAttack interaction " +
-                $"{FormatSession(context)} opponentUid={packet.Query.OpponentUid} activeDance={activeDance}.")
+                $"{FormatSession(context)} opponentUid={packet.Query.OpponentUid} activeDance={committed.Dance}.")
             .ConfigureAwait(false);
     }
 
@@ -77,27 +65,15 @@ public static partial class WorldPacketHandlers
         MsgAttackPacket packet,
         CancellationToken cancellationToken)
     {
-        if (session.Character.MapId == 5040 ||
-            session.InteractionPartnerUid is not null ||
-            !TryGetVisibleSessionByUid(context, session, packet.Query.OpponentUid, out var partner) ||
-            partner.Session.InteractionPartnerUid is not null)
-        {
-            return;
-        }
-
-        var response = new MsgAttackPacket(packet.Query with { ResponseDamage = session.ActiveInteractionDance });
-        var frame = response.ToFrameBytes();
-        await partner.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
-        await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
-
-        var sessionUid = CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid));
-        var partnerUid = CheckedUInt32(partner.Session.Character.Uid, nameof(partner.Session.Character.Uid));
-        context.Sessions?.Set(context.Connection, session with { InteractionPartnerUid = partnerUid });
-        context.Sessions?.Set(partner.Connection, partner.Session with { InteractionPartnerUid = sessionUid });
+        if (!TryCommitInteractionInvitation(context, session, packet, out var committed) || committed is null) return;
+        if (!committed.IsCurrent()) return;
+        await committed.PartnerConnection.SendAsync(committed.Frame, cancellationToken).ConfigureAwait(false);
+        if (!committed.IsCurrent()) return;
+        await committed.OwnerConnection.SendAsync(committed.Frame, cancellationToken).ConfigureAwait(false);
 
         await context.Log.WriteLineAsync(
                 "WorldServer paired MsgAttack interaction " +
-                $"{FormatSession(context)} opponentUid={partnerUid} activeDance={session.ActiveInteractionDance}.")
+                $"{FormatSession(context)} opponentUid={committed.Partner.Character.Uid} activeDance={committed.Dance}.")
             .ConfigureAwait(false);
     }
 
@@ -107,27 +83,8 @@ public static partial class WorldPacketHandlers
         MsgAttackPacket packet,
         CancellationToken cancellationToken)
     {
-        if (session.Character.MapId == 5040 ||
-            !TryGetVisibleSessionByUid(context, session, packet.Query.OpponentUid, out var partner))
-        {
-            return;
-        }
-
-        await partner.Connection.SendAsync(packet.ToFrameBytes(), cancellationToken).ConfigureAwait(false);
-        context.Sessions?.Set(
-            context.Connection,
-            session with
-            {
-                InteractionPartnerUid = null,
-                ActiveInteractionDance = 0,
-            });
-        context.Sessions?.Set(
-            partner.Connection,
-            partner.Session with
-            {
-                InteractionPartnerUid = null,
-                ActiveInteractionDance = 0,
-            });
+        if (!TryCommitInteractionInvitation(context, session, packet, out var committed) || committed is null || !committed.IsCurrent()) return;
+        await committed.PartnerConnection.SendAsync(committed.Frame, cancellationToken).ConfigureAwait(false);
 
         await context.Log.WriteLineAsync(
                 "WorldServer refused MsgAttack interaction " +
@@ -141,27 +98,54 @@ public static partial class WorldPacketHandlers
         MsgAttackPacket packet,
         CancellationToken cancellationToken)
     {
-        if (session.Character.MapId == 5040)
-        {
-            return;
-        }
-
-        var sessionUid = CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid));
-        var response = new MsgAttackPacket(packet.Query with { ResponseDamage = session.ActiveInteractionDance });
-        await SendInteractionToVisibleAsync(context, session, response, cancellationToken).ConfigureAwait(false);
-
-        var swapped = new MsgAttackPacket(response.Query with
-        {
-            Uid = response.Query.OpponentUid,
-            OpponentUid = sessionUid,
-        });
-        await SendInteractionToVisibleAsync(context, session, swapped, cancellationToken).ConfigureAwait(false);
-
-        ClearInteractionPair(context, session);
+        if (!TryCommitInteractionInvitation(context, session, packet, out var committed) || committed is null) return;
+        if (!await SendCommittedInteractionToVisibleAsync(context, committed, committed.Frame, cancellationToken).ConfigureAwait(false)) return;
+        if (!await SendCommittedInteractionToVisibleAsync(context, committed, committed.Swapped, cancellationToken).ConfigureAwait(false)) return;
         await context.Log.WriteLineAsync(
                 "WorldServer stopped MsgAttack interaction " +
                 $"{FormatSession(context)} opponentUid={packet.Query.OpponentUid}.")
             .ConfigureAwait(false);
+    }
+
+    private static bool CanBeginInteractionInvitation(WorldPacketHandlerContext context, MsgAttackPacket packet)
+    {
+        if (context.Session is not { } session || context.Sessions is not { } sessions ||
+            !TryGetInteractionInvitationPartner(context, session, packet, out var partner)) return false;
+        return sessions.CanBeginInteractionInvitation(context, partner, packet);
+    }
+
+    private static bool TryCommitInteractionInvitation(WorldPacketHandlerContext context, WorldSession session,
+        MsgAttackPacket packet, out WorldSessionStore.InteractionInvitationReceipt? committed)
+    {
+        committed = null;
+        return context.Sessions is { } sessions && ReferenceEquals(context.Session, session) &&
+            TryGetInteractionInvitationPartner(context, session, packet, out var partner) &&
+            sessions.TryCommitInteractionLinkPublication(context, partner, packet, out committed);
+    }
+
+    private static bool TryGetInteractionInvitationPartner(WorldPacketHandlerContext context, WorldSession session,
+        MsgAttackPacket packet, out WorldActiveSession partner) => packet.Query.AttackType == MsgAttackType.InteractionStopEffect
+            ? TryGetSessionByUid(context, packet.Query.OpponentUid, out partner)
+            : TryGetVisibleSessionByUid(context, session, packet.Query.OpponentUid, out partner);
+
+    internal static bool AreInteractionInvitationParticipantsVisible(WorldSession actor, WorldSession partner) =>
+        CanSeePlayer(actor.Character, partner.Character);
+
+    private static async ValueTask<bool> SendCommittedInteractionToVisibleAsync(WorldPacketHandlerContext context,
+        WorldSessionStore.InteractionInvitationReceipt committed, ReadOnlyMemory<byte> frame, CancellationToken cancellationToken)
+    {
+        if (!committed.IsCurrent()) return false;
+        await committed.OwnerConnection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+        if (context.Sessions is not { } sessions) return false;
+        foreach (var active in sessions.Snapshot())
+        {
+            if (!committed.IsCurrent()) return false;
+            if (ReferenceEquals(active.Connection, committed.OwnerConnection) ||
+                active.Session.Character.Uid == committed.Owner.Character.Uid ||
+                !CanSeePlayer(active.Session.Character, committed.Owner.Character)) continue;
+            await active.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+        }
+        return committed.IsCurrent();
     }
 
     private static async ValueTask SendInteractionToVisibleAsync(
@@ -241,32 +225,6 @@ public static partial class WorldPacketHandlers
         }
     }
 
-    private static void ClearInteractionPair(WorldPacketHandlerContext context, WorldSession session)
-    {
-        if (context.Sessions is not { } sessions)
-        {
-            return;
-        }
-
-        var clearedSession = session with
-        {
-            InteractionPartnerUid = null,
-            ActiveInteractionDance = 0,
-        };
-        sessions.Set(context.Connection, clearedSession);
-        if (session.InteractionPartnerUid is { } partnerUid &&
-            TryGetSessionByUid(context, partnerUid, out var partner))
-        {
-            sessions.Set(
-                partner.Connection,
-                partner.Session with
-                {
-                    InteractionPartnerUid = null,
-                    ActiveInteractionDance = 0,
-                });
-        }
-    }
-
     private static async ValueTask HandleInteractionMovementAsync(
         WorldPacketHandlerContext context,
         WorldSession session,
@@ -274,6 +232,8 @@ public static partial class WorldPacketHandlers
         CharacterSnapshot character,
         MsgMovementPacket packet,
         uint angle,
+        bool removedMagicDefenderFlag,
+        bool removedFocusedFlag,
         bool removedMovementFlags,
         bool clearedAway,
         CancellationToken cancellationToken)
@@ -283,33 +243,34 @@ public static partial class WorldPacketHandlers
             return;
         }
 
-        var partnerCharacter = partner.Session.Character with
-        {
-            X = character.X,
-            Y = character.Y,
-            Attributes = WithCharacterAttribute(partner.Session.Character, "Angle", angle).Attributes,
-        };
-        var updated = session with { Character = character };
-        var updatedPartner = partner.Session with { Character = partnerCharacter };
-        sessions.Set(context.Connection, updated);
-        sessions.Set(partner.Connection, updatedPartner);
+        var interactionWalk = LegacyInterActionWalkPacket.ForWalk(
+            CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)),
+            CheckedUInt32(partner.Session.Character.Uid, nameof(partner.Session.Character.Uid)), (byte)angle);
+        var frame = interactionWalk.ToFrameBytes();
+        if (!sessions.TryCommitPairMovement(context, partner, LegacyPairMovementKind.Walk,
+                CheckedUInt16(character.X, nameof(character.X)), CheckedUInt16(character.Y, nameof(character.Y)),
+                checked((ushort)angle), out var committed) || committed is null || !committed.IsCurrent()) return;
+        var updated = committed.Actor;
+        var updatedPartner = committed.Partner;
+        character = updated.Character;
+        await SendMovementAzureShieldRemovalIfNeededAsync(context, session, removedMagicDefenderFlag, cancellationToken).ConfigureAwait(false);
+        if (!committed.IsCurrent()) return;
+        await SendMovementFocusedCancelIfNeededAsync(context, session, removedFocusedFlag, cancellationToken).ConfigureAwait(false);
+        if (!committed.IsCurrent()) return;
 
         if (clearedAway)
         {
             await SendPlayerSpawnToVisiblePeersAsync(context, updated, cancellationToken)
                 .ConfigureAwait(false);
+            if (!committed.IsCurrent()) return;
             await context.Log.WriteLineAsync(
                     "WorldServer cleared MsgMovement Away " +
                     $"{FormatSession(context)}; legacy MsgMovement.Movement clears Player.Away and refreshes visible role spawn.")
                 .ConfigureAwait(false);
         }
 
-        var interactionWalk = LegacyInterActionWalkPacket.ForWalk(
-            CheckedUInt32(session.Character.Uid, nameof(session.Character.Uid)),
-            CheckedUInt32(partner.Session.Character.Uid, nameof(partner.Session.Character.Uid)),
-            (byte)angle);
-        var frame = interactionWalk.ToFrameBytes();
         await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+        if (!committed.IsCurrent()) return;
 
         var visiblePeerCount = 0;
         foreach (var active in sessions.Snapshot())
@@ -322,8 +283,14 @@ public static partial class WorldPacketHandlers
             }
 
             await active.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+            if (!committed.IsCurrent()) return;
             visiblePeerCount++;
         }
+
+        await SendVisibleStaticNpcObjectsAsync(context with { Session = updated }, character, cancellationToken).ConfigureAwait(false);
+        if (!committed.IsCurrent()) return;
+        await SendVisibleStaticNpcObjectsAsync(context with { Connection = partner.Connection, Session = updatedPartner },
+            updatedPartner.Character, cancellationToken).ConfigureAwait(false);
 
         if (removedMovementFlags)
         {

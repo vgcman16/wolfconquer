@@ -131,7 +131,9 @@ public static partial class WorldPacketHandlers
         var frames = packet.ToFrames();
         foreach (var frame in frames)
         {
+            context.OwnedHawksOutput?.RequireCurrent(context);
             await context.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+            context.OwnedHawksOutput?.RequireCurrent(context);
         }
 
         if (context.Sessions is not { } sessions)
@@ -150,7 +152,9 @@ public static partial class WorldPacketHandlers
 
             foreach (var frame in frames)
             {
+                context.OwnedHawksOutput?.RequireCurrent(context);
                 await active.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+                context.OwnedHawksOutput?.RequireCurrent(context);
             }
         }
     }

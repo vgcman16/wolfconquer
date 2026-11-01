@@ -19,13 +19,19 @@ public static partial class WorldPacketHandlers
                 if (Session.Character.Class is >= 7_000 and <= 7_051 &&
                     (overall is >= 1 and <= 10 || weekly is >= 1 and <= 10))
                 {
-                    // Source overwrites myRank with WEEK before assigning MagicLevel; overall-only means0.
+                    // The old source lost the overall rank when WEEK was
+                    // absent and granted unsupported level0. WEEK keeps its
+                    // established priority; otherwise retain the valid overall
+                    // rank and use the same catalog-backed inverse rank level.
+                    var rank = weekly is >= 1 and <= 10 ? weekly : overall;
                     if (!await SetNativeDerivedSpellAsync(21_930,
-                            weekly is >= 1 and <= 10 ? (ushort)(11 - weekly) : (ushort)0).ConfigureAwait(false))
+                            checked((ushort)(11 - rank))).ConfigureAwait(false))
                         return false;
                 }
                 else if (!await RemoveNativeDerivedSpellAsync(21_930).ConfigureAwait(false)) return false;
             }
+            else if (LegacyDerivedSpellOrigins.Read(Session.Character).ContainsKey(21_930) &&
+                !await RemoveNativeDerivedSpellAsync(21_930).ConfigureAwait(false)) return false;
 
             if (!Refresh() || !AddManaMaximum(LegacyEquipmentNativeMana.CombatGear(Session, Context.WorldData)))
                 return false; // Native Status570–589 AFTER rank-spell await, BEFORE LoadGearMythsoulBag1553.
@@ -35,7 +41,7 @@ public static partial class WorldPacketHandlers
             {
                 var level = (byte)(item.MythSoul % 10);
                 if (item.MythSoul != 0 && item.MythSoul % 1000 - level == 10)
-                    venom = unchecked((byte)(venom + level));
+                    venom = checked((byte)(venom + level));
             }
             var venomPublished = venom != 0
                 ? await SetNativeDerivedSpellAsync(20_000, venom).ConfigureAwait(false)
@@ -46,40 +52,37 @@ public static partial class WorldPacketHandlers
         private async ValueTask<bool> SetNativeDerivedSpellAsync(ushort id, ushort level)
         {
             if (!Refresh()) return false;
-            var entry = new PlayerSpellSnapshotEntry(id, level, Experience: 0,
-                PreviousLevel: 0, SoulLevel: 0, UseSpellSoul: 0);
+            var entry = LegacyDerivedSpellOrigins.Granted(id, level);
+            var desired = new LegacyDerivedSpellDesiredRow(id, entry);
+            var model = LegacyDerivedSpellReconciliation.Project(Session.Character, Session.PlayerSpells, new[] { desired });
+            if (model.Changes.Count == 0) return true;
+            if (Context.Sessions is not null)
+                return await CommitOwnedDerivedSpellQueryAsync(desired).ConfigureAwait(false);
+            if (Context.WorldData is not { } data || !LegacyMagicRuntime.TryResolveSpell(data, id, level, out _))
+            {
+                RefuseUnavailableDerivedSpell();
+                return false;
+            }
             var frame = LegacySpellPacket.FromSnapshot(entry).ToFrameBytes();
-            if (!CommitDerivedSpellMembership(LegacySkillBookUse.AddOrUpdateSpell(Session.PlayerSpells, entry))) return false;
+            if (!Commit(current => current with { Character = model.Character, PlayerSpells = model.Spells })) return false;
             return await SendAsync(frame, LegacyEquipmentQueryPublishedPhases.None).ConfigureAwait(false);
         }
 
         private async ValueTask<bool> RemoveNativeDerivedSpellAsync(ushort id)
         {
             if (!Refresh()) return false;
-            if (!Session.PlayerSpells.ContainsSpell(id)) return true;
+            var desired = new LegacyDerivedSpellDesiredRow(id, null);
+            var model = LegacyDerivedSpellReconciliation.Project(Session.Character, Session.PlayerSpells, new[] { desired });
+            if (model.Changes.Count == 0) return true;
+            if (Context.Sessions is not null)
+                return await CommitOwnedDerivedSpellQueryAsync(desired).ConfigureAwait(false);
             var frame = new MsgActionPacket
             {
                 ObjId = CheckedUInt32(Request.Scope.OwnerUid, nameof(Request.Scope.OwnerUid)),
                 DwParam = id, Type = (MsgActionType)109,
             }.ToFrameBytes();
-            var proposed = new PlayerSpellSnapshot(Session.PlayerSpells.Spells.Where(entry => entry.Id != id).ToArray());
-            if (!CommitDerivedSpellMembership(proposed)) return false;
+            if (!Commit(current => current with { Character = model.Character, PlayerSpells = model.Spells })) return false;
             return await SendAsync(frame, LegacyEquipmentQueryPublishedPhases.None).ConfigureAwait(false);
-        }
-
-        private bool CommitDerivedSpellMembership(PlayerSpellSnapshot proposed)
-        {
-            // Detached loading/component fixtures have no durable Store owner.
-            if (Context.Sessions is null) return Commit(current => current with { PlayerSpells = proposed });
-            if (!TryCommitLegacyFreeSpells(Context, Session, proposed, CancellationToken, out var final, out var reason))
-            {
-                Adopt(new(null, Current.RequiredParticipantSession, Current.Loss | LegacyEquipmentQueryPublicationLoss.OwnerLost));
-                Context.Log.WriteLine("WorldServer held native-derived spell membership " +
-                    $"{FormatSession(Context)} reason={reason}.");
-                return false;
-            }
-            Adopt(RefreshLegacyEquipmentQueryPublication(Context with { Session = final }, final, Request.Scope));
-            return Current.Completed;
         }
 
         private static uint NativePirateRank(IReadOnlyList<CombatGearRankEntry> rows, long uid, byte type)

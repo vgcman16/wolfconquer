@@ -12,8 +12,13 @@ public sealed partial class LegacyNativePlayerRuntime
 
     internal LegacyNativeGuildRuntime? MyGuild;
 
-    // Native Player1103..1109 plain stat fields, before the native _class slot.
-    public ushort Agility;
+    // Source-width numeric storage; ordinary attached writes use the Store plan.
+    private ushort _agility;
+    public ushort Agility
+    {
+        get => _agility;
+        set => SetUnboundActorScalar(ActorScalar.Agility, value);
+    }
 
     public ushort Vitality;
 
@@ -27,8 +32,12 @@ public sealed partial class LegacyNativePlayerRuntime
 
     private ushort _level;
 
-    // Native Player1129: plain byte storage, between _level and the later _hair slot.
-    public byte Reborn;
+    private byte _reborn;
+    public byte Reborn
+    {
+        get => _reborn;
+        set => SetUnboundActorScalar(ActorScalar.Reborn, value);
+    }
 
     private uint _hair;
 #pragma warning restore CS0649

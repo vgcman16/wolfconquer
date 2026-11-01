@@ -28,6 +28,10 @@ public static partial class WorldPacketHandlers
         }
 
         var query = packet.Query;
+        if (await TryHandleOwnedBasicPhysicalEntryAsync(context, packet, cancellationToken).ConfigureAwait(false)) return;
+        if ((query.AttackType is MsgAttackType.InteractionRequest or MsgAttackType.InteractionAccept or
+            MsgAttackType.InteractionRefuse or MsgAttackType.InteractionStopEffect) &&
+            !CanBeginInteractionInvitation(context, packet)) return;
         LegacyCounterKillCanUseOwner? counterKillOwner = null;
         if (query.AttackType == MsgAttackType.CounterKillSwitch &&
             !TryCaptureLegacyCounterKillCanUseOwner(context, out counterKillOwner))

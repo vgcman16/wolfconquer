@@ -8,8 +8,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 {
     private const int LegacyAttackUpFlag = 0xE9;
 
-    [Fact]
-    public async Task HandlerMagicAttackAgainstVisiblePlayerAppliesHawksAmbitionAndAttackUpAfterExistingReceiveModifiers()
+    [Theory]
+    [InlineData(0U)]
+    [InlineData(20U)]
+    [InlineData(100U)]
+    public async Task HandlerMagicAttackAgainstVisiblePlayerAppliesHawksAmbitionAndAttackUpAfterExistingReceiveModifiers(uint attackerPower)
     {
         const uint hookMoonPower = 140;
         const uint cleanSweepPower = 25;
@@ -38,7 +41,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["HookMoonPower"] = hookMoonPower.ToString(CultureInfo.InvariantCulture),
                 ["CleanSweepPower"] = cleanSweepPower.ToString(CultureInfo.InvariantCulture),
                 ["AxeShadowPower"] = axeShadowPower.ToString(CultureInfo.InvariantCulture),
-                ["HawksAmbitionPower"] = hawksAmbitionPower.ToString(CultureInfo.InvariantCulture),
+                ["HawksAmbitionPower"] = attackerPower.ToString(CultureInfo.InvariantCulture),
             });
         var targetSession = CreateSession(
             uid: TargetPlayerUid,
@@ -48,6 +51,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             attributes: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["StatusFlags"] = BuildStatusFlags(LegacyHawksAmbitionFlag),
+                ["HawksAmbitionPower"] = hawksAmbitionPower.ToString(CultureInfo.InvariantCulture),
             });
         casterSession = CreateRetainedNativeMagic421Input(casterSession);
         targetSession = CreateRetainedNativeMagic421Input(targetSession);

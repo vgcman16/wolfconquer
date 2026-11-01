@@ -20,6 +20,12 @@ public static partial class WorldPacketHandlers
         }
         if (capturedOwner is not null && !capturedOwner.IsCurrent(context, session)) return session;
 
+        // Provider-owned levels are temporary equipment/rank state. Their
+        // exact zero-progress row is validated before skipping XP; an unmarked
+        // ordinary row with the same ID keeps its normal progression path.
+        LegacyDerivedSpellOrigins.RequireRows(session.Character, session.PlayerSpells);
+        if (LegacyDerivedSpellOrigins.Read(session.Character).ContainsKey(playerSpell.Id)) return session;
+
         // Original UpdateSpell checks the actual ID00 IsRuneSkill metadata
         // before changing spell XP. Keep Rune-origin grants at their exact row;
         // a later unequip refusal is too late to protect that invariant.
@@ -71,6 +77,7 @@ public static partial class WorldPacketHandlers
         var updatedSession = session with { PlayerSpells = new PlayerSpellSnapshot(spells) };
         var responseFrame = result.Packet.ToFrameBytes();
 
+        context.OwnedHawksOutput?.RequireCurrent(context);
         if (!TryCommitLegacyFreeSpellsCore(context, session, updatedSession.PlayerSpells,
                 capturedOwner?.Identity, capturedOwner, cancellationToken,
                 out updatedSession, out var reason, classification))
@@ -81,8 +88,10 @@ public static partial class WorldPacketHandlers
         }
         if (capturedOwner is not null && !capturedOwner.IsCurrent(context, updatedSession)) return updatedSession;
 
+        context.OwnedHawksOutput?.RequireCurrent(context);
         await context.Connection.SendAsync(responseFrame, cancellationToken)
             .ConfigureAwait(false);
+        context.OwnedHawksOutput?.RequireCurrent(context);
         if (capturedOwner is not null && !capturedOwner.IsCurrent(context, updatedSession)) return updatedSession;
         await context.Log.WriteLineAsync(
                 "WorldServer updated legacy player magic spell " +

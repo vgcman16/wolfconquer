@@ -16,7 +16,10 @@ public sealed partial class WorldServerFrameHandler
             if (staminaReady.TryGetValue(connection, out _)) return; // Never reset a live player's stamps.
             if (_sessions.TryPrepareStaminaReadiness(this, connection, expected,
                     _runtimeUpdateLoop.TimeProvider ?? TimeProvider.System, out var prepared) && prepared is not null)
+            {
                 staminaReady.Add(connection, prepared);
+                RegisterBasicPhysicalReadiness(prepared);
+            }
         }
     }
 

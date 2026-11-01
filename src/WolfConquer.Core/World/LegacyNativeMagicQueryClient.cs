@@ -18,6 +18,7 @@ internal static partial class LegacyNativeMagicQueryClient
         public LegacyNativeMagicQueryFields JiangHu;
         public QueryEpoch? Epoch;
         public MonkCache? Monk;
+        public AttackSpeedCache? AttackSpeed;
     }
     private static readonly ConditionalWeakTable<object, Entry> Entries = new();
 
@@ -64,6 +65,7 @@ internal static partial class LegacyNativeMagicQueryClient
             entry.Epoch = null;
             entry.Initialized = false;
             entry.Monk = null;
+            entry.AttackSpeed = null;
             var source = new QueryState(world, connection, originalUid, identity, entry, capturedSource ?? owner);
             // The actual execution captured gear BEFORE AppendItems can
             // reenter a legitimate toggle/equip. Compute that captured gear;

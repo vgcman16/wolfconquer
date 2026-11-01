@@ -99,6 +99,21 @@ internal static partial class LegacyTradeJournal
         private static void ValidateImages(RecoveryCapture captured, uint highWater,
             LegacyItemUidRegistry.OwnedStartupCustody custody)
         {
+            if (captured.Record.Version == 23)
+            {
+                ValidateOwnedDerivedSpellQueryImages(captured, highWater);
+                return;
+            }
+            if (captured.Record.Version == 22)
+            {
+                ValidateOwnedPhysicalDeathImages(captured, highWater);
+                return;
+            }
+            if (captured.Record.Version == 21)
+            {
+                ValidateRecordedPairMovementImages(captured.Record);
+                return;
+            }
             if (captured.Record.Version == 20)
             {
                 ValidateRecordedRuneBagImages(captured.Record, highWater);
@@ -188,6 +203,8 @@ internal static partial class LegacyTradeJournal
             custody.RequireCurrent();
             custody.RequireRoots(capture.Roots.Users, capture.Roots.Items);
             RequireConfiguredSpellsRoot();
+            RequirePhysicalDeathRecoveryInputs();
+            RequireDerivedSpellQueryRecoveryInputs();
             RequirePendingIdentity();
             creationNames?.RequireCurrent();
             EnsureTargetsMatch(capture.Targets, allowAfter: true);

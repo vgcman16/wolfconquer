@@ -210,7 +210,7 @@ public static partial class WorldPacketHandlers
             session.AlternateEquipmentActive);
 
         return LegacyPlayerSpawnPacket.FromSnapshot(
-            session.Character,
+            session,
             session.PlayerItems,
             alternateEquipmentActive: session.AlternateEquipmentActive,
             maxLife: maxHitpoints);

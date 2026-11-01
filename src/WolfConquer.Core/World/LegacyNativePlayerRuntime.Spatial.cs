@@ -20,7 +20,12 @@ public sealed partial class LegacyNativePlayerRuntime
 
     internal LegacyNativeMapObjectType ObjType { get; set; }
 
-    public uint DynamicID { get; set; }
+    private uint _dynamicId;
+    public uint DynamicID
+    {
+        get => _dynamicId;
+        set => SetUnboundActorScalar(ActorScalar.DynamicID, value);
+    }
 
     public uint Map
     {
@@ -30,7 +35,7 @@ public sealed partial class LegacyNativePlayerRuntime
         }
         set
         {
-            _mmmap = value;
+            SetUnboundActorScalar(ActorScalar.Map, value);
         }
     }
 
@@ -42,8 +47,7 @@ public sealed partial class LegacyNativePlayerRuntime
         }
         set
         {
-            Px = X;
-            xx = value;
+            SetUnboundActorScalar(ActorScalar.X, value);
         }
     }
 
@@ -55,8 +59,7 @@ public sealed partial class LegacyNativePlayerRuntime
         }
         set
         {
-            Py = Y;
-            yy = value;
+            SetUnboundActorScalar(ActorScalar.Y, value);
         }
     }
 }

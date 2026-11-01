@@ -13,7 +13,7 @@ public static partial class WorldPacketHandlers
     {
         var query = packet.Query;
         if (query.AttackType != MsgAttackType.Physical ||
-            query.Damage > 0 ||
+            query.Damage > 0 && context.Sessions?.IsActualBasicPhysicalServerRequest(context, packet) != true ||
             context.Session is not { } session ||
             !TryGetVisibleSessionByUid(context, session, query.OpponentUid, out var activeTarget))
         {
@@ -66,6 +66,10 @@ public static partial class WorldPacketHandlers
             return true;
         }
 
+        // Actual attached owners enter the earlier sealed route. A stale
+        // context must not reinterpret one as this unowned compatibility path.
+        if (session.NativeGameClient?.Player?.HasOwnedActionAttachment == true ||
+            context.Connection.NativeGameClient?.Player?.HasOwnedActionAttachment == true) return true;
         var updatedSession = await TryApplyLegacyPlayerMagicCanAttackFlashingNameAsync(
                 context,
                 session,
@@ -189,6 +193,14 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
+        return CanLegacyDirectPhysicalAfterCounter(context, attacker, target, DateTimeOffset.UtcNow, out failureDiagnostic);
+    }
+
+    private static bool CanLegacyDirectPhysicalAfterCounter(WorldPacketHandlerContext context, WorldSession attacker,
+        WorldSession target, DateTimeOffset protectedNow, out string failureDiagnostic)
+    {
+        failureDiagnostic = string.Empty;
+
         if (TryGetLegacyPlayerMagicSafeZone(
                 attacker.Character.MapId,
                 target.Character.X,
@@ -251,7 +263,7 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
-        if (IsLegacyPlayerAttackProtected(target.Character, DateTimeOffset.UtcNow))
+        if (IsLegacyPlayerAttackProtected(target.Character, protectedNow))
         {
             failureDiagnostic = "target legacy Protect window is active";
             return false;

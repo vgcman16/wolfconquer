@@ -28,6 +28,7 @@ public static partial class WorldPacketHandlers
             var characterAfter = updated.Character.MinHitPoints == expected.MinHitPoints
                 ? encoding.GetPreamble().Concat(encoding.GetBytes(afterText)).ToArray()
                 : LegacyBoundHitpointsScalarWrite.ProjectAfterImage(baseline.Bytes, updated.Character);
+            characterAfter = LegacyDerivedSpellOrigins.ProjectCharacterImage(characterAfter, updated.Character);
             afterText = CharacterSnapshotFileEncoding.Decode(characterAfter, out _);
             var parsedAfter = CharacterSnapshotParser.ParseText(afterText);
             if (!FullAccountCharacterScalarsEqual(parsedAfter, updated.Character))

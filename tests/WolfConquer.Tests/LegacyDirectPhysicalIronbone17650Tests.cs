@@ -365,7 +365,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["LegacyPhysicalPlayerCriticalRoll"] = "0", ["LegacyPhysicalDashRoll"] = "0",
                 ["LegacyPhysicalLuckyStrikeRoll"] = "0", ["DashRate"] = effects ? "10000" : "0",
                 ["PerfectionStatus.LuckyStrike"] = effects ? "100" : "0",
-                ["HawksAmbitionPower"] = scenario == "hawks-after-player-scalar" ? "50" : "0",
             }) with
         {
             CombatGear = CombatGearSnapshot.Empty with
@@ -403,6 +402,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             if (isPrimary && scenario == "hawks-after-player-scalar")
             {
                 attrs["StatusFlags"] = BuildStatusFlags(LegacyHawksAmbitionFlag);
+                attrs["HawksAmbitionPower"] = "50";
             }
             if (isPrimary && scenario == "tail-before-player-scalar")
             {
@@ -449,7 +449,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         if (scenario == "hawks-after-player-scalar")
         {
             Assert.True(HasLegacyStatusFlag(primary.Character.Attributes, LegacyHawksAmbitionFlag));
-            Assert.Equal("50", caster.Character.Attributes["HawksAmbitionPower"]);
+            Assert.Equal("50", primary.Character.Attributes["HawksAmbitionPower"]);
         }
         var blocked = scenario switch
         {

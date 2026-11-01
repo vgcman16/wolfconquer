@@ -4,10 +4,13 @@ using WolfConquer.Core.Networking;
 namespace WolfConquer.Core.World;
 
 // SAME native live-client identity as the query's mutable MsgStatus, not a record/UID alias.
-internal static class LegacyNativePerfectionClient
+internal static partial class LegacyNativePerfectionClient
 {
     private sealed class ClientState
     {
+        // A death preparation may preallocate storage without making a
+        // previously absent cache readable or mutable before its real commit.
+        internal bool Published;
         internal uint PrestigeLevel;
         internal LegacyNativePerfectionSnapshot Snapshot = LegacyNativePerfectionSnapshot.Empty;
     }
@@ -21,8 +24,12 @@ internal static class LegacyNativePerfectionClient
         {
             if (expectedIdentity is not null && !ReferenceEquals(identity, expectedIdentity)) return;
             ClientState state;
-            if (create) state = Clients.GetValue(identity, static _ => new());
-            else if (!Clients.TryGetValue(identity, out state!)) return;
+            if (create)
+            {
+                state = Clients.GetValue(identity, static _ => new());
+                state.Published = true; // Actual ordinary query creation/promotion.
+            }
+            else if (!Clients.TryGetValue(identity, out state!) || !state.Published) return;
             // Every access is synchronous inside the SAME Store gate; no publication/await here.
             action(state);
             applied = true;

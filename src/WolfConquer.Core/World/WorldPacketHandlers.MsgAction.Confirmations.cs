@@ -190,7 +190,13 @@ public static partial class WorldPacketHandlers
 
         var updatedCharacter = WithCharacterAttribute(session.Character, "Angle", packet.Facing);
         var updatedSession = session with { Character = updatedCharacter };
-        context.Sessions?.Set(context.Connection, updatedSession);
+        if (session.NativeGameClient?.Player?.HasOwnedActionAttachment == true ||
+            context.Connection.NativeGameClient?.Player?.HasOwnedActionAttachment == true)
+        {
+            if (context.Sessions is not { } store || !store.TryCommitOwnedDirection(context, packet.Facing, out var final) || final is null) return;
+            updatedSession = final;
+        }
+        else context.Sessions?.Set(context.Connection, updatedSession);
 
         var updatedContext = context with { Session = updatedSession };
         await context.Log.WriteLineAsync(
@@ -200,7 +206,7 @@ public static partial class WorldPacketHandlers
             .ConfigureAwait(false);
     }
 
-    private static async ValueTask HandleChangeStanceAsync(
+    private static async ValueTask HandleUnboundChangeStanceAsync(
         WorldPacketHandlerContext context,
         MsgActionPacket packet,
         CancellationToken cancellationToken)
@@ -215,7 +221,7 @@ public static partial class WorldPacketHandlers
 
         var character = session.Character;
         var playerUid = CheckedUInt32(character.Uid, nameof(character.Uid));
-        var stance = unchecked((ushort)packet.DwParam);
+        var stance = packet.DwParam;
         var removedActivePick = HasActivePick(character);
         var updatedCharacter = WithCharacterAttribute(character, "Action", stance);
         if (removedActivePick)
@@ -235,7 +241,7 @@ public static partial class WorldPacketHandlers
         var action = packet with
         {
             ObjId = playerUid,
-            DwParam = stance,
+            DwParam = unchecked((ushort)stance),
         };
         var actionFrame = action.ToFrameBytes();
 

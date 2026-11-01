@@ -220,32 +220,15 @@ public static partial class WorldPacketHandlers
             Attributes = updatedMovementAttributes,
         };
 
+        // Source accepted movement clears only the actor Action; a high
+        // input stance must never remain Sit after a successful walk.
+        character = WithCharacterAttribute(character, "Action", 0U);
+
         if (packet.Running != MsgMovementMode.Steed &&
             TryGetMovementInteractionPartner(context, session, out var partner) &&
             partner.Session.Character.X == session.Character.X &&
             partner.Session.Character.Y == session.Character.Y)
         {
-            var partnerCharacter = partner.Session.Character with
-            {
-                X = character.X,
-                Y = character.Y,
-                Attributes = WithCharacterAttribute(partner.Session.Character, "Angle", angle).Attributes,
-            };
-            var interactionUpdated = session with { Character = character };
-            var interactionUpdatedPartner = partner.Session with { Character = partnerCharacter };
-
-            await SendMovementAzureShieldRemovalIfNeededAsync(
-                    context,
-                    session,
-                    removedMagicDefenderFlag,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await SendMovementFocusedCancelIfNeededAsync(
-                    context,
-                    session,
-                    removedFocusedFlag || cancelledArmedFocus,
-                    cancellationToken)
-                .ConfigureAwait(false);
             await HandleInteractionMovementAsync(
                     context,
                     session,
@@ -253,22 +236,10 @@ public static partial class WorldPacketHandlers
                     character,
                     packet,
                     angle,
+                    removedMagicDefenderFlag,
+                    removedFocusedFlag || cancelledArmedFocus,
                     removedMovementFlags,
                     movementSideEffects.ClearedAway,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await SendVisibleStaticNpcObjectsAsync(
-                    context with { Session = interactionUpdated },
-                    character,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await SendVisibleStaticNpcObjectsAsync(
-                    context with
-                    {
-                        Connection = partner.Connection,
-                        Session = interactionUpdatedPartner,
-                    },
-                    partnerCharacter,
                     cancellationToken)
                 .ConfigureAwait(false);
             return;
@@ -292,15 +263,28 @@ public static partial class WorldPacketHandlers
             out character,
             out var raceItemPickup);
         var updated = session with { Character = character };
-        if (context.Sessions is { } sessionStore &&
-            !sessionStore.TryCompareAndSet(context.Connection, session, updated))
+        WorldSessionStore.ActionPublication? movementPublication = null;
+        if (session.NativeGameClient?.Player?.HasOwnedActionAttachment == true ||
+            context.Connection.NativeGameClient?.Player?.HasOwnedActionAttachment == true)
         {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped stale MsgMovement publication " +
-                    $"{FormatSession(context)} x={x} y={y} angle={angle}; " +
-                    "the context session is no longer current.")
-                .ConfigureAwait(false);
-            return;
+            if (context.Sessions is not { } ownedStore ||
+                !ownedStore.TryCommitOwnedMovement(context, PrepareOwnedWalk(session, packet, character), out movementPublication) ||
+                movementPublication is null || !movementPublication.TryCurrent(out updated)) return;
+            character = updated.Character;
+        }
+        else if (context.Sessions is { } sessionStore)
+        {
+            if (!sessionStore.TryCompareAndSet(context.Connection, session, updated, out var canonicalMovement))
+            {
+                await context.Log.WriteLineAsync(
+                        "WorldServer skipped stale MsgMovement publication " +
+                        $"{FormatSession(context)} x={x} y={y} angle={angle}; " +
+                        "the context session is no longer current.")
+                    .ConfigureAwait(false);
+                return;
+            }
+            updated = canonicalMovement!;
+            character = updated.Character;
         }
 
         await SendMovementAzureShieldRemovalIfNeededAsync(
@@ -309,17 +293,20 @@ public static partial class WorldPacketHandlers
                 removedMagicDefenderFlag,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
         await SendMovementFocusedCancelIfNeededAsync(
                 context,
                 session,
                 removedFocusedFlag || cancelledArmedFocus,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
 
         if (movementSideEffects.ClearedAway)
         {
             await SendPlayerSpawnToVisiblePeersAsync(context, updated, cancellationToken)
                 .ConfigureAwait(false);
+            if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
             await context.Log.WriteLineAsync(
                     "WorldServer cleared MsgMovement Away " +
                     $"{FormatSession(context)}; legacy MsgMovement.Movement clears Player.Away and refreshes visible role spawn.")
@@ -333,6 +320,7 @@ public static partial class WorldPacketHandlers
         };
         var responseFrame = response.ToFrameBytes();
         await context.Connection.SendAsync(responseFrame, cancellationToken).ConfigureAwait(false);
+        if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
 
         var visiblePeerCount = 0;
         var playerEnterViewCount = 0;
@@ -366,6 +354,7 @@ public static partial class WorldPacketHandlers
                 }
 
                 await active.Connection.SendAsync(responseFrame, cancellationToken).ConfigureAwait(false);
+                if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
                 visiblePeerCount++;
 
                 if (!wasVisible)

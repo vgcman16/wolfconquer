@@ -45,7 +45,7 @@ public static partial class WorldPacketHandlers
                         prepared = new(owner!, grant);
                         var currentPlan = prepared;
                         reason = "fullAccountClassCurrentSessionChanged";
-                        committed = sessions.TryCommitSession(context.Connection, session, currentPlan.Updated,
+                        committed = sessions.TryCommitFullAccountClassSession(context.Connection, session, currentPlan.Updated, currentPlan.OriginRetirement,
                             () => currentPlan.TryPersist(cancellationToken, out reason), out var final);
                         if (committed) currentPlan.Updated = final!;
                         recoveryRequired = prepared.DurableCommitted || reason.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal);

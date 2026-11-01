@@ -6,11 +6,14 @@ internal static partial class LegacyTradeJournal
 {
     private static void EnsureAdmissionStagesCleared(JournalRecord record, JournalTarget[] targets)
     {
-        if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20)) return;
+        if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23)) return;
         foreach (var target in targets)
             if (!TryDelete(StagePath(target, record.TransactionId)))
                 throw new IOException(record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20
                     ? "Character-items-and-spells staging cleanup is incomplete."
+                    : record.Version == 23 ? "Derived spell query staging cleanup is incomplete."
+                    : record.Version == 22 ? "Physical death staging cleanup is incomplete."
+                    : record.Version == 21 ? "Pair movement staging cleanup is incomplete."
                     : record.Version == 8 ? "Character-and-spells staging cleanup is incomplete."
                     : "Ordinary-admission staging cleanup is incomplete.");
     }
@@ -33,7 +36,14 @@ internal static partial class LegacyTradeJournal
 
     private static bool TryRollbackWithAdmissionInputs(JournalRoots roots, JournalRecord record, JournalTarget[] targets)
     {
-        try { EnsureAdmissionInputs(roots, record); RequireAuthenticatedCreationBoundary(record); return TryRollback(targets, record.TransactionId); }
+        try
+        {
+            EnsureAdmissionInputs(roots, record); RequireAuthenticatedCreationBoundary(record);
+            RequirePairMovementBoundary(roots, record);
+            RequirePhysicalDeathBoundary(roots, record);
+            RequireDerivedSpellQueryBoundary(roots, record);
+            return TryRollback(targets, record.TransactionId);
+        }
         catch (Exception error) when (IsJournalException(error)) { return false; }
     }
 }

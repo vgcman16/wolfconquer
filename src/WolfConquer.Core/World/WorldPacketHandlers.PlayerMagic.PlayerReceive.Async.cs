@@ -80,9 +80,21 @@ public static partial class WorldPacketHandlers
         context = context with { Session = early.AttackerSession ?? context.Session };
         var prepared = PrepareLegacyPlayerMagicReceive(context, early);
         prepared = prepared with { Result = prepared.Result with { EarlyModifierPhasesPublished = true } };
+        var basicDecision = PrepareBasicPhysicalReceiveDecision(context, prepared);
+        if (basicDecision is not null) context = context with { BasicPhysicalReceiveDecision = basicDecision };
         if (!prepared.RequiresDamageCommit)
         {
-            return CreateLegacyPlayerMagicReceiveSuccess(context, prepared.Result, attacker.Uid);
+            var result = prepared.Result;
+            if (basicDecision is not null)
+            {
+                if (context.Sessions is not { } actualStore ||
+                    !actualStore.TryCommitBasicPhysicalReceive(context, basicDecision,
+                        result.ActiveSession with { Session = result.UpdatedSession }, out var observed) || observed is null)
+                    return new(null, result.UpdatedAttackerSession ?? context.Session, LegacyPlayerMagicReceiveAbortReason.TargetLost);
+                result.CapriceReceipt?.ObserveCompletedTargetContinuation(observed);
+                result = result with { ActiveSession = result.ActiveSession with { Session = observed }, UpdatedSession = observed };
+            }
+            return CreateLegacyPlayerMagicReceiveSuccess(context, result, attacker.Uid);
         }
 
         if (!prepared.Result.Killed)

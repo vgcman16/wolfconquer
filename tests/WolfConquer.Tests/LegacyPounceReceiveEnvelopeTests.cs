@@ -189,7 +189,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["PkMode"] = "0",
                 ["LegacyNinjaLevels"] = "17",
                 ["LegacyNinjaSageModeRoll"] = "0",
-                ["HawksAmbitionPower"] = "25",
             },
             playerItems: CreatePounceEquipment(hasShield, alternateShield: false));
         var targetSessions = Enumerable.Range(0, 3)
@@ -203,6 +202,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 attributes: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["StatusFlags"] = BuildStatusFlags(PounceReceiveEnvelopeHawksFlag),
+                    ["HawksAmbitionPower"] = "25",
                     ["MaxHitpoints"] = "100000",
                     ["LegacySpeffectLevel.Solid"] = "4",
                     ["LegacySpeffectRoll.Solid"] = "0",

@@ -42,6 +42,8 @@ internal sealed partial class LegacyPreparedSpellFileWrite
         before = SnapshotFileLockCoordinator.ExecuteLocked(SpellsPath, () => ReadImage(SpellsPath));
         baseline = binding?.SavedSpells ?? new LegacySavedSpellImage(before);
         if (!baseline.Matches(before)) throw Unavailable();
+        LegacyDerivedSpellOrigins.RequireRows(expected.Character, expected.PlayerSpells);
+        LegacyDerivedSpellOrigins.RequireSavedRows(expected.Character, before);
         savedRows = before is null ? [] : PlayerSpellSnapshotLoader.Parse(before).Spells.ToArray();
         // Unbound managed profiles have no prior issued saved-image anchor.
         // Their actual disk must still match current membership at capture.
@@ -54,10 +56,16 @@ internal sealed partial class LegacyPreparedSpellFileWrite
         WorldSession expected, object identity, LegacyOrdinarySpellBinding? binding, LegacyTradeRecoveryState recovery,
         string usersRoot, string spellsRoot) => new(store, connection, expected, identity, binding, recovery, usersRoot, spellsRoot);
 
-    internal void PrepareImage(PlayerSpellSnapshot proposed)
+    internal void PrepareImage(PlayerSpellSnapshot proposed) => PrepareImageCore(proposed, null);
+
+    private void PrepareImageCore(PlayerSpellSnapshot proposed, WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? retirement)
     {
         if (prepared is not null || committed) throw Unavailable();
         var frozen = LegacyNativeSpellStorage.FreezeSessionSnapshot(proposed);
+        if (retirement is null)
+            LegacyDerivedSpellOrigins.RequireUnchanged(expected.Character, expected.PlayerSpells, expected.Character, frozen);
+        else retirement.RequireImage(this, expected, frozen);
+        preparedClassRetirement = retirement;
         after = PlayerSpellSnapshotLoader.ToLegacyBytes(frozen);
         var current = LegacyNativeSpellStorage.FreezeSessionSnapshot(expected.PlayerSpells).Spells.ToDictionary(row => row.Id);
         foreach (var row in frozen.Spells)

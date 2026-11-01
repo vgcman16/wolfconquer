@@ -16,6 +16,11 @@ public static partial class WorldPacketHandlers
         var decision = LegacyEquipmentRebuildAdmission.ApplyCurrent(
             execution.Session, request.Reason, context.LegacyClock ?? LegacySignedMillisecondClock.System);
         execution.Admitted = decision.Admitted;
+        if (decision.Admitted && !LegacyEquipmentQueryExecution.CanPrepareDerivedSpells(context, execution.Session))
+        {
+            execution.RefuseUnavailableDerivedSpell();
+            return execution.Outcome();
+        }
         if (!execution.Commit(current => current with
             {
                 FineRainEquipmentAdmission = decision.Session.FineRainEquipmentAdmission,

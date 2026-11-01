@@ -27,7 +27,7 @@ public static partial class WorldPacketHandlers
                 !CanSeePlayer(session.Character, peer.Character))
                 continue;
             var bytes = LegacyPlayerSpawnPacket.FromSnapshot(
-                    session.Character, capturedAppearanceItems ?? session.PlayerItems,
+                    session, capturedAppearanceItems ?? session.PlayerItems,
                     capturedAlternate ?? session.AlternateEquipmentActive,
                     maxLife: GetLegacyEquipmentRuntimeMaxHitpoints(session, context.WorldData))
                 .ToFrameBytes();

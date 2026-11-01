@@ -22,7 +22,11 @@ public sealed partial class LegacyNativePlayerRuntime
     public uint QuizPoints;
     public ushort Enilghten;
     internal LegacyNativePlayerMapFlags.ConquerAngle Angle = LegacyNativePlayerMapFlags.ConquerAngle.East;
-    internal LegacyNativePlayerMapFlags.ConquerAction Action = LegacyNativePlayerMapFlags.ConquerAction.None;
+    internal LegacyNativePlayerMapFlags.ConquerAction Action
+    {
+        get => (LegacyNativePlayerMapFlags.ConquerAction)Volatile.Read(ref _action);
+        set => SetCurrentAction(value);
+    }
     public uint RealUID = 0u;
 }
 

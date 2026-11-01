@@ -50,6 +50,18 @@ internal static partial class LegacyTradeJournal
         public string? CreationMailbox { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public LegacyAuthenticatedOrdinaryCreationOperation? OrdinaryCreation { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public LegacyPairMovementOperation? PairMovement { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public LegacyPreparedPairMovementWrite.JournalOwner? PairMovementOwner { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public LegacyPhysicalDeathOperation? PhysicalDeath { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public LegacyPreparedBasicPhysicalWrite.JournalOwner? PhysicalDeathOwner { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public LegacyDerivedSpellQueryOperation? DerivedSpellQuery { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public LegacyPreparedDerivedSpellQueryWrite.JournalOwner? DerivedSpellQueryOwner { get; init; }
     }
 
     private sealed record JournalTarget(string Path, LegacyTradeJournalChange Change);
@@ -88,8 +100,8 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(copied, version);
         // The single-owner API's failpoint contract is character first, then items.
         // Do not reorder v1: its established four-target contract remains unchanged.
-        if (version is 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20) copied = copied.OrderBy(change => change.Kind).ToArray();
-        if (version == 11) copied = copied.OrderBy(change => change.FileId).ToArray();
+        if (version is 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 22 or 23) copied = copied.OrderBy(change => change.Kind).ToArray();
+        if (version is 11 or 21) copied = copied.OrderBy(change => change.FileId).ToArray();
         return new(version, Guid.NewGuid().ToString("N"), copied);
     }
 
@@ -103,7 +115,7 @@ internal static partial class LegacyTradeJournal
         6 or 7 => 4, // Variable1..4; admission validates its exact configured membership.
         8 => 2,
         9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 => 3,
-        11 => 2,
+        11 or 21 or 22 or 23 => 2,
         19 => 6,
         _ => throw new ArgumentException("Unsupported journal version."),
     };
@@ -111,10 +123,18 @@ internal static partial class LegacyTradeJournal
     private static void ValidateChanges(LegacyTradeJournalChange[] changes, int version)
     {
         if (version == 19) { ValidateAuthenticatedCreationChanges(changes); return; }
-        if (IsOrdinaryAdmissionVersion(version)) { ValidateAdmissionChanges(changes); return; }
-        if (version == 8) { ValidateCharacterSpellsChanges(changes); return; }
+        if (IsOrdinaryAdmissionVersion(version)) { ValidateAdmissionChanges(changes, version); return; }
+        if (version == 8)
+        {
+            ValidateCharacterSpellsChanges(changes);
+            ValidateOrdinaryCharacterSpellsDerivedOrigins(changes);
+            return;
+        }
         if (version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20) { ValidateCharacterItemsSpellsChanges(changes); return; }
         if (version == 11) { ValidateCharacterResourcesChanges(changes); return; }
+        if (version == 21) { ValidatePairMovementChanges(changes); return; }
+        if (version == 22) { RequirePhysicalDeathOrder(changes); return; }
+        if (version == 23) { RequireDerivedSpellQueryOrder(changes); return; }
         if (version == 5)
         {
             ValidateMailboxGearChanges(changes);
@@ -155,6 +175,9 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 8) return GetCharacterSpellsTargets(roots, record);
         if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20) return GetCharacterItemsSpellsTargets(roots, record);
         if (record.Version == 11) return GetCharacterResourcesTargets(roots, record);
+        if (record.Version == 21) return GetPairMovementTargets(roots, record);
+        if (record.Version == 22) return GetPhysicalDeathTargets(roots, record);
+        if (record.Version == 23) return GetDerivedSpellQueryTargets(roots, record);
         var targets = record.Changes.Select(change => new JournalTarget(Path.Combine(
             change.Kind == LegacyTradeJournalFileKind.Character ? roots.Users : roots.Items,
             change.FileId.ToString(CultureInfo.InvariantCulture) +

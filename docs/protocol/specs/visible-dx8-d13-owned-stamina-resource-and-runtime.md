@@ -119,19 +119,3 @@ The native raw-map proof also requires the actual ReadOnlyDictionary backing be 
 Current authorship:67 new outcomes (52 genuine-owner,15 DATA/unbound), including three configured-clock rollback cuts, and eight precisely migrated old invalid-stamina cases. The migrated cases now prove real admission refusal and subsequent unadmitted proc-wire denial; they no longer claim malformed state was successfully admitted or exercise a malformed admitted executor. Valid old proc positives remain. Sitting controls use the actual Frame ChangeStance81/DwParam250 producer. Full native Action publication and combat-kill authorization remain separate from these genuine managed action/death-PUBLICATION-phase fixtures.
 
 No Rune WAL/UID/schema, archive/creator, inventory planner, broad status adoption or profile activation changes belong to this island. Both companion source notes were frozen after independent cross-peer CLEAR; Root then approved implementation. Tests/source review are not compile/runtime qualification. Root alone executes and integrates the finite reviewed delta. Full Rune/English server/client, complete stamina/native Equip/status, SQL and7937/live-client acceptance remain ACTIVE.
-
-## Root qualification update - 2026-10-31
-
-This supersedes the earlier unbuilt/unrun status. Release solution/test builds
-passed zero errors and no changed-path warnings. Actual stamina02 passed75/75
-(67new/eight migrated), zero failures/skips. Initial74/1 is retained; an explicit
-existing EpicTrojan fixture baseline corrected the HP-only lifetime oracle.
-The wider run retained1,260Passed/20old-admissionFailed. Four test-only migrations
-preserve all24original inputs and add two genuine65535-to-65525 positives;
-admission02 passed26/26, zero failures/skips. Missing input remains genuinely
-absent on disk and runtime/native0; malformed/out-of-width input refuses actual
-admission, including zero-cost/map-exempt later requests. Valid-peer, full-file,
-native/current/saved funds and independent wire assertions remain. Sets overlap.
-Reviewed source is intaken; its new exact-public full gate is pending. Active
-unjoined modifiers, native Action/auto-attack, full buffer/SQL/power-loss and
-7937/English/live acceptance remain required, not completed by safety fences.

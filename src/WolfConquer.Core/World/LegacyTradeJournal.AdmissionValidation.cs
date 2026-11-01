@@ -29,12 +29,15 @@ internal static partial class LegacyTradeJournal
         LegacyOrdinaryAdmissionValidation.ValidateCharacter(character);
     }
 
-    private static void ValidateAdmissionSavedImage(LegacyTradeJournalChange row, byte[]? image)
+    private static void ValidateAdmissionSavedImage(LegacyTradeJournalChange row, byte[]? image) =>
+        ValidateAdmissionSavedImage(row, image, row.FileId);
+
+    private static void ValidateAdmissionSavedImage(LegacyTradeJournalChange row, byte[]? image, long characterUid)
     {
         if (image is null) return;
         switch (row.Kind)
         {
-            case LegacyTradeJournalFileKind.Character: ValidateOrdinaryAdmissionCharacterImage(image, row.FileId); break;
+            case LegacyTradeJournalFileKind.Character: ValidateOrdinaryAdmissionCharacterImage(image, characterUid); break;
             case LegacyTradeJournalFileKind.Items: LegacyItemUidRawCatalog.ValidateAdmissionPlayerItems(image); break;
             case LegacyTradeJournalFileKind.Spells:
                 var spells = PlayerSpellSnapshotLoader.Parse(image);

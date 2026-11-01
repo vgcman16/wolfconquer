@@ -9,6 +9,7 @@ internal enum LegacyEquipmentQueryPublicationLoss
     OwnerLost = 1,
     RequiredParticipantLost = 2,
     AcceptedItemsChanged = 4,
+    RequiredDerivedSpellUnavailable = 8,
 }
 
 // An invocation-local fence, not persistent character state or a gameplay gate.

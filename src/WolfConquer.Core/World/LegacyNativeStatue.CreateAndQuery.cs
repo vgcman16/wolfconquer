@@ -21,6 +21,22 @@ internal partial class LegacyNativeStatue
 
 	public static void CreateStatue(LegacyNativeGameClientRuntime client, ushort x, ushort y, int Action, int action2, bool Static = false)
 	{
+		// Static creation writes the player's stance. An ordinary attachment
+		// cannot enter this unjoined executor, even after its holder retires.
+		var player = client.Player;
+		if (Static && player.HasOwnedActionAttachment) return;
+		if (!Static) { CreateStatueCore(client, x, y, Action, action2, Static); return; }
+		if (Monitor.IsEntered(player.SpellAdmissionSyncRoot) && !Monitor.IsEntered(client.SpellAdmissionSyncRoot)) return;
+		lock (client.SpellAdmissionSyncRoot)
+		lock (player.SpellAdmissionSyncRoot)
+		{
+			if (!ReferenceEquals(client.Player, player) || !ReferenceEquals(player.Owner, client) || player.HasOwnedActionAttachment) return;
+			CreateStatueCore(client, x, y, Action, action2, Static);
+		}
+	}
+
+	private static void CreateStatueCore(LegacyNativeGameClientRuntime client, ushort x, ushort y, int Action, int action2, bool Static)
+	{
 		try
 		{
 			LegacyNativeStatue statue = new LegacyNativeStatue();

@@ -1397,7 +1397,6 @@ public sealed class LegacyKineticSparkPassivePlayerRuntimeTests
                 [RuntimeLegacyKineticSparkPassiveRateRollAttribute] = "0",
                 [RuntimeLegacyStoneCrackerArrowBladesAttribute] = "0",
                 [RuntimeLegacyStoneCrackerStarFlowAttribute] = "2",
-                ["HawksAmbitionPower"] = "50",
             });
         var primarySession = CreateSession(PrimaryPlayerUid, "Primary", primaryX, primaryY);
         var starFlowVictimSession = CreateSession(
@@ -1408,6 +1407,7 @@ public sealed class LegacyKineticSparkPassivePlayerRuntimeTests
             attributes: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["StatusFlags"] = BuildStatusFlags(LegacyHawksAmbitionFlag),
+                ["HawksAmbitionPower"] = "50",
             });
         sessions.Set(casterConnection, casterSession);
         sessions.Set(primaryConnection, primarySession);

@@ -84,7 +84,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             attributes: new Dictionary<string, string>
             {
                 ["PkMode"] = "0",
-                ["HawksAmbitionPower"] = hawksAmbition ? "25" : "0",
             });
         var targetFlags = new List<int>();
         if (mudWallPower != 0)
@@ -109,6 +108,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             {
                 ["MaxHitpoints"] = "100000",
                 ["StatusFlags"] = BuildStatusFlags(targetFlags.ToArray()),
+                ["HawksAmbitionPower"] = hawksAmbition ? "25" : "0",
                 ["LegacyMudSigilImpeccablePower"] = mudWallPower.ToString(CultureInfo.InvariantCulture),
                 [RuntimeLegacyCombatGearWildPhoenixChargeCountAttribute] = wildPhoenix ? "2" : "0",
                 [RuntimeLegacyCombatGearWildPhoenixPackedDamageAttribute] = "18007",
@@ -147,7 +147,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                         ["DirectPreparationMarker"] = "current-attacker",
                         ["StatusFlags"] = BuildStatusFlags(LegacyCleanSweepFlag),
                         ["CleanSweepPower"] = "50",
-                        ["HawksAmbitionPower"] = "25",
                     };
                     sessions.Set(casterConnection!, currentCaster with
                     {
@@ -161,6 +160,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     {
                         ["DirectPreparationMarker"] = "current-target",
                         ["StatusFlags"] = BuildStatusFlags(LegacyHawksAmbitionFlag),
+                        ["HawksAmbitionPower"] = "25",
                     };
                     sessions.Set(targetConnection, currentTarget with
                     {

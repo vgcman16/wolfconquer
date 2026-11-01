@@ -2,6 +2,26 @@ namespace WolfConquer.Core.World;
 
 internal sealed partial class LegacyNativeItemTypeRuneMetadata
 {
+    // Captured primitive input for the owned read-only Rune witness. Preserve
+    // the existing whole unbound two-read method below, including its order.
+    internal static bool EquipPassJobReq(uint requiredClass, uint currentClass) => requiredClass switch
+    {
+        >= 1000 and <= 1005 => currentClass >= requiredClass && currentClass <= 1051,
+        >= 2000 and <= 2005 => currentClass >= requiredClass && currentClass <= 2051,
+        >= 4000 and <= 4005 => currentClass >= requiredClass && currentClass <= 4051,
+        >= 5000 and <= 5005 => currentClass >= requiredClass && currentClass <= 5051,
+        >= 6000 and <= 6005 => currentClass >= requiredClass && currentClass <= 6051,
+        >= 7000 and <= 7005 => currentClass >= requiredClass && currentClass <= 7051,
+        >= 8000 and <= 8005 => currentClass >= requiredClass && currentClass <= 8049,
+        >= 9000 and <= 9005 => currentClass >= requiredClass && currentClass <= 9051,
+        >= 13000 and <= 13005 => currentClass >= requiredClass && currentClass <= 13051,
+        >= 14000 and <= 14005 => currentClass >= requiredClass && currentClass <= 14051,
+        10000 or 19000 => currentClass >= 10000,
+        >= 16000 and <= 16005 => currentClass >= requiredClass && currentClass <= 16051,
+        0 => true,
+        _ => false,
+    };
+
     // Complete native ItemType1826..2239, grouping only identical family branches.
     // Read metadata.Class once; retain upper-bound then lower-bound Player reads.
     public static bool EquipPassJobReq(LegacyNativeItemRuneMetadata baseInformation, LegacyNativeGameClientRuntime client)

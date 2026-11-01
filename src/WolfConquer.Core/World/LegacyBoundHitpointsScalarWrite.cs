@@ -15,16 +15,69 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
     private readonly string path;
     private readonly byte[] before, after;
     private readonly LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication;
+    private readonly LegacyPreparedPairMovementWrite.CharacterPublication? pairMovementPublication;
+    private readonly LegacyPreparedMovementWrite.CharacterPublication? movementPublication;
+    private readonly WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical;
+    private readonly LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication;
+    private readonly LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication;
+    private readonly WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement;
     internal WorldPacketHandlers.BoundHitpointsInputs Inputs { get; }
     internal WorldSession Proposed { get; }
     internal bool IsCommitted { get; private set; }
     private LegacyBoundHitpointsScalarWrite(WorldServerFrameHandler owner, WorldSessionStore store,
         ConquerTcpConnection connection, LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed,
         WorldPacketHandlers.LegacyCapriceCharacterFields? caprice,
-        LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication)
+        LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication,
+        LegacyPreparedPairMovementWrite.CharacterPublication? pairMovementPublication,
+        LegacyPreparedMovementWrite.CharacterPublication? movementPublication,
+        WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical,
+        LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication,
+        LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication,
+        WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement)
     {
         this.owner = owner; this.store = store; this.connection = connection; this.binding = binding; this.expected = expected;
         this.runePublication = runePublication;
+        this.pairMovementPublication = pairMovementPublication;
+        this.movementPublication = movementPublication;
+        this.basicPhysical = basicPhysical; this.physicalDeathPublication = physicalDeathPublication;
+        this.teleportPublication = teleportPublication;
+        this.classRetirement = classRetirement;
+        if (classRetirement is not null)
+        {
+            if (caprice is not null || runePublication is not null || pairMovementPublication is not null || movementPublication is not null ||
+                basicPhysical is not null || physicalDeathPublication is not null || teleportPublication is not null)
+                throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignClassRetirementPurpose");
+            classRetirement.RequireCurrent(store, connection, expected, proposed);
+        }
+        if (teleportPublication is not null)
+        {
+            if (caprice is not null || runePublication is not null || pairMovementPublication is not null || movementPublication is not null ||
+                basicPhysical is not null || physicalDeathPublication is not null) throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignTeleportPurpose");
+            teleportPublication.RequireCurrent(store, connection, expected, proposed);
+        }
+        if (basicPhysical is not null)
+        {
+            if (caprice is not null || runePublication is not null || pairMovementPublication is not null || movementPublication is not null ||
+                !ReferenceEquals(basicPhysical.ExpectedTarget, expected) || !ReferenceEquals(basicPhysical.TargetBinding, binding) ||
+                basicPhysical.Death is not null && physicalDeathPublication is null ||
+                !basicPhysical.IsCurrentPlain() || !basicPhysical.CanonicalOutcomesMatch(basicPhysical.Actor, proposed))
+                throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignBasicPhysicalPurpose");
+            physicalDeathPublication?.RequireCurrent(store, connection, expected, proposed);
+        }
+        else if (physicalDeathPublication is not null)
+            throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsDeathPurposeMissing");
+        if (movementPublication is not null)
+        {
+            if (caprice is not null || runePublication is not null || pairMovementPublication is not null)
+                throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignMovementPublication");
+            movementPublication.RequireCurrent(store, connection, expected, proposed);
+        }
+        if (pairMovementPublication is not null)
+        {
+            if (caprice is not null || runePublication is not null)
+                throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignPairPublication");
+            pairMovementPublication.RequireCurrent(store, connection, expected, proposed);
+        }
         if (runePublication is not null)
         {
             if (caprice is not null) throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsForeignRunePublication");
@@ -35,24 +88,43 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
         if (!OwnerIsCurrent()) throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsOwnerUnavailable");
         Inputs = new(expected.Character, proposed.Character);
         Proposed = proposed with { Character = Inputs.After };
-        (path, before, after) = PrepareImages(binding, expected, Inputs, caprice, runePublication);
+        (path, before, after) = PrepareImages(binding, expected, Inputs, caprice, runePublication, pairMovementPublication,
+            movementPublication, physicalDeathPublication, teleportPublication, classRetirement);
         if (!OwnerIsCurrent()) throw new LegacyNativeHitpointsRefusalException("ordinaryHitpointsOwnerChanged");
     }
     internal static LegacyBoundHitpointsScalarWrite Prepare(WorldServerFrameHandler owner, WorldSessionStore store,
         ConquerTcpConnection connection, LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed,
         WorldPacketHandlers.LegacyCapriceCharacterFields? caprice = null,
-        LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication = null) =>
-        new(owner, store, connection, binding, expected, proposed, caprice, runePublication);
+        LegacyPreparedSpellFileWrite.RuneCharacterPublication? runePublication = null,
+        LegacyPreparedPairMovementWrite.CharacterPublication? pairMovementPublication = null,
+        LegacyPreparedMovementWrite.CharacterPublication? movementPublication = null,
+        WorldPacketHandlers.OwnedBasicPhysicalReceivePreparation? basicPhysical = null,
+        LegacyPreparedBasicPhysicalWrite.CharacterPublication? physicalDeathPublication = null,
+        LegacyPreparedTeleportDestinationWrite.CharacterPublication? teleportPublication = null,
+        WorldPacketHandlers.OwnedFullAccountClassSpellRetirement? classRetirement = null) =>
+        new(owner, store, connection, binding, expected, proposed, caprice, runePublication, pairMovementPublication, movementPublication,
+            basicPhysical, physicalDeathPublication, teleportPublication, classRetirement);
     internal byte[] CopyBeforeImage() => before.ToArray();
     internal byte[] CopyAfterImage() => after.ToArray();
     private bool OwnerIsCurrent() => store.IsFramePersistenceCurrent(owner, connection, expected) &&
         ReferenceEquals(binding.Store, store) && ReferenceEquals(binding.Connection, connection) &&
-        binding.PhysicalOwnerIsCurrentPlain() && binding.Recovery.IsReadyForUsers(binding.UsersRoot);
+        binding.PhysicalOwnerIsCurrentPlain() && binding.Recovery.IsReadyForUsers(binding.UsersRoot) &&
+        (basicPhysical is null || basicPhysical.IsCurrentPlain()) && (classRetirement is null || classRetirement.IsCurrentPlain());
 
     internal Outcome TryCommit(out string reason)
     {
         if (runePublication is not null)
         { reason = "ordinaryHitpointsRuneRequiresJointWriter"; return Outcome.Rejected; }
+        if (pairMovementPublication is not null)
+        { reason = "ordinaryHitpointsPairRequiresJointWriter"; return Outcome.Rejected; }
+        if (movementPublication is not null)
+        { reason = "ordinaryHitpointsMovementRequiresActualWriter"; return Outcome.Rejected; }
+        if (physicalDeathPublication is not null)
+        { reason = "ordinaryHitpointsDeathRequiresJointWriter"; return Outcome.Rejected; }
+        if (teleportPublication is not null)
+        { reason = "ordinaryHitpointsTeleportRequiresDestinationWriter"; return Outcome.Rejected; }
+        if (classRetirement is not null)
+        { reason = "ordinaryHitpointsClassRetirementRequiresJointWriter"; return Outcome.Rejected; }
         var failure = "ordinaryHitpointsOwnerChanged"; var phase = Outcome.Rejected;
         try
         {
@@ -95,6 +167,33 @@ internal sealed partial class LegacyBoundHitpointsScalarWrite
     {
         try
         {
+            // The pair capability takes the complete ordered two-file lock set.
+            // Never acquire it while holding only this role's Character lock.
+            if (pairMovementPublication is not null)
+            {
+                if (!OwnerIsCurrent() || !pairMovementPublication.RequireCommittedCharacter()) return false;
+                IsCommitted = true; return true;
+            }
+            if (movementPublication is not null)
+            {
+                if (!OwnerIsCurrent() || !movementPublication.RequireCommittedCharacter()) return false;
+                IsCommitted = true; return true;
+            }
+            if (physicalDeathPublication is not null)
+            {
+                if (!OwnerIsCurrent() || !physicalDeathPublication.RequireCommittedCharacter()) return false;
+                IsCommitted = true; return true;
+            }
+            if (teleportPublication is not null)
+            {
+                if (!OwnerIsCurrent() || !teleportPublication.RequireCommittedCharacter()) return false;
+                IsCommitted = true; return true;
+            }
+            if (classRetirement is not null)
+            {
+                if (!OwnerIsCurrent() || !classRetirement.RequireCommittedPair()) return false;
+                IsCommitted = true; return true;
+            }
             return SnapshotFileLockCoordinator.ExecuteLocked(path, () =>
             {
                 if (!OwnerIsCurrent() || runePublication is not null && !runePublication.RequireCommittedCharacter() ||
