@@ -331,6 +331,7 @@ internal static partial class Program
         if (command == "client-reference-intake") return ClientReferenceIntake(args);
 
         if (command == "client-item-catalog7937-decode") return ClientChinese7937CatalogDecodeCommand(args);
+        if (command == "client-combat-gear7937-inspect") return InspectChinese7937CombatGear(args);
 
         if (command == "client-item-catalog-codec")
         {
@@ -658,6 +659,7 @@ internal static partial class Program
             string.Equals(value, "client-item-catalog-roundtrip", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-item-catalog-codec", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-item-catalog7937-decode", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "client-combat-gear7937-inspect", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-reference-intake", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "client-item-catalog-localize", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(value, "generated-buffer-string-scan", StringComparison.OrdinalIgnoreCase) ||
@@ -801,6 +803,7 @@ internal static partial class Program
     static int Usage()
     {
         Console.WriteLine("Usage:");
+        Console.WriteLine("  WolfConquer.DataTool client-combat-gear7937-inspect <absolute-packed-input> (read-only raw data inspection)");
         Console.WriteLine("  WolfConquer.DataTool probe [dbServerPath]");
         Console.WriteLine("  WolfConquer.DataTool export [dbServerPath] [outputPath] [--include-game-map-ex path] [...]");
         Console.WriteLine("  WolfConquer.DataTool export-legacy-game-maps [dbServerPath|GameMap.dat] [outputPath] [--include dbServerPath|GameMap.dat] [...]");

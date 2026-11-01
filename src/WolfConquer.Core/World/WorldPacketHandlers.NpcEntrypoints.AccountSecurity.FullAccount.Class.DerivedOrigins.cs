@@ -40,10 +40,16 @@ public static partial class WorldPacketHandlers
             CharacterSnapshot target, byte[] before)
         {
             var data = Data; var plan = data.Plan;
-            if (!ReferenceEquals(expected, plan.Owner.Expected) || !ReferenceEquals(binding.Store, plan.Owner.Context.Sessions) ||
-                !ReferenceEquals(binding.Connection, plan.Owner.Context.Connection) || !data.IsCurrentPlain() ||
-                !before.AsSpan().SequenceEqual(plan.OriginChanges[0].Before) || !SameCharacter(data.Proposed.Character, target))
-                throw InvalidFullAccountClassState();
+            if (!ReferenceEquals(expected, plan.Owner.Expected)) throw new FullAccountClassRefusal("fullAccountClassHpExpectedChanged");
+            if (!ReferenceEquals(binding.Store, plan.Owner.Context.Sessions)) throw new FullAccountClassRefusal("fullAccountClassHpStoreChanged");
+            if (!ReferenceEquals(binding.Connection, plan.Owner.Context.Connection)) throw new FullAccountClassRefusal("fullAccountClassHpConnectionChanged");
+            if (!data.IsCurrentPlain()) throw new FullAccountClassRefusal("fullAccountClassHpOwnerChanged");
+            if (!before.AsSpan().SequenceEqual(plan.OriginChanges[0].Before)) throw new FullAccountClassRefusal("fullAccountClassHpBeforeChanged");
+            // The bound HP writer adds its canonical persisted scalar attributes
+            // to its captured After. Compare the complete independently derived
+            // same projection, including opaque fields, rather than the raw plan.
+            var projected = new BoundHitpointsInputs(data.Proposed.Character, data.Proposed.Character).After;
+            if (!SameCharacter(projected, target)) throw new FullAccountClassRefusal("fullAccountClassHpTargetChanged");
             return plan.OriginChanges[0].After.ToArray();
         }
 

@@ -48,9 +48,21 @@ public sealed partial class WorldServerFrameHandlerTests
                 Assert.True(GetMonsterStates(owner.Handler).TryGetVisibleInstance(monster, clock.GetUtcNow(), out var visible));
                 Assert.True(owner.Store.TryReadMonsterPhysicalRange(visible, family, out var birthRange));
                 Assert.Equal(3, birthRange);
+                var current = owner.Current();
+                var player = binding.Player;
+                Assert.True(player.UID == current.Character.Uid && player.Class == current.Character.Class);
+                Assert.True(player.HitPoints == current.Character.MinHitPoints && player.Map == current.Character.MapId);
+                Assert.True(player.X == current.Character.X && player.Y == current.Character.Y && player.DynamicID == visible.DynamicId);
+                Assert.True(owner.Store.IsBoundSpellOwnerCurrent(binding));
                 Assert.False(ContainsMonsterPhysicalAttackAfter(frames, 0, monster.Uid, uid));
                 var beforeHp = owner.Current().Character.MinHitPoints;
                 clock.Advance(interval);
+                // Observe completion of the actual first pass before inspecting
+                // its retained target; this does not issue an AI capability.
+                await WaitForMonsterRuntimeTimerRegistrationAsync(clock);
+                Assert.True(GetMonsterStates(owner.Handler).TryGetTargetLockState(visible, clock.GetUtcNow(), out var targetLock));
+                Assert.Equal(uid, targetLock.LastTargetUid);
+                Assert.NotNull(targetLock.LastAttackAt);
                 await WaitForProactiveMonsterActionAsync(() => ContainsMonsterPhysicalAttackAfter(frames, 0, monster.Uid, uid), owner.Log);
                 Assert.True(owner.Current().Character.MinHitPoints < beforeHp);
                 Assert.True(owner.Store.IsBoundSpellOwnerCurrent(binding));

@@ -106,7 +106,7 @@ public sealed partial class WorldServerFrameHandlerTests
                     X: monster.X,
                     Y: monster.Y,
                     AttackType: MsgAttackType.Physical,
-                    Damage: 1,
+                    Damage: 0,
                     KilledMonster: 0,
                     ResponseDamage: 0,
                     Effect: MsgAttackEffect.None,
@@ -335,6 +335,10 @@ public sealed partial class WorldServerFrameHandlerTests
                 TimeSpan.FromSeconds(3));
             Assert.DoesNotContain(sent.ToArray().Skip(schedulerStart), frame =>
                 LegacySpellAnimationPacket.TryParse(ReadFrame(frame), out var spell) && spell.AttackerUid == bossInstance.Uid);
+            // The movement log is written before the global worker returns to
+            // its one-shot delay. Do not advance the retained-target phase until
+            // both real workers have registered their next timer.
+            await WaitForMonsterRuntimeTimerRegistrationAsync(timeProvider);
             schedulerStart = sent.Count;
             timeProvider.Advance(tickInterval);
             await WaitForProactiveMonsterActionAsync(
