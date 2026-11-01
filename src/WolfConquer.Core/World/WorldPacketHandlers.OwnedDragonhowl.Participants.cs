@@ -9,15 +9,16 @@ public static partial class WorldPacketHandlers
     private sealed class DragonhowlReceiveInputs
     {
         private readonly WorldPacketHandlerContext Context;
+        private readonly WorldSessionStore.OwnedDragonhowlOwner Owner;
         private readonly MsgAttackPacket Packet;
         private readonly LegacyOrdinarySpellBinding ActorBinding, TargetBinding;
         private readonly WorldSession ExpectedActor, ExpectedTarget;
         internal WolfConquer.Core.Networking.ConquerTcpConnection TargetConnection => TargetBinding.Connection;
-        internal DragonhowlReceiveInputs(WorldPacketHandlerContext context, MsgAttackPacket packet,
+        internal DragonhowlReceiveInputs(WorldPacketHandlerContext context, WorldSessionStore.OwnedDragonhowlOwner owner, MsgAttackPacket packet,
             LegacyOrdinarySpellBinding actor, LegacyOrdinarySpellBinding target,
             WorldSession expectedActor, WorldSession expectedTarget)
         {
-            Context = context; Packet = packet; ActorBinding = actor; TargetBinding = target;
+            Context = context; Owner = owner; Packet = packet; ActorBinding = actor; TargetBinding = target;
             ExpectedActor = expectedActor; ExpectedTarget = expectedTarget;
             modifierGateUtc = (context.TimeProvider ?? throw new InvalidOperationException("ownedDragonhowlClockMissing")).GetUtcNow();
         }
@@ -50,10 +51,15 @@ public static partial class WorldPacketHandlers
         }
 
         internal bool IsCurrentPlain(bool targetCompleted = false) => actorWorn is not null && actorPerfection is not null &&
-            actorWorn.IsCurrentPlain() && actorPerfection.IsCurrentPlain() && (targetCompleted ||
-            targetWorn is not null && targetWorn.IsCurrentPlain() && targetPerfection is not null && targetPerfection.IsCurrentPlain() &&
+            actorWorn.IsCurrentForDragonhowl(Owner) && actorPerfection.IsCurrentPlain() && (targetCompleted ||
+            targetWorn is not null && targetWorn.IsCurrentForDragonhowl(Owner) && targetPerfection is not null && targetPerfection.IsCurrentPlain() &&
             (hawksStatus is null || hawksStatus.IsCurrentPlain()) && (hawksPower is null || hawksPower.IsCurrentPlain()) &&
             UnjoinedOwnedPhysicalBranch() is null);
+
+        internal bool ContainsWornSnapshot(LegacyOrdinarySpellBinding binding,
+            LegacyNativeRuneItemStorage.BasicPhysicalWornSnapshot snapshot, WorldSession original) =>
+            ReferenceEquals(binding, ActorBinding) && ReferenceEquals(snapshot, actorWorn) && ReferenceEquals(original, ExpectedActor) ||
+            ReferenceEquals(binding, TargetBinding) && ReferenceEquals(snapshot, targetWorn) && ReferenceEquals(original, ExpectedTarget);
 
         private string? UnjoinedOwnedPhysicalBranch()
         {
@@ -61,10 +67,8 @@ public static partial class WorldPacketHandlers
             if (ReadAttributeBool(target.Attributes, "Invisible")) return "invisibleTarget";
             if (ReadAttributeBool(actor.Attributes, RuntimeLegacyInUseIntensifyAttribute) ||
                 HasLegacyStatusFlag(actor, LegacyFocusedFlag)) return "focusedPrefix";
-            var pk = ReadAttributeUInt64(actor.Attributes, RuntimePkModeAttribute, "PKMode") & byte.MaxValue;
-            if (!HasLegacyStatusFlag(actor, LegacyFlashingNameStatusFlag) && !HasLegacyPlayerMagicInterserverAttribute(ExpectedActor) &&
-                pk != LegacyPkModeCapture && pk != LegacyPkModePeace && CanApplyLegacyPlayerMagicCanAttackFlashingName(target))
-                return "flashingNamePrefix";
+            // The registered proc builder prepares the concrete timed flashing
+            // phase after target permission and before this receive calculation.
             if (HasLegacyStatusFlag(target, LegacyShurikenVortexFlag) || HasLegacyStatusFlag(target, LegacyManiacDanceFlag))
                 return "defendedPhysicalDamage";
             if (HasLegacyStatusFlag(target, LegacyDuelFlag) || HasLegacyStatusFlag(actor, LegacyAbsolutionFlag) ||

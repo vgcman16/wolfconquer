@@ -5,7 +5,7 @@ internal sealed partial class LegacyNativeRuneItemStorage
     internal readonly record struct BasicPhysicalRuneRow(uint Uid, uint ItemId, ushort Position);
 
     // A failed capture is NOT an empty worn set or permission to attack.
-    internal sealed class BasicPhysicalWornSnapshot
+    internal sealed partial class BasicPhysicalWornSnapshot
     {
         private readonly LegacyNativeRuneItemStorage storage;
         private readonly LegacyOrdinarySpellBinding binding;
@@ -55,7 +55,9 @@ internal sealed partial class LegacyNativeRuneItemStorage
                 return CurrentUnderStorageGates();
         }
 
-        private bool CurrentUnderStorageGates() => OwnerIsCurrentPlain(storage, binding, expected) &&
+        private bool CurrentUnderStorageGates() => CurrentUnderStorageGates(expected);
+
+        private bool CurrentUnderStorageGates(WorldSession current) => OwnerIsCurrentPlain(storage, binding, current) &&
             binding.Items.IsCurrentPlain() && PlainStorage(storage) && storage.IsCurrent(context) &&
             binding.Player.Class == Class && binding.Player.Level == PlayerLevel && binding.Player.Reborn == Reborn;
 

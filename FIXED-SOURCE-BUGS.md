@@ -8,32 +8,38 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ### FSB-293: Execute selected Dragonhowl through the actual Physical owner
 
-OPEN, NOT QUALIFIED. An admitted Physical request with native Dragonhowl gear
-could enter the basic-hit owner before the existing proc selector, so valid
-17490/17650 outcomes never earned the expected mutable combat status or output.
-The draft captures the real request/cadence/operation, configured legacy19
-metadata, saved constructor gear origin, target bindings/incarnations and
-ordered phase writers. It keeps exact canonical successors before observers,
-reuses genuine player death settlement and fences committed failures. No direct
-Magic packet, fabricated Basic damage decision or accepting owner substitutes
-for the actual Physical request.
+OPEN full integration; selected Physical path now has focused passing evidence.
+Build20 passed0errors/159warnings; focused21 passed18/18,0failed/0skipped.
+Actual TRX outcomes were counted. Original12equipment/reentry cases retain their
+independent17490/17650damage, native19gear, savedfiles and packet expectations.
+Six additional cases cover native flashing timer metadata/order, learned-spell
+refusal, saved-gear/real-table-publisher drift and both first-output loss paths.
 
-Build10 passed0errors/100warnings. Gear06 remains red:2Passed/10Failed/0Skipped
-over12. Genuine FineRain-backed input correction now preserves100000HP, while
-the five reentry Frame logs identify unimplemented flashingNamePrefix before
-FrontBreak/animation. The real30-second native flashing status and its output
-phase are still implementation work. Admission11 passed2/2,0failed/0skipped:
-real saved-gear mismatch and a genuine complete native reload refuse without
-cost, HP, status, native attack/repeat, file or success-output changes. The
-metadata control replaces an actual loaded table owner; a source-file edit
-alone does not invalidate its immutable loaded image. Earlier admission08 red
-(1P/1F) remains retained; it exposed that incorrect fixture assumption.
+The actual Physical request now captures its real command/cadence/operation,
+configured legacy19 metadata, saved constructor gear, targets and phase writers.
+The real native+managed flashing prefix precedes FrontBreak, targetHP and2239
+animation. Rejection preserves resources/nativeattack/status/files/output;
+committed output loss fences both real participants before later target damage.
+FineRain fixture metadata now backs99900HP plus the actual100HP buff, preserving
+the100000HP physical goldens rather than changing damage expectations.
 
-Lethal monster reward chains, remaining selected effect/event families,
-complete original91 regression repair and full-suite/live acceptance remain
-open. Ordered actor/target phases are not all-target crash atomicity or an
-outbox. Current source remains a private local checkpoint and never launches
-the held client/updater.
+Two real ownership defects were corrected after integration exposed them.
+Preflight used postcommit IsCurrentPlain, which requires a completed HPwriter;
+it now consumes the genuine beforewriter proof, while real postwrite checks
+remain. The worn-rune snapshot pinned the original holder even after this proc
+committed its legitimate successor. Only the registered plan's exact original
+binding/snapshot/session can follow its actual committed state.Current; original
+native rune objects, storage/context, class/level/reborn and graph proofs remain
+checked. Ordinary/basic consumers retain their strict original-holder behavior.
+Per-phase diagnostics report actual phase/stage/commit state without granting
+any authority. Earlier gear06/focused14/17 and diagnostic19 reds remain retained.
+
+Actual worker expiry/death native removal, applicable194 death transitions,
+monster/SOB primary/repeat/reset, lethal reward chains, remaining effect/event
+families, original91full regression closure and full-suite/live acceptance are
+still open. A timer/removal row is not execution proof. Ordered phases are not
+all-target crash atomicity, SQL safety or an output outbox. This is a local
+checkpoint; no push or legacy client/updater launch is implied.
 
 ## Open managed Character publication repair - 2026-11-01
 

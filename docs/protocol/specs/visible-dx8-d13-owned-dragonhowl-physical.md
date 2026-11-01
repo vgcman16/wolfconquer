@@ -2,7 +2,7 @@
 
 ## Identity and scope
 
-2026-11-01 source implementation draft, VisibleDx8D13. COMPILED; REGRESSIONS RED.
+2026-11-01 source implementation draft, VisibleDx8D13. COMPILED; FOCUSED CHECKS PASSED.
 This repairs the owned Physical request path that enters the basic-hit handler
 before the existing Dragonhowl selector. The real physical command must select
 and execute17490/17650; a direct client Magic packet is not equivalent evidence.
@@ -77,6 +77,22 @@ account plus Spells by player UID, native query/status/cancellation and team
 participants through a closed basic-hit-or-proc purpose union. No basic damage
 decision or receiving target is fabricated for that writer.
 
+For a permission-approved ordinary player target that requires flashing name,
+the proc now prepares the actual actor flag0 prefix before damage calculation.
+The prepared managed vector preserves its raw comparer and unrelated fields;
+the death-removal key is true and the managed timer is the same captured local
+Frame-clock value as the native row. The real native vector owns its complete
+before/after registration graph, with duration30 and invoker0. Only the exact
+registered Store phase can issue its single-use publication. Costs/stamp commit
+first, then native+holder flashing state before its owner/visible2176 output,
+then Front Break and target HP phases, then animation2239. No native callback
+or compatibility AddFlag substitutes for that publication. Preflight failure
+publishes neither flag nor cost; later output failure uses the actual committed
+proc fence. Each phase checks cancellation before committing. Native raw reset,
+retirement, expiry during this cast, or changed registration graph invalidates
+the retained owner. Scheduled expiry/death execution still needs its own real
+runtime qualification; a row's duration/removal fields alone do not prove it.
+
 After a committed phase, failure fences the real participating owners and
 preserves primary/cleanup errors. Successful completion is privately issued by
 the actual execution and is required to arm a real repeat. Legitimate dead or
@@ -126,12 +142,26 @@ HP mutation. No verified fixed claim follows from this source snapshot.
 
 ## Current bounded result - 2026-11-01
 
-Build10 passed0errors/100warnings. Gear06 remains2P/10F/0skip over12, with
-actual Frame logs proving the missing flashingNamePrefix before FrontBreak and
-animation. Genuine FineRain input now backs100000 HP after its100HP buff;
-independent damage/status/wire expectations remain. Admission11 passed2/2:
-actual saved-gear mismatch and a real complete native table reload refuse before
-any gameplay/file/output mutation. Loaded metadata is an immutable published
-image; merely editing its source file is not a native owner transition.
-The real timed flashing prefix remains the next private implementation intake.
-These are focused results, not proc completion, full-suite or client proof.
+Build20 passed0errors/159warnings. Focused21 passed18/18,0failed/0skipped:
+original12gear/reentry cases plus2real admission-refusal and4native lifecycle
+metadata/order/refusal/output-loss cases. The17490/17650damage/status/wire
+expectations remain independent. Genuine FineRain data backs100000HP after
+its100HP buff. Native flashing2176 precedes FrontBreak, targetHP and2239;
+connection loss after that actual commit fences both real bindings before
+laterHP/animation/repeat. Actual timed-worker/death removal is still unqualified.
+
+Preflight now uses the actual beforewriter proof instead of requiring an
+already-committed HPwriter. Worn-input currentness can follow only the actual
+private proc's committed successor, retaining original native graph and exact
+binding/snapshot provenance. Ordinary/basic snapshot behavior stays strict.
+Per-phase refusal diagnostics are data only and grant no execution authority.
+Earlier gear/focused/admission reds and logs remain retained, not relabeled.
+
+Loaded metadata is an immutable published image; its actual complete native
+publisher transition, rather than a source-file edit alone, invalidates the old
+Frame owner in the passing refusal control. No fresh owner or writer is faked.
+
+Next qualification includes real worker expiry/death cleanup, applicable194
+native death preparation, monster/SOB primary/repeat/reset and output loss.
+Lethal monster rewards, remaining selected effects/events, full suite, SQL,
+all-target crash safety/outbox and live client acceptance remain open.

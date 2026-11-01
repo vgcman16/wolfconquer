@@ -54,17 +54,22 @@ public static partial class WorldPacketHandlers
         internal readonly DragonhowlMonsterOutput? MonsterOutput;
         internal readonly DragonhowlSobOutput? SobOutput;
         internal readonly PreparedDragonhowlSobEvent? SobEvent;
+        internal readonly DragonhowlFlashingName? Flashing;
         private readonly LegacyNativeAttributeMapProof beforeAttributes, beforePaid, afterAttributes, afterPaid;
         private readonly DragonhowlCooldownInputs beforeCooldowns, afterCooldowns;
         internal DragonhowlPhase(ConquerTcpConnection connection, WorldSession before, WorldSession after,
             DragonhowlAudience audience, byte[][] frames, WorldSessionStore.OwnedDragonhowlDeath? death = null,
             WorldSessionStore.OwnedDragonhowlNonPlayer? nonPlayer = null, DragonhowlMonsterOutput? monsterOutput = null,
-            DragonhowlSobOutput? sobOutput = null, PreparedDragonhowlSobEvent? sobEvent = null)
+            DragonhowlSobOutput? sobOutput = null, PreparedDragonhowlSobEvent? sobEvent = null,
+            DragonhowlFlashingName? flashing = null)
         {
             Connection = connection; Before = before; After = after; Audience = audience;
             Death = death;
             NonPlayer = nonPlayer;
             MonsterOutput = monsterOutput; SobOutput = sobOutput; SobEvent = sobEvent;
+            Flashing = flashing;
+            if (flashing is not null && (death is not null || nonPlayer is not null))
+                throw new InvalidDataException("ownedDragonhowlConflictingFlashingPhase");
             if (death is not null && nonPlayer is not null) throw new InvalidDataException("ownedDragonhowlConflictingTargets");
             if (new object?[] { monsterOutput, sobOutput, sobEvent }.Count(value => value is not null) > 1 ||
                 (monsterOutput is not null || sobOutput is not null || sobEvent is not null) && nonPlayer is null)
@@ -79,7 +84,8 @@ public static partial class WorldPacketHandlers
         internal bool IsCurrentPlain() => beforeAttributes.IsCurrentPlain() && beforePaid.IsCurrentPlain() &&
             afterAttributes.IsCurrentPlain() && afterPaid.IsCurrentPlain() &&
             beforeCooldowns.IsCurrentPlain(Before.MagicCooldowns) && afterCooldowns.IsCurrentPlain(After.MagicCooldowns) &&
-            (NonPlayer is null || NonPlayer.InputsAreCurrentPlain()) && (SobEvent is null || SobEvent.IsCurrentPlain());
+            (NonPlayer is null || NonPlayer.InputsAreCurrentPlain()) && (SobEvent is null || SobEvent.IsCurrentPlain()) &&
+            (Flashing is null || Flashing.IsCurrentPlain());
     }
 
     private sealed class DragonhowlCooldownInputs
@@ -132,6 +138,9 @@ public static partial class WorldPacketHandlers
 
         internal bool TryGetFinalProjection(ConquerTcpConnection connection, out WorldSession final) =>
             finals.TryGetValue(connection, out final!);
+        internal bool ContainsWornSnapshot(LegacyOrdinarySpellBinding binding,
+            LegacyNativeRuneItemStorage.BasicPhysicalWornSnapshot snapshot, WorldSession original) =>
+            receives.Any(input => input.ContainsWornSnapshot(binding, snapshot, original));
         internal bool InputsAreCurrentPlain() => metadata.All(row => row.IsCurrentPlain()) &&
             receives.All(row => row.IsCurrentPlain(Store.IsDragonhowlReceiveCompleted(Owner, row.TargetConnection))) &&
             (eligibility is null || eligibility.IsCurrentPlain()) && Phases.All(row => row.IsCurrentPlain());
@@ -188,9 +197,13 @@ public static partial class WorldPacketHandlers
                     continue;
                 }
                 var targetBinding = target.NativeGameClient!.OrdinarySpellBinding!;
+                var flashing = DragonhowlFlashingName.Prepare(context, actorBinding, source, target);
+                if (flashing is not null)
+                    Append(context.Connection, ref source, flashing.After, DragonhowlAudience.OwnerVisible,
+                        [flashing.Frame], flashing: flashing);
                 var witness = LegacyOwnedPhysicalMetadataWitness.CaptureDragonhowl(targetBinding, catalog, target);
                 metadata.Add(witness);
-                var input = new DragonhowlReceiveInputs(context, packet, actorBinding, targetBinding, actor, target);
+                var input = new DragonhowlReceiveInputs(context, owner, packet, actorBinding, targetBinding, actor, target);
                 var damage = CalculateLegacyCombatGearTriple17490PlayerDamage(source, target, spell, catalog);
                 if (!input.TryPrepare(damage.Damage, out reason)) return false;
                 receives.Add(input);
@@ -266,10 +279,11 @@ public static partial class WorldPacketHandlers
             prepared = result; reason = string.Empty; return true;
 
             void Append(ConquerTcpConnection connection, ref WorldSession before, WorldSession after,
-                DragonhowlAudience audience, byte[][] frames, WorldSessionStore.OwnedDragonhowlDeath? death = null)
+                DragonhowlAudience audience, byte[][] frames, WorldSessionStore.OwnedDragonhowlDeath? death = null,
+                DragonhowlFlashingName? flashing = null)
             {
                 after = after with { Character = new BoundHitpointsInputs(before.Character, after.Character).After };
-                phases.Add(new(connection, before, after, audience, frames, death));
+                phases.Add(new(connection, before, after, audience, frames, death, flashing: flashing));
                 finals[connection] = before = after;
             }
         }

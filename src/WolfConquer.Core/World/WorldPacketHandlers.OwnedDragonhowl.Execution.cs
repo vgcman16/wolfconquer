@@ -17,8 +17,9 @@ public static partial class WorldPacketHandlers
                 cancellationToken.ThrowIfCancellationRequested();
                 for (int index = 0; index < Phases.Count; index++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!Store.TryCommitDragonhowlPhase(this, index, out var published) || published is null)
-                        throw new InvalidOperationException("ownedDragonhowlPreparedPhaseRefused");
+                        throw new InvalidOperationException("ownedDragonhowlPreparedPhaseRefused:" + Store.DescribeDragonhowlPhaseFailure(this, index));
                     var phase = Phases[index];
                     if (phase.Death is not null && !await Store.PublishDragonhowlDeathAsync(this, index, cancellationToken).ConfigureAwait(false))
                         throw new InvalidOperationException("ownedDragonhowlDeathOutputOwnerChanged");

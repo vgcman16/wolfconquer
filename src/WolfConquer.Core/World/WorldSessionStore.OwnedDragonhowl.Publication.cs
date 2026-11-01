@@ -79,16 +79,19 @@ public sealed partial class WorldSessionStore
         lock (state.Frame.RequireActionLifecycleGate(this))
         {
             using var scope = new DragonhowlOwnerScope(this, DragonhowlCurrentRows(state));
+            state.CommitStage = "ownerInputs";
             if (!DragonhowlHeldCurrent(state) || !plan.InputsAreCurrentPlain()) return false;
             using var permission = TeamSessionStateStore.OwnedDragonhowlPermission.Prepare(
                 state.Context.TeamStates ?? throw InvalidSpellPublication(), this, plan.Owner);
             if (!state.Started)
             {
+                state.CommitStage = "beginAttempt";
                 if (index != 0 || !state.Frame.OwnedDragonhowlSavedGearCurrent(state.Request) ||
                     !state.Frame.TryBeginDragonhowlAttempt(state.Request, out var attempt) || attempt is null) return false;
                 state.Attempt = attempt; state.Started = true;
             }
             var actor = state.Bindings[state.Context.Connection];
+            state.CommitStage = "activeAttempt";
             if (state.Attempt is not { } actualAttempt || !state.Frame.IsDragonhowlActive(state.Request, actualAttempt,
                     state.Current[actor.Connection], DragonhowlCurrentPrimary(state))) return false;
             if (phase.NonPlayer is { } nonPlayer)
@@ -103,7 +106,8 @@ public sealed partial class WorldSessionStore
             // Only the concrete phase's owned fields change. The actual prior
             // canonical publication supplies all other current owners.
             var candidate = phase.Death is not null ? phase.After : before with { Character = phase.After.Character,
-                PhysicalStatusOverlay = phase.After.PhysicalStatusOverlay, MagicCooldowns = phase.After.MagicCooldowns };
+                PhysicalStatusOverlay = phase.After.PhysicalStatusOverlay, MagicCooldowns = phase.After.MagicCooldowns,
+                CanAttackFlashingRegistration = phase.After.CanAttackFlashingRegistration };
             if (!_sessions.TryGetValue(phase.Connection, out var holder) || !ReferenceEquals(holder.Read(), before)) return false;
             var deathWriter = phase.Death is null ? null : LegacyPreparedBasicPhysicalWrite.PrepareDragonhowl(state.Frame, this, phase.Death);
             var paths = state.Bindings.Values.Select(row => Path.Combine(row.UsersRoot,
@@ -113,16 +117,19 @@ public sealed partial class WorldSessionStore
             WorldSession? committed = null;
             bool accepted = SnapshotFileLockCoordinator.ExecuteLocked(paths, () =>
             {
+                state.CommitStage = "lockedInputs";
                 if (!DragonhowlHeldCurrent(state) || !permission.IsCurrentPlain() || !plan.InputsAreCurrentPlain() ||
                     !state.Frame.IsDragonhowlActive(state.Request, actualAttempt,
                         state.Current[actor.Connection], DragonhowlCurrentPrimary(state))) return false;
                 using var publication = new PreparedSessionSpellPublication(this, phase.Connection, holder, before, candidate,
                     physicalDeath: phase.Death?.Death, physicalDeathPublication: deathWriter?.PreparePublication(), dragonhowlDeath: phase.Death);
                 using var death = phase.Death is null ? null : new PreparedDragonhowlDeath(this, state, phase.Death, deathWriter!, publication);
+                var flashing = phase.Flashing?.Native.PreparePublication(plan, index, before, candidate);
                 LegacyNativeGameClientRuntime.OwnedBasicPhysicalPublication? native = null;
                 WorldServerFrameHandler.BasicPhysicalNativePublication? runtime = null;
                 if (index == 0)
                 {
+                    state.CommitStage = "nativeStamp";
                     if (!state.Frame.TryReadDragonhowlStamp(state.Request, actualAttempt, out var captured,
                             out var generation, out var stamp) || captured is null) return false;
                     var change = IssueBasicPhysicalChange(state.Frame, actor, before, captured, generation,
@@ -131,13 +138,16 @@ public sealed partial class WorldSessionStore
                     runtime = state.Frame.PrepareDragonhowlNativePublication(this, actor, change, native, actualAttempt);
                 }
                 publication.ArmFinalProof();
+                state.CommitStage = "beforeWriter";
                 if (!publication.ConsumeBeforeWriterPlain() || !DragonhowlHeldCurrent(state) ||
                     death is not null && !death.IsCurrentPlain() ||
+                    flashing is not null && !flashing.IsCurrentPlain() ||
                     native is not null && (!native.IsCurrentPlain() || runtime?.IsCurrentPlain() != true)) return false;
                 if (publication.HitpointsWrite is { } writer)
                 {
                     if (deathWriter is null)
                     {
+                        state.CommitStage = "hitpointsWriter";
                         var result = writer.TryCommit(out var reason);
                         if (result == LegacyBoundHitpointsScalarWrite.Outcome.RecoveryRequired)
                         { state.Committed = true; throw new InvalidOperationException("ownedDragonhowlPersistenceUnproven:" + reason); }
@@ -154,14 +164,16 @@ public sealed partial class WorldSessionStore
                     if (!publication.AcceptExternallyPersistedHitpoints())
                         throw new InvalidOperationException("ownedDragonhowlCommittedImageChanged");
                 }
+                state.CommitStage = "afterWriter";
                 if (!publication.IsCurrentPlain() || !DragonhowlHeldCurrent(state) || !permission.IsCurrentPlain() ||
                     death is not null && !death.IsCurrentPlain() ||
+                    flashing is not null && !flashing.IsCurrentPlain() ||
                     native is not null && (!native.IsCurrentPlain() || runtime?.IsCurrentPlain() != true))
                     throw new InvalidOperationException("ownedDragonhowlPublicationChanged");
                 // From this point plain prepared live participants may have
                 // changed even if an unexpected publication exception occurs.
                 state.Committed = true;
-                publication.PublishNative(); death?.PublishPrepared(); native?.PublishPrepared(); runtime?.PublishPrepared();
+                publication.PublishNative(); death?.PublishPrepared(); flashing?.PublishPrepared(); native?.PublishPrepared(); runtime?.PublishPrepared();
                 publication.PublishHolder();
                 state.Committed = true;
                 committed = publication.FinalSession;
@@ -197,6 +209,12 @@ public sealed partial class WorldSessionStore
             return true;
         }
     }
+
+    // Diagnostic only; never consulted by any phase/admission authority.
+    internal string DescribeDragonhowlPhaseFailure(WorldPacketHandlers.OwnedDragonhowlPreparation plan, int index) =>
+        dragonhowlOwners.TryGetValue(plan.Owner, out var state) && ReferenceEquals(state.Plan, plan)
+            ? $"phase={index};stage={state.CommitStage};next={state.NextPhase};started={state.Started};committed={state.Committed}"
+            : $"phase={index};stage=ownerUnavailable";
 
     private static WorldActiveSession[] DragonhowlCurrentRows(DragonhowlOwnerState state) =>
         state.Current.Select(pair => new WorldActiveSession(pair.Key, pair.Value)).ToArray();

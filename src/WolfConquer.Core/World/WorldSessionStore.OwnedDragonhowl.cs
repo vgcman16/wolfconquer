@@ -25,6 +25,7 @@ public sealed partial class WorldSessionStore
         internal WorldServerFrameHandler.OwnedDragonhowlAttempt? Attempt;
         internal readonly Dictionary<int, PreparedDragonhowlDeath> Deaths = new();
         internal int NextPhase;
+        internal string CommitStage = "notStarted";
         internal bool Started, Committed, Completed, Failed;
     }
     private readonly ConditionalWeakTable<OwnedDragonhowlOwner, DragonhowlOwnerState> dragonhowlOwners = new();
@@ -68,12 +69,19 @@ public sealed partial class WorldSessionStore
                 using var permission = TeamSessionStateStore.OwnedDragonhowlPermission.Prepare(
                     actual.TeamStates ?? throw InvalidSpellPublication(), this, owner);
                 if (!WorldPacketHandlers.TryPrepareOwnedDragonhowlActual(this, owner, actual, packet, initialTarget.Player,
-                        selection, participants, out var plan, out reason) || plan is null ||
-                    !frame.OwnedDragonhowlSavedGearCurrent(request) || !held.IsCurrentPlain() || !permission.IsCurrentPlain()) return false;
+                        selection, participants, out var plan, out reason) || plan is null)
+                { if (string.IsNullOrEmpty(reason)) reason = "ownedDragonhowlPlanUnavailable"; return false; }
+                if (!frame.OwnedDragonhowlSavedGearCurrent(request))
+                { reason = "ownedDragonhowlSavedGearChanged"; return false; }
+                if (!held.IsCurrentPlain())
+                { reason = "ownedDragonhowlParticipantsChanged"; return false; }
+                if (!permission.IsCurrentPlain())
+                { reason = "ownedDragonhowlPermissionChanged"; return false; }
                 // These are genuine writer/native preparations. They do not
                 // publish, consume a request, or serve as a successful dry run.
-                foreach (var phase in plan.Phases)
+                for (int phaseIndex = 0; phaseIndex < plan.Phases.Count; phaseIndex++)
                 {
+                    var phase = plan.Phases[phaseIndex];
                     if (phase.NonPlayer is not null)
                     {
                         if (!phase.NonPlayer.InputsAreCurrentPlain()) return false;
@@ -89,7 +97,10 @@ public sealed partial class WorldSessionStore
                         physicalDeathPublication: writer?.PreparePublication(), dragonhowlDeath: death);
                     using var settlement = death is null ? null : new PreparedDragonhowlDeath(this, state, death, writer!, publication);
                     publication.ArmFinalProof();
-                    if (!publication.IsCurrentPlain() || settlement is not null && !settlement.IsCurrentPlain()) return false;
+                    if (!publication.ConsumeBeforeWriterPlain())
+                    { reason = "ownedDragonhowlBeforeWriterUnavailable:" + phaseIndex; return false; }
+                    if (settlement is not null && !settlement.IsCurrentPlain())
+                    { reason = "ownedDragonhowlDeathSettlementUnavailable:" + phaseIndex; return false; }
                 }
                 // Unaffected line spectators supplied permission observations,
                 // not mutation/retirement ownership. Keep only real phases and
