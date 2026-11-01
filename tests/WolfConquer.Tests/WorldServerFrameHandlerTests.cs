@@ -25978,6 +25978,12 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             Assert.DoesNotContain(
                 "WorldServer ignored legacy boss magic-type retaliation source no-op",
                 log.ToString());
+            // Unknown magic is a no-op for this genuinely admitted character;
+            // the old 29836 constant belonged to a different detached fixture.
+            var beforeNoOp = owner.Current();
+            var receiver = beforeNoOp.NativeGameClient!.OrdinarySpellBinding!;
+            Assert.True(owner.Store.IsBoundSpellOwnerCurrent(receiver));
+            Assert.Equal(beforeNoOp.Character.MinHitPoints, (long)receiver.Player.HitPoints);
             timeProvider.Advance(tickInterval);
             await WaitForProactiveMonsterActionAsync(
                 () => log.ToString().Contains(
@@ -25987,7 +25993,9 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
 
             Assert.False(HasMonsterAttackFrame(), $"Unknown boss magic type produced an attack frame. Log={log}");
             var updated = owner.Current();
-            Assert.Equal(29_836, updated.Character.MinHitPoints);
+            Assert.Equal(beforeNoOp.Character.MinHitPoints, updated.Character.MinHitPoints);
+            Assert.Equal(updated.Character.MinHitPoints, (long)receiver.Player.HitPoints);
+            Assert.True(owner.Store.IsBoundSpellOwnerCurrent(receiver));
             Assert.DoesNotContain("boss magic monsters are not modeled yet", log.ToString());
             Assert.DoesNotContain("WorldServer sent legacy magic monster retaliation", log.ToString());
             Assert.DoesNotContain("WorldServer sent legacy monster retaliation", log.ToString());
