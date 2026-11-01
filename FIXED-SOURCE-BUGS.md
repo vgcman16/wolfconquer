@@ -8,12 +8,30 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ### FSB-268: Commit target damage and actor weapon progression in one recoverable intent
 
+Focused attribute-scope correction (qualified2026-11-01; full integration OPEN):
+the real joint-hit opaque-attribute control exposed generic WithCharacterAttribute
+collapsing Ordinal Other/other into an OrdinalIgnoreCase copy. The shared
+DATA copy/edit fix retains all supported source comparers and opaque spellings,
+updates/removes a unique owned alias case-insensitively, refuses ambiguous used
+fields, and preserves existing raw-witness/callback protections. Reviewed bulk
+copy writers and the same stance clone use that edit. New pure DATA and genuine
+configured stance/Physical controls keep existing HP/damage/proficiency goldens.
+Root build10 passed0errors/103reported warnings in39.84s. Focused11 passed169/169,
+0failures/skips in18s; actual TRX includes all25new cases and the original opaque
+joint-hit regression. No currentness/receipt/fence was relaxed. The separate
+teleport reducer, SQL, crash safety and live acceptance remain open.
+
 OPEN integration. Build03 passed (0 errors, 162 reported warnings).
 Focused04 completed 522 passed / 8 failed / 0 skipped over530 in19m47s.
 Actual TRX result nodes were counted, including32/32 first-use controls.
-The eight failures remain unqualified: one old level0 assertion, three
-published InvalidOperation classifications, three Hawks stance setups and one
-opaque-key preservation control. No full-suite or fixed-subsystem claim follows. The earlier ordinary player
+Its eight failures remain in that historical run. Arithmetic and the three
+published InvalidOperation cases subsequently passed in focused06 (129P/5F);
+all four Hawks setup/recovery controls passed in focused08 (4P/2F); opaque data
+now passes in focused11 (169P/0F). These scopes overlap and are not a full suite.
+The two new earnedXP/Physical cases in focused08 remain RED before level138:
+MonsterCombat.Proficiency directly pre-saves Profs; the actual bound Frame
+saved-origin writer rejects the unregistered save. A genuine cooperating-writer
+repair is separate, not yet verified. No fixed-subsystem claim follows. The earlier ordinary player
 physical path durably saved target HP/death before Interaction, HP and death
 output, then separately saved actor Profs. Output failure or process loss in
 that gap could retain the hit without its proficiency outcome. A writable-file
@@ -51,6 +69,18 @@ real-writer and genuinely missing-directory controls passed32/32 in focused04.
 This is focused evidence within the522/8 overall red run, not full integration.
 Actual earned-XP/Physical serialization coverage is prepared separately; direct
 marker-fence reachability is not claimed by that serialized route.
+A further confirmed mismatch is corrected with focused06 execution:
+internal proficiency scaling, violet bonus and prior-XP addition now use UInt128
+before threshold subtraction, matching actual native computation. Only the final
+saved/wire remainder narrows; public uint AppliedExperience stays a bounded
+summary. The old stall assertion now requires cap20/XP0 and exact opaque/file/
+wire data. Five actual native/typed boundary cases and one maximal typed-bonus
+control passed. This does not change the separately bounded rated-input API.
+Published version24 InvalidOperation failures also
+now use its existing retain-intent uncertainty classification; pre-intent/global
+filters and other journal versions remain unchanged. Focused04's eight reds are
+retained; later selected passes do not relabel that full selection green.
+
 Retained-intent recovery is not fresh-request deduplication, a power-loss or
 multi-process guarantee, SQL integration, live acceptance or full parity.
 

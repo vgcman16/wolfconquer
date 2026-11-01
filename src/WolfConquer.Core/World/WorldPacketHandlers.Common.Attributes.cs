@@ -34,7 +34,7 @@ public static partial class WorldPacketHandlers
         ulong value)
     {
         var attributes = CopyCharacterAttributes(character.Attributes);
-        attributes[key] = value.ToString(CultureInfo.InvariantCulture);
+        LegacyCharacterAttributeMap.Set(attributes, key, value.ToString(CultureInfo.InvariantCulture));
 
         return character with { Attributes = attributes };
     }
@@ -45,7 +45,7 @@ public static partial class WorldPacketHandlers
         string value)
     {
         var attributes = CopyCharacterAttributes(character.Attributes);
-        attributes[key] = value;
+        LegacyCharacterAttributeMap.Set(attributes, key, value);
 
         return character with { Attributes = attributes };
     }
@@ -54,27 +54,14 @@ public static partial class WorldPacketHandlers
         CharacterSnapshot character,
         string key)
     {
-        if (!character.Attributes.ContainsKey(key))
-        {
-            return character;
-        }
-
         var attributes = CopyCharacterAttributes(character.Attributes);
-        attributes.Remove(key);
-        return character with { Attributes = attributes };
+        return LegacyCharacterAttributeMap.Remove(attributes, key)
+            ? character with { Attributes = attributes }
+            : character;
     }
 
     private static Dictionary<string, string> CopyCharacterAttributes(
-        IReadOnlyDictionary<string, string> attributes)
-    {
-        var copy = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (key, value) in attributes)
-        {
-            copy[key] = value;
-        }
-
-        return copy;
-    }
+        IReadOnlyDictionary<string, string> attributes) => LegacyCharacterAttributeMap.Copy(attributes);
 
     private static bool TryReadInt64Attribute(
         IReadOnlyDictionary<string, string> attributes,

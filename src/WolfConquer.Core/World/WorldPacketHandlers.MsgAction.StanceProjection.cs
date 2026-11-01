@@ -25,10 +25,10 @@ public static partial class WorldPacketHandlers
             Expected = expected;
             before = new(expected.Character);
             Action = request.DwParam;
-            RemovedActivePick = HasActivePick(expected.Character);
-            var attributes = new Dictionary<string, string>(expected.Character.Attributes, StringComparer.OrdinalIgnoreCase)
-            { ["Action"] = Action.ToString(CultureInfo.InvariantCulture) };
-            if (RemovedActivePick) attributes.Remove("ActivePick");
+            var attributes = CopyCharacterAttributes(expected.Character.Attributes);
+            RemovedActivePick = HasOwnedActivePick(attributes);
+            LegacyCharacterAttributeMap.Set(attributes, "Action", Action.ToString(CultureInfo.InvariantCulture));
+            if (RemovedActivePick) LegacyCharacterAttributeMap.Remove(attributes, "ActivePick");
             Proposed = expected with { Character = expected.Character with { Attributes = attributes } };
             uint uid = CheckedUInt32(expected.Character.Uid, nameof(expected.Character.Uid));
             Skin = LegacyDragonSkinState.FromSnapshot(expected.Character).EquippedSkin;
@@ -45,6 +45,13 @@ public static partial class WorldPacketHandlers
                     Facing = 2, RemainTime = 0, Strings = ["Interrupted"],
                 }.ToFrameBytes();
             if (!before.IsCurrentPlain()) throw new InvalidOperationException("stanceInputsChangedDuringPreparation");
+        }
+
+        private static bool HasOwnedActivePick(Dictionary<string, string> attributes)
+        {
+            if (!LegacyCharacterAttributeMap.TryRead(attributes, "ActivePick", out var raw)) return false;
+            return raw.Equals("true", StringComparison.OrdinalIgnoreCase) || raw.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                ulong.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) && value != 0;
         }
 
         internal static StanceProjection Prepare(WorldSession expected, MsgActionPacket request) => new(expected, request);

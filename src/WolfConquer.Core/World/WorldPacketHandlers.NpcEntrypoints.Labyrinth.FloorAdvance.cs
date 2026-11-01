@@ -99,6 +99,8 @@ public static partial class WorldPacketHandlers
             return true;
         }
 
+        LegacyCharacterAttributeMap.Validate(initialSession.Character.Attributes,
+            "Map", "X", "Y", "PMap", "PMapX", "PMapY", "DynamicID", "PDinamycID");
         var preflight = await PrepareLegacyTeleportAsync(
                 context,
                 initialSession,
@@ -354,7 +356,7 @@ public static partial class WorldPacketHandlers
         var updatedAttributes = CopyCharacterAttributes(reducedCharacter.Attributes);
         foreach (var value in persistenceValues)
         {
-            updatedAttributes[value.Key] = value.Value;
+            LegacyCharacterAttributeMap.Set(updatedAttributes, value.Key, value.Value);
         }
 
         var updatedCharacter = reducedCharacter with

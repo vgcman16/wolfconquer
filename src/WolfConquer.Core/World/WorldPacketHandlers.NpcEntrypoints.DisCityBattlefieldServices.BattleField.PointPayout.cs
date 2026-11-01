@@ -62,6 +62,8 @@ public static partial class WorldPacketHandlers
         var path = Path.Combine(
             storedSession.UsersRoot,
             storedSession.AccountId.ToString(CultureInfo.InvariantCulture) + ".ini");
+        LegacyCharacterAttributeMap.Validate(storedSession.Character.Attributes,
+            "BattleFieldPoints", "ConquerPoints", "Map", "X", "Y", "PMap", "PMapX", "PMapY", "DynamicID", "PDinamycID");
         var preflight = await PrepareLegacyTeleportAsync(
                 context,
                 storedSession,
@@ -186,8 +188,8 @@ public static partial class WorldPacketHandlers
         var updatedConquerPoints = checked(sourceConquerPoints + rewardConquerPoints);
         var sourceCharacter = sourceSession.Character;
         var updatedAttributes = CopyCharacterAttributes(sourceCharacter.Attributes);
-        updatedAttributes["BattleFieldPoints"] = "0";
-        updatedAttributes["ConquerPoints"] = updatedConquerPoints.ToString(CultureInfo.InvariantCulture);
+        LegacyCharacterAttributeMap.Set(updatedAttributes, "BattleFieldPoints", "0");
+        LegacyCharacterAttributeMap.Set(updatedAttributes, "ConquerPoints", updatedConquerPoints.ToString(CultureInfo.InvariantCulture));
         var updatedCharacter = sourceCharacter with
         {
             ConquerPoints = updatedConquerPoints,
@@ -220,12 +222,12 @@ public static partial class WorldPacketHandlers
             persistenceValues["PDinamycID"] = previousDynamicId;
         }
 
-        updatedAttributes["Map"] = persistenceValues["Map"];
-        updatedAttributes["X"] = persistenceValues["X"];
-        updatedAttributes["Y"] = persistenceValues["Y"];
-        updatedAttributes["PMap"] = persistenceValues["PMap"];
-        updatedAttributes["PMapX"] = persistenceValues["PMapX"];
-        updatedAttributes["PMapY"] = persistenceValues["PMapY"];
+        LegacyCharacterAttributeMap.Set(updatedAttributes, "Map", persistenceValues["Map"]);
+        LegacyCharacterAttributeMap.Set(updatedAttributes, "X", persistenceValues["X"]);
+        LegacyCharacterAttributeMap.Set(updatedAttributes, "Y", persistenceValues["Y"]);
+        LegacyCharacterAttributeMap.Set(updatedAttributes, "PMap", persistenceValues["PMap"]);
+        LegacyCharacterAttributeMap.Set(updatedAttributes, "PMapX", persistenceValues["PMapX"]);
+        LegacyCharacterAttributeMap.Set(updatedAttributes, "PMapY", persistenceValues["PMapY"]);
 
         var updatedSession = sourceSession with
         {

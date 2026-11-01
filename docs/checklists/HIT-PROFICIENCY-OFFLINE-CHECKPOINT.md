@@ -1,51 +1,35 @@
-# Hit and proficiency source rebase checkpoint
+# Hit/proficiency offline checkpoint - 2026-11-01
 
-The journal24 source intake is being deliberately rebased onto the authoritative
-Root production checkpoint `cda6b65ba3ee3fcef3fbef42a0662c62dbe5ab3a` on 2026-11-01.
-The held 57-path check01 candidate is a donor, not a replacement for newer shared
-Frame, Store, native publication, XP/EOF or committed-generation owners. This
-rebased batch is **SOURCE ONLY, UNBUILT/UNRUN** and remains under Root review.
-No integrated pass, deployment, full parity, SQL or live-client claim follows.
+The full clean English server/client and newer-client integration goal is ACTIVE.
+Current Root check02 branch is an offline, unpublished draft; legacy client and
+updater execution hold remains active. Original full8996 result remains RED:
+Core33308P/91F/152actualNotExecuted;updater446P,later stages not run.
 
-- [x] Retain the closed historical DATA recipe and bounded version24 journal.
-- [x] Rebase the genuine target HP/death plus actor proficiency transaction and
-  its configured recovery design, preserving current real owner joins.
-- [x] Rebase 12 focused test files and three specifications/checklist files.
-  Their source declares 36 test methods / 84 cases (one Windows-only fact);
-  these are authored controls, not executed or discovered test totals.
-- [x] Preserve independent file/wire goldens, actual admission and native graph
-  fixtures, and case-distinct opaque attributes. Keep the original observation
-  exception/stack when direct Frame transport-loss tests intercept output.
-- [ ] Root review the complete production rebase: current proc death-purpose
-  union, real receipt pointers, native committed-generation joins, continuation
-  fences, lock order, bounds, custody and recovery routing.
-- [ ] Build and run the actual rebased producer/native/holder/output and recovery
-  controls; retain and repair failures before qualifying this batch.
-- [ ] Cover an absent-before Profs image at a genuine hit. Ordinary admission
-  interprets a missing file as an empty book but includes a null-to-empty Profs
-  change in durable admission. Deleting that file after binding would not be a
-  valid saved-owner positive. A supported absent-through-admission lifecycle
-  and corresponding native/file custody contract are still needed.
-- [ ] Add earned live XP-continuation refusal coverage if it is not already
-  exercised by the current baseline. Pure recipe marker refusals alone do not
-  prove an actual admission/continuation lifecycle.
-- [ ] Complete the appropriate affected and full CI gates before public intake.
+- [x] Deliberately join actual target HP/death and actor Profs in journal24,
+  preserving newer proc/native/Frame/XP/EOF owners and independent wire goldens.
+- [x] First-use real absent Profs directories/files and native empty books:
+  32/32 controls pass inside focused04 (522P/8F/0skip over530,19m47s).
+- [x] Widen internal proficiency scaling/bonus/addition before thresholds;
+  real published/version24 failure classification controls pass in focused06.
+- [x] Fix genuine Hawks catalog collection shape; all4 Hawks controls pass in08.
+- [x] Preserve shared map comparers, unrelated case-distinct fields and unique
+  owned aliases; actual stance/Physical and SkyTower/Instance/NPC neighbors pass.
+  Build10:0errors/103warnings39.84s. Focused11:169P/0F/0skip18s,including25new.
+- [ ] Repair real monster Profs writer cooperation. Both new earnedXP/Physical
+  cases in08 remain RED before138: unregistered direct Profs save correctly
+  trips actual bound Frame saved-origin fence. Do not adopt equal-file state.
+- [ ] Join complete lethal rewards/TeamXP/future-recipient receive/death phases.
+- [ ] Complete separate teleport reducer comparer/alias preservation and tests.
+- [ ] Close remaining original91 regressions and appropriate full Windows gate.
+- [ ] Complete SQL/trade/crash/outbox,new-client runtime/cost/profile/English.
+- [ ] Perform actual-client acceptance and staged local routes after hold clears.
 
-Authored controls include genuine nonlethal/lethal two- and three-target intents,
-changed and no-op Spells, all replacement/stage cut points, distinct account/UID
-participants, actual Hawk zero-applied-damage, post-intent exceptions, Windows
-file lease, corrupt/foreign input refusal and two configured recovery opens.
-Missing-before Spells needs explicit lifecycle qualification; do not infer it
-from a no-op image or missing-before Profs data projection.
+Focused06:129P/5F;focused08:4P/2F;focused11:169P/0F. These selections overlap,
+and later passes do not relabel historical failures or establish full parity.
+Build09 failed one test import and three unrestored updater-project assets;
+that failed no-restore solution attempt is retained. Build10 corrected the import
+and targets the restored core test project, not a complete solution/full CI gate.
 
-Successful wire order remains Interaction, HP/death, proficiency, repeat arm.
-Recovery of one retained intent does not prove fresh-request deduplication,
-transport delivery, joint XP/rewards/SQL atomicity or power-loss/multi-process
-safety. Dragonhowl/proc, monster/SOB and other combat branches remain separately
-owned; their newer cda implementations must survive this basic-physical rebase.
-
-No compiler, test, client/updater, Git or host-sensitive command is authorized
-for the test/spec helper. Root alone integrates and qualifies. Original data,
-routes, saves, backups, held mail and the client-execution/antivirus boundaries
-remain preserved. Historical check01 receipts remain where originally recorded;
-this new source rebase does not supersede them with a passing claim.
+Root alone integrates/executes/stages/commits/pushes. No push/live launch or
+original data/route/restore changes. Preserve9unclaimed gear mails, known-good
+D:\cqclient, original59Guild/Union edits and antivirus settings.

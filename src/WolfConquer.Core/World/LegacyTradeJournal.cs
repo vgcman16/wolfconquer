@@ -195,7 +195,8 @@ internal static partial class LegacyTradeJournal
             }
             return true;
         }
-        catch (Exception ex) when (IsJournalException(ex))
+        catch (Exception ex) when (IsJournalException(ex) ||
+            published && record.Version == 24 && ex is InvalidOperationException)
         {
             if (!published)
             {

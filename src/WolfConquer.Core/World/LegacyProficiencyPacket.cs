@@ -145,11 +145,10 @@ public readonly record struct LegacyProficiencyPacket(
         }
 
         var scaledExperience = ScaleLegacyProficiencyExperience(rawExperience, proficiency.Level);
-        var appliedExperience = AddSaturating(
-            scaledExperience,
-            GetPercentBonus(scaledExperience, violetGemBonusPercent));
-
-        var experience = AddSaturating(proficiency.Experience, appliedExperience);
+        // The real native path widens multiplication and addition BEFORE
+        // threshold subtraction. A uint diagnostic cap must not discard gain.
+        var appliedExperience = scaledExperience + GetPercentBonus(scaledExperience, violetGemBonusPercent);
+        var experience = (UInt128)proficiency.Experience + appliedExperience;
         var level = proficiency.Level;
         var levelChanged = false;
 
@@ -184,14 +183,19 @@ public readonly record struct LegacyProficiencyPacket(
             }
         }
 
+        if (experience > uint.MaxValue)
+            throw new InvalidDataException("Proficiency remainder exceeds its saved uint field.");
         var updatedProficiency = proficiency with
         {
             Level = level,
-            Experience = experience,
+            Experience = (uint)experience,
             NeededExperience = GetNeededExperience(level),
         };
 
-        return CreateExperienceResult(updatedProficiency, appliedExperience, updated: true, levelChanged);
+        // Preserve the existing public bounded summary; only this diagnostic
+        // narrows early. Saved/wire progression consumed the full widened gain.
+        var reportedExperience = appliedExperience > uint.MaxValue ? uint.MaxValue : (uint)appliedExperience;
+        return CreateExperienceResult(updatedProficiency, reportedExperience, updated: true, levelChanged);
     }
 
     public static bool TryParse(PacketFrame frame, out LegacyProficiencyPacket packet)
@@ -223,9 +227,9 @@ public readonly record struct LegacyProficiencyPacket(
         return writer.ToArray();
     }
 
-    private static uint ScaleLegacyProficiencyExperience(uint rawExperience, uint level)
+    private static UInt128 ScaleLegacyProficiencyExperience(uint rawExperience, uint level)
     {
-        var scaled = (ulong)rawExperience;
+        UInt128 scaled = rawExperience;
         if (level < 5)
         {
             scaled *= 100;
@@ -235,21 +239,10 @@ public readonly record struct LegacyProficiencyPacket(
             scaled /= 100;
         }
 
-        scaled /= level + 1UL;
-        return scaled > uint.MaxValue ? uint.MaxValue : (uint)scaled;
+        return scaled / (level + 1UL);
     }
 
-    private static uint GetPercentBonus(uint value, uint percent)
-    {
-        var bonus = (ulong)value * percent / 100;
-        return bonus > uint.MaxValue ? uint.MaxValue : (uint)bonus;
-    }
-
-    private static uint AddSaturating(uint left, uint right)
-    {
-        var sum = (ulong)left + right;
-        return sum > uint.MaxValue ? uint.MaxValue : (uint)sum;
-    }
+    private static UInt128 GetPercentBonus(UInt128 value, uint percent) => value * percent / 100;
 
     private static LegacyProficiencyExperienceResult CreateExperienceResult(
         PlayerProficiencySnapshotEntry proficiency,

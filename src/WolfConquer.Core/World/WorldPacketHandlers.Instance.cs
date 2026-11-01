@@ -230,6 +230,11 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        if (isSkyTowerChallenge)
+            LegacyCharacterAttributeMap.Validate(session.Character.Attributes, LegacySkyTowerActiveChallengeAttribute,
+                LegacySkyTowerFloorAttribute, LegacySkyTowerAvailableAttemptsAttribute, LegacySkyTowerActiveCompletionAttribute);
+        LegacyCharacterAttributeMap.Validate(session.Character.Attributes,
+            "Map", "X", "Y", "PMap", "PMapX", "PMapY", "DynamicID", "PDinamycID");
         var dynamicId = Interlocked.Increment(ref s_legacyInstanceDynamicId);
         var teleportRequest = new LegacyTeleportRequest(
             "CMsgInstance.Process3 Info -> GameClient.Teleport",
@@ -249,25 +254,22 @@ public static partial class WorldPacketHandlers
         session = preflight.Session;
         source = session.Character;
 
+        if (isSkyTowerChallenge)
+        {
+            var attributes = CopyCharacterAttributes(source.Attributes);
+            LegacyCharacterAttributeMap.Set(attributes, LegacySkyTowerActiveChallengeAttribute, packet.InstanceId.ToString(CultureInfo.InvariantCulture));
+            LegacyCharacterAttributeMap.Set(attributes, LegacySkyTowerFloorAttribute, skyTowerChallenge.Floor.ToString(CultureInfo.InvariantCulture));
+            LegacyCharacterAttributeMap.Set(attributes, LegacySkyTowerAvailableAttemptsAttribute, availableAttempts.ToString(CultureInfo.InvariantCulture));
+            LegacyCharacterAttributeMap.Remove(attributes, LegacySkyTowerActiveCompletionAttribute);
+            source = source with { Attributes = attributes };
+        }
+
         if (IsLegacyInstanceInfoDynamicMap(source) &&
             context.MonsterStates is { } existingMonsterStates)
         {
             existingMonsterStates.RemoveDynamicMonsters(
                 CheckedInt32(LegacyInstanceInfoMapId, nameof(LegacyInstanceInfoMapId)),
                 ReadCharacterDynamicId(source));
-        }
-
-        if (isSkyTowerChallenge)
-        {
-            var attributes = CopyCharacterAttributes(source.Attributes);
-            attributes[LegacySkyTowerActiveChallengeAttribute] =
-                packet.InstanceId.ToString(CultureInfo.InvariantCulture);
-            attributes[LegacySkyTowerFloorAttribute] =
-                skyTowerChallenge.Floor.ToString(CultureInfo.InvariantCulture);
-            attributes[LegacySkyTowerAvailableAttemptsAttribute] =
-                availableAttempts.ToString(CultureInfo.InvariantCulture);
-            attributes.Remove(LegacySkyTowerActiveCompletionAttribute);
-            source = source with { Attributes = attributes };
         }
 
         var preparedSession = session with { Character = source };
@@ -329,6 +331,8 @@ public static partial class WorldPacketHandlers
             "CMsgInstance.Process3 Info compatibility replay -> GameClient.Teleport",
             session.Character.MapId,
             dynamicId);
+        LegacyCharacterAttributeMap.Validate(session.Character.Attributes,
+            "Map", "X", "Y", "PMap", "PMapX", "PMapY", "DynamicID", "PDinamycID");
         var preflight = await PrepareLegacyTeleportAsync(
                 context,
                 session,
@@ -552,6 +556,8 @@ public static partial class WorldPacketHandlers
         var teleportRequest = new LegacyTeleportRequest(
             "CMsgInstance.Process3 Quit -> GameClient.Teleport",
             LegacyTwinCityMapId);
+        LegacyCharacterAttributeMap.Validate(session.Character.Attributes,
+            "Map", "X", "Y", "PMap", "PMapX", "PMapY", "DynamicID", "PDinamycID");
         var preflight = await PrepareLegacyTeleportAsync(
                 context,
                 session,

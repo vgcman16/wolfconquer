@@ -78,20 +78,6 @@ public static partial class WorldPacketHandlers
             return killerSession;
         }
 
-        context.MonsterStates?.SuppressDynamicMonsterRespawns(monster.MapId, monster.DynamicId);
-        var remainingTargets = context.MonsterStates?
-            .GetVisibleDynamicMonsters(monster.MapId, monster.DynamicId, DateTimeOffset.UtcNow)
-            .Count(entry => entry.MonsterFamily.Id == checked((int)challenge.MonsterFamilyId)) ?? 0;
-        if (remainingTargets > 0)
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer advanced Sky Tower objective " +
-                    $"{FormatSession(context)} challengeId={activeChallengeId} floor={challenge.Floor} " +
-                    $"monsterId={challenge.MonsterFamilyId} remaining={remainingTargets} required={challenge.MonsterCount}.")
-                .ConfigureAwait(false);
-            return killerSession;
-        }
-
         var completedChallengeId = activeChallengeId;
         var previousCompletedChallengeId = ReadAttributeUInt32(
             killerSession.Character.Attributes,
@@ -107,14 +93,24 @@ public static partial class WorldPacketHandlers
         var remainingAttempts = availableAttempts == 0 ? 0 : availableAttempts - 1;
 
         var attributes = CopyCharacterAttributes(killerSession.Character.Attributes);
-        attributes[LegacySkyTowerActiveCompletionAttribute] =
-            activeChallengeId.ToString(CultureInfo.InvariantCulture);
-        attributes[LegacySkyTowerCompletedChallengeAttribute] =
-            completedChallengeId.ToString(CultureInfo.InvariantCulture);
-        attributes[LegacySkyTowerFloorAttribute] =
-            challenge.Floor.ToString(CultureInfo.InvariantCulture);
-        attributes[LegacySkyTowerAvailableAttemptsAttribute] =
-            remainingAttempts.ToString(CultureInfo.InvariantCulture);
+        LegacyCharacterAttributeMap.Set(attributes, LegacySkyTowerActiveCompletionAttribute, activeChallengeId.ToString(CultureInfo.InvariantCulture));
+        LegacyCharacterAttributeMap.Set(attributes, LegacySkyTowerCompletedChallengeAttribute, completedChallengeId.ToString(CultureInfo.InvariantCulture));
+        LegacyCharacterAttributeMap.Set(attributes, LegacySkyTowerFloorAttribute, challenge.Floor.ToString(CultureInfo.InvariantCulture));
+        LegacyCharacterAttributeMap.Set(attributes, LegacySkyTowerAvailableAttemptsAttribute, remainingAttempts.ToString(CultureInfo.InvariantCulture));
+
+        context.MonsterStates?.SuppressDynamicMonsterRespawns(monster.MapId, monster.DynamicId);
+        var remainingTargets = context.MonsterStates?
+            .GetVisibleDynamicMonsters(monster.MapId, monster.DynamicId, DateTimeOffset.UtcNow)
+            .Count(entry => entry.MonsterFamily.Id == checked((int)challenge.MonsterFamilyId)) ?? 0;
+        if (remainingTargets > 0)
+        {
+            await context.Log.WriteLineAsync(
+                    "WorldServer advanced Sky Tower objective " +
+                    $"{FormatSession(context)} challengeId={activeChallengeId} floor={challenge.Floor} " +
+                    $"monsterId={challenge.MonsterFamilyId} remaining={remainingTargets} required={challenge.MonsterCount}.")
+                .ConfigureAwait(false);
+            return killerSession;
+        }
 
         var updatedSession = killerSession with
         {

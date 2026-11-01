@@ -22,13 +22,18 @@ public sealed class LegacyBasicPhysicalProficiencyCalculationTests
     }
 
     [Fact]
-    public void RateSaturatesAndExistingLevelZeroUsesExistingFormula()
+    public void RateSaturatesButTheFullWidenedLevelZeroGainReachesTheNativeCap()
     {
         var before = PlayerProficiencySnapshotLoader.Parse(Book((410, 0, 0, 0, 0, 1, 2, 3)));
         var calculation = new WorldPacketHandlers.BasicPhysicalProficiencyCalculation(before, [410], uint.MaxValue);
         Assert.Equal(uint.MaxValue, calculation.RatedExperience);
-        Assert.Equal(uint.MaxValue, Assert.Single(calculation.After.Proficiencies).Experience);
-        Assert.Equal((uint)0, Assert.Single(calculation.After.Proficiencies).Level);
+        Assert.Equal(new PlayerProficiencySnapshotEntry(410, 20, 0, 0, 3_200_000_000),
+            Assert.Single(calculation.After.Proficiencies));
+        Assert.Equal(Book((410, 20, 0, 0, 3_200_000_000, 1, 2, 3)),
+            LegacyBasicPhysicalProficiencyImage.Project(Book((410, 0, 0, 0, 0, 1, 2, 3)), calculation));
+        Assert.Equal(new byte[] { 20, 0, 0xF9, 0x07, 0x9A, 1, 0, 0, 20, 0, 0, 0,
+            0, 0, 0, 0, 0, 0x20, 0xBC, 0xBE }, Assert.Single(calculation.Frames).ToArray());
+        Assert.Equal(new PlayerProficiencySnapshotEntry(410, 0, 0, 0, 0), Assert.Single(before.Proficiencies));
     }
 
     [Theory]

@@ -61,7 +61,7 @@ public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
         var spells = new PlayerSpellSnapshot([new(15920, 9, 0, 0, 0, 0)]);
         var options = new LegacyRuntimeUpdateLoopOptions(false, TimeSpan.FromSeconds(1), clock,
             LegacySignedMillisecondClock.FromTimeProvider(clock, 10000));
-        var catalog = NativeCallerWorldDataFixture.Create([OwnedEquipmentBehaviorFixture.Item(ProficiencyWeaponType)], [],
+        var catalog = NativeCallerWorldDataFixture.Create(new ItemType[] { OwnedEquipmentBehaviorFixture.Item(ProficiencyWeaponType) }, [],
             magic: hawks.Magic.ToArray(), magicEffects: hawks.MagicEffects.ToArray());
         return OwnedEquipmentBehaviorFixture.RunWithProficiencyImageAsync(
             new(actor, items, spells, PlayerProficiencySnapshotLoader.Parse(profImage)), catalog, options, profImage,
