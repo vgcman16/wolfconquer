@@ -84,7 +84,12 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             plan = candidate; reason = string.Empty; return true;
         }
         catch (Exception error) when (IsPreparationFailure(error))
-        { reason = "ordinaryAdmissionPreparation:" + error.GetType().Name; return false; }
+        {
+            reason = "ordinaryAdmissionPreparation:" + error.GetType().Name + ":origin=" +
+                string.Join(" > ", new System.Diagnostics.StackTrace(error).GetFrames()
+                    .Take(6).Select(stackFrame => stackFrame.GetMethod()?.Name ?? "unknown"));
+            return false;
+        }
     }
 
     private static bool IsPreparationFailure(Exception error) => error is IOException or InvalidDataException or UnauthorizedAccessException or

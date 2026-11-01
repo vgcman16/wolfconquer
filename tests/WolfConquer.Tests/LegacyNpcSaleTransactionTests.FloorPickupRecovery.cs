@@ -180,10 +180,12 @@ public sealed partial class LegacyNpcSaleTransactionTests
         Assert.Empty(expected.PlayerItems.EquipmentItems);
         Assert.False(savedCharacter.Attributes.ContainsKey("Vigor"));
         var expectedAttributes = new Dictionary<string, string>(savedCharacter.Attributes, StringComparer.OrdinalIgnoreCase)
-        { ["Vigor"] = "0", ["Stamina"] = "0" };
+        { ["Vigor"] = "0", ["Stamina"] = "0", ["Action"] = "0", ["DynamicID"] = "0" };
         // Missing saved stamina has a native-zero runtime projection at
         // genuine admission; the recovered asset WAL still adds no saved row.
         Assert.False(savedCharacter.Attributes.ContainsKey("Stamina"));
+        Assert.False(savedCharacter.Attributes.ContainsKey("Action"));
+        Assert.False(savedCharacter.Attributes.ContainsKey("DynamicID"));
         Assert.Equal((ushort)0, current.NativePlayer!.Stamina);
         var extraAttributes = current.Character.Attributes.Where(field => !expectedAttributes.ContainsKey(field.Key))
             .Select(field => field.Key.Equals("SecurityPass", StringComparison.OrdinalIgnoreCase) ? "SecurityPass=[redacted extra]" :

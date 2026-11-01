@@ -43,7 +43,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             // the shared journal is pending; inspect its unchanged owned image.
             Assert.Equal(uidBytes, uids.StateBytes());
             if (interruption == (int)LegacyOrdinaryAdmissionInterruption.AfterPending) AssertAdmissionFiles(initial);
-        }, admissionUids: uids.Owner);
+        }, worldData: AdmissionCatalog(), admissionUids: uids.Owner);
         uids.Dispose();
         Assert.True(FreshAdmissionRecovery(input).TryEnsureInitialized(out var recovered), recovered);
         Assert.False(LegacyTradeJournal.HasPending(input.Users));
@@ -68,7 +68,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.Same(admitted, (await SendLoginAsync(fixture, wire)).After);
             AssertAdmissionFiles(files);
             Assert.False(LegacyTradeJournal.HasPending(input.Users));
-        }, admissionUids: uids.Owner);
+        }, worldData: AdmissionCatalog(), admissionUids: uids.Owner);
     }
 
     [Theory]

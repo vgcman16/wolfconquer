@@ -130,6 +130,16 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
             Assert.NotNull(native.OrdinarySpellBinding);
             Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(connection, admitted));
             Assert.True(Recovery.IsReadyFor(Data.Users, Data.Items));
+            if (options.Enabled)
+            {
+                var workers = Handler.CaptureLegacyRuntimeWorkerTasks();
+                Assert.True(Log.ToString().Contains($"WorldServer legacy MsgLoginGame Success key={uid} ", StringComparison.Ordinal),
+                    $"Admitted login did not finish startup before scheduling. Workers={workers.Length}; log:\n{Log}");
+                Assert.True(workers.Length >= 2 && workers.All(worker => !worker.IsCompleted),
+                    $"Completed login did not retain both live runtime workers. Workers={workers.Length}, " +
+                    $"states={string.Join(",", workers.Select(worker => worker.Status))}, " +
+                    $"faulted={Handler.LegacyRuntimeFaultedWorkerCount}; log:\n{Log}");
+            }
         }
     }
 

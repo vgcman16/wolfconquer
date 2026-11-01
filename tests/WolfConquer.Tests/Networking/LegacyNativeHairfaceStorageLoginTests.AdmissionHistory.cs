@@ -32,7 +32,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.Equal(new uint[] { 2000001, 2000002, 2000003, 2000004 }, admitted.PlayerItems.EquipmentItems.Select(row => row.Uid));
             AssertAdmissionFiles(files);
             Assert.Equal(archived, uids.StateBytes());
-        }, admissionUids: uids.Owner);
+        }, worldData: AdmissionCatalog(), admissionUids: uids.Owner);
         // Changed legitimate saved progress after completion is not a new grant
         // entitlement and must not be denied merely for lacking starter gear.
         File.Delete(Path.Combine(AdmissionRoot(input), "PlayersItems", Uid + ".bin"));

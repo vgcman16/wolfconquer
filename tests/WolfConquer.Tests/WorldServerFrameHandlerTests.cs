@@ -29838,9 +29838,16 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     private static async Task WaitForMonsterRuntimeTimerRegistrationAsync(
         BossRuntimeManualTimeProvider timeProvider)
     {
-        await WaitUntilAsync(
-            () => timeProvider.ScheduledTimerCount >= 2,
-            TimeSpan.FromSeconds(1));
+        try
+        {
+            await WaitUntilAsync(
+                () => timeProvider.ScheduledTimerCount >= 2,
+                TimeSpan.FromSeconds(1));
+        }
+        catch (TimeoutException error)
+        {
+            throw new TimeoutException($"Expected the real player and global timers; scheduled={timeProvider.ScheduledTimerCount}.", error);
+        }
     }
 
     private static async Task WaitForProactiveMonsterActionAsync(

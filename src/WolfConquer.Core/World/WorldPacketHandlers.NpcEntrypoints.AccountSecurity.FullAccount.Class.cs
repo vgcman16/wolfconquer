@@ -32,6 +32,7 @@ public static partial class WorldPacketHandlers
         var committed = false;
         var recoveryRequired = false;
         var reason = "fullAccountClassOwnerUnavailable";
+        string? preparationOrigin = null;
         if (context.Trades is { } trades && context.Sessions is { } sessions)
         {
             // Frame owns its world-operation lease. Follow the actual trade
@@ -61,6 +62,8 @@ public static partial class WorldPacketHandlers
                 }
                 catch (Exception error) when (IsLegacyFullAccountClassPreparationFailure(error))
                 {
+                    preparationOrigin = string.Join(" > ", new System.Diagnostics.StackTrace(error).GetFrames()
+                        .Take(6).Select(frame => frame.GetMethod()?.Name ?? "unknown"));
                     recoveryRequired = prepared?.DurableCommitted == true ||
                         reason.StartsWith(LegacyTradeJournal.RecoveryRequired, StringComparison.Ordinal);
                     reason = !recoveryRequired && error is FullAccountClassRefusal refusal ? refusal.Message :
@@ -73,6 +76,8 @@ public static partial class WorldPacketHandlers
 
         if (!committed || prepared is null)
         {
+            if (preparationOrigin is not null)
+                await context.Log.WriteLineAsync($"WorldServer FullAccount class preparation origin={preparationOrigin}.").ConfigureAwait(false);
             if (recoveryRequired)
                 await context.Log.WriteLineAsync("WorldServer held LegacyNpc AccountSecurity FullAccount class reset for recovery " +
                     $"{FormatSession(context)} optionId={optionId} target={grant.Name} reason={reason}; durable outcome is not an unchanged rejection.")
