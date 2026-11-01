@@ -21,6 +21,7 @@ internal static partial class LegacyNativeCombatGearLoadChildScenarios
             "RepeatedLoad" or "ConflictFirst" or "ConflictLate" or "FrozenFirst" or "FrozenLate" or "UnrelatedNinja" => RunRegistryScenario(scope, scenario),
             _ when scenario.StartsWith("Stage", StringComparison.Ordinal) => RunStageScenario(scope, scenario),
             _ when scenario.StartsWith("Proof", StringComparison.Ordinal) => RunProofScenario(scope, scenario),
+            _ when scenario.StartsWith("Runtime", StringComparison.Ordinal) => RunRuntimeScenario(scope, scenario),
             _ => RunLoaderScenario(scope, scenario),
         });
     }

@@ -58,7 +58,11 @@ internal partial class LegacyNativeCombatGearTable
                 stage = candidate; reason = string.Empty; return true;
             }
             catch (Exception error) when (IsStageFailure(error))
-            { reason = "mailboxCombatGearTableLoad:" + error.GetType().Name; return false; }
+            {
+                reason = error is InvalidDataException && error.Message == "nativeCombatGearSchema22Unresolved"
+                    ? error.Message : "mailboxCombatGearTableLoad:" + error.GetType().Name;
+                return false;
+            }
         }
 
         internal bool IsCurrentInputs()
@@ -71,6 +75,9 @@ internal partial class LegacyNativeCombatGearTable
             }
             catch (Exception error) when (IsStageFailure(error)) { return false; }
         }
+
+        internal string[][] CopyRankSeed() => ReadLines(inputs[4]).Skip(1)
+            .Select(line => line.Split('/').Take(22).ToArray()).ToArray();
 
         internal static Dictionary<uint, LegacyNativeDaoqiDictTypeTable.CQ> ReadJade(string path)
         {

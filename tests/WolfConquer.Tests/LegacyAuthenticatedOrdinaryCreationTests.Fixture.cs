@@ -41,6 +41,14 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
         internal LegacyOwnedAdmissionRuntime Runtime { get; private set; } = null!;
         internal WorldServerFrameHandler Handler { get; private set; } = null!;
         internal WorldDataCatalog Catalog { get; private set; } = null!;
+        internal LegacyNativeCombatGearRuntime? NativeCombatGear;
+        internal LegacyClientCompatibilityOptions? ClientCompatibility;
+        internal void ConfigureNativeGear(LegacyNativeCombatGearRuntime? runtime,
+            IReadOnlyList<CombatGear> gear, IReadOnlyList<DaoqiDictType> jade)
+        {
+            NativeCombatGear = runtime;
+            Catalog = BuildCatalog(gear, jade);
+        }
         internal AccountHandoffService Handoff { get; private set; } = null!;
         internal FileAccountHandoffTicketStore TicketStore { get; private set; } = null!;
         internal ConquerTcpConnection Connection { get; private set; } = null!;
@@ -87,7 +95,7 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
             var owner = Assert.IsType<LegacyOwnedAdmissionRuntime>(opened); owners.Add(owner); Runtime = owner; return owner;
         }
         private WorldServerFrameHandler NewHandler() => new(Data.Loader, Handoff, Catalog, LegacyRuntimeUpdateLoopOptions.Disabled,
-            Log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime);
+            Log, clientCompatibility: ClientCompatibility, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime, nativeCombatGear: NativeCombatGear);
         internal ConquerTcpConnection NewConnection(uint account = Account)
         {
             if (!sent.ContainsKey(account)) sent.Add(account, []);

@@ -170,6 +170,15 @@ if (!UnknownPacketAndFieldLogger.TryCreateFromEnvironment(out var configuredWire
 }
 using var wireDiagnostics = configuredWireDiagnostics;
 
+if (!LegacyNativeCombatGearRuntime.TryLoadFromEnvironment(out var nativeCombatGear, out var nativeCombatGearReason))
+{
+    Console.Error.WriteLine("WorldServer native CombatGear startup refused: " + nativeCombatGearReason + ".");
+    return 1;
+}
+Console.Out.WriteLine(nativeCombatGear is null
+    ? "Native CombatGear metadata: unconfigured; native feature remains held."
+    : "Native CombatGear metadata: complete explicit publication acquired; Frame catalog binding required.");
+
 WorldServerFrameHandler handler;
 try
 {
@@ -185,7 +194,13 @@ try
         protocolProfile: protocolProfile,
         ownedAdmission: ownedAdmission,
         wireDiagnostics: wireDiagnostics,
-        gmPolicy: gmPolicy);
+        gmPolicy: gmPolicy,
+        nativeCombatGear: nativeCombatGear);
+}
+catch (ArgumentException error) when (error.ParamName == "nativeCombatGear")
+{
+    Console.Error.WriteLine("WorldServer native CombatGear startup refused: nativeCombatGearOwnedProfileOrCatalogUnavailable.");
+    return 1;
 }
 catch (ArgumentException) when (ownedAdmission is not null)
 {

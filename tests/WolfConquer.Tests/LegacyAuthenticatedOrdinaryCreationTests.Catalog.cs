@@ -7,7 +7,8 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
 {
     internal sealed partial class CreationFixture
     {
-        internal static WorldDataCatalog BuildCatalog()
+        internal static WorldDataCatalog BuildCatalog(IReadOnlyList<CombatGear>? combatGear = null,
+            IReadOnlyList<DaoqiDictType>? daoqiDictTypes = null)
         {
             long[] classes = [1000, 2000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 16000];
             var items = new Dictionary<uint, ItemType>();
@@ -33,7 +34,8 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
                 RuneParser.ParseLevelExperienceRow("owned-creation-rune-progress", index + 1, row)).ToArray();
             return NativeCallerWorldDataFixture.Create(items.Values.ToArray(), [], professionLevelBenefits: professions,
                 runeStorageAttributes: storage, runeLevelExperience: progress,
-                magicEffects: MagicEffectParser.Parse("[1416000]\r\nIsRuneSkill=1\r\n", "owned-creation-MagicEffect.ini"));
+                magicEffects: MagicEffectParser.Parse("[1416000]\r\nIsRuneSkill=1\r\n", "owned-creation-MagicEffect.ini"),
+                combatGear: combatGear, daoqiDictTypes: daoqiDictTypes);
         }
     }
 }

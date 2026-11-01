@@ -74,19 +74,30 @@ internal partial class LegacyNativeCombatGearTable
         {
             RequireRowBudget(lines);
             var result = new Dictionary<uint, Dictionary<uint, CQ>>();
+            bool unresolvedExtendedSchema = false;
             foreach (var line in lines)
             {
-                var f = Columns(line, 19);
+                var f = line.Split(new[] { "@@", " " }, StringSplitOptions.RemoveEmptyEntries);
+                if (f.Length is not (19 or 22))
+                    throw new InvalidDataException("CombatGear row requires the complete 19- or 22-column version.");
                 var row = new CQ { ID = U(f[0], culture), Type = U(f[1], culture), Level = U(f[2], culture),
                     Exp = U(f[3], culture), MaxHP = U(f[4], culture), PAttack = U(f[5], culture),
                     PDefense = U(f[6], culture), MDefense = U(f[7], culture), Skills = new uint[10] };
                 for (var index = 0; index < row.Skills.Length; index++) row.Skills[index] = U(f[8 + index], culture);
                 row.Score = U(f[18], culture);
+                row.OpaqueTail = f.Length == 22 ? [U(f[19], culture), U(f[20], culture), U(f[21], culture)] : [];
+                row.RawColumns = f.Select(value => U(value, culture)).ToArray();
+                unresolvedExtendedSchema |= f.Length == 22;
                 // Source first-wins is retained only after every duplicate-row
                 // column has been parsed successfully; corrupt tails cannot hide.
                 if (!result.TryGetValue(row.Type, out var levels)) result.Add(row.Type, levels = new());
                 levels.TryAdd(row.Level, row);
             }
+            // The native and managed interpretations conflict for this real
+            // source width. Retain/validate every field first, but do not mint
+            // global semantic readiness (including ambient mailbox consumers)
+            // until matching client evidence resolves that interpretation.
+            if (unresolvedExtendedSchema) throw new InvalidDataException("nativeCombatGearSchema22Unresolved");
             return result;
         }
     }

@@ -2490,7 +2490,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerSendsPirateRevelatorStartupEffectBeforeAirPower()
+    public async Task DetachedPirateRevelatorRetainsUnmarkedSpellsBeforeAirPower()
     {
         var dbRoot = Path.Combine(Path.GetTempPath(), "wolf-world-handler-combat-gear-revelator-" + Guid.NewGuid());
         try
@@ -2552,6 +2552,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                     PlayerSpellSnapshotLoaderTests.Entry(21_930, level: 10),
                     PlayerSpellSnapshotLoaderTests.Entry(20_000, level: 6),
                 ]));
+            var unmarkedBefore = File.ReadAllBytes(Path.Combine(spellsRoot, "900101.bin"));
             var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
             var ticket = handoff.Issue(900101, "user02", ConquerRuntimeDefaults.WorldServer);
             var handler = new WorldServerFrameHandler(
@@ -2578,15 +2579,13 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             Assert.Equal(WorldPacketOpcodes.LegacySpellUse, ReadFrame(sent[combatGearIndex + 6]).Header.Opcode);
             var sideEffectOpcodes = sent
                 .Skip(combatGearIndex + 7)
-                .Take(12)
+                .Take(10)
                 .Select(bytes => ReadFrame(bytes).Header.Opcode)
                 .ToArray();
 
             Assert.Equal(
             [
                 WorldPacketOpcodes.MsgItemUsage,
-                WorldPacketOpcodes.LegacySpell,
-                WorldPacketOpcodes.LegacySpell,
                 WorldPacketOpcodes.LegacyServerTimer,
                 WorldPacketOpcodes.LegacyMsgUpdate,
                 WorldPacketOpcodes.LegacyMsgUpdate,
@@ -2598,13 +2597,10 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 WorldPacketOpcodes.LegacyUserTotalRefineLev,
             ],
             sideEffectOpcodes);
-            Assert.True(LegacySpellPacket.TryParse(ReadFrame(sent[combatGearIndex + 8]), out var rankingSpell));
-            Assert.Equal(21_930, rankingSpell.Id);
-            Assert.Equal(10, rankingSpell.Level);
-            Assert.True(LegacySpellPacket.TryParse(ReadFrame(sent[combatGearIndex + 9]), out var venomSpell));
-            Assert.Equal(20_000, venomSpell.Id);
-            Assert.Equal(6, venomSpell.Level);
-            Assert.True(LegacyAirPowerUpPacket.TryParse(ReadFrame(sent[combatGearIndex + 19]), out _));
+            Assert.DoesNotContain(sent.Skip(combatGearIndex + 7).Take(10), bytes =>
+                LegacySpellPacket.TryParse(ReadFrame(bytes), out var spell) && spell.Id is 21_930 or 20_000);
+            Assert.Equal(unmarkedBefore, File.ReadAllBytes(Path.Combine(spellsRoot, "900101.bin")));
+            Assert.True(LegacyAirPowerUpPacket.TryParse(ReadFrame(sent[combatGearIndex + 17]), out _));
             var expectedEffects = CreateSyntheticRevelatorFrames(900_101, 123, 456, 9);
             for (var index = 0; index < expectedEffects.Count; index++)
             {
@@ -2729,7 +2725,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerSendsEquipmentStartupSideEffectsBeforeRuneItems()
+    public async Task DetachedEquipmentStartupPreservesUnmarkedSpellsBeforeRuneItems()
     {
         var dbRoot = Path.Combine(Path.GetTempPath(), "wolf-world-handler-equipment-side-effects-" + Guid.NewGuid());
         try
@@ -2772,6 +2768,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                     PlayerSpellSnapshotLoaderTests.Entry(21_930, level: 10),
                     PlayerSpellSnapshotLoaderTests.Entry(20_000, level: 6),
                 ]));
+            var unmarkedBefore = File.ReadAllBytes(Path.Combine(spellsRoot, "1293600.bin"));
             var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
             var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
             var handler = new WorldServerFrameHandler(new CharacterSnapshotLoader(usersRoot), handoff,
@@ -2786,15 +2783,13 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
             var runeIndex = FindLegacyGameItemIndex(sent, 3001);
             var sideEffectOpcodes = sent
                 .Skip(equipmentIndex + 1)
-                .Take(12)
+                .Take(10)
                 .Select(bytes => ReadFrame(bytes).Header.Opcode)
                 .ToArray();
 
             Assert.Equal(
             [
                 WorldPacketOpcodes.MsgItemUsage,
-                WorldPacketOpcodes.LegacySpell,
-                WorldPacketOpcodes.LegacySpell,
                 WorldPacketOpcodes.LegacyServerTimer,
                 WorldPacketOpcodes.LegacyMsgUpdate,
                 WorldPacketOpcodes.LegacyMsgUpdate,
@@ -2806,33 +2801,30 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 WorldPacketOpcodes.LegacyUserTotalRefineLev,
             ],
             sideEffectOpcodes);
-            Assert.Equal(equipmentIndex + 13, runeIndex);
+            Assert.Equal(equipmentIndex + 11, runeIndex);
 
             Assert.True(LegacyStartupItemUsagePacket.TryParse(ReadFrame(sent[equipmentIndex + 1]), out var startupAction));
             Assert.Equal(LegacyStartupItemUsagePacket.EquipmentStatusAction, startupAction.Action);
             Assert.Equal(LegacyStartupItemUsageGap.Zero, startupAction.Gap);
-            Assert.True(LegacySpellPacket.TryParse(ReadFrame(sent[equipmentIndex + 2]), out var pirateSpell));
-            Assert.Equal(21_930, pirateSpell.Id);
-            Assert.Equal(10, pirateSpell.Level);
-            Assert.True(LegacySpellPacket.TryParse(ReadFrame(sent[equipmentIndex + 3]), out var venomSpell));
-            Assert.Equal(20_000, venomSpell.Id);
-            Assert.Equal(6, venomSpell.Level);
-            Assert.True(LegacyServerInfoPacket.TryParse(ReadFrame(sent[equipmentIndex + 4]), out var serverInfo));
+            Assert.DoesNotContain(sent.Skip(equipmentIndex + 1).Take(runeIndex - equipmentIndex - 1), bytes =>
+                LegacySpellPacket.TryParse(ReadFrame(bytes), out var spell) && spell.Id is 21_930 or 20_000);
+            Assert.Equal(unmarkedBefore, File.ReadAllBytes(Path.Combine(spellsRoot, "1293600.bin")));
+            Assert.True(LegacyServerInfoPacket.TryParse(ReadFrame(sent[equipmentIndex + 2]), out var serverInfo));
             Assert.Equal(0U, serverInfo.Vigor);
-            Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[equipmentIndex + 5]), out var maxHitpointsOnly));
+            Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[equipmentIndex + 3]), out var maxHitpointsOnly));
             Assert.Equal(LegacyMsgUpdateDataType.MaxHitpoints, maxHitpointsOnly.Updates[0].Type);
             Assert.Equal(61_512UL, maxHitpointsOnly.Updates[0].Value);
-            Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[equipmentIndex + 6]), out var hitpointPair));
+            Assert.True(LegacyMsgUpdatePacket.TryParse(ReadFrame(sent[equipmentIndex + 4]), out var hitpointPair));
             Assert.Equal(LegacyMsgUpdateDataType.MaxHitpoints, hitpointPair.Updates[0].Type);
             Assert.Equal(61_512UL, hitpointPair.Updates[0].Value);
             Assert.Equal(LegacyMsgUpdateDataType.Hitpoints, hitpointPair.Updates[1].Type);
             Assert.Equal(61_229UL, hitpointPair.Updates[1].Value);
-            Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(sent[equipmentIndex + 7]), out var status));
+            Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(sent[equipmentIndex + 5]), out var status));
             Assert.Equal(1_293_600U, status.Uid);
             Assert.Equal(61_512U, status.Fields[1]);
             Assert.Equal(5_000U, status.MaxMana);
             Assert.Equal(10U, status.Fields[33]);
-            Assert.True(LegacyUserTotalRefineLevPacket.TryParse(ReadFrame(sent[equipmentIndex + 12]), out var refine));
+            Assert.True(LegacyUserTotalRefineLevPacket.TryParse(ReadFrame(sent[equipmentIndex + 10]), out var refine));
             Assert.Equal(1_293_600U, refine.Uid);
             Assert.Equal(10U, refine.Level);
         }

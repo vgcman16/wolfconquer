@@ -18,6 +18,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
     private readonly PlayerSpellSnapshot savedSpells;
     private readonly PlayerProficiencySnapshot profs;
     private readonly CombatGearSnapshot gear;
+    private readonly LegacyNativeMyCombatGear.OrdinaryAdmissionOwner? nativeGear;
     private readonly LegacyOrdinaryNormalization normalization;
     private readonly LegacySecondaryPasswordState pin;
     private readonly LegacyOrdinaryAdmissionUidOwner? uids;
@@ -55,6 +56,10 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             throw new InvalidDataException("Ordinary admission spell publication is invalid.");
         LoginSpellPublication = publication; newLoginSpellIds = newLoginSpells;
         native = connection.NativeGameClient; player = native?.Player; previousEquipment = native?.RawEquipmentObservation;
+        if (frame.UsesOrdinarySpellBinding && native is not null && player is not null &&
+            images.GetValueOrDefault(LegacyTradeJournalFileKind.CombatGear) is { } gearImage)
+            nativeGear = LegacyNativeMyCombatGear.OrdinaryAdmissionOwner.Prepare(this, frame, native, player, source, gear, gearImage,
+                roots.PathFor(LegacyTradeJournalFileKind.CombatGear, source.Uid));
         characterAfter = LegacyOrdinaryAdmissionImages.Character(images[LegacyTradeJournalFileKind.Character]!, source, normalization.Character);
         spellAfter = LegacyOrdinaryAdmissionSpellImages.Project(source, images.GetValueOrDefault(LegacyTradeJournalFileKind.Spells));
         ruleItemsImage = PlayerItemSnapshotLoader.ToLegacyBytes(normalization.RuleItems);
@@ -87,7 +92,8 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
 
     private bool EntryCurrent() => ReferenceEquals(connection.NativeGameClient, native) &&
         (native is null || ReferenceEquals(native.Player, player) && ReferenceEquals(player!.Owner, native) &&
-            ReferenceEquals(native.RawEquipmentObservation, previousEquipment)) &&
+            ReferenceEquals(native.RawEquipmentObservation, previousEquipment) &&
+            (nativeGear is null || nativeGear.IsDetachedCurrent())) &&
         (prefix is null || prefix.IsCurrentForAdmission());
 
     internal bool TryCommitDurable(WorldSessionStore.OrdinaryAdmissionLease lease, out string reason,
@@ -156,9 +162,18 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
     {
         if (!committed || published || Candidate is null || storeLease is null || !storeLease.HasCommittedPublicationProof())
             throw new InvalidOperationException("Ordinary admission has no current committed publication owner.");
-        prefix?.PublishCommittedAdmission();
-        if (native is not null && preparedEquipment is not null) native.RawEquipmentObservation = preparedEquipment;
-        published = true;
+        try
+        {
+            prefix?.PublishCommittedAdmission();
+            if (native is not null && preparedEquipment is not null) native.RawEquipmentObservation = preparedEquipment;
+            nativeGear?.Publish();
+            published = true;
+        }
+        catch
+        {
+            Recovery.Block("ordinaryAdmissionRecoveryRequired:committedNativeGearPublicationUnproven");
+            throw;
+        }
     }
 
     internal bool InitializeCommittedPin() => Candidate is { } candidate &&
@@ -167,7 +182,22 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
     internal bool IsPublishedNativeOwnerCurrent() => published && ReferenceEquals(connection.NativeGameClient, native) &&
         (native is null || ReferenceEquals(native.Player, player) && ReferenceEquals(player!.Owner, native) &&
             player.UID == source.Uid && ReferenceEquals(native.RawEquipmentObservation, preparedEquipment ?? previousEquipment)) &&
+        (nativeGear is null || Candidate is { } gearCandidate && native?.OrdinarySpellBinding is { } gearBinding &&
+            nativeGear.IsPublishedCurrent(gearBinding, gearCandidate)) &&
         (prefix is null || prefix.IsPublishedAdmissionOwnerCurrent());
+
+    internal bool NativeGearMetadataHeld => frame.UsesOrdinarySpellBinding && native is not null && nativeGear is null &&
+        images.GetValueOrDefault(LegacyTradeJournalFileKind.CombatGear) is not null &&
+        (gear.Items.Count != 0 || gear.BlackJadeBag.Count != 0);
+
+    internal bool IsPublishedGearOriginCurrent(LegacyNativeMyCombatGear.OrdinaryAdmissionOwner owner,
+        LegacyOrdinarySpellBinding binding, WorldSession current) =>
+        published && ReferenceEquals(nativeGear, owner) && Candidate is { } candidate &&
+        ReferenceEquals(binding.Store, storeLease?.StoreForGearOrigin) && ReferenceEquals(binding.Connection, connection) &&
+        binding.Store.TryGet(connection, out var held) && ReferenceEquals(held, current) &&
+        current.AccountId == account && current.Character.Uid == source.Uid && current.Character.Class == source.Class &&
+        ReferenceEquals(current.NativeGameClient, native) && ReferenceEquals(current.CombatGear, candidate.CombatGear) &&
+        ReferenceEquals(connection.NativeGameClient, native);
 
     internal bool MatchesConnection(ConquerTcpConnection expected) => ReferenceEquals(connection, expected);
     internal object? NativeGate => native?.SpellAdmissionSyncRoot;

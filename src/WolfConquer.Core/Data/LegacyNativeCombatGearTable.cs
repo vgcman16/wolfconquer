@@ -29,6 +29,11 @@ internal partial class LegacyNativeCombatGearTable
         public uint[] Skills;
 
         public uint Score;
+
+        // Source row extension data, not invented gameplay fields. The staged
+        // loader retains all three values in the 22-column version.
+        public uint[] OpaqueTail = [];
+        public uint[] RawColumns = [];
     }
 
     public static Dictionary<uint, Dictionary<uint, CQ>> Info

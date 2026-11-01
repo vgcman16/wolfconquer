@@ -25,7 +25,9 @@ internal static class NativeCallerWorldDataFixture
         IReadOnlyList<RuneLevelExperience>? runeLevelExperience = null,
         IReadOnlyList<ProfessionLevelBenefit>? professionLevelBenefits = null,
         IReadOnlyList<RuneStorageAttribute>? runeStorageAttributes = null,
-        IReadOnlyList<InnerPowerRankEntry>? innerPowerRanks = null)
+        IReadOnlyList<InnerPowerRankEntry>? innerPowerRanks = null,
+        IReadOnlyList<CombatGear>? combatGear = null,
+        IReadOnlyList<DaoqiDictType>? daoqiDictTypes = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -62,7 +64,7 @@ internal static class NativeCallerWorldDataFixture
             gouyuTypes: [],
             gouyuImmortals: [],
             specialEffectAttributes: [],
-            daoqiDictTypes: [],
+            daoqiDictTypes: daoqiDictTypes ?? [],
             syndicateFormationTypes: [],
             syndicateSkillTypes: [],
             disdainRules: [],
@@ -112,7 +114,7 @@ internal static class NativeCallerWorldDataFixture
             magicEffects: magicEffects ?? [],
             magicTypeOperations: magicTypeOperations ?? [],
             titleTypes: [],
-            combatGear: [],
+            combatGear: combatGear ?? [],
             traps: [],
             npcs: npcs ?? [],
             sobNpcs: sobNpcs ?? [],

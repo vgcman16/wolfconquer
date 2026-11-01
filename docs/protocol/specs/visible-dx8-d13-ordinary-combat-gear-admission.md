@@ -1,0 +1,9 @@
+# Ordinary native CombatGear admission boundary
+
+The saved CombatGear image belongs to the admitted character UID, independently of the account ID. A missing image creates no persisted native owner. A valid saved empty image can join the real admitted client and its constructor-owned gear without table metadata. A valid populated image remains available to managed login when configured native metadata is unavailable; it does not create a native gear owner in that case. Malformed saved state refuses admission.
+
+For populated native adoption the actual configured Frame must capture its current runtime's real staged metadata proof, matched to its world catalog. The native constructor owner, player, binding, current session and full saved gear image must remain aligned. This receipt does not itself authorize gear mutations, attacks or a disk lease. Metadata or native-image drift invalidates currentness.
+
+The cold child fixture exercises actual legacy19 staged loading and admission using an owned test catalog explicitly derived from the same complete 19-column rows and the legacy native interpretation. Its absent extended fields are not source values. This is a bounded fixture join: the production managed `CombatGearParser` accepts the separate 22-column form, so production loading of a matching legacy19 managed catalog remains open. The 7937 22-column semantic relationship, especially columns 7 and 8 and the skill list, remains unresolved. The complete native publisher refuses 22-column input before publication; the negative fixture checks that refusal and continued managed login with native adoption held. It does not establish 7937 runtime integration or client acceptance.
+
+Source-only checkpoint: these admission and child-fixture changes are unrun. Root owns build and verification.

@@ -46,11 +46,15 @@ internal partial class LegacyNativeCombatGearTable
                 foreach (var pair in family.Value.OrderBy(pair => pair.Key))
                 {
                     var row = pair.Value;
-                    if (row is null || row.Type != family.Key || row.Level != pair.Key || row.Skills is not { Length: 10 })
+                    var skills = row?.Skills; var tail = row?.OpaqueTail; var columns = row?.RawColumns;
+                    if (row is null || row.Type != family.Key || row.Level != pair.Key || skills is not { Length: 10 } ||
+                        tail is null || tail.Length is not (0 or 3) || columns is null || columns.Length != 19 + tail.Length)
                         throw new InvalidDataException("Gear metadata mapping is invalid.");
-                    owners.Add(row); owners.Add(row.Skills);
+                    owners.Add(row); owners.Add(skills); owners.Add(tail); owners.Add(columns);
                     values.AddRange([pair.Key, row.ID, row.Type, row.Level, row.Exp, row.MaxHP, row.PAttack, row.PDefense, row.MDefense]);
-                    values.AddRange(row.Skills); values.Add(row.Score);
+                    values.AddRange(skills); values.Add(row.Score);
+                    values.Add(checked((uint)tail.Length)); values.AddRange(tail);
+                    values.AddRange(columns);
                 }
             }
             Count(graph.Jade.Count);

@@ -111,7 +111,8 @@ public sealed partial class WorldServerFrameHandler
         ConquerProtocolProfile protocolProfile = ConquerProtocolProfile.RootD11_7899,
         LegacyOwnedAdmissionRuntime? ownedAdmission = null,
         UnknownPacketAndFieldLogger? wireDiagnostics = null,
-        LegacyGmPolicy? gmPolicy = null)
+        LegacyGmPolicy? gmPolicy = null,
+        LegacyNativeCombatGearRuntime? nativeCombatGear = null)
         : this(
             snapshotLoader,
             handoffService,
@@ -128,6 +129,11 @@ public sealed partial class WorldServerFrameHandler
             protocolProfile,
             wireDiagnostics)
     {
+        if (nativeCombatGear is not null && (ownedAdmission is null ||
+            protocolProfile != ConquerProtocolProfile.VisibleDx8D13 || worldData is null ||
+            !nativeCombatGear.IsCurrentFor(worldData)))
+            throw new ArgumentException("nativeCombatGearOwnedProfileOrCatalogUnavailable", nameof(nativeCombatGear));
+        _nativeCombatGear = nativeCombatGear;
         if (gmPolicy is not null && (ownedAdmission is null ||
             protocolProfile != ConquerProtocolProfile.VisibleDx8D13 ||
             gmPolicy.ExpectedDomain != ownedAdmission.Ordinary.Domain))

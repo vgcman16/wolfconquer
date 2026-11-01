@@ -43,6 +43,9 @@ public sealed partial class WorldServerFrameHandler
         // Only committed durable files + real current Store/native/PIN ownership
         // precede AnswerOk. A later network failure does not undo those files.
         await _log.WriteLineAsync($"WorldServer ordinary admission committed key={accountId}.").ConfigureAwait(false);
+        if (plan.NativeGearMetadataHeld)
+            await _log.WriteLineAsync($"WorldServer native CombatGear held key={accountId}; complete native metadata owner unavailable.")
+                .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         if (!_sessions.TryGet(connection, out var current) || !ReferenceEquals(current, admitted) ||
             !plan.IsPublishedNativeOwnerCurrent())

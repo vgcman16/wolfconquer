@@ -75,6 +75,7 @@ public sealed partial class WorldSessionStore
         private readonly object gate;
         private readonly long account, uid;
         private bool active = true;
+        internal WorldSessionStore StoreForGearOrigin => store;
         private PreparedOrdinarySpellAdmission? spells;
         private bool spellProofConsumed;
         private OrdinaryAdmissionLease(WorldSessionStore store, ConquerTcpConnection connection, SessionHolder holder, object gate, long account, long uid)

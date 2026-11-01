@@ -17,18 +17,21 @@ internal partial class LegacyNativeCombatGearTable
 
     // Concrete completion can only be constructed inside the actual staged
     // LoadAndPublish path below, never from a flag, existence check or callback.
-    internal sealed class MailboxLoadProof
+    internal sealed partial class MailboxLoadProof
     {
         private readonly MailboxMetadataState metadata;
         private readonly string location;
-        private MailboxLoadProof(MailboxMetadataState metadata, string location)
-        { this.metadata = metadata; this.location = location; }
+        private readonly string[][] rankSeed;
+        private MailboxLoadProof(MailboxMetadataState metadata, string location, string[][] rankSeed)
+        { this.metadata = metadata; this.location = location; this.rankSeed = rankSeed.Select(row => row.ToArray()).ToArray(); }
 
-        internal static void LoadAndPublish(string prefix)
+        internal static void LoadAndPublish(string prefix) =>
+            _ = LoadAndPublish(prefix, LegacyNativeServerConfig.DbLocation + "CombatGearRank.txt");
+
+        internal static MailboxLoadProof LoadAndPublish(string prefix, string rankPath)
         {
             lock (MailboxLoadGate)
             {
-                var rankPath = LegacyNativeServerConfig.DbLocation + "CombatGearRank.txt";
                 if (!MailboxLoadStage.TryCreate(prefix, rankPath, out var stage, out var reason))
                     throw new InvalidDataException(reason);
                 RegisterMessages();
@@ -39,8 +42,9 @@ internal partial class LegacyNativeCombatGearTable
                 var state = MailboxMetadataState.Capture(prepared);
                 if (!state.Matches(prepared) || !MailboxContractsCurrent())
                     throw new InvalidDataException("Complete gear metadata changed before publication.");
-                var proof = new MailboxLoadProof(state, prefix);
+                var proof = new MailboxLoadProof(state, prefix, stage.CopyRankSeed());
                 Volatile.Write(ref mailboxGraph, prepared with { Proof = proof });
+                return proof;
             }
         }
 
