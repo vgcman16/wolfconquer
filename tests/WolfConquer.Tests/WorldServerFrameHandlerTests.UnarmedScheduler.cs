@@ -21,7 +21,7 @@ public sealed partial class WorldServerFrameHandlerTests
             { ["id"] = "930", ["mapid"] = "1011", ["npctype"] = "930" });
         // This real catalog builder retains its unrelated opaque Items backing;
         // no fake selected row or scheduler event is introduced by the test.
-        var catalog = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(monsters: [family], monsterSpawns: [spawn]);
+        var catalog = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(monsters: new[] { family }, monsterSpawns: [spawn]);
         Assert.False(catalog.Items is ItemType[] or List<ItemType>);
         var monster = Assert.Single(LegacyMonsterInstance.FromGenerator(spawn, family,
             catalog.GetLegacyMonsterRuntimeUidBase(spawn)));
@@ -45,6 +45,9 @@ public sealed partial class WorldServerFrameHandlerTests
                 await owner.SendAsync(uid, new MsgActionPacket { ObjId = uid, Timestamp = 1234, Type = MsgActionType.SetLocation }.ToFrameBytes());
                 await WaitForMonsterRuntimeTimerRegistrationAsync(clock);
                 Assert.Contains(frames, bytes => LegacyMonsterSpawnPacket.TryParse(ReadFrame(bytes), out var packet) && packet.Uid == monster.Uid);
+                Assert.True(GetMonsterStates(owner.Handler).TryGetVisibleInstance(monster, clock.GetUtcNow(), out var visible));
+                Assert.True(owner.Store.TryReadMonsterPhysicalRange(visible, family, out var birthRange));
+                Assert.Equal(3, birthRange);
                 Assert.False(ContainsMonsterPhysicalAttackAfter(frames, 0, monster.Uid, uid));
                 var beforeHp = owner.Current().Character.MinHitPoints;
                 clock.Advance(interval);

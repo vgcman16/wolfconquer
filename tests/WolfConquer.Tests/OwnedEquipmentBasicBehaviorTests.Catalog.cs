@@ -45,6 +45,7 @@ public sealed partial class OwnedEquipmentBasicBehaviorTests
         // Retained DBServer/magictype.txt line 4128: actual type 21930, level 10.
         const string rankRow = "21939@@21930@@6@@Dark@@0@@0@@0@@0@@10@@0@@1@@0@@800@@1@@0@@16@@417@@0@@0@@0@@0@@0@@0@@0@@48@@0@@0@@0@@0@@0@@0@@0@@0@@0@@1@@416@@1@@800@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@0@@";
         var rankSpell = MagicTypeParser.ParseLine(rankRow);
-        return LegacyItemWorldDataFixture.Create([Item(itemId, fields)], [], combatGearRanks: ranks, magic: [rankSpell]);
+        return LegacyItemWorldDataFixture.Create(new[] { Item(itemId, fields) }, [],
+            combatGearRanks: ranks.ToArray(), magic: new[] { rankSpell });
     }
 }

@@ -31,7 +31,7 @@ public sealed class WorldServerFrameHandlerMonsterAggroParityTests
         var standardSpawn = CreateSpawn(generatorId: 910, monsterTypeId: 910, monsterName: "Pheasant", x: 201, y: 200);
         var settingsGuardSpawn = CreateSpawn(generatorId: 911, monsterTypeId: 911, monsterName: "Sentinel", x: 200, y: 201);
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(
-            monsters: [standardFamily, settingsGuardFamily],
+            monsters: new[] { standardFamily, settingsGuardFamily },
             monsterSpawns: [standardSpawn, settingsGuardSpawn]);
         var standardMonster = Assert.Single(LegacyMonsterInstance.FromGenerator(
             standardSpawn,
@@ -81,7 +81,7 @@ public sealed class WorldServerFrameHandlerMonsterAggroParityTests
             attackUser: 3,
             settings: 0x35,
             attackRange: 1);
-        var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(monsters: [family]);
+        var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(monsters: new[] { family });
         var actor = OwnedEquipmentBehaviorFixture.Character(PlayerUid, mapId: MapId, x: 200, y: 200, minHitPoints: 1_000_000) with
         {
             Attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

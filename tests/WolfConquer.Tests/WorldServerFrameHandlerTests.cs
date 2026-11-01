@@ -22147,7 +22147,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 ["npctype"] = "9101",
             });
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(
-            monsters: [bossFamily],
+            monsters: new[] { bossFamily },
             monsterSpawns: [bossSpawn]);
         var tickInterval = TimeSpan.FromMilliseconds(100);
         var timeProvider = new BossRuntimeManualTimeProvider(DateTimeOffset.UtcNow.AddSeconds(20));
@@ -25959,7 +25959,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 ["npctype"] = "9411",
             });
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(
-            monsters: [bossFamily],
+            monsters: new[] { bossFamily },
             monsterSpawns: [bossSpawn]);
         var tickInterval = TimeSpan.FromMilliseconds(100);
         var timeProvider = new BossRuntimeManualTimeProvider(DateTimeOffset.UtcNow.AddSeconds(20));
@@ -26089,7 +26089,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 ["npctype"] = "9401",
             });
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(
-            monsters: [monsterFamily],
+            monsters: new[] { monsterFamily },
             monsterSpawns: [spawn]);
         var monsterInstance = Assert.Single(LegacyMonsterInstance.FromGenerator(
             spawn,
@@ -26230,7 +26230,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 ["npctype"] = "213883",
             });
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(
-            monsters: [monsterFamily],
+            monsters: new[] { monsterFamily },
             monsterSpawns: [spawn]);
         var monster = Assert.Single(LegacyMonsterInstance.FromGenerator(
             spawn,
@@ -28614,7 +28614,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 ["npctype"] = "9100",
             });
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(
-            monsters: [bossFamily],
+            monsters: new[] { bossFamily },
             monsterSpawns: [spawn]);
         var bossInstance = Assert.Single(LegacyMonsterInstance.FromGenerator(
             spawn,
@@ -28798,7 +28798,7 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
                 ["npctype"] = "0901",
             });
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(
-            monsters: [monsterFamily],
+            monsters: new[] { monsterFamily },
             monsterSpawns: [spawn]);
         var monsterInstance = Assert.Single(LegacyMonsterInstance.FromGenerator(
             spawn,

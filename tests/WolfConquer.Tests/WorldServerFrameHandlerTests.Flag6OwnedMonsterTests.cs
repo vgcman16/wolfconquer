@@ -38,7 +38,7 @@ public sealed partial class WorldServerFrameHandlerTests
         var spawn = new MonsterSpawn(910, 1011, 910, 197, 230, 1, 1, 1, 10, 1, 0, 0, 0, 0,
             1011, "Pheasant", "fixture://owned-flag6/1.ini", new Dictionary<string, string>
             { ["id"] = "910", ["mapid"] = "1011", ["npctype"] = "910" });
-        var catalog = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(monsters: [family], monsterSpawns: [spawn]);
+        var catalog = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(monsters: new[] { family }, monsterSpawns: [spawn]);
         var monster = Assert.Single(LegacyMonsterInstance.FromGenerator(spawn, family, catalog.GetLegacyMonsterRuntimeUidBase(spawn)));
         var actor = OwnedEquipmentBehaviorFixture.Character(uid, mapId: 1011, x: 197, y: 230, minHitPoints: 1) with
         {
@@ -90,6 +90,9 @@ public sealed partial class WorldServerFrameHandlerTests
             {
                 await owner.SendAsync(uid, new MsgActionPacket { ObjId = uid, Timestamp = 1234, Type = MsgActionType.SetLocation }.ToFrameBytes());
                 await WaitForMonsterRuntimeTimerRegistrationAsync(clock);
+                Assert.True(GetMonsterStates(owner.Handler).TryGetVisibleInstance(monster, clock.GetUtcNow(), out var visible));
+                Assert.True(owner.Store.TryReadMonsterPhysicalRange(visible, family, out var birthRange));
+                Assert.Equal(3, birthRange);
                 Assert.DoesNotContain(capture, bytes => IsFlag6MonsterInteraction(bytes, monster.Uid, uid, MsgAttackType.Physical));
                 clock.Advance(interval);
                 await reached.Task.WaitAsync(TimeSpan.FromSeconds(3));

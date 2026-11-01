@@ -63,7 +63,7 @@ public sealed partial class WorldServerFrameHandlerTests
                 ["npctype"] = "7981",
             });
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(
-            monsters: [bossFamily],
+            monsters: new[] { bossFamily },
             monsterSpawns: [bossSpawn]);
         var bossInstance = Assert.Single(LegacyMonsterInstance.FromGenerator(
             bossSpawn,
@@ -296,7 +296,7 @@ public sealed partial class WorldServerFrameHandlerTests
                 ["npctype"] = "9180",
             });
         var worldData = MsgTeamRuntimeTests.CreateTeamArenaRewardCatalog(
-            monsters: [bossFamily],
+            monsters: new[] { bossFamily },
             monsterSpawns: [bossSpawn]);
         var bossInstance = Assert.Single(LegacyMonsterInstance.FromGenerator(
             bossSpawn,
