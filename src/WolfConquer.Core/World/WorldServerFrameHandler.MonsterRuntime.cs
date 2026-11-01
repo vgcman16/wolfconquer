@@ -406,6 +406,7 @@ public sealed partial class WorldServerFrameHandler
                 if (!_monsterStates.TryReadPhysicalRange(this, worldData, entry.Instance, monsterFamily, out var actualRange) ||
                     actualRange <= 0)
                 {
+                    await LogMonsterPhysicalAiRefusalAsync(MonsterPhysicalAiRefusal.PhysicalRange).ConfigureAwait(false);
                     continue;
                 }
                 var attackRange = checked((uint)actualRange);
@@ -427,11 +428,17 @@ public sealed partial class WorldServerFrameHandler
                     targetLock.LastTargetUid,
                     out var target,
                     out var targetSnapshot);
+                if (!hasTarget)
+                    await LogMonsterPhysicalAiRefusalAsync(MonsterPhysicalAiRefusal.TargetAbsent).ConfigureAwait(false);
                 var physicalPhase = PrepareMonsterPhysicalAiPhase(physicalAiTick, visible, monsterFamily,
                     hasTarget ? target : null, hasTarget ? targetSnapshot : null,
-                    CheckedInt32(effectiveScanRange, nameof(effectiveScanRange)), attackInterval);
+                    CheckedInt32(effectiveScanRange, nameof(effectiveScanRange)), attackInterval, out var refusal);
                 if (physicalPhase is null || !_sessions.TryAdvanceMonsterPhysicalAi(this, physicalPhase,
-                        out var targetDecision)) continue;
+                        out var targetDecision, out refusal))
+                {
+                    await LogMonsterPhysicalAiRefusalAsync(refusal).ConfigureAwait(false);
+                    continue;
+                }
 
                 if (targetDecision.AttackDue && hasTarget)
                 {

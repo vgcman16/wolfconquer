@@ -63,7 +63,7 @@ public sealed partial class WorldServerFrameHandlerTests
                 // its retained target; this does not issue an AI capability.
                 await WaitForMonsterRuntimeTimerReplacementAsync(clock, firstTimers);
                 Assert.True(GetMonsterStates(owner.Handler).TryGetTargetLockState(visible, clock.GetUtcNow(), out var targetLock));
-                Assert.Equal(uid, targetLock.LastTargetUid);
+                Assert.True(targetLock.LastTargetUid == uid, $"Expected target {uid}; actual={targetLock.LastTargetUid}. Log={owner.Log}");
                 Assert.NotNull(targetLock.LastAttackAt);
                 await WaitForProactiveMonsterActionAsync(() => ContainsMonsterPhysicalAttackAfter(frames, 0, monster.Uid, uid), owner.Log);
                 Assert.True(owner.Current().Character.MinHitPoints < beforeHp);

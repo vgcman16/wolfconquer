@@ -11,7 +11,7 @@ namespace WolfConquer.Tests;
 public sealed partial class WorldServerFrameHandlerTests
 {
     [Fact]
-    public async Task RuntimeContextRetainsTheActualFrameTradeAndRecoveryOwnersForDerivedSpells()
+    public async Task RuntimeContextRetainsFrameOwnersAndPreservesExistingUnmarkedSpells()
     {
         using var log = new StringWriter();
         var fixture = await CreateRuntimeSpellOwnerFixtureAsync(log);
@@ -24,6 +24,11 @@ public sealed partial class WorldServerFrameHandlerTests
         Assert.Same(fixture.Store, context.Sessions); Assert.Same(fixture.Session, context.Session);
         Assert.Equal(fixture.SpellsRoot, context.PlayerSpellsRoot);
         Assert.True(context.TradeRecovery!.IsReadyForCharacterSpells(fixture.Session.UsersRoot, fixture.SpellsRoot));
+        var spellPath = Path.Combine(fixture.SpellsRoot, fixture.Session.Character.Uid + ".bin");
+        var before = File.ReadAllBytes(spellPath);
+        var rows = fixture.Session.PlayerSpells.Spells.ToArray();
+        Assert.Equal(new ushort[] { 21930, 20000 }, rows.Select(row => row.Id));
+        Assert.False(fixture.Session.Character.Attributes.ContainsKey("ManagedDerivedSpellOrigins"));
         int first = fixture.Sent.Count;
 
         var query = await WorldPacketHandlers.ExecuteLegacyEquipmentQueryAsync(context, fixture.Session,
@@ -34,18 +39,22 @@ public sealed partial class WorldServerFrameHandlerTests
         var spells = fixture.Sent.Skip(first).Select(bytes =>
             LegacySpellPacket.TryParse(ReadFrame(bytes), out var row) ? (LegacySpellPacket?)row : null)
             .Where(row => row is not null).Select(row => row!.Value).ToArray();
-        Assert.Equal((ushort)10, Assert.Single(spells, row => row.Id == 21930).Level);
-        Assert.Equal((ushort)6, Assert.Single(spells, row => row.Id == 20000).Level);
+        Assert.DoesNotContain(spells, row => row.Id is 21930 or 20000);
         Assert.True(fixture.Store.TryGet(fixture.Connection, out var current));
         var persisted = new PlayerSpellSnapshotLoader(fixture.SpellsRoot).LoadByCharacterUid(fixture.Session.Character.Uid);
+        Assert.Equal(before, File.ReadAllBytes(spellPath));
+        Assert.Equal(rows, current!.PlayerSpells.Spells);
         Assert.Equal(current!.PlayerSpells.Spells, persisted.Spells);
+        var saved = new CharacterSnapshotLoader(fixture.Session.UsersRoot!).TryLoadByAccountIdForAdmission(fixture.Session.AccountId).Snapshot!;
+        Assert.False(current.Character.Attributes.ContainsKey("ManagedDerivedSpellOrigins"));
+        Assert.False(saved.Attributes.ContainsKey("ManagedDerivedSpellOrigins"));
         Assert.DoesNotContain("held native-derived spell membership", log.ToString(), StringComparison.Ordinal);
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task RuntimeDerivedSpellRefusalExplainsMissingOrBlockedActualRecoveryWithoutSpellOutput(bool blocked)
+    public async Task ExistingUnmarkedSpellsNeedNoMutationOwnerForNoOpQuery(bool blocked)
     {
         using var log = new StringWriter();
         var fixture = await CreateRuntimeSpellOwnerFixtureAsync(log);
@@ -54,18 +63,24 @@ public sealed partial class WorldServerFrameHandlerTests
         else context = context with { TradeRecovery = null };
         var path = Path.Combine(fixture.SpellsRoot, fixture.Session.Character.Uid + ".bin");
         var before = File.ReadAllBytes(path);
+        var rows = fixture.Session.PlayerSpells.Spells.ToArray();
+        Assert.Equal(new ushort[] { 21930, 20000 }, rows.Select(row => row.Id));
+        Assert.False(fixture.Session.Character.Attributes.ContainsKey("ManagedDerivedSpellOrigins"));
         int first = fixture.Sent.Count;
 
         var query = await WorldPacketHandlers.ExecuteLegacyEquipmentQueryAsync(context, fixture.Session,
             new(LegacyEquipmentRebuildReason.InitialWorldEntry,
                 new LegacyEquipmentQueryPublicationScope(fixture.Session.Character.Uid)), CancellationToken.None);
 
-        Assert.False(query.Completed);
+        Assert.True(query.Completed);
         Assert.Equal(before, File.ReadAllBytes(path));
         Assert.DoesNotContain(fixture.Sent.Skip(first), bytes => LegacySpellPacket.TryParse(ReadFrame(bytes), out var row) &&
             row.Id is 21930 or 20000);
-        Assert.Contains("held native-derived spell membership", log.ToString(), StringComparison.Ordinal);
-        Assert.Contains("reason=spellMutationOwnerUnavailable", log.ToString(), StringComparison.Ordinal);
+        Assert.True(fixture.Store.TryGet(fixture.Connection, out var current));
+        Assert.Equal(rows, current!.PlayerSpells.Spells);
+        var saved = new CharacterSnapshotLoader(fixture.Session.UsersRoot!).TryLoadByAccountIdForAdmission(fixture.Session.AccountId).Snapshot!;
+        Assert.False(current.Character.Attributes.ContainsKey("ManagedDerivedSpellOrigins"));
+        Assert.False(saved.Attributes.ContainsKey("ManagedDerivedSpellOrigins"));
     }
 
     private async Task<RuntimeSpellOwnerFixture> CreateRuntimeSpellOwnerFixtureAsync(StringWriter log)

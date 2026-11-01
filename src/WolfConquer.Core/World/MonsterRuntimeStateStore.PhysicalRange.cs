@@ -1,4 +1,6 @@
 using WolfConquer.Core.Data;
+using AiRefusal = WolfConquer.Core.World.WorldServerFrameHandler.MonsterPhysicalAiRefusal;
+using static WolfConquer.Core.World.WorldServerFrameHandler;
 
 namespace WolfConquer.Core.World;
 
@@ -87,21 +89,23 @@ public sealed partial class MonsterRuntimeStateStore
 
     internal bool TryAdvanceOwnedPhysicalTargetLock(WorldServerFrameHandler frame,
         WorldServerFrameHandler.MonsterPhysicalAiPhase phase,
-        out LegacyMonsterTargetLockResult result)
+        out LegacyMonsterTargetLockResult result, out AiRefusal reason)
     {
         result = default;
         lock (_gate)
         {
-            if (!frame.TryReadMonsterPhysicalAiPhasePlain(this, phase, out var catalog, out var inputs)) return false;
+            if (!frame.TryReadMonsterPhysicalAiPhasePlain(this, phase, out var catalog, out var inputs, out reason)) return false;
             var instance = inputs.Instance; var family = inputs.Family; var target = inputs.TargetSnapshot;
             if (!ReferenceEquals(frame, physicalRangeFrame) || !ReferenceEquals(catalog, physicalRangeCatalog) ||
-                !frame.IsMonsterPhysicalRangeStore(this, catalog) ||
-                !_states.TryGetValue(MonsterRuntimeKey.From(instance), out var state) ||
+                !frame.IsMonsterPhysicalRangeStore(this, catalog))
+                return RefuseMonsterPhysicalAi(AiRefusal.MonsterOwner, out reason);
+            if (!_states.TryGetValue(MonsterRuntimeKey.From(instance), out var state) ||
                 state.DeadAt is not null || state.Hitpoints == 0 || state.RemovedFromMapOnDeath ||
-                state.X != instance.X || state.Y != instance.Y || state.Hitpoints != instance.Hitpoints ||
-                state.PhysicalRange is not { } physical || !physical.IsCurrentPlain(catalog, instance, family) ||
-                !inputs.ConsumePlain())
-                return false;
+                state.X != instance.X || state.Y != instance.Y || state.Hitpoints != instance.Hitpoints)
+                return RefuseMonsterPhysicalAi(AiRefusal.MonsterState, out reason);
+            if (state.PhysicalRange is not { } physical || !physical.IsCurrentPlain(catalog, instance, family))
+                return RefuseMonsterPhysicalAi(AiRefusal.MonsterBirth, out reason);
+            if (!inputs.ConsumePlain()) return RefuseMonsterPhysicalAi(AiRefusal.PhaseConsumed, out reason);
             // This is the real retained-target AI phase, not a range read or
             // current-HP heuristic in an attacking player's admission path.
             if (target is { } current && state.TargetLock.LastTargetUid == current.Uid &&
@@ -113,6 +117,7 @@ public sealed partial class MonsterRuntimeStateStore
             state.TargetLock = result.State;
             state.LastAttackAt = result.State.LastAttackAt;
             state.LastAttackTargetUid = result.State.LastTargetUid;
+            reason = AiRefusal.None;
             return true;
         }
     }

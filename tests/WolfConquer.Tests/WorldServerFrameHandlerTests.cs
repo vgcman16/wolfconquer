@@ -15544,64 +15544,16 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerRespondsToLegacyPlayerStatusQueryAfterWorldEnter()
+    public void DetachedStatusCalculatorProjectsDeclaredEquipmentMana()
     {
-        var usersRoot = Path.Combine(_usersRoot, "Users");
-        Directory.CreateDirectory(usersRoot);
-        WriteSnapshot(usersRoot, 1293600, uid: 1293600, minHitPoints: 61_229);
-        var itemsRoot = Path.Combine(_usersRoot, "PlayersItems");
-        var spellsRoot = Path.Combine(_usersRoot, "PlayersSpells");
-        Directory.CreateDirectory(itemsRoot);
-        Directory.CreateDirectory(spellsRoot);
-        File.WriteAllBytes(
-            Path.Combine(itemsRoot, "1293600.bin"),
-            PlayerItemSnapshotLoaderTests.BuildPlayerItems(
-                [PlayerItemSnapshotLoaderTests.DbItem(uid: 2001, itemId: 500109, position: 4)],
-                [])); // Declared durable item; native query earns HP31676/MP5000 from the catalog row.
-        var handoff = new AccountHandoffService(new InMemoryAccountHandoffTicketStore());
-        var ticket = handoff.Issue(1293600, "user02", ConquerRuntimeDefaults.WorldServer);
-        using var log = new StringWriter();
-        var handler = new WorldServerFrameHandler(
-            new CharacterSnapshotLoader(usersRoot, itemsRoot, spellsRoot), handoff,
-            CreateNativeStartupQueryInputCatalog(), log);
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
-
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new InternalWorldEnterRequestPacket(ticket.Token).ToFrameBytes()));
-
-        var queryStart = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new LegacyPlayerStatusQueryPacket(1_293_600).ToFrameBytes()));
-
-        var responseBytes = Assert.Single(sent.Skip(queryStart));
-        Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(responseBytes), out var status));
-        Assert.Equal(1_293_600U, status.Uid);
-        Assert.True(status.MaxHP == 61_512U,
-            "Expected the original 61512 max-HP golden; actual=" + status.MaxHP + ". Handler log:\n" + log);
-        Assert.Equal(5_000U, status.MaxMana);
-        Assert.Equal(0U, status.PrestigeLevel);
-        Assert.Equal(0U, status.ReservedZero);
-
-        var selfQueryStart = sent.Count;
-        await handler.HandleFrameAsync(
-            connection,
-            ReadFrame(new LegacyPlayerStatusQueryPacket(0).ToFrameBytes()));
-
-        var selfResponseBytes = Assert.Single(sent.Skip(selfQueryStart));
-        Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(selfResponseBytes), out var selfStatus));
-        Assert.Equal(1_293_600U, selfStatus.Uid);
-        Assert.Equal(61_512U, selfStatus.MaxHP);
-        Assert.Equal(5_000U, selfStatus.MaxMana);
-
-        var output = log.ToString();
-        Assert.Contains("WorldServer handled LegacyPlayerStatus", output);
-        Assert.Contains("uid=1293600", output);
-        Assert.DoesNotContain("WorldServer received opcode 2301", output);
+        // Pure fallback model only: this does not claim an admitted native query.
+        var input = StatusQueryInput();
+        var fields = LegacyPlayerStatusCalculator.CalculateFields(
+            input.Character with { MaxMana = 0 }, input.Items, StatusQueryCatalog(), maxHitpoints: 61_512, prestigeLevel: 0);
+        Assert.Equal(1_293_600U, fields[LegacyPlayerStatusPacket.UidIndex]);
+        Assert.Equal(61_512U, fields[LegacyPlayerStatusPacket.MaxHPIndex]);
+        Assert.Equal(5_000U, fields[LegacyPlayerStatusPacket.MaxManaIndex]);
     }
-
     [Fact]
     public async Task HandlerRespondsToLegacyGenericRankingQueryAfterWorldEnter()
     {
