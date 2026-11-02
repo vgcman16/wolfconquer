@@ -26,7 +26,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     private NativeCombatGearProcFixture? nativeGearMetadata;
     internal LegacyNativeCombatGearRuntime? NativeCombatGear => nativeGearMetadata?.Runtime;
     private uint actorUid;
-    internal readonly StringWriter Log = new();
+    internal readonly SynchronizedFixtureLog Log = new();
     internal LegacyOwnedAdmissionRuntime Runtime { get; private set; } = null!;
     internal WorldServerFrameHandler Handler { get; private set; } = null!;
     internal bool RetainEvidence;

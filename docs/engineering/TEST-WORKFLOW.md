@@ -58,3 +58,10 @@ sums can overlap and are not wall time. Use `WOLF_TEST_PHASE_TIMING=1` or
 `-PhaseTiming` to attribute real fixture work before reusing any owners or
 changing isolation. Preserve replay, restart, malformed-input and failure-path
 checks while optimizing repeated work. Measure gains in the same environment.
+
+Runtime fixture diagnostics must also support concurrent workers. Use
+`SynchronizedFixtureLog` when assertions take snapshots while the handler logs;
+both appends and snapshots share its monitor. Raw `GetStringBuilder()` access
+does not participate in that synchronization and must not race a producer.
+Keep real transport, worker scheduling and gameplay assertions unchanged when
+repairing diagnostic races; a passing retry alone does not fix a failed gate.
