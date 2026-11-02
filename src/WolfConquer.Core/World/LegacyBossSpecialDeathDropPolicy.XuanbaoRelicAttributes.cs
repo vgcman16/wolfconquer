@@ -37,7 +37,7 @@ public static partial class LegacyBossSpecialDeathDropPolicy
             var candidates = randomAttributes
                 .Where(attribute =>
                     !usedAttributeTypes.Contains(attribute.AttributeType) &&
-                    !IsSourceExcludedDeityLandRelicAttribute(itemId, attribute.AttributeType) &&
+                    !IsExcludedDeityLandRelicAttribute(catalog, itemId, attribute.AttributeType) &&
                     GetNormalizedXuanbaoRandomAttributeMax(attribute, out var epic) > 0 &&
                     epic)
                 .ToArray();
@@ -98,7 +98,7 @@ public static partial class LegacyBossSpecialDeathDropPolicy
             var candidates = randomAttributes
                 .Where(attribute =>
                     !usedAttributeTypes.Contains(attribute.AttributeType) &&
-                    !IsSourceExcludedDeityLandRelicAttribute(itemId, attribute.AttributeType) &&
+                    !IsExcludedDeityLandRelicAttribute(catalog, itemId, attribute.AttributeType) &&
                     GetNormalizedXuanbaoRandomAttributeMax(attribute, out _) > 0)
                 .ToArray();
             if (candidates.Length == 0)

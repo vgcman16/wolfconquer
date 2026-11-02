@@ -57,7 +57,7 @@ public readonly record struct LegacyBossSpecialDeathDropRolls(
     int? SoulsAccessoryRollModulo = null,
     IReadOnlyList<int>? SoulsAccessoryIndexes = null);
 
-public sealed record LegacyBossSpecialDeathDropCatalog(
+public sealed partial record LegacyBossSpecialDeathDropCatalog(
     IReadOnlyDictionary<ushort, IReadOnlyList<uint>> PurificationItemsByLevel,
     IReadOnlyList<uint> AccessoryItems,
     IReadOnlyList<uint> QueenOfEvilTalismanItems,
@@ -72,9 +72,9 @@ public sealed record LegacyBossSpecialDeathDropCatalog(
     public static LegacyBossSpecialDeathDropCatalog FromWorldData(WorldDataCatalog worldData)
     {
         ArgumentNullException.ThrowIfNull(worldData);
-        return FromItemsById(
-            worldData.ItemsById,
-            worldData.XuanbaoRandomAttributesByItemTypeId);
+        return worldData.Selected7937XuanbaoAttributes is { } selected
+            ? FromWorldData(worldData, selected)
+            : FromItemsById(worldData.ItemsById, worldData.XuanbaoRandomAttributesByItemTypeId);
     }
 
     public static LegacyBossSpecialDeathDropCatalog FromItemsById(

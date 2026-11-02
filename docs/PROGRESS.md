@@ -1,6 +1,28 @@
 # Development checklist
 
-Updated2026-10-31. Full English client/server reconstruction remains active.
+Updated2026-11-02. Full English client/server reconstruction remains active.
+
+## Local component checkpoint - 2026-11-02
+
+The reviewed Chinese7937 increment builds and passes3507 focused checks with
+0failures/skips, including231 new cases and3276 existing neighbors. Its full
+integration gate is pending at this component checkpoint; the earlier public
+full-gate proof below is a separate result.
+
+- Complete59-field Echo requirements, immutable main/Sub ID lookup and observed
+  operation6 request preparation. Per-player activation and persistence remain open.
+- Explicit pinned relic table loading before native publication and real drop
+  planner use of selected gold-limit rules; default protocol profile is unchanged.
+- Lossless bounded item2350 extension retention around the strict43-field codec,
+  preserving opaque bytes without inventing field2/3 semantics or a handler.
+- Protected mandatory monster primaries now reject before cast costs; seven
+  saved/native/real-wire controls pass. A runtime fixture log race is repaired.
+
+These are source/component results. Actual7937 gameplay, English rendering,
+full SQL/economy and live acceptance remain unfinished. The legacy executable
+hold remains active. Specs and limits: [7937 ingestion](specs/auto-generated/7937/).
+
+## Earlier published checkpoint
 
 - [x] Sanitized C#/.NET9 source and updater/launcher tooling published.
 - [x] Exact publicc271eec1 full Windows41243428459 passed all8stages:

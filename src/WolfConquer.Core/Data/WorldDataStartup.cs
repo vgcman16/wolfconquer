@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace WolfConquer.Core.Data;
 
-public static class WorldDataStartup
+public static partial class WorldDataStartup
 {
     public static async Task<WorldDataCatalog?> TryLoadAsync(
         TextWriter log,
@@ -34,6 +34,15 @@ public static class WorldDataStartup
             await log.WriteLineAsync($"World data not loaded; {ex.Message}").ConfigureAwait(false);
             return null;
         }
+
+        if (!TryBindConfiguredChinese7937Attributes(catalog, out var selected7937Reason))
+        {
+            await log.WriteLineAsync("World data not loaded; " + selected7937Reason + ".").ConfigureAwait(false);
+            return null;
+        }
+        if (catalog.Selected7937XuanbaoAttributes is { } selected7937)
+            await log.WriteLineAsync($"Selected7937 relic reference: goldFlags={selected7937.GoldLimitFlags.Count}; scoreLimits={selected7937.ScoreLimits.Count}.")
+                .ConfigureAwait(false);
 
         LegacyNativeBeastsCatalogStartup.AddRows(catalog.BeastAttributes);
 
