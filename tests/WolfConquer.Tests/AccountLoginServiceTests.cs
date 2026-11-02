@@ -132,18 +132,21 @@ public sealed class AccountLoginServiceTests
         Assert.Equal("LLL", result.PasswordDiagnostic.TailShape);
     }
 
-    [Fact]
-    public async Task ValidateSelectsMatchingPasswordFromDuplicateUsernameRows()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ValidateRejectsDuplicateUsernameBeforeSelectingByPassword(bool legacy)
     {
         var service = new AccountLoginService(new FakeAccountRepository(
             Account(2, "2", ""),
             Account(1293600, "2", "2"),
             Account(1294637, "2", "10203040")));
 
-        var result = await service.ValidateAsync(new AccountLoginRequest("2", "2"));
+        var request = new AccountLoginRequest("2", "2");
+        var result = legacy ? await service.ValidateLegacyAsync(request) : await service.ValidateAsync(request);
 
-        Assert.Equal(AccountLoginStatus.Success, result.Status);
-        Assert.Equal(1293600, result.Account?.Id);
+        Assert.Equal(AccountLoginStatus.AmbiguousAccount, result.Status);
+        Assert.Null(result.Account);
     }
 
     [Fact]

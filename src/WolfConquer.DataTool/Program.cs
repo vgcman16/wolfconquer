@@ -809,7 +809,7 @@ internal static partial class Program
     static int Usage()
     {
         Console.WriteLine("Usage:");
-        Console.WriteLine("  WolfConquer.DataTool client-item-catalog7937-align 7937 <absolute-old65-decoded> <old-sha256> <absolute-current67-decoded> <current-sha256>");
+        Console.WriteLine("  WolfConquer.DataTool client-item-catalog7937-align 7937 <absolute-old65-decoded> <old-sha256> <absolute-current67-decoded> <current-sha256> [--column-evidence]");
         Console.WriteLine("  WolfConquer.DataTool client-combat-gear7937-inspect <absolute-packed-input> (read-only raw data inspection)");
         Console.WriteLine("  WolfConquer.DataTool client-xuanbao7937-inspect 7937 <absolute-info> <info-sha256> <absolute-compose> <compose-sha256> <absolute-random> <random-sha256>");
         Console.WriteLine("  WolfConquer.DataTool client-xuanbao7937-addition-resolve-inspect 7937 <absolute-plain-info> <info-sha256> <absolute-packed-addition> <addition-sha256>");

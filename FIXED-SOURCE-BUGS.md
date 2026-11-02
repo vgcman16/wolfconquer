@@ -4,11 +4,35 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Open integration repairs - 2026-11-02 UTC
+## Integration repairs - 2026-11-02 UTC
+
+Bounded source corrections FSB309-314 below are included in cleanfe3e's full
+local Windows pass203726592Z-007a65f8:35,124passed,0failed,152NotExecuted,
+all8stages. [Result and limits](docs/checklists/FULL-WINDOWS-20261102-OWNED-RELIC.md).
+Their remaining explicitly named adversarial/live/SQL limits remain open.
+
+### FSB-316: Reject an ambiguous username before selecting an account by password
+
+OPEN implementation, unqualified. The real modern SQL repository returns all
+username rows. AccountLoginService selected a sole matching password from those
+rows, and an earlier test explicitly required that behavior. A username could
+therefore select different principals according to credentials despite its
+ambiguous account identity. Strict and ordinary legacy validation now return
+the existing AmbiguousAccount result before credential matching when more than
+one row is returned. Missing/single-row handling, ID preference, password
+compatibility and owner-rebind behavior are unchanged; no SQL uniqueness or
+production schema is invented.
+
+Corrected unit coverage retains valid single-account controls. New owned SQL
+coverage inserts a second real matching username row with a different password,
+checks that the real provider returns both, then requires no Ready/handoff,
+holder/file change or gameplay publication. These controls are source-only and
+unrun. Real SQL execution and the integrated gate remain required. This is a
+server admission policy correction, not a new client wire format.
 
 ### FSB-315: Own the complete relic-decomposition batch before rewards or success
 
-OPEN source implementation, unbuilt/unrun. Legacy ItemUsage.RelicDecompose
+OPEN source implementation, qualification failing. Legacy ItemUsage.RelicDecompose
 removed and rewarded sequentially, ignored failed duplicate removals/capacity or
 metadata grants, allocated from session-local state, published before a proven
 save and echoed success despite persistence failure. Its old tests explicitly
@@ -28,8 +52,15 @@ Authored controls include full-state refusals, independent packet goldens,
 genuine mixed/bound/native/saved/UID/rank/trade positives and negatives, journal
 prefixes, cold startup, mixed old producers, retained v8, actual bounded output
 and replay. All11 old ranking scenarios migrate individually to genuine owners.
-Root composed96 source/test/spec paths in a separate unqualified candidate; the
-running fe3e full suite is unchanged. No new execution result is claimed here.
+The113-path composed increment built, but focused225513324Z-b5457af7 returned
+2154passed/20failed/5NotExecuted. The20decomposition-related failures exposed a
+port error: registry preview consumed one-use postwriter map/proficiency/item
+witnesses, so actual durable commits later failed CurrentPublication. Preview
+now uses the existing non-consuming RequireCurrentBeforeWriter check. The real
+once-only postwriter check, arming, typed writer, saved-owner retirement and
+failure fence remain intact; no witness reset or accepting owner is added.
+A new registered saved/native/11frame/replay control is authored. This repair
+and the enlarged increment are unqualified until rerun; the failed run stays failed.
 
 Required next proof: composed build, focused actual registered owners and shared
 callers, interruption/reopen/cancel/pressure controls, then the full gate.
@@ -40,7 +71,7 @@ Resolve/bGold semantics, live client and complete parity remain OPEN. Contract:
 
 ### FSB-314: Retire a committed relic namespace using its actual committed saved-spell owner
 
-OPEN source correction, qualification pending. The joint writer marks committed
+Corrected source behavior, bounded full qualification recorded above. The joint writer marks committed
 and replaces binding.SavedSpells with its exact prepared saved image, then retires
 the UID reservation. Retirement incorrectly called OwnerIsCurrentPlain, which
 requires not committed and the old saved baseline; every valid commit therefore
@@ -56,11 +87,11 @@ that adversarial control and broader crash/live/SQL acceptance remain open.
 Component200304344Z-39667eb6 passed all7actual compose/choose rows after this
 correction. Broader201910343Z-eab33a5b passed3900rows with one separate cancellation
 diagnostic assertion failure and one workspace-seed skip; the assertion correction
-then passed1/1 in203251677Z-e711d058. The full integration gate remains pending.
+then passed1/1 in203251677Z-e711d058. The newer full local gate passed as above.
 
 ### FSB-312: Distinguish a current-owner Dragonhowl cooldown from an ownership fault
 
-OPEN source draft, not yet qualified. The real physical timestamp guard returned
+Corrected source behavior, bounded full qualification recorded above. The real physical timestamp guard returned
 the same false outcome for an ordinary early request and for invalid owners.
 Dragonhowl phase-zero execution then reported every refusal as a runtime fault.
 The draft carries the specific cooldown outcome from the actual timestamp guard,
@@ -70,7 +101,7 @@ regression retain the fault path. Real player/nonplayer early-to-due controls
 require a bounded cooldown diagnostic and unchanged resources/state/files.
 
 All4genuine player/nonplayer cooldown rows passed in195533781Z-6590cf40 and
-200304344Z-39667eb6. Full integration qualification remains required.
+200304344Z-39667eb6, followed by the newer full local pass recorded above.
 
 Historical public CI41495012492's combined beginAttempt guard does not prove
 which predicate failed. The deterministic fixture correction retains both
@@ -80,7 +111,7 @@ precedes the cooldown determination; no earlier-order equivalence is claimed.
 
 ### FSB-313: Permission reads must not create SOB runtime state from an observed copy
 
-OPEN source draft, not yet qualified. The CTF HP guard called GetVisible on the
+Corrected source behavior, bounded full qualification recorded above. The CTF HP guard called GetVisible on the
 observed preflight view. With no prior runtime row it registered that copy as
 the runtime Birth; subsequent canonical-source recapture then rejected a valid
 attack. The guard now uses the existing read-only primary view. The positive
@@ -91,13 +122,13 @@ source and verifies current projection/Birth without creating state. Valid absen
 owner0 differs from invalid/stale/ambiguous false, which explicitly rejects.
 Canonical owner controls2 and capture controls4 passed200304344Z-39667eb6;
 unrelated SoulShackle behavior stays intact. No broader SOB ownership or live
-acceptance claim; full integration qualification remains required.
+acceptance claim; the newer full local gate passed as recorded above.
 
 ## Open composed catalog/parser repairs - 2026-11-02 UTC
 
 ### FSB-311: Prepare a coherent selected rule successor before publishing source references
 
-OPEN integrated draft; UNBUILT/UNRUN. Both selected metadata binders assigned
+Corrected source behavior, bounded full qualification recorded above. Both selected metadata binders assigned
 their once-bound source before deriving the actual relic rule successor. A
 matched mutable raw cap could disagree with the private constructor capture,
 or selected flags could leave no valid fusion rules; successor selection then
@@ -109,12 +140,12 @@ source or generation changes and leaves the once-bound slot available for a
 valid retry. Catalogs without a default fusion owner can still bind read-only
 metadata for other consumers; no accepting replacement is invented. Authored
 catalog/planner controls cover both sources, unchanged ownership, retry and the
-metadata-only path. Arbitrary raw catalog mutation, compilation and runtime
-publication qualification remain open.
+metadata-only path. Arbitrary raw catalog mutation and broader runtime
+publication acceptance remain open; compilation/full managed qualification passed.
 
 ### FSB-309: Do not require an unused Lucky Strike formula cap during selected binding
 
-OPEN integrated draft; UNBUILT/UNRUN. Selected7937 rule binding imposed the
+Corrected source behavior, bounded full qualification recorded above. Selected7937 rule binding imposed the
 30..UInt16Max formula-cap range on compose row14, although the actual Lucky
 formula emits fixed100/epic without reading that cell. Default constructor-owned
 rules already accepted the unused cell. The draft now exempts only row14 from
@@ -125,13 +156,13 @@ This is a composed-code defect, not a discovered official patch balance change.
 
 ### FSB-310: Reject reserved-word targets in selected Resolve reset statements
 
-OPEN integrated draft; UNBUILT/UNRUN. The shared lexer labels Lua keywords as
+Corrected source behavior, bounded full qualification recorded above. The shared lexer labels Lua keywords as
 Identifier tokens, so the new selected Resolve reader could accept malformed
 reset targets such as nil=nil. A focused reset-target check now rejects reserved
 names while preserving ordinary identifiers and the existing strict selected
 relationships. Eight malformed-target and one ordinary-name controls are
 authored. This is bounded selected-form parsing, not a complete Lua validator;
-no source execution, runtime activation, new reward meaning or passing result.
+no Lua source execution, runtime activation or new reward meaning is claimed.
 
 ## Open owned relic publication - 2026-11-02 UTC
 

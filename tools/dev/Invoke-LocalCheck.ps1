@@ -9,6 +9,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CheckLogPump.psm1') -Force
 
 function Resolve-Application([string]$ExplicitPath, [string[]]$Names) {
     if ($ExplicitPath) { $path = [IO.Path]::GetFullPath($ExplicitPath) }
@@ -122,6 +123,8 @@ try {
         $prefix = '.artifacts/local-dev/' + $runId + '-' + $command.name
         $stdoutPath = Join-Path $root ($prefix + '.stdout.log')
         $stderrPath = Join-Path $root ($prefix + '.stderr.log')
+        Assert-ArtifactPath $stdoutPath
+        Assert-ArtifactPath $stderrPath
         $start = [Diagnostics.ProcessStartInfo]::new($command.executable)
         $start.WorkingDirectory = $root
         $start.UseShellExecute = $false
@@ -134,16 +137,32 @@ try {
         $start.Environment['DOTNET_SKIP_FIRST_TIME_EXPERIENCE'] = '1'
         $process = [Diagnostics.Process]::new()
         $process.StartInfo = $start
+        $started = $false
+        $processErrors = [Collections.Generic.List[Exception]]::new()
         try {
             if (-not $process.Start()) { throw 'Could not start the local-check process.' }
-            $stdout = $process.StandardOutput.ReadToEndAsync()
-            $stderr = $process.StandardError.ReadToEndAsync()
-            $process.WaitForExit()
-            $code = $process.ExitCode
-            [IO.File]::WriteAllText($stdoutPath, $stdout.GetAwaiter().GetResult())
-            [IO.File]::WriteAllText($stderrPath, $stderr.GetAwaiter().GetResult())
+            $started = $true
+            $pump = Start-CheckLogPump $process $stdoutPath $stderrPath
+            $pumpErrors = [Collections.Generic.List[Exception]]::new()
+            try { Wait-CheckLoggedProcess $process $pump; $code = $process.ExitCode }
+            catch {
+                $pumpErrors.Add($_.Exception)
+                $mustClose = $true
+                try { $mustClose = -not $process.HasExited } catch { $pumpErrors.Add($_.Exception) }
+                if ($mustClose) { try { Stop-CheckLogReadPipes $process } catch { $pumpErrors.Add($_.Exception) } }
+            }
+            try { Complete-CheckLogPump $pump } catch { $pumpErrors.Add($_.Exception) }
+            if ($pumpErrors.Count -eq 1) { throw $pumpErrors[0] }
+            if ($pumpErrors.Count -gt 1) { throw [AggregateException]::new('Process wait and log completion failed.', [Exception[]]$pumpErrors.ToArray()) }
         }
-        finally { $process.Dispose() }
+        catch {
+            $processErrors.Add($_.Exception)
+            try { if ($started -and -not $process.HasExited) { $process.Kill($true); $process.WaitForExit() } }
+            catch { $processErrors.Add($_.Exception) }
+        }
+        finally { try { $process.Dispose() } catch { $processErrors.Add($_.Exception) } }
+        if ($processErrors.Count -eq 1) { throw $processErrors[0] }
+        if ($processErrors.Count -gt 1) { throw [AggregateException]::new('Local check and child cleanup failed.', [Exception[]]$processErrors.ToArray()) }
         $status.steps += [ordered]@{ name = $command.name; exitCode = $code
             outcome = $(if ($code -eq 0) { 'passed' } else { 'failed' })
             stdoutLog = $prefix + '.stdout.log'; stderrLog = $prefix + '.stderr.log' }

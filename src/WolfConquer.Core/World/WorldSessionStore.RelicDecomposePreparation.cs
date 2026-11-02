@@ -46,7 +46,9 @@ public sealed partial class WorldSessionStore
         publication.ArmFinalProof();
         state.Changes = WorldPacketHandlers.PrepareRelicDecomposeJournalImages(state.Inputs, publication.FinalSession, state.Before, state.Writer);
         state.Output = PrepareRelicDecomposeWire(state.Context, state.Holder, state.Binding, state.Writer, evidence);
-        if (!publication.IsCurrentPlain()) return false;
+        // Final plain proof consumes single-use AFTER-writer witnesses. Keep it
+        // untouched here; this is still preview before the UID counter/writer.
+        publication.RequireCurrentBeforeWriter();
         reason = string.Empty; return true;
     }
 }

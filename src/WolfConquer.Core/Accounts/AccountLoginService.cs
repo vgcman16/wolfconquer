@@ -97,12 +97,16 @@ public sealed class AccountLoginService
             return new AccountLoginResult(AccountLoginStatus.MissingUsername);
         }
 
-        var matchingAccounts = accounts
-            .Select(candidate => new AccountPasswordMatch(candidate, GetPasswordMatchKind(candidate, request, compatibility)))
-            .Where(match => match.Kind != AccountPasswordMatchKind.None)
-            .ToArray();
+        // A username must identify one actual account before credentials are
+        // considered; row order or a matching password cannot select its owner.
+        if (accounts.Count != 1)
+        {
+            return new AccountLoginResult(AccountLoginStatus.AmbiguousAccount);
+        }
 
-        if (matchingAccounts.Length == 0)
+        var account = accounts[0];
+        var matchKind = GetPasswordMatchKind(account, request, compatibility);
+        if (matchKind == AccountPasswordMatchKind.None)
         {
             return new AccountLoginResult(
                 AccountLoginStatus.WrongPassword,
@@ -110,24 +114,17 @@ public sealed class AccountLoginService
                     .ConfigureAwait(false));
         }
 
-        if (matchingAccounts.Length > 1)
-        {
-            return new AccountLoginResult(AccountLoginStatus.AmbiguousAccount);
-        }
-
-        var account = matchingAccounts[0].Account;
-
         if (account.BannedId != AllowedBannedId)
         {
-            return new AccountLoginResult(AccountLoginStatus.Banned, account, matchingAccounts[0].Kind);
+            return new AccountLoginResult(AccountLoginStatus.Banned, account, matchKind);
         }
 
         if (account.IsOnline)
         {
-            return new AccountLoginResult(AccountLoginStatus.AlreadyOnline, account, matchingAccounts[0].Kind);
+            return new AccountLoginResult(AccountLoginStatus.AlreadyOnline, account, matchKind);
         }
 
-        return new AccountLoginResult(AccountLoginStatus.Success, account, matchingAccounts[0].Kind);
+        return new AccountLoginResult(AccountLoginStatus.Success, account, matchKind);
     }
 
     private static AccountPasswordMatchKind GetPasswordMatchKind(
@@ -270,10 +267,6 @@ public sealed class AccountLoginService
         Strict,
         LegacyTrailingNoise,
     }
-
-    private readonly record struct AccountPasswordMatch(
-        AccountRecord Account,
-        AccountPasswordMatchKind Kind);
 
     private readonly record struct PasswordCandidateDiagnostic(
         int StoredLength,

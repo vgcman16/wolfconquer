@@ -6,13 +6,15 @@ internal static partial class Program
 {
     private static int InspectChinese7937ItemAlignment(string[] args)
     {
-        if (args.Length != 6 || args[1] != "7937" ||
+        if (args.Length is not (6 or 7) ||
+            args.Length == 7 && !string.Equals(args[6], "--column-evidence", StringComparison.OrdinalIgnoreCase) || args[1] != "7937" ||
             !TryItemAlignmentPin(args[3], out var referencePin) || !TryItemAlignmentPin(args[5], out var currentPin))
             return ItemAlignmentRefusal("Arguments");
         try
         {
             var captured = CaptureItemAlignment(args[2], referencePin, args[4], currentPin, out var failure);
             if (captured is null) return ItemAlignmentRefusal(failure);
+            if (args.Length == 7) return WriteItemAlignmentColumnEvidence(captured);
             var result = captured.Alignment;
             Console.WriteLine(JsonSerializer.Serialize(new
             {
