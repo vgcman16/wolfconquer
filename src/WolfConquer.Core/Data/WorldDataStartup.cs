@@ -35,6 +35,14 @@ public static partial class WorldDataStartup
             return null;
         }
 
+        if (!TryBindConfiguredChinese7937Rules(catalog, out var selected7937RulesReason))
+        {
+            await log.WriteLineAsync("World data not loaded; " + selected7937RulesReason + ".").ConfigureAwait(false);
+            return null;
+        }
+        if (catalog.Selected7937XuanbaoRules is { } selectedRules)
+            await log.WriteLineAsync($"Selected7937 packed rules: compose={selectedRules.Source.ComposeLimits.Count}; random={selectedRules.Source.RandomAttributes.Count}; order=server.")
+                .ConfigureAwait(false);
         if (!TryBindConfiguredChinese7937Attributes(catalog, out var selected7937Reason))
         {
             await log.WriteLineAsync("World data not loaded; " + selected7937Reason + ".").ConfigureAwait(false);

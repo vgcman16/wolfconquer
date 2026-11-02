@@ -68,7 +68,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             scheduleName,
             CreateNobilityPoleAttributes(scheduleName, casterRank));
 
-        AssertNobilityPoleManaSpent(result);
+        result.RejectionBefore.AssertUnchanged(result.UpdatedSession, result.Sent);
         Assert.Empty(ParseSpellAnimations(result.Sent));
         Assert.Equal(NobilityPoleLife, result.SobNpcStates.GetVisible(result.SobNpc).Life);
         Assert.Contains(
@@ -107,7 +107,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             casterName,
             poleName);
 
-        AssertNobilityPoleManaSpent(result);
+        result.RejectionBefore.AssertUnchanged(result.UpdatedSession, result.Sent);
         Assert.Empty(ParseSpellAnimations(result.Sent));
         Assert.Equal(NobilityPoleLife, result.SobNpcStates.GetVisible(result.SobNpc).Life);
         Assert.Contains(ExpectedNobilityPoleFailureDiagnostic(scenario, result.SobNpc, scheduleName), result.Output);
@@ -147,6 +147,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             SobNpcStates: sobNpcStates);
 
+        var rejectionBefore = new DetachedSobRejectionSnapshot(session);
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -169,7 +170,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             sobNpcStates,
             updatedSession,
             sent,
-            log.ToString());
+            log.ToString(),
+            rejectionBefore);
     }
 
     private static void AssertNobilityPoleManaSpent(NobilityPoleAttackResult result)
@@ -294,5 +296,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         SobNpcRuntimeStateStore SobNpcStates,
         WorldSession UpdatedSession,
         IReadOnlyList<byte[]> Sent,
-        string Output);
+        string Output,
+        DetachedSobRejectionSnapshot RejectionBefore);
 }

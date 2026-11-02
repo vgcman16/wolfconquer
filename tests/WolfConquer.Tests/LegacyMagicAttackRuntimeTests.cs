@@ -6523,7 +6523,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerMagicAttackAgainstDeadEventSobNpcSpendsManaThenSkipsAnimation()
+    public async Task HandlerMagicAttackAgainstDeadEventSobNpcRefusesWithoutCostOrOutput()
     {
         var monsterFamily = CreateMonsterFamily();
         var sobNpc = CreateEventSobNpc() with { Life = 0 };
@@ -6537,6 +6537,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var connection = CreateSendingConnection(sent);
         var session = CreateSession(mapId: sobNpc.MapId, x: 84, y: 70);
         sessions.Set(connection, session);
+        Assert.True(sessions.TryGet(connection, out var initial));
+        Assert.NotNull(initial);
         var context = new WorldPacketHandlerContext(
             connection,
             log,
@@ -6561,18 +6563,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 SpellId: ThunderSpellId)).ToFrameBytes()));
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
-        Assert.NotNull(updatedSession);
-        Assert.Equal(493, updatedSession.Character.MinMana);
-        Assert.Empty(ParseSpellAnimations(sent));
-        Assert.Contains(ParseMsgUpdates(sent), update =>
-            update.Uid == PlayerUid &&
-            update.Updates.Any(entry =>
-                entry.Type == LegacyMsgUpdateDataType.Mana &&
-                entry.Value == 493));
+        Assert.Same(initial, updatedSession);
+        Assert.Equal(500, updatedSession.Character.MinMana);
+        Assert.Empty(sent);
 
-        var output = log.ToString();
-        Assert.Contains("source CanAttackNpc.Verified rejected dead SOB NPC", output);
-        Assert.DoesNotContain("WorldServer handled legacy player-SOB magic", output);
+        Assert.DoesNotContain("WorldServer handled legacy player-SOB magic", log.ToString());
     }
 
     [Fact]
@@ -6928,6 +6923,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             attributes: guildAttributes);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(peerConnection, peerSession);
+        var casterBefore = new DetachedSobRejectionSnapshot(casterSession);
+        var peerBefore = new DetachedSobRejectionSnapshot(peerSession);
         var context = new WorldPacketHandlerContext(
             casterConnection,
             log,
@@ -6965,7 +6962,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(casterConnection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Equal(493, updatedSession.Character.MinMana);
+        casterBefore.AssertUnchanged(updatedSession, casterSent);
+        Assert.True(sessions.TryGet(peerConnection, out var unchangedPeer));
+        Assert.NotNull(unchangedPeer);
+        peerBefore.AssertUnchanged(unchangedPeer, peerSent);
         Assert.DoesNotContain(ParseDeathAttacks(casterSent), attack => attack.Query.OpponentUid == checked((uint)sobNpc.Id));
         Assert.DoesNotContain(casterSent.Concat(peerSent), bytes => LegacyNewSynWarPacket.TryParse(ReadFrame(bytes), out _));
 
@@ -7026,6 +7026,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             attributes: guildAttributes);
         sessions.Set(casterConnection, casterSession);
         sessions.Set(peerConnection, peerSession);
+        Assert.True(sobNpcStates.TryCaptureMagicPrimaryTarget(sobNpc, out var initialObservation));
+        Assert.NotNull(initialObservation);
+        Assert.Same(sobNpc, initialObservation.Source);
+        var initialView = initialObservation.Visible;
         var context = new WorldPacketHandlerContext(
             casterConnection,
             log,
@@ -7050,6 +7054,17 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 Unknown: 0,
                 SpellId: ThunderSpellId)).ToFrameBytes()));
 
+        Assert.True(sessions.TryGet(casterConnection, out var updatedSession));
+        Assert.NotNull(updatedSession);
+        Assert.Equal(493, updatedSession.Character.MinMana);
+        Assert.True(sobNpcStates.TryCaptureMagicPrimaryTarget(sobNpc, out var canonical), log.ToString());
+        Assert.NotNull(canonical);
+        Assert.Same(sobNpc, canonical.Source);
+        Assert.False(sobNpcStates.TryCaptureMagicPrimaryTarget(initialView, out _));
+        var animationTarget = Assert.Single(Assert.Single(ParseSpellAnimations(casterSent)).Targets);
+        Assert.Equal(checked((uint)sobNpc.Id), animationTarget.Uid);
+        Assert.Equal(checked((uint)sobNpc.Life), animationTarget.Damage);
+        Assert.True(animationTarget.Hit);
         var visibleSobNpc = sobNpcStates.GetVisible(sobNpc);
         var ownerGuildId = sobNpcStates.GetOwnerGuildId(sobNpc);
         Assert.Equal(77U, ownerGuildId);
@@ -7087,7 +7102,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     }
 
     [Fact]
-    public async Task HandlerMagicAttackAgainstNeutralSobNpcSpendsManaThenSkipsDamage()
+    public async Task HandlerMagicAttackAgainstNeutralSobNpcRefusesWithoutCostOrOutput()
     {
         var monsterFamily = CreateMonsterFamily();
         var sobNpc = CreateNeutralSobNpc();
@@ -7101,6 +7116,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var connection = CreateSendingConnection(sent);
         var session = CreateSession(mapId: 1_038, x: 84, y: 70);
         sessions.Set(connection, session);
+        Assert.True(sessions.TryGet(connection, out var initial));
+        Assert.NotNull(initial);
         var context = new WorldPacketHandlerContext(
             connection,
             log,
@@ -7125,17 +7142,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 SpellId: ThunderSpellId)).ToFrameBytes()));
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
-        Assert.NotNull(updatedSession);
-        Assert.Equal(493, updatedSession.Character.MinMana);
-        Assert.Empty(ParseSpellAnimations(sent));
-        Assert.Contains(ParseMsgUpdates(sent), update =>
-            update.Uid == PlayerUid &&
-            update.Updates.Any(entry =>
-                entry.Type == LegacyMsgUpdateDataType.Mana &&
-                entry.Value == 493));
-        Assert.Contains(
-            "SOB NPC is not a legacy damageable training or event object",
-            log.ToString());
+        Assert.Same(initial, updatedSession);
+        Assert.Equal(500, updatedSession.Character.MinMana);
+        Assert.Empty(sent);
+        Assert.DoesNotContain("WorldServer handled legacy player-SOB magic", log.ToString());
     }
 
     [Theory]
@@ -7166,6 +7176,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ["PkMode"] = pkMode,
             });
         sessions.Set(connection, session);
+        var rejectionBefore = new DetachedSobRejectionSnapshot(session);
         var context = new WorldPacketHandlerContext(
             connection,
             log,
@@ -7191,12 +7202,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Equal(493, updatedSession.Character.MinMana);
 
         var spells = ParseSpellAnimations(sent);
         var output = log.ToString();
         if (expectedDamage)
         {
+            Assert.Equal(493, updatedSession.Character.MinMana);
             var spell = Assert.Single(spells);
             var target = Assert.Single(spell.Targets);
             Assert.Equal(checked((uint)sobNpc.Id), target.Uid);
@@ -7207,6 +7218,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }
         else
         {
+            rejectionBefore.AssertUnchanged(updatedSession, sent);
             Assert.Empty(spells);
             Assert.Equal(sobNpc.Life, sobNpcStates.GetVisible(sobNpc).Life);
             Assert.Contains(

@@ -12,6 +12,26 @@ All8build/test/script stages passed in121m37.774s; run
 20261102T154534056Z-e1748d43 finished2026-11-02T17:47:11Z.
 This is a local result; a newer public Windows CI result is not yet claimed.
 
+Public Windows41495012492 on5ccca124 subsequently FAILED: Core34083Passed,
+2Failed,152NotExecuted; Updates446Passed; launcher/later gates unrun. Both failures
+were equipment-rebuild second-Dragonhowl cases. The unpublished integration now
+has deterministic real-clock controls and a distinct ordinary-cooldown refusal.
+The historical combined guard does not prove the exact failed predicate.
+
+Current unpublished component evidence: broad3900Passed/1Failed/1NotExecuted
+(absent exported workspace seed). Its remaining assertion incorrectly checked
+startup paths rather than the new cancellation diagnostic; the scoped correction
+passed its exact1/1 test, retaining committed-state/reopen/no-reissue checks.
+Fast25/25 also passed after correcting committed saved-spell ownership during
+UID retirement, and the real-pressure socket deadline/reopen control passed1/1
+after replacing uninterruptible fixture priming. Earlier failures remain recorded.
+The full Windows gate is still required; no current full/public pass is claimed.
+
+Actual current C# parsing accepted retained Main57093/Sub1693x67, complete
+Echo59/cost7/opening6, Compose13/Random65, Resolve3/Addition70x5 without writes
+or runtime binding. The plain Resolve sidecar correctly refuses the full Echo
+relationship; the separate complete retained decode supplies it.
+
 - Complete59-field Echo requirements, immutable main/Sub ID lookup and observed
   operation6 request preparation. Per-player activation and persistence remain open.
 - Explicit pinned relic table loading before native publication and real drop

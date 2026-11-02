@@ -149,6 +149,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             SobNpcStates: sobNpcStates);
 
+        var rejectionBefore = new DetachedSobRejectionSnapshot(session);
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -166,7 +167,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Equal(493, updatedSession.Character.MinMana);
+        if (expectedDamage) Assert.Equal(493, updatedSession.Character.MinMana);
 
         var spells = ParseSpellAnimations(sent);
         var visibleSobNpc = sobNpcStates.GetVisible(sobNpc);
@@ -189,6 +190,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             return;
         }
 
+        rejectionBefore.AssertUnchanged(updatedSession, sent);
         Assert.Empty(spells);
         Assert.Equal(sobNpc.Life, visibleSobNpc.Life);
         Assert.Contains("source CanAttackNpc.Verified rejected", output);

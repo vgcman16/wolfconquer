@@ -18,8 +18,16 @@ public static partial class WorldPacketHandlers
                 for (int index = 0; index < Phases.Count; index++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (!Store.TryCommitDragonhowlPhase(this, index, out var published) || published is null)
+                    if (!Store.TryCommitDragonhowlPhase(this, index, out var published, out var cooldown) || published is null)
+                    {
+                        if (index == 0 && cooldown)
+                        {
+                            await Context.Log.WriteLineAsync("WorldServer refused owned Dragonhowl physical reason=cooldown.")
+                                .ConfigureAwait(false);
+                            return false;
+                        }
                         throw new InvalidOperationException("ownedDragonhowlPreparedPhaseRefused:" + Store.DescribeDragonhowlPhaseFailure(this, index));
+                    }
                     var phase = Phases[index];
                     if ((phase.Death is not null || phase.FutureDeath is not null) &&
                         !await Store.PublishDragonhowlDeathAsync(this, index, cancellationToken).ConfigureAwait(false))

@@ -56,8 +56,9 @@ public static partial class WorldPacketHandlers
         out string failureDiagnostic)
     {
         var pkMode = ReadAttributeUInt64(caster.Attributes, RuntimePkModeAttribute, "PKMode") & byte.MaxValue;
+        var visible = context.SobNpcStates?.ReadMagicPrimaryVisible(sobNpc) ?? sobNpc;
         return CanLegacySobNpcMagicDamageTarget(
-            sobNpc,
+            visible,
             context.WorldData,
             caster,
             pkMode,
@@ -296,7 +297,7 @@ public static partial class WorldPacketHandlers
                 return true;
             }
 
-            if (sobNpcStates?.GetVisible(sobNpc).Life == 0)
+            if (sobNpcStates?.ReadMagicPrimaryVisible(sobNpc).Life == 0)
             {
                 failureDiagnostic =
                     $"map={sobNpc.MapId} kind={sobNpc.Kind}; source CanAttackNpc.Verified " +
@@ -364,7 +365,14 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
-        var ownerGuildId = ResolveLegacyNewGuildWarSobOwnerGuildId(sobNpc, sobNpcStates);
+        if (worldData is null || sobNpcStates is null ||
+            !sobNpcStates.TryReadMagicPrimaryOwnerGuildId(worldData, sobNpc, out var ownerGuildId))
+        {
+            failureDiagnostic =
+                $"map={sobNpc.MapId} kind={sobNpc.Kind}; source GUILDWAR.Verified rejected " +
+                $"NEWGUILDWAR pillar uid={sobNpc.Id} because owner state is unavailable";
+            return true;
+        }
         if (ownerGuildId != 0 &&
             ownerGuildId == guildId)
         {

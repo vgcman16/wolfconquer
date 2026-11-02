@@ -31,17 +31,21 @@ public sealed partial class WorldServerFrameHandler
     }
     private readonly ConditionalWeakTable<OwnedDragonhowlAttempt, DragonhowlAttemptState> dragonhowlAttempts = new();
 
-    internal bool TryBeginDragonhowlAttempt(OwnedDragonhowlRequest request, out OwnedDragonhowlAttempt? attempt)
+    internal bool TryBeginDragonhowlAttempt(OwnedDragonhowlRequest request, out OwnedDragonhowlAttempt? attempt, out bool cooldown)
     {
-        attempt = null;
+        attempt = null; cooldown = false;
         if (!dragonhowlRequests.TryGetValue(request, out var source) || !source.Evaluated || source.Selection is null ||
             !DragonhowlBeforeCurrent(source) || !dragonhowlPrimaries.TryGetValue(source.Primary, out var primary)) return false;
         var slot = source.Wire.Slot;
         DragonhowlAttemptState state;
         if (primary.Player is { } player)
         {
-            if (!TryBeginBasicPhysical(source.Context, new MsgAttackPacket(source.Wire.Query), player, out var actual) || actual is null ||
-                !basicPhysicalAttempts.TryGetValue(actual, out var issued)) return false;
+            if (!TryBeginBasicPhysical(source.Context, new MsgAttackPacket(source.Wire.Query), player, out var actual, out cooldown))
+            {
+                if (cooldown && !DragonhowlBeforeCurrent(source)) cooldown = false;
+                return false;
+            }
+            if (actual is null || !basicPhysicalAttempts.TryGetValue(actual, out var issued)) return false;
             state = new(request, source, actual, issued);
         }
         else
@@ -56,9 +60,9 @@ public sealed partial class WorldServerFrameHandler
             var attributes = LegacyNativeAttributeMapProof.CaptureRaw(expected.Character.Attributes);
             var stamp = slot.Readiness.ReadLocalNow();
             var delay = CalculateBasicPhysicalOrdinaryDelay(speed, checked((ushort)expected.Character.Agility));
-            if (stamp < slot.AttackStamp || stamp < slot.AttackStamp.AddMilliseconds(delay) ||
-                !attributes.IsCurrentPlain() || !speed.IsCurrentPlain(actor) || !flags.IsCurrentPlain() || !runes.IsCurrentPlain() ||
-                !DragonhowlBeforeCurrent(source)) return false;
+            if (!attributes.IsCurrentPlain() || !speed.IsCurrentPlain(actor) || !flags.IsCurrentPlain() || !runes.IsCurrentPlain() ||
+                !DragonhowlBeforeCurrent(source) || stamp < slot.AttackStamp) return false;
+            if (stamp < slot.AttackStamp.AddMilliseconds(delay)) { cooldown = true; return false; }
             _ = checked(slot.Generation + 1);
             // This object is strictly the existing slot's exclusion identity,
             // exactly as for MonsterPhysicalAttempt. It is NEVER entered in

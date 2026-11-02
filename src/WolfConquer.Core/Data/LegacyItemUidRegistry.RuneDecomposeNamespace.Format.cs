@@ -23,7 +23,8 @@ internal sealed partial class LegacyItemUidRegistry
             !value.GetProperty("Version").TryGetInt32(out var version) || version != 1 ||
             value.GetProperty("Kind").ValueKind != JsonValueKind.String ||
             (value.GetProperty("Kind").GetString() != RuneDecomposeNamespaceKind &&
-                (stateVersion != 6 || value.GetProperty("Kind").GetString() != RuneBagNamespaceKind)))
+                (!(stateVersion is 6 or 7) || value.GetProperty("Kind").GetString() != RuneBagNamespaceKind) &&
+                (stateVersion != 7 || value.GetProperty("Kind").GetString() != RelicFuseNamespaceKind)))
             throw new JsonException("Unsupported UID namespace reservation kind or version.");
     }
 
@@ -42,7 +43,7 @@ internal sealed partial class LegacyItemUidRegistry
 
     private static bool IsRuneDecomposeNamespaceRetirement(RegistryState before, RegistryState after, RegistryState expected)
     {
-        if (before.Version is not (5 or 6) || after.Version != before.Version || after.HighWater != before.HighWater ||
+        if (before.Version is not (5 or 6 or 7) || after.Version != before.Version || after.HighWater != before.HighWater ||
             before.Operations is null || after.Operations is null ||
             before.Operations.Length != after.Operations.Length + 1) return false;
         var removed = -1;

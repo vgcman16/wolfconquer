@@ -4,6 +4,196 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Open integration repairs - 2026-11-02 UTC
+
+### FSB-314: Retire a committed relic namespace using its actual committed saved-spell owner
+
+OPEN source correction, qualification pending. The joint writer marks committed
+and replaces binding.SavedSpells with its exact prepared saved image, then retires
+the UID reservation. Retirement incorrectly called OwnerIsCurrentPlain, which
+requires not committed and the old saved baseline; every valid commit therefore
+failed retirement. The distinct postcommit proof now requires the real current
+Store/connection/expected holder/native binding, committed writer and exact
+prepared saved-image owner. Producer/registry/receipt, journal/recovery and all
+three exact file afterimages remain required and rechecked. Global precommit
+checks are unchanged. Existing genuine compose/choose controls retain all UID,
+native/file/holder/output assertions and additionally check saved-owner succession.
+No suitable existing post-journal owner-replacement scheduling seam was found;
+that adversarial control and broader crash/live/SQL acceptance remain open.
+
+Component200304344Z-39667eb6 passed all7actual compose/choose rows after this
+correction. Broader201910343Z-eab33a5b passed3900rows with one separate cancellation
+diagnostic assertion failure and one workspace-seed skip; the assertion correction
+then passed1/1 in203251677Z-e711d058. The full integration gate remains pending.
+
+### FSB-312: Distinguish a current-owner Dragonhowl cooldown from an ownership fault
+
+OPEN source draft, not yet qualified. The real physical timestamp guard returned
+the same false outcome for an ordinary early request and for invalid owners.
+Dragonhowl phase-zero execution then reported every refusal as a runtime fault.
+The draft carries the specific cooldown outcome from the actual timestamp guard,
+rechecks current bindings/inputs/permission/saved gear, and consumes only that
+unstarted/uncommitted refusal without success output. Other failures and clock
+regression retain the fault path. Real player/nonplayer early-to-due controls
+require a bounded cooldown diagnostic and unchanged resources/state/files.
+
+All4genuine player/nonplayer cooldown rows passed in195533781Z-6590cf40 and
+200304344Z-39667eb6. Full integration qualification remains required.
+
+Historical public CI41495012492's combined beginAttempt guard does not prove
+which predicate failed. The deterministic fixture correction retains both
+original equipment-rebuild hits. Exact post-preparation owner-drift scheduling
+has no existing fixture seam and is not claimed tested. Selection/entropy still
+precedes the cooldown determination; no earlier-order equivalence is claimed.
+
+### FSB-313: Permission reads must not create SOB runtime state from an observed copy
+
+OPEN source draft, not yet qualified. The CTF HP guard called GetVisible on the
+observed preflight view. With no prior runtime row it registered that copy as
+the runtime Birth; subsequent canonical-source recapture then rejected a valid
+attack. The guard now uses the existing read-only primary view. The positive
+damage/debit/packet oracle remains, and a canonical-source observation plus
+unchanged-state rejection controls passed11rows in195533781Z-6590cf40. The related
+NewGuildWar permission read now resolves exactly one constructor-owned canonical
+source and verifies current projection/Birth without creating state. Valid absent
+owner0 differs from invalid/stale/ambiguous false, which explicitly rejects.
+Canonical owner controls2 and capture controls4 passed200304344Z-39667eb6;
+unrelated SoulShackle behavior stays intact. No broader SOB ownership or live
+acceptance claim; full integration qualification remains required.
+
+## Open composed catalog/parser repairs - 2026-11-02 UTC
+
+### FSB-311: Prepare a coherent selected rule successor before publishing source references
+
+OPEN integrated draft; UNBUILT/UNRUN. Both selected metadata binders assigned
+their once-bound source before deriving the actual relic rule successor. A
+matched mutable raw cap could disagree with the private constructor capture,
+or selected flags could leave no valid fusion rules; successor selection then
+returned null while binding reported success and discarded the old valid owner.
+
+The binders now prepare under the existing publication/lease lock first. When
+an accepting generation exists, an unavailable successor refuses before either
+source or generation changes and leaves the once-bound slot available for a
+valid retry. Catalogs without a default fusion owner can still bind read-only
+metadata for other consumers; no accepting replacement is invented. Authored
+catalog/planner controls cover both sources, unchanged ownership, retry and the
+metadata-only path. Arbitrary raw catalog mutation, compilation and runtime
+publication qualification remain open.
+
+### FSB-309: Do not require an unused Lucky Strike formula cap during selected binding
+
+OPEN integrated draft; UNBUILT/UNRUN. Selected7937 rule binding imposed the
+30..UInt16Max formula-cap range on compose row14, although the actual Lucky
+formula emits fixed100/epic without reading that cell. Default constructor-owned
+rules already accepted the unused cell. The draft now exempts only row14 from
+that range while retaining complete raw/index/selected three-cell equality and
+all formula-used cap bounds. Authored controls retain identical seeded planner
+output for unused0/29/65536/Int32Max, exact mismatch refusal and used-cap refusal.
+This is a composed-code defect, not a discovered official patch balance change.
+
+### FSB-310: Reject reserved-word targets in selected Resolve reset statements
+
+OPEN integrated draft; UNBUILT/UNRUN. The shared lexer labels Lua keywords as
+Identifier tokens, so the new selected Resolve reader could accept malformed
+reset targets such as nil=nil. A focused reset-target check now rejects reserved
+names while preserving ordinary identifiers and the existing strict selected
+relationships. Eight malformed-target and one ordinary-name controls are
+authored. This is bounded selected-form parsing, not a complete Lua validator;
+no source execution, runtime activation, new reward meaning or passing result.
+
+## Open owned relic publication - 2026-11-02 UTC
+
+### FSB-308: Commit relic identity, item state and classified output through actual owners
+
+OPEN integrated draft; UNBUILT/UNRUN. The retained legacy compose/choose path
+used local item UID selection and ordinary Store/file publication without the
+shared issuer, typed recovery and native/holder ownership now required. The draft
+joins the real global registry, retained rule generation, typed journal and fixed
+file/native/holder publisher. Choose retains an existing selected UID; it never
+allocates another identity. Mixed RuneBag/relic controls retain the global issuer
+across schema migration and two startup opens rather than pre-filling success.
+
+Source review also found that the new return owner required an Exclusive Frame
+lease while dispatch entered Shared. Valid parsed compose/return requests now
+select the actual exclusive operation. The proposed registered output route
+retains exact committed writer/evidence, native holder and copied frames. Actual
+TCP start and completion advance each output; a10-second deadline bounds each
+frame's gate/write wait, followed by transport retirement on output loss.
+
+The draft originally retained the world's Exclusive operation across that
+bounded wait. It now arms the exact private Store output after actual managed
+completion and transfers only its genuine Frame lease once before socket waits.
+The existing native-bound completion step may be a no-op; its normal return is
+not a new persistence receipt. The actual typed journal/native/holder commit
+and writer/evidence remain required authority.
+Dispatch's later disposal is idempotent. Registered start/completion still
+requires the exact current holder/native/writer/connection and recovery check;
+an equal-looking successor cannot replace that owner. Real blocked-gate/started-
+write/cancellation controls now require another actual Frame to proceed before
+the recipient unblocks. Owner-loss and selected-return handoff controls are
+authored. This is not executed multi-player or live-client acceptance.
+The holder-loss control explicitly injects the actual close lifecycle; it does
+not prove that production TCP observes EOF during a blocked Frame handler.
+
+Recovery is checked immediately before actual start, not atomically with its
+independent denial flag. A concurrent later fence can stop completion/next-frame
+output for an already committed action. A separate real fence-while-gated control
+covers refusal before start without undo/reissue; it does not establish stronger
+atomic timing or universal recovery safety.
+
+The committed retirement exception previously lost its cause, and the outer
+caller reduced it to ordinary refusal. Those draft paths now retain the original
+and cleanup failures. A further reviewed cancellation gap let postcommit output
+OperationCanceledException follow ordinary cancellation handlers without a
+committed diagnostic. Root now wraps unclassified postcommit output failures in
+LegacyCommittedSpellPublicationException, retaining the original cause.
+
+Authored real socket-gate cancellation, timeout, restart/no-reissue, accepted
+compose/choose, namespace and mixed-producer controls are not executed. Missing
+writer refuses before allocation/commit. Runtime schema migration, fault-prefix
+recovery, actual encrypted handshake/partial writes, live7937, SQL and broad crash
+safety remain unverified. This entry does not claim a completed fix or activation.
+
+## Open mandatory SOB primary admission - 2026-11-02 UTC
+
+### FSB-307: Retain the selected SOB and applicable permission owner before cast costs
+
+OPEN integrated source; UNBUILT/UNRUN. The previous generic direct SOB tests
+require mana debit before dead/neutral target refusal. Actual target eligibility,
+range, birth and mutation version now enter the real actor admission and observed
+Character/native/Store writer before costs, rather than following a spent cast.
+Valid direct and area behavior and existing monster wrappers are retained.
+
+The actual NewGuildWar manager's SetActive/Start/Stop rotate a private generation;
+its nonblocking lease is retained with the target lease through cost publication.
+File locking precedes target acquisition. The preparation counter is diagnostic,
+never permission or a replacement for a real committed writer.
+On a genuine admitted/native route a missing event manager now refuses before
+costs; a saved actor process attribute cannot substitute for that live owner.
+The new monitor leases also refuse wrong-thread disposal before changing their
+disposed state, so the original thread can still release the actual owners.
+
+Authored controls include actual saved/native/Frame dead/neutral/runtime-dead
+refusals, valid direct/area casts, target mutation observations, active/inactive
+manager behavior, equal-visible manager ABA and genuine held-owner interleavings.
+Saved stamina retains its original presence/value; live/native stamina and saved
+mana are checked separately. No executed result is claimed for this composition.
+
+The draft now also captures actual constructor-owned SOB membership and ID/map
+indexes, retaining scalar row identities, ordering and duplicates. Donor arrays/
+lists and public index interfaces cannot replace the selected birth. The real
+physical-target and Dragonhowl owners consume that constructor-owned membership
+instead of requiring mutable Dictionary/array/List runtime types. Donor/index
+mutation and genuine owned Dragonhowl repeat controls are authored, not executed.
+Raw SobNpc.Fields retains its existing mutable metadata reference and currentness
+checks; this is not whole-row deep immutability or a new catalog generation.
+
+Actor guild/process ownership, raw metadata, other event managers, specialized
+executors, postcommit target races, full combat/SQL atomicity and live client
+acceptance remain open. Membership and permission source mechanisms still need
+actual qualification. FSB-013 remains open.
+
+
 ## Protected mandatory monster primary - 2026-11-02 UTC
 
 ### FSB-306: Validate a protected direct primary before spending cast resources

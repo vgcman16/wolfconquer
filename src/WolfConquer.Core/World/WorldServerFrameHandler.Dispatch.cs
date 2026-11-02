@@ -30,6 +30,7 @@ public sealed partial class WorldServerFrameHandler
             using var operation = HandlerOwnsOperation(frame, _protocolProfile, ActiveNpcForOperationRouting(connection))
                 ? null
                 : CombatRequiresExclusiveOperation(frame, _protocolProfile) ||
+                    LegacyRelicFuseRequiresExclusiveOperation(frame) ||
                     frame.Header.Opcode is WorldPacketOpcodes.LegacyAttributeSet or WorldPacketOpcodes.LegacyMsgLoginGame or
                     WorldPacketOpcodes.InternalWorldEnterRequest or WorldPacketOpcodes.LegacyNewRole
                     ? await _worldOperations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false)

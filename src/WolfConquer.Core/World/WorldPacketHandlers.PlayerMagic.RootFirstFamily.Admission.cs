@@ -14,6 +14,7 @@ public static partial class WorldPacketHandlers
         internal WorldSessionStore.MagicCostOutputReceipt? CostOutput { get; set; }
         internal LegacyClassicBuffAdmissionRequest? ClassicTarget { get; set; }
         internal LegacyRuneCastEligibility? RuneEligibility { get; set; }
+        internal LegacySobPrimaryAdmission? SobPrimary { get; set; }
         // Diagnostics only, never authorization or a reusable admission token.
         internal bool CommitAttempted { get; set; }
         internal bool Committed { get; set; }
@@ -45,17 +46,27 @@ public static partial class WorldPacketHandlers
     {
         session = owner.Expected;
         if (owner.RuneEligibility is { } rune && !rune.IsCurrentPlain()) return false;
+        if (owner.SobPrimary is not null && owner.ClassicTarget is not null) return false;
         if (owner.Store is not { } world)
         {
-            owner.Committed = true;
-            session = candidate; // No fabricated Store, saver or native generation.
-            return true;
+            SobNpcRuntimeStateStore.MagicPrimaryLease? lease = null;
+            if (owner.SobPrimary is { } selected && !selected.TryEnterForCost(null, owner.Connection, owner.Expected, out lease, out _)) return false;
+            using (lease)
+            {
+                owner.Committed = true;
+                session = candidate; // Existing local-record compatibility, not a Store transaction.
+                return true;
+            }
         }
         owner.CommitAttempted = true;
         // The issued identity and exact record are checked together under the
         // real Store gate. This is not a nested writer inside an identity query.
-        var committed = owner.ClassicTarget is { } target ? TryCommitLegacyClassicBuffAdmission(owner, target, candidate, out var output) : world.TryCommitMagicCosts(owner.Connection, owner.Expected,
-            owner.Identity!, candidate, out output, owner.RuneEligibility);
+        WorldSessionStore.MagicCostOutputReceipt? output;
+        var committed = owner.SobPrimary is { } primary
+            ? world.TryCommitSobPrimaryMagicCosts(owner.Connection, owner.Expected, owner.Identity!, candidate, primary, out output, owner.RuneEligibility)
+            : owner.ClassicTarget is { } target
+                ? TryCommitLegacyClassicBuffAdmission(owner, target, candidate, out output)
+                : world.TryCommitMagicCosts(owner.Connection, owner.Expected, owner.Identity!, candidate, out output, owner.RuneEligibility);
         owner.Committed = committed;
         if (committed) { owner.CostOutput = output; session = output!.Published; }
         return committed;

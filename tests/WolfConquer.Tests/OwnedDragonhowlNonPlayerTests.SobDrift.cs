@@ -24,29 +24,25 @@ public sealed partial class OwnedDragonhowlNonPlayerTests
     });
 
     [Fact]
-    public Task SameUidCatalogBirthReplacementCannotBeAdoptedByAnEarlierSobRepeat() => Run(true, async f =>
+    public Task OwnedSobBirthCannotBeReplacedThroughPublishedMembershipAndRepeatUsesRealTarget() => Run(true, async f =>
     {
         await f.Attack();
         Assert.Equal(InitialHp - Damage, f.Hp());
-        var actor = f.Current; var binding = f.Binding;
-        var stamp = binding.Player.AttackStamp;
-        var rows = Assert.IsType<SobNpc[]>(f.Input.World.SobNpcs);
-        var original = Assert.Single(rows);
-        try
-        {
-            rows[0] = original with { }; // Same values/UID, different adopted catalog birth.
-            Assert.NotSame(original, rows[0]);
-            var outputCount = f.Owner.ActorFrames.Count;
-            var files = f.Owner.Data.Files();
-            await f.Repeat();
-            Assert.Equal(InitialHp - Damage, f.Hp());
-            Assert.Same(actor, f.Current);
-            Assert.Equal(stamp, binding.Player.AttackStamp);
-            Assert.False(binding.Client.OnAutoAttack);
-            Assert.Equal(outputCount, f.Owner.ActorFrames.Count);
-            Assert.False(f.Owner.Recovery.IsBlocked); f.Owner.Data.AssertFiles(files);
-        }
-        finally { rows[0] = original; }
+        var catalog = f.Input.World;
+        var original = Assert.Single(catalog.SobNpcs);
+        Assert.Same(f.Input.Sob, original);
+        Assert.False(catalog.SobNpcs is IList<SobNpc>);
+        Assert.False(catalog.SobNpcsById[original.Id] is IList<SobNpc>);
+        var index = Assert.IsAssignableFrom<IDictionary<int, IReadOnlyList<SobNpc>>>(catalog.SobNpcsById);
+        Assert.Throws<NotSupportedException>(() => index[original.Id] = new[] { original with { } });
+        Assert.Same(original, catalog.SobNpcsById[original.Id][0]);
+        var firstStamp = f.Binding.Player.AttackStamp;
+        var start = f.Owner.ActorFrames.Count;
+        await f.Repeat();
+        Assert.Equal(InitialHp - 2 * Damage, f.Hp());
+        Assert.NotEqual(firstStamp, f.Binding.Player.AttackStamp);
+        AssertOneOutput(f, start, sob: true);
+        Assert.False(f.Owner.Recovery.IsBlocked);
     });
 
     [Fact]

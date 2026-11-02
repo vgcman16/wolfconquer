@@ -34,6 +34,8 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 16) ValidateRecordedRuneComposeImages(record, uint.MaxValue);
         if (record.Version == 17) ValidateRecordedRuneChanceImages(record, uint.MaxValue);
         if (record.Version == 18) ValidateRecordedRuneDecomposeImages(record, uint.MaxValue);
+        if (record.Version == 25) ValidateRelicFuseImages(record.Changes, record.RelicFuse ?? throw new InvalidDataException("relicFuseJournalMissing"), uint.MaxValue);
+        if (record.Version == 26) ValidateRelicFuseReturnImages(record.Changes, record.RelicFuseReturn ?? throw new InvalidDataException("relicFuseReturnJournalMissing"), uint.MaxValue);
         if (record.Version == 20) ValidateRecordedRuneBagImages(record, uint.MaxValue);
         if (record.Version == 19) _ = ValidateAuthenticatedCreationImages(record, uint.MaxValue);
         if (record.Version == 21) ValidateRecordedPairMovementImages(record);
@@ -57,9 +59,11 @@ internal static partial class LegacyTradeJournal
         if (capture.Record.Version is 21 or 22 && ownedStartup is null)
         { reason = RecoveryRequired + (capture.Record.Version == 22 ? ":physicalDeathOwnedCustodyRequired" :
             ":pairMovementOwnedCustodyRequired"); return false; }
-        if (capture.Record.Version is 18 or 19 or 20 && ownedStartup is null)
+        if (capture.Record.Version is 18 or 19 or 20 or 25 or 26 && ownedStartup is null)
         { reason = RecoveryRequired + (capture.Record.Version == 19 ? ":authenticatedCreationOwnedCustodyRequired" :
-            capture.Record.Version == 20 ? ":runeBagOwnedCustodyRequired" : ":runeDecomposeOwnedCustodyRequired"); return false; }
+            capture.Record.Version == 20 ? ":runeBagOwnedCustodyRequired" :
+            capture.Record.Version == 25 ? ":relicFuseOwnedCustodyRequired" :
+            capture.Record.Version == 26 ? ":relicFuseReturnOwnedCustodyRequired" : ":runeDecomposeOwnedCustodyRequired"); return false; }
         var count = 0; var failure = string.Empty;
         var result = SnapshotFileLockCoordinator.ExecuteLocked(
             AdmissionLockPaths(capture.Roots, capture.Record, capture.Targets), () =>

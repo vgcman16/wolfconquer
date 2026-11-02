@@ -70,6 +70,15 @@ public static partial class WorldPacketHandlers
 
         internal void RequireRuneBagOwner(WorldPacketHandlerContext context, WorldSession actual) => RequireOwnedInvocation(context, actual);
 
+        internal void RequireRelicFuseOwner(WorldPacketHandlerContext context, WorldSession actual) => RequireOwnedInvocation(context, actual);
+        internal void RequireRelicFuseOwnerHeld(WorldPacketHandlerContext context, WorldSession actual)
+        {
+            if (!ReferenceEquals(stable, actual) || actual.NativeGameClient?.OrdinarySpellBinding is not { } binding ||
+                !Monitor.IsEntered(binding.Client.SpellAdmissionSyncRoot) || !Monitor.IsEntered(binding.Player.SpellAdmissionSyncRoot))
+                throw InvalidSpellMutation();
+            writer.RequireItemSpellBeforeOwnerPlain(context, expected);
+        }
+
         internal void RequireRuneDecomposeOwner(WorldPacketHandlerContext context, WorldSession actual, uint uid)
         {
             RequireOwnedInvocation(context, actual);
@@ -93,5 +102,8 @@ public static partial class WorldPacketHandlers
         internal byte[]? CopySpells() => spells?.ToArray();
         internal bool HasCommittedRuneDecompose(LegacyRuneDecomposeEvidence evidence) => writer.HasCommittedRuneDecompose(evidence);
         internal bool HasCommittedRuneBag(LegacyRuneBagEvidence evidence) => writer.HasCommittedRuneBag(evidence);
+        internal bool HasCommittedRelicFuse(LegacyRelicFuseOwnedEvidence evidence) => writer.HasCommittedRelicFuse(evidence);
+        internal bool HasCommittedRelicFuseReturn(LegacyRelicFuseReturnOwnedEvidence evidence) => writer.HasCommittedRelicFuseReturn(evidence);
+        internal bool IsRelicFuseWriter(LegacyPreparedSpellFileWrite actual) => ReferenceEquals(writer, actual);
     }
 }

@@ -14,7 +14,7 @@ internal sealed partial class LegacyItemUidRegistry
             try
             {
                 RequireRuneDecomposeStateCurrent();
-                if (state.Version != 6) { reason = string.Empty; return true; }
+                if (state.Version is not (6 or 7)) { reason = string.Empty; return true; }
                 var configured = authority.Configuration;
                 for (var retired = 0; retired < MaximumOperationReceipts; retired++)
                 {

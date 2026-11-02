@@ -13,6 +13,19 @@ public static partial class WorldPacketHandlers
               IsLegacyNativeRiseOfTaoismRootSpell(selected)) && context.Sessions is null) ||
             !TryCaptureLegacyRootAdmissionOwner(context, session, null, out var owner)) return null;
         session = owner.Expected;
+        string? primaryRefusal = null;
+        try
+        {
+            if (!TryCaptureLegacySobPrimaryAdmission(context, owner, query, selected, selectedSobExecutor: false, out var primaryReason))
+                primaryRefusal = primaryReason;
+        }
+        catch (Exception error) when (IsLegacyRootPreparationFailure(error))
+        { primaryRefusal = $"sobPrimaryPreparationInvalid={error.GetType().Name}"; }
+        if (primaryRefusal is not null)
+        {
+            await RejectLegacyRootFirstFamilyWithDiagnosticAsync(context, session, selected, primaryRefusal).ConfigureAwait(false);
+            return null;
+        }
         if (!LegacyRuneCastEligibility.TryCapture(context, session, selected, out var runeEligibility)) return null;
         owner.RuneEligibility = runeEligibility;
         LegacyRootEntryPreparation plan = null!;

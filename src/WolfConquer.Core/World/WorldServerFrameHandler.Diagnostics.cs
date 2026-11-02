@@ -146,9 +146,10 @@ public sealed partial class WorldServerFrameHandler
             nextSeam: "inspect-runtime-exception",
             reason: "runtime exception was caught without terminating the live server; inspect the error log and decompiled source dispatch for parity triage");
         await _log.WriteLineAsync(diagnostic.FormatLogMessage()).ConfigureAwait(false);
+        var redactRelic = frame.Header.Opcode == WorldPacketOpcodes.LegacyRelicFuse;
         var exceptionDetail = frame.Header.Opcode == WorldPacketOpcodes.LegacySecondaryPassword
             ? exception.GetType().Name + ": [secondary password details redacted]"
-            : exception.GetType().Name + ": " + exception.Message;
+            : redactRelic ? RelicExceptionTypes(exception) : exception.GetType().Name + ": " + exception.Message;
         await _log.WriteLineAsync(
                 "PARITY-BUG world runtime exception " +
                 $"{FormatSession(session)} {FormatFrameDiagnostic(frame)} " +
@@ -158,7 +159,32 @@ public sealed partial class WorldServerFrameHandler
             "PARITY-BUG world runtime exception " +
             $"{DateTimeOffset.UtcNow:O} {FormatSession(session)} {FormatFrameDiagnostic(frame)} " +
             $"sourceSeam={sourceSeam}{Environment.NewLine}" +
-            (frame.Header.Opcode == WorldPacketOpcodes.LegacySecondaryPassword ? exceptionDetail : exception.ToString()));
+            (frame.Header.Opcode == WorldPacketOpcodes.LegacySecondaryPassword || redactRelic ? exceptionDetail : exception.ToString()));
+    }
+
+    private static string RelicExceptionTypes(Exception exception)
+    {
+        // Preserve the actual exception to the dispatcher, but bound diagnostics
+        // to type names so committed-failure reports cannot disclose file paths.
+        List<string> types = [];
+        Queue<Exception> pending = new(); pending.Enqueue(exception);
+        while (pending.Count != 0 && types.Count < 8)
+        {
+            var current = pending.Dequeue();
+            var label = current.GetType().Name;
+            const string refusal = "relicFuseNamespaceRetirementRefused:";
+            if (current is InvalidDataException && current.Message.StartsWith(refusal, StringComparison.Ordinal) &&
+                current.Message.Length <= 120 && current.Message.All(character =>
+                    char.IsAsciiLetterOrDigit(character) || character is ':' or '_' or '-'))
+                label += ":" + current.Message;
+            types.Add(label);
+            if (current is AggregateException aggregate)
+            {
+                foreach (var inner in aggregate.InnerExceptions.Take(8 - types.Count)) pending.Enqueue(inner);
+            }
+            else if (current.InnerException is { } inner) pending.Enqueue(inner);
+        }
+        return string.Join(" -> ", types);
     }
 
     private static string FormatSession(WorldSession? session)

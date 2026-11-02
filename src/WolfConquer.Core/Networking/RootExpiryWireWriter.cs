@@ -11,6 +11,8 @@ internal sealed class RootExpiryWireWriter(
 {
     internal ConquerTcpConnection Connection { get; } = connection;
     private int waitingForGate;
+    private int relicWaitingForGate;
+    internal int RelicWaitingForGate => Volatile.Read(ref relicWaitingForGate);
     private int staminaWaitingForGate;
     private int tickerWaitingForGate;
     private int reviverWaitingForGate;
@@ -18,6 +20,9 @@ internal sealed class RootExpiryWireWriter(
     internal int TickerWaitingForGate => Volatile.Read(ref tickerWaitingForGate);
     internal int StaminaWaitingForGate => Volatile.Read(ref staminaWaitingForGate);
     private object? activeStart;
+    private object? activeRelicCompletion;
+    internal bool ConsumeRelicCompletion(object? proof) => proof is not null &&
+        ReferenceEquals(Interlocked.CompareExchange(ref activeRelicCompletion, null, proof), proof);
     internal bool ConsumeActiveStart(object? permit) => permit is not null &&
         ReferenceEquals(Interlocked.CompareExchange(ref activeStart, null, permit), permit);
     internal int WaitingForGate => Volatile.Read(ref waitingForGate);
@@ -31,6 +36,7 @@ internal sealed class RootExpiryWireWriter(
     private sealed record TickerWrite(WorldSessionStore Store, WorldServerFrameHandler Frame,
         WorldServerFrameHandler.PlayerTickXpPermit Permit, object Identity) : WriteRequest;
     private sealed record ReviverWrite(WorldSessionStore Store, WorldSessionStore.ReviverWirePermit Permit) : WriteRequest;
+    private sealed record RelicWrite(WorldSessionStore Store, WorldSessionStore.RelicWirePermit Permit) : WriteRequest;
 
     internal ValueTask<bool> SendAsync(WorldSessionStore store, WorldSessionStore.RootExpiryWritePermit permit, CancellationToken token) =>
         SendOwnedAsync(new RootWrite(store, permit), token);
@@ -42,6 +48,10 @@ internal sealed class RootExpiryWireWriter(
     internal ValueTask<bool> SendReviverAsync(WorldSessionStore store, WorldSessionStore.ReviverWirePermit permit, CancellationToken token) =>
         SendOwnedAsync(new ReviverWrite(store, permit), token);
 
+    internal ValueTask<bool> SendRelicAsync(WorldSessionStore store, WorldSessionStore.RelicWirePermit permit, CancellationToken token) =>
+        SendOwnedAsync(new RelicWrite(store, permit), token);
+    internal bool IsClosed => isClosed();
+
     private void ChangeWaiting(WriteRequest request, int delta)
     {
         switch (request)
@@ -50,6 +60,7 @@ internal sealed class RootExpiryWireWriter(
             case StaminaWrite: Interlocked.Add(ref staminaWaitingForGate, delta); break;
             case TickerWrite: Interlocked.Add(ref tickerWaitingForGate, delta); break;
             case ReviverWrite: Interlocked.Add(ref reviverWaitingForGate, delta); break;
+            case RelicWrite: Interlocked.Add(ref relicWaitingForGate, delta); break;
             default: throw new InvalidOperationException("Unknown owned wire request.");
         }
     }
@@ -66,6 +77,8 @@ internal sealed class RootExpiryWireWriter(
                 return ticker.Store.TryStartPlayerTickXp(ticker.Frame, ticker.Permit, Connection, ticker.Identity, this, start, token, out pending);
             case ReviverWrite reviver:
                 return reviver.Store.TryStartOwnedReviverWire(reviver.Permit, Connection, this, start, token, out pending);
+            case RelicWrite relic:
+                return relic.Store.TryStartRelicWire(relic.Permit, Connection, this, start, token, out pending);
             default: throw new InvalidOperationException("Unknown owned wire request.");
         }
     }
@@ -95,8 +108,36 @@ internal sealed class RootExpiryWireWriter(
             }
             finally { Interlocked.CompareExchange(ref activeStart, null, start); }
             started = true; attempting = false;
-            await pending.ConfigureAwait(false);
-            return !isClosed();
+            if (request is RelicWrite)
+            {
+                var realWrite = pending.AsTask();
+                try { await realWrite.WaitAsync(deadline.Token).ConfigureAwait(false); }
+                catch
+                {
+                    // The socket is retired below; observe a late real write
+                    // fault without holding the gate or inventing completion.
+                    _ = realWrite.ContinueWith(static task => _ = task.Exception,
+                        CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default);
+                    throw;
+                }
+            }
+            else
+                await pending.ConfigureAwait(false);
+            if (isClosed()) return false;
+            if (request is RelicWrite relic)
+            {
+                var completion = new object();
+                if (Interlocked.CompareExchange(ref activeRelicCompletion, completion, null) is not null)
+                    throw new InvalidOperationException("Relic wire completion already active.");
+                try
+                {
+                    if (!relic.Store.MarkRelicWireTransportComplete(relic.Permit, Connection, this, completion))
+                    { markClosed(); return false; }
+                }
+                finally { Interlocked.CompareExchange(ref activeRelicCompletion, null, completion); }
+            }
+            return true;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         { if (started || attempting) markClosed(); throw; }

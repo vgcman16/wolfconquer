@@ -32,7 +32,7 @@ public sealed partial class SobNpcRuntimeStateStore
         internal static OwnedDragonhowlSobTarget? TryCapture(SobNpcRuntimeStateStore owner,
             WorldDataCatalog catalog, SobNpc observed)
         {
-            if (!IsPlain(catalog.SobNpcs)) return null;
+            if (!catalog.IsOwnedSobMembership(catalog.SobNpcs)) return null;
             lock (owner._gate)
             {
                 var matching = owner._states.Where(row => row.Key.Id == observed.Id && row.Key.MapId == observed.MapId).ToArray();
@@ -49,7 +49,7 @@ public sealed partial class SobNpcRuntimeStateStore
             SobNpc selectedBirth, out OwnedDragonhowlSobTarget? target, out SobNpc current)
         {
             target = null; current = null!;
-            if (!IsPlain(catalog.SobNpcs) || !IsPlain(selectedBirth.Fields)) return false;
+            if (!catalog.IsOwnedSobMembership(catalog.SobNpcs) || !IsPlain(selectedBirth.Fields)) return false;
             lock (owner._gate)
             {
                 if (catalog.SobNpcs.Count(row => ReferenceEquals(row, selectedBirth)) != 1 ||
@@ -192,7 +192,7 @@ public sealed partial class SobNpcRuntimeStateStore
             state.DeadAt is null && state.Hitpoints > 0;
 
         private bool RegistrationCurrentPlain() => Monitor.IsEntered(owner._gate) && ReferenceEquals(catalog.SobNpcs, adoptedRows) &&
-            IsPlain(adoptedRows) && adoptedRows.Count(row => ReferenceEquals(row, birth)) == 1 &&
+            catalog.IsOwnedSobMembership(adoptedRows) && adoptedRows.Count(row => ReferenceEquals(row, birth)) == 1 &&
             adoptedRows.Count(row => row.Id == birth.Id && row.MapId == birth.MapId) == 1 &&
             owner._states.TryGetValue(SobNpcRuntimeKey.From(birth), out var actual) && ReferenceEquals(actual, state) &&
             ReferenceEquals(state.Birth, birth) && owner._states.Count(row => row.Key.Id == birth.Id && row.Key.MapId == birth.MapId) == 1 &&

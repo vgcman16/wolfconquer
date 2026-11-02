@@ -48,6 +48,8 @@ public sealed partial class WorldSessionStore
         private LegacyRootItemEffectFlagClock.PreparedInstall? rootFlagInstall;
         internal WorldSession FinalSession { get; private set; }
         internal LegacyOrdinarySpellBinding? Binding => binding;
+        internal WorldSession? ExpectedSession => expected;
+        internal ConquerTcpConnection Connection => connection;
         internal object PublishedIdentity => finalIdentity;
         internal LegacyNativeSpellStorage.PreparedSessionSpellMap PreparedSpellGraph => map ?? throw InvalidSpellPublication();
         internal LegacyNativeProficiencyStorage.PreparedSessionProficiencyMap PreparedProficiencyGraph => proficiencies ?? throw InvalidSpellPublication();

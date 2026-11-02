@@ -122,7 +122,7 @@ internal static partial class LegacyTradeJournal
             RequirePhysicalDeathBoundary(roots, record);
             RequireDerivedSpellQueryBoundary(roots, record);
             RequireHitProgressionBoundary(roots, record);
-            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23 or 24)) Directory.CreateDirectory(roots.Items);
+            if (!IsOrdinaryAdmissionVersion(record.Version) && record.Version is not (8 or 9 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 23 or 24 or 25 or 26)) Directory.CreateDirectory(roots.Items);
             Directory.CreateDirectory(roots.Journal);
             EnsureSafePath(roots.Journal);
             WriteFlushed(preparing, Serialize(record));
@@ -142,7 +142,7 @@ internal static partial class LegacyTradeJournal
             else if (record.Version == 23) PrepareDerivedSpellQueryDirectories(roots, record, targets);
             else if (record.Version == 22) PreparePhysicalDeathDirectories(roots, record, targets);
             else if (record.Version == 19) PrepareAuthenticatedCreationDirectories(roots, record, targets);
-            else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
+            else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26) PrepareCharacterItemsSpellsDirectories(roots, record, targets);
             else if (record.Version == 8) PrepareCharacterSpellsDirectories(roots, record, targets);
             else PrepareAdmissionDirectories(roots, record, targets);
             for (var index = 0; index < targets.Length; index++)

@@ -51,7 +51,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 winnerGuildId,
                 process));
 
-        AssertSuperGuildWarPoleManaSpent(result);
+        result.RejectionBefore.AssertUnchanged(result.UpdatedSession, result.Sent);
         Assert.Empty(ParseSpellAnimations(result.Sent));
         Assert.Equal(SuperGuildWarPoleLife, result.SobNpcStates.GetVisible(result.SobNpc).Life);
         Assert.Contains(ExpectedSuperGuildWarPoleFailureDiagnostic(scenario, result.SobNpc), result.Output);
@@ -92,6 +92,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Sessions: sessions,
             SobNpcStates: sobNpcStates);
 
+        var rejectionBefore = new DetachedSobRejectionSnapshot(session);
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -114,7 +115,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             sobNpcStates,
             updatedSession,
             sent,
-            log.ToString());
+            log.ToString(),
+            rejectionBefore);
     }
 
     private static void AssertSuperGuildWarPoleManaSpent(SuperGuildWarPoleAttackResult result)
@@ -267,5 +269,6 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         SobNpcRuntimeStateStore SobNpcStates,
         WorldSession UpdatedSession,
         IReadOnlyList<byte[]> Sent,
-        string Output);
+        string Output,
+        DetachedSobRejectionSnapshot RejectionBefore);
 }

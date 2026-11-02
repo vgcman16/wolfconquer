@@ -202,7 +202,7 @@ public sealed partial class WorldDataCatalog
         CombatGear = combatGear;
         Traps = traps;
         Npcs = npcs;
-        SobNpcs = sobNpcs;
+        SobNpcs = CaptureSobMembership(sobNpcs);
         Portals = portals;
         Maps = maps;
         MapNames = mapNames;
@@ -313,6 +313,7 @@ public sealed partial class WorldDataCatalog
         XuanbaoRandomAttributesByItemTypeId = BuildGroupedIndex(xuanbaoRandomAttributes, entry => entry.ItemTypeId);
         XuanbaoRandomAttributesByAttributeType = BuildGroupedIndex(xuanbaoRandomAttributes, entry => entry.AttributeType);
         XuanbaoRandomAttributeByItemTypeIdAndAttributeType = BuildUniqueIndex(xuanbaoRandomAttributes, entry => (entry.ItemTypeId, entry.AttributeType));
+        InitializeLegacyRelicFuseRules();
         ChristmasNpcsById = BuildGroupedIndex(christmasNpcs, entry => entry.Id);
         ChristmasNpcsByMapId = BuildGroupedIndex(christmasNpcs, entry => entry.MapId);
         ChristmasNpcsByMapPosition = BuildGroupedIndex(christmasNpcs, entry => (entry.MapId, entry.X, entry.Y));
@@ -423,8 +424,8 @@ public sealed partial class WorldDataCatalog
         MagicByTypeId = BuildGroupedIndex(magic, spell => spell.TypeId);
         NpcsById = BuildGroupedIndex(npcs, npc => npc.Id);
         NpcsByMapId = BuildGroupedIndex(npcs, npc => npc.MapId);
-        SobNpcsById = BuildGroupedIndex(sobNpcs, sobNpc => sobNpc.Id);
-        SobNpcsByMapId = BuildGroupedIndex(sobNpcs, sobNpc => sobNpc.MapId);
+        SobNpcsById = BuildOwnedSobIndex(SobNpcs, sobNpc => sobNpc.Id);
+        SobNpcsByMapId = BuildOwnedSobIndex(SobNpcs, sobNpc => sobNpc.MapId);
         PortalsBySourceMapId = BuildGroupedIndex(portals, portal => portal.SourceMapId);
         MonsterSpawnsByGeneratorId = BuildGroupedIndex(monsterSpawns, spawn => spawn.GeneratorId);
         MonsterSpawnsByMapId = BuildGroupedIndex(monsterSpawns, spawn => spawn.MapId);

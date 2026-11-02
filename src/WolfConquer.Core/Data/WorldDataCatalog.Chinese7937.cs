@@ -13,14 +13,26 @@ public sealed partial class WorldDataCatalog
 
     public bool TryBindChinese7937XuanbaoAttributes(Chinese7937XuanbaoAttributeCatalog selected, out string reason)
     {
-        reason = string.Empty;
-        if (selected is null) { reason = "selected7937AttributeCatalogRequired"; return false; }
-        try { _ = LegacyBossSpecialDeathDropCatalog.FromWorldData(this, selected); }
-        catch (Exception error) when (error is InvalidDataException or ArgumentException)
-        { reason = "selected7937ActualRelicMetadataRequired"; return false; }
-        var prior = Interlocked.CompareExchange(ref selected7937XuanbaoAttributes, selected, null);
-        if (prior is null || ReferenceEquals(prior, selected)) return true;
-        reason = "selected7937AttributeCatalogAlreadyBound";
-        return false;
+        lock (relicFuseRulesPublicationSync)
+        {
+            if (activeRelicFuseRuleLeases != 0) { reason = "relicFuseRuleGenerationInUse"; return false; }
+            reason = string.Empty;
+            if (selected is null) { reason = "selected7937AttributeCatalogRequired"; return false; }
+            try { _ = LegacyBossSpecialDeathDropCatalog.FromWorldData(this, selected); }
+            catch (Exception error) when (error is InvalidDataException or ArgumentException)
+            { reason = "selected7937ActualRelicMetadataRequired"; return false; }
+            var prior = selected7937XuanbaoAttributes;
+            if (prior is not null)
+            {
+                if (ReferenceEquals(prior, selected)) return true;
+                reason = "selected7937AttributeCatalogAlreadyBound"; return false;
+            }
+            if (!TryPrepareSelectedRelicFuseRules(selected, selected7937XuanbaoRules, out var next, out reason)) return false;
+            // Writers use the same publication lock. Readers reject the brief
+            // source/generation mismatch until this prepared pair is visible.
+            Volatile.Write(ref selected7937XuanbaoAttributes, selected);
+            Volatile.Write(ref currentRelicFuseRules, next);
+            return true;
+        }
     }
 }

@@ -34,7 +34,7 @@ internal sealed partial class LegacyItemUidRegistry
                 request.PayloadSha256, state.Generation + 1, state.HighWater + 1, 1, new(1, RuneBagNamespaceKind));
             var operations = new OperationReservation[(state.Operations?.Length ?? 0) + 1];
             state.Operations?.CopyTo(operations, 0); operations[^1] = row;
-            var next = state with { Version = 6, Generation = row.Generation, HighWater = state.HighWater + 1,
+            var next = state with { Version = Math.Max(6, state.Version), Generation = row.Generation, HighWater = state.HighWater + 1,
                 Operations = operations, ProducerIntents = state.ProducerIntents ?? [] };
             var prepared = Reservation.Prepare(this, 1); var recorded = CreateReceipt(row);
             if (!authority.IsCurrentPlain(this, request) ||
@@ -96,7 +96,7 @@ internal sealed partial class LegacyItemUidRegistry
     private static OperationReservation RequireRuneBagAllocation(RegistryState current,
         LegacyItemUidReservationRequest request, LegacyItemUidReservationReceipt receipt)
     {
-        if (current.Version != 6 || !IsValidRequest(request) || request.Writer != RuneBagWriter || request.Count != 1 || receipt is null ||
+        if (current.Version is not (6 or 7) || !IsValidRequest(request) || request.Writer != RuneBagWriter || request.Count != 1 || receipt is null ||
             receipt.DomainId == Guid.Empty || receipt.DomainId != Guid.ParseExact(current.Domain, "N") ||
             request.OperationId != receipt.OperationId)
             throw new InvalidDataException("Rune bag allocation request or domain differs from its namespace.");

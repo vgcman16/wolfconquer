@@ -30,9 +30,7 @@ public static partial class WorldPacketHandlers
         if (context.SobNpcStates is { } npcs)
         {
             IReadOnlyList<SobNpc> rows = [];
-            if (uid <= int.MaxValue && data.SobNpcsById.GetType() == typeof(Dictionary<int, IReadOnlyList<SobNpc>>) &&
-                ((Dictionary<int, IReadOnlyList<SobNpc>>)data.SobNpcsById).TryGetValue((int)uid, out var adopted) &&
-                adopted?.GetType() == typeof(SobNpc[])) rows = (SobNpc[])((SobNpc[])adopted).Clone();
+            if (uid <= int.MaxValue && data.TryGetOwnedSobRowsById((int)uid, out var adopted)) rows = adopted;
             sobPresence = npcs.ReadRegisteredPhysicalTarget(uid, checked((int)actor.Character.MapId), rows, out sob);
         }
         return location.IsCurrentPlain() ? new(monsterPresence, monster, family, range, sobPresence, sob) :

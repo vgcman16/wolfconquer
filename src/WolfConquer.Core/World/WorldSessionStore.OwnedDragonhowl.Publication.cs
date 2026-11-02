@@ -69,9 +69,9 @@ public sealed partial class WorldSessionStore
     }
 
     internal bool TryCommitDragonhowlPhase(WorldPacketHandlers.OwnedDragonhowlPreparation plan, int index,
-        out WorldSession? published)
+        out WorldSession? published, out bool cooldown)
     {
-        published = null;
+        published = null; cooldown = false;
         if (!dragonhowlOwners.TryGetValue(plan.Owner, out var state) || !ReferenceEquals(state.Plan, plan) ||
             state.Failed || state.Completed || state.NextPhase != index || index < 0 || index >= plan.Phases.Count) return false;
         var phase = plan.Phases[index];
@@ -88,8 +88,14 @@ public sealed partial class WorldSessionStore
             if (!state.Started)
             {
                 state.CommitStage = "beginAttempt";
-                if (index != 0 || !state.Frame.OwnedDragonhowlSavedGearCurrent(state.Request) ||
-                    !state.Frame.TryBeginDragonhowlAttempt(state.Request, out var attempt) || attempt is null) return false;
+                if (index != 0 || !state.Frame.OwnedDragonhowlSavedGearCurrent(state.Request)) return false;
+                if (!state.Frame.TryBeginDragonhowlAttempt(state.Request, out var attempt, out var early) || attempt is null)
+                {
+                    cooldown = early && !state.Started && !state.Committed && state.NextPhase == 0 &&
+                        DragonhowlHeldCurrent(state) && plan.InputsAreCurrentPlain() && permission.IsCurrentPlain() &&
+                        state.Frame.OwnedDragonhowlSavedGearCurrent(state.Request);
+                    return false;
+                }
                 state.Attempt = attempt; state.Started = true;
             }
             var actor = state.Bindings[state.Context.Connection];

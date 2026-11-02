@@ -25,7 +25,8 @@ internal static class LegacyItemWorldDataFixture
         IReadOnlyList<LevelExperience>? levelExperience = null,
         IReadOnlyList<MonsterSpawn>? monsterSpawns = null,
         IReadOnlyList<MagicEffect>? magicEffects = null,
-        IReadOnlyList<CombatGear>? combatGear = null)
+        IReadOnlyList<CombatGear>? combatGear = null,
+        IReadOnlyList<XuanbaoComposeAttributeLimit>? xuanbaoComposeAttributeLimits = null)
     {
         return WorldDataCatalog.Create(
             new SeedManifest(
@@ -50,7 +51,7 @@ internal static class LegacyItemWorldDataFixture
             coatStorageAttributes: [],
             coatColorRules: [],
             xuanbaoAdditionAttributes: [],
-            xuanbaoComposeAttributeLimits: [],
+            xuanbaoComposeAttributeLimits: xuanbaoComposeAttributeLimits ?? [],
             xuanbaoRandomAttributes: xuanbaoRandomAttributes,
             christmasNpcs: [],
             tutorTypes: [],

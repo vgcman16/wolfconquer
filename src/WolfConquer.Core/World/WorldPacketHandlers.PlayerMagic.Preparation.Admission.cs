@@ -26,20 +26,44 @@ public static partial class WorldPacketHandlers
         TryPrepareLegacyPlayerMagicCastCoreAsync(context, session, spell, ignoreAttackStamp: false,
             cancellationToken, expectedNativeClientIdentity: null, classicTarget: null, primaryMonsterQuery: query);
 
+    private static ValueTask<WorldSession?> TryPrepareLegacyPlayerSobPrimaryMagicCastAsync(
+        WorldPacketHandlerContext context, LegacyRootAdmissionOwner owner, MsgAttackQuery query,
+        LegacyMagicRuntimeSpell spell, CancellationToken cancellationToken) =>
+        TryPrepareLegacyPlayerMagicCastCoreAsync(context, owner.Expected, spell, ignoreAttackStamp: false,
+            cancellationToken, owner.Identity, classicTarget: null, primaryMonsterQuery: null,
+            primarySobQuery: query, capturedOwner: owner);
+
     private static async ValueTask<WorldSession?> TryPrepareLegacyPlayerMagicCastCoreAsync(
         WorldPacketHandlerContext context, WorldSession session, LegacyMagicRuntimeSpell spell,
         bool ignoreAttackStamp, CancellationToken cancellationToken, object? expectedNativeClientIdentity,
-        LegacyClassicBuffAdmissionRequest? classicTarget, MsgAttackQuery? primaryMonsterQuery)
+        LegacyClassicBuffAdmissionRequest? classicTarget, MsgAttackQuery? primaryMonsterQuery,
+        MsgAttackQuery? primarySobQuery = null, LegacyRootAdmissionOwner? capturedOwner = null)
     {
-        if (!TryCaptureLegacyRootAdmissionOwner(
-                context, session, expectedNativeClientIdentity, out var owner)) return null;
+        LegacyRootAdmissionOwner owner;
+        if (capturedOwner is not null)
+        {
+            if (!ReferenceEquals(capturedOwner.Store, context.Sessions) || !ReferenceEquals(capturedOwner.Connection, context.Connection) ||
+                !ReferenceEquals(capturedOwner.Expected, session) || !ReferenceEquals(capturedOwner.Identity, expectedNativeClientIdentity)) return null;
+            owner = capturedOwner;
+        }
+        else if (!TryCaptureLegacyRootAdmissionOwner(
+                context, session, expectedNativeClientIdentity, out owner)) return null;
         session = owner.Expected;
+        if (primaryMonsterQuery is not null && primarySobQuery is not null) return null;
         if (primaryMonsterQuery is { } primary &&
             !PassesLegacyPlayerMonsterMagicPreResourceRangeGate(context, session, primary, spell, out var primaryReason))
         {
             await context.Log.WriteLineAsync(
                     "WorldServer skipped legacy player magic " +
                     $"{FormatSession(context with { Session = session })} spellId={spell.Id} sort={(int)spell.Sort}; {primaryReason}.")
+                .ConfigureAwait(false);
+            return null;
+        }
+        if (primarySobQuery is { } sobQuery &&
+            !TryCaptureLegacySobPrimaryAdmission(context, owner, sobQuery, spell, selectedSobExecutor: true, out var sobReason))
+        {
+            await context.Log.WriteLineAsync(
+                $"WorldServer skipped legacy player-SOB magic {FormatSession(context with { Session = session })} spellId={spell.Id}; {sobReason}.")
                 .ConfigureAwait(false);
             return null;
         }

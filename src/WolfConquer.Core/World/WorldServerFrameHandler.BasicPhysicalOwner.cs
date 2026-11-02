@@ -69,9 +69,13 @@ public sealed partial class WorldServerFrameHandler
     }
 
     internal bool TryBeginBasicPhysical(WorldPacketHandlerContext context, MsgAttackPacket packet,
-        WorldActiveSession target, out BasicPhysicalAttempt? attempt)
+        WorldActiveSession target, out BasicPhysicalAttempt? attempt) =>
+        TryBeginBasicPhysical(context, packet, target, out attempt, out _);
+
+    private bool TryBeginBasicPhysical(WorldPacketHandlerContext context, MsgAttackPacket packet,
+        WorldActiveSession target, out BasicPhysicalAttempt? attempt, out bool cooldown)
     {
-        attempt = null;
+        attempt = null; cooldown = false;
         if (context.BasicPhysicalRequest is not { } request ||
             !basicPhysicalRequests.TryGetValue(request, out var issued) || packet.Query != issued.Query ||
             context.Session is not { } expected || !TryPrepareActionContext(_sessions, context, expected, out var actual)) return false;
@@ -103,7 +107,17 @@ public sealed partial class WorldServerFrameHandler
                 runeProof is null || runeProof.HasDeadlySight) return false;
             var stamp = slot.Readiness.ReadLocalNow();
             int delay = CalculateBasicPhysicalOrdinaryDelay(speed, checked((ushort)expected.Character.Agility));
-            if (stamp < slot.AttackStamp || stamp < slot.AttackStamp.AddMilliseconds(delay)) return false;
+            if (stamp < slot.AttackStamp) return false;
+            if (stamp < slot.AttackStamp.AddMilliseconds(delay))
+            {
+                // A cooldown is ordinary only while every captured input and owner
+                // is still current; stale authority keeps its original failure path.
+                if (!attributes.IsCurrentPlain() || !speed.IsCurrentPlain(attacker) || !flagProof.IsCurrentPlain() || !runeProof.IsCurrentPlain() ||
+                    !IsStaminaReadinessCurrent(slot.Readiness) || slot.Generation != issued.Generation ||
+                    !_sessions.TryGet(context.Connection, out current) || !ReferenceEquals(current, expected) ||
+                    !_sessions.TryGet(target.Connection, out currentTarget) || !ReferenceEquals(currentTarget, target.Session)) return false;
+                cooldown = true; return false;
+            }
             long generation = slot.Generation;
             _ = checked(generation + 1); // Representability before any accepted state change.
             var token = new BasicPhysicalAttempt();

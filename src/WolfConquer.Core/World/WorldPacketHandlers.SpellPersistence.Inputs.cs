@@ -4,7 +4,7 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    private sealed class LegacySpellMutationInputs
+    internal sealed class LegacySpellMutationInputs
     {
         private readonly WorldSession source;
         private readonly FullAccountStringMap attributes, paid;

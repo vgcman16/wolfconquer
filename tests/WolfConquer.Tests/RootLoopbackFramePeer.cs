@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Channels;
@@ -32,6 +33,10 @@ internal sealed class RootLoopbackFramePeer : IAsyncDisposable
     private readonly Task pump, dispatcher;
     private long written, received;
     private int fillerWriting;
+    private int realFrameWriting;
+    private int pauseAfterFrame;
+    private readonly TaskCompletionSource readerPaused = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource resumeReader = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int closed;
     private int readerAborted;
     private Exception? failure;
@@ -44,6 +49,8 @@ internal sealed class RootLoopbackFramePeer : IAsyncDisposable
     internal long WireStarts => Volatile.Read(ref written);
     internal bool ReaderAborted => Volatile.Read(ref readerAborted) != 0;
     internal bool ActualBackpressure => Volatile.Read(ref fillerWriting) != 0 && gate.CurrentCount == 0;
+    internal bool RealFrameWriteInProgress => Volatile.Read(ref realFrameWriting) != 0 && gate.CurrentCount == 0;
+    internal bool RealFrameWriteOutstanding => Volatile.Read(ref realFrameWriting) != 0;
 
     internal RootLoopbackFramePeer(Func<byte[], ValueTask> observe, WolfConquer.Core.World.LegacyNativeGameClientRuntime? native = null,
         bool observeOrdinaryBeforeReturn = false)
@@ -86,8 +93,13 @@ internal sealed class RootLoopbackFramePeer : IAsyncDisposable
         completions.GetOrAdd(number, static _ => new());
         bool filler = frame.Length == FillerLength;
         if (filler) Volatile.Write(ref fillerWriting, 1);
+        else Interlocked.Increment(ref realFrameWriting);
         try { await writerStream.WriteAsync(frame, token).ConfigureAwait(false); }
-        finally { if (filler) Volatile.Write(ref fillerWriting, 0); }
+        finally
+        {
+            if (filler) Volatile.Write(ref fillerWriting, 0);
+            else Interlocked.Decrement(ref realFrameWriting);
+        }
     }
     private async ValueTask GatedWire(ReadOnlyMemory<byte> frame, CancellationToken token)
     {
@@ -126,6 +138,115 @@ internal sealed class RootLoopbackFramePeer : IAsyncDisposable
         reader.Close();
         ReleaseBackpressuredWrite();
     }
+    // Pause the real reader only after it has recorded an ordinary complete
+    // wake frame. The observer queue remains independent and is drained.
+    internal async Task PauseReaderAfterNextFrame()
+    {
+        Interlocked.Exchange(ref pauseAfterFrame, 1);
+        await Connection.SendAsync(new byte[] { 4, 0, 0, 0 }).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+        await readerPaused.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await DrainObservations();
+    }
+
+    // Test pressure only: write complete framed padding through the real
+    // socket while holding its actual semaphore. It grants no publication
+    // permit and supplies no completion callback to the relic sender.
+    internal async Task PrimeRealSocketUntilBlocked()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        await gate.WaitAsync(timeout.Token);
+        try
+        {
+            // If an actual pending send outlives the pressure budget, retire
+            // the real socket so its overlapped operation can finish. Never
+            // abandon that operation or reuse an ambiguous partial frame.
+            Exception? primary = null;
+            Exception? closeFailure = null;
+            var abort = timeout.Token.Register(() =>
+            {
+                try { Close(); }
+                catch (Exception error) { Interlocked.CompareExchange(ref closeFailure, error, null); }
+            });
+            try
+            {
+                var socket = writer.Client;
+                // The other real-pressure fixtures keep their original zero
+                // buffer. This sole priming path asks Windows for a small real
+                // queue; only Poll and the later pending write prove pressure.
+                socket.SendBufferSize = 8 * 1024;
+                if (socket.SendBufferSize is <= 0 or > 32 * 1024)
+                    throw new IOException("The real pressure socket buffer is outside the fixture bound.");
+                var packet = new byte[4096];
+                BinaryPrimitives.WriteUInt16LittleEndian(packet, checked((ushort)packet.Length));
+                var total = 0;
+                var stable = Stopwatch.StartNew();
+                while (true)
+                {
+                    timeout.Token.ThrowIfCancellationRequested();
+                    if (!socket.Poll(0, SelectMode.SelectWrite))
+                    {
+                        if (stable.Elapsed >= TimeSpan.FromMilliseconds(250)) return;
+                        await Task.Delay(10, timeout.Token).ConfigureAwait(false);
+                        continue;
+                    }
+                    stable.Restart();
+                    // Await the real operation, not a timeout wrapper around a
+                    // synchronous Send that can remain alive after the test.
+                    var count = await socket.SendAsync(packet.AsMemory(), SocketFlags.None, timeout.Token)
+                        .ConfigureAwait(false);
+                    if (count != packet.Length) throw new IOException("The real pressure frame was only partially accepted.");
+                    total = checked(total + count);
+                    if (total > 8 * 1024 * 1024) throw new IOException("The real socket did not saturate within the bounded pressure budget.");
+                }
+            }
+            catch (Exception error)
+            {
+                primary = error;
+                try { Close(); }
+                catch (Exception closeError) { Interlocked.CompareExchange(ref closeFailure, closeError, null); }
+                throw;
+            }
+            finally
+            {
+                // Dispose waits for any running cancellation callback before
+                // inspecting its failure and before the socket gate is released.
+                abort.Dispose();
+                if (Volatile.Read(ref closeFailure) is { } closeError)
+                {
+                    if (primary is not null)
+                        throw new AggregateException("Real pressure send and transport close both failed.", primary, closeError);
+                    throw new InvalidOperationException("Real pressure transport close failed.", closeError);
+                }
+            }
+        }
+        finally { gate.Release(); }
+    }
+
+    // Only the remote endpoint is aborted. The writer connection/registered
+    // gate is deliberately left open so the next actual socket write observes
+    // the peer reset; this is not a synthetic completion callback.
+    internal void AbortRemoteOnlyWithReset()
+    {
+        Volatile.Write(ref readerAborted, 1);
+        reader.Client.LingerState = new LingerOption(true, 0);
+        reader.Close();
+    }
+
+    internal async Task WaitForRemoteSocketClosure()
+    {
+        var until = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (DateTime.UtcNow < until)
+        {
+            try
+            {
+                if (writer.Client.Poll(0, SelectMode.SelectRead) && writer.Client.Available == 0) return;
+            }
+            catch (SocketException) { return; }
+            await Task.Delay(10);
+        }
+        throw new TimeoutException("The writer socket did not observe the real remote closure.");
+    }
+
     private async Task ReadFramesAsync()
     {
         try
@@ -150,6 +271,11 @@ internal sealed class RootLoopbackFramePeer : IAsyncDisposable
                 record(bytes); // The independent reader records before any business callback.
                 completion.Received.TrySetResult();
                 await callbacks.Writer.WriteAsync((number, bytes), stopping.Token).ConfigureAwait(false);
+                if (Interlocked.Exchange(ref pauseAfterFrame, 0) != 0)
+                {
+                    readerPaused.TrySetResult();
+                    await resumeReader.Task.WaitAsync(stopping.Token).ConfigureAwait(false);
+                }
             }
         }
         catch (Exception error) when (stopping.IsCancellationRequested || Volatile.Read(ref closed) != 0 ||
@@ -190,7 +316,7 @@ internal sealed class RootLoopbackFramePeer : IAsyncDisposable
     }
     public async ValueTask DisposeAsync()
     {
-        stopping.Cancel(); fillerRelease.TrySetResult(); Close(); reader.Close();
+        stopping.Cancel(); fillerRelease.TrySetResult(); resumeReader.TrySetResult(); Close(); reader.Close();
         await Task.WhenAll(pump, dispatcher).WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
         gate.Dispose(); stopping.Dispose(); ThrowFailure();
     }

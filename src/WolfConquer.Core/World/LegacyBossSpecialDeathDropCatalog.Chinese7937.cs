@@ -22,11 +22,11 @@ public sealed partial record LegacyBossSpecialDeathDropCatalog
             if (!selected7937Attributes.HasGoldLimitItem(itemType) ||
                 !worldData.ItemsById.TryGetValue(key, out var items) || items.Count == 0 ||
                 items.Any(item => item.Id != key) ||
-                !worldData.XuanbaoRandomAttributesByItemTypeId.TryGetValue(key, out var attributes) || attributes.Count == 0 ||
+                !worldData.EffectiveXuanbaoRandomAttributesByItemTypeId.TryGetValue(key, out var attributes) || attributes.Count == 0 ||
                 attributes.Any(attribute => attribute.ItemTypeId != key))
                 throw new InvalidDataException("Selected7937 relic metadata requires all actual server item and attribute owners.");
         }
-        return FromItemsById(worldData.ItemsById, worldData.XuanbaoRandomAttributesByItemTypeId)
+        return FromItemsById(worldData.ItemsById, worldData.EffectiveXuanbaoRandomAttributesByItemTypeId)
             with { Selected7937Attributes = selected7937Attributes };
     }
 }

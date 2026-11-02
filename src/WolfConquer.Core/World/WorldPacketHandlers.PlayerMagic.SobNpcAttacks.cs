@@ -151,6 +151,10 @@ public static partial class WorldPacketHandlers
             return false;
         }
 
+        if (!TryCaptureLegacyRootAdmissionOwner(context, session, null, out var admissionOwner)) return true;
+        session = admissionOwner.Expected;
+        if (!TryFindVisibleSobNpcByUid(context, session.Character, query.OpponentUid, out primaryTarget)) return true;
+
         if (context.SobNpcStates is not { } sobNpcStates)
         {
             await LogParityGapAsync(
@@ -198,25 +202,8 @@ public static partial class WorldPacketHandlers
             return true;
         }
 
-        if (!PassesLegacyPlayerSobNpcMagicPreResourceRangeGate(
-                session,
-                primaryTarget,
-                query,
-                spell,
-                out var failureDiagnostic))
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped legacy player-SOB magic " +
-                    $"{FormatSession(context)} spellId={spell.Id} sort={(int)spell.Sort}; {failureDiagnostic}.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var resourceSession = await TryPrepareLegacyPlayerMagicCastAsync(
-                context,
-                session,
-                spell,
-                cancellationToken).ConfigureAwait(false);
+        var resourceSession = await TryPrepareLegacyPlayerSobPrimaryMagicCastAsync(
+                context, admissionOwner, query, spell, cancellationToken).ConfigureAwait(false);
         if (resourceSession is null)
         {
             return true;
@@ -229,7 +216,7 @@ public static partial class WorldPacketHandlers
                 query,
                 spell,
                 out var targets,
-                out failureDiagnostic))
+                out var failureDiagnostic))
         {
             await context.Log.WriteLineAsync(
                     "WorldServer skipped legacy player-SOB magic " +

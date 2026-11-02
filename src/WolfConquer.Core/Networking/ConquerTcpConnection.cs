@@ -102,6 +102,13 @@ public sealed class ConquerTcpConnection
         WolfConquer.Core.World.WorldSessionStore.ReviverWirePermit permit, CancellationToken token) =>
         _rootExpiryWire is { } writer ? writer.SendReviverAsync(store, permit, token) : ValueTask.FromResult(false);
 
+    internal bool HasRegisteredRelicWire => Volatile.Read(ref _rootExpiryWire) is { IsClosed: false } &&
+        Volatile.Read(ref _transportClosed) == 0;
+
+    internal ValueTask<bool> SendOwnedRelicAsync(WolfConquer.Core.World.WorldSessionStore store,
+        WolfConquer.Core.World.WorldSessionStore.RelicWirePermit permit, CancellationToken token) =>
+        _rootExpiryWire is { } writer ? writer.SendRelicAsync(store, permit, token) : ValueTask.FromResult(false);
+
     public ValueTask DisconnectAsync(CancellationToken cancellationToken = default)
     {
         return _disconnectAsync?.Invoke(cancellationToken) ?? ValueTask.CompletedTask;

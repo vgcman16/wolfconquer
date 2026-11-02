@@ -118,6 +118,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             SobNpcStates: sobNpcStates,
             GuildWarStates: guildWarStates);
 
+        var rejectionBefore = new DetachedSobRejectionSnapshot(session);
         await PacketHandlers.HandleAsync(
             context,
             ReadFrame(new MsgAttackPacket(new MsgAttackQuery(
@@ -135,8 +136,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         Assert.True(sessions.TryGet(connection, out var updatedSession));
         Assert.NotNull(updatedSession);
-        Assert.Equal(493, updatedSession.Character.MinMana);
-
+        if (expectedDamage) Assert.Equal(493, updatedSession.Character.MinMana);
         var visibleSobNpc = sobNpcStates.GetVisible(sobNpc);
         var output = log.ToString();
         if (expectedDamage)
@@ -151,6 +151,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }
         else
         {
+            rejectionBefore.AssertUnchanged(updatedSession, sent);
             Assert.Empty(ParseSpellAnimations(sent));
             Assert.Equal(sobNpc.Life, visibleSobNpc.Life);
             Assert.Contains(expectedDiagnostic, output);

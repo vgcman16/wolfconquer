@@ -16,7 +16,7 @@ public static partial class WorldPacketHandlers
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    private sealed class LegacyPerformerSpellSource
+    internal sealed class LegacyPerformerSpellSource
     {
         private readonly PlayerSpellSnapshotEntry[]? array;
         private readonly List<PlayerSpellSnapshotEntry>? list;

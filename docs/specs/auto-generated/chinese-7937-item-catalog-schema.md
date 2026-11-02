@@ -96,3 +96,13 @@ The complete input byte envelope is retained; no column meanings, old/server
 field mapping, runtime registration, routing, costs, persistence or live gameplay
 is inferred. The full Windows publication gate remains pending for this batch.
 Actual local findings: root-classic-target-integration-next/actual7937-findings.md.
+
+### Root current-reader refresh, 2026-11-02
+
+The compiled local DataTool's pinned `client-item-catalog7937-decode` accepted
+the unchanged retained Main57093 and Sub1693 rows,67fields each, both exit0.
+Exact packed inverses were checked and no decoded output file was requested.
+This refresh verifies the current C# readers, independently of the separately
+failed integration gate. It establishes no column roles, runtime activation,
+client rendering or full-source acceptance. The earlier65-field adapter wording
+must not be read as dropping the two opaque fields from the7937 document.

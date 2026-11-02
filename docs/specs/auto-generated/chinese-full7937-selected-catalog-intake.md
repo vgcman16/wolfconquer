@@ -2,14 +2,16 @@
 
 ## Identity and scope
 
-- Revision 1, 2026-10-29, authored before this adapter's implementation.
+- Revision 2, 2026-11-02; original adapter specification dated2026-10-29.
 - Actual reference: the separately obtained official7917 full client, updated
   to7937; `version.dat` contains ASCII `7937\r\n`. This is a data reference,
   not the active D13 client, a runtime profile or a granted gameplay owner.
 - Intake is a fixed five-file selection from an explicit ordinary directory.
   It does not traverse archives, enumerate the whole client or execute anything.
-- Existing managed packed-item codec and strict client65-field document are
-  reused. This is distinct from the server's ItemType/66-field seed projection.
+- Existing packed-item codec is reused. Historical65-field documents retain
+  their typed parser; explicit7937 also supports the separate strict67-field
+  envelope described in [the current item schema](chinese-7937-item-catalog-schema.md).
+  Neither document is the server's ItemType/66-field seed projection.
 - Existing strict already-decoded Echo parser is reused only for an explicit,
   separately pinned supplement declared7930/7931. A client7937 version marker
   does not relabel an unknown catalog as a new7937 schema.
@@ -24,7 +26,7 @@ registration. Existing2132/2350 codecs and Echo threshold selection are unchange
 | Fixed relative path | Observed bytes | Handling |
 | --- | ---: | --- |
 | version.dat | 6 | Four ASCII digits, optional LF/CRLF; nonzero, exact expected version |
-| ini/itemtype.dat | 17279558 | Existing packed codec; strict65-field byte document and exact inverse checks |
+| ini/itemtype.dat | 17279558 | Existing packed codec; separately typed strict7937/67-field envelope and exact inverse |
 | ini/ItemtypeSub.dat | 554243 | Same independently validated grammar; never merge into main implicitly |
 | ini/luacfg/XuanBaoEcho.dat | 9114 | Opaque captured identity; no invented transform key/default |
 | ini/luacfg/XuanBaoInfo.dat | 47345 | Opaque configuration identity; no guessed currency/cost fields |
@@ -33,7 +35,7 @@ The observed reference hashes are private input metadata in the isolated
 handoff. A hash comparison is evidence of bytes, not a signed publisher result,
 current runtime ownership or proof that supplied decoded text derives from raw.
 
-The item document retains all65 fields, trailing `@@`, original row order and
+The selected document retains every field (historical65 or explicit7937/67), trailing `@@`, original row order and
 line endings. IDs retain the existing UInt32 parser contract, including zero,
 leading-zero spellings and UInt32.MaxValue; numeric duplicate IDs refuse. Other
 field bytes are opaque: no automatic GBK/UTF8 transcode or runtime field mapping.
@@ -81,7 +83,7 @@ required regression controls, not replaced by this adapter's roundtrip checks.
 | Requirement | Existing evidence | Limit |
 | --- | --- | --- |
 | Packed item transform | ClientItemCatalogCodec and its existing byte-golden tests | Previously pinned files, not every7937 input |
-| Strict65-field document | ClientItemCatalogDocument/Row and existing byte goldens | No server66-field or name/encoding inference |
+| Separate item envelopes | Historical ClientItemCatalogDocument/Row and explicit Chinese7937ItemCatalogDocument | Preserve65/67 distinction; no server66-field or column-role inference |
 | Echo literal data | Chinese7935DecodedEchoCatalog and its generated spec | Declared7930/7931 only; optional supplement |
 | Full reference selected paths | Actual ordinary file/version reads2026-10-29 | No full-client runtime/launch proof |
 

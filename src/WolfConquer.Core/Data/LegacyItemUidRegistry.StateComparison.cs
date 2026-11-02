@@ -23,7 +23,8 @@ internal sealed partial class LegacyItemUidRegistry
         if (IsProducerIntentAppend(before, after, expected)) return true;
         if (IsRuneDecomposeNamespaceAppend(before, after, expected) ||
             IsRuneDecomposeNamespaceRetirement(before, after, expected) ||
-            IsRuneBagNamespaceAppend(before, after, expected) || IsRuneBagNamespaceRetirement(before, after, expected)) return true;
+            IsRuneBagNamespaceAppend(before, after, expected) || IsRuneBagNamespaceRetirement(before, after, expected) ||
+            IsRelicFuseNamespaceAppend(before, after, expected) || IsRelicFuseNamespaceRetirement(before, after, expected)) return true;
         if (after.HighWater == before.HighWater || after.Version != Math.Max(2, before.Version) ||
             after.Operations is null) return false;
         var previousCount = before.Operations?.Length ?? 0;

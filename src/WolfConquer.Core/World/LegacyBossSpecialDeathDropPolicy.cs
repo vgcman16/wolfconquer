@@ -74,7 +74,7 @@ public sealed partial record LegacyBossSpecialDeathDropCatalog(
         ArgumentNullException.ThrowIfNull(worldData);
         return worldData.Selected7937XuanbaoAttributes is { } selected
             ? FromWorldData(worldData, selected)
-            : FromItemsById(worldData.ItemsById, worldData.XuanbaoRandomAttributesByItemTypeId);
+            : FromItemsById(worldData.ItemsById, worldData.EffectiveXuanbaoRandomAttributesByItemTypeId);
     }
 
     public static LegacyBossSpecialDeathDropCatalog FromItemsById(
