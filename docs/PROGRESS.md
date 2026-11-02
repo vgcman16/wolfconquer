@@ -4,6 +4,15 @@ Updated2026-11-02. Full English client/server reconstruction remains active.
 
 ## Local full checkpoint - 2026-11-02
 
+The newer clean sourcefe3e79a29ff6f377981465de0d78785d7105bf92 passed all8
+local Windows stages: Core34,621, Updates446, Launcher57; total35,124passed,
+0failed and152Core NotExecuted. Run203726592Z-007a65f8 finished22:42:37UTC
+in125m10.889s. [Result and limits](checklists/FULL-WINDOWS-20261102-OWNED-RELIC.md).
+This qualifies that source locally; a new public Windows Actions pass is not
+claimed. The queued decomposition/Echo-envelope/alignment batch is unqualified.
+
+Earlier results follow and retain their original outcomes.
+
 The reviewed Chinese7937 increment passed3507 focused checks with0failures/skips,
 including231 new cases and3276 existing neighbors. The complete local Windows
 gate then passed on source commit38e300c441b25da789c99a1ff73da860a1607bc6:
@@ -25,7 +34,8 @@ passed its exact1/1 test, retaining committed-state/reopen/no-reissue checks.
 Fast25/25 also passed after correcting committed saved-spell ownership during
 UID retirement, and the real-pressure socket deadline/reopen control passed1/1
 after replacing uninterruptible fixture priming. Earlier failures remain recorded.
-The full Windows gate is still required; no current full/public pass is claimed.
+That component sequence is now followed by the newer full local pass above;
+no new public Windows Actions pass is claimed.
 
 Actual current C# parsing accepted retained Main57093/Sub1693x67, complete
 Echo59/cost7/opening6, Compose13/Random65, Resolve3/Addition70x5 without writes
