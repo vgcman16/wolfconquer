@@ -109,11 +109,12 @@ public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
         internal AttackFixture(OwnedEquipmentBehaviorFixture owner, AttackClock clock)
         {
             Owner = owner; Clock = clock;
+            owner.WireFrameRecorded = (uid, bytes) => { lock (Order) Order.Add((uid, bytes)); };
             owner.BeforeSend = (uid, bytes) =>
             {
                 try { BeforeSend?.Invoke(uid, bytes); }
                 catch (Xunit.Sdk.XunitException error) { observationFailure ??= error; throw; }
-                Order.Add((uid, bytes));
+                if (!owner.HasActualWire(uid)) lock (Order) Order.Add((uid, bytes));
             };
         }
         internal WorldSession Current(uint uid = Actor) => Owner.Current(uid);
@@ -146,7 +147,7 @@ public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
                     0, 0, 0, MsgAttackEffect.None, 0, SpellId: 15920)).ToFrameBytes());
                 Assert.True(LegacyPlayerDeathState.HasStatusFlag(Current(uid).Character.Attributes, 256));
                 Assert.Equal("100", Current(uid).Character.Attributes["HawksAmbitionPower"]);
-                Assert.Contains(Owner.Frames(uid), bytes => LegacySpellAnimationPacket.TryParse(
+                Assert.Contains(Owner.SnapshotFrames(uid), bytes => LegacySpellAnimationPacket.TryParse(
                     OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var animation) && animation.SpellId == 15920);
             }
             AssertCoherent(2000); Clear();
@@ -156,7 +157,8 @@ public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
             await Owner.Handler.SendDueBasicPhysicalAttacksAsync(CancellationToken.None);
             if (observationFailure is { } error) ExceptionDispatchInfo.Capture(error).Throw();
         }
-        internal void Clear() { Order.Clear(); Owner.Frames(Actor).Clear(); Owner.Frames(Target).Clear(); }
+        internal (uint Recipient, byte[] Bytes)[] SnapshotOrder() { lock (Order) return [.. Order]; }
+        internal void Clear() { lock (Order) Order.Clear(); Owner.ClearRecordedFrames(Actor); Owner.ClearRecordedFrames(Target); }
         internal Dictionary<string, byte[]> Files() => Owner.Data.Files();
         internal void AssertFiles(Dictionary<string, byte[]> expected) => Owner.Data.AssertFiles(expected);
         internal void AssertCoherent(long targetHp)
@@ -179,7 +181,7 @@ public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
         }
         internal async Task HitAsync(long beforeHp, long afterHp, bool repeat)
         {
-            var before = Files(); var after = HpImage(this, before, beforeHp, afterHp); int start = Order.Count;
+            var before = Files(); var after = HpImage(this, before, beforeHp, afterHp); int start = SnapshotOrder().Length;
             var stamp = Clock.GetLocalNow().DateTime;
             BeforeSend = (_, bytes) =>
             {
@@ -195,11 +197,15 @@ public sealed partial class LegacyOwnedBasicPhysicalAutoAttackTests
                     Assert.Equal(IsHp(bytes, Target) ? HpGolden(Target, afterHp) : MaximumGolden(Target), bytes);
                 }
             };
-            try { if (repeat) await TickAsync(); else await AttackAsync(); }
+            try
+            {
+                if (repeat) await TickAsync(); else await AttackAsync();
+                await Owner.DrainWireObservationsAsync();
+            }
             finally { BeforeSend = null; }
             AssertFiles(after); AssertCoherent(afterHp); AssertCommittedActor(this, stamp);
             Assert.True(Binding().Client.OnAutoAttack, Owner.Log.ToString());
-            var outputs = Order.Skip(start).ToArray();
+            var outputs = SnapshotOrder().Skip(start).ToArray();
             var interactions = outputs.Where(row => IsPhysical(row.Bytes)).ToArray();
             Assert.Equal(new[] { Actor, Target }, interactions.Select(row => row.Recipient));
             Assert.All(interactions, row => Assert.Equal(InteractionGolden(repeat), row.Bytes));

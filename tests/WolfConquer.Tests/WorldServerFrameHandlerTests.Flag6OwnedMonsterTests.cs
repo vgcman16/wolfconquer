@@ -63,28 +63,45 @@ public sealed partial class WorldServerFrameHandlerTests
             Dictionary<string, byte[]>? files = null;
             var boundaryCount = 0;
             var boundaryFrameCount = 0;
-            owner.BeforeSendAsync = async (_, bytes) =>
+            var peer = owner.WirePeer(uid);
+            var fillerStarted = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var boundaryRequested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var armed = 0;
+            if (replacePlayer)
+            {
+                // Arm the actual TCP gate on receipt of the attack, before the
+                // server's receipt wait resumes. The next source boundary is
+                // then held behind a real backpressured write.
+                owner.WireFrameRecorded = (_, bytes) =>
+                {
+                    if (!IsFlag6MonsterInteraction(bytes, monster.Uid, uid, MsgAttackType.Physical) ||
+                        Interlocked.CompareExchange(ref armed, 1, 0) != 0) return;
+                    fillerStarted.TrySetResult(peer.StartBackpressuredWrite());
+                };
+                peer.OrdinaryWriteRequested = memory =>
+                {
+                    var frame = ReadFrame(memory.ToArray());
+                    var boundary = activePick
+                        ? MsgActionPacket.TryParse(frame, out var action) && action.ObjId == uid && action.Type == MsgActionType.ActionPick
+                        : LegacyMsgMessagePacket.TryParse(frame, out var talk) && talk.Content.Contains(LegacyPlayerDeathState.DeadTalkText);
+                    if (boundary) boundaryRequested.TrySetResult();
+                };
+            }
+            owner.BeforeSendAsync = (_, bytes) =>
             {
                 capture.Add(bytes);
                 var frame = ReadFrame(bytes);
                 var boundary = activePick
                     ? MsgActionPacket.TryParse(frame, out var action) && action.ObjId == uid && action.Type == MsgActionType.ActionPick
                     : LegacyMsgMessagePacket.TryParse(frame, out var talk) && talk.Content.Contains(LegacyPlayerDeathState.DeadTalkText);
-                if (!boundary) return;
-                Assert.Equal(1, Interlocked.Increment(ref boundaryCount));
-                Assert.Same(original, client.Player);
-                if (replacePlayer)
+                if (boundary)
                 {
+                    Assert.Equal(1, Interlocked.Increment(ref boundaryCount));
+                    if (!replacePlayer) Assert.Same(original, client.Player);
                     boundaryFrameCount = capture.Count;
-                    atBoundary = owner.Current(uid);
-                    files = owner.Data.Files();
-                    await Task.Yield();
-                    Assert.Same(original, client.Player);
-                    Assert.Same(atBoundary, owner.Current(uid));
-                    client.Player = replacement; // Adversarial invalidation inside the real awaited send.
-                    Assert.False(owner.Store.IsBoundSpellOwnerCurrent(binding));
+                    reached.TrySetResult();
                 }
-                reached.TrySetResult();
+                return ValueTask.CompletedTask;
             };
             try
             {
@@ -95,8 +112,23 @@ public sealed partial class WorldServerFrameHandlerTests
                 Assert.Equal(3, birthRange);
                 Assert.DoesNotContain(capture, bytes => IsFlag6MonsterInteraction(bytes, monster.Uid, uid, MsgAttackType.Physical));
                 clock.Advance(interval);
+                if (replacePlayer)
+                {
+                    var filler = await fillerStarted.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                    await peer.WaitForBackpressure();
+                    await boundaryRequested.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                    Assert.True(peer.ActualBackpressure);
+                    Assert.Same(original, client.Player);
+                    atBoundary = owner.Current(uid);
+                    files = owner.Data.Files();
+                    client.Player = replacement;
+                    Assert.False(owner.Store.IsBoundSpellOwnerCurrent(binding));
+                    await peer.DrainBackpressuredWrite();
+                    await filler.WaitAsync(TimeSpan.FromSeconds(5));
+                }
                 await reached.Task.WaitAsync(TimeSpan.FromSeconds(3));
                 await WaitUntilAsync(() => owner.Log.ToString().Contains("WorldServer sent proactive monster attacks", StringComparison.Ordinal), TimeSpan.FromSeconds(3));
+                await owner.DrainWireObservationsAsync();
                 var frames = capture.ToArray();
                 Assert.Same(originalFlag, NativeFlag6TestModel.Current(original));
                 Assert.Same(replacementFlag, NativeFlag6TestModel.Current(replacement));
@@ -138,6 +170,9 @@ public sealed partial class WorldServerFrameHandlerTests
             finally
             {
                 owner.BeforeSendAsync = null;
+                owner.WireFrameRecorded = null;
+                peer.OrdinaryWriteRequested = null;
+                peer.ReleaseBackpressuredWrite();
                 client.Player = original;
             }
         });

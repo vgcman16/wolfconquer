@@ -20,6 +20,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     private readonly NativeLoginBeastMetadataScope beasts = new(1000);
     private readonly Dictionary<uint, List<byte[]>> frames = new();
     private readonly Dictionary<uint, ConquerTcpConnection> connections = new();
+    private readonly Dictionary<uint, RootLoopbackFramePeer> wirePeers = new();
     private readonly List<CancellationTokenSource> closed = [];
     private Exception? observationFailure;
     private NativeCombatGearProcFixture? nativeGearMetadata;
@@ -30,6 +31,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     internal WorldServerFrameHandler Handler { get; private set; } = null!;
     internal bool RetainEvidence;
     internal byte[]? OmittedOptionalScalarInput { get; private set; }
+    internal Action<uint, byte[]>? WireFrameRecorded;
     internal Action<uint, byte[]>? BeforeSend;
     internal Func<uint, byte[], ValueTask>? BeforeSendAsync;
     internal List<byte[]> ActorFrames => Frames(actorUid);
@@ -141,7 +143,29 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
             var native = new LegacyNativeGameClientRuntime();
             var cancellation = new CancellationTokenSource();
             closed.Add(cancellation);
-            var connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
+            ConquerTcpConnection connection;
+            if (options.Enabled)
+            {
+                // Runtime-owned writes must reach the same real TCP gate and
+                // registered writer as production. The reader records wire
+                // order independently of business observers/reentrant sends.
+                var peer = new RootLoopbackFramePeer(bytes =>
+                {
+                    lock (output) output.Add(bytes);
+                    WireFrameRecorded?.Invoke(uid, bytes);
+                }, async bytes =>
+                {
+                    try
+                    {
+                        BeforeSend?.Invoke(uid, bytes);
+                        if (BeforeSendAsync is { } observer) await observer(uid, bytes).ConfigureAwait(false);
+                    }
+                    catch (Exception error) { Interlocked.CompareExchange(ref observationFailure, error, null); throw; }
+                }, native);
+                wirePeers.Add(uid, peer);
+                connection = peer.Connection;
+            }
+            else connection = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
                 async (memory, token) =>
                 {
                     token.ThrowIfCancellationRequested();
@@ -153,7 +177,7 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
                             await beforeSendAsync(uid, bytes).ConfigureAwait(false);
                     }
                     catch (Exception error) { observationFailure ??= error; throw; }
-                    output.Add(bytes);
+                    lock (output) output.Add(bytes);
                 }, _ => { cancellation.Cancel(); return ValueTask.CompletedTask; }, native);
             connections.Add(uid, connection);
             await SendAsync(uid, new LegacyMsgLoginGamePacket(uid).ToFrameBytes());
@@ -213,13 +237,24 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
     }
 
     internal List<byte[]> Frames(uint uid) => frames[uid];
+    internal List<byte[]> SnapshotFrames(uint uid) { var output = frames[uid]; lock (output) return [.. output]; }
+    internal void ClearRecordedFrames(uint uid) { var output = frames[uid]; lock (output) output.Clear(); }
     internal ConquerTcpConnection Connection(uint uid) => connections[uid];
+    internal bool HasActualWire(uint uid = Actor) => wirePeers.ContainsKey(uid);
+    internal RootLoopbackFramePeer WirePeer(uint uid = Actor) => wirePeers.TryGetValue(uid, out var peer)
+        ? peer : throw new InvalidOperationException("This fixture was not started with enabled real-wire scheduling.");
+    internal async Task DrainWireObservationsAsync()
+    {
+        foreach (var peer in wirePeers.Values) await peer.DrainObservations().ConfigureAwait(false);
+        if (observationFailure is { } failure) ExceptionDispatchInfo.Capture(failure).Throw();
+    }
     internal string CharacterPath(uint uid = Actor) => Path.Combine(Data.Users, uid.ToString(CultureInfo.InvariantCulture) + ".ini");
     internal string ItemPath(uint uid = Actor) => Path.Combine(Data.Items, uid.ToString(CultureInfo.InvariantCulture) + ".bin");
     internal WorldSession Current(uint uid = Actor) => Assert.IsType<WorldSession>(Store.TryGet(Connection(uid), out var current) ? current : null);
     internal async Task SendAsync(uint uid, byte[] frame)
     {
         await Handler.HandleFrameAsync(Connection(uid), ReadFrame(frame));
+        if (wirePeers.TryGetValue(uid, out var peer)) await peer.DrainObservations().ConfigureAwait(false);
         if (observationFailure is { } failure) ExceptionDispatchInfo.Capture(failure).Throw();
     }
     internal Task DispatchAsync(MsgItemUsagePacket packet, uint uid = Actor) => SendAsync(uid, packet.ToFrameBytes());
@@ -233,17 +268,32 @@ internal sealed partial class OwnedEquipmentBehaviorFixture : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        var errors = new List<Exception>();
+        var runtimeDrained = Runtime is null;
+        if (wirePeers.Count != 0)
+        {
+            // Release only the test filler, then drain actual producers and
+            // observations before disconnecting either socket endpoint.
+            foreach (var peer in wirePeers.Values) peer.ReleaseBackpressuredWrite();
+            try { if (Runtime is not null) await Runtime.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(20)); runtimeDrained = true; }
+            catch (Exception error) { errors.Add(error); }
+            foreach (var peer in wirePeers.Values)
+                try { if (!peer.ReaderAborted) await peer.DrainObservations(); } catch (Exception error) { errors.Add(error); }
+            if (observationFailure is { } observation) errors.Add(observation);
+        }
         BeforeSend = null;
         BeforeSendAsync = null;
-        var errors = new List<Exception>();
+        WireFrameRecorded = null;
         foreach (var connection in connections.Values)
         {
             try { await connection.DisconnectAsync(); } catch (Exception error) { errors.Add(error); }
             try { await connection.CompleteTransportCloseAsync(); } catch (Exception error) { errors.Add(error); }
         }
-        var runtimeDrained = Runtime is null;
-        try { if (Runtime is not null) await Runtime.DisposeAsync(); runtimeDrained = true; }
-        catch (Exception error) { errors.Add(error); }
+        if (wirePeers.Count == 0)
+            try { if (Runtime is not null) await Runtime.DisposeAsync(); runtimeDrained = true; }
+            catch (Exception error) { errors.Add(error); }
+        foreach (var peer in wirePeers.Values)
+            try { await peer.DisposeAsync(); } catch (Exception error) { errors.Add(error); }
         if (runtimeDrained)
             try { nativeGearMetadata?.Dispose(); } catch (Exception error) { errors.Add(error); }
         else if (nativeGearMetadata is not null)

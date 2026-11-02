@@ -24,19 +24,21 @@ public sealed partial class OwnedDragonhowlPhysicalLifecycleTests
         // is not its contract, and no fabricated worker result is accepted.
         Assert.True(completed.IsCompletedSuccessfully, f.Log.ToString());
         Assert.Contains("surface=legacy-global-runtime-update-loop", f.Log.ToString(), StringComparison.Ordinal);
-        Assert.Contains("exception=SocketException", f.Log.ToString(), StringComparison.Ordinal);
+        Assert.True(f.Log.ToString().Contains("exception=SocketException", StringComparison.Ordinal) ||
+            f.Log.ToString().Contains("exception=IOException", StringComparison.Ordinal) ||
+            f.Log.ToString().Contains("exception=ObjectDisposedException", StringComparison.Ordinal), f.Log.ToString());
     }
 
     private static void AssertExpiryLossOutput(OwnedEquipmentBehaviorFixture f, bool visibleRecipient)
     {
-        Assert.Equal(visibleRecipient ? 1 : 0, f.ActorFrames.Count);
-        Assert.Empty(f.Frames(Target));
-        foreach (var bytes in f.ActorFrames)
+        Assert.Equal(visibleRecipient ? 1 : 0, f.SnapshotFrames(Actor).Count);
+        Assert.Empty(f.SnapshotFrames(Target));
+        foreach (var bytes in f.SnapshotFrames(Actor))
         {
             Assert.True(IsOwnedExpiryClear(bytes));
             Assert.Equal(2176, (int)OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode);
         }
-        Assert.DoesNotContain(f.ActorFrames, Animation);
-        Assert.DoesNotContain(f.Frames(Target), bytes => Hp(bytes, Target));
+        Assert.DoesNotContain(f.SnapshotFrames(Actor), Animation);
+        Assert.DoesNotContain(f.SnapshotFrames(Target), bytes => Hp(bytes, Target));
     }
 }

@@ -52,12 +52,14 @@ public sealed partial class OwnedDragonhowlPhysicalLifecycleTests
             };
             clock.FireRegisteredGlobalDelay(2, TimeSpan.FromSeconds(29));
             await AssertActualGlobalRearmAsync(f, clock, admittedWorkers, 5);
+            await f.DrainWireObservationsAsync();
             Assert.True(Flag(f.Current(Actor), Flashing));
             Assert.True(vector.TryContainFlag(Flashing, out var beforeDeadline)); Assert.True(beforeDeadline);
             Assert.Same(native, Assert.Single(vector.GetFlags(), row => row.Key == Flashing));
             Assert.Equal(0, clears); f.Data.AssertFiles(files);
             clock.FireRegisteredGlobalDelay(5, TimeSpan.FromSeconds(1));
             await AssertActualGlobalRearmAsync(f, clock, admittedWorkers, 6);
+            await f.DrainWireObservationsAsync();
             f.BeforeSend = null;
             if (observationFailure is not null) ExceptionDispatchInfo.Capture(observationFailure).Throw();
             Assert.Equal(1, clears);

@@ -30,6 +30,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         private bool itemEffectPlayerRuntimeStarted;
         private Exception? rootXpWaitFailure;
         private readonly bool nativeDeathCasterQueryControls;
+        private readonly bool observeOrdinaryBeforeReturn;
 
         public RootMagicEntryFixture(ushort selectedId = 1_000, ushort rawCadence = 0,
             int coldTime = 0, bool passive = false, bool ridingCrop = false,
@@ -43,10 +44,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             bool playerEligibilityControls = false, uint shieldDuration = 30,
             ushort shieldMana = 0, byte shieldStamina = 0, bool opaqueCaseControls = false,
             ushort shieldCooldown = 0, int shieldColdTime = 0, bool otherFlagDispelControls = false, bool mixedCaseRootKeys = false,
-            bool clocklessDualControls = false)
+            bool clocklessDualControls = false, bool observeOrdinaryBeforeReturn = false)
         {
             hasRawRidingCrop = ridingCrop;
             this.nativeDeathCasterQueryControls = nativeDeathCasterQueryControls;
+            this.observeOrdinaryBeforeReturn = observeOrdinaryBeforeReturn;
             Assert.True(!nativeDeathCasterQueryControls || itemEffectLifetimeControls);
             Assert.True(!otherFlagDispelControls || nativeDeathCasterQueryControls);
             this.itemEffectXpControls = itemEffectXpControls;
@@ -264,7 +266,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 var transportPeer = new RootLoopbackFramePeer(bytes => Order.Enqueue((uid, bytes)), async bytes =>
                 {
                     if (onSend is not null) await onSend(this, uid, bytes).ConfigureAwait(false);
-                });
+                }, observeOrdinaryBeforeReturn: observeOrdinaryBeforeReturn);
                 loopbacks.Add(uid, transportPeer);
                 connections[uid] = transportPeer.Connection;
             }

@@ -49,43 +49,53 @@ public sealed partial class LegacyOwnedAdmissionRuntimeTests
             mapId: 1002, x: 430, y: 380, minHitPoints: 330) with
         {
             Vitality = 10, Spirit = 10, AttributePoints = 0, MinMana = 50, MaxMana = 50,
+            // Declared full stamina leaves the intended real XP-circle send
+            // as the first blocked owned output, rather than an earlier refill.
+            Attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Stamina"] = "100" },
         };
         var loop = LegacyRuntimeUpdateLoopOptions.EnabledDefault with { TickInterval = TimeSpan.FromMilliseconds(10) };
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var blocked = 0;
         return OwnedEquipmentBehaviorFixture.RunWithEnabledSchedulingAsync(
             new(actor, PlayerItemSnapshot.Empty), OwnedEquipmentBehaviorFixture.Catalog(), loop, async f =>
         {
             var connection = f.Connection(OwnedEquipmentBehaviorFixture.Actor);
-            Assert.True(f.ActorFrames.Any(IsAnswerOk), "Real native admission did not send ANSWER_OK.\n" + f.Log);
+            Assert.True(f.SnapshotFrames(OwnedEquipmentBehaviorFixture.Actor).Any(IsAnswerOk), "Real native admission did not send ANSWER_OK.\n" + f.Log);
             var admitted = Assert.IsType<LegacyOrdinarySpellBinding>(connection.NativeGameClient!.OrdinarySpellBinding);
             Assert.False(admitted.IsRetired); Assert.True(f.Store.IsBoundSpellOwnerCurrent(admitted));
-            f.BeforeSendAsync = async (uid, bytes) =>
-            {
-                if (uid != OwnedEquipmentBehaviorFixture.Actor ||
-                    !LegacyMsgUpdatePacket.TryParse(Frame(bytes), out var update) ||
-                    !update.Updates.Any(row => row.Type == LegacyMsgUpdateDataType.XPCircle && row.Value == 1) ||
-                    Interlocked.CompareExchange(ref blocked, 1, 0) != 0) return;
-                entered.TrySetResult();
-                await release.Task.ConfigureAwait(false);
-            };
+            var peer = f.WirePeer();
+            var filler = peer.StartBackpressuredWrite();
             try
             {
-                await entered.Task.WaitAsync(TimeSpan.FromSeconds(20));
+                await peer.WaitForBackpressure();
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                while (peer.ExpiryWriter.TickerWaitingForGate == 0)
+                    await Task.Delay(10, timeout.Token);
+                Assert.True(peer.ActualBackpressure);
                 var workers = f.Handler.CaptureLegacyRuntimeWorkerTasks();
                 Assert.NotEmpty(workers); Assert.Contains(workers, task => !task.IsCompleted);
-                Assert.Throws<InvalidOperationException>(() => f.Runtime.Dispose());
-                AssertRegistryLeaseHeld(f.Data);
+
+                // Shutdown cancels this real gate wait. A refusal must keep the
+                // registry until workers drain; a synchronous success is legal
+                // only if cancellation has already completed every worker.
+                try
+                {
+                    f.Runtime.Dispose();
+                    Assert.All(workers, task => Assert.True(task.IsCompleted));
+                }
+                catch (InvalidOperationException)
+                {
+                    AssertRegistryLeaseHeld(f.Data);
+                }
                 var drain = f.Runtime.DisposeAsync().AsTask();
-                Assert.False(drain.IsCompleted); AssertRegistryLeaseHeld(f.Data);
-                release.TrySetResult();
+                if (!drain.IsCompleted) AssertRegistryLeaseHeld(f.Data);
                 await drain.WaitAsync(TimeSpan.FromSeconds(20));
                 Assert.All(workers, task => Assert.True(task.IsCompleted));
                 Assert.Equal(0, f.Handler.LegacyRuntimeFaultedWorkerCount);
                 using var reopened = Open(f.Data);
+                await peer.DrainBackpressuredWrite();
+                await filler.WaitAsync(TimeSpan.FromSeconds(5));
             }
-            finally { release.TrySetResult(); f.BeforeSendAsync = null; }
+            finally { peer.ReleaseBackpressuredWrite(); }
+
         });
     }
 

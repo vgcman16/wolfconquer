@@ -178,7 +178,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         WorldSession? deadSession = null;
         await using var fixture = new RootMagicEntryFixture(itemEffects:
             new(RightEffect: 0, RingEffect: 0, NeckEffect: 200), itemEffectLifetimeControls: true,
-            itemEffectXpControls: true, nativeDeathCasterQueryControls: true,
+            itemEffectXpControls: true, nativeDeathCasterQueryControls: true, observeOrdinaryBeforeReturn: true,
             onSend: async (current, uid, bytes) =>
             {
                 if (!armed || entered || uid != PlayerUid ||

@@ -1,5 +1,23 @@
 # Publication validation
 
+## Current local integration check - 2026-11-02
+
+The complete local Windows check on `dd448f7f` failed: Core33,811 passed,
+28 failed and152 NotExecuted (33,991 actual rows); Updates446 passed. Restore
+and build passed; launcher and status/parser steps did not run. This complete
+gate took2h02m42s. Its failure remains authoritative until a new full gate passes.
+
+The reviewed test-transport repair passed179/179 focused cases,0 failed/skipped,
+including all28 exact prior failed cases, real blocked socket and reset scenarios,
+scheduler/lifetime and Root/timer/spawn neighbors. The build had0 errors and114
+warnings. The complete rerun is pending; these focused results are not public CI,
+client acceptance or a whole-project parity percentage. The Windows job budget
+is180 minutes with all commands, owner/ref restrictions and concurrency retained.
+
+The read-only `tools/dev/Get-TestTiming.ps1` reports supplied terminal TRX data;
+it does not run tests or determine readiness. Test durations can overlap.
+
+
 ## Current repair qualification - 2026-10-31
 
 Exact public `c271eec1dcaef0f11995b1c3a11272bb92e69ad9` passed all eight stages of

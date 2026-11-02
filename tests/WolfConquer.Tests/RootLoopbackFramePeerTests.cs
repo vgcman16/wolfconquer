@@ -5,8 +5,10 @@ namespace WolfConquer.Tests;
 
 public sealed class RootLoopbackFramePeerTests
 {
-    [Fact]
-    public async Task RecursiveSendWaitsForActualReceiptWithoutWaitingForItsOwnObserver()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RecursiveSendWaitsForActualReceiptWithoutWaitingForItsOwnObserver(bool observeOrdinaryBeforeReturn)
     {
         var first = new MsgActionPacket { ObjId = 17, DwParam = 1, Type = MsgActionType.AllowAnimation }.ToFrameBytes();
         var second = new MsgActionPacket { ObjId = 17, DwParam = 2, Type = MsgActionType.AllowAnimation }.ToFrameBytes();
@@ -24,7 +26,7 @@ public sealed class RootLoopbackFramePeerTests
                 callbacks.Enqueue(2);
             }
             else if (bytes.AsSpan().SequenceEqual(second)) callbacks.Enqueue(3);
-        });
+        }, observeOrdinaryBeforeReturn: observeOrdinaryBeforeReturn);
         await using (peer)
         {
             await peer.Connection.SendAsync(first).AsTask().WaitAsync(TimeSpan.FromSeconds(5));

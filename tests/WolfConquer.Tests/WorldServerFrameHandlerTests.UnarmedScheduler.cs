@@ -62,6 +62,7 @@ public sealed partial class WorldServerFrameHandlerTests
                 // Observe completion of the actual first pass before inspecting
                 // its retained target; this does not issue an AI capability.
                 await WaitForMonsterRuntimeTimerReplacementAsync(clock, firstTimers);
+                await owner.DrainWireObservationsAsync();
                 Assert.True(GetMonsterStates(owner.Handler).TryGetTargetLockState(visible, clock.GetUtcNow(), out var targetLock));
                 Assert.True(targetLock.LastTargetUid == uid, $"Expected target {uid}; actual={targetLock.LastTargetUid}. Log={owner.Log}");
                 Assert.NotNull(targetLock.LastAttackAt);

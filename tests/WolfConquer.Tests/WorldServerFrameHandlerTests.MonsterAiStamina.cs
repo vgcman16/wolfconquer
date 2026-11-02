@@ -59,6 +59,7 @@ public sealed partial class WorldServerFrameHandlerTests
                     // no target phase, successful result, or publication callback.
                     clock.Advance(tick == 1 ? interval : TimeSpan.FromSeconds(3));
                     await WaitForMonsterRuntimeTimerReplacementAsync(clock, timers);
+                    await owner.DrainWireObservationsAsync();
                     var current = owner.Current();
                     Assert.NotSame(previous, current);
                     Assert.Equal(checked((ushort)(tick * 5)), LegacyStaminaState.RequireCurrent(current.Character));

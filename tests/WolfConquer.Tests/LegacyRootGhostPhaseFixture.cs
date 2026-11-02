@@ -28,7 +28,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             var peer = new RootLoopbackFramePeer(bytes => Order.Enqueue((uid, bytes)), async bytes =>
             {
                 await onSend(this, uid, bytes).ConfigureAwait(false);
-            });
+            }, observeOrdinaryBeforeReturn: observeOrdinaryBeforeReturn);
             loopbacks.Add(uid, peer);
             connections.Add(uid, peer.Connection);
             sessions.Set(connections[uid], viewer);

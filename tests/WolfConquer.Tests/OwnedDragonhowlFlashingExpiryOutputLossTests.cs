@@ -44,40 +44,56 @@ public sealed partial class OwnedDragonhowlPhysicalLifecycleTests
             Assert.Equal(4, workers.Length);
             var files = f.Data.Files();
             var attackStamp = actorBinding.Player.AttackStamp;
-            f.ActorFrames.Clear(); f.Frames(Target).Clear();
+            f.ClearRecordedFrames(Actor); f.ClearRecordedFrames(Target);
             var attempts = new List<uint>();
             WorldSession? removed = null;
-            Exception? observationFailure = null;
-            f.BeforeSend = (recipient, bytes) =>
+            var failedUid = visibleRecipient ? Target : Actor;
+            var failedPeer = f.WirePeer(failedUid);
+            var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            foreach (var uid in new[] { Actor, Target })
             {
-                if (!IsOwnedExpiryClear(bytes)) return;
-                try
+                var recipient = uid;
+                f.WirePeer(uid).OrdinaryWriteRequested = memory =>
                 {
-                    attempts.Add(recipient);
-                    Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
-                    Assert.Equal(earnedAt.AddSeconds(30), clock.GetLocalNow().DateTime);
-                    removed = f.Current(Actor);
-                    AssertNoFlashing(removed);
-                    Assert.DoesNotContain(actorBinding.Player.BitVector.GetFlags(), row => row.Key == Flashing);
-                    Assert.True(f.Store.IsBoundSpellOwnerCurrent(actorBinding));
-                    Assert.True(actorBinding.Client.OnAutoAttack);
-                    Assert.Same(target, f.Current(Target));
-                    Assert.Equal(99_709, targetBinding.Player.HitPoints);
-                    f.Data.AssertFiles(files);
-                }
-                catch (Exception error) { observationFailure ??= error; throw; }
-                if (recipient == (visibleRecipient ? Target : Actor))
-                    throw new SocketException((int)SocketError.ConnectionReset);
-            };
+                    var bytes = memory.ToArray();
+                    if (!IsOwnedExpiryClear(bytes)) return;
+                    try
+                    {
+                        lock (attempts) attempts.Add(recipient);
+                        Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
+                        Assert.Equal(earnedAt.AddSeconds(30), clock.GetLocalNow().DateTime);
+                        removed = f.Current(Actor);
+                        AssertNoFlashing(removed);
+                        Assert.DoesNotContain(actorBinding.Player.BitVector.GetFlags(), row => row.Key == Flashing);
+                        Assert.True(f.Store.IsBoundSpellOwnerCurrent(actorBinding));
+                        Assert.True(actorBinding.Client.OnAutoAttack);
+                        Assert.Same(target, f.Current(Target));
+                        Assert.Equal(99_709, targetBinding.Player.HitPoints);
+                        f.Data.AssertFiles(files);
+                        if (recipient == failedUid) requested.TrySetResult();
+                    }
+                    catch (Exception error) { requested.TrySetException(error); throw; }
+                };
+            }
+            var filler = failedPeer.StartBackpressuredWrite();
             try
             {
+                await failedPeer.WaitForBackpressure();
                 clock.FireRegisteredGlobalDelay(2, TimeSpan.FromSeconds(30));
+                await requested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                Assert.True(failedPeer.ActualBackpressure);
+                // A real TCP reset, not an observer exception, fails the pending
+                // source write. The filler is not a gameplay producer.
+                failedPeer.AbortReaderWithReset();
+                try { await filler.WaitAsync(TimeSpan.FromSeconds(5)); }
+                catch (Exception error) when (error is IOException or SocketException or ObjectDisposedException) { }
                 await AssertExpiryLossEndsActualGlobalWorkerAsync(f, clock, admittedWorkers);
             }
             finally
             {
-                f.BeforeSend = null;
-                if (observationFailure is { } error) ExceptionDispatchInfo.Capture(error).Throw();
+                f.WirePeer(Actor).OrdinaryWriteRequested = null;
+                f.WirePeer(Target).OrdinaryWriteRequested = null;
+                failedPeer.ReleaseBackpressuredWrite();
             }
             Assert.Equal(visibleRecipient ? new[] { Actor, Target } : new[] { Actor }, attempts);
             AssertNoFlashing(Assert.IsType<WorldSession>(removed));
@@ -92,19 +108,19 @@ public sealed partial class OwnedDragonhowlPhysicalLifecycleTests
             AssertExpiryLossOutput(f, visibleRecipient);
             Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
             f.Data.AssertFiles(files);
-            var outputCount = f.ActorFrames.Count + f.Frames(Target).Count;
+            var outputCount = f.SnapshotFrames(Actor).Count + f.SnapshotFrames(Target).Count;
             // This is the real no-input due-entry drain and ordinary ingress,
             // both denied by the actual fence, not an accepting test callback.
             await f.Handler.SendDueBasicPhysicalAttacksAsync(CancellationToken.None);
             await f.Handler.HandleFrameAsync(f.Connection(Actor), OwnedEquipmentBehaviorFixture.ReadFrame(Request()));
-            Assert.Equal(outputCount, f.ActorFrames.Count + f.Frames(Target).Count);
+            Assert.Equal(outputCount, f.SnapshotFrames(Actor).Count + f.SnapshotFrames(Target).Count);
             Assert.False(actorBinding.Client.OnAutoAttack);
             Assert.Equal(99_709, targetBinding.Player.HitPoints);
             f.Data.AssertFiles(files);
             await f.Runtime.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
             Assert.All(workers, worker => Assert.True(worker.IsCompleted));
             Assert.True(clock.AllDisposed);
-            Assert.Equal(outputCount, f.ActorFrames.Count + f.Frames(Target).Count);
+            Assert.Equal(outputCount, f.SnapshotFrames(Actor).Count + f.SnapshotFrames(Target).Count);
             f.Data.AssertFiles(files);
         }, inputs.Target);
     }
