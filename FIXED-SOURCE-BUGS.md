@@ -4,6 +4,62 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Open Root expiry transport and successor repair - 2026-11-02 UTC
+
+### FSB-302: Release the world-operation lease before awaiting Root expiry transport
+
+OPEN integrated qualification. FOCUSED01's managed async dump established a real
+Shared -> awaited send callback -> Frame Exclusive cycle; cleanup also waited for
+that barrier. The owned testhost was deliberately stopped after diagnosis, so
+its eleven partial passes are not a passing suite. The original TCP path could
+also await a stalled peer while holding Shared. The integrated repair uses short
+capture/commit leases and a registered real TCP writer outside Shared. It reads a
+fresh strict status vector under Store/native gates after the actual write gate,
+requires a non-null private one-use start, and retires interrupted encrypted or
+ten-second stalled transports. Real loopback, genuine native successor and
+backpressure controls are built. WIRE11 was30P/5F/0skip; OTHER-CLOCK17's corrected
+three-viewer public dispel/reinstall control passed1/1. Four owned timer stalls
+and the complete integration gate remain unqualified. Other
+timer families, general frame slow-client handling and durable outbox delivery
+remain outside this correction; no live-client or encrypted-handshake claim.
+
+### FSB-303: Bind each ordered expiry to its actual published successor map
+
+Bounded regression qualified; full integration remains OPEN. After the first expiry
+published a new holder, the second authorization still witnessed the initial
+map. An in-place future deadline on the new clockless Shield map could therefore
+escape that witness. The actual Store publisher now captures its final map before
+the writer and returns it for the next ordered entry. No new token grants expiry
+authority. The regression uses real public classic buff producers, actual timer
+generations and a backpressured peer, checking unchanged success, future-deadline
+preservation and received owner/peer vectors at later expiry. Build10 passed;
+both actual regression rows passed in WIRE11 (the overall run was30P/5F/0skip).
+Raw change-and-restore ABA and crash recovery are not
+proven safe by this map witness.
+
+## Root clock qualification - OPEN, 2026-11-02 UTC
+
+### FSB-301: Reject invalid clock succession instead of making an effect unbounded
+
+The proposed Root clock lifecycle publisher caught malformed/ambiguous operated
+projection data and treated it as a legitimate effect removal. A real Store.Set
+could then retire the actual Shield clock while publishing a still-visible flag.
+Its initial proposed test explicitly required that unsafe acceptance.
+
+The reviewed candidate now rejects that projection before the Store writer and
+retains the original holder, resources, output and actual clock. Four authored
+real-producer/Store controls cover duplicate marker, deadline, death-policy and
+status-vector keys, followed by actual expiry of the retained clock. Separate
+external-corruption coverage retains the malformed-subject/real-peer global loop
+check without claiming that Store accepted the corrupt projection.
+
+Status: eight exact managed/owned regression rows passed in WIRE11 on the built
+candidate, including expiry after refusal and native/saved-file assertions in
+the owned controls. Overall WIRE11 was30P/5F/0skip; full qualification stays OPEN.
+This is a correction to an unqualified proposal, not a deployed emulator fix or a claim
+of full timer safety. Transport-entry race, hostile raw mutation, native owned
+reinstall sequencing, persistence/crash and live-client boundaries remain open.
+
 ## Bound Vigor publication correction - 2026-11-02 UTC
 
 ### FSB-300: Retain real query Vigor across legitimate Store successors
@@ -99,6 +155,8 @@ one-use continuation, and exact current identity/liveness is required afterward.
 Real callback death stops Shield/timer/success output without undoing already
 committed XP removal or the real death. New clock changes prepare inert and
 publish only with the actual holder/native update. Opaque keys remain distinct.
+
+The previous `ShieldPreservesAnActualLaterXpScalarCallbackGrantAndItsExistingTimerPolicy` oracle incorrectly treated a direct fixture DATA projection plus `Store.Set` during the XP scalar send as a real owned buff producer and expected the stale cast to publish animation. The actual holder replacement retires the exact XP-removal continuation. Its corrected regression checks the separately published holder and timer/policy remain intact, committed costs and native/file state are preserved, and no stale vector or success animation follows. A separate public-frame already-active Shield case retains its real item-effect producer and successful animation assertion. This oracle correction is source-only until the next qualification; it does not establish general callback or live-client behavior.
 
 Build07 passed; focused08 passed 17/17. Focused09 passed 505/507, 0 failed and
 two existing external-fixture skips, including the public Shield no-XP/malformed

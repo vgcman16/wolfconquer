@@ -8,6 +8,7 @@ public sealed class ConquerTcpConnection
     private readonly Func<CancellationToken, ValueTask>? _disconnectAsync;
     private Func<Task>? _transportCloseCleanup;
     private int _transportClosed;
+    private RootExpiryWireWriter? _rootExpiryWire;
 
     public ConquerTcpConnection(
         EndPoint? localEndPoint,
@@ -73,6 +74,19 @@ public sealed class ConquerTcpConnection
 
         return _sendAsync(frame, cancellationToken);
     }
+
+    internal void InstallRootExpiryWire(RootExpiryWireWriter writer)
+    {
+        if (!ReferenceEquals(writer.Connection, this) || Interlocked.CompareExchange(ref _rootExpiryWire, writer, null) is not null)
+            throw new InvalidOperationException("Root expiry transport is already installed or has the wrong owner.");
+    }
+
+    internal bool IsRegisteredRootExpiryWire(RootExpiryWireWriter writer) =>
+        ReferenceEquals(Volatile.Read(ref _rootExpiryWire), writer);
+
+    internal ValueTask<bool> SendOwnedRootExpiryAsync(WolfConquer.Core.World.WorldSessionStore store,
+        WolfConquer.Core.World.WorldSessionStore.RootExpiryWritePermit permit, CancellationToken token) =>
+        _rootExpiryWire is { } writer ? writer.SendAsync(store, permit, token) : ValueTask.FromResult(false);
 
     public ValueTask DisconnectAsync(CancellationToken cancellationToken = default)
     {

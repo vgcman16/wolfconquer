@@ -39,8 +39,11 @@ public sealed partial class WorldSessionStore
                 // saver or silently alter the prepared field image.
                 if (publication.HitpointsWrite is not null ||
                     !WorldPacketHandlers.RootXpShieldProjectionMatches(proposed.Character, publication.FinalSession.Character)) return false;
+                clock.BindPrepared(publication.FinalSession, publication.PublishedIdentity);
+                publication.AttachRootClockInstall(clock);
+                var clockPermit = RootClockPermit(this, connection, holder, expected, publication.FinalSession, publication.PublishedIdentity, clock);
                 if (!TryPublishFrameOwnedHitpoints(publication, holder, out _)) return false;
-                clock.Publish(); // preallocated, while both actual gates remain held
+                clock.Publish(clockPermit); // preallocated, while both actual gates remain held
                 final = publication.FinalSession; publishedIdentity = publication.PublishedIdentity;
                 publishedBinding = publication.Binding; added = true;
                 publication.Dispose();

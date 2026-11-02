@@ -35,7 +35,9 @@ public static partial class WorldPacketHandlers
                 fields[LegacyPlayerStatusPacket.MagicPercentIndex] = magic.MagicPercent;
                 fields[LegacyPlayerStatusPacket.SkillCStrikeIndex] = magic.SkillCStrike;
                 fields[LegacyPlayerStatusPacket.MagicDamageIncreaseIndex] = magic.MagicDamageIncrease;
-                AppendSelf(new LegacyPlayerStatusPacket(fields).ToFrameBytes());
+                var queryStatus = new LegacyPlayerStatusPacket(fields);
+                queryCombat = CombatFields.From(queryStatus);
+                AppendSelf(queryStatus.ToFrameBytes());
                 AssignHitpoints(RequireHitpoints(Math.Min(current.Character.MinHitPoints, (long)Maximum)));
                 if (LegacyTransformState.TryGetActiveMaxHitpoints(current.Character, out var transform))
                 {

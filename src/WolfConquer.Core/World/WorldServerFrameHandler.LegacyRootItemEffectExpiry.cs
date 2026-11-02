@@ -1,4 +1,3 @@
-using System.Globalization;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
 
@@ -6,83 +5,80 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class WorldServerFrameHandler
 {
-    private IReadOnlyList<int> CaptureLegacyRootItemEffectExpirations(
-        ConquerTcpConnection connection, WorldSession session, TimeProvider provider,
-        DateTimeOffset subjectNow, out WorldSession cleaned)
+    private sealed record RootItemEffectDue(object Identity, WorldSession Initial,
+        LegacyNativeAttributeMapProof Map, LegacyRootItemEffectFlagClock.ExpiryObservation[] Entries, DateTimeOffset SubjectNow);
+
+    private RootItemEffectDue? CaptureLegacyRootItemEffectExpirations(
+        RootExpiryTick tick, ConquerTcpConnection connection, WorldSession session)
     {
-        var entries = new List<int>();
-        var character = session.Character;
-        var localNow = LegacyArrowBladesFlagRegistration.LocalTime(provider, subjectNow);
-        // Fixed local order is one allowed source GetFlags order, not a dictionary-order assertion.
-        foreach (var flag in new[] { LegacyTimedStigmaStatusFlag, LegacyTimedMagicShieldStatusFlag })
+        if (!RootExpiryTickIsCurrent(tick, out var tickData)) return null;
+        var provider = tickData.Provider;
+        var now = provider.GetUtcNow();
+        RootItemEffectDue? result = null;
+        _sessions.WithCurrentNativeClientIdentity(connection, session.Character.Uid, identity =>
         {
-            var visible = LegacyPlayerDeathState.HasStatusFlag(character.Attributes, flag);
-            if (LegacyRootItemEffectFlagClock.IsProjected(character, flag))
-            {
-                if (LegacyRootItemEffectFlagClock.TryRead(_sessions, connection, character, flag, out var entry))
-                {
-                    if (entry.ExpiresAtLocal <= localNow) entries.Add(flag);
-                }
-                else if (!visible)
-                    character = RetireLegacyRootItemEffectRegistration(connection, character, flag, out _);
-                // A loaded/foreign/malformed projection NEVER becomes a new root clock.
-                continue;
-            }
-            LegacyRootItemEffectFlagClock.Forget(_sessions, connection, character.Uid, flag);
-            var key = RootItemEffectDeadlineKey(flag);
-            if (!character.Attributes.TryGetValue(key, out var raw) ||
-                !DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var expires) ||
-                expires > subjectNow.ToUniversalTime()) continue;
-            if (visible) entries.Add(flag);
-            else character = RetireLegacyRootItemEffectRegistration(connection, character, flag, out _);
-        }
-        cleaned = ReferenceEquals(character, session.Character) ? session : session with { Character = character };
-        return entries;
+            if (!RootExpiryTickIsCurrent(tick, out _) ||
+                !_sessions.TryGet(connection, out var actual) || !ReferenceEquals(actual, session)) return;
+            var map = LegacyNativeAttributeMapProof.CaptureRaw(session.Character.Attributes);
+            var entries = new List<LegacyRootItemEffectFlagClock.ExpiryObservation>();
+            foreach (var flag in new[] { LegacyTimedStigmaStatusFlag, LegacyTimedMagicShieldStatusFlag })
+                if (LegacyRootItemEffectFlagClock.CaptureExpiry(_sessions, connection, session, identity, flag, now, provider) is { } entry)
+                    entries.Add(entry);
+            if (map.IsCurrentPlain() && RootExpiryTickIsCurrent(tick, out _)) result = new(identity, session, map, entries.ToArray(), now);
+        });
+        return result;
     }
 
-    private static string RootItemEffectDeadlineKey(int flag) => flag == LegacyTimedStigmaStatusFlag
-        ? WorldPacketHandlers.RuntimeLegacyStigmaExpiresAtUtcAttribute
-        : WorldPacketHandlers.RuntimeLegacyMagicShieldExpiresAtUtcAttribute;
-
-    private CharacterSnapshot RetireLegacyRootItemEffectRegistration(
-        ConquerTcpConnection connection, CharacterSnapshot character, int flag, out bool removed)
+    internal static bool TryProjectRootItemEffectExpiry(CharacterSnapshot character,
+        LegacyRootItemEffectFlagClock.ExpiryObservation observation, out CharacterSnapshot projected, out bool removed)
     {
-        // An old captured due object removes the CURRENT flag/clock even after a sameUID replacement.
-        LegacyRootItemEffectFlagClock.Forget(_sessions, connection, character.Uid, flag);
-        character = LegacyRootItemEffectFlagClock.ForgetProjection(character, flag);
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
-        attributes.Remove(RootItemEffectDeadlineKey(flag));
-        attributes.Remove(flag == LegacyTimedStigmaStatusFlag
-            ? WorldPacketHandlers.RuntimeLegacyStigmaRemoveOnDeadAttribute
-            : WorldPacketHandlers.RuntimeLegacyMagicShieldRemoveOnDeadAttribute);
-        attributes.Remove(LegacyStatusFlagDeathRegistration.Key(flag));
-        removed = RemoveLegacyStatusFlag(attributes, flag);
-        return character with { Attributes = attributes };
+        projected = character; removed = false;
+        if (observation.Flag is not 8 and not 9) return false;
+        try
+        {
+            _ = LegacyWindWalkerStatusProjection.Read(character); // Validate both real vector aliases before any change.
+            var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+            LegacyCharacterAttributeMap.Remove(attributes, "LegacyRootItemEffectFlag." + observation.Flag + ".NativeOwned");
+            LegacyCharacterAttributeMap.Remove(attributes, observation.Flag == LegacyTimedStigmaStatusFlag
+                ? WorldPacketHandlers.RuntimeLegacyStigmaExpiresAtUtcAttribute
+                : WorldPacketHandlers.RuntimeLegacyMagicShieldExpiresAtUtcAttribute);
+            LegacyCharacterAttributeMap.Remove(attributes, observation.Flag == LegacyTimedStigmaStatusFlag
+                ? WorldPacketHandlers.RuntimeLegacyStigmaRemoveOnDeadAttribute
+                : WorldPacketHandlers.RuntimeLegacyMagicShieldRemoveOnDeadAttribute);
+            LegacyCharacterAttributeMap.Remove(attributes, LegacyStatusFlagDeathRegistration.Key(observation.Flag));
+            if (observation.Visible && !RemoveLegacyXpStatusFlag(attributes, observation.Flag)) return false;
+            removed = observation.Visible;
+            projected = character with { Attributes = attributes };
+            return true;
+        }
+        catch (Exception error) when (error is InvalidDataException or InvalidOperationException or ArgumentException or FormatException or OverflowException)
+        { return false; }
     }
 
-    private async ValueTask<(WorldSession? Session, int ViewerCount)> SendLegacyRootItemEffectExpiryVectorAsync(
-        ConquerTcpConnection connection, long uid, WorldSession expired, CancellationToken cancellationToken)
+    private bool RootEffectHolderCurrent(ConquerTcpConnection connection, long uid, object identity, WorldSession expected) =>
+        LegacyNativeClientPublication.TryCurrent(_sessions, connection, uid, identity, out var current) && ReferenceEquals(current, expected);
+
+    internal static bool IsRootExpiryRecipientVisible(ConquerTcpConnection subjectConnection, WorldSession subject,
+        ConquerTcpConnection recipientConnection, WorldSession recipient) =>
+        ReferenceEquals(subjectConnection, recipientConnection)
+            ? ReferenceEquals(subject, recipient)
+            : subject.Character.Uid != recipient.Character.Uid && CanSeePlayer(recipient.Character, subject.Character);
+
+    private async ValueTask<(bool Current, int ViewerCount)> SendLegacyRootItemEffectExpiryVectorAsync(
+        ConquerTcpConnection connection, long uid, object identity, WorldSession expired,
+        WorldSessionStore.RootExpiryOutputReceipt output, CancellationToken cancellationToken)
     {
         var count = 0;
-        if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, uid, out var current)) return (null, count);
-        var frame = LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(
-            CheckedUInt32(uid, nameof(uid)), LegacyPlayerDeathState.CreateStatusFlagVector(
-                expired.Character.Attributes, LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength)).ToFrameBytes();
-        await connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
+        if (!_sessions.TryGet(connection, out var current) ||
+            !_sessions.TryIssueRootExpiryWrite(output, new WorldActiveSession(connection, current), cancellationToken, out var own) || own is null ||
+            !await connection.SendOwnedRootExpiryAsync(_sessions, own, cancellationToken).ConfigureAwait(false)) return (false, count);
         count++;
-        if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, uid, out current)) return (null, count);
         foreach (var peer in _sessions.Snapshot())
         {
-            if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, uid, out current)) return (null, count);
             if (ReferenceEquals(peer.Connection, connection) ||
-                !_sessions.TryGet(peer.Connection, out var viewer) || viewer is null ||
-                viewer.Character.Uid != peer.Session.Character.Uid || viewer.Character.Uid == uid ||
-                !CanSeePlayer(viewer.Character, current.Character)) continue;
-            await peer.Connection.SendAsync(frame, cancellationToken).ConfigureAwait(false);
-            count++;
-            if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, uid, out current)) return (null, count);
+                !_sessions.TryIssueRootExpiryWrite(output, peer, cancellationToken, out var permit) || permit is null) continue;
+            if (await peer.Connection.SendOwnedRootExpiryAsync(_sessions, permit, cancellationToken).ConfigureAwait(false)) count++;
         }
-        return (current, count);
+        return (RootEffectHolderCurrent(connection, uid, identity, expired), count);
     }
 }

@@ -43,6 +43,9 @@ public sealed partial class WorldSessionStore
         private readonly bool deferItems;
         private bool deferredItemsPrepared;
         private OwnedVigorPublication? vigorPublication;
+        private LegacyRootItemEffectFlagClock.PreparedSuccession? rootFlagSuccession;
+        private RootClockPublication? rootFlagPermit;
+        private LegacyRootItemEffectFlagClock.PreparedInstall? rootFlagInstall;
         internal WorldSession FinalSession { get; private set; }
         internal LegacyOrdinarySpellBinding? Binding => binding;
         internal object PublishedIdentity => finalIdentity;
@@ -349,18 +352,30 @@ public sealed partial class WorldSessionStore
             if (binding is not null && !store.BindingIsCurrentPlain(binding, holder, expected!)) throw InvalidSpellPublication();
         }
 
+        internal void AttachRootClockInstall(LegacyRootItemEffectFlagClock.PreparedInstall prepared)
+        {
+            if (rootFlagInstall is not null || !prepared.IsCurrentPlain()) throw InvalidSpellPublication();
+            rootFlagInstall = prepared;
+        }
+
         internal void ArmFinalProof()
         {
             if (deferItems && !deferredItemsPrepared) throw InvalidSpellPublication();
             if (binding is not null && vigorPublication is null)
                 vigorPublication = PrepareVigorPublication(store, connection, holder, binding,
                     expected ?? throw InvalidSpellPublication(), FinalSession, finalIdentity);
+            rootFlagSuccession ??= LegacyRootItemEffectFlagClock.PreparedSuccession.Prepare(
+                store, connection, expected, FinalSession, finalIdentity);
+            if (rootFlagSuccession is not null && rootFlagPermit is null)
+                rootFlagPermit = RootClockPermit(store, connection, holder, expected, FinalSession, finalIdentity, rootFlagSuccession);
             map?.ArmFinalProof();
             proficiencies?.ArmFinalProof();
             items?.ArmFinalProof();
             HitpointsWrite?.Inputs.Arm();
         }
         internal bool ConsumeBeforeWriterPlain() => ReferenceEquals(holder.Read(), expected) &&
+            (rootFlagSuccession is null || rootFlagPermit is not null && RootClockPermitBefore(rootFlagPermit)) &&
+            (rootFlagInstall is null || rootFlagInstall.IsCurrentPlain()) &&
             (binding is null || vigorPublication is not null && VigorPublicationReady(vigorPublication)) &&
             (classRetirement is null || classRetirement.IsCurrentPlain()) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeBeforeWriterPlain() &&
@@ -377,6 +392,8 @@ public sealed partial class WorldSessionStore
         // The raw map enumerator was allocated before the writer. Consume it
         // once, without a comparer or a fresh iterator at this final boundary.
         internal bool IsCurrentPlain() => ReferenceEquals(holder.Read(), expected) &&
+            (rootFlagSuccession is null || rootFlagPermit is not null && RootClockPermitBefore(rootFlagPermit)) &&
+            (rootFlagInstall is null || rootFlagInstall.IsCurrentPlain()) &&
             (binding is null || vigorPublication is not null && VigorPublicationReady(vigorPublication)) &&
             (classRetirement is null || classRetirement.IsCurrentPlain()) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeCurrentPlain() &&
@@ -419,12 +436,15 @@ public sealed partial class WorldSessionStore
             var permit = vigorPublication;
             var retention = permit is null ? null : VigorRetention(permit);
             holder.PublishPrepared(FinalSession, finalIdentity);
+            if (rootFlagSuccession is not null)
+                rootFlagSuccession.Publish(rootFlagPermit ?? throw InvalidSpellPublication());
             if (binding is not null)
                 binding.PublishVigorRetention(retention, permit ?? throw InvalidSpellPublication());
         }
 
         public void Dispose()
         {
+            rootFlagSuccession?.Dispose();
             items?.Dispose();
             windWalker?.Dispose();
             flashing?.Dispose();

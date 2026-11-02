@@ -24,11 +24,13 @@ internal sealed class NativeCombatGearProcFixture : IDisposable
     private readonly Dictionary<Rank.Type, Rank.Rank> priorRanks;
     private readonly Dictionary<string, byte[]> inputs = new(StringComparer.OrdinalIgnoreCase);
     private readonly string directory;
+    private readonly uint gearType, encodedSpell;
     private bool disposed;
     internal LegacyNativeCombatGearRuntime Runtime { get; private set; } = null!;
 
-    internal NativeCombatGearProcFixture(string ownedRoot)
+    internal NativeCombatGearProcFixture(string ownedRoot, uint gearType = 201, uint encodedSpell = 0)
     {
+        this.gearType = gearType; this.encodedSpell = encodedSpell;
         LegacyNativeDbReadOwnedFiles.OrdinaryChain(ownedRoot);
         directory = Path.Combine(ownedRoot, "native-physical-proc-metadata");
         Assert.False(File.Exists(directory) || Directory.Exists(directory));
@@ -47,7 +49,7 @@ internal sealed class NativeCombatGearProcFixture : IDisposable
     {
         Assert.Null(Runtime);
         Directory.CreateDirectory(directory);
-        Write("combat_gear.txt", Legacy19Row() + "\n");
+        Write("combat_gear.txt", Legacy19Row(gearType, encodedSpell) + "\n");
         Write("daoqi_dict_type.txt", "");
         Write("dict_lottery.txt", "");
         Write("dict_collection.txt", "");
@@ -58,9 +60,9 @@ internal sealed class NativeCombatGearProcFixture : IDisposable
         Assert.True(Runtime.IsCurrentFor(catalog), "The actual legacy19 native and managed catalog images must align.");
     }
 
-    internal static CombatGear[] CatalogRows()
+    internal static CombatGear[] CatalogRows(uint gearType = 201, uint encodedSpell = 0)
     {
-        var row = Legacy19Row();
+        var row = Legacy19Row(gearType, encodedSpell);
         var fields = row.Split("@@", StringSplitOptions.None);
         Assert.Equal(19, fields.Length);
         var values = fields.Select(value => int.Parse(value, CultureInfo.InvariantCulture)).ToArray();
@@ -79,10 +81,10 @@ internal sealed class NativeCombatGearProcFixture : IDisposable
         return row with { Fields = fields };
     }
 
-    private static string Legacy19Row()
+    private static string Legacy19Row(uint gearType, uint encodedSpell)
     {
         var values = new uint[19];
-        values[0] = 1; values[1] = 201; values[2] = 1;
+        values[0] = 1; values[1] = gearType; values[2] = 1; values[8] = encodedSpell;
         return string.Join("@@", values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
     }
 

@@ -82,8 +82,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         using var log = new StringWriter();
         using var cancel = new CancellationTokenSource();
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
+        var sent = new System.Collections.Concurrent.ConcurrentQueue<byte[]>();
+        await using var transport = new RootLoopbackFramePeer(
+            bytes => sent.Enqueue(bytes), _ => ValueTask.CompletedTask);
+        var connection = transport.Connection;
         var now = DateTimeOffset.UtcNow;
         var handler = new WorldServerFrameHandler(
             snapshotLoader: null,
@@ -120,7 +122,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                             LegacyTimedStigmaFlag) &&
                         !HasLegacyStatusFlag(current.Character.Attributes, LegacyMagicShieldFlag) &&
                         !current.Character.Attributes.ContainsKey("LegacyStigmaExpiresAtUtc") &&
-                        !current.Character.Attributes.ContainsKey("LegacyMagicShieldExpiresAtUtc");
+                        !current.Character.Attributes.ContainsKey("LegacyMagicShieldExpiresAtUtc") &&
+                        ParseMsgUpdates(sent.ToArray()).Any(update => update.Updates.Any(entry =>
+                            entry.Type == LegacyMsgUpdateDataType.StatusFlag &&
+                            entry.Values is not null &&
+                            !IsLegacyStatusFlagSet(entry.Values, LegacyTimedStigmaFlag) &&
+                            !IsLegacyStatusFlagSet(entry.Values, LegacyMagicShieldFlag) &&
+                            IsLegacyStatusFlagSet(entry.Values, LegacyTimedStatusUnrelatedFlag)));
                 },
                 TimeSpan.FromSeconds(1));
 
@@ -134,7 +142,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 LegacyTimedStatusUnrelatedFlag));
             Assert.False(expired.Character.Attributes.ContainsKey("LegacyStigmaRemoveOnDead"));
             Assert.False(expired.Character.Attributes.ContainsKey("LegacyMagicShieldRemoveOnDead"));
-            Assert.Contains(ParseMsgUpdates(sent), update => update.Updates.Any(entry =>
+            Assert.Contains(ParseMsgUpdates(sent.ToArray()), update => update.Updates.Any(entry =>
                 entry.Type == LegacyMsgUpdateDataType.StatusFlag &&
                 entry.Values is not null &&
                 !IsLegacyStatusFlagSet(entry.Values, LegacyTimedStigmaFlag) &&

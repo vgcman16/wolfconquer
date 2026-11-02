@@ -25,14 +25,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal((long)TargetPlayerUid, source.Character.Uid);
             var viewer = source with { Character = source.Character with
                 { Uid = uid, Name = "GhostPhaseViewer" } };
-            connections.Add(uid, new ConquerTcpConnection(null,
-                new IPEndPoint(IPAddress.Loopback, 9958),
-                sendAsync: async (memory, _) =>
-                {
-                    var bytes = memory.ToArray();
-                    Order.Enqueue((uid, bytes));
-                    await onSend(this, uid, bytes);
-                }));
+            var peer = new RootLoopbackFramePeer(bytes => Order.Enqueue((uid, bytes)), async bytes =>
+            {
+                await onSend(this, uid, bytes).ConfigureAwait(false);
+            });
+            loopbacks.Add(uid, peer);
+            connections.Add(uid, peer.Connection);
             sessions.Set(connections[uid], viewer);
         }
 

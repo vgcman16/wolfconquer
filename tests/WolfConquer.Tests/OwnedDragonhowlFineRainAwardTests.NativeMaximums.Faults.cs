@@ -13,6 +13,7 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
     [InlineData((ushort)17_650, false, "mana")]
     [InlineData((ushort)17_490, false, "sender")]
     [InlineData((ushort)17_650, true, "sender")]
+    [InlineData((ushort)17_490, false, "defence")]
     public Task RealCommittedDeathNativeMaximumDriftOrSenderLossFencesLaterOutputAndRepeat(
         ushort spell, bool threshold, string fault) => Run(spell, threshold, async c =>
     {
@@ -22,6 +23,7 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
         var files = ExpectedFiles(c, dead: true);
         var senderFailure = new SocketException((int)SocketError.ConnectionReset);
         Exception? observationFailure = null; int attempts = 0;
+        (uint, uint, uint, uint, uint)? publishedCombat = null;
         f.BeforeSend = (recipient, bytes) =>
         {
             if (!IsFirstFineRainDeathClear(recipient, bytes)) return;
@@ -32,11 +34,13 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
                 AssertDead(c, peer); Assert.Same(status, peer.Client.Status);
                 Assert.Equal(unjoined, NativeUnjoinedStatus(status));
                 Assert.False(f.Recovery.IsBlocked); f.Data.AssertFiles(files);
+                publishedCombat = NativeCombatStatus(status);
                 // Mutate only a genuinely exposed scalar alias on the actual
                 // captured native Status. No owners, epochs or private flags
                 // are replaced; its real post-send receipt must reject drift.
                 if (fault == "hitpoints") status.MaxHitpoints = checked(status.MaxHitpoints + 1);
                 else if (fault == "mana") status.MaxMana = checked(status.MaxMana + 1);
+                else if (fault == "defence") status.Defence = checked(status.Defence + 1);
                 else Assert.Equal("sender", fault);
             }
             catch (Exception error) { observationFailure = error; throw; }
@@ -53,6 +57,9 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
         Assert.False(f.Store.TryGet(f.Connection(Actor), out _)); Assert.False(f.Store.TryGet(f.Connection(Peer), out _));
         Assert.False(actor.Client.OnAutoAttack); Assert.False(peer.Client.OnAutoAttack);
         Assert.Same(status, peer.Client.Status); Assert.Equal(unjoined, NativeUnjoinedStatus(status));
+        Assert.NotNull(publishedCombat);
+        var combat = publishedCombat.Value;
+        Assert.Equal((combat.Item1, combat.Item2, combat.Item3 + (fault == "defence" ? 1U : 0U), combat.Item4, combat.Item5), NativeCombatStatus(status));
         uint expectedHp = c.AfterDeathMaximum + (fault == "hitpoints" ? 1U : 0U);
         uint expectedMana = (threshold ? 600U : 300U) + (fault == "mana" ? 1U : 0U);
         // A committed publication is not rolled back or recomputed after its

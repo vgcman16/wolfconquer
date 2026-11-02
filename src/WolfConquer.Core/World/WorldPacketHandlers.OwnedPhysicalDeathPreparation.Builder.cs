@@ -31,6 +31,7 @@ public static partial class WorldPacketHandlers
             private IReadOnlyList<PlayerItemSnapshotItem> equipment = [];
             private bool alternate, admitted;
             private LegacyNativeMagicQueryFields magic, jiangHu;
+            private CombatFields? queryCombat;
             private uint prestige;
             private LegacyNativePerfectionSnapshot perfection;
             private uint Uid => CheckedUInt32(targetBinding.Uid, nameof(targetBinding.Uid));
@@ -94,7 +95,7 @@ public static partial class WorldPacketHandlers
                 metadata.Extend(current);
                 if ((sourceInputs is not null ? !sourceInputs.ConsumeCurrentPlain() : procInputs?.IsCurrentPlain() != true) ||
                     !metadata.IsCurrentPlain()) throw InvalidOwnedPhysicalDeath();
-                var values = new OwnedPhysicalDeathQueryValues(admitted, querySource, magic, jiangHu, prestige, perfection);
+                var values = new OwnedPhysicalDeathQueryValues(admitted, querySource, magic, jiangHu, prestige, perfection, queryCombat);
                 var result = new OwnedPhysicalDeathPreparation(context, decision, attempt, actorBinding, targetBinding,
                     actor, target, current, values, nativeStatus, metadata, dragonhowl)
                 {

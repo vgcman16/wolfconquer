@@ -211,6 +211,8 @@ public sealed partial class WorldSessionStore
     private sealed class SessionHolder
     {
         private WorldSession? _session;
+        private long rootExpiryRevision;
+        internal long RootExpiryRevision => Volatile.Read(ref rootExpiryRevision);
         internal LegacyOrdinarySpellBinding? SpellBinding;
         private readonly object retiredIdentity = new();
         public object NativeClientIdentity { get; private set; } = new();
@@ -223,6 +225,7 @@ public sealed partial class WorldSessionStore
         // Identity is allocated during preparation, never between related stores.
         public void PublishPrepared(WorldSession session, object identity)
         {
+            Interlocked.Increment(ref rootExpiryRevision);
             NativeClientIdentity = identity;
             Volatile.Write(ref _session, session);
         }
@@ -241,6 +244,7 @@ public sealed partial class WorldSessionStore
             }
             finally
             {
+                Interlocked.Increment(ref rootExpiryRevision);
                 binding?.Retire();
                 NativeClientIdentity = retiredIdentity;
                 Volatile.Write(ref _session, null);

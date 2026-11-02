@@ -173,8 +173,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         using var log = new StringWriter();
         using var cancel = new CancellationTokenSource();
-        var sent = new List<byte[]>();
-        var connection = CreateSendingConnection(sent);
+        var sent = new System.Collections.Concurrent.ConcurrentQueue<byte[]>();
+        await using var transport = new RootLoopbackFramePeer(
+            bytes => sent.Enqueue(bytes), _ => ValueTask.CompletedTask);
+        var connection = transport.Connection;
         var now = DateTimeOffset.UtcNow;
         var handler = new WorldServerFrameHandler(
             snapshotLoader: null,
@@ -215,7 +217,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     var expectedValues = LegacyPlayerDeathState.CreateStatusFlagVector(
                         current.Character.Attributes,
                         LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength);
-                    statusUpdate = ParseMsgUpdates(sent).LastOrDefault(update =>
+                    statusUpdate = ParseMsgUpdates(sent.ToArray()).LastOrDefault(update =>
                         update.Uid == PlayerUid &&
                         update.Updates.Count == 1 &&
                         update.Updates[0].Type == LegacyMsgUpdateDataType.StatusFlag &&
@@ -238,7 +240,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     expiredSession.Character.Attributes,
                     LegacyMsgUpdatePacket.RuntimeStatusFlagVectorLength),
                 values.ToArray());
-            AssertNoAttachStatusXpBuffD13(sent);
+            AssertNoAttachStatusXpBuffD13(sent.ToArray());
         }
         finally
         {

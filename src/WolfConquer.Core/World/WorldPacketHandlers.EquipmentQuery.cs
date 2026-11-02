@@ -60,9 +60,13 @@ public static partial class WorldPacketHandlers
             !await execution.RunRuneHitpointsAsync().ConfigureAwait(false))
             return execution.Outcome();
 
+        if (!execution.TryPrepareQueryCombatStatusFrame(out var statusFrame))
+        {
+            execution.RefuseIncompleteQuery();
+            return execution.Outcome();
+        }
         if (!await execution.SendAsync(
-                CreateNativeMagicCachedPlayerStatusResponse(execution.Context, execution.Session,
-                    execution.Context.Connection, execution.Request.Scope.OwnerNativeClientIdentity).ToFrameBytes(),
+                statusFrame,
                 LegacyEquipmentQueryPublishedPhases.Status).ConfigureAwait(false))
             return execution.Outcome();
 

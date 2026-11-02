@@ -13,6 +13,7 @@ internal static partial class LegacyNativeMagicQueryClient
         private readonly Entry entry;
         private readonly LegacyNativeMsgStatus status;
         private readonly uint beforeMaximumHitpoints, beforeMaximumMana, afterMaximumHitpoints, afterMaximumMana;
+        private readonly WorldPacketHandlers.CombatFields beforeCombat, afterCombat;
         private readonly bool beforeInitialized, admitted;
         private readonly LegacyNativeMagicQueryFields beforeFields, beforeJiangHu, afterFields, afterJiangHu;
         private readonly QueryEpoch? beforeEpoch, afterEpoch;
@@ -32,6 +33,7 @@ internal static partial class LegacyNativeMagicQueryClient
             admitted = values.Admitted;
             status = binding.Client.Status ?? throw InvalidDeathQuery();
             beforeMaximumHitpoints = status.MaxHitpoints; beforeMaximumMana = status.MaxMana;
+            beforeCombat = WorldPacketHandlers.CombatFields.Read(status);
             if (admitted)
             {
                 // The same complete query that rebuilds Entry also owns these
@@ -42,6 +44,7 @@ internal static partial class LegacyNativeMagicQueryClient
                     canonicalTarget.PhysicalStatusOverlay is not { MaxMana: { } mana } overlay || overlay.OwnerUid != binding.Uid)
                     throw InvalidDeathQuery();
                 afterMaximumHitpoints = hitpoints.MaximumHitpoints; afterMaximumMana = mana;
+                afterCombat = values.Combat ?? throw InvalidDeathQuery();
                 var source = new QueryState(binding.Store, binding.Connection, binding.Uid,
                     binding.NativeIdentity, entry, values.QuerySource);
                 if (!source.InputsMatch(canonicalTarget) || values.Fields.RightWeaponItemId != source.Right ||
@@ -54,6 +57,7 @@ internal static partial class LegacyNativeMagicQueryClient
                 afterMonk = MonkCache.PrepareUnpublished(binding, IsMonk(source.Right) || IsMonk(source.Left));
                 afterAttackSpeed = AttackSpeedCache.PrepareUnpublished(binding, metadata);
             }
+            if (!admitted && values.Combat is not null) throw InvalidDeathQuery();
             perfection = LegacyNativePerfectionClient.OwnedPhysicalDeathPublication.Prepare(
                 binding, preparation, canonicalTarget);
         }
@@ -78,7 +82,7 @@ internal static partial class LegacyNativeMagicQueryClient
             entry.JiangHu == beforeJiangHu && ReferenceEquals(entry.Epoch, beforeEpoch) &&
             ReferenceEquals(entry.Monk, beforeMonk) && ReferenceEquals(entry.AttackSpeed, beforeAttackSpeed) &&
             ReferenceEquals(binding.Client.Status, status) && status.MaxHitpoints == beforeMaximumHitpoints &&
-            status.MaxMana == beforeMaximumMana &&
+            status.MaxMana == beforeMaximumMana && WorldPacketHandlers.CombatFields.Read(status) == beforeCombat &&
             (afterMetadata is null || afterMetadata.IsCurrentPlain(binding.ItemCatalog)) &&
             perfection.IsCurrentPlain();
 
@@ -101,6 +105,7 @@ internal static partial class LegacyNativeMagicQueryClient
             ReferenceEquals(binding.Client.Status, status) &&
             status.MaxHitpoints == (admitted ? afterMaximumHitpoints : beforeMaximumHitpoints) &&
             status.MaxMana == (admitted ? afterMaximumMana : beforeMaximumMana) &&
+            WorldPacketHandlers.CombatFields.Read(status) == (admitted ? afterCombat : beforeCombat) &&
             (afterMetadata is null || afterMetadata.IsCurrentPlain(binding.ItemCatalog)) &&
             perfection.IsPublishedCurrentPlain();
 
@@ -117,6 +122,7 @@ internal static partial class LegacyNativeMagicQueryClient
                 // under the existing actual Store/native publication gates.
                 status.MaxHitpoints = afterMaximumHitpoints;
                 status.MaxMana = afterMaximumMana;
+                afterCombat.Write(status);
                 entry.Initialized = true;
             }
             perfection.PublishPrepared();

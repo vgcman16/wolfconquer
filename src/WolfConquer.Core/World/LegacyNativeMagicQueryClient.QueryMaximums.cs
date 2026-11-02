@@ -5,7 +5,8 @@ internal static partial class LegacyNativeMagicQueryClient
     // Final publication of THIS genuine query only. No caller-supplied cache
     // stamp or aggregate can complete an epoch, or authorize an attribute write.
     internal static bool PublishCompletedMaximums(LegacyOrdinarySpellBinding binding,
-        WorldSession expected, QueryEpoch? epoch, out CompletedMaximums? completed)
+        WorldSession expected, QueryEpoch? epoch, WorldPacketHandlers.NativeQueryCombatCommit combat,
+        out CompletedMaximums? completed)
     {
         completed = null;
         if (epoch is null || !DerivedQueryOwnerIsCurrentPlain(binding) ||
@@ -23,11 +24,19 @@ internal static partial class LegacyNativeMagicQueryClient
         var prestige = LegacyNativePerfectionClient.Prestige(binding.Store, binding.Connection, binding.Uid, binding.NativeIdentity);
         var publication = new MaximumCompletion(binding, epoch, source, entry, status, expected, entry.Fields, entry.JiangHu,
             perfection, prestige);
-        MaximumCompletions.Add(proof, publication);
+        MaximumCompletions.Add(proof, publication); // Inert while Published is false.
+        // Consume the real issuer before replacing any retained completion.
+        // A fabricated or stale token must not disturb an existing receipt.
+        if (!WorldPacketHandlers.TryConsumeNativeQueryCombatCommit(combat, binding, expected, epoch, status, out var after))
+        {
+            MaximumCompletions.Remove(proof);
+            return false;
+        }
         CurrentMaximumCompletions.Remove(entry);
-        CurrentMaximumCompletions.Add(entry, proof);
+        CurrentMaximumCompletions.Add(entry, proof); // All allocations remain before plain native writes.
         status.MaxMana = mana;
         status.MaxHitpoints = hp.MaximumHitpoints;
+        after.Write(status);
         publication.Published = true;
         completed = proof;
         return true;

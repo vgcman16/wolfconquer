@@ -1,3 +1,5 @@
+using WolfConquer.Core.Data;
+
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
@@ -59,24 +61,57 @@ public static partial class WorldPacketHandlers
             checked((ushort)session.Character.X), checked((ushort)session.Character.Y), animationId, 4, 0,
             [new LegacySpellAnimationTarget(CheckedUInt32(uid, nameof(uid)), 0, true,
                 MsgAttackEffect.None)]).ToFrameBytes();
-        if (!TryCommitLegacyPlayerMagicPreparation(context, ref session, owner =>
+        object? publicationIdentity = expectedNativeClientIdentity;
+        if (context.Sessions is { } world)
         {
-            var character = WithLegacySourceAddSpellFlag(owner.Character, flag, removeOnDead: true);
-            character = LegacyRootItemEffectFlagClock.Install(context.Sessions, context.Connection,
-                character, flag, seconds, context.TimeProvider ?? TimeProvider.System);
-            return owner with { Character = WithCharacterAttribute(character, removeOnDeadAttribute, bool.TrueString) };
-        }, expectedNativeClientIdentity)) return null;
-        var inserted = expectedNativeClientIdentity is null
+            if (publicationIdentity is null && !LegacyNativeClientPublication.TryCaptureIdentity(world, context.Connection, uid, out publicationIdentity)) return null;
+            var provider = context.TimeProvider ?? TimeProvider.System;
+            var admission = new RootManualItemEffectAdmission();
+            RootManualItemEffectAdmissions.Add(admission, new(world, context.Connection, session,
+                publicationIdentity!, flag, seconds, removeOnDeadAttribute, provider));
+            WorldSession? committed;
+            bool applied;
+            try { applied = world.TryCommitRootManualItemEffect(context.Connection, publicationIdentity!, session,
+                admission, flag, seconds, removeOnDeadAttribute, provider, out committed); }
+            finally { RootManualItemEffectAdmissions.Remove(admission); }
+            if (!applied || committed is null) return null;
+            session = committed;
+        }
+        else
+        {
+            var character = ProjectRootManualItemEffect(session.Character, flag, removeOnDeadAttribute);
+            character = LegacyRootItemEffectFlagClock.InstallDetached(context.Connection, character, flag, seconds,
+                context.TimeProvider ?? TimeProvider.System);
+            session = session with { Character = character };
+        }
+        var inserted = publicationIdentity is null
             ? await SendLegacyArrowBladesVectorAsync(
                 context with { Session = session }, session, uid, cancellationToken).ConfigureAwait(false)
             : await SendLegacyPreparationOwnedFrameAsync(context with { Session = session }, session, uid,
                 LegacyMsgUpdatePacket.CreateLegacyRuntimeStatusFlagVectorUpdate(CheckedUInt32(uid, nameof(uid)),
                     CreateLegacyRuntimeStatusFlagVector(session.Character)).ToFrameBytes(),
-                cancellationToken, expectedNativeClientIdentity).ConfigureAwait(false);
+                cancellationToken, publicationIdentity).ConfigureAwait(false);
         if (inserted is null) return null;
         return await SendLegacyPreparationOwnedFrameAsync(
             context with { Session = inserted }, inserted, uid, frame, cancellationToken,
-            expectedNativeClientIdentity).ConfigureAwait(false);
+            publicationIdentity).ConfigureAwait(false);
+    }
+
+    internal static CharacterSnapshot ProjectRootManualItemEffect(CharacterSnapshot character, int flag, string removeOnDeadAttribute)
+    {
+        var words = LegacyWindWalkerStatusProjection.Read(character);
+        words[flag / 32] |= 1UL << (flag % 32);
+        int length = words.Length;
+        while (length > 10 && words[length - 1] == 0) length--;
+        var vector = string.Join("/", words.Take(length)) + "/";
+        var fields = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        bool status = LegacyCharacterAttributeMap.TryRead(fields, "StatusFlags", out _);
+        bool bits = LegacyCharacterAttributeMap.TryRead(fields, "BitVector", out _);
+        if (status || !bits) LegacyCharacterAttributeMap.Set(fields, "StatusFlags", vector);
+        if (bits) LegacyCharacterAttributeMap.Set(fields, "BitVector", vector);
+        LegacyCharacterAttributeMap.Set(fields, LegacyStatusFlagDeathRegistration.Key(flag), "true");
+        LegacyCharacterAttributeMap.Set(fields, removeOnDeadAttribute, bool.TrueString);
+        return character with { Attributes = fields };
     }
 
     private static async ValueTask<WorldSession?> SendLegacyPreparationOwnedFrameAsync(

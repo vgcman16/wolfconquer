@@ -71,17 +71,27 @@ public sealed partial class StatusAdmissionOwnedTests
         }, map: 1039);
 
     [Fact]
-    public Task ShieldPreservesAnActualLaterXpScalarCallbackGrantAndItsExistingTimerPolicy() =>
+    public Task ShieldStopsStaleContinuationWhenXpScalarCallbackPublishesAnotherHolder() =>
         F.StatusAdmissionRunAsync(1020, true, async f =>
         {
             const string expiry = "2030-01-01T00:00:00.0000000+00:00";
             var binding = Owner(f); bool installed = false;
+            WorldSession? successor = null;
+            Dictionary<string, byte[]>? filesAfterCallback = null;
+            int actorFramesAtCallback = -1, peerFramesAtCallback = -1;
+            (int Hitpoints, uint Mana, ushort Stamina) nativeAtCallback = default;
             f.BeforeSend = (uid, bytes) =>
             {
                 if (installed || uid != Actor || !bytes.SequenceEqual(Convert.FromHexString("0C00800808A0FA4E12020865"))) return;
                 installed = true; Assert.Equal(493U, binding.Player.Mana);
                 var current = f.Current(); Assert.False(Flag(current.Character, LegacyRuntimeUpdateTicker.XpListFlag));
                 f.Store.Set(f.Connection(Actor), F.StatusAdmissionInstallShield(current, expiry));
+                successor = f.Current();
+                Assert.NotSame(current, successor);
+                nativeAtCallback = (binding.Player.HitPoints, binding.Player.Mana, binding.Player.Stamina);
+                filesAfterCallback = f.Data.Files();
+                actorFramesAtCallback = f.ActorFrames.Count;
+                peerFramesAtCallback = f.Frames(Peer).Count;
             };
             try { await Cast(f, 1020); } finally { f.BeforeSend = null; }
             Assert.True(installed, f.Log.ToString()); Assert.Same(binding, Owner(f));
@@ -90,10 +100,19 @@ public sealed partial class StatusAdmissionOwnedTests
             Assert.Equal(bool.FalseString, f.Current().Character.Attributes["LegacyMagicShieldRemoveOnDead"]);
             Assert.Equal("96", f.Current().Character.Attributes["Stamina"]);
             Assert.Equal(493L, f.Data.Loader.LoadByAccountId(Actor)!.MinMana);
-            Assert.Single(Animations(f), packet => packet.SpellId == 1020);
-            var vectors = f.ActorFrames.Where(bytes => LegacyMsgUpdatePacket.TryParse(
+            Assert.Same(successor, f.Current());
+            Assert.Equal(nativeAtCallback, (binding.Player.HitPoints, binding.Player.Mana, binding.Player.Stamina));
+            Assert.Equal(493U, binding.Player.Mana); Assert.Equal((ushort)96, binding.Player.Stamina);
+            Assert.NotNull(filesAfterCallback); f.Data.AssertFiles(filesAfterCallback!);
+            Assert.DoesNotContain(Animations(f), packet => packet.SpellId == 1020);
+            Assert.Empty(f.ActorFrames.Where(bytes => LegacyMsgUpdatePacket.TryParse(
                 OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var update) &&
-                update.Updates.Any(row => row.Type == LegacyMsgUpdateDataType.StatusFlag)).ToArray();
-            Assert.Single(vectors); // Existing duplicate Shield does not add/refresh a second flag.
+                update.Updates.Any(row => row.Type == LegacyMsgUpdateDataType.StatusFlag)));
+            // The callback runs before its scalar enters the transport. The
+            // scalar is the only subsequent actor frame; no stale vector or
+            // success animation may follow a different published holder.
+            var scalar = Assert.Single(f.ActorFrames.Skip(actorFramesAtCallback));
+            Assert.Equal(Convert.FromHexString("0C00800808A0FA4E12020865"), scalar);
+            Assert.Equal(peerFramesAtCallback, f.Frames(Peer).Count);
         });
 }

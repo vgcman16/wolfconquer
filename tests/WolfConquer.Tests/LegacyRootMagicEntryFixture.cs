@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
 using WolfConquer.Core.Packets;
@@ -13,8 +14,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 {
     private sealed partial class RootMagicEntryFixture : IAsyncDisposable
     {
+        public const uint ExpiryObserverUid = 1_293_604;
         private readonly WorldSessionStore sessions = new();
         private readonly Dictionary<uint, ConquerTcpConnection> connections = [];
+        private readonly Dictionary<uint, RootLoopbackFramePeer> loopbacks = [];
         private readonly RootRuntimeClock clock = new(RootMagicEntryOrigin);
         private readonly StringWriter log = new(CultureInfo.InvariantCulture);
         private readonly WorldPacketHandlerContext context;
@@ -39,11 +42,13 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             bool itemEffectXpControls = false, bool nativeDeathCasterQueryControls = false,
             bool playerEligibilityControls = false, uint shieldDuration = 30,
             ushort shieldMana = 0, byte shieldStamina = 0, bool opaqueCaseControls = false,
-            ushort shieldCooldown = 0, int shieldColdTime = 0)
+            ushort shieldCooldown = 0, int shieldColdTime = 0, bool otherFlagDispelControls = false, bool mixedCaseRootKeys = false,
+            bool clocklessDualControls = false)
         {
             hasRawRidingCrop = ridingCrop;
             this.nativeDeathCasterQueryControls = nativeDeathCasterQueryControls;
             Assert.True(!nativeDeathCasterQueryControls || itemEffectLifetimeControls);
+            Assert.True(!otherFlagDispelControls || nativeDeathCasterQueryControls);
             this.itemEffectXpControls = itemEffectXpControls;
             Assert.True(!itemEffectXpControls || itemEffectLifetimeControls);
             var rows = new List<MagicType>
@@ -66,8 +71,18 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     damage: 100, range: 4, coolDown: rawCadence, coldTime: coldTime));
             if (itemEffectLifetimeControls)
                 rows.Add(CreateMagicRow(1_001, sort: 1, useMana: 0, useStamina: 0,
-                    damage: nativeDeathCasterQueryControls ? 9_999U : 9_000U,
+                    damage: otherFlagDispelControls ? 1_000U : nativeDeathCasterQueryControls ? 9_999U : 9_000U,
                     range: 18, coolDown: 0, coldTime: 0));
+            if (clocklessDualControls)
+            {
+                Assert.True(itemEffectLifetimeControls && !mixedCaseRootKeys);
+                rows.Add(CreateMagicRow(1_090, sort: 6, useMana: 0, useStamina: 0, damage: 100, duration: 15, range: 18, coolDown: 0, coldTime: 0));
+                rows.Add(CreateMagicRow(1_095, sort: 6, useMana: 0, useStamina: 0, damage: 100, duration: 15, range: 18, coolDown: 0, coldTime: 0));
+            }
+            if (mixedCaseRootKeys)
+                rows.Add(CreateMagicRow(1_095, sort: 6, useMana: 0, useStamina: 0, damage: 100, duration: 15, range: 18, coolDown: 0, coldTime: 0));
+            if (otherFlagDispelControls)
+                rows.Add(CreateMagicRow(21_930, sort: 6, useMana: 0, useStamina: 0, damage: 100, range: 18, coolDown: 0, coldTime: 0));
             if (itemEffectXpControls)
                 rows.Add(CreateMagicRow(1_020, sort: 6, useMana: shieldMana, useStamina: shieldStamina,
                     damage: 100, duration: shieldDuration, range: 18, coolDown: shieldCooldown, coldTime: shieldColdTime));
@@ -98,9 +113,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 queryItems = [.. (queryItems ?? Array.Empty<ItemType>()),
                     CropQueryInput(111_005, "50000", "1000"), CropQueryInput(120_005, "50000")];
             var sourceArrowCatalog = catalogArrowWithoutLearnedBook ? CreateRootMissingArrowSourceGear() : null;
+            CombatGear? pirate = otherFlagDispelControls ? new CombatGear(703, 703, 1, 0, 0, 0, 0, 0, 0, [21_930_000], 0, 0, 0, 0, "fixture://root-other-clock-pirate", 1, "", []) : null;
             var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [], rows,
                 items: queryItems,
-                combatGear: sourceArrowCatalog is null ? null : [sourceArrowCatalog],
+                combatGear: pirate is not null ? [pirate] : sourceArrowCatalog is null ? null : [sourceArrowCatalog],
                 magicEffects: passive ? MagicEffectParser.Parse(
                     $"[{selectedId * 100L}]\nName=RootEntry\nDescEx=Passive:~source~root~admission~control.\n",
                     "fixture://root-entry-MagicEffect.ini") : null);
@@ -152,6 +168,23 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     { ["Opaque"] = "one", ["opaque"] = "two" };
                 owner = owner with { Character = owner.Character with { Attributes = fields } };
             }
+            if (mixedCaseRootKeys)
+            {
+                // Saved-style fixture DATA only; there is no clock registration
+                // until the actual Root/Classic producers execute.
+                var inputs = new Dictionary<string, string>(owner.Character.Attributes, StringComparer.Ordinal)
+                {
+                    ["legacyrootitemeffectflag.8.nativeowned"] = "old",
+                    ["legacymagicshieldexpiresatutc"] = "old",
+                    ["legacystigmaexpiresatutc"] = "old",
+                };
+                owner = owner with { Character = owner.Character with { Attributes = inputs } };
+                owner = owner with { PlayerSpells = new PlayerSpellSnapshot(
+                    [.. owner.PlayerSpells.Spells, CreatePlayerSpell(1_095)]) };
+            }
+            if (clocklessDualControls)
+                owner = owner with { PlayerSpells = new PlayerSpellSnapshot(
+                    [.. owner.PlayerSpells.Spells, CreatePlayerSpell(1_090), CreatePlayerSpell(1_095)]) };
             if (itemEffects is not null)
             {
                 var inputs = LegacyCharacterAttributeMap.Copy(owner.Character.Attributes);
@@ -184,7 +217,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             var peer = CreateSession(uid: TargetPlayerUid, name: "RootEntryPeer", mapId: 1_000,
                 x: 832, y: 584, strength: 0, spirit: 0,
                 minHitPoints: 100_000, minMana: 1_000, stamina: 100,
-                spellIds: itemEffectLifetimeControls ? [1_001] : [],
+                spellIds: otherFlagDispelControls ? [1_001, 21_930] : mixedCaseRootKeys ? [1_001, 1_095] : itemEffectLifetimeControls ? [1_001] : [],
                 playerItems: nativeDeathCasterQueryControls ? PlayerItemSnapshot.Empty with
                 {
                     EquipmentItems =
@@ -196,6 +229,12 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     ],
                 } : PlayerItemSnapshot.Empty,
                 attributes: new Dictionary<string, string> { ["PkMode"] = "0", ["BattlePower"] = "120" });
+            if (otherFlagDispelControls)
+                peer = peer with { Character = peer.Character with { Class = 7_005 }, CombatGear = CombatGearSnapshot.Empty with
+                {
+                    Count = 1, Items = [new CombatGearSnapshotItem(703, Level: 1, Exp: 0, Equip: 1,
+                        Transform: 0, MasteryScore: 0, Animas: [[], []], BlackJades: [])],
+                } };
             if (itemEffectLifetimeControls)
             {
                 Assert.NotNull(itemEffects); // Raw declared inputs only; the public query/cast must earn all state.
@@ -207,16 +246,36 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 sessions = GetHandlerSessions(itemEffectRuntimeHandler);
                 itemEffectRuntimeCancel = new CancellationTokenSource();
             }
-            foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
-                connections[uid] = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
-                    sendAsync: async (memory, _) =>
-                    {
-                        var bytes = memory.ToArray();
-                        Order.Enqueue((uid, bytes));
-                        if (onSend is not null) await onSend(this, uid, bytes);
-                    });
+            uint[] participants = otherFlagDispelControls
+                ? [PlayerUid, TargetPlayerUid, ExpiryObserverUid]
+                : [PlayerUid, TargetPlayerUid];
+            foreach (var uid in participants)
+            {
+                if (!itemEffectLifetimeControls)
+                {
+                    connections[uid] = new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
+                        sendAsync: async (memory, _) =>
+                        {
+                            var bytes = memory.ToArray(); Order.Enqueue((uid, bytes));
+                            if (onSend is not null) await onSend(this, uid, bytes);
+                        });
+                    continue;
+                }
+                var transportPeer = new RootLoopbackFramePeer(bytes => Order.Enqueue((uid, bytes)), async bytes =>
+                {
+                    if (onSend is not null) await onSend(this, uid, bytes).ConfigureAwait(false);
+                });
+                loopbacks.Add(uid, transportPeer);
+                connections[uid] = transportPeer.Connection;
+            }
             sessions.Set(connections[PlayerUid], owner);
             sessions.Set(connections[TargetPlayerUid], peer);
+            if (otherFlagDispelControls)
+                sessions.Set(connections[ExpiryObserverUid], CreateSession(
+                    uid: ExpiryObserverUid, name: "ExpiryObserver", mapId: 1_000,
+                    x: 833, y: 585, minHitPoints: 100_000, minMana: 1_000, stamina: 100,
+                    spellIds: [], attributes: new Dictionary<string, string>
+                    { ["PkMode"] = "0", ["BattlePower"] = "120" }));
             context = new WorldPacketHandlerContext(connections[PlayerUid], itemEffectRuntimeLog ?? log, owner,
                 WorldData: world, Sessions: sessions, MonsterStates: new MonsterRuntimeStateStore(),
                 TimeProvider: clock, ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
@@ -301,6 +360,15 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Contains(FramesSince(PlayerUid, first), bytes =>
                 ReadFrame(bytes).Header.Opcode == LegacyPlayerStatusPacket.Opcode);
         }
+        public async Task QueryClocklessDualThroughFrameAsync()
+        {
+            var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+            int first = Order.Count;
+            await handler.HandleFrameAsync(connections[PlayerUid],
+                ReadFrame(new MsgActionPacket { ObjId = PlayerUid, Type = (MsgActionType)251 }.ToFrameBytes()));
+            Assert.Equal(0U, LegacyPhysicalStatusOverlay.ForOwner(Owner).NecklaceItemEffect ?? 0U);
+            Assert.Contains(FramesSince(PlayerUid, first), bytes => ReadFrame(bytes).Header.Opcode == LegacyPlayerStatusPacket.Opcode);
+        }
         public Task UnequipRootItemEffectAsync(ushort position)
         {
             var item = Assert.Single(Owner.PlayerItems.EquipmentItems, value => value.Position == position);
@@ -314,6 +382,88 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal(PlayerUid, current.Character.Uid);
             sessions.Set(connections[PlayerUid], current with { Character = current.Character with { X = x, Y = y } });
         }
+        public LegacyRootItemEffectFlagClock? ReadActualRootClock(int flag) =>
+            LegacyRootItemEffectFlagClock.TryRead(sessions, connections[PlayerUid], Owner.Character, flag, out var clockEntry)
+                ? clockEntry : null;
+        public async Task QueryRootDispelPeerThroughFrameAsync()
+        {
+            var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+            int start = Order.Count;
+            await handler.HandleFrameAsync(connections[TargetPlayerUid], ReadFrame(new MsgActionPacket
+                { ObjId = TargetPlayerUid, Type = (MsgActionType)251 }.ToFrameBytes()));
+            var bytes = Assert.Single(FramesSince(TargetPlayerUid, start), frame =>
+                LegacyPlayerStatusPacket.TryParse(ReadFrame(frame), out _));
+            Assert.True(LegacyPlayerStatusPacket.TryParse(ReadFrame(bytes), out var packet));
+            Assert.Equal(1U, packet.MagicAttack);
+        }
+        public async Task CastPeerClassicStigmaThroughFrameAsync()
+        {
+            var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+            var query = new MsgAttackQuery(Uid: TargetPlayerUid, OpponentUid: TargetPlayerUid, X: 832, Y: 584,
+                AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0, ResponseDamage: 0,
+                Effect: MsgAttackEffect.None, Unknown: 0, SpellId: 1_095);
+            await handler.HandleFrameAsync(connections[TargetPlayerUid], ReadFrame(new MsgAttackPacket(query).ToFrameBytes()));
+        }
+        public async Task CastClocklessShieldThroughFrameAsync()
+        {
+            var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+            var query = new MsgAttackQuery(Uid: PlayerUid, OpponentUid: PlayerUid, X: 830, Y: 584,
+                AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0, ResponseDamage: 0,
+                Effect: MsgAttackEffect.None, Unknown: 0, SpellId: 1_090);
+            await handler.HandleFrameAsync(connections[PlayerUid], ReadFrame(new MsgAttackPacket(query).ToFrameBytes()));
+        }
+        public void ChangeClocklessShieldDeadlineInCurrentMap(DateTimeOffset deadline)
+        {
+            var current = Owner;
+            var fields = Assert.IsType<Dictionary<string, string>>(current.Character.Attributes);
+            Assert.True(fields.ContainsKey(WorldPacketHandlers.RuntimeLegacyMagicShieldExpiresAtUtcAttribute));
+            fields[WorldPacketHandlers.RuntimeLegacyMagicShieldExpiresAtUtcAttribute] = deadline.ToString("O", CultureInfo.InvariantCulture);
+            Assert.Same(current, Owner); // The adversarial mutation bypasses Store publication.
+        }
+        public async Task CastClassicStigmaThroughFrameAsync()
+        {
+            var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+            var query = new MsgAttackQuery(Uid: PlayerUid, OpponentUid: PlayerUid, X: 830, Y: 584,
+                AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0, ResponseDamage: 0,
+                Effect: MsgAttackEffect.None, Unknown: 0, SpellId: 1_095);
+            await handler.HandleFrameAsync(connections[PlayerUid], ReadFrame(new MsgAttackPacket(query).ToFrameBytes()));
+        }
+        public void AttemptAmbiguousRootProjectionThroughStore(string ownedKey)
+        {
+            var current = Owner;
+            var fields = new Dictionary<string, string>(current.Character.Attributes, StringComparer.Ordinal);
+            var originalKey = Assert.Single(fields.Keys, key => key.Equals(ownedKey, StringComparison.OrdinalIgnoreCase));
+            var collision = originalKey == ownedKey ? ownedKey.ToLowerInvariant() : ownedKey;
+            Assert.NotEqual(originalKey, collision);
+            fields.Add(collision, fields[originalKey]);
+            sessions.Set(connections[PlayerUid], current with { Character = current.Character with { Attributes = fields } });
+        }
+        public void CorruptRootMarkerForExpiryRead()
+        {
+            // Malformed external DATA on an actually produced holder. This does
+            // not pass through or claim acceptance by a Store publication.
+            var fields = Assert.IsType<Dictionary<string, string>>(Owner.Character.Attributes);
+            Assert.True(fields.ContainsKey("legacyrootitemeffectflag.8.nativeowned"));
+            fields.Add("LegacyRootItemEffectFlag.8.NativeOwned", "True");
+        }
+        public async Task CastRootItemAttackThroughFrameAsync()
+        {
+            var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+            var query = new MsgAttackQuery(Uid: PlayerUid, OpponentUid: TargetPlayerUid, X: 832, Y: 584,
+                AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0, ResponseDamage: 0,
+                Effect: MsgAttackEffect.None, Unknown: 0, SpellId: 1_000);
+            await handler.HandleFrameAsync(connections[PlayerUid], ReadFrame(new MsgAttackPacket(query).ToFrameBytes()));
+        }
+        public async Task DispelRootOwnerThroughFrameAsync()
+        {
+            var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+            var query = new MsgAttackQuery(Uid: TargetPlayerUid, OpponentUid: PlayerUid,
+                X: checked((ushort)Owner.Character.X), Y: checked((ushort)Owner.Character.Y),
+                AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0,
+                ResponseDamage: 0, Effect: MsgAttackEffect.None, Unknown: 0, SpellId: 1_001);
+            await handler.HandleFrameAsync(connections[TargetPlayerUid], ReadFrame(new MsgAttackPacket(query).ToFrameBytes()));
+        }
+
         public bool RootShieldClockExists() => LegacyRootItemEffectFlagClock.HasRegistration(
             sessions, connections[PlayerUid], PlayerUid, 8);
         public WorldSession? RootItemEffectSlot(uint uid) =>
@@ -342,6 +492,27 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Advance(TimeSpan.FromMilliseconds(500)); // Source-natural later input, not a stamp mutation.
         }
 
+        public long RootPeerWireStarts(uint uid) => loopbacks[uid].WireStarts;
+        public void PublishMalformedCurrentRootStatus(string kind)
+        {
+            var current = Owner;
+            var fields = new Dictionary<string, string>(current.Character.Attributes, StringComparer.Ordinal);
+            foreach (var key in fields.Keys.Where(key => key.Equals("StatusFlags", StringComparison.OrdinalIgnoreCase) ||
+                key.Equals("BitVector", StringComparison.OrdinalIgnoreCase)).ToArray()) fields.Remove(key);
+            fields["StatusFlags"] = "0/";
+            if (kind == "duplicate") fields["statusflags"] = "0/";
+            else if (kind == "disagree") fields["BitVector"] = "1/";
+            else throw new ArgumentOutOfRangeException(nameof(kind));
+            sessions.Set(connections[PlayerUid], current with { Character = current.Character with { Attributes = fields } });
+        }
+        public Task BlockRootPeer(uint uid) => loopbacks[uid].StartBackpressuredWrite();
+        public Task WaitRootPeerBlocked(uint uid) => loopbacks[uid].WaitForBackpressure();
+        public Task DrainRootPeer(uint uid) => loopbacks[uid].DrainBackpressuredWrite();
+        public bool RootExpiryWaiting(uint uid) => loopbacks[uid].ExpiryWriter.WaitingForGate > 0;
+        public void CloseRootPeer(uint uid) => loopbacks[uid].CloseReader();
+        public Task DrainRootPeerObservations(uint uid) => loopbacks[uid].DrainObservations();
+        public async Task DrainRootObservations() { foreach (var peer in loopbacks.Values) await peer.DrainObservations(); }
+
         public async Task StartRootItemEffectRuntimeAsync()
         {
             Assert.False(itemEffectRuntimeStarted);
@@ -351,14 +522,31 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             using (clock.Identify("global"))
                 FineRainExpiryStartGlobal(handler, cancel.Token); // Actual global owner only, not a player/login ticker.
             itemEffectRuntimeStarted = true;
-            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 1, TimeSpan.FromSeconds(2));
+            await WaitForRootXpRuntimeAsync("initial global timer", 0, () => clock.ActiveGeneration("global") != 0);
         }
         public async Task AdvanceRootItemEffectRuntimeAsync(TimeSpan amount)
         {
             Assert.True(itemEffectRuntimeStarted);
-            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 1, TimeSpan.FromSeconds(2));
+            await WaitForRootXpRuntimeAsync("before global advance", 0, () => clock.ActiveGeneration("global") != 0);
+            long prior = clock.ActiveGeneration("global");
             clock.Advance(amount);
-            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 1, TimeSpan.FromSeconds(2));
+            await WaitForRootXpRuntimeAsync("after global advance", 0, () => clock.ActiveGeneration("global") > prior);
+            await DrainRootObservations();
+        }
+        // Split an actual one-shot global timer advance at a deliberately
+        // blocked peer. The completion deadline starts only after release.
+        public async Task<long> BeginPausedRootItemEffectAdvanceAsync(TimeSpan amount)
+        {
+            Assert.True(itemEffectRuntimeStarted);
+            await WaitForRootXpRuntimeAsync("before paused global advance", 0, () => clock.ActiveGeneration("global") != 0);
+            long prior = clock.ActiveGeneration("global");
+            clock.Advance(amount);
+            return prior;
+        }
+        public async Task CompletePausedRootItemEffectAdvanceAsync(long prior)
+        {
+            await WaitUntilAsync(() => clock.ActiveGeneration("global") > prior, TimeSpan.FromSeconds(5));
+            await DrainRootObservations();
         }
         public async Task KillRootItemEffectOwnerAsync()
         {
@@ -436,6 +624,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             // unrelated timers and the other worker cannot satisfy this wait.
             await WaitForRootXpRuntimeAsync("after advance", count, () =>
                 clock.ActiveGeneration("player") > player && clock.ActiveGeneration("global") > global);
+            await DrainRootObservations();
         }
 
         private async Task WaitForRootXpRuntimeAsync(string phase, int count, Func<bool> ready)
@@ -484,6 +673,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         public async ValueTask DisposeAsync()
         {
+            var errors = new List<Exception>();
+            bool stopped = true;
             try
             {
                 if (itemEffectRuntimeCancel is not null)
@@ -494,17 +685,20 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                             FineRainExpiryGlobalStopped(itemEffectRuntimeHandler!), TimeSpan.FromSeconds(3));
                 }
             }
-            catch (Exception cleanup) when (rootXpWaitFailure is not null)
+            catch (Exception error) { stopped = false; errors.Add(error); }
+            if (rootXpWaitFailure is not null) errors.Insert(0, rootXpWaitFailure);
+            if (stopped)
             {
-                throw new AggregateException("Root XP runtime wait and cleanup failed.", rootXpWaitFailure, cleanup);
-            }
-            finally
-            {
+                foreach (var peer in loopbacks.Values)
+                    try { await peer.DisposeAsync(); } catch (Exception error) { errors.Add(error); }
                 itemEffectRuntimeCancel?.Dispose();
-                GC.KeepAlive(connections);
-                log.Dispose();
+                GC.KeepAlive(connections); log.Dispose();
             }
+            else errors.Add(new InvalidOperationException("Retained loopback fixtures because the real worker did not stop."));
+            if (errors.Count == 1) throw errors[0];
+            if (errors.Count > 1) throw new AggregateException("Root fixture observations or cleanup failed.", errors);
         }
+
     }
 
     private sealed record RootManualItemEffectInputs(uint RightEffect = 202, uint RingEffect = 0,

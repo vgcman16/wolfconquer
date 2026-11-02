@@ -8,7 +8,7 @@ public static partial class WorldPacketHandlers
     // actual decision-bound preparation, never from this record alone.
     internal sealed record OwnedPhysicalDeathQueryValues(bool Admitted, WorldSession QuerySource,
         LegacyNativeMagicQueryFields Fields, LegacyNativeMagicQueryFields JiangHu,
-        uint PerfectionPrestige, LegacyNativePerfectionSnapshot Perfection);
+        uint PerfectionPrestige, LegacyNativePerfectionSnapshot Perfection, CombatFields? Combat);
 
     internal sealed partial class OwnedPhysicalDeathPreparation
     {

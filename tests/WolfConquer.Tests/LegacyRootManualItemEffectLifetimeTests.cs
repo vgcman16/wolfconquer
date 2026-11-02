@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.ExceptionServices;
 using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
@@ -53,8 +54,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Equal(own, peer);
         var all = fixture.Order.ToArray().Skip(start)
             .Where(entry => RootManualItemBits(entry.Bytes) is not null).ToArray();
-        Assert.Equal(new[] { PlayerUid, TargetPlayerUid, PlayerUid, TargetPlayerUid },
-            all.Select(entry => entry.Recipient).ToArray());
+        Assert.Equal(4, all.Length);
+        // Independent TCP readers may interleave. Each recipient must receive
+        // both individual vectors in the exact order asserted above.
+        Assert.All(all, entry => Assert.Contains(entry.Recipient, new[] { PlayerUid, TargetPlayerUid }));
     }
 
     [Fact]
@@ -147,78 +150,263 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     [InlineData(true)]
     public async Task RootManualExpiryOriginalOwnerLossStopsPeerAndSecondCapturedFlagAfterEnteredOwnerVector(bool rebind)
     {
-        var armed = false;
-        var entered = false;
-        var boundary = -1;
-        WorldSession? replacement = null;
         await using var fixture = new RootMagicEntryFixture(itemEffects:
-            new(RightEffect: 0, RingEffect: 1, NeckEffect: 200), itemEffectLifetimeControls: true,
-            onSend: (current, uid, bytes) =>
-            {
-                if (!armed || entered || uid != PlayerUid || RootManualItemBits(bytes) is not (256 or 512))
-                    return ValueTask.CompletedTask;
-                entered = true;
-                boundary = current.Order.Count - 1;
-                replacement = current.RetireRootItemEffectSubject(PlayerUid, rebind);
-                return ValueTask.CompletedTask;
-            });
-        await fixture.QueryRootItemEffectsAsync();
-        var initialPeerHitpoints = fixture.Peer.Character.MinHitPoints;
-        Assert.Equal(100_000L, initialPeerHitpoints);
-        await fixture.CastAsync(1_000);
-        var postSetupPeerHitpoints = fixture.Peer.Character.MinHitPoints;
-        Assert.True(postSetupPeerHitpoints > 0);
-        Assert.True(postSetupPeerHitpoints < initialPeerHitpoints);
+            new(RightEffect: 0, RingEffect: 1, NeckEffect: 200), itemEffectLifetimeControls: true);
+        await fixture.QueryRootItemEffectsAsync(); await fixture.CastAsync(1_000);
+        var peerHp = fixture.Peer.Character.MinHitPoints;
         await fixture.StartRootItemEffectRuntimeAsync();
-        var start = fixture.Order.Count;
-        armed = true;
-        await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromSeconds(20));
-        armed = false;
-        Assert.True(entered && boundary >= start);
-        Assert.Empty(fixture.Order.ToArray().Skip(boundary + 1));
-        Assert.Empty(RootManualLifetimeVectors(fixture.FramesSince(TargetPlayerUid, start)));
-        Assert.Equal(postSetupPeerHitpoints, fixture.Peer.Character.MinHitPoints);
-        if (rebind)
+        Task blocked = fixture.BlockRootPeer(TargetPlayerUid);
+        long? pausedGeneration = null; bool drained = false;
+        try
         {
-            Assert.Same(replacement, fixture.RootItemEffectSlot(PlayerUid));
-            Assert.Equal((long)PlayerUid + 9_000, Assert.IsType<WorldSession>(replacement).Character.Uid);
+            await fixture.WaitRootPeerBlocked(TargetPlayerUid);
+            Assert.False(blocked.IsCompleted);
+            int start = fixture.Order.Count;
+            pausedGeneration = await fixture.BeginPausedRootItemEffectAdvanceAsync(TimeSpan.FromSeconds(20));
+            await WaitUntilAsync(() => fixture.RootExpiryWaiting(TargetPlayerUid), TimeSpan.FromSeconds(5));
+            await fixture.DrainRootPeerObservations(PlayerUid);
+            Assert.Single(RootManualLifetimeVectors(fixture.FramesSince(PlayerUid, start)));
+            var replacement = fixture.RetireRootItemEffectSubject(PlayerUid, rebind);
+            await fixture.DrainRootPeer(TargetPlayerUid); drained = true;
+            await blocked.WaitAsync(TimeSpan.FromSeconds(5)); await fixture.CompletePausedRootItemEffectAdvanceAsync(pausedGeneration.Value);
+            Assert.Empty(RootManualLifetimeVectors(fixture.FramesSince(TargetPlayerUid, start)));
+            Assert.Equal(peerHp, fixture.Peer.Character.MinHitPoints);
+            if (rebind) { Assert.Same(replacement, fixture.RootItemEffectSlot(PlayerUid)); Assert.Equal((long)PlayerUid + 9_000, replacement!.Character.Uid); }
+            else Assert.Null(fixture.RootItemEffectSlot(PlayerUid));
         }
-        else Assert.Null(fixture.RootItemEffectSlot(PlayerUid));
+        finally
+        {
+            if (!drained) fixture.CloseRootPeer(TargetPlayerUid);
+            if (pausedGeneration is { } generation) await fixture.CompletePausedRootItemEffectAdvanceAsync(generation);
+        }
     }
 
     [Fact]
-    public async Task RootManualExpiryCallbackRealReinsertionOfProcessedFlagSurvivesOtherCapturedDueEntry()
+    public async Task RootManualExpiryRealReinsertionOfProcessedFlagSurvivesOtherCapturedDueEntry()
     {
-        var armed = false;
-        var entered = false;
-        var removedFirst = 0;
+        await using var fixture = new RootMagicEntryFixture(itemEffects:
+            new(RightEffect: 0, RingEffect: 1, NeckEffect: 200), itemEffectLifetimeControls: true);
+        await fixture.QueryRootItemEffectsAsync(); await fixture.CastAsync(1_000);
+        var old = Assert.IsType<LegacyRootItemEffectFlagClock>(fixture.ReadActualRootClock(9));
+        await fixture.StartRootItemEffectRuntimeAsync();
+        Task blocked = fixture.BlockRootPeer(TargetPlayerUid); long? pausedGeneration = null; Task? cast = null; bool drained = false;
+        try
+        {
+            await fixture.WaitRootPeerBlocked(TargetPlayerUid);
+            pausedGeneration = await fixture.BeginPausedRootItemEffectAdvanceAsync(TimeSpan.FromSeconds(20));
+            await WaitUntilAsync(() => fixture.RootExpiryWaiting(TargetPlayerUid), TimeSpan.FromSeconds(5));
+            AssertRootManualLifetimeFlags(fixture, stigma: false, shield: true);
+            cast = fixture.CastAsync(1_000);
+            await WaitUntilAsync(() => HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 9) &&
+                !ReferenceEquals(fixture.ReadActualRootClock(9), old), TimeSpan.FromSeconds(5));
+            var replacement = Assert.IsType<LegacyRootItemEffectFlagClock>(fixture.ReadActualRootClock(9));
+            await fixture.DrainRootPeer(TargetPlayerUid); drained = true;
+            await blocked.WaitAsync(TimeSpan.FromSeconds(5)); await cast.WaitAsync(TimeSpan.FromSeconds(5));
+            await fixture.CompletePausedRootItemEffectAdvanceAsync(pausedGeneration.Value);
+            Assert.Same(replacement, fixture.ReadActualRootClock(9));
+            AssertRootManualLifetimeFlags(fixture, stigma: true, shield: true);
+            await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromMilliseconds(20));
+            AssertRootManualLifetimeFlags(fixture, stigma: true, shield: false);
+            Assert.Equal(fixture.Now.AddSeconds(20).AddMilliseconds(-20), RootManualLifetimeDeadline(fixture, 9));
+            await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromMilliseconds(19_960));
+            AssertRootManualLifetimeFlags(fixture, stigma: true, shield: false);
+            await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromMilliseconds(20));
+            AssertRootManualLifetimeFlags(fixture, stigma: false, shield: false);
+        }
+        finally
+        {
+            if (!drained) fixture.CloseRootPeer(TargetPlayerUid);
+            if (cast is not null) await cast.WaitAsync(TimeSpan.FromSeconds(5));
+            if (pausedGeneration is { } generation) await fixture.CompletePausedRootItemEffectAdvanceAsync(generation);
+        }
+    }
+
+    [Fact]
+    public async Task RootExpirySameUidStoreSuccessorPublishesFreshPeerVectorAndStopsOldBatch()
+    {
+        await using var fixture = new RootMagicEntryFixture(itemEffects:
+            new(RightEffect: 0, RingEffect: 1, NeckEffect: 200), itemEffectLifetimeControls: true);
+        await fixture.QueryRootItemEffectsThroughFrameAsync(); await fixture.CastAsync(1_000);
+        await fixture.StartRootItemEffectRuntimeAsync();
+        Task blocked = fixture.BlockRootPeer(TargetPlayerUid); long? pausedGeneration = null; bool drained = false;
+        try
+        {
+            await fixture.WaitRootPeerBlocked(TargetPlayerUid);
+            int start = fixture.Order.Count;
+            pausedGeneration = await fixture.BeginPausedRootItemEffectAdvanceAsync(TimeSpan.FromSeconds(20));
+            await WaitUntilAsync(() => fixture.RootExpiryWaiting(TargetPlayerUid), TimeSpan.FromSeconds(5));
+            await fixture.DrainRootPeerObservations(PlayerUid);
+            Assert.Equal(new ulong[] { 256 }, RootManualLifetimeVectors(fixture.FramesSince(PlayerUid, start)));
+            var prior = fixture.Owner;
+            fixture.MoveRootItemEffectOwner(835, 585); // Actual same-UID Store publisher.
+            var successor = fixture.Owner; Assert.NotSame(prior, successor);
+            await fixture.DrainRootPeer(TargetPlayerUid); drained = true;
+            await blocked.WaitAsync(TimeSpan.FromSeconds(5)); await fixture.CompletePausedRootItemEffectAdvanceAsync(pausedGeneration.Value);
+            Assert.Same(successor, fixture.Owner); Assert.Equal(835L, fixture.Owner.Character.X);
+            Assert.Equal(new ulong[] { 256 }, RootManualLifetimeVectors(fixture.FramesSince(TargetPlayerUid, start)));
+            AssertRootManualLifetimeFlags(fixture, stigma: false, shield: true);
+            await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromMilliseconds(20));
+            AssertRootManualLifetimeFlags(fixture, stigma: false, shield: false);
+        }
+        finally
+        {
+            if (!drained) fixture.CloseRootPeer(TargetPlayerUid);
+            if (pausedGeneration is { } generation) await fixture.CompletePausedRootItemEffectAdvanceAsync(generation);
+        }
+    }
+
+    [Fact]
+    public async Task RootManualActualExpiryKeepsOpaqueCaseVariantsAcrossRealTimer()
+    {
         await using var fixture = new RootMagicEntryFixture(itemEffects:
             new(RightEffect: 0, RingEffect: 1, NeckEffect: 200), itemEffectLifetimeControls: true,
-            onSend: async (current, uid, bytes) =>
-            {
-                if (!armed || entered || uid != PlayerUid || RootManualItemBits(bytes) is not { } bits ||
-                    bits is not (256 or 512)) return;
-                entered = true;
-                removedFirst = bits == 256 ? 9 : 8;
-                await current.CastAsync(1_000); // Real prefix re-add of the just-removed key; current other key is still active.
-            });
-        await fixture.QueryRootItemEffectsAsync();
+            opaqueCaseControls: true);
+        await fixture.QueryRootItemEffectsThroughFrameAsync();
         await fixture.CastAsync(1_000);
+        Assert.Equal("one", fixture.Owner.Character.Attributes["Opaque"]);
+        Assert.Equal("two", fixture.Owner.Character.Attributes["opaque"]);
         await fixture.StartRootItemEffectRuntimeAsync();
-        armed = true;
         await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromSeconds(20));
-        armed = false;
-        Assert.True(entered);
-        Assert.Contains(removedFirst, new[] { 8, 9 });
-        AssertRootManualLifetimeFlags(fixture, stigma: removedFirst == 9, shield: removedFirst == 8);
-        var seconds = removedFirst == 9 ? 20 : 15;
-        Assert.Equal(fixture.Now.AddSeconds(seconds), RootManualLifetimeDeadline(fixture, removedFirst));
-        fixture.AssertProducedStamp(fixture.Now);
-        await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromMilliseconds(seconds * 1_000 - 20));
-        AssertRootManualLifetimeFlags(fixture, stigma: removedFirst == 9, shield: removedFirst == 8);
-        await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromMilliseconds(20));
         AssertRootManualLifetimeFlags(fixture, stigma: false, shield: false);
-        // Captured bytes may be delivered after the nested sameUID input; no source generation cancellation is invented.
+        Assert.Equal("one", fixture.Owner.Character.Attributes["Opaque"]);
+        Assert.Equal("two", fixture.Owner.Character.Attributes["opaque"]);
+    }
+
+    [Fact]
+    public async Task RootExpiryCapturedOtherShieldCannotRetireRealDispelAndReinstalledClock()
+    {
+        var fixture = new RootMagicEntryFixture(itemEffects:
+            new(RightEffect: 0, RingEffect: 1, NeckEffect: 200), itemEffectLifetimeControls: true,
+            nativeDeathCasterQueryControls: true, otherFlagDispelControls: true);
+        Exception? primary = null; var cleanup = new List<Exception>();
+        Task? blocked = null, dispel = null, cast = null;
+        long? pausedGeneration = null; bool drained = false, pauseCompleted = false;
+        try
+        {
+            await fixture.QueryRootDispelPeerThroughFrameAsync(); await fixture.QueryRootItemEffectsThroughFrameAsync();
+            await fixture.CastRootItemAttackThroughFrameAsync();
+            var old = Assert.IsType<LegacyRootItemEffectFlagClock>(fixture.ReadActualRootClock(8));
+            await fixture.StartRootItemEffectRuntimeAsync();
+            blocked = fixture.BlockRootPeer(RootMagicEntryFixture.ExpiryObserverUid);
+            await fixture.WaitRootPeerBlocked(RootMagicEntryFixture.ExpiryObserverUid);
+            pausedGeneration = await fixture.BeginPausedRootItemEffectAdvanceAsync(TimeSpan.FromSeconds(20));
+            await WaitUntilAsync(() => fixture.RootExpiryWaiting(RootMagicEntryFixture.ExpiryObserverUid), TimeSpan.FromSeconds(5));
+            AssertRootManualLifetimeFlags(fixture, stigma: false, shield: true);
+            Assert.Same(old, fixture.ReadActualRootClock(8));
+            dispel = fixture.DispelRootOwnerThroughFrameAsync();
+            await WaitUntilAsync(() => !HasLegacyStatusFlag(fixture.Owner.Character.Attributes, 8), TimeSpan.FromSeconds(5));
+            Assert.False(dispel.IsCompleted);
+            cast = fixture.CastRootItemAttackThroughFrameAsync(); // Queued real Frame, before timer reacquires Shared.
+            Assert.False(cast.IsCompleted);
+            await fixture.DrainRootPeer(RootMagicEntryFixture.ExpiryObserverUid); drained = true;
+            await blocked.WaitAsync(TimeSpan.FromSeconds(5)); await dispel.WaitAsync(TimeSpan.FromSeconds(5));
+            await cast.WaitAsync(TimeSpan.FromSeconds(5)); await fixture.CompletePausedRootItemEffectAdvanceAsync(pausedGeneration.Value);
+            pauseCompleted = true;
+            var replacement = Assert.IsType<LegacyRootItemEffectFlagClock>(fixture.ReadActualRootClock(8));
+            Assert.NotSame(old, replacement);
+            var deadline = RootManualLifetimeDeadline(fixture, 8);
+            Assert.Equal(fixture.Now.AddSeconds(15), deadline);
+            AssertRootManualLifetimeFlags(fixture, stigma: true, shield: true);
+            await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromMilliseconds(20));
+            Assert.Same(replacement, fixture.ReadActualRootClock(8));
+            Assert.Equal(deadline, RootManualLifetimeDeadline(fixture, 8));
+            await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromMilliseconds(14_960));
+            Assert.Same(replacement, fixture.ReadActualRootClock(8));
+            int shieldExpiry = fixture.Order.Count;
+            await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromMilliseconds(20));
+            AssertRootManualLifetimeFlags(fixture, stigma: true, shield: false);
+            foreach (var uid in new[] { PlayerUid, TargetPlayerUid, RootMagicEntryFixture.ExpiryObserverUid })
+                Assert.Equal(new ulong[] { 512 }, RootManualLifetimeVectors(fixture.FramesSince(uid, shieldExpiry)));
+            int stigmaExpiry = fixture.Order.Count;
+            await fixture.AdvanceRootItemEffectRuntimeAsync(TimeSpan.FromSeconds(5));
+            AssertRootManualLifetimeFlags(fixture, stigma: false, shield: false);
+            foreach (var uid in new[] { PlayerUid, TargetPlayerUid, RootMagicEntryFixture.ExpiryObserverUid })
+                Assert.Equal(new ulong[] { 0 }, RootManualLifetimeVectors(fixture.FramesSince(uid, stigmaExpiry)));
+        }
+        catch (Exception error) { primary = error; }
+        finally
+        {
+            if (!drained && blocked is not null)
+            {
+                try { fixture.CloseRootPeer(RootMagicEntryFixture.ExpiryObserverUid); } catch (Exception error) { cleanup.Add(error); }
+                try { await blocked.WaitAsync(TimeSpan.FromSeconds(5)); }
+                catch (Exception error) when (error is IOException or System.Net.Sockets.SocketException or ObjectDisposedException) { }
+                catch (Exception error) { cleanup.Add(error); }
+            }
+            foreach (var action in new[] { dispel, cast })
+                if (action is not null)
+                    try { await action.WaitAsync(TimeSpan.FromSeconds(5)); } catch (Exception error) { cleanup.Add(error); }
+            if (!pauseCompleted && pausedGeneration is { } generation)
+                try { await fixture.CompletePausedRootItemEffectAdvanceAsync(generation); }
+                catch (Exception error) { cleanup.Add(error); }
+            try { await fixture.DisposeAsync(); } catch (Exception error) { cleanup.Add(error); }
+        }
+        if (primary is not null && cleanup.Count != 0)
+            throw new AggregateException("Other-clock assertion and cleanup both failed.", new[] { primary }.Concat(cleanup));
+        if (primary is not null) ExceptionDispatchInfo.Capture(primary).Throw();
+        if (cleanup.Count == 1) ExceptionDispatchInfo.Capture(cleanup[0]).Throw();
+        if (cleanup.Count > 1) throw new AggregateException("Other-clock cleanup failed.", cleanup);
+    }
+
+    [Theory]
+    [InlineData("duplicate")]
+    [InlineData("disagree")]
+    public async Task RootExpiryGateRefusesMalformedCurrentStatusWithoutStartingWire(string kind)
+    {
+        var fixture = new RootMagicEntryFixture(itemEffects:
+            new(RightEffect: 0, RingEffect: 0, NeckEffect: 200), itemEffectLifetimeControls: true);
+        Exception? primary = null;
+        var cleanup = new List<Exception>();
+        Task? blocked = null; long? prior = null; bool drained = false, completed = false;
+        try
+        {
+            await fixture.QueryRootItemEffectsThroughFrameAsync(); await fixture.CastRootItemAttackThroughFrameAsync();
+            Assert.NotNull(fixture.ReadActualRootClock(8));
+            var deadline = RootManualLifetimeDeadline(fixture, 8);
+            await fixture.StartRootItemEffectRuntimeAsync();
+            blocked = fixture.BlockRootPeer(TargetPlayerUid);
+            await fixture.WaitRootPeerBlocked(TargetPlayerUid);
+            Assert.False(blocked.IsCompleted); // An actual unfinished socket write still holds the real gate.
+            int start = fixture.Order.Count;
+            var amount = deadline > fixture.Now ? deadline - fixture.Now + TimeSpan.FromMilliseconds(20) : TimeSpan.FromMilliseconds(20);
+            prior = await fixture.BeginPausedRootItemEffectAdvanceAsync(amount);
+            await WaitUntilAsync(() => fixture.RootExpiryWaiting(TargetPlayerUid), TimeSpan.FromSeconds(5));
+            await fixture.DrainRootPeerObservations(PlayerUid);
+            Assert.Null(fixture.ReadActualRootClock(8));
+            Assert.Equal(new ulong[] { 0 }, RootManualLifetimeVectors(fixture.FramesSince(PlayerUid, start)));
+            var before = fixture.Owner;
+            fixture.PublishMalformedCurrentRootStatus(kind); // Actual Store publisher after the last clock retired.
+            Assert.NotSame(before, fixture.Owner);
+            Assert.Throws<InvalidDataException>(() => LegacyWindWalkerStatusProjection.Read(fixture.Owner.Character));
+            long wireStarts = fixture.RootPeerWireStarts(TargetPlayerUid);
+            await fixture.DrainRootPeer(TargetPlayerUid); drained = true;
+            await blocked.WaitAsync(TimeSpan.FromSeconds(5));
+            await fixture.CompletePausedRootItemEffectAdvanceAsync(prior.Value); completed = true;
+            Assert.Equal(wireStarts, fixture.RootPeerWireStarts(TargetPlayerUid)); // No writer/encoder invocation.
+            Assert.Empty(RootManualLifetimeVectors(fixture.FramesSince(TargetPlayerUid, start)));
+        }
+        catch (Exception error) { primary = error; }
+        finally
+        {
+            if (!drained && blocked is not null)
+            {
+                try { fixture.CloseRootPeer(TargetPlayerUid); }
+                catch (Exception error) { cleanup.Add(error); }
+                try { await blocked.WaitAsync(TimeSpan.FromSeconds(5)); }
+                catch (Exception error) when (error is IOException or System.Net.Sockets.SocketException or ObjectDisposedException) { }
+                catch (Exception error) { cleanup.Add(error); }
+            }
+            if (!completed && prior is { } generation)
+                try { await fixture.CompletePausedRootItemEffectAdvanceAsync(generation); }
+                catch (Exception error) { cleanup.Add(error); }
+            try { await fixture.DisposeAsync(); }
+            catch (Exception error) { cleanup.Add(error); }
+        }
+        if (primary is not null && cleanup.Count != 0)
+            throw new AggregateException("Malformed-status assertion and cleanup both failed.", new[] { primary }.Concat(cleanup));
+        if (primary is not null) ExceptionDispatchInfo.Capture(primary).Throw();
+        if (cleanup.Count == 1) ExceptionDispatchInfo.Capture(cleanup[0]).Throw();
+        if (cleanup.Count > 1) throw new AggregateException("Malformed-status cleanup failed.", cleanup);
     }
 
     private static DateTimeOffset RootManualLifetimeDeadline(RootMagicEntryFixture fixture, int flag) =>

@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text;
@@ -30,15 +31,44 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         if (cleanup is not null) ExceptionDispatchInfo.Capture(cleanup).Throw();
     }
 
+    // Preserve an assertion failure even if a bounded asynchronous cleanup fails.
+    private static async Task PreserveOwnedPauseFailuresAsync(Func<Task> exercise, Func<Task> cleanup)
+    {
+        Exception? primary = null, cleanupError = null;
+        try { await exercise(); } catch (Exception error) { primary = error; }
+        try { await cleanup(); } catch (Exception error) { cleanupError = error; }
+        if (primary is not null && cleanupError is not null) throw new AggregateException(primary, cleanupError);
+        if (primary is not null) ExceptionDispatchInfo.Capture(primary).Throw();
+        if (cleanupError is not null) ExceptionDispatchInfo.Capture(cleanupError).Throw();
+    }
+
+    private static async Task FinishOwnedPauseAsync(OwnedRootEquipmentFixture fixture, uint uid,
+        Task blocked, bool drained, bool started, bool completed, params Task?[] actions)
+    {
+        var errors = new List<Exception>();
+        if (!drained) try { fixture.CloseLoopbackReader(uid); } catch (Exception error) { errors.Add(error); }
+        try { await blocked.WaitAsync(TimeSpan.FromSeconds(5)); }
+        catch (Exception error) when (!drained && (error is IOException or System.Net.Sockets.SocketException or ObjectDisposedException)) { }
+        catch (Exception error) { errors.Add(error); }
+        foreach (var action in actions)
+            if (action is not null) try { await action.WaitAsync(TimeSpan.FromSeconds(5)); } catch (Exception error) { errors.Add(error); }
+        if (started && !completed)
+            try { await fixture.CompletePausedRuntimeAdvance(() => true); } catch (Exception error) { errors.Add(error); }
+        if (errors.Count != 0) throw new AggregateException("Owned pause cleanup failed.", errors);
+    }
+
     internal sealed class OwnedRootEquipmentFixture : IAsyncDisposable
     {
+        internal const uint IndependentCasterUid = 1_293_602, IndependentTargetUid = 1_293_603;
         internal readonly LegacyOwnedAdmissionRuntimeFixture Data = new(bootstrap: false);
         private readonly NativeLoginBeastMetadataScope beasts = new(1000);
         private readonly ManualRuntimeTimeProvider clock = new(RootMagicEntryOrigin);
         private readonly Dictionary<uint, ConquerTcpConnection> connections = [];
+        private readonly Dictionary<uint, RootLoopbackFramePeer> loopbacks = [];
         private readonly List<MsgItemUsagePacket> queuedGear = [];
         private readonly StringWriter log = new();
         private LegacyOwnedAdmissionRuntime runtime = null!;
+        private NativeCombatGearProcFixture? nativeGearMetadata;
         private WorldServerFrameHandler handler = null!;
         private bool workers;
         private Task[] runtimeWorkers = [];
@@ -48,6 +78,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         private bool gearObserved;
         internal bool RetainEvidence;
         internal Action<OwnedRootEquipmentFixture, uint, byte[]>? OnSend;
+        internal Func<OwnedRootEquipmentFixture, uint, byte[], ValueTask>? OnSendAsync;
         internal readonly ConcurrentQueue<(uint Recipient, byte[] Bytes)> Order = new();
         internal WorldSessionStore Sessions => Assert.IsType<WorldSessionStore>(typeof(WorldServerFrameHandler)
             .GetField("_sessions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(handler));
@@ -57,6 +88,35 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         internal string Output => log.ToString();
         internal string ItemPath => Path.Combine(Data.Items, PlayerUid + ".bin");
         internal WorldSession Current(uint uid) => Assert.IsType<WorldSession>(Sessions.TryGet(connections[uid], out var owner) ? owner : null);
+        internal Task StartBackpressuredWrite(uint uid) => loopbacks[uid].StartBackpressuredWrite();
+        internal bool ActualBackpressure(uint uid) => loopbacks[uid].ActualBackpressure;
+        internal bool ExpiryWaitingAtRealGate(uint uid) => loopbacks[uid].ExpiryWriter.WaitingForGate > 0;
+        internal Task WaitForBackpressure(uint uid) => loopbacks[uid].WaitForBackpressure();
+        internal void CloseLoopbackReader(uint uid) => loopbacks[uid].CloseReader();
+        internal Task DrainBackpressuredWrite(uint uid) => loopbacks[uid].DrainBackpressuredWrite();
+        internal long WireStarts(uint uid) => loopbacks[uid].WireStarts;
+        internal bool AttemptUngatedActualExpiryPermit(uint uid)
+        {
+            var table = typeof(WorldSessionStore).GetField("rootExpiryWrites", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Sessions)!;
+            var keys = ((System.Collections.IEnumerable)table).Cast<object>()
+                .Select(row => row.GetType().GetProperty("Key")!.GetValue(row))
+                .OfType<WorldSessionStore.RootExpiryWritePermit>().ToArray();
+            var permit = Assert.Single(keys); // The real timer has issued this permit and waits at the actual gate.
+            var connection = connections[uid];
+            using var unusedGate = new SemaphoreSlim(1, 1);
+            var unregistered = new RootExpiryWireWriter(connection, unusedGate,
+                (_, _) => throw new InvalidOperationException("Unregistered writer must never start."),
+                () => false, () => throw new InvalidOperationException("Unregistered writer must never close."));
+            var unregisteredAccepted = Sessions.TryStartRootExpiryWrite(permit, connection, unregistered,
+                new object(), CancellationToken.None, out _);
+            var ungatedAccepted = Sessions.TryStartRootExpiryWrite(permit, connection, loopbacks[uid].ExpiryWriter,
+                new object(), CancellationToken.None, out _);
+            // This is the same real, still-pending timer-issued permit and the
+            // actual registered writer. No active gate start exists here.
+            var nullStartAccepted = Sessions.TryStartRootExpiryWrite(permit, connection, loopbacks[uid].ExpiryWriter,
+                null!, CancellationToken.None, out _);
+            return unregisteredAccepted || ungatedAccepted || nullStartAccepted;
+        }
         internal bool HasFlag(int flag) => HasLegacyStatusFlag(Owner.Character.Attributes, flag);
         internal byte[][] FramesSince(uint uid, int start) => Order.ToArray().Skip(start).Where(row => row.Recipient == uid).Select(row => row.Bytes).ToArray();
         internal LegacySpellAnimationPacket[] Animations(uint uid, int start) => FramesSince(uid, start).Select(ReadFrame)
@@ -69,39 +129,57 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         internal async Task Initialize(string scenario)
         {
-            workers = scenario is "xp" or "manual";
-            var inputs = OwnedRootMagicInputs(scenario);
+            workers = scenario is "xp" or "manual" or "manual-other" or "expiry-authority" or "independent" or "successor";
+            var inputs = OwnedRootMagicInputs(scenario is "independent" or "successor" ? "manual" : scenario);
             Save(inputs.Owner); Save(inputs.Peer);
+            if (scenario is "independent" or "successor")
+            {
+                var caster = CreateSession(uid: IndependentCasterUid, name: "IndependentCaster", mapId: scenario == "successor" ? 1_000 : 1_010, x: 830, y: 584,
+                    classCode: 142, minHitPoints: 5_000, minMana: 1_000, stamina: 100, spellIds: [1000],
+                    attributes: new Dictionary<string, string> { ["PkMode"] = "0", ["BattlePower"] = "120" });
+                var target = CreateSession(uid: IndependentTargetUid, name: "IndependentTarget", mapId: scenario == "successor" ? 1_000 : 1_010, x: 832, y: 584,
+                    classCode: 142, minHitPoints: 5_000, minMana: 1_000, stamina: 100, spellIds: [],
+                    attributes: new Dictionary<string, string> { ["PkMode"] = "0", ["BattlePower"] = "120" });
+                Save(new(caster.Character, caster.PlayerItems, caster.PlayerSpells, caster.PlayerProficiencies));
+                Save(new(target.Character, target.PlayerItems, target.PlayerSpells, target.PlayerProficiencies));
+            }
+            if (scenario == "manual-other")
+            {
+                nativeGearMetadata = new NativeCombatGearProcFixture(Data.Root, 703, 21_930_000);
+                nativeGearMetadata.Load(inputs.World);
+            }
             Data.Bootstrap();
             Assert.True(LegacyOwnedAdmissionRuntime.TryOpen(Data.Loader, Data.Options(), out var opened, out var reason), reason);
             runtime = Assert.IsType<LegacyOwnedAdmissionRuntime>(opened);
             handler = new WorldServerFrameHandler(Data.Loader, null, inputs.World,
                 new LegacyRuntimeUpdateLoopOptions(workers, TimeSpan.FromMilliseconds(20), clock,
                     LegacySignedMillisecondClock.FromTimeProvider(clock, 10000)), log,
-                protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: runtime);
-            foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
+                protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: runtime, nativeCombatGear: nativeGearMetadata?.Runtime);
+            var participantIds = scenario is "independent" or "successor"
+                ? new[] { PlayerUid, TargetPlayerUid, IndependentCasterUid, IndependentTargetUid }
+                : new[] { PlayerUid, TargetPlayerUid };
+            foreach (var uid in participantIds)
             {
                 var native = new LegacyNativeGameClientRuntime();
-                connections.Add(uid, new ConquerTcpConnection(null, new IPEndPoint(IPAddress.Loopback, 9958),
-                    (memory, token) =>
+                var peer = new RootLoopbackFramePeer(bytes => Order.Enqueue((uid, bytes)), async bytes =>
+                {
+                    try
                     {
-                        token.ThrowIfCancellationRequested();
-                        var bytes = memory.ToArray(); Order.Enqueue((uid, bytes));
-                        try
+                        if (uid == PlayerUid && gearExpected is { } expected && !gearObserved)
                         {
-                            if (uid == PlayerUid && gearExpected is { } expected && !gearObserved)
-                            {
-                                gearObserved = true;
-                                Assert.Equal(expected, File.ReadAllBytes(ItemPath));
-                                Assert.False(LegacyTradeJournal.HasPending(Data.Users));
-                                Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
-                                Assert.False(Monitor.IsEntered(LegacySecondaryPasswordRuntime.SyncRoot));
-                            }
-                            OnSend?.Invoke(this, uid, bytes);
+                            gearObserved = true;
+                            Assert.Equal(expected, File.ReadAllBytes(ItemPath));
+                            Assert.False(LegacyTradeJournal.HasPending(Data.Users));
+                            Assert.False(WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate);
+                            Assert.False(Monitor.IsEntered(LegacySecondaryPasswordRuntime.SyncRoot));
                         }
-                        catch (Exception error) { Interlocked.CompareExchange(ref observationFailure, error, null); throw; }
-                        return ValueTask.CompletedTask;
-                    }, _ => ValueTask.CompletedTask, native));
+                        OnSend?.Invoke(this, uid, bytes);
+                        if (OnSendAsync is { } observer) await observer(this, uid, bytes).ConfigureAwait(false);
+                    }
+                    catch (Exception error) { Interlocked.CompareExchange(ref observationFailure, error, null); throw; }
+                }, native);
+                loopbacks.Add(uid, peer);
+                connections.Add(uid, peer.Connection);
                 await Send(uid, new LegacyMsgLoginGamePacket(uid).ToFrameBytes());
                 Assert.Same(native, Current(uid).NativeGameClient);
                 Assert.NotNull(native.OrdinarySpellBinding);
@@ -130,7 +208,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     // After the first real login source starts a player and the
                     // single global loop; the second starts one more player.
                     // Capture the actual tasks, not synthetic timer labels.
-                    var expected = connections.Count == 1 ? 2 : 3;
+                    var expected = connections.Count + 1;
                     await WaitUntilAsync(() =>
                     {
                         ThrowObservationFailure();
@@ -177,7 +255,71 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Volatile.Write(ref reportedObservationFailure, failure);
             ExceptionDispatchInfo.Capture(failure).Throw();
         }
+        internal LegacyRootItemEffectFlagClock? ActualClock(int flag) =>
+            LegacyRootItemEffectFlagClock.TryRead(Sessions, connections[PlayerUid], Owner.Character, flag, out var value) ? value : null;
+        internal LegacyRootItemEffectFlagClock.ExpiryObservation? ObserveRealClockExpiry(int flag)
+        {
+            LegacyRootItemEffectFlagClock.ExpiryObservation? observed = null;
+            Assert.True(Sessions.WithCurrentNativeClientIdentity(connections[PlayerUid], PlayerUid, identity =>
+                observed = LegacyRootItemEffectFlagClock.CaptureExpiry(Sessions, connections[PlayerUid], Owner, identity, flag, Now, clock)));
+            return observed;
+        }
+        internal void AttemptAmbiguousRootProjectionThroughStore(string ownedKey)
+        {
+            var current = Owner;
+            var fields = new Dictionary<string, string>(current.Character.Attributes, StringComparer.Ordinal);
+            var originalKey = Assert.Single(fields.Keys, key => key.Equals(ownedKey, StringComparison.OrdinalIgnoreCase));
+            var collision = originalKey == ownedKey ? ownedKey.ToLowerInvariant() : ownedKey;
+            Assert.NotEqual(originalKey, collision);
+            fields.Add(collision, fields[originalKey]);
+            Sessions.Set(connections[PlayerUid], current with { Character = current.Character with { Attributes = fields } });
+        }
+        internal bool AttemptUnassociatedManualProc()
+        {
+            var expected = Owner;
+            Assert.True(LegacyNativeClientPublication.TryCaptureIdentity(Sessions, connections[PlayerUid], PlayerUid, out var identity));
+            bool applied = Sessions.TryCommitRootManualItemEffect(connections[PlayerUid], identity, expected,
+                new WorldPacketHandlers.RootManualItemEffectAdmission(), 8, 15,
+                WorldPacketHandlers.RuntimeLegacyMagicShieldRemoveOnDeadAttribute, clock, out var final);
+            Assert.Null(final);
+            return applied;
+        }
+        internal bool AttemptUnassociatedExpiry()
+        {
+            var expected = Owner;
+            Assert.True(LegacyNativeClientPublication.TryCaptureIdentity(Sessions, connections[PlayerUid], PlayerUid, out var identity));
+            bool applied = Sessions.TryCommitRootItemEffectExpiry(connections[PlayerUid], identity, expected,
+                new WorldServerFrameHandler.RootExpiryAuthorization(), out var final, out var removed);
+            Assert.Null(final); Assert.False(removed);
+            return applied;
+        }
+        internal bool AttemptInvalidFlagPreparation(int flag)
+        {
+            var expected = Owner;
+            var data = new LegacyRootItemEffectFlagClock.ExpiryObservation(flag, null, false, false);
+            bool accepted = false;
+            Assert.True(Sessions.WithCurrentNativeClientIdentity(connections[PlayerUid], PlayerUid, identity =>
+            {
+                using var prepared = LegacyRootItemEffectFlagClock.PreparedExpiry.TryCreate(Sessions, connections[PlayerUid], expected, identity, data);
+                accepted = prepared is not null;
+            }));
+            return accepted || WorldServerFrameHandler.TryProjectRootItemEffectExpiry(expected.Character, data, out _, out _);
+        }
+        internal Task DispelOwner() => Send(TargetPlayerUid, new MsgAttackPacket(new MsgAttackQuery(
+            Uid: TargetPlayerUid, OpponentUid: PlayerUid, X: checked((ushort)Owner.Character.X), Y: checked((ushort)Owner.Character.Y),
+            AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0, ResponseDamage: 0, Effect: MsgAttackEffect.None,
+            Unknown: 0, SpellId: 1001)).ToFrameBytes());
         internal Task Query() => Send(PlayerUid, new MsgActionPacket { ObjId = PlayerUid, Type = MsgActionType.AllowAnimation }.ToFrameBytes());
+        internal Task QueryIndependent(uint uid) => Send(uid,
+            new MsgActionPacket { ObjId = uid, Type = MsgActionType.AllowAnimation }.ToFrameBytes());
+        internal Task CastIndependent() => Send(IndependentCasterUid, new MsgAttackPacket(new MsgAttackQuery(
+            Uid: IndependentCasterUid, OpponentUid: IndependentTargetUid, X: 832, Y: 584,
+            AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0, ResponseDamage: 0,
+            Effect: MsgAttackEffect.None, Unknown: 0, SpellId: 1000)).ToFrameBytes());
+        internal Task DamageOwnerFromIndependent() => Send(IndependentCasterUid, new MsgAttackPacket(new MsgAttackQuery(
+            Uid: IndependentCasterUid, OpponentUid: PlayerUid, X: checked((ushort)Owner.Character.X), Y: checked((ushort)Owner.Character.Y),
+            AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0, ResponseDamage: 0,
+            Effect: MsgAttackEffect.None, Unknown: 0, SpellId: 1000)).ToFrameBytes());
         internal Task MoveDiagonal() => Send(PlayerUid, new MsgMovementPacket
             { Uid = PlayerUid, Direction = 7, Running = MsgMovementMode.Walk, Timestamp = 1234, MapId = 1000 }.ToFrameBytes());
         internal Task Cast(ushort id, uint? target = null, ushort x = 832, ushort y = 584) => Send(PlayerUid,
@@ -235,10 +377,11 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             // Real workers catch/log transport errors before returning. Surface
             // our retained assertion before a generic missing-worker timeout.
             ThrowObservationFailure();
-            if (runtimeWorkers.Length != 3 || runtimeWorkers.Any(task => task.IsCompleted) ||
-                !GlobalLoopStarted() || clock.ScheduledTimerCount != 3) return false;
+            var expected = connections.Count + 1;
+            if (runtimeWorkers.Length != expected || runtimeWorkers.Any(task => task.IsCompleted) ||
+                !GlobalLoopStarted() || clock.ScheduledTimerCount != expected) return false;
             var actual = handler.CaptureLegacyRuntimeWorkerTasks();
-            return actual.Length == 3 && runtimeWorkers.All(actual.Contains);
+            return actual.Length == expected && runtimeWorkers.All(actual.Contains);
         }
 
         internal async Task AdvanceRuntime(TimeSpan amount, Func<bool>? expectedState = null)
@@ -254,6 +397,30 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             await WaitUntilAsync(() => WorkersCurrentAndRearmed() &&
                 activeFlags.All(entry => HasFlag(entry.Flag) == (entry.Expires > end)) &&
                 (expectedState is null || expectedState()), TimeSpan.FromSeconds(3));
+            foreach (var peer in loopbacks.Values) await peer.DrainObservations();
+            ThrowObservationFailure();
+        }
+        internal async Task AdvanceRuntimeObserving(TimeSpan amount, Func<bool> expectedState)
+        {
+            Assert.True(workers);
+            await WaitUntilAsync(WorkersCurrentAndRearmed, TimeSpan.FromSeconds(3));
+            clock.Advance(amount);
+            await WaitUntilAsync(() => WorkersCurrentAndRearmed() && expectedState(), TimeSpan.FromSeconds(3));
+            foreach (var peer in loopbacks.Values) await peer.DrainObservations();
+            ThrowObservationFailure();
+        }
+        // The actual one-shot timers fire here; no rearm wait starts while the
+        // caller intentionally holds a real peer transport gate.
+        internal async Task BeginPausedRuntimeAdvance(TimeSpan amount)
+        {
+            Assert.True(workers);
+            await WaitUntilAsync(WorkersCurrentAndRearmed, TimeSpan.FromSeconds(3));
+            clock.Advance(amount);
+        }
+        internal async Task CompletePausedRuntimeAdvance(Func<bool> expectedState)
+        {
+            await WaitUntilAsync(() => WorkersCurrentAndRearmed() && expectedState(), TimeSpan.FromSeconds(3));
+            foreach (var peer in loopbacks.Values) await peer.DrainObservations();
             ThrowObservationFailure();
         }
         internal async Task EarnXp()
@@ -277,30 +444,41 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         public async ValueTask DisposeAsync()
         {
-            OnSend = null;
+            OnSend = null; OnSendAsync = null;
             var errors = new List<Exception>();
+            bool transportsDrained = true;
             foreach (var connection in connections.Values)
             {
-                try { await connection.DisconnectAsync(); }
-                catch (Exception error) { errors.Add(error); }
-                try { await connection.CompleteTransportCloseAsync(); }
-                catch (Exception error) { errors.Add(error); }
+                try { await connection.DisconnectAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5)); }
+                catch (Exception error) { transportsDrained = false; errors.Add(new InvalidOperationException("Owned Root fixture disconnect did not drain.", error)); }
+                try { await connection.CompleteTransportCloseAsync().WaitAsync(TimeSpan.FromSeconds(5)); }
+                catch (Exception error) { transportsDrained = false; errors.Add(new InvalidOperationException("Owned Root fixture transport cleanup did not drain.", error)); }
             }
-            var runtimeDisposed = false;
-            try { if (runtime is not null) { await runtime.DisposeAsync(); runtimeDisposed = true; } } catch (Exception error) { errors.Add(error); }
+            bool runtimeDisposed = runtime is null, workersDrained = !workers;
             try
             {
-                if (workers && runtimeDisposed)
+                if (runtime is not null)
                 {
-                    await Task.WhenAll(runtimeWorkers);
-                    Assert.All(runtimeWorkers, task => Assert.True(task.IsCompleted));
-                    Assert.Equal(0, clock.ScheduledTimerCount);
+                    await runtime.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+                    runtimeDisposed = true;
                 }
             }
-            catch (Exception error) { errors.Add(error); }
-            // A sender failure can race the last exercise assertion. Actual
-            // worker join precedes this check; never delete its evidence or
-            // silently turn it green, nor duplicate an already reported primary.
+            catch (Exception error) { errors.Add(new InvalidOperationException("Owned Root fixture runtime shutdown did not drain.", error)); }
+            if (workers && runtimeDisposed)
+            {
+                try
+                {
+                    await Task.WhenAll(runtimeWorkers).WaitAsync(TimeSpan.FromSeconds(5));
+                    Assert.All(runtimeWorkers, task => Assert.True(task.IsCompleted));
+                    Assert.Equal(0, clock.ScheduledTimerCount);
+                    workersDrained = true;
+                }
+                catch (Exception error) { errors.Add(new InvalidOperationException("Owned Root fixture workers did not drain.", error)); }
+            }
+            // Do not restore shared metadata, dispose the log or remove owned
+            // evidence while any transport/runtime/worker may still use them.
+            bool drained = transportsDrained && runtimeDisposed && workersDrained;
+            if (!drained) RetainEvidence = true;
             var unreported = Volatile.Read(ref observationFailure);
             if (unreported is not null && !ReferenceEquals(unreported, Volatile.Read(ref reportedObservationFailure)) &&
                 !errors.Any(error => ReferenceEquals(error, unreported)))
@@ -308,11 +486,19 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 RetainEvidence = true;
                 errors.Add(unreported);
             }
-            try { beasts.Dispose(); } catch (Exception error) { errors.Add(error); }
-            try { log.Dispose(); } catch (Exception error) { errors.Add(error); }
-            if (errors.Count == 0 && !RetainEvidence) Data.Dispose();
+            if (drained)
+            {
+                foreach (var peer in loopbacks.Values) try { await peer.DisposeAsync(); } catch (Exception error) { errors.Add(error); }
+                try { nativeGearMetadata?.Dispose(); } catch (Exception error) { errors.Add(error); }
+                try { beasts.Dispose(); } catch (Exception error) { errors.Add(error); }
+                try { log.Dispose(); } catch (Exception error) { errors.Add(error); }
+                if (errors.Count == 0 && !RetainEvidence) Data.Dispose();
+            }
+            else if (nativeGearMetadata is not null)
+                errors.Add(new InvalidOperationException("Native gear metadata retained because the actual fixture did not drain."));
             if (errors.Count == 1) ExceptionDispatchInfo.Capture(errors[0]).Throw();
             if (errors.Count > 1) throw new AggregateException(errors);
         }
+
     }
 }

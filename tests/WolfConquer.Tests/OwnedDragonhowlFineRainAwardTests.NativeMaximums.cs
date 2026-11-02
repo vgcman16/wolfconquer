@@ -14,6 +14,7 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
         var status = peer.Client.Status;
         var unjoined = NativeUnjoinedStatus(status);
         var expected = ExpectedFiles(c, dead: true);
+        (uint, uint, uint, uint, uint)? publishedCombat = null;
         int observed = 0;
         f.BeforeSend = (recipient, bytes) =>
         {
@@ -25,6 +26,7 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
             AssertDead(c, peer);
             Assert.Same(status, peer.Client.Status);
             Assert.Equal(unjoined, NativeUnjoinedStatus(status));
+            publishedCombat = NativeCombatStatus(status);
             f.Data.AssertFiles(expected);
         };
         try { await f.SendAsync(Actor, c.Request()); }
@@ -32,6 +34,13 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
         Assert.Equal(1, observed);
         AssertDead(c, peer); Assert.Same(status, peer.Client.Status);
         Assert.Equal(unjoined, NativeUnjoinedStatus(status));
+        var packets = f.Frames(Peer).Select(bytes =>
+            LegacyPlayerStatusPacket.TryParse(OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out var packet) ? packet : null)
+            .Where(packet => packet is not null).ToArray();
+        var deathPacket = Assert.IsType<LegacyPlayerStatusPacket>(packets.Last());
+        Assert.NotNull(publishedCombat);
+        Assert.Equal(PacketCombatStatus(deathPacket), publishedCombat.Value);
+        Assert.Equal(publishedCombat.Value, NativeCombatStatus(status));
         Assert.False(f.Recovery.IsBlocked);
         f.Data.AssertFiles(expected);
     });
@@ -40,12 +49,14 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
         StatusVector(bytes, out var words) && !Flag(words, 212) && !Flag(words, 213) &&
         !Flag(words, LegacyPlayerDeathState.DeadStatusFlag);
 
-    // These other native MsgStatus fields have no joined completed-query
-    // publication in this path. The maxima repair must not silently guess or
-    // overwrite them from managed aliases, or replace the Status object.
+    private static (uint, uint, uint, uint, uint) NativeCombatStatus(LegacyNativeMsgStatus status) =>
+        (status.MaxAttack, status.MinAttack, status.Defence, status.MagicAttack, status.MagicDefence);
+    private static (uint, uint, uint, uint, uint) PacketCombatStatus(LegacyPlayerStatusPacket status) =>
+        (status.MaxAttack, status.MinAttack, status.Defence, status.MagicAttack, status.MagicDefence);
+
+    // Other fields remain outside the joined publication.
     private static object NativeUnjoinedStatus(LegacyNativeMsgStatus status) => new
     {
-        status.MaxAttack, status.MinAttack, status.Defence, status.MagicAttack,
-        status.MagicDefence, status.Stamp, status.UID,
+        status.Stamp, status.UID,
     };
 }

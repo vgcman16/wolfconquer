@@ -189,8 +189,20 @@ public sealed partial class WorldServerFrameHandler
                     await SendDueLegacyArrowAndFlashingFlagExpirationsAsync(statusOperation, cancellationToken).ConfigureAwait(false);
                     await SendDueLegacyWindWalkerFanExpirationsAsync(cancellationToken).ConfigureAwait(false);
                     await SendDueLegacyHookMoonExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
-                    await SendDueLegacyStigmaMagicShieldExpirationsAsync(now, cancellationToken)
+                }
+                // Keep the original family order while allowing Root expiry
+                // sends to run outside its short actual Shared commit leases.
+                var rootExpiryRun = new RootExpiryRun();
+                RootExpiryRuns.Add(rootExpiryRun, new(this, timeProvider, now, cancellationToken));
+                try
+                {
+                    await SendDueLegacyStigmaMagicShieldExpirationsAsync(rootExpiryRun, cancellationToken)
                         .ConfigureAwait(false);
+                }
+                finally { RootExpiryRuns.Remove(rootExpiryRun); }
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    if (_tradeRecovery.IsBlocked) continue;
                     await SendDueLegacyCleanSweepExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
                     await SendDueLegacyAxeShadowCelestialDanceExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
                     await SendDueLegacyBloodTideExpirationsAsync(now, cancellationToken).ConfigureAwait(false);

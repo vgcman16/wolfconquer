@@ -14,12 +14,14 @@ public sealed partial class OwnedDragonhowlFineRainAwardTests
     {
         var f = c.Owner; var actor = f.Current(); var peer = f.Current(Peer);
         var a = Binding(f, Actor); var p = Binding(f, Peer);
-        var beforeA = Native(a); var beforeP = Native(p); var files = f.Data.Files();
+        var beforeA = Native(a); var beforeP = Native(p); var beforeStatus = p.Client.Status;
+        var beforeCombat = NativeCombatStatus(beforeStatus); var files = f.Data.Files();
         AssertFineRain(peer, 10_000);
         Assert.False(LegacyEquipmentRebuildAdmission.ApplyCurrent(peer, LegacyEquipmentRebuildReason.LevelUp, c.LegacyClock).Admitted);
         await f.SendAsync(Actor, c.Request());
         Assert.Same(actor, f.Current()); Assert.Same(peer, f.Current(Peer));
         Assert.Equal(beforeA, Native(a)); Assert.Equal(beforeP, Native(p));
+        Assert.Same(beforeStatus, p.Client.Status); Assert.Equal(beforeCombat, NativeCombatStatus(beforeStatus));
         Assert.Same(c.InitialQuery.Epoch, ReadQuery(p).Epoch); Assert.Same(c.InitialQuery.Completion, ReadQuery(p).Completion);
         Assert.True(c.Monsters.TryGetVisibleInstance(c.Monster, c.Clock.GetUtcNow(), out var monster));
         Assert.Equal(500U, monster.Hitpoints);

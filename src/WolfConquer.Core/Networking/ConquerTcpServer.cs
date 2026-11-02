@@ -547,15 +547,19 @@ public sealed class ConquerTcpServer : IAsyncDisposable
                 plain,
                 outboundCipher,
                 _options.MaxFrameSize);
+            // Start the actual socket operation before yielding. Root expiry
+            // holds its exact publication gates only through this initiation.
+            var pending = stream.WriteAsync(encrypted, token);
             if (traceLegacyGameWire)
             {
+                // Trace sinks are not part of Store authority and can block.
+                await Task.Yield();
                 LogLegacyGameWireTrace(
                     "outbound-frame " +
                     $"{DescribeLegacyGameFrame(plain)} " +
                     $"plainHex={HexForLog(plain)} encryptedHex={HexForLog(encrypted)}");
             }
-
-            await stream.WriteAsync(encrypted, token).ConfigureAwait(false);
+            await pending.ConfigureAwait(false);
             await stream.FlushAsync(token).ConfigureAwait(false);
         }
 
@@ -598,6 +602,8 @@ public sealed class ConquerTcpServer : IAsyncDisposable
             },
             nativeGameClient ?? throw new InvalidOperationException("Native Player birth was not reached."));
 
+        connection.InstallRootExpiryWire(new RootExpiryWireWriter(connection, writeGate, WriteEncryptedAsync,
+            isConnectionClosed, markConnectionClosed));
         onConnectionCreated(connection);
 
         await LegacyGameServerPacketPipeline.ReadFramesAsync(
