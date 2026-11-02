@@ -30,3 +30,6 @@
 !.env.example
 appsettings.local.json
 appsettings.*.local.json
+
+# Generated client resource proposals may contain private client data.
+/tools/client_resources/proposals/
