@@ -626,75 +626,8 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlerDecomposeRelicsConsumesSelectedRelicGrantsCrystalsAndPersists()
-    {
-        const uint relicUid = 5_337_200;
-        const uint relicItemId = 4_100_001;
-        const uint crystalItemId = 3_306_885;
-        WriteSnapshot(accountId: 1_293_600, uid: 1_293_600, mapId: 1_015, x: 826, y: 565);
-        WriteItems(
-            1_293_600,
-            PlayerItemSnapshotLoaderTests.DbItem(
-                relicUid,
-                relicItemId,
-                position: 0,
-                durability: 500,
-                maximumDurability: 500));
-        var worldData = CreateWorldDataCatalog(
-            CreateItemType(crystalItemId, "RelicCrystal", durability: 1));
-        using var log = new StringWriter();
-        var (handler, connection, sent) = await EnterWorldAsync(log, worldData);
-
-        var countBeforeRequest = sent.Count;
-        await handler.HandleFrameAsync(connection, ReadFrame(CreateDecomposeRelicsUse(id: 0, relicUid)));
-
-        // Deliberate native contract correction: REMOVE + nine independent ADDs + echo.
-        Assert.Equal(countBeforeRequest + 11, sent.Count);
-        AssertItemUsage(
-            sent[countBeforeRequest],
-            new MsgItemUsagePacket(relicUid, DwParam: 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0));
-        var packetUids = new HashSet<uint>();
-        for (var index = 0; index < 9; index++)
-        {
-            Assert.True(LegacyGameItemPacket.TryParse(ReadFrame(sent[countBeforeRequest + 1 + index]), out var crystalPacket));
-            Assert.Equal(crystalItemId, crystalPacket.ItemId);
-            Assert.Equal((ushort)1, crystalPacket.StackSize);
-            Assert.Equal(LegacyGameItemPacket.AddItemMode, crystalPacket.Mode);
-            Assert.True(packetUids.Add(crystalPacket.Uid));
-        }
-        Assert.True(MsgItemUsagePacket.TryParse(ReadFrame(sent[countBeforeRequest + 10]), out var echoPacket));
-        Assert.Equal(new MsgItemUsagePacket(0, 0, MsgItemUsageAction.DecomposeRelics, 511_043_495, 1, 0, 0), echoPacket);
-        Assert.True(PacketReader.TryRead(sent[countBeforeRequest + 10], out var echoReader));
-        Assert.Equal(relicUid, echoReader.ReadUInt32(MsgItemUsagePacket.PayloadLength));
-
-        var session = GetSession(handler, connection);
-        Assert.Equal(9, session.PlayerItems.InventoryItems.Count);
-        Assert.All(session.PlayerItems.InventoryItems, crystal =>
-        {
-            Assert.Equal(crystalItemId, crystal.ItemId);
-            Assert.Equal((ushort)1, crystal.StackSize);
-            Assert.Contains(crystal.Uid, packetUids);
-        });
-        Assert.DoesNotContain(session.PlayerItems.InventoryItems, item => item.Uid == relicUid);
-
-        var persistedItems = new PlayerItemSnapshotLoader(_itemsRoot).LoadByCharacterUid(1_293_600);
-        Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(session.PlayerItems),
-            PlayerItemSnapshotLoader.ToLegacyBytes(persistedItems));
-        Assert.Equal(9, persistedItems.InventoryItems.Count);
-        Assert.All(persistedItems.InventoryItems, crystal =>
-        {
-            Assert.Equal(crystalItemId, crystal.ItemId);
-            Assert.Equal((ushort)1, crystal.StackSize);
-        });
-        Assert.DoesNotContain(persistedItems.InventoryItems, item => item.Uid == relicUid);
-
-        var output = log.ToString();
-        Assert.Contains("handled MsgItemUsage decompose relics", output);
-        Assert.Contains("rewardItemId=3306885", output);
-        Assert.Contains("rewardStack=9", output);
-        Assert.Contains("persisted MsgItemUsage decompose relics items", output);
-        Assert.DoesNotContain("PARITY-GAP MsgItemUsage decompose relics", output);
-    }
+    public Task HandlerDecomposeRelicsConsumesSelectedRelicGrantsCrystalsAndPersists() =>
+        LegacyOwnedRelicDecomposeTests.RunMigrationCaseAsync(LegacyRelicDecomposeMigrationCase.Ordinary);
 
     [Fact]
     public async Task HandlerMythsoulBagAddSwapsSameBaseItemEchoesRemovalAndPersists()

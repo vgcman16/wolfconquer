@@ -14,7 +14,12 @@ internal sealed partial class LegacyItemUidRegistry
             try
             {
                 RequireRuneDecomposeStateCurrent();
-                if (state.Version is not (6 or 7)) { reason = string.Empty; return true; }
+                if (state.Version is not (6 or 7 or 8)) { reason = string.Empty; return true; }
+                // Version 8 can originate solely from relic decomposition.
+                // Do not impose an unrelated namespace's clearance when no
+                // actual row of that kind requires retirement.
+                if (state.Version == 8 && !state.Operations!.Any(IsRuneBagNamespace))
+                { reason = string.Empty; return true; }
                 var configured = authority.Configuration;
                 for (var retired = 0; retired < MaximumOperationReceipts; retired++)
                 {

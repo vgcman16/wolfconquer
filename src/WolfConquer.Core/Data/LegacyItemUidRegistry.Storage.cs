@@ -85,7 +85,7 @@ internal sealed partial class LegacyItemUidRegistry
         // Our actual File.Replace/File.Move consumes the pending file. A v5
         // duplicate cannot be attributed to the closed retirement interruption
         // and must not be silently deleted by either acquisition route.
-        if (current?.Version is 5 or 6 or 7 && SameState(current, pending))
+        if (current?.Version is 5 or 6 or 7 or 8 && SameState(current, pending))
         { reason = RecoveryRequired + ":identicalNamespacePendingUnsupported"; return false; }
         RuneDecomposeNamespaceReplayCustody? namespaceReplay = null;
         if (current is not null && pending is not null && IsNext(current, pending) &&
@@ -94,6 +94,8 @@ internal sealed partial class LegacyItemUidRegistry
              IsRuneBagNamespaceRetirement(current, pending,
                 current with { Generation = pending.Generation, HighWater = pending.HighWater }) ||
              IsRelicFuseNamespaceRetirement(current, pending,
+                current with { Generation = pending.Generation, HighWater = pending.HighWater }) ||
+             IsRelicDecomposeNamespaceRetirement(current, pending,
                 current with { Generation = pending.Generation, HighWater = pending.HighWater })))
         {
             if (configuredStartup is null)

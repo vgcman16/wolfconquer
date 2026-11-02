@@ -14,10 +14,10 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyOwnedRuneDecomposeTests
 {
     private static async Task Run(Func<DecomposeFixture, Task> body, string mode = "active", string fault = "",
-        Action<DecomposeFixture>? beforeOpen = null)
+        Action<DecomposeFixture>? beforeOpen = null, bool relicFirst = false)
     {
         var fixture = new DecomposeFixture(); var errors = new List<Exception>();
-        try { await fixture.InitializeAsync(mode, fault, beforeOpen); await body(fixture); } catch (Exception error) { errors.Add(error); }
+        try { await fixture.InitializeAsync(mode, fault, beforeOpen, relicFirst); await body(fixture); } catch (Exception error) { errors.Add(error); }
         try { await fixture.CloseAsync(); } catch (Exception error) { errors.Add(error); }
         try { fixture.RestoreMetadata(); } catch (Exception error) { errors.Add(error); }
         if (errors.Count == 0) try { fixture.Data.Dispose(); } catch (Exception error) { errors.Add(error); }
@@ -41,6 +41,7 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
         internal LegacyOwnedAdmissionRuntime Runtime = null!;
         internal byte[] Ledger = [], OriginalSpells = [];
         internal string Mode = "";
+        private bool useRegisteredRelicWire;
         internal Action<byte[]>? BeforeSend;
         private readonly List<LegacyOwnedAdmissionRuntime> owners = [];
         private Dictionary<byte, LegacyNativeBeastsAtrribute.Attribute>? priorBeasts;
@@ -65,9 +66,9 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
         internal LegacyRuneRankingState Rankings => Assert.IsType<LegacyRuneRankingState>(typeof(WorldServerFrameHandler)
             .GetField("_runeRankings", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(Handler));
 
-        internal async Task InitializeAsync(string mode, string fault, Action<DecomposeFixture>? beforeOpen)
+        internal async Task InitializeAsync(string mode, string fault, Action<DecomposeFixture>? beforeOpen, bool relicFirst)
         {
-            Mode = mode;
+            Mode = mode; useRegisteredRelicWire = relicFirst;
             var text = CharacterSnapshotFileEncoding.Decode(File.ReadAllBytes(CharacterPath), out var encoding)
                 .Replace("Class=7051\r\n", mode.EndsWith("-worn", StringComparison.Ordinal) || mode.EndsWith("-alternate", StringComparison.Ordinal)
                     ? "Class=4000\r\n" : "Class=6000\r\n", StringComparison.Ordinal)
@@ -84,6 +85,7 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
             if (mode == "raw-target") target = target.WithStackSize(0);
             if (fault == "child") target = target.WithDepositedItems([Item(Target + 99, 1_000_000, 0)]);
             var inventory = new List<PlayerItemSnapshotItem> { Item(Kept, 1_000_000, 0) };
+            if (relicFirst) inventory.Add(Item(Kept + 1, 4_100_001, 0));
             int inventoryCount = mode is "capacity-new" or "capacity-merge" ? 39 : fault == "inventory-full" ? 40 : 1;
             for (int index = 1; index < inventoryCount; index++) inventory.Add(Item(3_000_000U + (uint)index, 1_000_000, 0));
             if (mode is "merge" or "zero-merge" or "near-full" or "capacity-merge")
@@ -106,7 +108,7 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
             OriginalSpells = PlayerSpellSnapshotLoader.ToLegacyBytes(spells); OriginalSpells[15] = 0xA5;
             if (opaqueStored) OriginalSpells[27] = 0xC7;
             File.WriteAllBytes(SpellsPath, OriginalSpells);
-            Catalog = BuildCatalog(mode, fault);
+            Catalog = BuildCatalog(mode, fault, relicFirst);
             Data.Bootstrap(); beforeOpen?.Invoke(this); await ReopenFrameAsync();
             Assert.True(Native.Beasts!.Activated); Assert.Equal((byte)1, Native.Beasts.Level);
             bool equip = !opaqueStored && mode is not ("stored" or "stored-bag" or "red" or "yellow" or "bag-boundary") && fault is not ("locked" or "stacked" or "child");
@@ -117,7 +119,7 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
             Ledger = File.ReadAllBytes(Data.State); AssertConverged(); Sent.Clear();
         }
 
-        private WorldDataCatalog BuildCatalog(string mode, string fault)
+        private WorldDataCatalog BuildCatalog(string mode, string fault, bool relicFirst)
         {
             var beastFields = Enumerable.Repeat("0", 19).ToArray(); beastFields[0] = "1"; beastFields[1] = "1000"; beastFields[^1] = "";
             var beast = BeastParser.ParseRow("owned-decompose-beast", 1, string.Join("@@", beastFields));
@@ -130,6 +132,11 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
             var rows = new List<ItemType> { Metadata(TargetType, 1416016), Metadata(4_020_518, 1416017), Metadata(4_020_527, 1416026),
                 Metadata(4_028_001, 814000, 4000), Metadata(4_010_101, 1427000, 2000), Metadata(4_030_101, 4_030_101, 0), Metadata(1_000_000, 0, 0, 1) };
             rows.AddRange(new uint[] { 4_040_001, 4_050_001, 4_060_001, 3_306_366, 3_306_367, 3_306_368, 3_306_369, 3_306_370, 3_306_371 }.Select(id => Metadata(id, 0, 0, 10000)));
+            if (relicFirst)
+            {
+                rows.Add(Metadata(4_100_001, 0, 0, 1));
+                rows.Add(Metadata(3_306_885, 0, 0, 1));
+            }
             if (fault == "missing-cap") rows.RemoveAll(row => row.Id == FragmentType);
             if (fault == "malformed-cap") ((string[])rows.Single(row => row.Id == FragmentType).Fields)[ItemType.StackSizeFieldIndex] = "invalid";
             var progress = Curves();

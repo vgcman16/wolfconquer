@@ -12,11 +12,13 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
 {
     private sealed partial class DecomposeFixture
     {
+        private RootLoopbackFramePeer? relicPeer;
         internal Task DispatchAsync(MsgItemUsagePacket packet) => SendAsync(packet.ToFrameBytes());
         internal async Task SendAsync(byte[] bytes)
         {
             Assert.True(PacketFrameDecoder.TryRead(new ReadOnlySequence<byte>(bytes), out var frame, out _, out _));
             await Handler.HandleFrameAsync(connection!, frame, lifetime!.Token);
+            if (relicPeer is { } peer) await peer.DrainObservations();
             if (observerFailure is { } error) ExceptionDispatchInfo.Capture(error).Throw();
         }
         internal LegacyOwnedAdmissionRuntime Open()
@@ -30,7 +32,16 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
             Handler = new(Data.Loader, null, Catalog, LegacyRuntimeUpdateLoopOptions.Disabled,
                 Log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: Runtime);
             lifetime = new(); var cancellation = lifetime; var native = new LegacyNativeGameClientRuntime();
-            connection = new(null, new IPEndPoint(IPAddress.Loopback, 9958), (memory, token) =>
+            if (useRegisteredRelicWire)
+            {
+                relicPeer = new RootLoopbackFramePeer(bytes =>
+                {
+                    try { BeforeSend?.Invoke(bytes); } catch (Exception error) { observerFailure ??= error; throw; }
+                    Sent.Add(bytes); return ValueTask.CompletedTask;
+                }, native);
+                connection = relicPeer.Connection;
+            }
+            else connection = new(null, new IPEndPoint(IPAddress.Loopback, 9958), (memory, token) =>
             {
                 token.ThrowIfCancellationRequested(); var bytes = memory.ToArray();
                 try { BeforeSend?.Invoke(bytes); } catch (Exception error) { observerFailure ??= error; throw; }
@@ -48,6 +59,11 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
                 try { await connection.CompleteTransportCloseAsync(); } catch (Exception error) { errors.Add(error); }
             }
             connection = null;
+            if (relicPeer is { } peer)
+            {
+                try { await peer.DisposeAsync(); } catch (Exception error) { errors.Add(error); }
+                relicPeer = null;
+            }
             foreach (var owner in owners.AsEnumerable().Reverse()) try { await owner.DisposeAsync(); } catch (Exception error) { errors.Add(error); }
             owners.Clear(); lifetime?.Dispose(); lifetime = null;
             if (errors.Count == 1) ExceptionDispatchInfo.Capture(errors[0]).Throw();

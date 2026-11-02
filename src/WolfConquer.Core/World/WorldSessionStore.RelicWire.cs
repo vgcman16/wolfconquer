@@ -9,7 +9,8 @@ public sealed partial class WorldSessionStore
     internal sealed class RelicWirePermit { }
     private sealed class RelicWireState(WorldPacketHandlerContext context, SessionHolder holder,
         LegacyOrdinarySpellBinding binding, LegacyPreparedSpellFileWrite writer,
-        LegacyRelicFuseOwnedEvidence? compose, LegacyRelicFuseReturnOwnedEvidence? returned, byte[][] frames)
+        LegacyRelicFuseOwnedEvidence? compose, LegacyRelicFuseReturnOwnedEvidence? returned,
+        LegacyRelicDecomposeOwnedEvidence? decompose, byte[][] frames)
     {
         internal readonly WorldPacketHandlerContext Context = context;
         internal readonly SessionHolder Holder = holder;
@@ -17,6 +18,7 @@ public sealed partial class WorldSessionStore
         internal readonly LegacyPreparedSpellFileWrite Writer = writer;
         internal readonly LegacyRelicFuseOwnedEvidence? Compose = compose;
         internal readonly LegacyRelicFuseReturnOwnedEvidence? Return = returned;
+        internal readonly LegacyRelicDecomposeOwnedEvidence? Decompose = decompose;
         internal readonly byte[][] Frames = frames.Select(frame => frame.ToArray()).ToArray();
         internal WorldSession? Final;
         internal int Next;
@@ -39,16 +41,63 @@ public sealed partial class WorldSessionStore
             !context.Connection.HasRegisteredRelicWire || context.TradeOperations?.OwnsActiveExclusiveLease(context.FrameOperationLease) != true)
             throw InvalidSpellPublication();
         var output = new RelicWireOutput();
-        relicWireOutputs.Add(output, new(context, holder, binding, writer, compose, returned, frames));
+        relicWireOutputs.Add(output, new(context, holder, binding, writer, compose, returned, null, frames));
         return output;
+    }
+
+    // Only this private prepared Store state may select a variable count.
+    // The old compose/return factory above still requires exactly two frames.
+    private RelicWireOutput PrepareRelicDecomposeWire(WorldPacketHandlerContext context, SessionHolder holder,
+        LegacyOrdinarySpellBinding binding, LegacyPreparedSpellFileWrite writer, LegacyRelicDecomposeOwnedEvidence evidence)
+    {
+        if (!relicDecomposePreparations.TryGetValue(evidence, out var prepared) || !prepared.Active ||
+            prepared.Thread != Environment.CurrentManagedThreadId || !ReferenceEquals(prepared.Context, context) ||
+            !ReferenceEquals(prepared.Holder, holder) || !ReferenceEquals(prepared.Binding, binding) ||
+            !ReferenceEquals(prepared.Writer, writer) || prepared.Publication is null ||
+            !context.Connection.HasRegisteredRelicWire || context.TradeOperations?.OwnsActiveExclusiveLease(context.FrameOperationLease) != true)
+            throw InvalidSpellPublication();
+        var frames = evidence.CopyPreparedFrames();
+        if (!evidence.MatchesPreparedFrameCount(frames.Length) || frames.Length is < 11 or > 491 ||
+            frames.Any(bytes => bytes is null || bytes.Length < 4)) throw InvalidSpellPublication();
+        var output = new RelicWireOutput();
+        relicWireOutputs.Add(output, new(context, holder, binding, writer, null, null, evidence, frames));
+        return output;
+    }
+    private static bool RelicWriterCommitted(RelicWireState data) => data.Decompose is { } decomposed
+        ? data.Compose is null && data.Return is null && data.Writer.HasCommittedRelicDecompose(decomposed) &&
+            decomposed.MatchesPreparedFrameCount(data.Frames.Length)
+        : data.Frames.Length == 2 && (data.Compose is { } compose
+            ? data.Return is null && data.Writer.HasCommittedRelicFuse(compose)
+            : data.Return is { } returned && data.Writer.HasCommittedRelicFuseReturn(returned));
+
+    internal bool TryReadRelicOutputFrameCount(RelicWireOutput output, out int count)
+    {
+        count = 0;
+        if (!relicWireOutputs.TryGetValue(output, out var data)) return false;
+        lock (data)
+        {
+            if (!RelicWireCurrent(data) || data.Next != 0 || data.Pending is not null) return false;
+            count = data.Decompose is null ? 2 : data.Frames.Length;
+            return true;
+        }
+    }
+
+    private void AbandonPreparedRelicOutput(RelicWireOutput output)
+    {
+        if (!relicWireOutputs.TryGetValue(output, out var data)) return;
+        lock (data)
+        {
+            if (data.Pending is { } pending) relicWirePermits.Remove(pending);
+            data.Pending = null;
+            relicWireOutputs.Remove(output);
+        }
     }
 
     private void PublishRelicWire(RelicWireOutput output, WorldSession final)
     {
         if (!relicWireOutputs.TryGetValue(output, out var data) || data.Final is not null ||
             !ReferenceEquals(data.Holder.Read(), final) || !BindingIsCurrentPlain(data.Binding, data.Holder, final) ||
-            !(data.Compose is { } compose ? data.Writer.HasCommittedRelicFuse(compose) :
-                data.Return is { } returned && data.Writer.HasCommittedRelicFuseReturn(returned)))
+            !RelicWriterCommitted(data))
             throw InvalidSpellPublication();
         data.Final = final;
     }
@@ -73,8 +122,7 @@ public sealed partial class WorldSessionStore
         !trades.HasConnectionEnded(data.Context.Connection) &&
         _sessions.TryGetValue(data.Context.Connection, out var holder) && ReferenceEquals(holder, data.Holder) &&
         ReferenceEquals(holder.Read(), final) && BindingIsCurrentPlain(data.Binding, holder, final) &&
-        (data.Compose is { } compose ? data.Writer.HasCommittedRelicFuse(compose) :
-            data.Return is { } returned && data.Writer.HasCommittedRelicFuseReturn(returned));
+        RelicWriterCommitted(data);
 
     internal bool TryStartRelicWire(RelicWirePermit permit, ConquerTcpConnection recipient,
         RootExpiryWireWriter writer, object activeStart, CancellationToken token, out ValueTask pending)

@@ -97,6 +97,11 @@ public static partial class WorldPacketHandlers
             if (!LegacyRuneSpellOrigins.Read(saved).SequenceEqual(LegacyRuneSpellOrigins.Read(actual.Character))) throw InvalidSpellMutation();
         }
 
+        internal void RequireRelicDecomposeOwner(WorldPacketHandlerContext context, WorldSession actual) => RequireOwnedInvocation(context, actual);
+        internal void RequireRelicDecomposeOwnerHeld(WorldPacketHandlerContext context, WorldSession actual) => RequireRelicFuseOwnerHeld(context, actual);
+        internal bool HasCommittedRelicDecompose(LegacyRelicDecomposeOwnedEvidence evidence) => writer.HasCommittedRelicDecompose(evidence);
+        internal bool IsRelicDecomposeWriter(LegacyPreparedSpellFileWrite actual) => ReferenceEquals(writer, actual);
+
         internal byte[] CopyCharacter() => character.ToArray();
         internal byte[] CopyItems() => items.ToArray();
         internal byte[]? CopySpells() => spells?.ToArray();

@@ -50,6 +50,8 @@ internal static partial class LegacyTradeJournal
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public LegacyRelicFuseReturnJournalOperation? RelicFuseReturn { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public LegacyRelicDecomposeJournalOperation? RelicDecompose { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public LegacyRuneBagOperation? RuneBag { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public string? CreationMailbox { get; init; }
@@ -111,7 +113,7 @@ internal static partial class LegacyTradeJournal
         ValidateChanges(copied, version);
         // The single-owner API's failpoint contract is character first, then items.
         // Do not reorder v1: its established four-target contract remains unchanged.
-        if (version is 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26 or 22 or 23) copied = copied.OrderBy(change => change.Kind).ToArray();
+        if (version is 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26 or 27 or 22 or 23) copied = copied.OrderBy(change => change.Kind).ToArray();
         if (version is 11 or 21) copied = copied.OrderBy(change => change.FileId).ToArray();
         return new(version, Guid.NewGuid().ToString("N"), copied);
     }
@@ -125,7 +127,7 @@ internal static partial class LegacyTradeJournal
         5 => 4,
         6 or 7 => 4, // Variable1..4; admission validates its exact configured membership.
         8 => 2,
-        9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26 => 3,
+        9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26 or 27 => 3,
         11 or 21 or 22 or 23 => 2,
         19 => 6,
         24 => 3, // Variable2..3, closed recipe fixes presence of Spells.
@@ -142,7 +144,7 @@ internal static partial class LegacyTradeJournal
             ValidateOrdinaryCharacterSpellsDerivedOrigins(changes);
             return;
         }
-        if (version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26) { ValidateCharacterItemsSpellsChanges(changes); return; }
+        if (version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26 or 27) { ValidateCharacterItemsSpellsChanges(changes); return; }
         if (version == 11) { ValidateCharacterResourcesChanges(changes); return; }
         if (version == 21) { ValidatePairMovementChanges(changes); return; }
         if (version == 22) { RequirePhysicalDeathOrder(changes); return; }
@@ -186,7 +188,7 @@ internal static partial class LegacyTradeJournal
         if (record.Version == 5) return GetMailboxGearTargets(roots, record);
         if (IsOrdinaryAdmissionVersion(record.Version)) return GetAdmissionTargets(roots, record);
         if (record.Version == 8) return GetCharacterSpellsTargets(roots, record);
-        if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26) return GetCharacterItemsSpellsTargets(roots, record);
+        if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26 or 27) return GetCharacterItemsSpellsTargets(roots, record);
         if (record.Version == 11) return GetCharacterResourcesTargets(roots, record);
         if (record.Version == 21) return GetPairMovementTargets(roots, record);
         if (record.Version == 22) return GetPhysicalDeathTargets(roots, record);

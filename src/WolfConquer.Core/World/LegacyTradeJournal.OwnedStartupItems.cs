@@ -50,7 +50,7 @@ internal static partial class LegacyTradeJournal
                 creationNames = LegacyCharacterCreationRecoveryEvidence.Capture(custody.Configuration, recipe.Account,
                     recipe.Projection.Name, capture.Record.Changes, capture.Record.TransactionId);
             }
-            if (capture.Record.Version is 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 25 or 26)
+            if (capture.Record.Version is 2 or 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 20 or 25 or 26 or 27)
             {
                 var target = items.Single();
                 protectedPhysicalUids = capture.Record.Version == 19 ? [] :
@@ -66,6 +66,12 @@ internal static partial class LegacyTradeJournal
                         protectedPhysicalUids.Add(checked(allocation.First + (uint)index));
                 }
                 if (capture.Record.Version == 25) protectedPhysicalUids.Add(capture.Record.RelicFuse!.Allocation.First);
+                if (capture.Record.Version == 27)
+                {
+                    var allocation = capture.Record.RelicDecompose!.Allocation;
+                    for (var index = 0; index < allocation.Count; index++)
+                        protectedPhysicalUids.Add(checked(allocation.First + (uint)index));
+                }
                 if (capture.Record.Version == 20 && capture.Record.RuneBag!.Allocation is { } bagAllocation)
                     protectedPhysicalUids.Add(bagAllocation.First);
                 if (capture.Record.Version == 19)
@@ -100,6 +106,13 @@ internal static partial class LegacyTradeJournal
         private static void ValidateImages(RecoveryCapture captured, uint highWater,
             LegacyItemUidRegistry.OwnedStartupCustody custody)
         {
+            if (captured.Record.Version == 27)
+            {
+                var operation = captured.Record.RelicDecompose ?? throw new InvalidDataException("relicDecomposeStartupJournalMissing");
+                ValidateRelicDecomposeImages(captured.Record.Changes, operation, highWater);
+                custody.RequireRelicDecomposeAllocation(operation.Request, operation.Allocation);
+                return;
+            }
             if (captured.Record.Version == 26)
             {
                 ValidateRelicFuseReturnImages(captured.Record.Changes,

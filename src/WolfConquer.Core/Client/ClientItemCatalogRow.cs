@@ -45,6 +45,16 @@ public sealed class ClientItemCatalogRow
         return _fields[fieldIndex].ToArray();
     }
 
+    // Closed in-assembly consumers may read genuinely private immutable storage
+    // without allocating a defensive copy for every field comparison.
+    internal ReadOnlySpan<byte> FieldBytes(int fieldIndex)
+    {
+        ValidateIndex(fieldIndex);
+        return _fields[fieldIndex].Span;
+    }
+
+    internal int LineEndingByteCount => _lineEnding.Length;
+
     public ClientItemCatalogRow WithField(int fieldIndex, ReadOnlySpan<byte> value)
     {
         ValidateIndex(fieldIndex);

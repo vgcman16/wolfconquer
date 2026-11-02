@@ -6,7 +6,7 @@ public sealed partial class WorldSessionStore
 {
     private enum RelicPublicationStage
     {
-        WriterReceipt, ExternalImage, CurrentPublication, Native, Holder, Binding, Evidence, Wire,
+        WriterReceipt, ExternalImage, CurrentPublication, Native, Holder, Binding, Ranking, Evidence, Wire,
     }
 
     [DoesNotReturn]

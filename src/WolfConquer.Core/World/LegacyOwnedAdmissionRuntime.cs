@@ -63,6 +63,7 @@ public sealed partial class LegacyOwnedAdmissionRuntime : IDisposable, IAsyncDis
             if (!opening.TryCompleteRuneDecomposeNamespaceStartup(out reason)) return false;
             if (!opening.TryCompleteRuneBagNamespaceStartup(out reason)) return false;
             if (!opening.TryCompleteRelicFuseNamespaceStartup(out reason)) return false;
+            if (!opening.TryCompleteRelicDecomposeNamespaceStartup(out reason)) return false;
             runtime = opening;
             opening = null; reason = string.Empty; return true;
         }

@@ -11,10 +11,10 @@ namespace WolfConquer.Tests;
 [Collection("NativeItemCounterSourcePrerequisite")]
 public sealed partial class LegacyRelicMixedProducerTests
 {
-    private static async Task Run(Func<MixedFixture, Task> body)
+    private static async Task Run(Func<MixedFixture, Task> body, bool additionalRelics = false)
     {
         var fixture = new MixedFixture(); var errors = new List<Exception>();
-        try { await fixture.InitializeAsync(); await body(fixture); } catch (Exception error) { errors.Add(error); }
+        try { await fixture.InitializeAsync(additionalRelics); await body(fixture); } catch (Exception error) { errors.Add(error); }
         try { await fixture.CloseAsync(); } catch (Exception error) { errors.Add(error); }
         try { fixture.RestoreMetadata(); } catch (Exception error) { errors.Add(error); }
         if (errors.Count == 0) try { fixture.Data.Dispose(); } catch (Exception error) { errors.Add(error); }
@@ -57,10 +57,10 @@ public sealed partial class LegacyRelicMixedProducerTests
         }
         internal LegacyNativeGameClientRuntime Native => Current.NativeGameClient!;
 
-        internal async Task InitializeAsync()
+        internal async Task InitializeAsync(bool additionalRelics = false)
         {
             new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(LegacyRelicMixedProducerData.CharacterUid,
-                LegacyRelicMixedProducerData.InitialItems());
+                LegacyRelicMixedProducerData.InitialItems(additionalRelics));
             Catalog = LegacyRelicMixedProducerData.Catalog();
             beasts = new(1000); // Actual successful-login metadata prerequisite.
             Data.Bootstrap();

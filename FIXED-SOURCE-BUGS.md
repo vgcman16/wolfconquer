@@ -6,6 +6,38 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## Open integration repairs - 2026-11-02 UTC
 
+### FSB-315: Own the complete relic-decomposition batch before rewards or success
+
+OPEN source implementation, unbuilt/unrun. Legacy ItemUsage.RelicDecompose
+removed and rewarded sequentially, ignored failed duplicate removals/capacity or
+metadata grants, allocated from session-local state, published before a proven
+save and echoed success despite persistence failure. Its old tests explicitly
+required several unsafe outcomes. Bound inputs could yield unbound rewards.
+
+The composed proposal validates the complete physical inventory graph, real
+paid/trade/native/Store/file/Frame owners and required constructor metadata;
+prepares the entire batch's capacity,9*N UID range, images, native publication
+and ordered frames; commits typed journal27/v8 shared ownership and retires using
+the committed saved successor. Boundness is preserved per consumed input.
+Configured ranking refresh precedes private output publication; committed faults
+fence actual holder/native/recovery and remove unissued output. Notifications
+cannot roll back a saved grant or authorize reissue. A closed failure-only plan
+covers the injected pre-ranking window without creating an accepting substitute.
+
+Authored controls include full-state refusals, independent packet goldens,
+genuine mixed/bound/native/saved/UID/rank/trade positives and negatives, journal
+prefixes, cold startup, mixed old producers, retained v8, actual bounded output
+and replay. All11 old ranking scenarios migrate individually to genuine owners.
+Root composed96 source/test/spec paths in a separate unqualified candidate; the
+running fe3e full suite is unchanged. No new execution result is claimed here.
+
+Required next proof: composed build, focused actual registered owners and shared
+callers, interruption/reopen/cancel/pressure controls, then the full gate.
+Injected pre-ranking failure is not concurrent rank-owner drift. Trace-specific
+lock review is not universal deadlock proof. SQL/power-loss safety, current7937
+Resolve/bGold semantics, live client and complete parity remain OPEN. Contract:
+[owned relic decomposition](docs/protocol/specs/visible-dx8-d13-owned-relic-decompose.md).
+
 ### FSB-314: Retire a committed relic namespace using its actual committed saved-spell owner
 
 OPEN source correction, qualification pending. The joint writer marks committed

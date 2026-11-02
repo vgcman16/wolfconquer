@@ -2,7 +2,7 @@ namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    // Both frames belong to the actual committed Store output, and each real
+    // Every frame belongs to the actual committed Store output, and each real
     // registered write must complete before the next may start.
     private static async ValueTask PublishOwnedRelicWireAsync(WorldPacketHandlerContext context,
         WorldSessionStore.RelicWireOutput output, CancellationToken cancellationToken)
@@ -12,7 +12,9 @@ public static partial class WorldPacketHandlers
         {
             if (!store.TryHandoffRelicOutput(output))
                 throw new LegacyCommittedSpellPublicationException(new IOException("relicCommittedHandoffUnproven"));
-            for (var index = 0; index < 2; index++)
+            if (!store.TryReadRelicOutputFrameCount(output, out var count))
+                throw new LegacyCommittedSpellPublicationException(new IOException("relicCommittedFrameCountUnproven"));
+            for (var index = 0; index < count; index++)
             {
                 if (!store.TryIssueRelicWire(output, out var permit) || permit is null ||
                     !await context.Connection.SendOwnedRelicAsync(store, permit, cancellationToken).ConfigureAwait(false) ||

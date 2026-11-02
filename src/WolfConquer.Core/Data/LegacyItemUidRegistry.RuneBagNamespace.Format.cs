@@ -22,7 +22,7 @@ internal sealed partial class LegacyItemUidRegistry
 
     private static bool IsRuneBagNamespaceRetirement(RegistryState before, RegistryState after, RegistryState expected)
     {
-        if (before.Version is not (6 or 7) || after.Version != before.Version || after.HighWater != before.HighWater ||
+        if (before.Version is not (6 or 7 or 8) || after.Version != before.Version || after.HighWater != before.HighWater ||
             before.Operations is null || after.Operations is null || before.Operations.Length != after.Operations.Length + 1)
             return false;
         var removed = false; var next = 0;

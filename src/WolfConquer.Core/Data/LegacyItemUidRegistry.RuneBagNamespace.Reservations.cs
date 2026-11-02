@@ -96,7 +96,7 @@ internal sealed partial class LegacyItemUidRegistry
     private static OperationReservation RequireRuneBagAllocation(RegistryState current,
         LegacyItemUidReservationRequest request, LegacyItemUidReservationReceipt receipt)
     {
-        if (current.Version is not (6 or 7) || !IsValidRequest(request) || request.Writer != RuneBagWriter || request.Count != 1 || receipt is null ||
+        if (current.Version is not (6 or 7 or 8) || !IsValidRequest(request) || request.Writer != RuneBagWriter || request.Count != 1 || receipt is null ||
             receipt.DomainId == Guid.Empty || receipt.DomainId != Guid.ParseExact(current.Domain, "N") ||
             request.OperationId != receipt.OperationId)
             throw new InvalidDataException("Rune bag allocation request or domain differs from its namespace.");

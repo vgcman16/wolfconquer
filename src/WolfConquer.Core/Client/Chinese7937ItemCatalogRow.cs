@@ -15,6 +15,12 @@ public sealed class Chinese7937ItemCatalogRow
         return fields[index].ToArray();
     }
 
+    internal ReadOnlySpan<byte> FieldBytes(int index)
+    {
+        if ((uint)index >= (uint)fields.Length) throw new ArgumentOutOfRangeException(nameof(index));
+        return fields[index].Span;
+    }
+
     internal void WriteTo(Stream output)
     {
         foreach (var field in fields) { output.Write(field.Span); output.Write("@@"u8); }

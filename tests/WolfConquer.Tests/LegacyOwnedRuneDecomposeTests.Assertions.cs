@@ -80,7 +80,7 @@ public sealed partial class LegacyOwnedRuneDecomposeTests
     private static void AssertLedger(DecomposeFixture f, DecomposeSeed seed, ExpectedDecompose expected)
     {
         var before = JsonNode.Parse(seed.Ledger)!.AsObject(); var after = JsonNode.Parse(File.ReadAllBytes(f.Data.State))!.AsObject();
-        Assert.Equal(5, after["Version"]!.GetValue<int>());
+        Assert.Equal(Math.Max(5, before["Version"]!.GetValue<int>()), after["Version"]!.GetValue<int>());
         Assert.Equal(checked(seed.HighWater + (uint)expected.NewUids.Length), after["HighWater"]!.GetValue<uint>());
         Assert.Equal(checked(before["Generation"]!.GetValue<ulong>() + 2), after["Generation"]!.GetValue<ulong>());
         Assert.True(JsonNode.DeepEquals(before["Operations"] ?? new JsonArray(), after["Operations"] ?? new JsonArray()));

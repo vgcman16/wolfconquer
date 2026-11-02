@@ -30,7 +30,7 @@ internal sealed partial class LegacyItemUidRegistry
                 request.PayloadSha256, state.Generation + 1, state.HighWater + 1, 1, new(1, RelicFuseNamespaceKind));
             var operations = new OperationReservation[(state.Operations?.Length ?? 0) + 1];
             state.Operations?.CopyTo(operations, 0); operations[^1] = row;
-            var next = state with { Version = 7, Generation = row.Generation, HighWater = state.HighWater + 1,
+            var next = state with { Version = Math.Max(7, state.Version), Generation = row.Generation, HighWater = state.HighWater + 1,
                 Operations = operations, ProducerIntents = state.ProducerIntents ?? [] };
             var prepared = Reservation.Prepare(this, 1); var recorded = CreateReceipt(row);
             if (!authority.IsCurrentPlain(this, request) ||
@@ -52,7 +52,7 @@ internal sealed partial class LegacyItemUidRegistry
     private static OperationReservation RequireRelicFuseAllocation(RegistryState current,
         LegacyItemUidReservationRequest request, LegacyItemUidReservationReceipt receipt)
     {
-        if (current.Version != 7 || !IsValidRequest(request) || request.Writer != RelicFuseWriter || request.Count != 1 ||
+        if (current.Version is not (7 or 8) || !IsValidRequest(request) || request.Writer != RelicFuseWriter || request.Count != 1 ||
             receipt is null || receipt.DomainId != Guid.ParseExact(current.Domain, "N") || request.OperationId != receipt.OperationId)
             throw new InvalidDataException("relicFuseAllocationDomainMismatch");
         var row = current.Operations?.SingleOrDefault(value => value.OperationId == request.OperationId.ToString("N"));

@@ -34,7 +34,7 @@ internal static partial class LegacyTradeJournal
             if (!SameQuestRoot(usersRoot, roots.Users))
             { reason = RecoveryRequired + ":characterSpellsUsersMismatch"; return false; }
         }
-        else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26 or 22 or 23)
+        else if (record.Version is 9 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 20 or 25 or 26 or 27 or 22 or 23)
         {
             if (admissionRoots?.Items is not { } configuredItems || admissionRoots.Spells is not { } configuredSpells)
             { reason = RecoveryRequired + ":characterItemsSpellsRootMissing"; return false; }
