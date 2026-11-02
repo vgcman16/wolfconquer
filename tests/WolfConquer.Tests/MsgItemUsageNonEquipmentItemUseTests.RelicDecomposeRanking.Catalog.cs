@@ -28,7 +28,7 @@ public sealed partial class MsgItemUsageNonEquipmentItemUseTests
         };
         if (includeCrystal)
         {
-            items = items.Append(CreateItemType(RelicDecomposeCrystalId, "RelicCrystal", durability: 1)).ToArray();
+            items = items.Append(CreateItemType(3_306_885, "RelicCrystal", durability: 1)).ToArray();
         }
 
         var seed = new[] { RuneRankSeed(RuneRankPlayerA, 10_300), RuneRankSeed(RuneRankPlayerB, 10_000) };

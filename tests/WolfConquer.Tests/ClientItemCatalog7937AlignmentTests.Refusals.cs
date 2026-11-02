@@ -56,7 +56,7 @@ public sealed partial class ClientItemCatalog7937AlignmentTests
         // cap. This consumer must enforce its own bound, including delimiters.
         var reference = ClientItemCatalogDocument.Parse(Row(Fields("1", 65)));
         var oversizedField = new byte[64 * 1024 * 1024]; Array.Fill(oversizedField, (byte)'x');
-        reference = reference.WithField(1, oversizedField);
+        reference = reference.WithField(1, 1, oversizedField);
         var current = Chinese7937ItemCatalogDocument.ParseDecoded(Row(Fields("1", 67)), 7937);
         Assert.False(ClientItemCatalog7937Alignment.TryAnalyze(reference, current, out var result, out var failure));
         Assert.Null(result); Assert.Equal(ClientItemCatalogAlignmentFailure.InputBounds, failure);

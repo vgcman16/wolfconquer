@@ -1,3 +1,5 @@
+using WolfConquer.Core.Runtime;
+
 namespace WolfConquer.Core.World;
 
 public sealed partial class WorldServerFrameHandler

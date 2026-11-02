@@ -8,6 +8,8 @@ using WolfConquer.Core.Networking;
 using WolfConquer.Core.Packets;
 using WolfConquer.Core.World;
 
+using WolfConquer.Core.Runtime;
+
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
