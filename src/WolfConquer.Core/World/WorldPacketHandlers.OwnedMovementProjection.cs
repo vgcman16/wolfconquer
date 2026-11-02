@@ -23,10 +23,12 @@ public static partial class WorldPacketHandlers
         internal OwnedMovementProjectionData(WorldSession expected, CharacterSnapshot character, uint action)
         {
             Expected = expected; Action = action;
-            beforeAttributes = new(expected.Character.Attributes); beforePaid = new(expected.Character.PaidNobility);
+            beforeAttributes = LegacyNativeAttributeMapProof.CaptureRaw(expected.Character.Attributes);
+            beforePaid = LegacyNativeAttributeMapProof.CaptureRaw(expected.Character.PaidNobility);
             var canonical = new BoundHitpointsInputs(expected.Character, character).After;
             Proposed = expected with { Character = canonical };
-            afterAttributes = new(canonical.Attributes); afterPaid = new(canonical.PaidNobility);
+            afterAttributes = LegacyNativeAttributeMapProof.CaptureRaw(canonical.Attributes);
+            afterPaid = LegacyNativeAttributeMapProof.CaptureRaw(canonical.PaidNobility);
             if (!BoundHitpointsInputs.ScalarsEqual(expected.Character with { X = canonical.X, Y = canonical.Y }, canonical) ||
                 CharacterSnapshotScalarPersistence.HasPersistedScalarChanges(expected.Character with { X = canonical.X, Y = canonical.Y }, canonical) ||
                 !BoundHitpointsInputs.PaidEqual(expected.Character, canonical) || LegacyActionState.RequireCurrent(canonical) != action ||

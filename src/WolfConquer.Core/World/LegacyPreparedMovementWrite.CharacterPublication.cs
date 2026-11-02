@@ -50,9 +50,11 @@ internal sealed partial class LegacyPreparedMovementWrite
         }
         private static bool SameFields(IReadOnlyDictionary<string, string> first, IReadOnlyDictionary<string, string> second)
         {
-            var a = new LegacyNativeAttributeMapProof(first); var b = new LegacyNativeAttributeMapProof(second);
+            var a = LegacyNativeAttributeMapProof.CaptureRaw(first);
+            var b = LegacyNativeAttributeMapProof.CaptureRaw(second);
             if (a.Fields.Count != b.Fields.Count) return false;
-            foreach (var row in a.Fields) if (!b.Fields.TryGetValue(row.Key, out var value) || value != row.Value) return false;
+            var exact = new Dictionary<string, string>(b.Fields, StringComparer.Ordinal);
+            foreach (var row in a.Fields) if (!exact.TryGetValue(row.Key, out var value) || value != row.Value) return false;
             return a.IsCurrentPlain() && b.IsCurrentPlain();
         }
     }

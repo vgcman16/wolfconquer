@@ -433,24 +433,25 @@ public static partial class WorldPacketHandlers
             interactionPartner.Session.Character.X == character.X &&
             interactionPartner.Session.Character.Y == character.Y;
         var legacyJumpDistance = LegacyGetDistance(character.X, character.Y, x, y);
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            ["Angle"] = packet.Facing.ToString(CultureInfo.InvariantCulture),
-            ["Action"] = "100", // Native Jump: full runtime value, no earlier dead/pullback mutation.
-        };
-        var removedActivePick = !hasInteractionJump && HasActivePick(character);
-        var removedFocusedFlag = HasLegacyStatusFlag(character, LegacyFocusedFlag);
-        var removedMagicDefenderFlag = HasLegacyStatusFlag(character, LegacyMagicDefenderFlag);
-        var steedVigor = !hasInteractionJump && HasLegacyStatusFlag(character, LegacyRideFlag)
+        var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        LegacyCharacterAttributeMap.Set(attributes, "Angle", packet.Facing.ToString(CultureInfo.InvariantCulture));
+        // Native Jump: full runtime value, no earlier dead/pullback mutation.
+        LegacyCharacterAttributeMap.Set(attributes, "Action", "100");
+        var movementFlags = MovementStatusAttributes.Read(attributes);
+        var removedActivePick = !hasInteractionJump && HasMovementActivePick(attributes);
+        var removedFocusedFlag = movementFlags.Has(LegacyFocusedFlag);
+        var removedMagicDefenderFlag = movementFlags.Has(LegacyMagicDefenderFlag);
+        var steedVigor = !hasInteractionJump && movementFlags.Has(LegacyRideFlag)
             ? DecrementJumpRideVigor(character, legacyJumpDistance)
             : (uint?)null;
         if (steedVigor is { } vigor)
         {
-            attributes["Vigor"] = vigor.ToString(CultureInfo.InvariantCulture);
+            LegacyCharacterAttributeMap.Set(attributes, "Vigor", vigor.ToString(CultureInfo.InvariantCulture));
         }
 
         var cancelledArmedFocus = TryCancelLegacyIntensifyArm(attributes, out var jumpAttributes);
         var removedMovementFlags = TryRemoveLegacyMovementStatusFlags(jumpAttributes, out var updatedMovementAttributes);
+        var focusedCancel = PrepareLegacyFocusedCancelData(session, removedFocusedFlag || cancelledArmedFocus);
         var jumpedCharacter = character with
         {
             X = x,
@@ -517,8 +518,7 @@ public static partial class WorldPacketHandlers
         if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
         await SendMovementFocusedCancelIfNeededAsync(
                 context,
-                session,
-                removedFocusedFlag || cancelledArmedFocus,
+                focusedCancel,
                 cancellationToken)
             .ConfigureAwait(false);
         if (pairPublication is not null && !pairPublication.IsCurrent()) return;

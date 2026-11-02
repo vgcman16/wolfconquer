@@ -21,6 +21,9 @@ public static partial class WorldPacketHandlers
                     lock (binding.Player.SpellAdmissionSyncRoot)
                     {
                         completed = LegacyNativeMagicQueryClient.PublishCompletedMaximums(binding, Session, queryEpoch, out var proof);
+                        if (completed && queryVigorPurpose is { } vigorPurpose)
+                            completed = proof is not null && world.TryRecordBoundQueryVigor(
+                                Context, Session, binding, vigorPurpose, queryEpoch, proof);
                         if (completed && Request.Scope.LevelUpRebuild is { } levelUp)
                             completed = proof is not null && levelUp.AcceptQueryCompletion(Context, Session, proof);
                         if (completed && Request.Scope.AdmissionContinuation is { } admission)

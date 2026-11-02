@@ -27,7 +27,7 @@ public sealed partial class WorldSessionStore
 
         internal PreparedOrdinarySpellAdmission(WorldSessionStore store, ConquerTcpConnection connection,
             SessionHolder holder, WorldSession proposed, LegacyTradeRecoveryState recovery, string? spellsRoot, byte[]? savedSpellImage,
-            string? proficienciesRoot, byte[]? savedProficiencyImage, LegacyNativeExistingCharacterPrefix prefix)
+            string? proficienciesRoot, byte[]? savedProficiencyImage, byte[] savedCharacterImage, LegacyNativeExistingCharacterPrefix prefix)
         {
             this.connection = connection; this.holder = holder;
             if (!connection.HasSendRoute || !connection.HasDisconnectRoute) throw InvalidSpellPublication();
@@ -61,6 +61,7 @@ public sealed partial class WorldSessionStore
             binding = new(store, connection, holder.NativeClientIdentity, FinalSession, client, player,
                 detached.Storage, detachedProficiencies.Storage, recovery, canonicalSpells, savedSpellImage);
             binding.InitializePreparedProficiencyImage(admissionOwner, proficienciesRoot, savedProficiencyImage, FinalSession);
+            binding.InitializePreparedVigorSeed(admissionOwner, savedCharacterImage, FinalSession);
             binding.InitializePreparedBeasts(admissionOwner);
             hitpoints = LegacyNativePlayerRuntime.OwnedHitpointsPublication.PrepareAdmission(binding, admissionOwner, FinalSession);
             action = LegacyNativePlayerRuntime.OwnedActionPublication.PrepareAdmission(binding, admissionOwner, FinalSession);

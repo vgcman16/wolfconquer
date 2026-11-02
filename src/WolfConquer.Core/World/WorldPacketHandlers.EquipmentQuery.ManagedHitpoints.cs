@@ -47,7 +47,7 @@ public static partial class WorldPacketHandlers
 
     private static LegacyEquipmentQueryPublicationResult CommitAssignedManagedOrLegacyHitpoints(
         WorldPacketHandlerContext context, WorldSession session, LegacyEquipmentQueryPublicationScope scope,
-        int value, WorldSession? required)
+        int value, WorldSession? required, Action<WorldSession, WorldSession>? onNativePublished = null)
     {
         if (scope.ManagedHitpoints is { } purpose && context.Sessions is { } store)
         {
@@ -58,8 +58,12 @@ public static partial class WorldPacketHandlers
                     ? RefreshLegacyEquipmentQueryPublication(context with { Session = written }, written, scope)
                     : new(null, required, LegacyEquipmentQueryPublicationLoss.OwnerLost);
         }
-        return CommitLegacyEquipmentQueryMutation(context, session, scope,
-            owner => ProjectAssignedLegacyHitpoints(context, owner, scope.OwnerUid, value));
+        WorldSession? before = null;
+        return CommitLegacyEquipmentQueryMutation(context, session, scope, owner =>
+            {
+                before = owner;
+                return ProjectAssignedLegacyHitpoints(context, owner, scope.OwnerUid, value);
+            }, written => { if (before is not null) onNativePublished?.Invoke(before, written); });
     }
 
     private sealed partial class LegacyEquipmentQueryExecution
@@ -81,7 +85,18 @@ public static partial class WorldPacketHandlers
                     return Current.Completed;
                 }
             }
-            return Commit(session => ProjectManagedQueryVigor(session, vigor));
+            // Continuation has a separate typed publication owner; do not issue
+            // this ordinary-query receipt without its own successor proof.
+            if (PendingContinuation() is not null)
+                return Commit(session => ProjectManagedQueryVigor(session, vigor));
+            WorldSession? vigorWritten = null;
+            Adopt(CommitLegacyEquipmentQueryMutation(Context, Session, Request.Scope,
+                session => ProjectManagedQueryVigor(session, vigor), actual => vigorWritten = actual));
+            if (!Current.Completed) return false;
+            if (vigorWritten?.NativeGameClient?.OrdinarySpellBinding is not { } binding) return true;
+            queryVigorPurpose = IssueBoundQueryVigor(vigorWritten, binding, queryEpoch, vigor);
+            if (!IsVigorLineageCurrent(Session)) RetireVigorLineage();
+            return true;
         }
     }
 }

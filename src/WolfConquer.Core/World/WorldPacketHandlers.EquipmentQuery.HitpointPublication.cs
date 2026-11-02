@@ -102,7 +102,8 @@ public static partial class WorldPacketHandlers
             LegacyEquipmentQueryPublicationScope scope,
             int value,
             CancellationToken cancellationToken,
-            BasicPhysicalReceiveDecision? basicDeath = null)
+            BasicPhysicalReceiveDecision? basicDeath = null,
+            Action<WorldSession, WorldSession>? onNativePublished = null)
     {
         var current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
         if (!current.Completed) return current;
@@ -120,7 +121,7 @@ public static partial class WorldPacketHandlers
         }
         else
             current = CommitAssignedManagedOrLegacyHitpoints(context, session, scope, value,
-                current.RequiredParticipantSession);
+                current.RequiredParticipantSession, onNativePublished);
         if (!current.Completed) return current;
         session = current.Session!;
 

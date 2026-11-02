@@ -22,8 +22,6 @@ public sealed class LegacyPlayerDynamicVisibilityParityTests
     [InlineData(null, null, "71", null, false)]
     [InlineData(null, "71", "71", null, true)]
     [InlineData("71", null, null, "72", false)]
-    [InlineData("bad", "71", "71", null, true)]
-    [InlineData("71", "72", null, "71", true)]
     [InlineData("bad", null, null, null, true)]
     [InlineData("bad", null, "71", null, false)]
     [InlineData("-1", null, "0", null, true)]
@@ -39,6 +37,48 @@ public sealed class LegacyPlayerDynamicVisibilityParityTests
         var other = CreateSession(OtherUid, CreateAttributes(otherPrimary, otherAlias));
 
         AssertVisibilityOwners(owner, other, expected);
+    }
+
+    [Theory]
+    [InlineData("bad", "71")]
+    [InlineData("71", "72")]
+    [InlineData("71", "71")]
+    public void DuplicateInstanceAliasesRefuseVisibilityAndSupportResolution(string primary, string alias)
+    {
+        var ambiguous = CreateSession(OwnerUid, CreateAttributes(primary, alias));
+        var other = CreateSession(OtherUid, CreateAttributes("71"));
+        foreach (var type in new[] { typeof(WorldPacketHandlers), typeof(WorldServerFrameHandler), typeof(LegacyMagicSupportTargetResolver) })
+        {
+            var method = type.GetMethod("CanSeePlayer", BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.NotNull(method);
+            foreach (var pair in new[] { new[] { ambiguous.Character, other.Character }, new[] { other.Character, ambiguous.Character } })
+            {
+                var invocation = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, pair));
+                var error = Assert.IsType<InvalidDataException>(invocation.InnerException);
+                Assert.Equal("characterAttributeOwnedFieldAmbiguous", error.Message);
+            }
+        }
+
+        var ownerConnection = new ConquerTcpConnection(null, null);
+        var otherConnection = new ConquerTcpConnection(null, null);
+        var sessions = new WorldSessionStore();
+        sessions.Set(ownerConnection, ambiguous);
+        sessions.Set(otherConnection, other);
+        foreach (var (connection, caster, targetUid) in new[]
+        {
+            (ownerConnection, ambiguous, OtherUid),
+            (otherConnection, other, OwnerUid)
+        })
+        {
+            var context = new WorldPacketHandlerContext(connection, TextWriter.Null, caster,
+                Sessions: sessions, ProtocolProfile: ConquerProtocolProfile.VisibleDx8D13);
+            LegacyMagicSupportPlayerTarget target = null!;
+            var refusal = Assert.Throws<InvalidDataException>(() =>
+                LegacyMagicSupportTargetResolver.TryResolveVisiblePlayerTarget(context, caster, targetUid, out target));
+            Assert.Equal("characterAttributeOwnedFieldAmbiguous", refusal.Message);
+            Assert.Null(target);
+        }
+        GC.KeepAlive(otherConnection);
     }
 
     [Theory]
@@ -192,7 +232,7 @@ public sealed class LegacyPlayerDynamicVisibilityParityTests
 
     private static Dictionary<string, string> CreateAttributes(string? primary = null, string? alias = null)
     {
-        // Keep keys case-sensitive so both alias precedence and fallback are exercised.
+        // Keep keys case-sensitive to construct duplicate operated aliases for refusal tests.
         var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
         if (primary is not null)
         {

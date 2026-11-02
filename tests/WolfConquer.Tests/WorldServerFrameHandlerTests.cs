@@ -869,6 +869,9 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
+        var playerProficienciesPath = Path.Combine(_usersRoot, "PlayersProfs", "1293600.bin");
+        Assert.False(File.Exists(playerProficienciesPath));
+
         await handler.HandleFrameAsync(
             connection,
             ReadFrame(new LegacyMsgLoginGamePacket(1293600).ToFrameBytes()));
@@ -882,13 +885,13 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var persistedSpells = loader.LoadPlayerSpellsByCharacterUid(1293600);
         Assert.Equal([1110U], persistedSpells.SpellIds.ToArray());
         Assert.Equal([1110U], GetSession(handler, connection).PlayerSpells.SpellIds.ToArray());
-        var playerProficienciesPath = Path.Combine(_usersRoot, "PlayersProfs", "1293600.bin");
-        Assert.True(File.Exists(playerProficienciesPath));
-        Assert.Equal(sizeof(int), new FileInfo(playerProficienciesPath).Length);
+        // Admission retains a missing proficiency image until a real writer needs it.
+        Assert.False(File.Exists(playerProficienciesPath));
         Assert.Empty(GetSession(handler, connection).PlayerProficiencies.Proficiencies);
 
         Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
         await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent, newItems: 0);
+        Assert.False(File.Exists(playerProficienciesPath));
     }
 
     [Fact]
@@ -967,6 +970,9 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         var sent = new List<byte[]>();
         var connection = CreateSendingConnection(sent);
 
+        var playerProficienciesPath = Path.Combine(_usersRoot, "PlayersProfs", "1293600.bin");
+        Assert.False(File.Exists(playerProficienciesPath));
+
         await handler.HandleFrameAsync(
             connection,
             ReadFrame(new LegacyMsgLoginGamePacket(1293600).ToFrameBytes()));
@@ -979,12 +985,12 @@ public sealed partial class WorldServerFrameHandlerTests : IDisposable
         Assert.Equal([1045U, 1046U, 1110U, 10309U, 1010U, 1000U, 1005U], loader.LoadPlayerSpellsByCharacterUid(1293600).SpellIds.ToArray());
         Assert.Equal([1045U, 1046U, 1110U, 10309U, 1010U, 1000U, 1005U], GetSession(handler, connection).PlayerSpells.SpellIds.ToArray());
         Assert.Equal(new uint[] { 3_000_550, 3_001_027 }, loader.LoadPlayerItemsByCharacterUid(1293600).InventoryItems.Select(row => row.ItemId));
-        var playerProficienciesPath = Path.Combine(_usersRoot, "PlayersProfs", "1293600.bin");
-        Assert.True(File.Exists(playerProficienciesPath));
-        Assert.Equal(sizeof(int), new FileInfo(playerProficienciesPath).Length);
+        // Admission retains a missing proficiency image until a real writer needs it.
+        Assert.False(File.Exists(playerProficienciesPath));
 
         Assert.Contains("WorldServer ordinary admission committed key=1293600.", log.ToString());
         await admission.AssertCommittedAndRepeatedAsync(handler, connection, sent, newItems: 0);
+        Assert.False(File.Exists(playerProficienciesPath));
     }
 
     [Fact]

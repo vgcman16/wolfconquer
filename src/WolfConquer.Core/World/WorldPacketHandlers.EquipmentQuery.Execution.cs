@@ -63,6 +63,7 @@ public static partial class WorldPacketHandlers
             Current = result;
             if (result.Session is { } session)
             {
+                if (!IsVigorLineageCurrent(session)) RetireVigorLineage();
                 Session = session;
                 Context = Context with { Session = session };
             }
@@ -70,8 +71,20 @@ public static partial class WorldPacketHandlers
 
         public bool Commit(Func<WorldSession, WorldSession> update)
         {
-            if (PendingContinuation() is { } pending) return CommitContinuationMutation(update, pending);
-            Adopt(CommitLegacyEquipmentQueryMutation(Context, Session, Request.Scope, update));
+            if (PendingContinuation() is { } pending)
+            {
+                RetireVigorLineage();
+                return CommitContinuationMutation(update, pending);
+            }
+            WorldSession? before = null;
+            Adopt(CommitLegacyEquipmentQueryMutation(Context, Session, Request.Scope, owner =>
+            {
+                before = owner;
+                return update(owner);
+            }, written =>
+            {
+                if (before is not null) AdvanceVigorLineage(before, written);
+            }));
             return Current.Completed;
         }
 
@@ -114,7 +127,8 @@ public static partial class WorldPacketHandlers
                 if (Context.Connection.NativeGameClient is null && Session.NativeGameClient is null && Context.Sessions is not null)
                     scope = scope with { ManagedHitpoints = IssueManagedQueryHitpoints(Context, Session, value) };
                 Adopt(await AssignLegacyPlayerHitpointsAsync(
-                    Context, Session, scope, value, CancellationToken).ConfigureAwait(false));
+                    Context, Session, scope, value, CancellationToken,
+                    onNativePublished: AdvanceVigorLineage).ConfigureAwait(false));
             }
             if (!Current.Completed) return false;
             Receipt = Receipt with

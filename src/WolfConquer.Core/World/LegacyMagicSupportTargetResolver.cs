@@ -70,16 +70,9 @@ internal static class LegacyMagicSupportTargetResolver
 
     private static uint ReadCharacterDynamicId(CharacterSnapshot character)
     {
-        foreach (var key in new[] { "DynamicID", "DynamicId" })
-        {
-            if (character.Attributes.TryGetValue(key, out var value) &&
-                uint.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-            {
-                return parsed;
-            }
-        }
-
-        return 0;
+        var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        return LegacyCharacterAttributeMap.TryRead(attributes, "DynamicID", out var raw) &&
+            uint.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
     }
 
     private static bool IsCurrentTeammate(

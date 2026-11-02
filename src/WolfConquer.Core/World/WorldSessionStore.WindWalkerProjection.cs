@@ -61,6 +61,11 @@ public sealed partial class WorldSessionStore
 
         internal static OwnedWindWalkerProjection? PrepareBound(LegacyOrdinarySpellBinding binding, WorldSession proposed)
         {
+            // A missing optional native194 registration does not authorize an
+            // ambiguous managed status vector in the bound session graph.
+            var attributes = LegacyNativeAttributeMapProof.CaptureRaw(proposed.Character.Attributes);
+            _ = LegacyWindWalkerStatusProjection.Read(proposed.Character);
+            if (!attributes.IsCurrentPlain()) throw InvalidSpellPublication();
             if (!WindWalkerOwners.TryGetValue(binding.Player, out var slot) || slot.Owner is not { } joined) return null;
             if (!ReferenceEquals(joined.Binding, binding)) throw InvalidSpellPublication();
             return new(joined, proposed);

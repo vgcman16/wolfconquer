@@ -108,9 +108,28 @@ public sealed partial class WorldServerFrameHandler
         out CharacterSnapshot updatedCharacter,
         out bool removedVisibleFlag)
     {
-        var attributes = new Dictionary<string, string>(
-            character.Attributes,
-            StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            return TryExpireLegacyXpSkillFlagsCore(character, now, out updatedCharacter, out removedVisibleFlag);
+        }
+        catch (InvalidDataException)
+        {
+            // Ambiguous owned aliases refuse this subject without publishing a
+            // partially edited map or stopping every other global runtime tick.
+            updatedCharacter = character;
+            removedVisibleFlag = false;
+            return false;
+        }
+    }
+
+    private static bool TryExpireLegacyXpSkillFlagsCore(
+        CharacterSnapshot character, DateTimeOffset now, out CharacterSnapshot updatedCharacter,
+        out bool removedVisibleFlag)
+    {
+        var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        // Expiry must not repair malformed words by silently replacing them
+        // with zero, or update one of two disagreeing status representations.
+        _ = LegacyWindWalkerStatusProjection.Read(character with { Attributes = attributes });
         var changed = false;
         removedVisibleFlag = false;
 
@@ -139,7 +158,7 @@ public sealed partial class WorldServerFrameHandler
                 now,
                 ref removedVisibleFlag))
         {
-            attributes.Remove(WorldPacketHandlers.RuntimeLegacyAccuracyRemoveOnDeadAttribute);
+            LegacyCharacterAttributeMap.Remove(attributes, WorldPacketHandlers.RuntimeLegacyAccuracyRemoveOnDeadAttribute);
             changed = true;
         }
         changed |= TryExpireLegacyXpSkillFlag(
@@ -185,7 +204,7 @@ public sealed partial class WorldServerFrameHandler
                 now,
                 ref removedVisibleFlag))
         {
-            attributes.Remove(WorldPacketHandlers.RuntimeLegacyShurikenVortexNextAttackAtUtcAttribute);
+            LegacyCharacterAttributeMap.Remove(attributes, WorldPacketHandlers.RuntimeLegacyShurikenVortexNextAttackAtUtcAttribute);
             changed = true;
         }
         if (TryExpireLegacyXpSkillFlag(
@@ -195,7 +214,7 @@ public sealed partial class WorldServerFrameHandler
                 now,
                 ref removedVisibleFlag))
         {
-            attributes.Remove(WorldPacketHandlers.RuntimeLegacyManiacDanceNextAttackAtUtcAttribute);
+            LegacyCharacterAttributeMap.Remove(attributes, WorldPacketHandlers.RuntimeLegacyManiacDanceNextAttackAtUtcAttribute);
             changed = true;
         }
         changed |= TryExpireLegacyXpSkillFlag(
@@ -230,7 +249,7 @@ public sealed partial class WorldServerFrameHandler
         DateTimeOffset now,
         ref bool removedVisibleFlag)
     {
-        if (!attributes.TryGetValue(expiresAtAttribute, out var rawExpiresAt) ||
+        if (!LegacyCharacterAttributeMap.TryRead(attributes, expiresAtAttribute, out var rawExpiresAt) ||
             !DateTimeOffset.TryParse(
                 rawExpiresAt,
                 CultureInfo.InvariantCulture,
@@ -241,12 +260,39 @@ public sealed partial class WorldServerFrameHandler
             return false;
         }
 
-        attributes.Remove(expiresAtAttribute);
-        if (RemoveLegacyStatusFlag(attributes, statusFlag))
+        LegacyCharacterAttributeMap.Remove(attributes, expiresAtAttribute);
+        if (RemoveLegacyXpStatusFlag(attributes, statusFlag))
         {
             removedVisibleFlag = true;
         }
 
+        return true;
+    }
+
+    // The XP-expiry scan owns only its selected status vector. Keep opaque
+    // fields and their comparer unchanged; resolve and reject only ambiguous
+    // aliases for this actually operated key.
+    private static bool RemoveLegacyXpStatusFlag(Dictionary<string, string> attributes, int flag)
+    {
+        string raw;
+        if (!LegacyCharacterAttributeMap.TryRead(attributes, "StatusFlags", out raw) &&
+            !LegacyCharacterAttributeMap.TryRead(attributes, "BitVector", out raw)) return false;
+        var wordIndex = flag / 32;
+        var bitIndex = flag % 32;
+        var parts = string.IsNullOrWhiteSpace(raw) ? [] : raw.Split('/', StringSplitOptions.TrimEntries);
+        int length = parts.Length;
+        if (length != 0 && parts[^1].Length == 0) length--;
+        if (wordIndex >= length) return false;
+        var words = new ulong[Math.Max(10, length)];
+        for (var index = 0; index < length; index++)
+            words[index] = ulong.Parse(parts[index], NumberStyles.None, CultureInfo.InvariantCulture);
+        var mask = 1UL << bitIndex;
+        if ((words[wordIndex] & mask) == 0) return false;
+        words[wordIndex] &= ~mask;
+        var updated = string.Join('/', words) + "/";
+        foreach (var key in new[] { "StatusFlags", "BitVector" })
+            if (LegacyCharacterAttributeMap.TryRead(attributes, key, out _))
+                LegacyCharacterAttributeMap.Set(attributes, key, updated);
         return true;
     }
 

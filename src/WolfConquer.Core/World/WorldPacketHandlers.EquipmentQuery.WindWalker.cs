@@ -27,9 +27,11 @@ public static partial class WorldPacketHandlers
                     !desired && !LegacyPlayerDeathState.HasStatusFlag(Session.Character.Attributes, LegacyWindWalkerStatusProjection.Flag)) return true;
                 return LoseWindWalkerOwner();
             }
+            var before = Session;
             if (Context.Sessions is not { } store ||
-                !store.TryCommitWindWalkerQueryPostlude(Context, Session, Request.Scope, query, out var committed, out var publication) ||
+                !store.TryCommitWindWalkerQueryPostlude(Context, before, Request.Scope, query, out var committed, out var publication) ||
                 committed is null || publication is null) return LoseWindWalkerOwner();
+            AdvanceVigorLineage(before, committed);
             Adopt(RefreshLegacyEquipmentQueryPublication(Context with { Session = committed }, committed, Request.Scope));
             if (!Current.Completed) return false;
             var published = await publication.PublishAsync(CancellationToken).ConfigureAwait(false);

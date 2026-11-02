@@ -27,7 +27,7 @@ internal sealed partial class LegacyOrdinaryAdmissionPlan
             var savedProficiencyImage = changes.FirstOrDefault(change => change.Kind == LegacyTradeJournalFileKind.Proficiencies)?.After ??
                 images.GetValueOrDefault(LegacyTradeJournalFileKind.Proficiencies);
             Candidate = lease.PrepareSpellAdmission(Candidate, Recovery, roots.Spells, savedSpellImage,
-                roots.Proficiencies, savedProficiencyImage, prefix);
+                roots.Proficiencies, savedProficiencyImage, characterAfter, prefix);
         }
         if (!LegacySpellPublicationPlan.TryPrepare(Candidate.PlayerSpells, newLoginSpellIds, out var finalPublication) ||
             finalPublication is null || finalPublication.Frames.Length != LoginSpellPublication.Frames.Length)

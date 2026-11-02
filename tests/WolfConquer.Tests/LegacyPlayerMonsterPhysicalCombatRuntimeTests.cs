@@ -1890,7 +1890,10 @@ public sealed class LegacyPlayerMonsterPhysicalCombatRuntimeTests
     {
         var method = typeof(WorldPacketHandlers).GetMethod(
             "CalculateLegacyRuntimeStatusFields",
-            BindingFlags.Static | BindingFlags.NonPublic);
+            BindingFlags.Static | BindingFlags.NonPublic,
+            binder: null,
+            types: [typeof(WorldSession), typeof(WorldDataCatalog)],
+            modifiers: null);
         Assert.NotNull(method);
         return Assert.IsType<uint[]>(method.Invoke(null, [session, worldData]));
     }

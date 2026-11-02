@@ -44,6 +44,15 @@ public static partial class WorldPacketHandlers
                 .ConfigureAwait(false);
             return null;
         }
+        // Shield's actual captured owner must supply all fields that its
+        // selected path will mutate, before a generic cost/cooldown commit.
+        if (spell.Sort == LegacyMagicSort.AttachStatus && spell.Id == LegacyShieldXpBuffSpellId &&
+            !TryPreflightRootXpShield(session.Character, spell.Duration, context.TimeProvider ?? TimeProvider.System))
+        {
+            await context.Log.WriteLineAsync("WorldServer refused Shield XP buff: required projection is invalid.")
+                .ConfigureAwait(false);
+            return null;
+        }
         // Restoration consumes this state even when its priced stamina cost
         // is zero. Validate the actual expected record, protected by its CAS,
         // rather than the caller's potentially older immutable snapshot.

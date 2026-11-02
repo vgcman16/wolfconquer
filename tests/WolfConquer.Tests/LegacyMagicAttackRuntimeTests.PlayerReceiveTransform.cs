@@ -106,12 +106,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             targetHitpoints: checked((int)ExpectedPlayerThunderDamage + 1));
 
         Assert.Equal(1, result.TargetSession.Character.MinHitPoints);
+        // The IIC input contains one stored spelling. CreateCharacter's plain
+        // copy preserves that key, not two independent transformation fields.
+        var retainedTransform = Assert.Single(result.CasterSession.Character.Attributes,
+            pair => pair.Key.Equals("TransformationID", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(
             PlayerReceiveTransformId.ToString(CultureInfo.InvariantCulture),
-            AssertCharacterAttribute(result.CasterSession, "TransformationID"));
-        Assert.Equal(
-            PlayerReceiveTransformId.ToString(CultureInfo.InvariantCulture),
-            AssertCharacterAttribute(result.CasterSession, "TransformationId"));
+            retainedTransform.Value);
+        Assert.True(LegacyTransformState.TryGetActiveMaxHitpoints(result.CasterSession.Character, out var maximum));
+        Assert.Equal(3_000U, maximum);
+        Assert.Equal(3_000L, result.CasterSession.Character.MinHitPoints);
 
         Assert.DoesNotContain(
             ParseMsgActions(result.CasterSent),

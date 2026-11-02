@@ -4,6 +4,71 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## XP global worker correction - 2026-11-02 UTC
+
+### FSB-297: Preserve opaque attribute keys during XP expiry and refuse invalid status data
+
+Focused offline qualification passed; full Windows and live acceptance remain
+OPEN. The actual focused05 runtime log showed the global worker terminate at
+WorldServerFrameHandler.LegacyXpSkills.cs:111: an ordinal-ignore-case clone
+collapsed distinct Opaque/opaque keys. Genuine earned XP Shield then timed out
+because that worker never rearmed. The expiry projection now preserves the
+actual supported map comparer and resolves only the keys it operates. Ambiguous
+owned aliases refuse the complete local projection without publishing an earlier
+partial expiry. Strict status parsing also rejects malformed words, duplicate
+aliases or conflicting StatusFlags/BitVector representations before expiry; both
+agreeing representations are updated together while retaining other flags.
+
+The fixture observes generations of the real player/global Task.Delay timers;
+it does not add timers, seed XP or replace actual workers. Original 100 advances,
+XPCount/XPCircle/XPList and genuine admission/reentrant-death assertions remain.
+On failure, bounded real worker/timer/log diagnostics retain the primary error.
+
+Root build07: 0 errors/175 warnings in 1m48.48s. Focused08 actual TRX:
+17 Passed / 0 Failed / 0 skipped in 9s, including ten expiry controls and seven
+RootXpShield controls. Prior focused05 remains failed at 312P/5F; full49 remains
+failed at Core33701P/32F/152NotExecuted. These scopes overlap, not additive proof.
+This fixes the observed comparer crash and bounded XP expiry DATA invariants;
+it does not prove every global worker path, native/saved XP admission, crash-safe
+transactions, newer-client activation or live stability.
+
+### FSB-298: Preserve movement attributes and reject ambiguous status/instance state
+
+The ordinary movement projections globally collapsed unrelated case-variant keys,
+and selected status/instance readers silently chose conflicting spellings. The
+changed movement producers preserve the actual supported map comparer, resolve
+only operated fields, validate both agreeing status representations, and prepare
+selected cancellation fields before the real movement writer. Bound Store status
+validation also applies when no optional native WindWalker registration exists.
+Dynamic visibility and support targeting now reject ambiguous DynamicID aliases,
+even when their values match. Known valid protocol output is retained.
+
+Focused05 passed all selected owned-action, reflection and visibility cases;
+the overall receipt is still failed (312P/5F), not a full qualification. New
+actual casts, movement/native/files and output/refusal controls passed after the
+independent ten-word Auras vector and single stored transform-key fixture edits.
+PairJump, Neptune, owned Ride/Steed and nonmovement cancellation remain separate
+open paths. This entry does not claim every attribute reader or movement path.
+
+### FSB-299: Validate XP Shield admission and stop stale continuation after real death
+
+The Shield continuation could act on a stale caster after XP-removal output,
+and used durations could be unrepresentable at the real flag-clock deadline.
+Preflight now checks the actually required status/XP and duration fields before
+cost/cooldown admission; an existing Shield retains its current timer without
+reading unused duration. The actual committed XP removal issues a private
+one-use continuation, and exact current identity/liveness is required afterward.
+Real callback death stops Shield/timer/success output without undoing already
+committed XP removal or the real death. New clock changes prepare inert and
+publish only with the actual holder/native update. Opaque keys remain distinct.
+
+Build07 passed; focused08 passed 17/17. Focused09 passed 505/507, 0 failed and
+two existing external-fixture skips, including the public Shield no-XP/malformed
+and active-timer controls. The generated neighbor filter also selected broader
+Advance/Dispose/Fire name matches; totals describe that actual selection, not
+only XP tests. Prior failed receipts remain. Native/saved XP admission, every
+clock path, global durability and live-client stability are not proven here.
+
 ## Owned death native cache correction - 2026-11-01
 
 ### FSB-296: Publish the actual death query native HP/mana maximums

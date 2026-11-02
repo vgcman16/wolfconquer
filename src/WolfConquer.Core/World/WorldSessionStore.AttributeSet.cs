@@ -80,8 +80,11 @@ public sealed partial class WorldSessionStore
                 var disk = CharacterSnapshotParser.ParseText(text);
                 var comparableAttributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var pair in expected.Character.Attributes) comparableAttributes[pair.Key] = pair.Value;
-                if (disk.Uid != expected.Character.Uid || CharacterSnapshotScalarPersistence.HasPersistedScalarChanges(disk, expected.Character) ||
-                    disk.Attributes.Any(pair => !comparableAttributes.TryGetValue(pair.Key, out var value) || value != pair.Value) ||
+                if (disk.Uid != expected.Character.Uid || !owner.MatchesSavedVigorSeed(before) ||
+                    CharacterSnapshotScalarPersistence.HasPersistedScalarChanges(disk, expected.Character) ||
+                    !owner.MatchesAttributeAllocationVigor(disk, expected) ||
+                    disk.Attributes.Any(pair => !pair.Key.Equals("Vigor", StringComparison.OrdinalIgnoreCase) &&
+                        (!comparableAttributes.TryGetValue(pair.Key, out var value) || value != pair.Value)) ||
                     disk.PaidNobility.Count != expected.Character.PaidNobility.Count ||
                     disk.PaidNobility.Any(pair => !expected.Character.PaidNobility.TryGetValue(pair.Key, out var value) || value != pair.Value)) return false;
                 var changes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

@@ -66,7 +66,8 @@ public static class LegacyMovementSideEffects
     {
         ArgumentNullException.ThrowIfNull(character);
 
-        if (!IsAway(character.Attributes))
+        var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        if (!IsAway(attributes))
         {
             return new LegacyMovementSideEffectResult(
                 character,
@@ -75,10 +76,7 @@ public static class LegacyMovementSideEffects
         }
 
         // MsgMovement.Movement and MsgDataPacket.PlayerJump both clear Away before refreshing visible peers.
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            [AwayAttribute] = "0",
-        };
+        LegacyCharacterAttributeMap.Set(attributes, AwayAttribute, "0");
 
         return new LegacyMovementSideEffectResult(
             character with { Attributes = attributes },
@@ -86,9 +84,9 @@ public static class LegacyMovementSideEffects
             RefreshVisiblePeerSpawn: true);
     }
 
-    private static bool IsAway(IReadOnlyDictionary<string, string> attributes)
+    private static bool IsAway(Dictionary<string, string> attributes)
     {
-        if (!attributes.TryGetValue(AwayAttribute, out var raw) ||
+        if (!LegacyCharacterAttributeMap.TryRead(attributes, AwayAttribute, out var raw) ||
             string.IsNullOrWhiteSpace(raw))
         {
             return false;

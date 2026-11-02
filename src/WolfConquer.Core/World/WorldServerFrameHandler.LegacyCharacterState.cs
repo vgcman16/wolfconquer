@@ -7,7 +7,9 @@ public sealed partial class WorldServerFrameHandler
 {
     private static uint ReadCharacterDynamicId(CharacterSnapshot character)
     {
-        return ReadMonsterAttributeUInt32(character.Attributes, "DynamicID", "DynamicId");
+        var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        return LegacyCharacterAttributeMap.TryRead(attributes, "DynamicID", out var raw) &&
+            uint.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
     }
 
     private static bool CanSeePlayer(CharacterSnapshot character, CharacterSnapshot other)

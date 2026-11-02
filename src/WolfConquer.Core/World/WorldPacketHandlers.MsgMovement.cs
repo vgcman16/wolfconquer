@@ -206,9 +206,11 @@ public static partial class WorldPacketHandlers
         var movementAttributes = steedVigor is { } vigor
             ? WithCharacterAttribute(movementCharacter, "Vigor", vigor).Attributes
             : WithCharacterAttribute(movementCharacter, "Angle", angle).Attributes;
-        var removedFocusedFlag = HasLegacyStatusFlag(movementCharacter, LegacyFocusedFlag);
-        var removedMagicDefenderFlag = HasLegacyStatusFlag(movementCharacter, LegacyMagicDefenderFlag);
-        var removedActivePick = HasActivePick(movementCharacter);
+        var movementInput = LegacyCharacterAttributeMap.Copy(movementCharacter.Attributes);
+        var movementFlags = MovementStatusAttributes.Read(movementInput);
+        var removedFocusedFlag = movementFlags.Has(LegacyFocusedFlag);
+        var removedMagicDefenderFlag = movementFlags.Has(LegacyMagicDefenderFlag);
+        var removedActivePick = HasMovementActivePick(movementInput);
         var cancelledArmedFocus = TryCancelLegacyIntensifyArm(
             movementAttributes,
             out movementAttributes);
@@ -245,6 +247,7 @@ public static partial class WorldPacketHandlers
             return;
         }
 
+        var focusedCancel = PrepareLegacyFocusedCancelData(session, removedFocusedFlag || cancelledArmedFocus);
         if (removedActivePick)
         {
             character = WithoutCharacterAttribute(character, "ActivePick");
@@ -296,8 +299,7 @@ public static partial class WorldPacketHandlers
         if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;
         await SendMovementFocusedCancelIfNeededAsync(
                 context,
-                session,
-                removedFocusedFlag || cancelledArmedFocus,
+                focusedCancel,
                 cancellationToken)
             .ConfigureAwait(false);
         if (movementPublication is not null && !movementPublication.TryCurrent(out _)) return;

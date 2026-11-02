@@ -308,7 +308,7 @@ public sealed partial class LegacyPlayerSpawnPacket
             [OwnerPet1Field] = cloneFlag,
             [XField] = CheckedUInt64(owner.X, nameof(owner.X)),
             [YField] = CheckedUInt64(owner.Y, nameof(owner.Y)),
-            [FacingField] = ReadAttributeUInt64(owner.Attributes, "Angle", "Facing"),
+            [FacingField] = ReadMovementFacing(owner.Attributes),
         };
 
         return new LegacyPlayerSpawnPacket(
@@ -401,7 +401,7 @@ public sealed partial class LegacyPlayerSpawnPacket
         numeric[XField] = CheckedUInt64(snapshot.X, nameof(snapshot.X));
         numeric[YField] = CheckedUInt64(snapshot.Y, nameof(snapshot.Y));
         numeric[HairStyleField] = CheckedUInt64(snapshot.Hair, nameof(snapshot.Hair));
-        numeric[FacingField] = ReadAttributeUInt64(snapshot.Attributes, "Angle", "Facing");
+        numeric[FacingField] = ReadMovementFacing(snapshot.Attributes);
         numeric[ActionField] = action;
         numeric[RebornField] = CheckedUInt64(snapshot.Reborn, nameof(snapshot.Reborn));
         numeric[LevelField] = CheckedUInt64(snapshot.Level, nameof(snapshot.Level));
@@ -894,6 +894,25 @@ public sealed partial class LegacyPlayerSpawnPacket
         }
 
         return long.TryParse(raw, out var numericValue) && numericValue != 0 ? 1UL : 0;
+    }
+
+    private static ulong ReadMovementFacing(IReadOnlyDictionary<string, string> attributes)
+    {
+        foreach (var key in new[] { "Angle", "Facing" })
+        {
+            string? raw = null;
+            bool present = false;
+            foreach (var field in attributes)
+                if (string.Equals(field.Key, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (present) throw new InvalidDataException("spawnFacingAttributeAmbiguous");
+                    present = true;
+                    raw = field.Value;
+                }
+            if (present && long.TryParse(raw, out var value))
+                return value <= 0 ? 0 : (ulong)value;
+        }
+        return 0;
     }
 
     private static ulong ReadAttributeUInt64(IReadOnlyDictionary<string, string> attributes, params string[] keys)

@@ -4,7 +4,7 @@ public static partial class WorldPacketHandlers
 {
     internal static LegacyEquipmentQueryPublicationResult CommitLegacyEquipmentQueryMutation(
         WorldPacketHandlerContext context, WorldSession session, LegacyEquipmentQueryPublicationScope scope,
-        Func<WorldSession, WorldSession> update)
+        Func<WorldSession, WorldSession> update, Action<WorldSession>? onNativePublished = null)
     {
         var current = RefreshLegacyEquipmentQueryPublication(context, session, scope);
         if (!current.Completed) return current;
@@ -24,6 +24,7 @@ public static partial class WorldPacketHandlers
                     }, out var written))
                 return new(null, current.RequiredParticipantSession,
                     current.Loss | LegacyEquipmentQueryPublicationLoss.OwnerLost);
+            onNativePublished?.Invoke(written);
             session = written;
         }
         else

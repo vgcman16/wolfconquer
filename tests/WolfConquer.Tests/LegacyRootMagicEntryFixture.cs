@@ -15,7 +15,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         private readonly WorldSessionStore sessions = new();
         private readonly Dictionary<uint, ConquerTcpConnection> connections = [];
-        private readonly ManualRuntimeTimeProvider clock = new(RootMagicEntryOrigin);
+        private readonly RootRuntimeClock clock = new(RootMagicEntryOrigin);
         private readonly StringWriter log = new(CultureInfo.InvariantCulture);
         private readonly WorldPacketHandlerContext context;
         private readonly bool hasRawRidingCrop;
@@ -25,6 +25,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         private bool itemEffectRuntimeStarted;
         private readonly bool itemEffectXpControls;
         private bool itemEffectPlayerRuntimeStarted;
+        private Exception? rootXpWaitFailure;
         private readonly bool nativeDeathCasterQueryControls;
 
         public RootMagicEntryFixture(ushort selectedId = 1_000, ushort rawCadence = 0,
@@ -36,7 +37,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             bool ridingCropQueryControls = false,
             RootManualItemEffectInputs? itemEffects = null, bool itemEffectLifetimeControls = false,
             bool itemEffectXpControls = false, bool nativeDeathCasterQueryControls = false,
-            bool playerEligibilityControls = false)
+            bool playerEligibilityControls = false, uint shieldDuration = 30,
+            ushort shieldMana = 0, byte shieldStamina = 0, bool opaqueCaseControls = false,
+            ushort shieldCooldown = 0, int shieldColdTime = 0)
         {
             hasRawRidingCrop = ridingCrop;
             this.nativeDeathCasterQueryControls = nativeDeathCasterQueryControls;
@@ -66,8 +69,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     damage: nativeDeathCasterQueryControls ? 9_999U : 9_000U,
                     range: 18, coolDown: 0, coldTime: 0));
             if (itemEffectXpControls)
-                rows.Add(CreateMagicRow(1_020, sort: 6, useMana: 0, useStamina: 0,
-                    damage: 100, duration: 30, range: 18, coolDown: 0, coldTime: 0));
+                rows.Add(CreateMagicRow(1_020, sort: 6, useMana: shieldMana, useStamina: shieldStamina,
+                    damage: 100, duration: shieldDuration, range: 18, coolDown: shieldCooldown, coldTime: shieldColdTime));
             if (nativeCadenceControls)
                 rows.Add(CreateMagicRow(1_115, sort: 1, useMana: 40, useStamina: 10,
                     damage: 100, range: 4, coolDown: rawCadence, coldTime: coldTime));
@@ -143,14 +146,18 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                     ["LegacyPhysicalPlayerLuckyBranchRoll"] = "99",
                     ["LegacyPhysicalPlayerCriticalRoll"] = "99",
                 });
+            if (opaqueCaseControls)
+            {
+                var fields = new Dictionary<string, string>(owner.Character.Attributes, StringComparer.Ordinal)
+                    { ["Opaque"] = "one", ["opaque"] = "two" };
+                owner = owner with { Character = owner.Character with { Attributes = fields } };
+            }
             if (itemEffects is not null)
             {
-                var inputs = new Dictionary<string, string>(owner.Character.Attributes)
-                {
-                    ["LegacyWeaponEffectRateRoll.1175"] = itemEffects.MpRoll.ToString(CultureInfo.InvariantCulture),
-                    ["LegacyWeaponEffectRateRoll.1095"] = itemEffects.RingRoll.ToString(CultureInfo.InvariantCulture),
-                    ["LegacyWeaponEffectRateRoll.1020"] = itemEffects.NeckRoll.ToString(CultureInfo.InvariantCulture),
-                };
+                var inputs = LegacyCharacterAttributeMap.Copy(owner.Character.Attributes);
+                LegacyCharacterAttributeMap.Set(inputs, "LegacyWeaponEffectRateRoll.1175", itemEffects.MpRoll.ToString(CultureInfo.InvariantCulture));
+                LegacyCharacterAttributeMap.Set(inputs, "LegacyWeaponEffectRateRoll.1095", itemEffects.RingRoll.ToString(CultureInfo.InvariantCulture));
+                LegacyCharacterAttributeMap.Set(inputs, "LegacyWeaponEffectRateRoll.1020", itemEffects.NeckRoll.ToString(CultureInfo.InvariantCulture));
                 owner = owner with { Character = owner.Character with { Attributes = inputs } };
             }
             if (ridingCropQueryControls)
@@ -250,6 +257,30 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 ReadFrame(new MsgAttackPacket(query).ToFrameBytes())).AsTask();
         }
 
+        public async Task CastShieldThroughFrameAsync()
+        {
+            var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+            var query = new MsgAttackQuery(Uid: PlayerUid, OpponentUid: PlayerUid, X: 829, Y: 583,
+                AttackType: MsgAttackType.Magic, Damage: 0, KilledMonster: 0, ResponseDamage: 0,
+                Effect: MsgAttackEffect.None, Unknown: 0, SpellId: 1_020);
+            await handler.HandleFrameAsync(connections[PlayerUid], ReadFrame(new MsgAttackPacket(query).ToFrameBytes()));
+        }
+
+        public void SetMalformedShieldInput(string kind)
+        {
+            var current = Owner;
+            var fields = new Dictionary<string, string>(current.Character.Attributes, StringComparer.Ordinal);
+            if (kind == "marker")
+            {
+                fields["LegacyRootItemEffectFlag.8.NativeOwned"] = "True";
+                fields["legacyrootitemeffectflag.8.nativeowned"] = "True";
+            }
+            else if (kind == "status")
+                fields["StatusFlags"] = fields["StatusFlags"] + "not-a-number/";
+            else throw new ArgumentOutOfRangeException(nameof(kind));
+            sessions.Set(connections[PlayerUid], current with { Character = current.Character with { Attributes = fields } });
+        }
+
         public Task QueryRootRidingCropEquipmentAsync() => PacketHandlers.HandleAsync(context with { Session = Owner },
             ReadFrame(new MsgActionPacket { ObjId = PlayerUid, Type = (MsgActionType)251 }.ToFrameBytes())).AsTask();
         public Task UnequipRootRidingCropAsync() => PacketHandlers.HandleAsync(context with { Session = Owner },
@@ -257,6 +288,19 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 .ToFrameBytes())).AsTask();
 
         public Task QueryRootItemEffectsAsync() => QueryRootRidingCropEquipmentAsync();
+        public async Task QueryRootItemEffectsThroughFrameAsync()
+        {
+            var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+            // The real Frame dispatch registers this connection's transport
+            // lifetime before routing the real equipment query. The fixture
+            // still owns synthetic in-memory sessions; this is not saved login.
+            int first = Order.Count;
+            await handler.HandleFrameAsync(connections[PlayerUid],
+                ReadFrame(new MsgActionPacket { ObjId = PlayerUid, Type = (MsgActionType)251 }.ToFrameBytes()));
+            Assert.Equal(200U, LegacyPhysicalStatusOverlay.ForOwner(Owner).NecklaceItemEffect);
+            Assert.Contains(FramesSince(PlayerUid, first), bytes =>
+                ReadFrame(bytes).Header.Opcode == LegacyPlayerStatusPacket.Opcode);
+        }
         public Task UnequipRootItemEffectAsync(ushort position)
         {
             var item = Assert.Single(Owner.PlayerItems.EquipmentItems, value => value.Position == position);
@@ -270,6 +314,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Equal(PlayerUid, current.Character.Uid);
             sessions.Set(connections[PlayerUid], current with { Character = current.Character with { X = x, Y = y } });
         }
+        public bool RootShieldClockExists() => LegacyRootItemEffectFlagClock.HasRegistration(
+            sessions, connections[PlayerUid], PlayerUid, 8);
         public WorldSession? RootItemEffectSlot(uint uid) =>
             sessions.TryGet(connections[uid], out var current) ? current : null;
         public WorldSession? RetireRootItemEffectSubject(uint uid, bool rebind)
@@ -302,7 +348,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
             var cancel = Assert.IsType<CancellationTokenSource>(itemEffectRuntimeCancel);
             Assert.Equal(0, clock.ScheduledTimerCount);
-            FineRainExpiryStartGlobal(handler, cancel.Token); // Actual global owner only, not a player/login ticker.
+            using (clock.Identify("global"))
+                FineRainExpiryStartGlobal(handler, cancel.Token); // Actual global owner only, not a player/login ticker.
             itemEffectRuntimeStarted = true;
             await WaitUntilAsync(() => clock.ScheduledTimerCount >= 1, TimeSpan.FromSeconds(2));
         }
@@ -344,13 +391,27 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             await StartRootItemEffectRuntimeAsync();
             var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
             var cancel = Assert.IsType<CancellationTokenSource>(itemEffectRuntimeCancel);
-            StartHandlerRuntimeUpdateLoop(handler, connections[PlayerUid], Owner, cancel.Token);
+            using (clock.Identify("player"))
+                StartHandlerRuntimeUpdateLoop(handler, connections[PlayerUid], Owner, cancel.Token);
             itemEffectPlayerRuntimeStarted = true;
-            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 2, TimeSpan.FromSeconds(2));
+            await WaitForRootXpRuntimeAsync("initial timers", 0, () =>
+                clock.ActiveGeneration("global") != 0 && clock.ActiveGeneration("player") != 0);
             for (var count = 1; count <= 100; count++)
             {
-                await AdvanceRootItemEffectXpRuntimeAsync(TimeSpan.FromSeconds(8));
+                await AdvanceRootItemEffectXpRuntimeAsync(TimeSpan.FromSeconds(8), count);
                 var expected = (count == 100 ? 0 : count).ToString(CultureInfo.InvariantCulture);
+                // A scheduled timer is not a completed player tick. Observe
+                // the actual ticker's state and corresponding outbound circle,
+                // then wait until its next one-shot delay is armed before the
+                // next eight-second advance. The global timer alone is no proof.
+                await WaitForRootXpRuntimeAsync("XP state and frame", count, () =>
+                    Owner.Character.Attributes.TryGetValue("XPCount", out var actual) && actual == expected &&
+                    HasLegacyStatusFlag(Owner.Character.Attributes, LegacyRuntimeUpdateTicker.XpListFlag) == (count == 100) &&
+                    ParseMsgUpdates(FramesSince(PlayerUid, first)).Any(packet => packet.Uid == PlayerUid &&
+                        packet.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.XPCircle && entry.Value == (ulong)count)) &&
+                    (count != 100 || ParseMsgUpdates(FramesSince(PlayerUid, first)).Any(packet => packet.Uid == PlayerUid &&
+                        packet.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.XPList && entry.Value == 1))) &&
+                    clock.ActiveGeneration("global") != 0 && clock.ActiveGeneration("player") != 0);
                 Assert.Equal(expected, Owner.Character.Attributes["XPCount"]);
                 Assert.Equal(count == 100,
                     HasLegacyStatusFlag(Owner.Character.Attributes, LegacyRuntimeUpdateTicker.XpListFlag));
@@ -363,12 +424,46 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.Contains(ParseMsgUpdates(FramesSince(PlayerUid, first)), packet => packet.Uid == PlayerUid &&
                 packet.Updates.Any(entry => entry.Type == LegacyMsgUpdateDataType.XPList && entry.Value == 1));
         }
-        public async Task AdvanceRootItemEffectXpRuntimeAsync(TimeSpan amount)
+        public async Task AdvanceRootItemEffectXpRuntimeAsync(TimeSpan amount, int count = 0)
         {
             Assert.True(itemEffectPlayerRuntimeStarted);
-            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 2, TimeSpan.FromSeconds(2));
+            await WaitForRootXpRuntimeAsync("before advance", count, () =>
+                clock.ActiveGeneration("global") != 0 && clock.ActiveGeneration("player") != 0);
+            long player = clock.ActiveGeneration("player"), global = clock.ActiveGeneration("global");
             clock.Advance(amount);
-            await WaitUntilAsync(() => clock.ScheduledTimerCount >= 2, TimeSpan.FromSeconds(2));
+            // Each real Task.Delay is one-shot. A strictly newer timer from
+            // each same worker proves that worker finished its prior iteration;
+            // unrelated timers and the other worker cannot satisfy this wait.
+            await WaitForRootXpRuntimeAsync("after advance", count, () =>
+                clock.ActiveGeneration("player") > player && clock.ActiveGeneration("global") > global);
+        }
+
+        private async Task WaitForRootXpRuntimeAsync(string phase, int count, Func<bool> ready)
+        {
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(2);
+            while (!ready())
+            {
+                var handler = Assert.IsType<WorldServerFrameHandler>(itemEffectRuntimeHandler);
+                if (FineRainExpiryGlobalStopped(handler) || DateTimeOffset.UtcNow >= deadline)
+                {
+                    var current = RootItemEffectSlot(PlayerUid);
+                    string xp = current is not null && current.Character.Attributes.TryGetValue("XPCount", out var raw)
+                        ? raw : "<absent>";
+                    bool list = current is not null && HasLegacyStatusFlag(current.Character.Attributes, LegacyRuntimeUpdateTicker.XpListFlag);
+                    var workers = handler.CaptureLegacyRuntimeWorkerTasks();
+                    string runtimeLog;
+                    lock (itemEffectRuntimeLog ?? log) runtimeLog = log.ToString();
+                    if (runtimeLog.Length > 8_000) runtimeLog = runtimeLog[^8_000..];
+                    var failure = new TimeoutException($"Root XP {phase}; step={count}; now={Now:O}; xp={xp}; xpList={list}; " +
+                        $"frames={Order.Count}; scheduled={clock.ScheduledTimerCount}; timers=[{clock.Describe()}]; " +
+                        $"globalStopped={FineRainExpiryGlobalStopped(handler)}; " +
+                        $"workers=[{string.Join(",", workers.Select(task => task.Status))}]; " +
+                        $"faultedWorkers={handler.LegacyRuntimeFaultedWorkerCount}; log={runtimeLog}");
+                    rootXpWaitFailure = failure;
+                    throw failure;
+                }
+                await Task.Delay(10).ConfigureAwait(false);
+            }
         }
 
         public void AssertProducedStamp(DateTimeOffset expected) =>
@@ -389,16 +484,26 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         public async ValueTask DisposeAsync()
         {
-            if (itemEffectRuntimeCancel is not null)
+            try
             {
-                await itemEffectRuntimeCancel.CancelAsync();
-                if (itemEffectRuntimeStarted)
-                    await WaitUntilAsync(() => clock.ScheduledTimerCount == 0 &&
-                        FineRainExpiryGlobalStopped(itemEffectRuntimeHandler!), TimeSpan.FromSeconds(3));
-                itemEffectRuntimeCancel.Dispose();
+                if (itemEffectRuntimeCancel is not null)
+                {
+                    await itemEffectRuntimeCancel.CancelAsync();
+                    if (itemEffectRuntimeStarted)
+                        await WaitUntilAsync(() => clock.ScheduledTimerCount == 0 &&
+                            FineRainExpiryGlobalStopped(itemEffectRuntimeHandler!), TimeSpan.FromSeconds(3));
+                }
             }
-            GC.KeepAlive(connections);
-            log.Dispose();
+            catch (Exception cleanup) when (rootXpWaitFailure is not null)
+            {
+                throw new AggregateException("Root XP runtime wait and cleanup failed.", rootXpWaitFailure, cleanup);
+            }
+            finally
+            {
+                itemEffectRuntimeCancel?.Dispose();
+                GC.KeepAlive(connections);
+                log.Dispose();
+            }
         }
     }
 

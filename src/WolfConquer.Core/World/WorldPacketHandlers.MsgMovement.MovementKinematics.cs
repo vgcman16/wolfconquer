@@ -55,7 +55,10 @@ public static partial class WorldPacketHandlers
 
     private static uint DecrementJumpRideVigor(CharacterSnapshot character, long legacyDistance)
     {
-        var vigor = ReadAttributeUInt64(character.Attributes, "Vigor");
+        var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        var vigor = LegacyCharacterAttributeMap.TryRead(attributes, "Vigor", out var raw) &&
+            ulong.TryParse(raw, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
         if (vigor > uint.MaxValue)
         {
             throw new ArgumentOutOfRangeException(nameof(character), vigor, "Legacy ride vigor cannot be outside uint range.");

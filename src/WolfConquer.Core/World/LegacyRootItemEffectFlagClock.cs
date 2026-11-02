@@ -14,7 +14,7 @@ internal sealed record LegacyRootItemEffectFlagClock(
     {
         internal readonly object Gate = new();
         internal long OwnerUid;
-        internal readonly Dictionary<int, LegacyRootItemEffectFlagClock> Flags = [];
+        internal Dictionary<int, LegacyRootItemEffectFlagClock> Flags = [];
     }
     private sealed class WorldClocks
     {
@@ -39,6 +39,21 @@ internal sealed record LegacyRootItemEffectFlagClock(
         _ => throw new ArgumentOutOfRangeException(nameof(flag)),
     };
 
+    // Check both actual clock domains before any XP/cost admission. Zero is
+    // a representable source duration and remains a valid immediate expiry.
+    internal static bool CanRepresentDuration(uint seconds, TimeProvider provider)
+    {
+        if (seconds > int.MaxValue) return false;
+        try
+        {
+            var now = provider.GetUtcNow();
+            _ = now.AddSeconds(seconds);
+            _ = LegacyArrowBladesFlagRegistration.LocalTime(provider, now).AddSeconds(seconds);
+            return true;
+        }
+        catch (Exception error) when (error is ArgumentOutOfRangeException or OverflowException) { return false; }
+    }
+
     internal static CharacterSnapshot Install(WorldSessionStore? world, ConquerTcpConnection connection,
         CharacterSnapshot character, int flag, int seconds, TimeProvider provider)
     {
@@ -57,12 +72,70 @@ internal sealed record LegacyRootItemEffectFlagClock(
             state.OwnerUid = character.Uid;
             state.Flags[flag] = entry; // Called only after a fresh native AddFlag or quiet AddSpellFlag replacement.
         }
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            [Marker(flag)] = bool.TrueString,
-            [DeadlineKey(flag)] = mirror,
-        };
+        var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        LegacyCharacterAttributeMap.Set(attributes, Marker(flag), bool.TrueString);
+        LegacyCharacterAttributeMap.Set(attributes, DeadlineKey(flag), mirror);
         return character with { Attributes = attributes };
+    }
+
+    // A prepared clock holds the real clock owner's gate while the Store
+    // commits the matching holder. No registration changes before commit.
+    internal sealed class PreparedInstall : IDisposable
+    {
+        private readonly ClientClocks state;
+        private readonly Dictionary<int, LegacyRootItemEffectFlagClock> after;
+        private readonly long uid;
+        private bool held;
+        internal CharacterSnapshot Character { get; }
+
+        private PreparedInstall(ClientClocks state, CharacterSnapshot character, int flag,
+            int seconds, TimeProvider provider)
+        {
+            this.state = state; uid = character.Uid;
+            Monitor.Enter(state.Gate, ref held);
+            try
+            {
+                var now = provider.GetUtcNow();
+                var entry = new LegacyRootItemEffectFlagClock(uid, flag,
+                    LegacyArrowBladesFlagRegistration.LocalTime(provider, now), seconds);
+                _ = entry.ExpiresAtLocal; // Validate the actual commit-time local deadline.
+                after = state.OwnerUid == uid ? new(state.Flags) : [];
+                after[flag] = entry;
+                var fields = LegacyCharacterAttributeMap.Copy(character.Attributes);
+                LegacyCharacterAttributeMap.Set(fields, Marker(flag), bool.TrueString);
+                LegacyCharacterAttributeMap.Set(fields, DeadlineKey(flag), now.AddSeconds(seconds).ToString("O", CultureInfo.InvariantCulture));
+                Character = character with { Attributes = fields };
+            }
+            catch { Dispose(); throw; }
+        }
+
+        internal static PreparedInstall Create(WorldSessionStore world, ConquerTcpConnection connection,
+            CharacterSnapshot character, int flag, int seconds, TimeProvider provider)
+        {
+            if (flag is not 8 and not 9 || !LegacyPlayerDeathState.HasStatusFlag(character.Attributes, flag))
+                throw new ArgumentException("An actual inserted item effect flag is required.");
+            return new(State(world, connection), character, flag, seconds, provider);
+        }
+
+        // The connection gate, prepared native publication and this clock gate
+        // are still held; these assignments cannot invoke a caller callback.
+        internal void Publish()
+        {
+            if (!held) throw new InvalidOperationException("rootFlagClockPreparationRetired");
+            state.OwnerUid = uid;
+            state.Flags = after;
+        }
+
+        public void Dispose() { if (held) { held = false; Monitor.Exit(state.Gate); } }
+    }
+
+    // Read-only observation of the real clock owner, including orphaned rows.
+    // This never creates, repairs or grants a clock registration.
+    internal static bool HasRegistration(WorldSessionStore world, ConquerTcpConnection connection, long uid, int flag)
+    {
+        var state = Existing(world, connection);
+        if (state is null) return false;
+        lock (state.Gate) return state.OwnerUid == uid && state.Flags.ContainsKey(flag);
     }
 
     internal static bool TryRead(WorldSessionStore world, ConquerTcpConnection connection,
@@ -100,9 +173,9 @@ internal sealed record LegacyRootItemEffectFlagClock(
 
     internal static CharacterSnapshot ForgetProjection(CharacterSnapshot character, int flag)
     {
-        if (flag is not 8 and not 9 || !character.Attributes.ContainsKey(Marker(flag))) return character;
-        var attributes = new Dictionary<string, string>(character.Attributes, StringComparer.OrdinalIgnoreCase);
-        attributes.Remove(Marker(flag));
-        return character with { Attributes = attributes };
+        if (flag is not 8 and not 9) return character;
+        var attributes = LegacyCharacterAttributeMap.Copy(character.Attributes);
+        return LegacyCharacterAttributeMap.Remove(attributes, Marker(flag))
+            ? character with { Attributes = attributes } : character;
     }
 }

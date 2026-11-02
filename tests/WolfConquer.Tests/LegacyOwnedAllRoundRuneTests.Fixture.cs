@@ -82,7 +82,7 @@ public sealed partial class LegacyOwnedAllRoundRuneTests
 
     private static uint[] CombatFields(OwnedEquipmentBehaviorFixture f)
     {
-        var method = typeof(WorldPacketHandlers).GetMethod("CalculateLegacyRuntimeStatusFields", BindingFlags.Static | BindingFlags.NonPublic)!;
+        var method = typeof(WorldPacketHandlers).GetMethod("CalculateLegacyRuntimeStatusFields", BindingFlags.Static | BindingFlags.NonPublic, binder: null, types: [typeof(WorldSession), typeof(WorldDataCatalog)], modifiers: null)!;
         try { return Assert.IsType<uint[]>(method.Invoke(null, [f.Current(), f.Current().NativeGameClient!.OrdinarySpellBinding!.ItemCatalog])); }
         catch (TargetInvocationException error) when (error.InnerException is not null)
         { ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }

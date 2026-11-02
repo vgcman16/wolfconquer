@@ -524,47 +524,14 @@ public static partial class WorldPacketHandlers
         out IReadOnlyDictionary<string, string> updatedAttributes)
     {
         updatedAttributes = attributes;
-        if (!TryGetLegacyStatusFlagsAttribute(attributes, out var key, out var raw) ||
-            raw.Length == 0)
+        var updated = LegacyCharacterAttributeMap.Copy(attributes);
+        var flags = MovementStatusAttributes.Read(updated);
+        if (!LegacyMovementClearedFlags.Any(flags.Has)) return false;
+        flags.ClearMovementFlags(updated);
+        if (flags.Has(LegacyMagicDefenderFlag))
         {
-            return false;
-        }
-
-        var parts = raw.Split('/');
-        var removed = false;
-        var removedAurasMagicDefender = false;
-        foreach (var flag in LegacyMovementClearedFlags)
-        {
-            var wordIndex = flag / 32;
-            if (wordIndex >= parts.Length ||
-                !ulong.TryParse(parts[wordIndex].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var word))
-            {
-                continue;
-            }
-
-            var mask = 1UL << (flag % 32);
-            if ((word & mask) != mask)
-            {
-                continue;
-            }
-
-            parts[wordIndex] = (word & ~mask).ToString(CultureInfo.InvariantCulture);
-            removed = true;
-            removedAurasMagicDefender |= flag == LegacyMagicDefenderFlag;
-        }
-
-        if (!removed)
-        {
-            return false;
-        }
-
-        var updated = new Dictionary<string, string>(attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            [key] = string.Join('/', parts),
-        };
-        if (removedAurasMagicDefender)
-        {
-            RemoveLegacyAurasMagicDefenderMetadata(updated);
+            LegacyCharacterAttributeMap.Remove(updated, RuntimeLegacyAurasMagicDefenderExpiresAtUtcAttribute);
+            LegacyCharacterAttributeMap.Remove(updated, RuntimeLegacyAurasMagicDefenderRemoveOnDeadAttribute);
         }
 
         updatedAttributes = updated;
@@ -576,15 +543,17 @@ public static partial class WorldPacketHandlers
         out IReadOnlyDictionary<string, string> updatedAttributes)
     {
         updatedAttributes = attributes;
-        if (!ReadAttributeBool(attributes, RuntimeLegacyInUseIntensifyAttribute))
+        var updated = LegacyCharacterAttributeMap.Copy(attributes);
+        if (!LegacyCharacterAttributeMap.TryRead(updated, RuntimeLegacyInUseIntensifyAttribute, out var raw) ||
+            !(raw.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                raw.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                ulong.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) && value != 0))
         {
             return false;
         }
 
-        updatedAttributes = new Dictionary<string, string>(attributes, StringComparer.OrdinalIgnoreCase)
-        {
-            [RuntimeLegacyInUseIntensifyAttribute] = "false",
-        };
+        LegacyCharacterAttributeMap.Set(updated, RuntimeLegacyInUseIntensifyAttribute, "false");
+        updatedAttributes = updated;
         return true;
     }
 

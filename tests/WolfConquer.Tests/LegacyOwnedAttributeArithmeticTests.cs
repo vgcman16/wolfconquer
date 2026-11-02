@@ -52,6 +52,117 @@ public sealed class LegacyOwnedAttributeArithmeticTests
             f.Data.AssertFiles(expected);
             Assert.Equal(new ushort[] { 2203, 2176, 2176, 2301, 2176, 2176, 2176, 2176, 2128 },
                 f.ActorFrames.Skip(start).Select(bytes => OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode));
+
+            // The first allocation ran a complete subsequent equipment query.
+            // Its own completion must issue the next genuine Vigor receipt.
+            text = text.Replace("\r\nSpirit=20\r\n", "\r\nSpirit=22\r\n", StringComparison.Ordinal)
+                .Replace("\r\nAtributes=2\r\n", "\r\nAtributes=0\r\n", StringComparison.Ordinal);
+            expected[key] = encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray();
+            int second = f.ActorFrames.Count;
+            await f.SendAsync(Actor, new LegacyAttributeSetPacket(0, 0, 0, 2).ToFrameBytes());
+            var final = f.Current();
+            Assert.Equal("0", final.Character.Attributes["Vigor"]);
+            Assert.Equal(22L, final.Character.Spirit); Assert.Equal(0L, final.Character.AttributePoints);
+            Assert.Equal((ushort)22, binding.Player.Spirit); Assert.Equal((ushort)0, binding.Player.Atributes);
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding)); Assert.False(binding.Recovery.IsBlocked);
+            f.Data.AssertFiles(expected);
+            Assert.Equal(new ushort[] { 2203, 2176, 2176, 2301, 2176, 2176, 2176, 2176, 2128 },
+                f.ActorFrames.Skip(second).Select(bytes => OwnedEquipmentBehaviorFixture.ReadFrame(bytes).Header.Opcode));
+        });
+    }
+
+    [Theory]
+    [InlineData("4294967294")]
+    [InlineData("0")]
+    public Task ExternalSavedVigorDriftRefusesAllocationEvenAfterQueryClamp(string changedSeed)
+    {
+        var input = Input();
+        var attributes = new Dictionary<string, string>(input.Character.Attributes, StringComparer.OrdinalIgnoreCase)
+            { ["Vigor"] = "4294967295" };
+        input = input with { Character = input.Character with { Attributes = attributes } };
+        return OwnedEquipmentBehaviorFixture.RunAsync(input, OwnedEquipmentBehaviorFixture.Catalog(), async f =>
+        {
+            Assert.Equal("0", f.Current().Character.Attributes["Vigor"]);
+            string path = f.CharacterPath();
+            var bytes = File.ReadAllBytes(path);
+            string text = CharacterSnapshotFileEncoding.Decode(bytes, out var encoding);
+            Assert.Contains("\r\nVigor=4294967295\r\n", text);
+            text = text.Replace("\r\nVigor=4294967295\r\n", "\r\nVigor=" + changedSeed + "\r\n", StringComparison.Ordinal);
+            File.WriteAllBytes(path, encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray());
+            await AssertRefusedAsync(f);
+        });
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("1")]
+    public Task ReplacedRuntimeVigorMapCannotBorrowQueryReceipt(string value)
+    {
+        var input = Input();
+        var attributes = new Dictionary<string, string>(input.Character.Attributes, StringComparer.OrdinalIgnoreCase)
+            { ["Vigor"] = "4294967295" };
+        input = input with { Character = input.Character with { Attributes = attributes } };
+        return OwnedEquipmentBehaviorFixture.RunAsync(input, OwnedEquipmentBehaviorFixture.Catalog(), async f =>
+        {
+            var before = f.Current();
+            Assert.Equal("0", before.Character.Attributes["Vigor"]);
+            var replacement = new Dictionary<string, string>(before.Character.Attributes, StringComparer.OrdinalIgnoreCase)
+                { ["Vigor"] = value };
+            f.Store.Set(f.Connection(Actor), before with { Character = before.Character with { Attributes = replacement } });
+            await AssertRefusedAsync(f);
+        });
+    }
+
+    [Fact]
+    public Task UnrelatedSameVigorMapDuringQueryCannotAcquireCompletionReceipt()
+    {
+        var input = Input();
+        var attributes = new Dictionary<string, string>(input.Character.Attributes, StringComparer.OrdinalIgnoreCase)
+            { ["Vigor"] = "4294967295" };
+        input = input with { Character = input.Character with { Attributes = attributes } };
+        return OwnedEquipmentBehaviorFixture.RunAsync(input, OwnedEquipmentBehaviorFixture.Catalog(), async f =>
+        {
+            bool replaced = false;
+            f.BeforeSend = (recipient, bytes) =>
+            {
+                if (recipient != Actor || replaced || !LegacyUserTotalRefineLevPacket.TryParse(
+                        OwnedEquipmentBehaviorFixture.ReadFrame(bytes), out _)) return;
+                replaced = true;
+                var current = f.Current();
+                Assert.Equal("0", current.Character.Attributes["Vigor"]);
+                var copy = new Dictionary<string, string>(current.Character.Attributes, StringComparer.OrdinalIgnoreCase);
+                f.Store.Set(f.Connection(Actor), current with { Character = current.Character with { Attributes = copy } });
+            };
+            try { await f.SendAsync(Actor, LegacyRuneStoragePacket.Startup().ToFrameBytes()); }
+            finally { f.BeforeSend = null; }
+            Assert.True(replaced);
+            await AssertRefusedAsync(f);
+        });
+    }
+
+    [Fact]
+    public Task LostNativeOwnerCannotUseQueryVigorReceipt()
+    {
+        var input = Input();
+        var attributes = new Dictionary<string, string>(input.Character.Attributes, StringComparer.OrdinalIgnoreCase)
+            { ["Vigor"] = "4294967295" };
+        input = input with { Character = input.Character with { Attributes = attributes } };
+        return OwnedEquipmentBehaviorFixture.RunAsync(input, OwnedEquipmentBehaviorFixture.Catalog(), async f =>
+        {
+            var before = f.Current(); var binding = before.NativeGameClient!.OrdinarySpellBinding!;
+            Assert.Equal("0", before.Character.Attributes["Vigor"]);
+            var files = f.Data.Files(); int start = f.ActorFrames.Count;
+            var storage = binding.Client.MyProfs;
+            try
+            {
+                binding.Client.MyProfs = null;
+                await f.SendAsync(Actor, new LegacyAttributeSetPacket(0, 0, 0, 10).ToFrameBytes());
+                Assert.Same(before, f.Current());
+                Assert.Equal(start, f.ActorFrames.Count);
+                f.Data.AssertFiles(files);
+            }
+            finally { binding.Client.MyProfs = storage; }
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
         });
     }
 
