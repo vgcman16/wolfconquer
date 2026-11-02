@@ -15,20 +15,33 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
     internal static async Task Run(Func<CreationFixture, Task> body, ushort selection = 10,
         Action<CreationFixture>? beforeBootstrap = null, bool enter = true)
     {
-        var f = new CreationFixture(); Exception? primary = null;
-        try { await f.InitializeAsync(selection, beforeBootstrap, enter); await body(f); }
-        catch (Exception error) { primary = error; }
-        var failures = new List<Exception>();
-        if (primary is not null) failures.Add(primary);
-        try { await f.CloseAsync(); } catch (Exception error) { failures.Add(error); }
-        try { f.RestoreMetadata(); } catch (Exception error) { failures.Add(error); }
-        if (failures.Count == 0) f.Data.Dispose();
-        if (failures.Count == 1) ExceptionDispatchInfo.Capture(failures[0]).Throw();
-        if (failures.Count > 1) throw new AggregateException("Owned creation and cleanup failed; fixture retained at " + f.Data.Root, failures);
+        var timing = FixturePhaseTiming.Create("ordinary-creation");
+        try
+        {
+            CreationFixture f;
+            using (timing?.Measure("fixture-construction")) f = new CreationFixture(timing);
+            Exception? primary = null;
+            try
+            {
+                using (timing?.Measure("initialize")) await f.InitializeAsync(selection, beforeBootstrap, enter);
+                using (timing?.Measure("test-body")) await body(f);
+            }
+            catch (Exception error) { primary = error; }
+            var failures = new List<Exception>();
+            if (primary is not null) failures.Add(primary);
+            try { using (timing?.Measure("close-owners")) await f.CloseAsync(); } catch (Exception error) { failures.Add(error); }
+            try { using (timing?.Measure("restore-metadata")) f.RestoreMetadata(); } catch (Exception error) { failures.Add(error); }
+            if (failures.Count == 0) { using (timing?.Measure("remove-fixture")) f.Data.Dispose(); }
+            if (failures.Count == 1) ExceptionDispatchInfo.Capture(failures[0]).Throw();
+            if (failures.Count > 1) throw new AggregateException("Owned creation and cleanup failed; fixture retained at " + f.Data.Root, failures);
+        }
+        finally { timing?.Emit(); }
     }
 
     internal sealed partial class CreationFixture
     {
+        private readonly FixturePhaseTiming? timing;
+        internal CreationFixture(FixturePhaseTiming? timing) => this.timing = timing;
         internal const uint Account = LegacyOwnedAdmissionRuntimeFixture.Uid + 1, RuneActor = LegacyOwnedAdmissionRuntimeFixture.Uid;
         internal const uint RuneUid = 1_035_001, RuneType = 4_020_517;
         internal readonly LegacyOwnedAdmissionRuntimeFixture Data = new(bootstrap: false);
@@ -71,22 +84,33 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
 
         internal async Task InitializeAsync(ushort selection, Action<CreationFixture>? beforeBootstrap, bool enter)
         {
-            Selection = selection; Catalog = BuildCatalog();
-            // A separate, preexisting actor owns the Rune before the real scan.
-            // Newborn remains level1/reborn0; no post-birth Rune or stat injection.
-            var text = File.ReadAllText(Data.UserPath).Replace("Class=7051", "Class=6000", StringComparison.Ordinal);
-            File.WriteAllText(Data.UserPath, text, new System.Text.UTF8Encoding(true));
-            new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(RuneActor, new([], [], [], [],
-                [new PlayerItemSnapshotItem { Uid = RuneUid, ItemId = RuneType, Position = 212, StackSize = 1, Durability = 100, MaximumDurability = 100, RuneExperience = 7500 }]));
-            new PlayerSpellSnapshotLoader(Data.Spells).SaveByCharacterUid(RuneActor,
-                new([new PlayerSpellSnapshotEntry(6001, 2, 1234, 1, 0, 0)]));
-            var old = File.ReadAllBytes(Path.Combine(Data.Spells, RuneActor + ".bin")); old[15] = 0xA5;
-            File.WriteAllBytes(Path.Combine(Data.Spells, RuneActor + ".bin"), old);
-            beforeBootstrap?.Invoke(this); Data.Bootstrap();
-            TicketStore = new(Path.Combine(Data.Root, "OwnedAccountHandoff"), "owned-fixture-key-" + Guid.NewGuid().ToString("N"));
-            Handoff = new(TicketStore);
-            Runtime = Open(); Handler = NewHandler(); Connection = NewConnection(Account);
-            if (enter) { Ticket = await AuthenticateAsync(); await EnterAsync(); Sent.Clear(); }
+            using (timing?.Measure("initialize-setup"))
+            {
+                Selection = selection; Catalog = BuildCatalog();
+                // A separate, preexisting actor owns the Rune before the real scan.
+                // Newborn remains level1/reborn0; no post-birth Rune or stat injection.
+                var text = File.ReadAllText(Data.UserPath).Replace("Class=7051", "Class=6000", StringComparison.Ordinal);
+                File.WriteAllText(Data.UserPath, text, new System.Text.UTF8Encoding(true));
+                new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(RuneActor, new([], [], [], [],
+                    [new PlayerItemSnapshotItem { Uid = RuneUid, ItemId = RuneType, Position = 212, StackSize = 1, Durability = 100, MaximumDurability = 100, RuneExperience = 7500 }]));
+                new PlayerSpellSnapshotLoader(Data.Spells).SaveByCharacterUid(RuneActor,
+                    new([new PlayerSpellSnapshotEntry(6001, 2, 1234, 1, 0, 0)]));
+                var old = File.ReadAllBytes(Path.Combine(Data.Spells, RuneActor + ".bin")); old[15] = 0xA5;
+                File.WriteAllBytes(Path.Combine(Data.Spells, RuneActor + ".bin"), old);
+                beforeBootstrap?.Invoke(this); Data.Bootstrap();
+            }
+            using (timing?.Measure("initialize-open"))
+            {
+                TicketStore = new(Path.Combine(Data.Root, "OwnedAccountHandoff"), "owned-fixture-key-" + Guid.NewGuid().ToString("N"));
+                Handoff = new(TicketStore);
+                Runtime = Open(); Handler = NewHandler(); Connection = NewConnection(Account);
+            }
+            if (enter)
+            {
+                using (timing?.Measure("authenticate")) Ticket = await AuthenticateAsync();
+                using (timing?.Measure("world-enter")) await EnterAsync();
+                Sent.Clear();
+            }
         }
 
         internal LegacyOwnedAdmissionRuntime Open()

@@ -381,18 +381,22 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
         LoginInput input,
         Func<NativePlayerLoopback, WorldServerFrameHandler, NativePlayerDiagnosticLog, Task> body,
         AccountHandoffService? handoff = null, WorldDataCatalog? worldData = null,
-        LegacyOrdinaryAdmissionUidOwner? admissionUids = null)
+        LegacyOrdinaryAdmissionUidOwner? admissionUids = null, FixturePhaseTiming? timing = null)
     {
+        using var handlerLifetime = timing?.Measure("handler-lifetime");
         using var beastMetadata = new NativeLoginBeastMetadataScope(1000);
         using var log = new NativePlayerDiagnosticLog();
+        var handlerSetup = timing?.Measure("handler-setup");
         var loader = new CharacterSnapshotLoader(input.Users);
         var handler = admissionUids is null
             ? new WorldServerFrameHandler(loader, handoff, worldData,
                 runtimeUpdateLoop: LegacyRuntimeUpdateLoopOptions.Disabled, log: log, protocolProfile: ConquerProtocolProfile.VisibleDx8D13)
             : new WorldServerFrameHandler(loader, handoff, worldData, admissionUids, log, ConquerProtocolProfile.VisibleDx8D13);
-        await NativePlayerLoopback.RunAsync(ConquerTcpWireMode.LegacyGameServer,
-            fixture => body(fixture, handler, log),
-            handler.HandleFrameAsync, handler.ReadCurrentSessionForNativeOwnerObservation);
+        handlerSetup?.Dispose();
+        using (timing?.Measure("tcp-loopback-total"))
+            await NativePlayerLoopback.RunAsync(ConquerTcpWireMode.LegacyGameServer,
+                fixture => body(fixture, handler, log),
+                handler.HandleFrameAsync, handler.ReadCurrentSessionForNativeOwnerObservation);
         log.AssertNoWorldRuntimeDiagnostics();
     }
 

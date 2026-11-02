@@ -53,10 +53,12 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     [Fact]
     public async Task MoreThan128DistinctExistingLoginsConsumeNoStarterIntentHistoryOrUidRanges()
     {
+        using var timing = FixturePhaseTiming.Create("existing-login-129");
         using var input = new LoginInput();
-        PrepareAdmissionInput(input, starter: true);
+        using (timing?.Measure("prepare-input")) PrepareAdmissionInput(input, starter: true);
         var saved = File.ReadAllText(input.FilePath);
         var roots = LegacyOrdinaryAdmissionRoots.FromLoader(new CharacterSnapshotLoader(input.Users));
+        using (timing?.Measure("saved-account-setup"))
         for (var index = 0; index < 129; index++)
         {
             var account = checked(Uid + (uint)index);
@@ -71,6 +73,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             var account = checked(Uid + (uint)index);
             await WithHandlerAsync(input, async (fixture, handler, log) =>
             {
+                using var admission = timing?.Measure("login-handshake-and-admission");
                 var (wire, _) = await ConnectBornAsync(fixture);
                 await wire.SendAsync(new LegacyMsgLoginGamePacket(account).ToFrameBytes(), fixture.Token);
                 var dispatched = await fixture.NextAsync();
@@ -81,13 +84,19 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
                 Assert.Equal(1000L, admitted.Character.Money);
                 Assert.Empty(admitted.PlayerItems.InventoryItems);
                 Assert.Empty(admitted.PlayerItems.EquipmentItems);
-            }, admissionUids: uids.Owner);
-            AssertNoOrdinaryAllocation(uids, state);
-            Assert.False(LegacyTradeJournal.HasPending(input.Users));
+            }, admissionUids: uids.Owner, timing: timing);
+            using (timing?.Measure("post-login-checks"))
+            {
+                AssertNoOrdinaryAllocation(uids, state);
+                Assert.False(LegacyTradeJournal.HasPending(input.Users));
+            }
         }
-        uids.Dispose();
-        uids.Open(bootstrap: false);
-        AssertNoOrdinaryAllocation(uids, state);
-        Assert.Empty(Directory.GetFiles(roots.Items!, "*.bin"));
+        using (timing?.Measure("uid-reopen-and-check"))
+        {
+            uids.Dispose();
+            uids.Open(bootstrap: false);
+            AssertNoOrdinaryAllocation(uids, state);
+            Assert.Empty(Directory.GetFiles(roots.Items!, "*.bin"));
+        }
     }
 }

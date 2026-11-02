@@ -8,7 +8,10 @@ that previously enforced source bugs. Record repairs in [the bug tracker](FIXED-
 
 - Keep changes modular; do not add another monolithic handler.
 - Explain behavior/source evidence and add constructed tests for changes.
-- Run local checks and report actual failures, warnings, and skipped coverage.
+- Use [focused development checks](docs/engineering/TEST-WORKFLOW.md) for a
+  change and its dependency neighbors; run the full Windows gate once per
+  reviewed integration/publication batch.
+- Report actual failures, warnings, skipped coverage and the exact checked scope.
 - Never commit credentials, game assets, database exports, captures, or personal/local operational logs.
 - Review outside contributions before explicitly requesting checks on trusted main.
 

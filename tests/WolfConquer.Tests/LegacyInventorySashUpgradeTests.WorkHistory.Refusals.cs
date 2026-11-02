@@ -11,6 +11,9 @@ public sealed partial class LegacyInventorySashUpgradeTests
     [InlineData("unknown-completed")] [InlineData("empty-shard")] [InlineData("head-hash")]
     [InlineData("truncated-head")] [InlineData("unknown-index-property")] [InlineData("pending-bound")]
     [InlineData("reset-anchor")] [InlineData("foreign-root")] [InlineData("case-alias")]
+    [InlineData("work-unknown-property")] [InlineData("work-duplicate-property")]
+    [InlineData("pending-work-unknown")] [InlineData("pending-work-duplicate")]
+    [InlineData("pending-work-oversize")] [InlineData("pending-work-depth")]
     public Task FreshHistoryOwnerRefusesMissingChangedUnboundOrUnknownMetadataWithoutDiscardingIt(string fault) =>
         RunStackPackageAsync(fixture => fixture.SetStackInventory(StackAllCompatible()), async (fixture, join) =>
         {
@@ -58,13 +61,45 @@ public sealed partial class LegacyInventorySashUpgradeTests
                     var envelope = JsonNode.Parse(File.ReadAllBytes(path))!.AsObject();
                     envelope["Work"]!["Users"] = Path.Combine(fixture.Root, "unowned-users");
                     File.WriteAllText(path, envelope.ToJsonString()); break;
+                case "work-unknown-property":
+                case "work-duplicate-property":
+                    // Keep the archive anchored to the deliberately changed
+                    // bytes so refusal still exercises the embedded work shape.
+                    var archive = File.ReadAllText(path);
+                    const string marker = "\"Version\":";
+                    Assert.Contains(marker, archive);
+                    var prefix = fault == "work-unknown-property" ? "\"Unexpected\":true," : "\"Version\":2,";
+                    File.WriteAllText(path, archive.Replace(marker, prefix + marker, StringComparison.Ordinal));
+                    index["CompletedHeadSha256"] = HistoryDigest(File.ReadAllBytes(path));
+                    break;
+                case "pending-work-unknown":
+                case "pending-work-duplicate":
+                case "pending-work-oversize":
+                case "pending-work-depth":
+                    var malformedRow = records[operation].DeepClone().AsObject();
+                    malformedRow["Completed"] = false;
+                    if (fault == "pending-work-unknown") malformedRow["Unexpected"] = true;
+                    if (fault == "pending-work-oversize") malformedRow["Users"] = new string('x', 17 * 1024);
+                    if (fault == "pending-work-depth")
+                        malformedRow["Before"] = new JsonArray(new JsonArray(new JsonArray("nested")));
+                    index["Pending"] = new JsonArray(malformedRow);
+                    var indexText = index.ToJsonString();
+                    if (fault == "pending-work-duplicate")
+                    {
+                        const string versionMarker = "\"Version\":";
+                        Assert.Contains(versionMarker, indexText);
+                        indexText = indexText.Replace(versionMarker, "\"Version\":2," + versionMarker, StringComparison.Ordinal);
+                    }
+                    File.WriteAllText(HistoryIndexPath(fixture, join), indexText);
+                    break;
                 case "case-alias":
                     var temporary = path + ".owned-rename";
                     File.Move(path, temporary);
                     File.Move(temporary, Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileName(path).ToUpperInvariant())); break;
                 default: throw new ArgumentOutOfRangeException(nameof(fault));
             }
-            if (fault is "head-hash" or "unknown-index-property" or "pending-bound" or "reset-anchor")
+            if (fault is "head-hash" or "unknown-index-property" or "pending-bound" or "reset-anchor" or
+                "work-unknown-property" or "work-duplicate-property")
                 File.WriteAllText(HistoryIndexPath(fixture, join), index.ToJsonString());
             var files = fixture.PackageFiles();
             var directories = Directory.GetDirectories(fixture.Root, "*", SearchOption.AllDirectories).Order().ToArray();

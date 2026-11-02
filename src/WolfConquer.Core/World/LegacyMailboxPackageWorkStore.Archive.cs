@@ -26,7 +26,7 @@ internal sealed partial class LegacyMailboxPackageWorkStore
         if (root.GetProperty("ArchiveVersion").GetInt32() != 1 || !Guid.TryParseExact(previous, "N", out var prior) ||
             prior.ToString("N") != previous || !IsDigest(hash) ||
             (prior == Guid.Empty) != (hash == EmptyArchiveHash)) throw new InvalidDataException("Completed archive link is invalid.");
-        var row = ParseRecord(JsonSerializer.SerializeToUtf8Bytes(root.GetProperty("Work")), operation);
+        var row = ParseEmbeddedRecord(root.GetProperty("Work"), operation);
         if (!row.Completed) throw new InvalidDataException("Archived work is not completed.");
         return (new(1, previous!, hash!, row), Digest(bytes));
     }

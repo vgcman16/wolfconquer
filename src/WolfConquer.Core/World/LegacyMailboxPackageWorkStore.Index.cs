@@ -53,7 +53,7 @@ internal sealed partial class LegacyMailboxPackageWorkStore
             var operation = identity.GetString();
             if (!Guid.TryParseExact(operation, "N", out var id) || id == Guid.Empty || id.ToString("N") != operation ||
                 !operations.Add(operation)) throw new InvalidDataException("Pending work identity is invalid.");
-            var row = ParseRecord(JsonSerializer.SerializeToUtf8Bytes(element), id);
+            var row = ParseEmbeddedRecord(element, id);
             if (row.Completed) throw new InvalidDataException("Pending index cannot contain a completed record.");
             records.Add(row);
         }

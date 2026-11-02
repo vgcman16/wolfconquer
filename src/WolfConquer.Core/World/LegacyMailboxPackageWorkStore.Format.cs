@@ -13,12 +13,28 @@ internal sealed partial class LegacyMailboxPackageWorkStore
     {
         if (bytes.Length is <= 0 or > MaximumBytes) throw new InvalidDataException("Package work size is invalid.");
         using var document = JsonDocument.Parse(bytes, new JsonDocumentOptions { MaxDepth = 3 });
-        if (document.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException("Package work is not an object.");
-        if (!document.RootElement.TryGetProperty("Version", out var versionValue) || versionValue.ValueKind != JsonValueKind.Number ||
+        return ParseRecordElement(document.RootElement, bytes, operation);
+    }
+
+    // The enclosing document already owns the element. Retain the exact
+    // canonical-byte limit and depth check without allocating another DOM.
+    private Record ParseEmbeddedRecord(JsonElement element, Guid operation)
+    {
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(element);
+        if (bytes.Length is <= 0 or > MaximumBytes) throw new InvalidDataException("Package work size is invalid.");
+        var reader = new Utf8JsonReader(bytes, new JsonReaderOptions { MaxDepth = 3 });
+        while (reader.Read()) { }
+        return ParseRecordElement(element, bytes, operation);
+    }
+
+    private Record ParseRecordElement(JsonElement element, byte[] bytes, Guid operation)
+    {
+        if (element.ValueKind != JsonValueKind.Object) throw new InvalidDataException("Package work is not an object.");
+        if (!element.TryGetProperty("Version", out var versionValue) || versionValue.ValueKind != JsonValueKind.Number ||
             !versionValue.TryGetInt32(out var version) || version is not (1 or 2))
             throw new InvalidDataException("Package work version is invalid.");
         var names = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var property in document.RootElement.EnumerateObject())
+        foreach (var property in element.EnumerateObject())
             if ((!Keys.Contains(property.Name, StringComparer.Ordinal) &&
                 !(version == 2 && NoAllocationKeys.Contains(property.Name, StringComparer.Ordinal))) || !names.Add(property.Name))
                 throw new InvalidDataException("Package work properties are invalid.");
