@@ -2,12 +2,15 @@
 
 Updated2026-11-02. Full English client/server reconstruction remains active.
 
-## Local component checkpoint - 2026-11-02
+## Local full checkpoint - 2026-11-02
 
-The reviewed Chinese7937 increment builds and passes3507 focused checks with
-0failures/skips, including231 new cases and3276 existing neighbors. Its full
-integration gate is pending at this component checkpoint; the earlier public
-full-gate proof below is a separate result.
+The reviewed Chinese7937 increment passed3507 focused checks with0failures/skips,
+including231 new cases and3276 existing neighbors. The complete local Windows
+gate then passed on source commit38e300c441b25da789c99a1ff73da860a1607bc6:
+Core34085, Updates446 and Launcher57 passed,0failed and152Core NotExecuted.
+All8build/test/script stages passed in121m37.774s; run
+20261102T154534056Z-e1748d43 finished2026-11-02T17:47:11Z.
+This is a local result; a newer public Windows CI result is not yet claimed.
 
 - Complete59-field Echo requirements, immutable main/Sub ID lookup and observed
   operation6 request preparation. Per-player activation and persistence remain open.
@@ -18,7 +21,7 @@ full-gate proof below is a separate result.
 - Protected mandatory monster primaries now reject before cast costs; seven
   saved/native/real-wire controls pass. A runtime fixture log race is repaired.
 
-These are source/component results. Actual7937 gameplay, English rendering,
+These are managed source/test results. Actual7937 gameplay, English rendering,
 full SQL/economy and live acceptance remain unfinished. The legacy executable
 hold remains active. Specs and limits: [7937 ingestion](specs/auto-generated/7937/).
 
