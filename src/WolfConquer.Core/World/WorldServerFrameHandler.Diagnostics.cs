@@ -146,7 +146,9 @@ public sealed partial class WorldServerFrameHandler
             nextSeam: "inspect-runtime-exception",
             reason: "runtime exception was caught without terminating the live server; inspect the error log and decompiled source dispatch for parity triage");
         await _log.WriteLineAsync(diagnostic.FormatLogMessage()).ConfigureAwait(false);
-        var redactRelic = frame.Header.Opcode == WorldPacketOpcodes.LegacyRelicFuse;
+        var redactRelic = frame.Header.Opcode == WorldPacketOpcodes.LegacyRelicFuse ||
+            frame.Header.Opcode == WorldPacketOpcodes.MsgItemUsage &&
+            MsgItemUsagePacket.TryParse(frame, out var itemUsage) && itemUsage.Action == MsgItemUsageAction.DecomposeRelics;
         var exceptionDetail = frame.Header.Opcode == WorldPacketOpcodes.LegacySecondaryPassword
             ? exception.GetType().Name + ": [secondary password details redacted]"
             : redactRelic ? RelicExceptionTypes(exception) : exception.GetType().Name + ": " + exception.Message;

@@ -11,6 +11,18 @@ local Windows pass203726592Z-007a65f8:35,124passed,0failed,152NotExecuted,
 all8stages. [Result and limits](docs/checklists/FULL-WINDOWS-20261102-OWNED-RELIC.md).
 Their remaining explicitly named adversarial/live/SQL limits remain open.
 
+### FSB-317: Keep decomposition's committed failure causes in bounded diagnostics
+
+OPEN correction, qualification pending. Relic output retains its actual nested
+cause, but diagnostics applied the bounded type-only formatter only to2356.
+ItemUsage2137/action67 instead omitted the nested cancellation cause from the
+structured log and could print private exception details to stderr. Recognized
+decomposition now uses the same bounded type formatter for both outputs;
+unrelated ItemUsage diagnostics and actual exception propagation are unchanged.
+The real registered cancellation control keeps committed files/UID/reopen/no
+reissue checks and additionally rejects private Users/items paths in the new
+diagnostic. Earlier targeted232017275Z-ce187777 remains failed218P/5F/0skip.
+
 ### FSB-316: Reject an ambiguous username before selecting an account by password
 
 OPEN implementation, unqualified. The real modern SQL repository returns all
@@ -61,6 +73,15 @@ once-only postwriter check, arming, typed writer, saved-owner retirement and
 failure fence remain intact; no witness reset or accepting owner is added.
 A new registered saved/native/11frame/replay control is authored. This repair
 and the enlarged increment are unqualified until rerun; the failed run stays failed.
+
+Follow-up232017275Z-ce187777 built161.559s and ran168.176s:218passed/5failed,
+no skips. Normal/mixed decomposition and the new saved/native final-witness
+control passed. Remaining controls exposed wrong image-as-authority and
+type-only trade serializer fixture oracles, a non-independent visible-peer query,
+and missing bounded decomposition cause diagnostics. Fixture corrections retain
+actual retired owner/slot checks and real full trade packets; separate visible
+response and out-of-view progress controls retain actual socket pressure and
+bounded settlement without requiring a peer handler to remain stalled.
 
 Required next proof: composed build, focused actual registered owners and shared
 callers, interruption/reopen/cancel/pressure controls, then the full gate.

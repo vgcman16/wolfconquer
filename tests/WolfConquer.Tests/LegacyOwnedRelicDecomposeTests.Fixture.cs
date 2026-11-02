@@ -16,10 +16,10 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyOwnedRelicDecomposeTests
 {
     internal static async Task Run(Func<DecomposeFixture, Task> body, string input = "valid", int count = 1,
-        bool bound = false, bool ranking = false)
+        bool bound = false, bool ranking = false, bool distantPeer = false)
     {
         var fixture = new DecomposeFixture(); var errors = new List<Exception>();
-        try { await fixture.InitializeAsync(input, count, bound, ranking); await body(fixture); }
+        try { await fixture.InitializeAsync(input, count, bound, ranking, distantPeer); await body(fixture); }
         catch (Exception error) { errors.Add(error); }
         try { await fixture.CloseAsync(); } catch (Exception error) { errors.Add(error); }
         try { fixture.RestoreMetadata(); } catch (Exception error) { errors.Add(error); }
@@ -41,6 +41,7 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
         internal LegacyOwnedAdmissionRuntime Runtime = null!;
         internal RootLoopbackFramePeer? Peer, OtherPeer;
         internal Action<byte[]>? BeforeSend;
+        internal Action<byte[]>? BeforePeerSend;
         private ConquerTcpConnection? connection, peerConnection;
         private CancellationTokenSource? lifetime;
         private NativeLoginBeastMetadataScope? beasts;
@@ -65,7 +66,7 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
             return Assert.IsType<WorldSession>(current);
         }
 
-        internal async Task InitializeAsync(string input, int count, bool bound, bool ranking)
+        internal async Task InitializeAsync(string input, int count, bool bound, bool ranking, bool distantPeer)
         {
             Assert.InRange(count, 1, 4); withRanking = ranking;
             Selected = Enumerable.Range(0, count).Select(index => First + (uint)index).ToArray();
@@ -93,6 +94,14 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
             {
                 var text = File.ReadAllText(Data.UserPath).Replace("UID=" + Uid + "\r\n", "UID=" + PeerUid + "\r\n", StringComparison.Ordinal)
                     .Replace("Name=OwnedStartup", "Name=OwnedPeer", StringComparison.Ordinal);
+                if (distantPeer)
+                {
+                    // The real independent actor starts outside the blocked player's
+                    // visibility; RuneStorage's real equipment query can then finish
+                    // without targeting that stalled recipient for a spawn frame.
+                    Assert.Contains("X=430\r\nY=380\r\n", text, StringComparison.Ordinal);
+                    text = text.Replace("X=430\r\nY=380\r\n", "X=100\r\nY=100\r\n", StringComparison.Ordinal);
+                }
                 File.WriteAllText(Path.Combine(Data.Users, PeerUid + ".ini"), text);
                 new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(PeerUid, PlayerItemSnapshot.Empty);
                 new PlayerSpellSnapshotLoader(Data.Spells).SaveByCharacterUid(PeerUid, PlayerSpellSnapshot.Empty);
@@ -126,7 +135,7 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
             Assert.True(LegacySecondaryPasswordRuntime.IsAdmitted(connection, Current));
             if (withRanking)
             {
-                OtherPeer = new RootLoopbackFramePeer(bytes => { PeerSent.Add(bytes); return ValueTask.CompletedTask; }, new LegacyNativeGameClientRuntime());
+                OtherPeer = new RootLoopbackFramePeer(bytes => { BeforePeerSend?.Invoke(bytes); PeerSent.Add(bytes); return ValueTask.CompletedTask; }, new LegacyNativeGameClientRuntime());
                 peerConnection = OtherPeer.Connection;
                 await SendPeerAsync(new LegacyMsgLoginGamePacket(PeerUid).ToFrameBytes());
                 Assert.NotNull(PeerCurrent.NativeGameClient!.OrdinarySpellBinding);
@@ -166,7 +175,7 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
         }
         internal async Task CloseAsync()
         {
-            BeforeSend = null; var errors = new List<Exception>();
+            BeforeSend = null; BeforePeerSend = null; var errors = new List<Exception>();
             foreach (var actual in new[] { connection, peerConnection }) if (actual is not null)
             {
                 try { await actual.DisconnectAsync(); } catch (Exception error) { errors.Add(error); }

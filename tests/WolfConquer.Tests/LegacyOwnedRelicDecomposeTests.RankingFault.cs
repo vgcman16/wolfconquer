@@ -12,6 +12,9 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
     {
         var request = DecomposeFixture.Request(f.Selected); var high = f.HighWater;
         var native = f.Native; var binding = native.OrdinarySpellBinding!;
+        var itemGraph = binding.Items;
+        Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+        Assert.True(itemGraph.PhysicalOwnerIsCurrentPlain());
         var starts = f.Peer!.WireStarts; var rank = Ranking(f).Snapshot();
         var character = File.ReadAllBytes(f.Data.UserPath);
         var spellsPath = Path.Combine(f.Data.Spells, DecomposeFixture.Uid + ".bin");
@@ -21,7 +24,16 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
         Assert.Equal(high + 9, f.HighWater);
         Assert.Empty(f.Sent); Assert.Empty(f.PeerSent); Assert.Equal(starts, f.Peer.WireStarts);
         Assert.False(f.Store.TryGet(f.ActualConnection, out _));
-        Assert.True(binding.IsRetired); Assert.False(binding.Items.Image.IsCurrentPlain());
+        Assert.Same(binding, native.OrdinarySpellBinding); Assert.True(binding.IsRetired);
+        Assert.Same(itemGraph, binding.Items);
+        Assert.False(f.Store.IsBoundSpellOwnerCurrent(binding));
+        Assert.False(binding.RuntimeInspectionPlayerOwnerIsCurrentPlain());
+        Assert.False(itemGraph.PhysicalOwnerIsCurrentPlain());
+        Assert.Null(native.Inventory); Assert.Null(native.Equipment); Assert.Null(native.Warehouse);
+        Assert.Null(native.MyWardrobe); Assert.Null(native.Rune); Assert.Null(native.RelicFuse);
+        Assert.Null(native.GearMythsoulBag);
+        // Image validity is retained data/provenance, never an attached owner grant.
+        Assert.True(itemGraph.Image.IsCurrentPlain());
         Assert.True(f.Runtime.Recovery.IsBlocked);
         Assert.Equal(rank, Ranking(f).Snapshot());
         Assert.Equal(character, File.ReadAllBytes(f.Data.UserPath)); Assert.Equal(spells, File.ReadAllBytes(spellsPath));
@@ -30,6 +42,7 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
         var image = PlayerItemSnapshotLoader.Parse(committed);
         Assert.DoesNotContain(image.InventoryItems, row => f.Selected.Contains(row.Uid));
         Assert.Equal(9, image.InventoryItems.Count(row => row.ItemId == DecomposeFixture.Crystal));
+        Assert.Equal(committed, PlayerItemSnapshotLoader.ToLegacyBytes(itemGraph.Image.FinalSnapshot));
         Assert.Empty(Assert.IsAssignableFrom<IEnumerable>(typeof(WorldSessionStore)
             .GetField("relicWireOutputs", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(f.Store)));
         Assert.Empty(Assert.IsAssignableFrom<IEnumerable>(typeof(WorldSessionStore)

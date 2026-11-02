@@ -45,6 +45,8 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
                 var diagnostic = f.ReadDiagnostics()[beforeCancellation.Length..];
                 Assert.Contains("LegacyCommittedSpellPublicationException", diagnostic);
                 Assert.Contains("CanceledException", diagnostic);
+                Assert.DoesNotContain(f.Data.Users, diagnostic, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain(f.ItemsPath, diagnostic, StringComparison.OrdinalIgnoreCase);
             }
         }
         try { await filler.WaitAsync(TimeSpan.FromSeconds(5)); }
@@ -68,16 +70,49 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
     [Fact]
     public Task ActualRegisteredOpenedTradeRefusesDecompositionBeforeAnyUidOrOutput() => Run(async f =>
     {
-        await f.SendAsync(new LegacyTradePacket(0) { UID = DecomposeFixture.PeerUid }.ToFrameBytes());
-        await f.SendPeerAsync(new LegacyTradePacket(1) { UID = DecomposeFixture.Uid }.ToFrameBytes());
+        var request = new LegacyTradePacket(0) { UID = DecomposeFixture.PeerUid }.ToNativeFrameBytes();
+        var accept = new LegacyTradePacket(1) { UID = DecomposeFixture.Uid }.ToNativeFrameBytes();
+        Assert.True(LegacyTradePacket.TryParse(ReadFrame(request), out var parsedRequest));
+        Assert.Equal(0UL, parsedRequest.Action); Assert.Equal((ulong)DecomposeFixture.PeerUid, parsedRequest.UID);
+        Assert.True(LegacyTradePacket.TryParse(ReadFrame(accept), out var parsedAccept));
+        Assert.Equal(1UL, parsedAccept.Action); Assert.Equal((ulong)DecomposeFixture.Uid, parsedAccept.UID);
+        await f.SendAsync(request); await f.SendPeerAsync(accept);
         await f.Peer!.DrainObservations(); await f.OtherPeer!.DrainObservations();
         Assert.True(f.Current.LegacyTradeActive, f.ReadDiagnostics()); Assert.True(f.PeerCurrent.LegacyTradeActive);
+        var partnerConnection = Assert.IsType<RootLoopbackFramePeer>(f.OtherPeer).Connection;
         var trades = Assert.IsType<LegacyTradeStateStore>(typeof(WorldServerFrameHandler)
             .GetField("_tradeStates", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(f.Handler));
-        lock (trades.SyncRoot) Assert.True(trades.Contains(f.ActualConnection));
+        LegacyTradeParty party;
+        lock (trades.SyncRoot)
+        {
+            Assert.True(trades.TryGet(f.ActualConnection, out party!));
+            Assert.True(trades.TryGet(partnerConnection, out var partner));
+            Assert.Same(party.Other, partner); Assert.Same(party, partner.Other);
+            Assert.Equal(DecomposeFixture.Uid, party.Uid); Assert.Equal(DecomposeFixture.PeerUid, partner.Uid);
+            Assert.True(party.IsRequester); Assert.False(partner.IsRequester);
+            Assert.Equal(party.TradeId, partner.TradeId); Assert.NotEqual(Guid.Empty, party.TradeId);
+            Assert.True(party.WindowOpen); Assert.True(partner.WindowOpen);
+        }
+        Assert.Contains(f.Sent, bytes => LegacyTradePacket.TryParse(ReadFrame(bytes), out var opened) &&
+            opened.Action == 3 && opened.UID == DecomposeFixture.PeerUid);
+        Assert.Contains(f.PeerSent, bytes => LegacyTradePacket.TryParse(ReadFrame(bytes), out var opened) &&
+            opened.Action == 3 && opened.UID == DecomposeFixture.Uid);
         f.Sent.Clear(); f.PeerSent.Clear();
         var peerOwner = f.PeerCurrent; var peerFile = File.ReadAllBytes(f.PeerItemsPath);
+        var peerBinding = peerOwner.NativeGameClient!.OrdinarySpellBinding!;
+        Assert.True(f.Store.IsBoundSpellOwnerCurrent(peerBinding));
         await AssertRefusal(f, DecomposeFixture.Request(f.Selected));
         Assert.Empty(f.PeerSent); Assert.Same(peerOwner, f.PeerCurrent); Assert.Equal(peerFile, File.ReadAllBytes(f.PeerItemsPath));
+        Assert.True(f.Store.IsBoundSpellOwnerCurrent(peerBinding));
+        lock (trades.SyncRoot)
+        {
+            Assert.True(trades.TryGet(f.ActualConnection, out var retained)); Assert.Same(party, retained);
+            Assert.True(trades.TryGet(partnerConnection, out var retainedPartner)); Assert.Same(party.Other, retainedPartner);
+            Assert.True(retained.WindowOpen); Assert.True(retainedPartner.WindowOpen);
+            Assert.False(retained.Confirmed); Assert.False(retainedPartner.Confirmed);
+            Assert.Empty(retained.Items); Assert.Empty(retainedPartner.Items);
+            Assert.Equal(0L, retained.Money); Assert.Equal(0L, retainedPartner.Money);
+            Assert.Equal(0U, retained.ConquerPoints); Assert.Equal(0U, retainedPartner.ConquerPoints);
+        }
     }, ranking: true);
 }

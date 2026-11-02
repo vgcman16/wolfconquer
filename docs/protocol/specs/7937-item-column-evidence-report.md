@@ -80,3 +80,22 @@ This makes the actual complete65-to67 candidate evidence consumable; it does not
 resolve the real main/Sub missing matches or semantic mapping. Matching7937
 reader/schema evidence remains necessary. All new C# and controls are unbuilt/
 unrun in this helper scope. No source-bug fix or runtime/live support is claimed.
+
+## Actual managed comparison - 2026-11-02
+
+Root's compiled9846372f command completed both retained pinned input pairs with
+exit0, FormatVersion2, no writes/runtime binding and unchanged input sizes/mtimes.
+The comparison covers every shared identity as a complete byte vector.
+
+| Pair | Reference/current rows | Shared IDs | Missing columns | One candidate | Multiple candidates |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Main65/current67 |47,184/57,093|47,184|12|47|5|
+| Sub65/current67 |301/1,693|28|5|6|53|
+
+Missing Main reference ordinals are1,2,10,12,19,35,36,38,46,52,53,58;
+missing Sub ordinals are1,10,38,46,53. The managed results independently agree
+with the retained earlier Python aggregate. No complete alignment or semantic
+adapter is selected. In particular, older text-slot continuity remains unproved.
+Private reports retain every bounded candidate set; no actual rows/names are
+bundled in public source. This data execution does not make the separate
+218passed/5failed targeted source run green or establish7937 gameplay/English.
