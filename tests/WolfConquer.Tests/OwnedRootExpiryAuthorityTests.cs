@@ -62,8 +62,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.Null(fixture.ActualClock(9)); Assert.Null(fixture.ActualClock(8));
         Assert.Same(binding, fixture.Owner.NativeGameClient!.OrdinarySpellBinding);
         Assert.True(fixture.Sessions.IsBoundSpellOwnerCurrent(binding));
-        foreach (var uid in new[] { PlayerUid, TargetPlayerUid })
-            Assert.Equal(new ulong[] { 256, 0 }, fixture.Vectors(uid, start));
+        Assert.Equal(new[] { (PlayerUid, 256UL), (PlayerUid, 0UL) },
+            fixture.Vectors(PlayerUid, start).Select(value => (PlayerUid, value)));
+        Assert.Equal(new[] { (TargetPlayerUid, 256UL), (TargetPlayerUid, 0UL) },
+            fixture.Vectors(TargetPlayerUid, start).Select(value => (TargetPlayerUid, value)));
         fixture.Data.AssertFiles(files);
     });
 }

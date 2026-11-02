@@ -61,18 +61,29 @@ public sealed partial class WorldSessionStore
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!TryGet(data.Connection, out var candidateSubject)) return false;
+            if (!TryGet(data.Connection, out var candidateSubject) || candidateSubject is null) return false;
             var owner = ReferenceEquals(data.Connection, recipient.Connection);
-            var candidateViewer = owner ? candidateSubject : recipient.Session;
+            WorldSession candidateViewer;
+            if (owner) candidateViewer = candidateSubject;
+            else
+            {
+                if (!TryGet(recipient.Connection, out var currentViewer) || currentViewer is null ||
+                    currentViewer.Character.Uid != recipient.Session.Character.Uid) return false;
+                candidateViewer = currentViewer;
+            }
             using var package = LegacyMailboxPackageMutationFence.EnterStoreScope(MailboxPackages, candidateSubject, candidateViewer);
             lock (first) lock (second)
             {
                 using var native = EnterNativeConnectionGate();
                 if (!TryReadRootExpirySubject(data, out var subject)) return false;
                 if (!ReferenceEquals(subject, candidateSubject)) continue;
-                if (!_sessions.TryGetValue(recipient.Connection, out var holder) ||
-                    !ReferenceEquals(holder.Read(), candidateViewer) ||
-                    !WorldServerFrameHandler.IsRootExpiryRecipientVisible(data.Connection, subject, recipient.Connection, candidateViewer)) return false;
+                if (!_sessions.TryGetValue(recipient.Connection, out var holder)) return false;
+                // A legitimate peer ticker/HP publication can supersede the
+                // enumeration snapshot. Retry with its actual current mailbox
+                // scope; DATA from the old snapshot never authorizes the write.
+                if (!ReferenceEquals(holder.Read(), candidateViewer)) continue;
+                if (!WorldServerFrameHandler.IsRootExpiryRecipientVisible(
+                    data.Connection, subject, recipient.Connection, candidateViewer)) return false;
                 LegacyNativeAttributeMapProof fields;
                 try { fields = LegacyNativeAttributeMapProof.CaptureRaw(candidateViewer.Character.Attributes); }
                 catch (Exception error) when (error is InvalidOperationException or ArgumentException or FormatException or OverflowException)

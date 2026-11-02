@@ -59,4 +59,14 @@ public sealed partial class WorldServerFrameHandler
         if (!_sessions.TryCommitOwnedStaminaTick(readiness, context, expected, out var publication)) return;
         if (publication is not null) await publication.PublishAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    private bool TryPrepareDueLegacyStaminaUpdate(ConquerTcpConnection connection,
+        out WorldSessionStore.StaminaPublication? publication)
+    {
+        publication = null;
+        if (!staminaReady.TryGetValue(connection, out var readiness) || !IsStaminaReadinessCurrent(readiness) ||
+            !_sessions.TryGet(connection, out var expected) || expected is null) return false;
+        var context = CreateMonsterRuntimeContext(new(connection, expected));
+        return _sessions.TryCommitOwnedStaminaTick(readiness, context, expected, out publication);
+    }
 }

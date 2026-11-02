@@ -283,76 +283,60 @@ public sealed partial class WorldServerFrameHandler
     }
 
     private async ValueTask SendDueReviverMonsterRevivesAsync(
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
+        DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (_worldData is null)
+        if (_worldData is null) return;
+        WorldActiveSession[] activeSessions;
+        using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
         {
-            return;
+            if (_tradeRecovery.IsBlocked) return;
+            activeSessions = _sessions.Snapshot().ToArray();
         }
-
-        var activeSessions = _sessions.Snapshot();
-        if (activeSessions.Count == 0)
-        {
-            return;
-        }
-
-        var revivedCount = 0;
-        var spellViewerCount = 0;
+        var revivedCount = 0; var spellViewerCount = 0;
         foreach (var active in activeSessions)
         {
-            // Skip-only prefilter; authoritative eligibility is read again after entry.
-            if (!_sessions.TryGet(active.Connection, out var candidate) ||
-                candidate is null ||
-                !IsLegacyCharacterDead(candidate.Character))
+            cancellationToken.ThrowIfCancellationRequested();
+            // Snapshot is only a skip prefilter, never commit authority.
+            if (!_sessions.TryGet(active.Connection, out var candidate) || candidate is null ||
+                !IsLegacyCharacterDead(candidate.Character)) continue;
+            WorldSessionStore.CommittedOwnedReviver? receipt = null;
+            string reason = "not-attempted";
+            // Acquire the client publication gate BEFORE Shared. A stalled
+            // previous publication can no longer hold a world lease through
+            // this wait. Both are released before owned transport output.
+            using (await EnterLegacyRuntimePublicationAsync(active.Connection, cancellationToken).ConfigureAwait(false))
+            using (var operation = await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
             {
+                if (_tradeRecovery.IsBlocked) continue;
+                if (!_sessions.TryGet(active.Connection, out var current) || current is null ||
+                    !IsLegacyCharacterDead(current.Character) || !TryFindVisibleLegacyReviverFor(current.Character, now, out var reviver)) continue;
+                if (current.NativeGameClient?.OrdinarySpellBinding is null)
+                {
+                    // The unbound/component path has no native completed-query
+                    // owner yet and retains its original source behavior.
+                    var unbound = await ApplyLegacyReviverReviveAsync(active.Connection, current, now, cancellationToken).ConfigureAwait(false);
+                    if (unbound is null) continue;
+                    spellViewerCount += await SendLegacyReviverSpellAnimationAsync(activeSessions, unbound, reviver, cancellationToken).ConfigureAwait(false);
+                    await SendLegacyReviverPlayerSpawnToVisiblePeersAsync(activeSessions, active.Connection, unbound, cancellationToken).ConfigureAwait(false);
+                    revivedCount++; continue;
+                }
+                var admission = PrepareReviverAdmission(operation, active.Connection, current, reviver, now);
+                if (admission is null) continue;
+                try { _ = _sessions.TryCommitOwnedReviver(this, admission, active.Connection, current, out receipt, out reason); }
+                finally { DiscardReviverAdmission(admission); }
+            }
+            if (receipt is null)
+            {
+                await _log.WriteLineAsync($"WorldServer deferred owned Reviver phase={reason}.").ConfigureAwait(false);
                 continue;
             }
-
-            using var publication = await EnterLegacyRuntimePublicationAsync(active.Connection, cancellationToken)
-                .ConfigureAwait(false);
-
-            if (!_sessions.TryGet(active.Connection, out var currentSession) ||
-                currentSession is null ||
-                !IsLegacyCharacterDead(currentSession.Character) ||
-                !TryFindVisibleLegacyReviverFor(currentSession.Character, now, out var reviver))
-            {
-                continue;
-            }
-
-            var updatedSession = await ApplyLegacyReviverReviveAsync(
-                    active.Connection,
-                    currentSession,
-                    now,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            if (updatedSession is null)
-            {
-                continue;
-            }
-
-            spellViewerCount += await SendLegacyReviverSpellAnimationAsync(
-                    activeSessions,
-                    updatedSession,
-                    reviver,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await SendLegacyReviverPlayerSpawnToVisiblePeersAsync(
-                    activeSessions,
-                    active.Connection,
-                    updatedSession,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            revivedCount++;
+            var sent = await _sessions.PublishOwnedReviverAsync(receipt, cancellationToken).ConfigureAwait(false);
+            if (sent is null) continue;
+            spellViewerCount += sent.Value; revivedCount++;
         }
-
         if (revivedCount > 0)
-        {
-            await _log.WriteLineAsync(
-                    "WorldServer sent legacy Reviver revive " +
-                    $"playerCount={revivedCount} spellViewerCount={spellViewerCount}.")
-                .ConfigureAwait(false);
-        }
+            await _log.WriteLineAsync("WorldServer sent legacy Reviver revive " +
+                $"playerCount={revivedCount} spellViewerCount={spellViewerCount}.").ConfigureAwait(false);
     }
 
     private async ValueTask SendLegacyReviverPlayerSpawnToVisiblePeersAsync(

@@ -30,14 +30,18 @@ public sealed partial class LegacyNativePlayerRuntime
         private readonly uint before;
         private readonly LegacyActionState.NativeValueProof? expected;
         private readonly LegacyActionState.NativeValueProof proposed;
+        private readonly WorldSession? beforeSession;
+        private readonly WorldSession? proposedSession;
 
         private OwnedActionPublication(LegacyOrdinarySpellBinding binding,
-            LegacyActionState.NativeValueProof? expected, LegacyActionState.NativeValueProof proposed)
+            LegacyActionState.NativeValueProof? expected, LegacyActionState.NativeValueProof proposed,
+            WorldSession? beforeSession = null, WorldSession? proposedSession = null)
         {
             this.binding = binding; player = binding.Player;
             beforeBinding = Volatile.Read(ref player.ownedActionBinding);
             before = Volatile.Read(ref player._action);
             this.expected = expected; this.proposed = proposed;
+            this.beforeSession = beforeSession; this.proposedSession = proposedSession;
         }
 
         internal static OwnedActionPublication PrepareBound(LegacyOrdinarySpellBinding binding,
@@ -51,7 +55,7 @@ public sealed partial class LegacyNativePlayerRuntime
                 !ReferenceEquals(actual, expected) || !ReferenceEquals(binding.Player.ownedActionBinding, binding) ||
                 current.Value != Volatile.Read(ref binding.Player._action) || !current.IsCurrentPlain() || !next.IsCurrentPlain())
                 throw new InvalidOperationException("ordinaryActionPhysicalBaselineMismatch");
-            return new(binding, current, next);
+            return new(binding, current, next, expected, proposed);
         }
 
         internal static OwnedActionPublication PrepareAdmission(LegacyOrdinarySpellBinding binding,
@@ -68,6 +72,23 @@ public sealed partial class LegacyNativePlayerRuntime
         internal bool IsCurrentPlain() => Volatile.Read(ref player._action) == before &&
             ReferenceEquals(Volatile.Read(ref player.ownedActionBinding), beforeBinding) &&
             (expected is null || expected.IsCurrentPlain()) && proposed.IsCurrentPlain();
+
+        // A future spawn may only be serialized from the exact bound Store
+        // preparation, while its original holder and physical action remain current.
+        internal bool TryReadPreparedSpawnAction(LegacyOrdinarySpellBinding actualBinding,
+            WorldSession actualBefore, WorldSession actualProposed, out ushort value)
+        {
+            value = 0;
+            if (!ReferenceEquals(binding, actualBinding) || !ReferenceEquals(beforeSession, actualBefore) ||
+                !ReferenceEquals(proposedSession, actualProposed) || expected is null ||
+                !WorldSessionStore.IsCurrentThreadInsideAnyConnectionGate ||
+                !Monitor.IsEntered(binding.Client.SpellAdmissionSyncRoot) || !Monitor.IsEntered(player.SpellAdmissionSyncRoot) ||
+                !binding.Store.IsBoundSpellOwnerCurrent(binding) || !binding.Store.TryGet(binding.Connection, out var current) ||
+                !ReferenceEquals(current, actualBefore) || !ReferenceEquals(binding.Client.Player, player) ||
+                !ReferenceEquals(player.Owner, binding.Client) || !ReferenceEquals(player.AttachedActionBinding, binding) ||
+                !IsCurrentPlain()) return false;
+            value = unchecked((ushort)proposed.Value); return true;
+        }
 
         // The actual Store consumes its connection/actors/maps/file proofs
         // before this joint publication. No callback, output or lookup here.

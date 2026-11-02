@@ -6,10 +6,11 @@ public sealed partial class WorldServerFrameHandler
 {
     private bool TryCommitPlayerRuntimeTick(ConquerTcpConnection connection, long uid, object workerIdentity,
         LegacyRuntimeUpdateTicker ticker, DateTimeOffset now, bool ownedStamina,
-        out LegacyRuntimeUpdateTicker nextTicker, out IReadOnlyList<LegacyRuntimeUpdate> updates)
+        out LegacyRuntimeUpdateTicker nextTicker, out IReadOnlyList<LegacyRuntimeUpdate> updates,
+        out PlayerTickXpPermit? wirePermit)
     {
         nextTicker = ticker;
-        updates = [];
+        updates = []; wirePermit = null;
         lock (RequireActionLifecycleGate(_sessions))
         {
             if (_tradeRecovery.IsBlocked || _tradeStates.HasConnectionEnded(connection) ||
@@ -40,12 +41,17 @@ public sealed partial class WorldServerFrameHandler
                 if (update.RuntimeXpCount is not null || update.RuntimeXpListActive is not null)
                     character = ProjectLegacyRuntimeXpState(character, update.RuntimeXpCount, update.RuntimeXpListActive);
             }
+            // Only the single actual XP-circle output has a complete closed
+            // gate-time owner here. Other ticker families retain their prior path.
+            var candidateWire = PreparePlayerTickXpWire(connection, uid, workerIdentity, current, due);
             if (!ReferenceEquals(character, current.Character) &&
                 !_sessions.TryCompareAndSetWithNativeIdentity(connection, current, workerIdentity,
-                    current with { Character = character }, out _)) return false;
+                    current with { Character = character }, out _)) { DiscardPlayerTickXpWire(candidateWire); return false; }
             if (ReferenceEquals(character, current.Character) &&
                 (!LegacyNativeClientPublication.TryCurrent(_sessions, connection, uid, workerIdentity, out var unchanged) ||
-                    !ReferenceEquals(unchanged, current))) return false;
+                    !ReferenceEquals(unchanged, current))) { DiscardPlayerTickXpWire(candidateWire); return false; }
+            if (candidateWire is not null) CommitPlayerTickXpWire(candidateWire);
+            wirePermit = candidateWire;
             nextTicker = prepared;
             updates = due;
             return true;

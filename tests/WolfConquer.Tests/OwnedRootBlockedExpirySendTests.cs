@@ -103,7 +103,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
     [Fact]
     public Task ExpiryGateUsesGenuineReplacementGenerationInsteadOfOldVector() =>
-        RunOwnedRootEquipmentAsync("manual", async fixture =>
+        RunOwnedRootEquipmentAsync("generation", async fixture =>
     {
         await fixture.Query(); await fixture.Cast(1000);
         var old = Assert.IsType<LegacyRootItemEffectFlagClock>(fixture.ActualClock(9));
@@ -132,7 +132,8 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 await Task.Delay(10);
             var replacement = Assert.IsType<LegacyRootItemEffectFlagClock>(fixture.ActualClock(9));
             Assert.NotSame(old, replacement);
-            Assert.True(fixture.HasFlag(9)); Assert.True(fixture.HasFlag(8));
+            Assert.True(fixture.HasFlag(9), "The actual replacement Stigma must be visible.");
+            Assert.True(fixture.HasFlag(8), "The captured other Shield must still be visible at this stage.");
             Assert.False(blocked.IsCompleted);
             await fixture.DrainBackpressuredWrite(TargetPlayerUid);
             drained = true;
@@ -147,5 +148,37 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }, () => FinishOwnedPauseAsync(fixture, TargetPlayerUid, blocked, drained, started, completed, replacementCast));
     });
 
+
+    [Fact]
+    public Task MpPrefixPrecedesARealReplacementClockWhileItsPeerIsStalled() =>
+        RunOwnedRootEquipmentAsync("manual", async fixture =>
+    {
+        await fixture.Query(); await fixture.Cast(1000);
+        var old = Assert.IsType<LegacyRootItemEffectFlagClock>(fixture.ActualClock(9));
+        Task blocked = fixture.StartBackpressuredWrite(TargetPlayerUid);
+        Task? cast = null;
+        bool drained = false, started = false, completed = false;
+        await PreserveOwnedPauseFailuresAsync(async () =>
+        {
+            await fixture.WaitForBackpressure(TargetPlayerUid);
+            int start = fixture.Order.Count;
+            await fixture.BeginPausedRuntimeAdvance(TimeSpan.FromSeconds(20)); started = true;
+            await WaitUntilAsync(() => fixture.ExpiryWaitingAtRealGate(TargetPlayerUid), TimeSpan.FromSeconds(5));
+            Assert.False(fixture.HasFlag(9)); Assert.True(fixture.HasFlag(8));
+            cast = fixture.Cast(1000);
+            await WaitUntilAsync(() => fixture.Animations(PlayerUid, start).Any(frame => frame.SpellId == 1175),
+                TimeSpan.FromSeconds(5));
+            Assert.False(cast.IsCompleted);
+            Assert.True(fixture.ActualBackpressure(TargetPlayerUid));
+            Assert.False(fixture.HasFlag(9));
+            Assert.Null(fixture.ActualClock(9)); // Real MP presentation precedes the Ring installation.
+            await fixture.DrainBackpressuredWrite(TargetPlayerUid); drained = true;
+            await blocked.WaitAsync(TimeSpan.FromSeconds(5));
+            await cast.WaitAsync(TimeSpan.FromSeconds(5));
+            await fixture.CompletePausedRuntimeAdvance(() => fixture.HasFlag(9) && fixture.HasFlag(8)); completed = true;
+            Assert.NotSame(old, Assert.IsType<LegacyRootItemEffectFlagClock>(fixture.ActualClock(9)));
+            Assert.True(fixture.Sessions.IsBoundSpellOwnerCurrent(fixture.Owner.NativeGameClient!.OrdinarySpellBinding!));
+        }, () => FinishOwnedPauseAsync(fixture, TargetPlayerUid, blocked, drained, started, completed, cast));
+    });
 
 }

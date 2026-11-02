@@ -329,6 +329,18 @@ public sealed partial class WorldSessionStore
                 !proposedWarehouseMoney.IsCurrentPlain()) throw InvalidSpellPublication();
         }
 
+        internal byte[] PrepareReviverSpawn(uint maximumHitpoints)
+        {
+            if (binding is null || action is null || expected is null) throw InvalidSpellPublication();
+            RequireCurrentBeforeWriter();
+            var attributes = LegacyNativeAttributeMapProof.CaptureRaw(FinalSession.Character.Attributes);
+            var frame = LegacyPlayerSpawnPacket.FromPreparedOwnedAction(action, binding, expected,
+                FinalSession, maximumHitpoints).ToFrameBytes();
+            RequireCurrentBeforeWriter();
+            if (!attributes.IsCurrentPlain()) throw InvalidSpellPublication();
+            return frame;
+        }
+
         internal void RequireCurrentBeforeWriter()
         {
             if (!ReferenceEquals(holder.Read(), expected) || binding is not null &&

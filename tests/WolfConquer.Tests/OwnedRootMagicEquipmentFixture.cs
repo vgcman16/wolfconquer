@@ -60,6 +60,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     internal sealed class OwnedRootEquipmentFixture : IAsyncDisposable
     {
         internal const uint IndependentCasterUid = 1_293_602, IndependentTargetUid = 1_293_603;
+        internal const uint ExpiryObserverUid = 1_293_604;
         internal readonly LegacyOwnedAdmissionRuntimeFixture Data = new(bootstrap: false);
         private readonly NativeLoginBeastMetadataScope beasts = new(1000);
         private readonly ManualRuntimeTimeProvider clock = new(RootMagicEntryOrigin);
@@ -88,8 +89,45 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         internal string Output => log.ToString();
         internal string ItemPath => Path.Combine(Data.Items, PlayerUid + ".bin");
         internal WorldSession Current(uint uid) => Assert.IsType<WorldSession>(Sessions.TryGet(connections[uid], out var owner) ? owner : null);
+        // Read-only diagnostic through the real holder/native gates. It never
+        // creates a query epoch or supplies a maximum to the Reviver.
+        internal string DescribeRealMaximumsQuery(uint uid)
+        {
+            string outcome = "holder-missing";
+            var session = Current(uid);
+            if (session.NativeGameClient?.OrdinarySpellBinding is not { } binding) return "binding-missing";
+            bool held = Sessions.WithCurrentNativeClientIdentity(connections[uid], uid, identity =>
+            {
+                if (!ReferenceEquals(identity, binding.NativeIdentity) || !ReferenceEquals(Current(uid), session))
+                { outcome = "holder-changed"; return; }
+                lock (binding.Client.SpellAdmissionSyncRoot)
+                lock (binding.Player.SpellAdmissionSyncRoot)
+                {
+                    bool captured = LegacyNativeMagicQueryClient.TryCaptureRecordedReceive(binding, session, out var query, out var values);
+                    outcome = captured && query is not null
+                        ? $"current-completed hp={values.MaximumHitpoints} mana={values.MaximumMana}"
+                        : "no-current-completed-query";
+                }
+            });
+            return held ? outcome : "holder-missing";
+        }
         internal Task StartBackpressuredWrite(uint uid) => loopbacks[uid].StartBackpressuredWrite();
         internal bool ActualBackpressure(uint uid) => loopbacks[uid].ActualBackpressure;
+        internal bool ReviverWaitingAtRealGate(uint uid) => loopbacks[uid].ExpiryWriter.ReviverWaitingForGate > 0;
+        internal bool TickerWaitingAtRealGate(uint uid) => loopbacks[uid].ExpiryWriter.TickerWaitingForGate > 0;
+        internal bool AttemptUngatedActualTickerPermit(uint uid)
+        {
+            var table = typeof(WorldServerFrameHandler).GetField("playerTickXpPermits", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+            var connection = connections[uid];
+            var rows = ((System.Collections.IEnumerable)table).Cast<object>();
+            var permit = Assert.Single(rows.Select(row => (Key: row.GetType().GetProperty("Key")!.GetValue(row), Value: row.GetType().GetProperty("Value")!.GetValue(row)))
+                .Where(row => ReferenceEquals(row.Value!.GetType().GetField("Connection", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(row.Value), connection))
+                .Select(row => Assert.IsType<WorldServerFrameHandler.PlayerTickXpPermit>(row.Key)));
+            var identity = Assert.IsType<LegacyOrdinarySpellBinding>(Current(uid).NativeGameClient!.OrdinarySpellBinding).NativeIdentity;
+            return Sessions.TryStartPlayerTickXp(handler, permit, connection, identity, loopbacks[uid].ExpiryWriter,
+                new object(), CancellationToken.None, out _);
+        }
+        internal bool StaminaWaitingAtRealGate(uint uid) => loopbacks[uid].ExpiryWriter.StaminaWaitingForGate > 0;
         internal bool ExpiryWaitingAtRealGate(uint uid) => loopbacks[uid].ExpiryWriter.WaitingForGate > 0;
         internal Task WaitForBackpressure(uint uid) => loopbacks[uid].WaitForBackpressure();
         internal void CloseLoopbackReader(uint uid) => loopbacks[uid].CloseReader();
@@ -129,10 +167,21 @@ public sealed partial class LegacyMagicAttackRuntimeTests
 
         internal async Task Initialize(string scenario)
         {
-            workers = scenario is "xp" or "manual" or "manual-other" or "expiry-authority" or "independent" or "successor";
+            workers = scenario is "xp" or "manual" or "manual-other" or "expiry-authority" or "independent" or "successor" or "reviver" or "reviver-far" or "generation";
             var inputs = OwnedRootMagicInputs(scenario is "independent" or "successor" ? "manual" : scenario);
             Save(inputs.Owner); Save(inputs.Peer);
-            if (scenario is "independent" or "successor")
+            if (scenario == "manual-other")
+            {
+                var observer = CreateSession(uid: ExpiryObserverUid, name: "ExpiryObserver", mapId: 1_000,
+                    x: 833, y: 585, classCode: 142, minHitPoints: 100_000, minMana: 0, stamina: 100,
+                    spellIds: [], playerItems: new([], [], [], new PlayerItemSnapshotItem[]
+                    {
+                        new() { Uid = 99_291, ItemId = 111_005, Position = 1, Durability = 100, MaximumDurability = 100, StackSize = 1 },
+                        new() { Uid = 99_292, ItemId = 120_005, Position = 2, Durability = 100, MaximumDurability = 100, StackSize = 1 },
+                    }, []), attributes: new Dictionary<string, string> { ["PkMode"] = "0", ["BattlePower"] = "120" });
+                Save(new(observer.Character, observer.PlayerItems, observer.PlayerSpells, observer.PlayerProficiencies));
+            }
+            if (scenario is "independent" or "successor" or "reviver" or "reviver-far")
             {
                 var caster = CreateSession(uid: IndependentCasterUid, name: "IndependentCaster", mapId: scenario == "successor" ? 1_000 : 1_010, x: 830, y: 584,
                     classCode: 142, minHitPoints: 5_000, minMana: 1_000, stamina: 100, spellIds: [1000],
@@ -143,7 +192,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 Save(new(caster.Character, caster.PlayerItems, caster.PlayerSpells, caster.PlayerProficiencies));
                 Save(new(target.Character, target.PlayerItems, target.PlayerSpells, target.PlayerProficiencies));
             }
-            if (scenario == "manual-other")
+            if (scenario is "manual-other" or "reviver" or "reviver-far")
             {
                 nativeGearMetadata = new NativeCombatGearProcFixture(Data.Root, 703, 21_930_000);
                 nativeGearMetadata.Load(inputs.World);
@@ -155,8 +204,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
                 new LegacyRuntimeUpdateLoopOptions(workers, TimeSpan.FromMilliseconds(20), clock,
                     LegacySignedMillisecondClock.FromTimeProvider(clock, 10000)), log,
                 protocolProfile: ConquerProtocolProfile.VisibleDx8D13, ownedAdmission: runtime, nativeCombatGear: nativeGearMetadata?.Runtime);
-            var participantIds = scenario is "independent" or "successor"
+            var participantIds = scenario is "independent" or "successor" or "reviver" or "reviver-far"
                 ? new[] { PlayerUid, TargetPlayerUid, IndependentCasterUid, IndependentTargetUid }
+                : scenario == "manual-other" ? new[] { PlayerUid, TargetPlayerUid, ExpiryObserverUid }
                 : new[] { PlayerUid, TargetPlayerUid };
             foreach (var uid in participantIds)
             {
@@ -273,6 +323,19 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             Assert.NotEqual(originalKey, collision);
             fields.Add(collision, fields[originalKey]);
             Sessions.Set(connections[PlayerUid], current with { Character = current.Character with { Attributes = fields } });
+        }
+        // Actual Store publication after the genuine ticker committed and is
+        // waiting at the real socket gate. Preserve every unrelated attribute.
+        internal void PublishXpKeySuccessor(uint uid, bool duplicate)
+        {
+            var current = Current(uid);
+            var fields = new Dictionary<string, string>(current.Character.Attributes, StringComparer.Ordinal);
+            var key = Assert.Single(fields.Keys, value => value.Equals("XPCount", StringComparison.OrdinalIgnoreCase));
+            var value = fields[key];
+            fields.Remove(key);
+            fields.Add("xpcount", value);
+            if (duplicate) fields.Add("XPCount", value);
+            Sessions.Set(connections[uid], current with { Character = current.Character with { Attributes = fields } });
         }
         internal bool AttemptUnassociatedManualProc()
         {

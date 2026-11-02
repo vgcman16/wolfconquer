@@ -368,6 +368,19 @@ public sealed partial class LegacyPlayerSpawnPacket
             unchecked((ushort)action));
     }
 
+    internal static LegacyPlayerSpawnPacket FromPreparedOwnedAction(
+        LegacyNativePlayerRuntime.OwnedActionPublication action, LegacyOrdinarySpellBinding binding,
+        WorldSession before, WorldSession proposed, uint maximumHitpoints)
+    {
+        if (!action.TryReadPreparedSpawnAction(binding, before, proposed, out var value))
+            throw new InvalidOperationException("ordinarySpawnPreparedActionOwnerChanged");
+        var packet = BuildSnapshot(proposed.Character, proposed.PlayerItems, proposed.AlternateEquipmentActive,
+            2, false, maximumHitpoints, value);
+        if (!action.TryReadPreparedSpawnAction(binding, before, proposed, out var repeated) || repeated != value)
+            throw new InvalidOperationException("ordinarySpawnPreparedActionOwnerChanged");
+        return packet;
+    }
+
     private static LegacyPlayerSpawnPacket BuildSnapshot(
         CharacterSnapshot snapshot,
         PlayerItemSnapshot playerItems,

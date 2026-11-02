@@ -5,7 +5,7 @@ namespace WolfConquer.Core.World;
 
 public sealed partial class WorldSessionStore
 {
-    internal sealed class StaminaPublication
+    internal sealed partial class StaminaPublication
     {
         private readonly WorldSessionStore store;
         private readonly WorldPacketHandlerContext context;
@@ -17,6 +17,7 @@ public sealed partial class WorldSessionStore
         private readonly byte[]? effect;
         private readonly byte[] scalar;
         private bool committed;
+        private int gatePublicationStarted;
 
         private StaminaPublication(WorldSessionStore store, WorldPacketHandlerContext context,
             LegacyOwnedStaminaRuntime.Readiness readiness, LegacyOwnedStaminaRuntime.Readiness.Step step,
@@ -70,6 +71,45 @@ public sealed partial class WorldSessionStore
             }
         }
 
+        internal async ValueTask<WorldSession?> PublishGateOwnedAsync(CancellationToken cancellationToken)
+        {
+            if (Interlocked.CompareExchange(ref gatePublicationStarted, 1, 0) != 0) return null;
+            try { return await PublishGateOwnedCoreAsync(cancellationToken).ConfigureAwait(false); }
+            catch (WorldSessionPublicationException) { throw; }
+            catch (Exception error)
+            {
+                var failure = FenceInterruptedOwner(error);
+                if (failure is not null) throw failure;
+                throw;
+            }
+        }
+        private async ValueTask<WorldSession?> PublishGateOwnedCoreAsync(CancellationToken cancellationToken)
+        {
+            if (!TryCurrent(out var owner)) return RefuseInterruptedOwner();
+            if (effect is not null)
+            {
+                var ownEffect = IssueWire(context.Connection, owner, effect);
+                if (ownEffect is null || !await context.Connection.SendOwnedStaminaAsync(this, ownEffect, cancellationToken).ConfigureAwait(false)) return RefuseInterruptedOwner();
+                if (!TryCurrent(out owner)) return RefuseInterruptedOwner();
+                foreach (var viewer in store.Snapshot())
+                {
+                    if (ReferenceEquals(viewer.Connection, context.Connection) ||
+                        !WorldPacketHandlers.WindWalkerViewerVisible(owner.Character, viewer.Session.Character) ||
+                        !LegacyNativeClientPublication.TryCaptureIdentity(store, viewer.Connection, viewer.Session.Character.Uid, out var identity) ||
+                        !LegacyNativeClientPublication.TryCurrent(store, viewer.Connection, viewer.Session.Character.Uid, identity, out var target)) continue;
+                    if (!TryCurrent(out owner)) return RefuseInterruptedOwner();
+                    if (!WorldPacketHandlers.WindWalkerViewerVisible(owner.Character, target.Character)) continue;
+                    var peerEffect = IssueWire(viewer.Connection, target, effect);
+                    if (peerEffect is null) continue;
+                    if (!await viewer.Connection.SendOwnedStaminaAsync(this, peerEffect, cancellationToken).ConfigureAwait(false)) continue;
+                    if (!TryCurrent(out owner)) return RefuseInterruptedOwner();
+                }
+            }
+            if (!TryCurrent(out owner)) return RefuseInterruptedOwner();
+            var ownScalar = IssueWire(context.Connection, owner, scalar);
+            if (ownScalar is null || !await context.Connection.SendOwnedStaminaAsync(this, ownScalar, cancellationToken).ConfigureAwait(false)) return RefuseInterruptedOwner();
+            return TryCurrent(out owner) ? owner : RefuseInterruptedOwner();
+        }
         internal async ValueTask<WorldSession?> PublishAsync(CancellationToken cancellationToken)
         {
             if (!TryCurrent(out var owner)) return null;

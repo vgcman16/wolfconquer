@@ -10,7 +10,9 @@ public sealed partial class LegacyMagicAttackRuntimeTests
     {
         var crop = scenario == "crop";
         var xp = scenario == "xp";
-        var other = scenario == "manual-other";
+        var generation = scenario == "generation";
+        var other = scenario is "manual-other" or "reviver" or "reviver-far";
+        var reviver = scenario is "reviver" or "reviver-far";
         var authority = scenario == "expiry-authority";
         ItemType Item(uint id, uint hp = 0, uint mp = 0) => OwnedEquipmentBehaviorFixture.Item(id,
             "NativeCrop" + id, new Dictionary<int, string>
@@ -24,14 +26,22 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             magic.Add(CreateMagicRow(1095, sort: 6, useMana: 0, useStamina: 0, damage: 100, duration: 30, range: 18, coolDown: 0, coldTime: 0));
         if (other)
         {
-            magic.Add(CreateMagicRow(1001, sort: 1, useMana: 0, useStamina: 0, damage: 1000, range: 18, coolDown: 0, coldTime: 0));
+            // The revive control needs a genuine lethal fixed-damage cast;
+            //30000 is an encoded modifier and produced only the minimum hit.
+            magic.Add(CreateMagicRow(1001, sort: 1, useMana: 0, useStamina: 0, damage: reviver ? 9_999U : 1000U, range: 18, coolDown: 0, coldTime: 0));
             magic.Add(CreateMagicRow(21930, sort: 6, useMana: 0, useStamina: 0, damage: 100, range: 18, coolDown: 0, coldTime: 0));
         }
         if (crop) magic.Add(CreateMagicRow(14500, sort: 6, useMana: 0, useStamina: 0,
             damage: 1, duration: 60, range: 18, coolDown: 0, coldTime: 0));
         if (xp) magic.Add(CreateMagicRow(1020, sort: 6, useMana: 0, useStamina: 0,
             damage: 100, duration: 30, range: 18, coolDown: 0, coldTime: 0));
-        var world = CreateMagicCatalogCore(CreateMonsterFamily(), [], [], magic,
+        var family = reviver ? new Monster(10000, "Reviver", new Dictionary<string, string>
+        { ["life"] = "70000", ["lookface"] = "10000", ["level"] = "0200", ["attack_range"] = "15",
+          ["view_range"] = "15", ["attack_speed"] = "1", ["move_speed"] = "1" }, []) : CreateMonsterFamily();
+        MonsterSpawn[] revivers = reviver ? [new MonsterSpawn(110, 1000, 10000, scenario == "reviver-far" ? 890 : 831, 584, 1, 1, 1, 10, 1, 0, 0, 0, 0,
+            1000, "Reviver", Path.Combine("1000", "Reviver", "1.ini"), new Dictionary<string, string>
+            { ["id"] = "0110", ["mapid"] = "1000", ["npctype"] = "10000" })] : [];
+        var world = CreateMagicCatalogCore(family, revivers, [], magic,
             items: crop ? [Item(111095, 5000), Item(203003), Item(111005, 50_000), Item(120005, 50_000)] :
                 [Item(111095, 5000, 1000), Item(410095), Item(150095), Item(120095), Item(111005, 50_000), Item(120005, 50_000)],
             combatGear: other ? NativeCombatGearProcFixture.CatalogRows(703, 21_930_000) : null);
@@ -39,7 +49,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         { Uid = uid, ItemId = id, Position = position, Effect = effect, Durability = 100, MaximumDurability = 100, StackSize = 1 };
         PlayerItemSnapshotItem[] equipment = crop
             ? [Row(99180, 203003, 18), Row(99181, 111095, 1)] :
-            [Row(99181, 111095, 1), Row(99184, 410095, 4, xp ? 0U : 202U),
+            [Row(99181, 111095, 1), Row(99184, 410095, 4, xp || generation ? 0U : 202U),
                 Row(99186, 150095, 6, xp || authority ? 0U : 1U), Row(99182, 120095, 2, xp ? 0U : 200U)];
         var attrs = new Dictionary<string, string>
         {
@@ -48,7 +58,7 @@ public sealed partial class LegacyMagicAttackRuntimeTests
             ["LegacyWeaponEffectRateRoll.1095"] = "19", ["LegacyWeaponEffectRateRoll.1020"] = "19",
         };
         var owner = CreateSession(mapId: 1000, strength: 0, spirit: 0, classCode: 142, minHitPoints: 5000,
-            minMana: scenario is "manual" or "manual-other" or "expiry-authority" ? 100 : 1000, stamina: 100,
+            minMana: scenario is "manual" or "manual-other" or "expiry-authority" or "generation" ? 100 : 1000, stamina: 100,
             spellIds: magic.Where(row => !other || row.TypeId is not 1001 and not 21930).Select(row => checked((ushort)row.TypeId)).ToArray(), attributes: attrs,
             playerItems: new(xp ? new[] { Row(99183, 120095, 0, 200) } : [], [], [], equipment, []));
         var peer = CreateSession(uid: TargetPlayerUid, name: "RootEntryPeer", mapId: 1000, x: 832, y: 584,

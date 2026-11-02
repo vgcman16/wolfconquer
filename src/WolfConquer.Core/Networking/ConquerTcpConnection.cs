@@ -88,6 +88,20 @@ public sealed class ConquerTcpConnection
         WolfConquer.Core.World.WorldSessionStore.RootExpiryWritePermit permit, CancellationToken token) =>
         _rootExpiryWire is { } writer ? writer.SendAsync(store, permit, token) : ValueTask.FromResult(false);
 
+    internal ValueTask<bool> SendOwnedStaminaAsync(
+        WolfConquer.Core.World.WorldSessionStore.StaminaPublication publication,
+        WolfConquer.Core.World.WorldSessionStore.StaminaPublication.WirePermit permit, CancellationToken token) =>
+        _rootExpiryWire is { } writer ? writer.SendStaminaAsync(publication, permit, token) : ValueTask.FromResult(false);
+
+    internal ValueTask<bool> SendOwnedPlayerTickXpAsync(WolfConquer.Core.World.WorldSessionStore store,
+        WolfConquer.Core.World.WorldServerFrameHandler frame, WolfConquer.Core.World.WorldServerFrameHandler.PlayerTickXpPermit permit,
+        object identity, CancellationToken token) => _rootExpiryWire is { } writer
+            ? writer.SendPlayerTickXpAsync(store, frame, permit, identity, token) : ValueTask.FromResult(false);
+
+    internal ValueTask<bool> SendOwnedReviverAsync(WolfConquer.Core.World.WorldSessionStore store,
+        WolfConquer.Core.World.WorldSessionStore.ReviverWirePermit permit, CancellationToken token) =>
+        _rootExpiryWire is { } writer ? writer.SendReviverAsync(store, permit, token) : ValueTask.FromResult(false);
+
     public ValueTask DisconnectAsync(CancellationToken cancellationToken = default)
     {
         return _disconnectAsync?.Invoke(cancellationToken) ?? ValueTask.CompletedTask;

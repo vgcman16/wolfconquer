@@ -4,6 +4,60 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Open Root expiry recipient succession - 2026-11-02 UTC
+
+### FSB-305: Do not skip a still-visible peer after its legitimate Store update
+
+OPEN integrated qualification. TIMER21 and TIMER25 lost the intermediate256
+vector specifically for peer1293601, while retaining its final0 vector. The
+issue path required reference equality to the enumerated peer snapshot; an
+independent legitimate peer ticker/HP publication could make it skip that send.
+
+Issuance now reads the actual current peer with the same selected UID, acquires
+its real mailbox/Store/native scope, and retries if that actual holder changes.
+The real published Root receipt, registered writer, one-use gate start, current
+visibility and gate-time identity checks still authorize the send. An old DATA
+snapshot is a selector, not write authority. Existing exact per-recipient goldens
+remain unchanged. TIMER27 passed the exact both-due peer vectors and replacement
+generation after BUILD26. Root added explicit nullable refusal before the next
+build; broader output and role/transport lifecycle qualification remain open.
+
+## Open player-tick and native Reviver transport repair - 2026-11-02 UTC
+
+### FSB-304: End preparation leases before owned timer output waits
+
+OPEN integrated qualification. The per-player runtime loop awaits stamina and
+ticker sends while holding Shared and its per-client runtime publication gate.
+The pre-Root Reviver path also acquires that publication gate under Shared and
+awaits output. A genuinely stalled socket can therefore retain world ownership
+or delay the global pass. WIRE11 reached real backpressure but four owned controls
+never observed their expected Root expiry; those failures alone do not identify
+which upstream owner blocked. Earlier discovery/startup dumps are not proof.
+
+The reviewed successor commits actual owned stamina and the closed single
+XP-circle step under short leases, then publishes through typed one-use real
+TCP gate starts after both leases end. Native-bound Reviver uses actual monster
+incarnation, completed native maximum query, canonical frame preflight and Store
+commit ownership before ordered gate-time output. The common transport lifecycle
+has closed typed requests, not a caller validator. XPCount follows the existing
+unique case-insensitive owned-key rule. Proposed actual producer, native/file,
+case/duplicate controls passed in TIMER21. Far-monster refusal passed in
+REVIVER23/TIMER25/27; near revival still failed in TIMER27 before the actual wire gate.
+Its completed native maximum query was current. The observed refusal was
+`ordinarySpawnActionOwnerChanged`: frame preflight used the current-holder spawn
+entry on the unpublished future session. Root integrated the genuine prepared
+action owner tied to the exact Store publication, with pre/post raw future-map
+checks. Postcommit sends retain the current-holder guard. BUILD28 passed0errors/180warnings; TIMER29 passed55/55 including actual near/far
+Reviver and stalled-socket independent combat. Prepared-owner regressions, native
+neighbors and the full gate remain pending; this is bounded offline proof only.
+BUILD30 passed0errors/114warnings; NATIVE31 passed91/91 including all four
+actual prepared-owner controls and native/query/action neighbors. Full gate pending.
+
+Native post-death query availability may defer revival; no cache fallback or
+fabricated completed query is accepted. Unbound Reviver, Vote, multi-frame ticker,
+Undying, standalone stamina and other global outputs remain unsplit. This is
+not whole-loop liveness, crash-safe delivery, full parity or a live deployment.
+
 ## Open Root expiry transport and successor repair - 2026-11-02 UTC
 
 ### FSB-302: Release the world-operation lease before awaiting Root expiry transport

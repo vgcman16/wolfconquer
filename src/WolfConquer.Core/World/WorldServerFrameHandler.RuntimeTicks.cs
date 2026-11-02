@@ -72,51 +72,77 @@ public sealed partial class WorldServerFrameHandler
                 await Task.Delay(_runtimeUpdateLoop.TickInterval, timeProvider, cancellationToken)
                     .ConfigureAwait(false);
 
-                using var operation = await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
-                if (_tradeRecovery.IsBlocked) continue;
-                TryStartLegacyGlobalRuntimeUpdateLoop(cancellationToken);
-                using var publication = await EnterLegacyRuntimePublicationAsync(connection, cancellationToken)
-                    .ConfigureAwait(false);
-
-                var now = timeProvider.GetUtcNow();
-                _sessions.TryGet(connection, out var currentSession);
-                await ProcessDueLegacyVoteClaimRuntimeTickAsync(
-                        connection,
-                        currentSession,
-                        now,
-                        timeProvider,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                _sessions.TryGet(connection, out currentSession);
-                var ownedStamina = currentSession?.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true ||
-                    connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true;
-                if (ownedStamina)
+                WorldSessionStore.StaminaPublication? stamina = null;
+                DateTimeOffset now;
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    await SendDueLegacyStaminaUpdateAsync(connection, cancellationToken).ConfigureAwait(false);
+                    if (_tradeRecovery.IsBlocked) continue;
+                    TryStartLegacyGlobalRuntimeUpdateLoop(cancellationToken);
+                    using var publication = await EnterLegacyRuntimePublicationAsync(connection, cancellationToken).ConfigureAwait(false);
+                    now = timeProvider.GetUtcNow();
+                    _sessions.TryGet(connection, out var currentSession);
+                    // Vote retains its existing owned lifecycle and is a separate
+                    // transport seam; do not skip or invent that producer.
+                    await ProcessDueLegacyVoteClaimRuntimeTickAsync(connection, currentSession, now, timeProvider, cancellationToken).ConfigureAwait(false);
                     _sessions.TryGet(connection, out currentSession);
+                    var hasOwnedStamina = currentSession?.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true ||
+                        connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true;
+                    if (hasOwnedStamina) _ = TryPrepareDueLegacyStaminaUpdate(connection, out stamina);
                 }
-                if (!TryCommitPlayerRuntimeTick(connection, snapshot.Uid, workerIdentity, ticker, now, ownedStamina,
-                        out var nextTicker, out var dueUpdates)) continue;
-                ticker = nextTicker;
-                foreach (var update in dueUpdates)
-                {
-                    if (!LegacyNativeClientPublication.TryCurrent(_sessions, connection, snapshot.Uid, workerIdentity, out _)) break;
-                    await connection.SendAsync(update.FrameBytes, cancellationToken)
-                        .ConfigureAwait(false);
+                // The actual committed stamina publication owns its ordered
+                // output; the world lease and runtime-publication gate are free.
+                if (stamina is not null) await stamina.PublishGateOwnedAsync(cancellationToken).ConfigureAwait(false);
 
-                    if (update.MessageBoxPrompt is { } prompt)
+                PlayerTickXpPermit? xpWire = null;
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    if (_tradeRecovery.IsBlocked) continue;
+                    using var publication = await EnterLegacyRuntimePublicationAsync(connection, cancellationToken).ConfigureAwait(false);
+                    _sessions.TryGet(connection, out var currentSession);
+                    var ownedStamina = currentSession?.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true ||
+                        connection.NativeGameClient?.Player?.HasOwnedVitalsAttachment == true;
+                    if (!TryCommitPlayerRuntimeTick(connection, snapshot.Uid, workerIdentity, ticker, now, ownedStamina,
+                            out var nextTicker, out var dueUpdates, out xpWire)) continue;
+                    ticker = nextTicker;
+                    if (xpWire is null)
                     {
-                        await SendRuntimeMessageBoxPromptAsync(connection, prompt, cancellationToken)
-                            .ConfigureAwait(false);
+                        // Existing multi-frame status/invitation families remain
+                        // ordered and are not claimed as transport-split yet.
+                        foreach (var update in dueUpdates)
+                        {
+                            if (!LegacyNativeClientPublication.TryCurrent(_sessions, connection, snapshot.Uid, workerIdentity, out _)) break;
+                            await connection.SendAsync(update.FrameBytes, cancellationToken).ConfigureAwait(false);
+                            if (update.MessageBoxPrompt is { } prompt)
+                                await SendRuntimeMessageBoxPromptAsync(connection, prompt, cancellationToken).ConfigureAwait(false);
+                        }
                     }
                 }
-
-                await SendLegacyThunderStrikerUndyingImprintingRuntimeTickAsync(
-                        connection,
-                        playerItems,
-                        playerSpells,
-                        cancellationToken)
-                    .ConfigureAwait(false);
+                if (xpWire is not null)
+                {
+                    try
+                    {
+                        if (!await connection.SendOwnedPlayerTickXpAsync(_sessions, this, xpWire, workerIdentity, cancellationToken).ConfigureAwait(false))
+                        {
+                            var failure = _sessions.FenceInterruptedPlayerTickXp(this, xpWire, connection, workerIdentity,
+                                new InvalidOperationException("playerTickXpCommittedOutputInterrupted"));
+                            if (failure is not null) throw failure;
+                        }
+                    }
+                    catch (WorldSessionPublicationException) { throw; }
+                    catch (Exception error)
+                    {
+                        var failure = _sessions.FenceInterruptedPlayerTickXp(this, xpWire, connection, workerIdentity, error);
+                        if (failure is not null) throw failure;
+                        throw;
+                    }
+                    finally { DiscardPlayerTickXpWire(xpWire); }
+                }
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    if (_tradeRecovery.IsBlocked) continue;
+                    await SendLegacyThunderStrikerUndyingImprintingRuntimeTickAsync(
+                        connection, playerItems, playerSpells, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -156,7 +182,13 @@ public sealed partial class WorldServerFrameHandler
                     await SendDuePaidNobilityExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
                     await SendDuePlayerGhostTransitionsAsync(now, cancellationToken).ConfigureAwait(false);
                     await SendDueGuardMonsterActionsAsync(now, cancellationToken).ConfigureAwait(false);
-                    await SendDueReviverMonsterRevivesAsync(now, cancellationToken).ConfigureAwait(false);
+                }
+                // The reviver owns short selection/commit leases and emits its
+                // real receipt only after those world/client leases are gone.
+                await SendDueReviverMonsterRevivesAsync(now, cancellationToken).ConfigureAwait(false);
+                using (await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    if (_tradeRecovery.IsBlocked) continue;
                     await SendDuePlayerDeathPromptsAsync(now, cancellationToken).ConfigureAwait(false);
                     await SendDuePlayerBlackSpotExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
                     await SendDueLegacyEagleEyeCountdownExpirationsAsync(now, cancellationToken).ConfigureAwait(false);
