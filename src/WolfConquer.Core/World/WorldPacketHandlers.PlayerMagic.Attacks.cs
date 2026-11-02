@@ -1060,23 +1060,10 @@ public static partial class WorldPacketHandlers
             return true;
         }
 
-        if (!PassesLegacyPlayerMonsterMagicPreResourceRangeGate(
+        var resourceSession = await TryPrepareLegacyPlayerMonsterMagicCastAsync(
                 context,
                 session,
                 query,
-                spell,
-                out var failureDiagnostic))
-        {
-            await context.Log.WriteLineAsync(
-                    "WorldServer skipped legacy player magic " +
-                    $"{FormatSession(context)} spellId={spell.Id} sort={(int)spell.Sort}; {failureDiagnostic}.")
-                .ConfigureAwait(false);
-            return true;
-        }
-
-        var resourceSession = await TryPrepareLegacyPlayerMagicCastAsync(
-                context,
-                session,
                 spell,
                 cancellationToken).ConfigureAwait(false);
         if (resourceSession is null)
@@ -1090,7 +1077,7 @@ public static partial class WorldPacketHandlers
                 query,
                 spell,
                 out var targets,
-                out failureDiagnostic))
+                out var failureDiagnostic))
         {
             await context.Log.WriteLineAsync(
                     "WorldServer skipped legacy player magic " +
@@ -1369,6 +1356,13 @@ public static partial class WorldPacketHandlers
         if (!TryFindVisibleMonsterTargetByUid(context, session.Character, query.OpponentUid, out var target))
         {
             failureDiagnostic = $"monsterUid={query.OpponentUid}; target is not visible";
+            return false;
+        }
+
+        if (!CanLegacyPlayerAttackMonster(session.Character, target.Monster, target.MonsterFamily,
+                out failureDiagnostic))
+        {
+            failureDiagnostic = $"monsterUid={query.OpponentUid}; {failureDiagnostic}";
             return false;
         }
 

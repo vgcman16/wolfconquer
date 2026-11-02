@@ -4,6 +4,40 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Protected mandatory monster primary - 2026-11-02 UTC
+
+### FSB-306: Validate a protected direct primary before spending cast resources
+
+Bounded correction verified in seven controls; wider/full qualification pending.
+The preserved DirectAttack calls CanUseSpell before CanAttackMonster.Verified,
+although all primary and secondary work requires that primary permission. The
+old test deliberately required mana493 after a rejected Reviver cast.
+
+Root and generic preparation now check their actual captured owner's mandatory
+Attack/DirectAttack primary before costs/cadence/manual effects; Root rechecks
+after preparation. Successful direct/area selection and packet ordering remain.
+An accepted Bomb can exclude the protected center and hit eligible neighbors.
+
+Old-production run20261102T152221151Z-626496cf exposed five genuine refusal
+failures (changed session/resource state) and two incorrect positive test save
+oracles. Stamina is session/native state; the scalar file writer saves mana and
+does not rewrite the fixture's seeded Stamina attribute. The positive controls
+retain native/live95 and persisted mana493, and now require saved Stamina100.
+No production stamina persistence behavior was changed to satisfy a test.
+
+Controls cover two component cooldowns, real saved/native Frame Attack and
+DirectAttack, actual generic fallback, and real TCP accepted DirectAttack/Bomb.
+They inspect ownership, resources, complete rejected files, cooldown, outputs,
+target HP and recovery state. Repaired run20261102T152849644Z-adbd51b2 passed
+7/7,0 failed/skipped (159.18s build,15.639s tests). All five old-production
+refusal failures showed actual mana493 instead of500. The original failed
+run remains evidence; its two incorrect positive save oracles are documented
+above. This focused result is not a passing full integration gate.
+Limits: no player/SOB primary repair, arbitrary postcommit target-race closure,
+whole-combat/SQL atomicity, deployment, live client or full-parity claim. The
+broader FSB-013 executor audit remains open.
+
+
 ## Open Root expiry recipient succession - 2026-11-02 UTC
 
 ### FSB-305: Do not skip a still-visible peer after its legitimate Store update

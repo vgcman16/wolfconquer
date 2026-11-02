@@ -29,6 +29,7 @@ public static partial class WorldPacketHandlers
         if (weaponSpell && expected.LegacyRandomSpell != spell.Id) return false;
         if (!IsLegacyRootEntryRangeValid(context, expected, query, spell)) return false;
         if (!PassesLegacyRootPlayerBasicEligibility(context, expected, query, spell, out reason)) return false;
+        if (!PassesLegacyRootMonsterPrimaryEligibility(context, expected, query, spell, out reason)) return false;
 
         var now = (context.TimeProvider ?? TimeProvider.System).GetUtcNow();
         if (!TryPrepareLegacyRootCadence(context, expected, spell, now, ignoreAttackStamp,
@@ -69,5 +70,6 @@ public static partial class WorldPacketHandlers
             plan.SourceSpell.Id, out var book, out var spell, out var native) &&
         ReferenceEquals(book, plan.Book) && ReferenceEquals(native, plan.NativeRow) &&
         spell == plan.SourceSpell && IsLegacyRootEntryRangeValid(context, expected, query, spell) &&
-        PassesLegacyRootPlayerBasicEligibility(context, expected, query, spell, out _);
+        PassesLegacyRootPlayerBasicEligibility(context, expected, query, spell, out _) &&
+        PassesLegacyRootMonsterPrimaryEligibility(context, expected, query, spell, out _);
 }

@@ -9872,8 +9872,10 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         }
     }
 
-    [Fact]
-    public async Task HandlerDirectAttackSpendsManaThenSkipsProtectedReviverPrimaryTarget()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1000)]
+    public async Task HandlerDirectAttackRejectsProtectedReviverPrimaryBeforeAnyAdmission(int coldTime)
     {
         var reviverFamily = CreateReviverMonsterFamily();
         var spawn = CreateSingleInstanceMonsterSpawn(
@@ -9882,14 +9884,14 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         var worldData = CreateMagicCatalog(
             reviverFamily,
             [spawn],
-            CreateMagicRow(ThunderSpellId, sort: 48, useMana: 7, damage: 120, range: 9, coldTime: 0));
+            CreateMagicRow(ThunderSpellId, sort: 48, useMana: 7, useStamina: 5, damage: 120, range: 9, coldTime: coldTime));
         var reviver = CreateRuntimeMonsterInstance(worldData, spawn, reviverFamily);
         var monsterStates = new MonsterRuntimeStateStore();
         var sessions = new WorldSessionStore();
         var sent = new List<byte[]>();
         using var log = new StringWriter();
         var connection = CreateSendingConnection(sent);
-        var session = CreateSession(strength: 300, spellIds: [ThunderSpellId]);
+        var session = CreateSession(strength: 300, stamina: 100, spellIds: [ThunderSpellId]);
         sessions.Set(connection, session);
         var context = new WorldPacketHandlerContext(
             connection,
@@ -9910,18 +9912,16 @@ public sealed partial class LegacyMagicAttackRuntimeTests
         Assert.True(monsterStates.TryGetVisibleInstance(reviver, DateTimeOffset.UtcNow, out var visibleReviver));
         Assert.Equal(reviver.MaxLife, visibleReviver.Hitpoints);
 
-        var manaUpdate = Assert.Single(
-            ParseMsgUpdates(sent),
-            update => update.Uid == PlayerUid &&
-                update.Updates.Count == 1 &&
-                update.Updates[0].Type == LegacyMsgUpdateDataType.Mana);
-        Assert.Equal([new LegacyMsgUpdateEntry(LegacyMsgUpdateDataType.Mana, 493)], manaUpdate.Updates);
-
         Assert.True(sessions.TryGet(connection, out var updatedSession));
-        Assert.NotNull(updatedSession);
-        Assert.Equal(493, updatedSession.Character.MinMana);
+        Assert.Same(session, updatedSession);
+        Assert.Equal(500, updatedSession!.Character.MinMana);
+        Assert.Equal("100", updatedSession.Character.Attributes["Stamina"]);
+        Assert.Null(updatedSession.MagicCooldowns);
+        Assert.Equal((ushort)0, updatedSession.LegacyRandomSpell);
+        Assert.Equal(0, Assert.Single(updatedSession.PlayerSpells.Spells).Experience);
+        Assert.Empty(sent);
         Assert.Contains("WorldServer skipped legacy player magic", log.ToString());
-        Assert.Contains("no visible monsters matched shape", log.ToString());
+        Assert.Contains("CanAttackMonster.Verified rejected Reviver monster family", log.ToString());
     }
 
     [Fact]
