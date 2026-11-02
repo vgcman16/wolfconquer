@@ -9,6 +9,7 @@ public static partial class WorldPacketHandlers
         public async ValueTask<bool> RunVigorAndCreateSpawnPrefixAsync()
         {
             if (!Refresh()) return false;
+            CaptureVigorQueryMetadata();
             var maximum = LegacyMaxHitpointsCalculator.CalculateQueryMaxVigor(
                 CapturedEquipment, Context.WorldData);
             var vigor = LegacyEquipmentQueryBounds.ClampVigor(

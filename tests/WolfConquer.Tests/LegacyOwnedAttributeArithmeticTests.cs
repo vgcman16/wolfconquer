@@ -32,8 +32,15 @@ public sealed class LegacyOwnedAttributeArithmeticTests
         input = input with { Character = input.Character with { Attributes = attributes } };
         return OwnedEquipmentBehaviorFixture.RunAsync(input, OwnedEquipmentBehaviorFixture.Catalog(), async f =>
         {
-            var before = f.Current(); var binding = before.NativeGameClient!.OrdinarySpellBinding!;
-            Assert.Equal("0", before.Character.Attributes["Vigor"]); // No equipped crop or steed.
+            var initial = f.Current(); var binding = initial.NativeGameClient!.OrdinarySpellBinding!;
+            Assert.Equal("0", initial.Character.Attributes["Vigor"]); // No equipped crop or steed.
+            var replacement = new Dictionary<string, string>(initial.Character.Attributes, StringComparer.OrdinalIgnoreCase);
+            var escaped = initial with { Character = initial.Character with { Attributes = replacement } };
+            Assert.False(f.ObserveCurrentVigorQualification(escaped)); // Genuine gates, but no actual Store publication.
+            f.Store.Set(f.Connection(Actor), escaped); // Real bound Store publication.
+            var before = f.Current();
+            Assert.True(f.Store.IsBoundSpellOwnerCurrent(binding));
+            Assert.Equal("0", before.Character.Attributes["Vigor"]);
             var expected = f.Data.Files().ToDictionary(row => row.Key, row => row.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
             string key = Path.GetRelativePath(f.Data.Root, f.CharacterPath());
             string text = CharacterSnapshotFileEncoding.Decode(expected[key], out var encoding);
@@ -94,9 +101,8 @@ public sealed class LegacyOwnedAttributeArithmeticTests
     }
 
     [Theory]
-    [InlineData("0")]
     [InlineData("1")]
-    public Task ReplacedRuntimeVigorMapCannotBorrowQueryReceipt(string value)
+    public Task ChangedRuntimeVigorCannotBorrowQueryReceipt(string value)
     {
         var input = Input();
         var attributes = new Dictionary<string, string>(input.Character.Attributes, StringComparer.OrdinalIgnoreCase)
@@ -109,6 +115,25 @@ public sealed class LegacyOwnedAttributeArithmeticTests
             var replacement = new Dictionary<string, string>(before.Character.Attributes, StringComparer.OrdinalIgnoreCase)
                 { ["Vigor"] = value };
             f.Store.Set(f.Connection(Actor), before with { Character = before.Character with { Attributes = replacement } });
+            await AssertRefusedAsync(f);
+        });
+    }
+
+    [Fact]
+    public Task ChangedVigorCannotRegainAuthorityByMatchingSavedSeed()
+    {
+        var input = Input();
+        var attributes = new Dictionary<string, string>(input.Character.Attributes, StringComparer.OrdinalIgnoreCase)
+            { ["Vigor"] = "4294967295" };
+        input = input with { Character = input.Character with { Attributes = attributes } };
+        return OwnedEquipmentBehaviorFixture.RunAsync(input, OwnedEquipmentBehaviorFixture.Catalog(), async f =>
+        {
+            var first = f.Current();
+            var changed = new Dictionary<string, string>(first.Character.Attributes, StringComparer.OrdinalIgnoreCase) { ["Vigor"] = "1" };
+            f.Store.Set(f.Connection(Actor), first with { Character = first.Character with { Attributes = changed } });
+            var second = f.Current();
+            var forged = new Dictionary<string, string>(second.Character.Attributes, StringComparer.OrdinalIgnoreCase) { ["Vigor"] = "4294967295" };
+            f.Store.Set(f.Connection(Actor), second with { Character = second.Character with { Attributes = forged } });
             await AssertRefusedAsync(f);
         });
     }

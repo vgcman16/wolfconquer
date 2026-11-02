@@ -13,8 +13,9 @@ public sealed partial class WorldSessionStore
             using var native = EnterNativeConnectionGate();
             if (!_sessions.TryGetValue(context.Connection, out var holder) || !ReferenceEquals(holder.Read(), expected) ||
                 !ReferenceEquals(holder.SpellBinding, binding) || !BindingIsCurrentPlain(binding, holder, expected) ||
-                !WorldPacketHandlers.ConsumeBoundQueryVigor(purpose, expected, binding, epoch, completed)) return false;
-            binding.RecordBoundQueryVigor(expected, checked((ushort)LegacyEquipmentQueryBounds.ReadVigor(expected.Character)), completed);
+                !WorldPacketHandlers.ConsumeBoundQueryVigor(purpose, expected, binding, epoch, completed, out var metadata) ||
+                metadata is null) return false;
+            binding.RecordBoundQueryVigor(expected, checked((ushort)LegacyEquipmentQueryBounds.ReadVigor(expected.Character)), completed, metadata);
             return true;
         }
     }

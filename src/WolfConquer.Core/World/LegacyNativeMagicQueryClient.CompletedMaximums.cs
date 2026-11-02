@@ -9,6 +9,32 @@ internal static partial class LegacyNativeMagicQueryClient
     // cannot establish or retain its private completion association.
     internal sealed partial class CompletedMaximums
     {
+        // Read-only, field-specific continuation of this actual completed
+        // epoch. HP/mana maximums and unrelated overlays are not Vigor inputs.
+        internal bool IsVigorEpochCurrentPlain(LegacyOrdinarySpellBinding binding, WorldSession current) =>
+            MaximumCompletions.TryGetValue(this, out var completed) && completed.Published &&
+            ReferenceEquals(completed.Binding, binding) && DerivedQueryOwnerIsCurrentPlain(binding) &&
+            CurrentMaximumCompletions.TryGetValue(completed.Entry, out var retained) && ReferenceEquals(retained, this) &&
+            ReferenceEquals(completed.Entry.Epoch, completed.Epoch) &&
+            completed.Source.Matches(binding.Store, binding.Connection, binding.Uid, binding.NativeIdentity, completed.Entry) &&
+            current.AccountId == completed.Session.AccountId && current.Character.Uid == completed.Session.Character.Uid &&
+            current.Character.Class == completed.Session.Character.Class &&
+            ReferenceEquals(current.NativeGameClient, completed.Session.NativeGameClient) &&
+            ReferenceEquals(current.PlayerItems, completed.Session.PlayerItems) &&
+            ReferenceEquals(current.PlayerSpells, completed.Session.PlayerSpells) &&
+            current.AlternateEquipmentActive == completed.Source.Alternate &&
+            binding.Store.TryGet(binding.Connection, out var actual) && ReferenceEquals(actual, current) &&
+            ReferenceEquals(binding.Client.Status, completed.Status);
+
+        internal bool CoversVigorSuccessor(LegacyOrdinarySpellBinding binding, WorldSession expected, WorldSession proposed) =>
+            IsVigorEpochCurrentPlain(binding, expected) &&
+            MaximumCompletions.TryGetValue(this, out var completed) &&
+            proposed.AccountId == expected.AccountId && proposed.Character.Uid == expected.Character.Uid &&
+            proposed.Character.Class == expected.Character.Class && ReferenceEquals(proposed.NativeGameClient, expected.NativeGameClient) &&
+            ReferenceEquals(expected.PlayerItems, proposed.PlayerItems) &&
+            ReferenceEquals(expected.PlayerSpells, proposed.PlayerSpells) &&
+            expected.AlternateEquipmentActive == proposed.AlternateEquipmentActive;
+
         internal bool IsCurrentPlain(LegacyOrdinarySpellBinding binding, WorldSession current) =>
             MaximumCompletions.TryGetValue(this, out var completed) && completed.Published &&
             ReferenceEquals(completed.Binding, binding) && DerivedQueryOwnerIsCurrentPlain(binding) &&

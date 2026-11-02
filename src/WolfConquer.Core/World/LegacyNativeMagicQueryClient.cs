@@ -17,6 +17,7 @@ internal static partial class LegacyNativeMagicQueryClient
         public LegacyNativeMagicQueryFields Fields;
         public LegacyNativeMagicQueryFields JiangHu;
         public QueryEpoch? Epoch;
+        public bool VigorQueryAttempted;
         public MonkCache? Monk;
         public AttackSpeedCache? AttackSpeed;
     }
@@ -60,6 +61,9 @@ internal static partial class LegacyNativeMagicQueryClient
             if (!ReferenceEquals(identity, expectedIdentity) ||
                 !world.TryGet(connection, out var owner) || owner is null) return;
             var entry = Entries.GetValue(identity, static _ => new Entry());
+            // An actual query attempt permanently retires admitted-seed-only
+            // Vigor authority, even when later query preparation fails.
+            entry.VigorQueryAttempted = true;
             // Input serialization/selection can fail. Retire every former
             // completion BEFORE that throwable capture, not only on success.
             entry.Epoch = null;

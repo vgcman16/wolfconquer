@@ -4,6 +4,44 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Bound Vigor publication correction - 2026-11-02 UTC
+
+### FSB-300: Retain real query Vigor across legitimate Store successors
+
+A complete equipment query legitimately clamps runtime Vigor without rewriting
+its saved admission value. The allocation path originally rejected that real
+runtime/saved divergence; the first receipt repair then lost authority on a
+real unchanged-Vigor Store.Set (including BloodTideHP/opaque updates). Initial
+same-saved state must also survive actual FineRain startup publication before
+the first query, without allowing arbitrary changed-and-restored values.
+
+The admission seed comes from the actual prepared Character image and holder.
+Only the real prepared Store publication can transfer exact map/current-holder
+lineage; changed, unpublished or unproved successors retire it. A real query
+attempt marks its native entry before input capture and denies seed-only use;
+only a later real completed query can reissue query authority. Query receipts
+carry that exact epoch and metadata captured before Vigor calculation. Their
+field-specific observation excludes unrelated HP overlays, with preallocated
+concrete catalog/index/row witnesses instead of post-writer serialization.
+Saved seed, native owner, complete file/resource and existing other-field guards
+remain. No UID, equal scalar or constructed token grants a receipt.
+
+Build10 passed0 errors/175 warnings. Focused11 actual420P/4F/0skip424 includes
+passing original BloodTideHP/opaque positive and prior repair/pair/mailbox cases.
+Four new observers omitted real actor gates; corrected observers use actual
+Store/client/player/storage gates, including meaningful unpublished-map refusal.
+Build12 passed; focused13 actual34P/1F/0skip35 left only a catalog fixture using
+an unsupported interface-targeted collection. Its positive now uses the real
+ItemAddParser row and explicit owned array; no predicate was weakened.
+Focused14 actual4P/0F/0skip4 validates that catalog drift control plus all three
+initial-seed/query-attempt/recovery cases. Failed receipts remain; overlapping
+scopes are not additive proof. Full Windows qualification remains pending.
+
+Limits: unsupported catalog containers remain unqualified. Future item/alternate
+transitions require a genuine new query. This does not prove all legitimate
+writers, SQL/crash durability, direct external memory mutation history, 7937
+runtime completion, English rendering or live-client acceptance.
+
 ## XP global worker correction - 2026-11-02 UTC
 
 ### FSB-297: Preserve opaque attribute keys during XP expiry and refuse invalid status data

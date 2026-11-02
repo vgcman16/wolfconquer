@@ -15,3 +15,15 @@ The isolated successor proposal is not integrated: review found pre-query saved
 lineage invalidation and post-writer serialization/allocation. Those require an
 actual prepared publication revision and focused/full qualification. This local
 checkpoint preserves work and is not a passing Vigor or full-suite claim.
+
+## Qualified successor revision
+
+The successor revision now retains genuine admitted and completed-query Vigor
+lineage through actual prepared Store publications. See BOUND-VIGOR-SUCCESSION.md.
+The existing BloodTideHP/opaque positive passed in focused11. The observer
+prerequisites were corrected under real actor gates, including unpublished-map
+refusal. Focused13 passed34 with one catalog-fixture failure; focused14 passed
+all four affected catalog/admission checks after adopting the actual parsed row
+and concrete owned array. Earlier failures are retained. Full qualification and
+live-client acceptance remain pending; the prior checkpoint's known successor
+failure is superseded only within this bounded source evidence.

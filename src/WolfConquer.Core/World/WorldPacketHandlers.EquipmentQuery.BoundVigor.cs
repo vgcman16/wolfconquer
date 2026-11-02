@@ -6,11 +6,13 @@ public static partial class WorldPacketHandlers
 {
     internal sealed class BoundQueryVigorPurpose { }
     private sealed class BoundQueryVigorData(WorldSession written, LegacyOrdinarySpellBinding binding,
-        LegacyNativeMagicQueryClient.QueryEpoch epoch, ushort value, LegacyNativeAttributeMapProof proof)
+        LegacyNativeMagicQueryClient.QueryEpoch epoch, ushort value, LegacyNativeAttributeMapProof proof,
+        LegacyVigorCatalogWitness metadata)
     {
         internal readonly LegacyOrdinarySpellBinding Binding = binding;
         internal readonly LegacyNativeMagicQueryClient.QueryEpoch Epoch = epoch;
         internal readonly ushort Value = value;
+        internal readonly LegacyVigorCatalogWitness Metadata = metadata;
         internal IReadOnlyDictionary<string, string> Map = written.Character.Attributes;
         internal LegacyNativeAttributeMapProof Proof = proof;
     }
@@ -19,11 +21,23 @@ public static partial class WorldPacketHandlers
     private sealed partial class LegacyEquipmentQueryExecution
     {
         private BoundQueryVigorPurpose? queryVigorPurpose;
+        private LegacyVigorCatalogWitness? queryVigorMetadata;
+
+        private void CaptureVigorQueryMetadata()
+        {
+            queryVigorMetadata = null;
+            if (Session.NativeGameClient?.OrdinarySpellBinding is not { } binding) return;
+            try { queryVigorMetadata = LegacyVigorCatalogWitness.Capture(
+                binding, Context.WorldData, Session, CapturedEquipment); }
+            catch (Exception error) when (error is InvalidDataException or InvalidOperationException or ArgumentException or OverflowException)
+            { /* The ordinary query can continue; this Vigor result remains unqualified. */ }
+        }
 
         // Only the private executor supplies the exact Store-written session.
-        private static BoundQueryVigorPurpose IssueBoundQueryVigor(WorldSession written,
+        private BoundQueryVigorPurpose? IssueBoundQueryVigor(WorldSession written,
             LegacyOrdinarySpellBinding binding, LegacyNativeMagicQueryClient.QueryEpoch? epoch, ushort value)
         {
+            if (queryVigorMetadata is null || !queryVigorMetadata.IsCurrentPlain()) return null;
             if (epoch is null || !ReferenceEquals(written.NativeGameClient, binding.Client) ||
                 written.AccountId != binding.AccountId || written.Character.Uid != binding.Uid ||
                 LegacyEquipmentQueryBounds.ReadVigor(written.Character) != value)
@@ -31,7 +45,7 @@ public static partial class WorldPacketHandlers
             var witness = LegacyNativeAttributeMapProof.CaptureRaw(written.Character.Attributes);
             if (!witness.IsCurrentPlain()) throw new InvalidOperationException("boundQueryVigorStageChanged");
             var purpose = new BoundQueryVigorPurpose();
-            BoundQueryVigors.Add(purpose, new(written, binding, epoch, value, witness));
+            BoundQueryVigors.Add(purpose, new(written, binding, epoch, value, witness, queryVigorMetadata));
             return purpose;
         }
 
@@ -64,13 +78,16 @@ public static partial class WorldPacketHandlers
 
     internal static bool ConsumeBoundQueryVigor(BoundQueryVigorPurpose purpose,
         WorldSession current, LegacyOrdinarySpellBinding binding, LegacyNativeMagicQueryClient.QueryEpoch? epoch,
-        LegacyNativeMagicQueryClient.CompletedMaximums completed)
+        LegacyNativeMagicQueryClient.CompletedMaximums completed, out LegacyVigorCatalogWitness? metadata)
     {
+        metadata = null;
         if (!BoundQueryVigors.TryGetValue(purpose, out var data) ||
             !ReferenceEquals(data.Binding, binding) || !ReferenceEquals(data.Epoch, epoch) ||
             !ReferenceEquals(current.Character.Attributes, data.Map) || !data.Proof.IsCurrentPlain() ||
-            !completed.IsCurrentPlain(binding, current) || LegacyEquipmentQueryBounds.ReadVigor(current.Character) != data.Value)
-            return false;
-        return BoundQueryVigors.Remove(purpose);
+            !data.Metadata.IsCurrentPlain() || !completed.IsCurrentPlain(binding, current) ||
+            LegacyEquipmentQueryBounds.ReadVigor(current.Character) != data.Value) return false;
+        if (!BoundQueryVigors.Remove(purpose)) return false;
+        metadata = data.Metadata;
+        return true;
     }
 }

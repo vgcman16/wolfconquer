@@ -42,6 +42,7 @@ public sealed partial class WorldSessionStore
         private LegacyNativeOwnedItemGraph.PreparedPublication? items;
         private readonly bool deferItems;
         private bool deferredItemsPrepared;
+        private OwnedVigorPublication? vigorPublication;
         internal WorldSession FinalSession { get; private set; }
         internal LegacyOrdinarySpellBinding? Binding => binding;
         internal object PublishedIdentity => finalIdentity;
@@ -351,12 +352,16 @@ public sealed partial class WorldSessionStore
         internal void ArmFinalProof()
         {
             if (deferItems && !deferredItemsPrepared) throw InvalidSpellPublication();
+            if (binding is not null && vigorPublication is null)
+                vigorPublication = PrepareVigorPublication(store, connection, holder, binding,
+                    expected ?? throw InvalidSpellPublication(), FinalSession, finalIdentity);
             map?.ArmFinalProof();
             proficiencies?.ArmFinalProof();
             items?.ArmFinalProof();
             HitpointsWrite?.Inputs.Arm();
         }
         internal bool ConsumeBeforeWriterPlain() => ReferenceEquals(holder.Read(), expected) &&
+            (binding is null || vigorPublication is not null && VigorPublicationReady(vigorPublication)) &&
             (classRetirement is null || classRetirement.IsCurrentPlain()) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeBeforeWriterPlain() &&
                 proficiencies!.ConsumeBeforeWriterPlain() && items!.ConsumeBeforeWriterPlain() && hitpoints!.IsCurrentPlain() && action!.IsCurrentPlain() && actorScalars!.IsCurrentPlain() &&
@@ -372,6 +377,7 @@ public sealed partial class WorldSessionStore
         // The raw map enumerator was allocated before the writer. Consume it
         // once, without a comparer or a fresh iterator at this final boundary.
         internal bool IsCurrentPlain() => ReferenceEquals(holder.Read(), expected) &&
+            (binding is null || vigorPublication is not null && VigorPublicationReady(vigorPublication)) &&
             (classRetirement is null || classRetirement.IsCurrentPlain()) &&
             (binding is null || store.BindingIsCurrentPlain(binding, holder, expected!) && map!.ConsumeCurrentPlain() &&
                 proficiencies!.ConsumeCurrentPlain() && items!.ConsumeCurrentPlain() && hitpoints!.IsCurrentPlain() && action!.IsCurrentPlain() && actorScalars!.IsCurrentPlain() &&
@@ -408,7 +414,14 @@ public sealed partial class WorldSessionStore
             ? HitpointsWrite.RequireExternallyCommitted() : classRetirement?.RequireCommittedPair() ?? derivedSpellQueryPublication?.RequireCommittedPair() ??
                 movementPublication?.RequireCommittedCharacter() ?? pairMovementPublication?.RequireCommittedCharacter() ?? runePublication?.RequireCommittedCharacter() ?? true;
 
-        internal void PublishHolder() => holder.PublishPrepared(FinalSession, finalIdentity);
+        internal void PublishHolder()
+        {
+            var permit = vigorPublication;
+            var retention = permit is null ? null : VigorRetention(permit);
+            holder.PublishPrepared(FinalSession, finalIdentity);
+            if (binding is not null)
+                binding.PublishVigorRetention(retention, permit ?? throw InvalidSpellPublication());
+        }
 
         public void Dispose()
         {
