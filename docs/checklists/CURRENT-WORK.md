@@ -51,6 +51,9 @@ Root alone integrates, runs qualification and stages/commits/pushes final work.
   target-client authentication is a separate unresolved boundary.
   [Contract](../protocol/specs/internal-handoff-redemption.md).
 - [x] Record [229 focused /43 actual SQL results and limits](SQL-COMPLETE-ADMISSION-RESULTS-20261103.md).
+- [x] Correct the owned Windows read-cancellation teardown variant exposed by
+  the TCP trial:81/81 controls passed after80P/1F baseline. NoDelay was removed
+  because no useful speed gain was established; FSB-341 awaits final full CI.
 - [ ] Verify the actual publication commit and its public Windows CI before
   claiming a new public pass. Latest full local is `3bb73465`; it qualifies
   the captured-prefix source, not the pending data/DH/ticket/timing batch. The older

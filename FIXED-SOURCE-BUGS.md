@@ -4,6 +4,31 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Owned loopback read cancellation - qualification pending, 2026-11-03
+
+### FSB-341: Recognize the owned Windows read-cancellation result without accepting EOF
+
+**OPEN: actual trial failed80P/1F; corrected retry passed81/81, full public CI
+pending.** The fixture canceled its
+own read token during teardown, but Windows surfaced IOException with inner
+SocketError.OperationAborted instead of OperationCanceledException. The129-login
+case stopped in cleanup, so that incomplete run establishes no speed improvement.
+
+The proposed narrow correction handles that exact socket error only when the
+read's actual token is already canceled. It runs at the read boundary; an earlier
+unrelated fault is not hidden by a late blanket Dispose filter. Other I/O/reset/
+decoder failures remain observable. No capture EOF flag is set, explicit close
+checks still reject cancellation, and invalid-DH EOF controls stay strict.
+The same81 actual transport/login controls are the regression; no assertions,
+accounts, history/UID/restart checks or timeouts are removed. This is fixture
+cleanup, not a demonstrated game-server framing failure or live-client proof.
+
+The corrected retry completed all129logins and all81 transport controls,
+0failed/skipped (build86.268s/test204.214s). The extra NoDelay experiment did
+not establish a useful speed gain (same129case196.788s versus194.621s), so it
+was removed. Only the narrow cancellation correction remains; the successor
+full CI will qualify that final default-network configuration.
+
 ## Literal UI comparison arrows - qualified text tooling, 2026-11-03
 
 ### FSB-340: Preserve exact literal arrows instead of rejecting valid UI comparisons

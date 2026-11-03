@@ -20,6 +20,11 @@ qualified by the parent full run. No new public Windows CI or live client proof
 is implied. Earlier failures below remain historical failures, superseded only
 for their exact corrected source by completed later qualification.
 
+A later owned-TCP trial exposed a fixture cleanup cancellation variant:
+80passed/1failed, then81/81 after narrowly recognizing canceled OperationAborted
+reads. Its NoDelay setting did not establish a useful speed gain and was removed.
+The retained cancellation correction awaits the successor full public CI.
+
 ## Current local integration check - 2026-11-02
 
 The complete local Windows check on `dd448f7f` failed: Core33,811 passed,

@@ -260,6 +260,8 @@ internal sealed partial class NativePlayerLoopback : IAsyncDisposable
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (IOException error) when (token.IsCancellationRequested &&
+            error.InnerException is SocketException { SocketErrorCode: SocketError.OperationAborted }) { }
         // IO/decoder/other failures are NOT swallowed as a successful ownership assertion.
     }
 
