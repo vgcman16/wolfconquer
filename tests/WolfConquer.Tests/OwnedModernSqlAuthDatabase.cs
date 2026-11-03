@@ -8,7 +8,7 @@ using WolfConquer.Core.Accounts;
 namespace WolfConquer.Tests;
 
 // Test-only schema. Nothing here is a production schema migration or allocator.
-internal sealed class OwnedModernSqlAuthDatabase : IAsyncDisposable
+internal sealed partial class OwnedModernSqlAuthDatabase : IAsyncDisposable
 {
     internal const string FirstUsername = "sql-owner-a", SecondUsername = "sql-owner-b";
     internal const string SyntheticPassword = "fixture_sql_pw";

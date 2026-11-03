@@ -4,6 +4,36 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## SQL world-state draft corrections - 2026-11-03
+
+The new repository is UNBUILT/UNRUN and explicitly unwired. These entries are
+OPEN source corrections, not provider/runtime or full-persistence claims.
+
+### FSB-330: Preserve SQL primary failures through every owned resource cleanup
+
+The first new provider draft used nested await-using command/reader scopes,
+which could replace a primary provider or unknown-commit exception if disposal
+also failed. The reviewed successor retains primary and cleanup causes with
+explicit real-resource lifetimes. Successful commit followed by cleanup failure
+and uncertain commit remain distinct; neither permits an invented refund or
+ordinary rejection. Genuine SQL resource ownership is unchanged. Source review
+only; actual provider qualification remains pending, and cleanup-fault branches
+have not been exercised.
+
+### FSB-331: Validate bounded SQL state and actual schema ownership before use
+
+The first new draft could enumerate an unbounded corrupted UID set, retrieve
+oversized stored blobs before checking their sizes, and accept foreign-key names
+without proving the referenced schema/rules. The correction compares against
+the finite complete parsed UID set, uses bounded server-side blob projections,
+and verifies actual schema/version/columns/indexes/engine/FKs. Invalid state
+does not become a default successful snapshot or automatic repair. New actual
+schema-fault, malformed-state, UID-conflict and rollback controls are authored
+but UNRUN. SQL-domain uniqueness is not proof of joining the live native/file
+UID namespace; that integration remains required.
+
+[Source and qualification queue](docs/checklists/SQL-WORLD-STATE-20261103.md).
+
 ## Vendor listing authority - 2026-11-03
 
 The following three entries have bounded component/provider verification at
