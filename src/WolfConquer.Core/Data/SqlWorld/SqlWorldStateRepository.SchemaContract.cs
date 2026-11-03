@@ -13,7 +13,7 @@ public sealed partial class SqlWorldStateRepository
             var version = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await UseResourceAsync(version, async reader =>
             {
-                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false) || reader.GetInt32(0) != 1 || reader.GetInt32(1) != 1 || await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false) || reader.GetInt32(0) != 1 || reader.GetInt32(1) != 2 || await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     throw new InvalidOperationException("sqlWorldSchemaVersionMismatch");
             }).ConfigureAwait(false);
         }).ConfigureAwait(false);

@@ -60,7 +60,19 @@ provider gate. Interrupted initial DDL still requires explicit operator repair;
 arbitrary external DDL races remain outside this bounded guarantee. No runtime
 backend or original database changed.
 
+### FSB-334: Bound the SQL UID result itself before provider cleanup
+
+OPEN intaken source, unbuilt/unrun. Earlier reads stopped comparing at the first
+extra UID but issued an unbounded SELECT. The shared successor binds SQL LIMIT
+to the complete expected physical UID count plus one, retaining exact sorted
+membership and first-extra detection for both formats. Small actual extra-index
+refusal controls are authored; no performance benchmark or forced network-drain
+measurement is claimed. The schema2 successor also retains the caught collision
+if its explicit rollback fails, extending FSB332; that double-fault path remains
+source-reviewed and unexercised.
+
 [Source and qualification queue](docs/checklists/SQL-WORLD-STATE-20261103.md).
+[Complete successor gate](docs/checklists/SQL-COMPLETE-PERSISTENCE-20261103.md).
 
 ## Vendor listing authority - 2026-11-03
 

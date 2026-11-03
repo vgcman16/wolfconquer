@@ -70,7 +70,7 @@ try {
     # No SQL connection is attempted until its own readiness log and exact PID agree.
     $portLease.Stop(); $portLease = $null
     $serverArguments = @(('--defaults-file=' + (Join-Path $owner.Data 'my.ini')), ('--basedir=' + $ownedMariaDbDirectory),
-        ('--datadir=' + $owner.Data), ('--port=' + $Port), '--bind-address=127.0.0.1',
+        ('--datadir=' + $owner.Data), ('--port=' + $Port), '--bind-address=127.0.0.1', '--max-allowed-packet=134217728',
         ('--pid-file=' + $pidFile), ('--tmpdir=' + $temp), '--console')
     $owner.CommandsSettled = $false
     $server = [WolfConquer.Tools.OwnedSql.OwnedSqlChild]::Start($daemon, $serverArguments, $owner.Root,

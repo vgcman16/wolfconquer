@@ -14,7 +14,7 @@ internal sealed partial class OwnedModernSqlAuthDatabase
         switch (fault)
         {
             case OwnedWorldSchemaFault.MarkerVersion:
-                await ExecuteAsync(connection, "UPDATE wolf_sql_world_schema SET version=2 WHERE singleton=1");
+                await ExecuteAsync(connection, "UPDATE wolf_sql_world_schema SET version=99 WHERE singleton=1");
                 break;
             case OwnedWorldSchemaFault.VersionWidth:
                 await ExecuteAsync(connection, "ALTER TABLE wolf_sql_world_schema MODIFY version BIGINT NOT NULL");

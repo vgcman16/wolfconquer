@@ -55,8 +55,8 @@ public sealed partial class SqlWorldStateRepository
         {
             command.Transaction = transaction;
             command.CommandText = kind == SqlWorldStateOperationKind.Create
-                ? "INSERT INTO wolf_sql_world_state(account_id,character_uid,revision,character_image,item_image) VALUES(@account,@uid,@revision,@character,@items)"
-                : "UPDATE wolf_sql_world_state SET revision=@revision,character_image=@character,item_image=@items WHERE account_id=@account AND character_uid=@uid AND revision=@expected";
+                ? "INSERT INTO wolf_sql_world_state(account_id,character_uid,revision,character_image,item_image,record_format,spell_image,proficiency_image,quest_image,combat_gear_image) VALUES(@account,@uid,@revision,@character,@items,1,NULL,NULL,NULL,NULL)"
+                : "UPDATE wolf_sql_world_state SET revision=@revision,character_image=@character,item_image=@items WHERE account_id=@account AND character_uid=@uid AND revision=@expected AND record_format=1 AND spell_image IS NULL AND proficiency_image IS NULL AND quest_image IS NULL AND combat_gear_image IS NULL";
             command.Parameters.AddWithValue("@account", change.Image.AccountId);
             command.Parameters.AddWithValue("@uid", change.Image.CharacterUid);
             command.Parameters.AddWithValue("@revision", change.ExpectedRevision + 1);

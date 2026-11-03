@@ -80,8 +80,14 @@ original bytes. Reversed caller participant order has the same canonical form.
 
 ## Fixed InnoDB schema and transaction owner
 
-The provider owns fixed version1 tables only: `wolf_sql_world_schema`,
-`wolf_sql_world_state`, `wolf_sql_world_item_uid`, `wolf_sql_world_operation`.
+The original provider used schema1. The reviewed successor uses explicit schema2
+and format1 for these core-only requests, sharing the same four fixed tables:
+`wolf_sql_world_schema`, `wolf_sql_world_state`, `wolf_sql_world_item_uid` and
+`wolf_sql_world_operation`. Format2 and its complete APIs retain all six images;
+see [complete persistence](SQL-WORLD-COMPLETE-PERSISTENCE.md). Neither API projects
+away the other format or automatically migrates a schema1 database. The image/
+request descriptor contract above remains version1; new provider qualification
+is pending independently from the retained e82916b9 results.
 State is keyed by signed account ID with unique unsigned character UID and
 positive bounded revision plus complete Character/Items blobs. Item ownership
 has globally unique unsigned item UID, account index and real state foreign key.

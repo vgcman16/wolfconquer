@@ -5,7 +5,7 @@ public enum SqlWorldStateFailure
     None, InvalidAccountId, InvalidCharacterUid, ImageBounds, InvalidCharacterImage, InvalidFunds, InvalidItemImage,
     InvalidOperationId, InvalidOperationKind, ParticipantCount, ParticipantIdentityConflict, InvalidRevision,
     DescriptorBounds, DuplicateItemUid, MissingState, StateExists, RevisionConflict, CharacterIdentityConflict,
-    ItemUidConflict, OperationConflict, InvalidStoredState,
+    ItemUidConflict, OperationConflict, InvalidStoredState, StateFormatConflict,
 }
 
 public sealed class SqlWorldStateRecord

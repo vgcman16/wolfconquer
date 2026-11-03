@@ -11,7 +11,8 @@ public sealed partial class SqlWorldStateRepository
             "wolf_sql_world_item_uid|1|item_uid|int|unsigned|NO", "wolf_sql_world_item_uid|2|account_id|bigint||NO",
             "wolf_sql_world_operation|1|operation_id|binary|16|NO", "wolf_sql_world_operation|2|descriptor_hash|binary|32|NO", "wolf_sql_world_operation|3|descriptor|longblob||NO",
             "wolf_sql_world_schema|1|singleton|tinyint||NO", "wolf_sql_world_schema|2|version|int||NO",
-            "wolf_sql_world_state|1|account_id|bigint||NO", "wolf_sql_world_state|2|character_uid|int|unsigned|NO", "wolf_sql_world_state|3|revision|bigint||NO", "wolf_sql_world_state|4|character_image|longblob||NO", "wolf_sql_world_state|5|item_image|longblob||NO"
+            "wolf_sql_world_state|1|account_id|bigint||NO", "wolf_sql_world_state|2|character_uid|int|unsigned|NO", "wolf_sql_world_state|3|revision|bigint||NO", "wolf_sql_world_state|4|character_image|longblob||NO", "wolf_sql_world_state|5|item_image|longblob||NO",
+            "wolf_sql_world_state|6|record_format|tinyint|unsigned|NO", "wolf_sql_world_state|7|spell_image|longblob||YES", "wolf_sql_world_state|8|proficiency_image|longblob||YES", "wolf_sql_world_state|9|quest_image|longblob||YES", "wolf_sql_world_state|10|combat_gear_image|longblob||YES"
         ];
         await UseResourceAsync(connection.CreateCommand(), async command =>
         {

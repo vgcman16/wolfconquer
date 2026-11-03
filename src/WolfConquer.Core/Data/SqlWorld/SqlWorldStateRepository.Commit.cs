@@ -97,7 +97,8 @@ public sealed partial class SqlWorldStateRepository
                     SqlWorldStateFailure reason;
                     try { reason = await DiagnoseStateCollisionAsync(connection, transaction, change, token).ConfigureAwait(false); }
                     catch (Exception lookupFailure) { throw new AggregateException(error, lookupFailure); }
-                    await transaction.RollbackAsync(token).ConfigureAwait(false);
+                    try { await transaction.RollbackAsync(token).ConfigureAwait(false); }
+                    catch (Exception rollbackFailure) { throw new AggregateException(error, rollbackFailure); }
                     return Refuse(reason);
                 }
             }
@@ -105,9 +106,10 @@ public sealed partial class SqlWorldStateRepository
             {
                 foreach (var change in changes) await WriteOwnershipAsync(connection, transaction, change.Image, token).ConfigureAwait(false);
             }
-            catch (ItemUidCollisionException)
+            catch (ItemUidCollisionException collision)
             {
-                await transaction.RollbackAsync(token).ConfigureAwait(false);
+                try { await transaction.RollbackAsync(token).ConfigureAwait(false); }
+                catch (Exception rollbackFailure) { throw new AggregateException(collision, rollbackFailure); }
                 return Refuse(SqlWorldStateFailure.ItemUidConflict);
             }
             var result = MakeResult(SqlWorldStateCommitStatus.Committed, changes);
@@ -127,7 +129,7 @@ public sealed partial class SqlWorldStateRepository
 
     private static SqlWorldStateFailure ValidateCurrent(SqlWorldStateOperationKind kind, SqlWorldStateChange change, SqlWorldStateReadResult current)
     {
-        if (current.Status == SqlWorldStateReadStatus.Invalid) return SqlWorldStateFailure.InvalidStoredState;
+        if (current.Status == SqlWorldStateReadStatus.Invalid) return current.Failure;
         if (kind == SqlWorldStateOperationKind.Create) return current.Status == SqlWorldStateReadStatus.Missing ? SqlWorldStateFailure.None : SqlWorldStateFailure.StateExists;
         if (current.Status == SqlWorldStateReadStatus.Missing) return SqlWorldStateFailure.MissingState;
         if (current.Record!.Image.CharacterUid != change.Image.CharacterUid) return SqlWorldStateFailure.CharacterIdentityConflict;

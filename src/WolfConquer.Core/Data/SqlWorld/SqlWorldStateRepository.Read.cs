@@ -41,13 +41,24 @@ public sealed partial class SqlWorldStateRepository
         UseResourceAsync<MySqlCommand, SqlWorldStateReadResult>(connection.CreateCommand(), async command =>
         {
             command.Transaction = transaction;
-            command.CommandText = "SELECT character_uid, revision, CASE WHEN OCTET_LENGTH(character_image) BETWEEN 1 AND 16777216 THEN character_image ELSE NULL END, CASE WHEN OCTET_LENGTH(item_image) BETWEEN 1 AND 16777216 THEN item_image ELSE NULL END FROM wolf_sql_world_state WHERE account_id=@account" + (forUpdate ? " FOR UPDATE" : "");
+            command.CommandText = """
+                SELECT character_uid, revision,
+                  CASE WHEN record_format=1 AND OCTET_LENGTH(character_image) BETWEEN 1 AND 16777216 THEN character_image ELSE NULL END,
+                  CASE WHEN record_format=1 AND OCTET_LENGTH(item_image) BETWEEN 1 AND 16777216 THEN item_image ELSE NULL END,
+                  record_format, OCTET_LENGTH(spell_image), OCTET_LENGTH(proficiency_image),
+                  OCTET_LENGTH(quest_image), OCTET_LENGTH(combat_gear_image)
+                FROM wolf_sql_world_state WHERE account_id=@account
+                """ + (forUpdate ? " FOR UPDATE" : "");
             command.Parameters.AddWithValue("@account", accountId);
             var firstReader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
             var captured = await UseResourceAsync<MySqlDataReader, (SqlWorldStateReadResult? Failure, uint Uid, long Revision, byte[]? Character, byte[]? Items)>(firstReader, async reader =>
             {
                 if (!await reader.ReadAsync(token).ConfigureAwait(false))
                     return (new(SqlWorldStateReadStatus.Missing, null, SqlWorldStateFailure.MissingState), 0, 0, null, null);
+                if (reader.GetByte(4) == 2)
+                    return (new(SqlWorldStateReadStatus.Invalid, null, SqlWorldStateFailure.StateFormatConflict), 0, 0, null, null);
+                if (reader.GetByte(4) != 1 || Enumerable.Range(5, 4).Any(index => !reader.IsDBNull(index)))
+                    return (new(SqlWorldStateReadStatus.Invalid, null, SqlWorldStateFailure.InvalidStoredState), 0, 0, null, null);
                 if (reader.IsDBNull(2) || reader.IsDBNull(3))
                     return (new(SqlWorldStateReadStatus.Invalid, null, SqlWorldStateFailure.InvalidStoredState), 0, 0, null, null);
                 return (null, reader.GetUInt32(0), reader.GetInt64(1), reader.GetFieldValue<byte[]>(2), reader.GetFieldValue<byte[]>(3));
@@ -56,17 +67,26 @@ public sealed partial class SqlWorldStateRepository
             if (!SqlWorldStateImage.TryCreate(accountId, captured.Uid, captured.Character!, captured.Items!, out var image, out _) ||
                 !SqlWorldStateRecord.TryCreate(image!, captured.Revision, out var record, out _))
                 return new(SqlWorldStateReadStatus.Invalid, null, SqlWorldStateFailure.InvalidStoredState);
-            command.CommandText = "SELECT item_uid FROM wolf_sql_world_item_uid WHERE account_id=@account ORDER BY item_uid" + (forUpdate ? " FOR UPDATE" : "");
-            uint[] expectedUids = image!.ItemUids.ToArray();
-            var uidReader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
-            bool matches = await UseResourceAsync(uidReader, async reader =>
-            {
-                int index = 0;
-                while (await reader.ReadAsync(token).ConfigureAwait(false))
-                    if (index == expectedUids.Length || reader.GetUInt32(0) != expectedUids[index++]) return false;
-                return index == expectedUids.Length;
-            }).ConfigureAwait(false);
+            bool matches = await ReadUidOwnershipAsync(command, image!, forUpdate, token).ConfigureAwait(false);
             if (!matches) return new(SqlWorldStateReadStatus.Invalid, null, SqlWorldStateFailure.InvalidStoredState);
             return new(SqlWorldStateReadStatus.Found, record, SqlWorldStateFailure.None);
         });
+
+    // Both formats share the same complete physical UID index and real SQL owner.
+    private static async ValueTask<bool> ReadUidOwnershipAsync(MySqlCommand command, SqlWorldStateImage image,
+        bool forUpdate, CancellationToken token)
+    {
+        uint[] expectedUids = image.ItemUids.ToArray();
+        int uidLimit = checked(expectedUids.Length + 1);
+        command.CommandText = "SELECT item_uid FROM wolf_sql_world_item_uid WHERE account_id=@account ORDER BY item_uid LIMIT @uidLimit" + (forUpdate ? " FOR UPDATE" : "");
+        command.Parameters.AddWithValue("@uidLimit", uidLimit);
+        var uidReader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+        return await UseResourceAsync(uidReader, async reader =>
+        {
+            int index = 0;
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+                if (index == expectedUids.Length || reader.GetUInt32(0) != expectedUids[index++]) return false;
+            return index == expectedUids.Length;
+        }).ConfigureAwait(false);
+    }
 }

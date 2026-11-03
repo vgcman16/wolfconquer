@@ -31,8 +31,9 @@ changed. The existing native gameplay path remains file-backed.
 - [x] Run `Invoke-SqlGameplayCheck.ps1 -Port 34385`: all29 actual Facts passed,
   no failures/skips and owned cleanup verified. The prior SQL20 result was not
   substituted for these new component tests.
-- [ ] Complete actual six-image SQL read/write/replay in the same ownership
-  domain; current bundle models alone do not persist sidecars.
+- [ ] Qualify the reviewed/intaken schema2 six-image SQL provider in the same
+  ownership domain. Its40 authored Facts remain unrun; earlier29/15 passes do
+  not qualify it. [Next gate](SQL-COMPLETE-PERSISTENCE-20261103.md).
 - [ ] Complete the appropriate integration/publication gate before publishing.
 
 The full persistence horizon remains open:

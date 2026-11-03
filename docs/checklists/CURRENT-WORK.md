@@ -19,8 +19,10 @@ Its PIN-positive repair passed the59-case family without changing production gua
 [Full result](FULL-WINDOWS-20261103-B6.md). [SQL horizon](SQL-WORLD-STATE-20261103.md).
 
 NEXT: actual atomic six-image SQL persistence in the same UID/ledger domain.
-The distinct complete bundle/request models are qualified; new schema2/read/write
-provider source remains isolated and unbuilt/unrun until Root integrates it.
+The distinct complete bundle/request models are qualified. Root has reviewed and
+intaken the same-domain schema2/six-image provider, eleven new SQL Facts and one
+scoped disposable-server packet limit. It is UNBUILT/UNRUN;40 authored Facts are
+required, not a40-pass claim. [Next qualification](SQL-COMPLETE-PERSISTENCE-20261103.md).
 The full integration/publication gate and actual native/client join remain open.
 
 Reviewed timing-reader enhancement reuses Get-TestTiming.ps1, with strict

@@ -26,7 +26,7 @@ public sealed partial class SqlWorldStateRepository
             await VerifySchemaShapeAsync(connection, cancellationToken).ConfigureAwait(false);
             await UseResourceAsync(connection.CreateCommand(), async seed =>
             {
-                seed.CommandText = "INSERT INTO wolf_sql_world_schema (singleton, version) VALUES (1, 1) ON DUPLICATE KEY UPDATE singleton = singleton";
+                seed.CommandText = "INSERT INTO wolf_sql_world_schema (singleton, version) VALUES (1, 2) ON DUPLICATE KEY UPDATE singleton = singleton";
                 await seed.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }).ConfigureAwait(false);
             await VerifySchemaAsync(connection, cancellationToken).ConfigureAwait(false);
@@ -36,7 +36,7 @@ public sealed partial class SqlWorldStateRepository
     private static readonly string[] SchemaStatements =
     [
         "CREATE TABLE IF NOT EXISTS wolf_sql_world_schema (singleton TINYINT NOT NULL PRIMARY KEY, version INT NOT NULL) ENGINE=InnoDB",
-        "CREATE TABLE IF NOT EXISTS wolf_sql_world_state (account_id BIGINT NOT NULL PRIMARY KEY, character_uid INT UNSIGNED NOT NULL, revision BIGINT NOT NULL, character_image LONGBLOB NOT NULL, item_image LONGBLOB NOT NULL, UNIQUE KEY ux_world_character (character_uid)) ENGINE=InnoDB",
+        "CREATE TABLE IF NOT EXISTS wolf_sql_world_state (account_id BIGINT NOT NULL PRIMARY KEY, character_uid INT UNSIGNED NOT NULL, revision BIGINT NOT NULL, character_image LONGBLOB NOT NULL, item_image LONGBLOB NOT NULL, record_format TINYINT UNSIGNED NOT NULL, spell_image LONGBLOB NULL, proficiency_image LONGBLOB NULL, quest_image LONGBLOB NULL, combat_gear_image LONGBLOB NULL, UNIQUE KEY ux_world_character (character_uid)) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS wolf_sql_world_item_uid (item_uid INT UNSIGNED NOT NULL PRIMARY KEY, account_id BIGINT NOT NULL, KEY ix_world_item_account (account_id), CONSTRAINT fk_world_item_account FOREIGN KEY (account_id) REFERENCES wolf_sql_world_state(account_id) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS wolf_sql_world_operation (operation_id BINARY(16) NOT NULL PRIMARY KEY, descriptor_hash BINARY(32) NOT NULL, descriptor LONGBLOB NOT NULL) ENGINE=InnoDB"
     ];
