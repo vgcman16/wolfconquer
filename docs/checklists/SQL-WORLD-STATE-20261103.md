@@ -31,9 +31,10 @@ changed. The existing native gameplay path remains file-backed.
 - [x] Run `Invoke-SqlGameplayCheck.ps1 -Port 34385`: all29 actual Facts passed,
   no failures/skips and owned cleanup verified. The prior SQL20 result was not
   substituted for these new component tests.
-- [ ] Qualify the reviewed/intaken schema2 six-image SQL provider in the same
-  ownership domain. Its40 authored Facts remain unrun; earlier29/15 passes do
-  not qualify it. [Next gate](SQL-COMPLETE-PERSISTENCE-20261103.md).
+- [x] Qualify schema2 six-image SQL persistence on3534b2b2:285/285 affected normal
+  tests and all40 actual SQL Facts passed,0failed/skipped, with owned cleanup.
+  [Exact component scope](SQL-COMPLETE-PERSISTENCE-20261103.md). This does not
+  connect native gameplay or migrate an existing backend.
 - [ ] Complete the appropriate integration/publication gate before publishing.
 
 The full persistence horizon remains open:

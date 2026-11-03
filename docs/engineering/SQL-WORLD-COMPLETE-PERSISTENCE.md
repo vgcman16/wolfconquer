@@ -2,8 +2,10 @@
 
 Source base `e82916b9`. This extends the existing SQL storage owner, not gameplay,
 authentication, native admission, file routing, UID issuance or an active backend.
-No original schema is migrated. All source and new controls await Root's review
-and qualification; prior29 provider and15 bundle passes do not qualify this batch.
+No original schema is migrated. Source3534b2b2 passed285/285 affected normal tests
+and all40 actual provider Facts,0failed/skipped, on a fresh owned MariaDB12.2.2.
+Root read every actual result and verified child/data cleanup; prior29/15 passes
+were not substituted for this batch. The full integration/public gate remains.
 
 ## Explicit schema2 and record formats
 
@@ -74,6 +76,9 @@ malformed/oversized stored data, concurrent CAS and a real second-row trigger
 that observes the first full afterimage then forces whole rollback/retry.
 Existing29 provider controls remain; their marker-corruption literal must use99
 because2 is now the valid schema marker. Root alone runs checks and confirms
-actual required TRX outcomes and owned cleanup. Until then this batch is unbuilt
-and unrun. Native/Store/transport integration, migration/recovery and current7937
-client acceptance remain separate unfinished requirements.
+actual required TRX outcomes and owned cleanup. Root confirmed all40 required
+Facts passed on3534b2b2, including the original29 and new11. The owned child alone
+used a128MiB packet limit for contained large-data controls; no existing service
+setting changed. Double-fault cleanup remains source-reviewed, not injected
+provider evidence. Native/Store/transport integration, migration/recovery and
+current7937 client acceptance remain separate unfinished requirements.

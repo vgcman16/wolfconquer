@@ -90,6 +90,7 @@ goldens, presence, malformed/bounds, captured padding/order and request identity
 rules are covered. The first combined run retained one wrong4-byte empty-item
 golden; it was corrected to the actual two-count/8-byte format without changing
 production serialization or weakening its independent byte/offset checks.
-The separate29-Fact SQL provider gate also passed, but that v1 repository stores
-Character/Items only. Complete-bundle SQL storage, crash recovery, native custody
-and actual client rendering remain required.
+The separate29-Fact base SQL gate passed for Character/Items. The later schema2
+provider on3534b2b2 also passed all40 actual SQL Facts, storing all six declared
+images atomically in the same UID/ledger domain. See the complete-persistence
+contract; native custody, full recovery and actual client rendering remain open.

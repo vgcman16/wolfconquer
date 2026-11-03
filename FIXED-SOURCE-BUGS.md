@@ -62,12 +62,13 @@ backend or original database changed.
 
 ### FSB-334: Bound the SQL UID result itself before provider cleanup
 
-OPEN intaken source, unbuilt/unrun. Earlier reads stopped comparing at the first
+Bounded component/provider verified on3534b2b2:285 normal tests and40 actual SQL
+Facts passed without failures/skips. Earlier reads stopped comparing at the first
 extra UID but issued an unbounded SELECT. The shared successor binds SQL LIMIT
 to the complete expected physical UID count plus one, retaining exact sorted
 membership and first-extra detection for both formats. Small actual extra-index
-refusal controls are authored; no performance benchmark or forced network-drain
-measurement is claimed. The schema2 successor also retains the caught collision
+read/save refusal controls passed for both formats, leaving all SQL rows unchanged.
+No performance benchmark or forced network-drain measurement is claimed. The schema2 successor also retains the caught collision
 if its explicit rollback fails, extending FSB332; that double-fault path remains
 source-reviewed and unexercised.
 
