@@ -28,16 +28,28 @@ class EquipmentUiTests(unittest.TestCase):
                 self.assertEqual("Caller-supplied English; independent wording and rendering review required.", report["donorBoundary"])
                 self.assertFalse(report["liveRenderingVerified"])
 
-    def test_exact_case_replacement_preserves_unselected_case_sibling_and_raw_endings(self):
+    def test_selected_case_alias_is_held_with_raw_bom_keys_and_endings_unchanged(self):
         key = "STR_EQUIPMENT_LABEL"
         original = table(f"{key}=装备\r\n")
         english = table(f"{key}=Equipment\r\n")
         current = table(f"{key}=装备\r\nstr_equipment_label=保持\rSTR_UNKNOWN-&1&=保留=列\n#注释", b"\xef\xbb\xbf")
         plan = dict(plan_for(original, english, current, [key]), family="equipment-ui")
         proposed, report = propose(original, english, current, plan)
-        expected = b"\xef\xbb\xbf" + f"{key}=Equipment\r\nstr_equipment_label=保持\rSTR_UNKNOWN-&1&=保留=列\n#注释".encode()
-        self.assertEqual(expected, proposed)
+        self.assertEqual(current.raw, proposed)
         self.assertEqual(3, len(NamedResources.parse(proposed).groups))
+        self.assertEqual(0, report["changedPhysicalRows"])
+        self.assertIn(key, [value for group in report["held"].values() for value in group])
+
+    def test_unrelated_case_aliases_and_raw_endings_do_not_block_a_valid_selection(self):
+        key = "STR_EQUIPMENT_LABEL"
+        original = table(f"{key}=装备\r\n")
+        english = table(f"{key}=Equipment\r\n")
+        current = table(f"{key}=装备\r\nSTR_UNSELECTED=保持\rstr_unselected=另一条\nSTR_UNKNOWN-&1&=保留=列\n#注释", b"\xef\xbb\xbf")
+        plan = dict(plan_for(original, english, current, [key]), family="equipment-ui")
+        proposed, report = propose(original, english, current, plan)
+        expected = b"\xef\xbb\xbf" + f"{key}=Equipment\r\nSTR_UNSELECTED=保持\rstr_unselected=另一条\nSTR_UNKNOWN-&1&=保留=列\n#注释".encode()
+        self.assertEqual(expected, proposed)
+        self.assertEqual(4, len(NamedResources.parse(proposed).groups))
         self.assertEqual(1, report["changedPhysicalRows"])
 
     def test_equipment_family_refuses_unknown_or_malformed_family_without_writes(self):

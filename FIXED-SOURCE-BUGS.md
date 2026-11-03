@@ -4,6 +4,44 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Named UI resource integrity - 2026-11-03
+
+Bounded Python component qualification:17 original controls passed;5 new test
+methods reproduced11 failing subcases on the old implementation. Reviewed source,
+the conservative alias-oracle migration and retained raw-byte positive then
+passed23/23 methods,0failed/skipped, in4.006s. This is isolated text tooling,
+not the still-running Windows/C# gate, rendered English or whole-client parity.
+
+### FSB-324: Derive resource proposals from the bytes whose pins were checked
+
+Corrected within the bounded component above. NamedResources retained caller
+bytearrays and a mutable groups dict. Proposal generation checked raw hashes but
+trusted supplied parsed indexes/lines, so a forged current document could produce
+unrelated bytes despite a correct raw pin. Parsing now owns immutable raw bytes
+and read-only copied indexes; propose reparses all three captured raw documents
+before metadata use. Independent goldens cover forged metadata in each role,
+buffer mutation and group replacement, alongside valid formatting/byte retention.
+This does not claim hostile concurrent filesystem namespace exclusion.
+
+### FSB-325: Bind each curated resource-plan filename to its declared family
+
+Corrected within the bounded component above. A valid but mismatched family in a
+curated plan file was accepted and could create a mislabeled proposal. The CLI
+now requires the exact four filename/family pairs before reading resource inputs
+or creating output. Actual synthetic CLI controls cover each positive pair and
+mismatch refusal without changed inputs or new proposal directories. Existing
+200-key/16MiB-input/64KiB-plan bounds and token grammar remain unchanged.
+
+### FSB-326: Hold an ambiguous selected case alias without inventing lookup rules
+
+Conservative proposal policy, component-qualified above; native casing semantics
+remain OPEN. An explicitly selected key with another casefold spelling in any
+input is held unchanged. Unselected aliases remain byte-identical and do not
+block an unrelated valid selection. The earlier test that required translating
+one spelling beside its alias now requires a hold; an independent positive still
+checks BOM, raw unknown keys, mixed line endings and unselected alias preservation.
+This is not proof that the client's renderer is case-insensitive or case-sensitive.
+
 ### FSB-323: Coordinate full checks with focused and owned-SQL host exclusion
 
 OPEN, source-only/unqualified. The full runner held a per-checkout file lock,

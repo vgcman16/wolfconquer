@@ -1,10 +1,23 @@
 """Byte-preserving UTF8 assignment documents, with duplicate occurrences retained."""
 from dataclasses import dataclass
+from collections.abc import Mapping
 from pathlib import Path
 import re
 import stat
+from types import MappingProxyType
 
 MAX_BYTES = 16 * 1024 * 1024
+
+
+def _capture_raw(raw):
+    if not isinstance(raw, (bytes, bytearray)):
+        raise ValueError("namedResourceBytesRequired")
+    if not raw or len(raw) > MAX_BYTES:
+        raise ValueError("namedResourceBoundsOrNul")
+    owned = bytes(raw)
+    if not owned or len(owned) > MAX_BYTES or b"\0" in owned:
+        raise ValueError("namedResourceBoundsOrNul")
+    return owned
 
 
 @dataclass(frozen=True)
@@ -14,18 +27,27 @@ class Row:
     prefix: bytes
     ending: bytes
 
+    def __post_init__(self):
+        object.__setattr__(self, "prefix", bytes(self.prefix))
+        object.__setattr__(self, "ending", bytes(self.ending))
+
 
 @dataclass(frozen=True)
 class NamedResources:
     raw: bytes
     bom: bytes
     lines: tuple[bytes, ...]
-    groups: dict[str, tuple[Row, ...]]
+    groups: Mapping[str, tuple[Row, ...]]
+
+    def __post_init__(self):
+        object.__setattr__(self, "raw", _capture_raw(self.raw))
+        object.__setattr__(self, "bom", bytes(self.bom))
+        object.__setattr__(self, "lines", tuple(bytes(line) for line in self.lines))
+        object.__setattr__(self, "groups", MappingProxyType({key: tuple(rows) for key, rows in self.groups.items()}))
 
     @staticmethod
     def parse(raw: bytes):
-        if not raw or len(raw) > MAX_BYTES or b"\0" in raw:
-            raise ValueError("namedResourceBoundsOrNul")
+        raw = _capture_raw(raw)
         bom = b"\xef\xbb\xbf" if raw.startswith(b"\xef\xbb\xbf") else b""
         payload = raw[len(bom):]
         if payload.decode("utf-8", errors="strict").encode("utf-8") != payload:

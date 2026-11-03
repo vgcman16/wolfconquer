@@ -35,7 +35,13 @@ Omitting `--plan` selects `stat-ui-family.json`. Default output is a JSON summar
 only. `--write-proposal` creates a fresh GUID child under ignored `proposals/`,
 containing `Cn_Res.ini` and its report; input files remain read only. Plan paths
 cannot be supplied outside the curated filenames. Preserve the three-file hashes
-and record wording evidence separately from this generic tool's report.
+and record wording evidence separately from this generic tool's report. Each
+curated filename must declare exactly the family in the table; a mismatch refuses
+before any proposal directory is created.
+
+The parser owns immutable input bytes and copied read-only group indexes. Proposal
+generation reparses those captured bytes rather than trusting supplied parsed
+metadata, so the pins and the selected rows describe the same document.
 
 The parser retains exact keys, order, BOM, duplicate groups, unselected raw bytes,
 prefixes and line endings. Selected groups need matching counts, uniform values,
@@ -44,6 +50,9 @@ escape, brace, tag and control tokens. Missing state, changed wording, machine
 values, unsupported formatting or other mismatches are held unchanged. Review
 every hold; a report is not permission to apply it. Input cap is 16 MiB and plan
 cap is 64 KiB; these are operational bounds, not game rules or renderer limits.
+Any selected key with a differently spelled casefold alias in any input is held
+as `caseAliasAmbiguous`. This is conservative proposal policy pending lookup
+evidence, not a claim about native key casing. Unselected aliases remain unchanged.
 
 Tests use synthetic temporary fixtures. Their success does not prove complete
 translation, font support, hover behavior, layout fit, native execution, deployment

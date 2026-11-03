@@ -26,6 +26,13 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
   runner (FSB323 OPEN), then run all14 SQL Facts via the closed command.
 - [ ] Next independent booth proposals add selected suspicious-item validation
   and actual SQL/native start/list/buy/cold-reopen controls; not intaken/qualified.
+- [x] Named UI integrity fixes (FSB324-326) passed23 isolated Python controls,
+  0failed/skipped; actual old-source regressions were retained. This does not
+  qualify the current C# batch or make its active full run pass.
+- [x] Fresh private stat/gear/mail composition completed206 keys/211 rows with
+  all unselected bytes and original pins intact. Both per-pass200-key bounds stay.
+- [ ] English rendering and the many remaining rows;
+  [resource checklist](NAMED-UI-ENGLISH-20261103.md). No client resource was applied.
 - [ ] Complete7937 profile/session wiring, unresolved fields, per-player Echo
   actions/costs/persistence and English proposal apply/render. Main57,093/Sub1,693
   x67 and selected Echo/other catalog parses are data evidence, not a percentage.

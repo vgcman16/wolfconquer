@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+from types import MappingProxyType
 import uuid
 
 from named_resources import NamedResources, ordinary, read_bytes
@@ -12,7 +13,13 @@ from format_tokens import signature
 
 CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
 MACHINE = re.compile(r"(?i)(?:https?|ftp)://|\b(?:SOFTWARE|HKEY_[A-Z_]+)[\\/]|Font[\\/]|^[A-Z]:[\\/]")
-FAMILIES = frozenset(("character-stat-ui", "equipment-ui", "character-equipment-ui", "mail-trade-ui"))
+PLAN_FAMILIES = MappingProxyType({
+    "stat-ui-family.json": "character-stat-ui",
+    "gear-ui-family.json": "equipment-ui",
+    "combined-ui-family.json": "character-equipment-ui",
+    "mail-trade-ui-family.json": "mail-trade-ui",
+})
+FAMILIES = frozenset(PLAN_FAMILIES.values())
 DONOR_BOUNDARY = "Caller-supplied English; independent wording and rendering review required."
 
 
@@ -45,13 +52,29 @@ def validate_plan(plan, inputs):
             raise ValueError("namedResourceInputPinMismatch")
 
 
+def selected_case_aliases(documents, keys):
+    selected = {key.casefold(): key for key in keys}
+    ambiguous = set()
+    for document in documents:
+        for name in document.groups:
+            key = selected.get(name.casefold())
+            if key is not None and name != key:
+                ambiguous.add(key)
+    return frozenset(ambiguous)
+
+
 def propose(original, english, current, plan):
+    # Pinned captured bytes are authoritative; supplied parsed metadata is not.
+    original, english, current = (NamedResources.parse(document.raw) for document in (original, english, current))
     validate_plan(plan, (original.raw, english.raw, current.raw))
+    aliases = selected_case_aliases((original, english, current), plan["keys"])
     replacements, held = {}, defaultdict(list)
     for key in plan["keys"]:
         groups = [item.groups.get(key) for item in (original, english, current)]
         reason = None
-        if any(group is None for group in groups):
+        if key in aliases:
+            reason = "caseAliasAmbiguous"
+        elif any(group is None for group in groups):
             reason = "requiredKeyMissing"
         elif len({len(group) for group in groups}) != 1:
             reason = "occurrenceCountChanged"
@@ -95,7 +118,7 @@ def main():
     parser.add_argument("original", type=Path)
     parser.add_argument("english", type=Path)
     parser.add_argument("current", type=Path)
-    parser.add_argument("--plan", choices=("stat-ui-family.json", "gear-ui-family.json", "combined-ui-family.json", "mail-trade-ui-family.json"), default="stat-ui-family.json")
+    parser.add_argument("--plan", choices=tuple(PLAN_FAMILIES), default="stat-ui-family.json")
     parser.add_argument("--write-proposal", action="store_true")
     args = parser.parse_args()
     root = Path(__file__).absolute().parent
@@ -103,6 +126,8 @@ def main():
     if len(plan_bytes) > 65536:
         raise ValueError("namedResourcePlanBounds")
     plan = json.loads(plan_bytes.decode("utf-8-sig"), object_pairs_hook=unique_json)
+    if type(plan) is not dict or plan.get("family") != PLAN_FAMILIES[args.plan]:
+        raise ValueError("namedResourcePlanFamilyMismatch")
     documents = [NamedResources.parse(read_bytes(path)) for path in (args.original, args.english, args.current)]
     after, report = propose(*documents, plan)
     if args.write_proposal:
