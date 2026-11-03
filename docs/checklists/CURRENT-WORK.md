@@ -43,7 +43,7 @@ Duration sums overlap and are not elapsed time or a measured speedup.
   codec comparisons did not recover a complete item text-field mapping.
   [Evidence](7937-TEXT-COLUMNS-20261103.md).
 - [x] Named-UI tools passed36 Python controls. Private English proposal covers
-  591keys/597rows; prior keys, all other bytes and original inputs are preserved.
+  811keys/823rows; prior keys, all other bytes and original inputs are preserved.
   Separate UStrRes1,191-key proposal is not a whole-client percentage.
 - [x] Integrate explicit guild/team UI proposal support, its narrow private-plan
   ignore entry and independent CLI controls; no existing guard was weakened.
@@ -53,6 +53,9 @@ Duration sums overlap and are not elapsed time or a measured speedup.
 - [x] Core UI two-pass115+86 addition passed after full wording review, preserving
   prior390/unselectedbytes/pins and the200-key-perpass/64KiB limits.
   [English work](NAMED-UI-ENGLISH-20261103.md).
+- [x] Review146inventory/equipment and74combat/status wordings, then compose
+  three bounded private passes through the unchanged qualified core-ui tool.
+  Actual811keys/823rows; prior591/allotherbytes/pins intact. Unapplied/unrendered.
 
 - [ ] Finish remaining gameplay/social/events, durable persistence ownership,
   actionable static defects, full English and full-client distribution.

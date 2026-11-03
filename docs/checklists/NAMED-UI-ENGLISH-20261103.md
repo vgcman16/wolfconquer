@@ -54,6 +54,16 @@
   3,210,718bytes, SHA256 DA04F5B5E0E558C7D620BC1D9240D1ECC58A3886954B2F796F31B2D6A221A312.
   Prior390wordings, allunselectedbytes and originalpins remain unchanged. The
   separate bounded approvals stayed below64KiB. No resource applied/rendered.
+- [x] Root reviewed146inventory/equipment and74combat/status wordings. Independent
+  review refined one-click activation and socket creation versus gem insertion.
+  Three bounded private CLI passes completed:591/597 ->691/702 ->737/748 ->
+  811keys/823physical rows,3,211,686bytes, SHA256
+  D4E326B3E630AE89652F1480FAD27F8EEF6B49AF77B1343DF4342DE492E2ED6B.
+  All prior591wordings, unselected bytes and original inputs remain intact.
+  Existing200-key/64KiB bounds and qualified tool source were unchanged; the
+  36-test tool suite was not redundantly repeated for data-only wordings.
+  A59keys/65rows and C30keys remain explicit scoped holds, not a complete backlog.
+  No resource was applied or rendered.
 - [ ] Perform separately permitted English rendering/font/layout review after
   the execution hold clears; no client resource has been applied here.
 - [ ] Complete the many thousands of remaining Chinese named-resource values.
