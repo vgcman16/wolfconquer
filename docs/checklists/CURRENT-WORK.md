@@ -38,6 +38,11 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
   37 scoped uncertain candidates remain held; no client application/rendering.
 - [ ] English rendering and the many remaining rows;
   [resource checklist](NAMED-UI-ENGLISH-20261103.md). No client resource was applied.
+- [x] Added explicit-codec complete text-column comparison and a private read-only
+  CLI. All30 synthetic byte/text/CLI tests passed,0failed/skipped; the existing13
+  byte controls remain unchanged. This does not establish an actual text mapping.
+- [ ] Run pinned retained-catalog text comparisons after the sole current C# gate
+  is terminal; [scope and remaining evidence](7937-TEXT-COLUMNS-20261103.md).
 - [ ] Complete7937 profile/session wiring, unresolved fields, per-player Echo
   actions/costs/persistence and English proposal apply/render. Main57,093/Sub1,693
   x67 and selected Echo/other catalog parses are data evidence, not a percentage.
