@@ -45,6 +45,15 @@
   SHA256 A256846DD27BC95654BEFE05FB526728113B3645009D14D70A7182E69070EBB2.
   All prior281wordings, unselected bytes and original input pins remain intact.
   Forty-six scoped candidates remain held; all proposals remain private/unapplied.
+- [x] Explicit core UI family/ignore and sequential CLI controls passed36 Python
+  tests,0failed/skipped in17.825s on sourcee0b8cb15. All33earlier methods remain;
+  tests cover prior-English/raw bytes, all7old pairs,200+1sequential acceptance,
+  stale pins and201keys in one pass refusing without writes.
+- [x] Root reviewed115login/character and86settings/chat labels. Two actual private
+  passes preserve the200-key limit:390/396 ->505/511 ->591keys/597physical rows,
+  3,210,718bytes, SHA256 DA04F5B5E0E558C7D620BC1D9240D1ECC58A3886954B2F796F31B2D6A221A312.
+  Prior390wordings, allunselectedbytes and originalpins remain unchanged. The
+  separate bounded approvals stayed below64KiB. No resource applied/rendered.
 - [ ] Perform separately permitted English rendering/font/layout review after
   the execution hold clears; no client resource has been applied here.
 - [ ] Complete the many thousands of remaining Chinese named-resource values.

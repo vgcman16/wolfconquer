@@ -37,14 +37,16 @@ Wait for the sole full33805 on the OTHER frozenb6aa candidate before checks here
 - [x] Complete byte/text column tooling passed30 synthetic controls. Actual pinned
   codec comparisons did not recover a complete item text-field mapping.
   [Evidence](7937-TEXT-COLUMNS-20261103.md).
-- [x] Named-UI tools passed33 Python controls. Private English proposal covers
-  390keys/396rows; prior keys, all other bytes and original inputs are preserved.
+- [x] Named-UI tools passed36 Python controls. Private English proposal covers
+  591keys/597rows; prior keys, all other bytes and original inputs are preserved.
   Separate UStrRes1,191-key proposal is not a whole-client percentage.
 - [x] Integrate explicit guild/team UI proposal support, its narrow private-plan
   ignore entry and independent CLI controls; no existing guard was weakened.
 - [x] Compose the Root-reviewed109-key private addition after holding one
   format-only row. Prior281 and every other byte remain;46scoped candidates held.
   No resources applied/rendered; the many remaining Chinese rows stay open.
+- [x] Core UI two-pass115+86 addition passed after full wording review, preserving
+  prior390/unselectedbytes/pins and the200-key-perpass/64KiB limits.
   [English work](NAMED-UI-ENGLISH-20261103.md).
 
 - [ ] Finish remaining gameplay/social/events, durable persistence ownership,

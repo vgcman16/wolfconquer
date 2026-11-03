@@ -2,6 +2,12 @@
 
 Updated2026-11-03. Full English client/server reconstruction remains active.
 
+Latest separate text milestone on sourcee0b8cb15:36Python tests passed without
+failures/skips, and actual bounded core UI115+86-key composition brings the
+private proposal to591keys/597rows. Prior390/allunselectedbytes/pins are unchanged.
+No resource applied/rendered. New SQL repository C# remains UNBUILT/UNRUN; its
+27declaredproviderFacts and native/backend integration remain pending.
+
 The completed solution-test TRX includes645passed/0failed/0skipped rows named
 Chinese7937 across20classes. These qualify catalog/codec/component behavior,
 not a whole-client completion percentage or current-profile gameplay. The latest
