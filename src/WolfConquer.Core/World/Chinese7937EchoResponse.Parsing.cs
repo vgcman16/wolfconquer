@@ -17,17 +17,7 @@ public sealed partial class Chinese7937EchoResponse
         var captured = payload.ToArray();
         if (!Chinese7935XuanbaoOperationPayload.TryParseKnownPayload(captured, out var known) || known is null)
         { failure = Chinese7937EchoResponseFailure.KnownSchema; return false; }
-        Chinese7937EchoArgument[]? arguments = known.Operation switch
-        {
-            8 => [new(7, known.Fields.Field7), new(5, known.Fields.Field5)],
-            10 => [new(2, known.Fields.Field2), new(3, known.Fields.Field3), new(4, known.Fields.Field4)],
-            _ => null,
-        };
-        if (arguments is null)
-        { failure = Chinese7937EchoResponseFailure.UnsupportedOperation; return false; }
-        response = new(captured, known, arguments);
-        failure = Chinese7937EchoResponseFailure.None;
-        return true;
+        return TryCreateResponse(captured, known, null, out response, out failure);
     }
 
     /// <summary>Requires the complete 2132 frame and matching header/payload; never reconciles caller disagreements.</summary>

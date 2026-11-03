@@ -13,8 +13,10 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
 - [x] Prior full53f failure is retained: Core34,814P/1F/157skip; Updates446P;
   later stages unrun. Its Plan import repair passed affected tool checks.
   [Historical result](FULL-WINDOWS-20261103-53F.md).
-- [ ] Integrate/qualify the reviewed extension-preserving Echo response consumer.
+- [x] Integrate the reviewed extension-preserving Echo response consumer source.
   Strict APIs and unknown field meanings must remain unchanged.
+- [ ] Qualify its operation8/10 exact-frame, extension and refusal controls plus
+  existing Echo/scanner/item-envelope neighbors. Source-only until actual result.
 - [ ] Qualify the complete Windows integration/publication gate and verify exact
   public-source CI. Last qualified full local was35,124P/0F/152skip onfe3e79a2;
   public mainbee36f0e has no newer full Windows Actions pass claimed here.
@@ -31,8 +33,10 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
 - [x] Named-UI tools passed31 Python controls. Private English proposal covers
   281keys/287rows; prior keys, all other bytes and original inputs are preserved.
   Separate UStrRes1,191-key proposal is not a whole-client percentage.
-- [ ] Integrate/qualify explicit guild/team UI proposal support and review the next
-  private wording batch. Apply/render no resources while execution is held.
+- [x] Integrate explicit guild/team UI proposal support, its narrow private-plan
+  ignore entry and independent CLI controls; no existing guard was weakened.
+- [ ] Qualify the Python suite and compose the Root-reviewed110-key private
+  addition. Apply/render no resources while execution is held.
   [English work](NAMED-UI-ENGLISH-20261103.md).
 
 - [ ] Finish remaining gameplay/social/events, durable persistence ownership,
