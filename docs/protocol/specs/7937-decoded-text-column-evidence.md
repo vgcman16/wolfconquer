@@ -91,3 +91,19 @@ and Root schedules them. No semantic65/67 alignment, English field
 placement, official translation, profile/gameplay activation, rendering or full
 parity is established by a successful comparison. Original data and the active
 client/native execution hold remain unchanged.
+
+## Actual retained-data result
+
+Root ran eight explicit utf-8/cp936 combinations after full53f was terminal and
+the host had no active build/test/runner job. No native inspection or transforms
+were invoked. All three requested reference columns1,52,53 were unsupported as
+utf-8 in both Main/Sub. cp936 strictly roundtripped all compared shared cells;
+complete Main vectors over47,184 shared IDs had no exact candidate for those
+three columns. Sub over28 shared IDs had only52->52 with cp936 on both sides;
+the other two columns remained unmatched. utf-8 current decoding also retained
+three unsupported current columns. Full data/pins stayed unchanged.
+
+These observations reject automatic transcoding as a sufficient complete text
+mapping for these inputs. They do not assign current text meanings, establish
+whole-file native encoding semantics, choose a mapping, translate catalogs or
+activate a runtime adapter. Further sufficient client/schema evidence is required.

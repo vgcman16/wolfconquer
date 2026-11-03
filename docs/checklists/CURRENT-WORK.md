@@ -9,10 +9,11 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
 - [x] Actual SQL5 passed on03d5607d against fresh owned MariaDB12.2.2, with real
   SQL auth/native sale/cold reauth/file reopening and owned cleanup. Characters
   and items remain INI/BIN; this is not7937 live proof.
-- [ ] Sole full53f82817 run003401400Z-06a79af7/session30882 is still running in
-  the earlier decompose-sql-7937 candidate. Restore/build passed; one actual Plan
-  import test has failed. Preserve that checked tree and finish reading its real
-  terminal outcome. Do not duplicate build/test/CI/SQL jobs.
+- [x] Earlier full53f82817 run003401400Z-06a79af7/session30882 terminated FAILED
+  at02:47:02UTC: Core34,814P/1F/157skip, Updates446P. Restore/build passed;
+  launcher/later gates unrun. Only failure is the copied-script Plan import issue,
+  already repaired in this next source but not yet execution-qualified.
+  [Actual result](FULL-WINDOWS-20261103-53F.md); preserve the old failed run.
 - [x] Root separately composed29 A14+B6+C7+Plan2 code/test paths: suspicious
   closure refusal, immutable cap ownership, high-width action guard, absent-Items
   v1 recovery,9 new SQL/native trade Facts and the Plan repair. UNBUILT/UNRUN;
@@ -36,13 +37,18 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
 - [x] Generated/checked the approved22-key storage/vendor addition: cumulative
   228 keys/234 rows, with prior206 and all other bytes/input pins preserved.
   37 scoped uncertain candidates remain held; no client application/rendering.
+- [x] Quest/social family passed31 Python controls. Actual53 new labels bring
+  the private proposal to281 keys/287 rows; prior228/all other bytes/pins intact.
+  No client resource applied or quest/social runtime behavior established.
 - [ ] English rendering and the many remaining rows;
   [resource checklist](NAMED-UI-ENGLISH-20261103.md). No client resource was applied.
 - [x] Added explicit-codec complete text-column comparison and a private read-only
   CLI. All30 synthetic byte/text/CLI tests passed,0failed/skipped; the existing13
   byte controls remain unchanged. This does not establish an actual text mapping.
-- [ ] Run pinned retained-catalog text comparisons after the sole current C# gate
-  is terminal; [scope and remaining evidence](7937-TEXT-COLUMNS-20261103.md).
+- [x] Actual eight pinned codec comparisons finished after full53f terminal:
+  no complete Main text candidates; Sub only52->52 with cp936/cp936. Inputs intact.
+- [ ] Resolve text/schema semantics before any item adapter;
+  [scope and remaining evidence](7937-TEXT-COLUMNS-20261103.md).
 - [ ] Complete7937 profile/session wiring, unresolved fields, per-player Echo
   actions/costs/persistence and English proposal apply/render. Main57,093/Sub1,693
   x67 and selected Echo/other catalog parses are data evidence, not a percentage.

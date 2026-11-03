@@ -10,7 +10,7 @@ Bounded Python component qualification:17 original controls passed;5 new test
 methods reproduced11 failing subcases on the old implementation. Reviewed source,
 the conservative alias-oracle migration and retained raw-byte positive then
 passed23/23 methods,0failed/skipped, in4.006s. This is isolated text tooling,
-not the still-running Windows/C# gate, rendered English or whole-client parity.
+separate from the failed Windows/C# gate, rendered English or whole-client parity.
 
 ### FSB-324: Derive resource proposals from the bytes whose pins were checked
 
@@ -27,7 +27,7 @@ This does not claim hostile concurrent filesystem namespace exclusion.
 
 Corrected within the bounded component above. A valid but mismatched family in a
 curated plan file was accepted and could create a mislabeled proposal. The CLI
-now requires the exact four filename/family pairs before reading resource inputs
+now requires the exact curated filename/family pair before reading resource inputs
 or creating output. Actual synthetic CLI controls cover each positive pair and
 mismatch refusal without changed inputs or new proposal directories. Existing
 200-key/16MiB-input/64KiB-plan bounds and token grammar remain unchanged.
@@ -53,12 +53,13 @@ pump/targets refusals still precede acquisition. No host-idle scan is added that
 would reject the full CI job's own Runner.Worker. An authored actual copied-script
 busy-mutex refusal control must show no nested command, environment or artifact
 changes. This is cooperative tool exclusion, not authority over arbitrary external
-processes. The older active53f run remains unchanged; no new check has run.
+processes. The older53f run terminated failed and remains unchanged; this new
+mutex control has not run.
 
 ## SQL-native trade source checkpoint - 2026-11-03 UTC
 
 FSB318-322 below are OPEN, source-reviewed implementations. They have not been
-built or run. They are in a separate candidate; the live full53f check is unchanged.
+built or run. They are in a separate candidate; the failed full53f evidence is unchanged.
 [Qualification checklist](docs/checklists/SQL-NATIVE-TRADE-20261103.md).
 
 ### FSB-318: Refuse suspicious roots and descendants before a trade offer
@@ -111,7 +112,7 @@ Historical v1 intents retain their original permission contract. All are unrun.
 
 ### FSB-322: Keep local-check Plan independent of execution-only log pumping
 
-OPEN, unqualified. The actual running full53f suite exposed a default-root Plan
+OPEN, unqualified. The actual full53f suite exposed a default-root Plan
 failure: its genuine copied-script fixture has no CheckLogPump module, which was
 imported before the inert Plan return. The import now follows that return and
 still precedes real artifacts, leases and child launch. The existing default-root
@@ -128,7 +129,8 @@ Their remaining explicitly named adversarial/live/SQL limits remain open.
 
 ### FSB-317: Keep decomposition's committed failure causes in bounded diagnostics
 
-OPEN correction, qualification pending. Relic output retains its actual nested
+Corrected within bounded managed verification; complete publication remains
+pending. Relic output retains its actual nested
 cause, but diagnostics applied the bounded type-only formatter only to2356.
 ItemUsage2137/action67 instead omitted the nested cancellation cause from the
 structured log and could print private exception details to stderr. Recognized
@@ -139,11 +141,15 @@ reissue checks and additionally rejects private Users/items paths in the new
 diagnostic. Earlier targeted232017275Z-ce187777 remains failed218P/5F/0skip.
 Its corrected cancellation cases passed within234220137Z-3582ad9a's9P/1F;
 the remaining new visible-peer fixture mismatch then passed1/1 in235509359Z-81bae402
-after matching production's closed-after-gate guard. Full enlarged gate pending.
+after matching production's closed-after-gate guard. In terminal full53f, all25
+LegacyOwnedRelicDecomposeTests rows passed, including the bounded cancel output,
+visible authenticated peer and started-write cancel controls. The overall gate
+failed only the separate Plan import test; later launcher/script stages were
+unrun. This is managed diagnostic/ownership proof, not live-client acceptance.
 
 ### FSB-316: Reject an ambiguous username before selecting an account by password
 
-OPEN implementation, unqualified. The real modern SQL repository returns all
+Corrected within bounded managed/real-provider verification. The real modern SQL repository returns all
 username rows. AccountLoginService selected a sole matching password from those
 rows, and an earlier test explicitly required that behavior. A username could
 therefore select different principals according to credentials despite its
@@ -159,13 +165,17 @@ checks that the real provider returns both, then requires no Ready/handoff,
 holder/file change or gameplay publication. These controls are source-only and
 initially unrun. Actual03d5607d SQL qualification later passed all5real-provider
 Facts, including duplicate-principal refusal, on owned MariaDB12.2.2 with no skips.
+All14 AccountLoginServiceTests rows also passed in terminal full53f; its SQL
+opt-in rows skipped as expected and do not replace the earlier actualSQL proof.
 [Scope and limits](docs/checklists/OWNED-SQL-AUTH-20261103.md). Full enlarged
 integration qualification remains required. This is a
 server admission policy correction, not a new client wire format.
 
 ### FSB-315: Own the complete relic-decomposition batch before rewards or success
 
-OPEN source implementation, qualification failing. Legacy ItemUsage.RelicDecompose
+Corrected managed source behavior, with bounded verification below. Complete
+publication and the named SQL/live/adversarial frontiers remain OPEN.
+Legacy ItemUsage.RelicDecompose
 removed and rewarded sequentially, ignored failed duplicate removals/capacity or
 metadata grants, allocated from session-local state, published before a proven
 save and echoed success despite persistence failure. Its old tests explicitly
@@ -193,7 +203,7 @@ now uses the existing non-consuming RequireCurrentBeforeWriter check. The real
 once-only postwriter check, arming, typed writer, saved-owner retirement and
 failure fence remain intact; no witness reset or accepting owner is added.
 A new registered saved/native/11frame/replay control is authored. This repair
-and the enlarged increment are unqualified until rerun; the failed run stays failed.
+initially remained unqualified until rerun; the failed run stays failed.
 
 Follow-up232017275Z-ce187777 built161.559s and ran168.176s:218passed/5failed,
 no skips. Normal/mixed decomposition and the new saved/native final-witness
@@ -204,8 +214,13 @@ actual retired owner/slot checks and real full trade packets; separate visible
 response and out-of-view progress controls retain actual socket pressure and
 bounded settlement without requiring a peer handler to remain stalled.
 
-Required next proof: composed build, focused actual registered owners and shared
-callers, interruption/reopen/cancel/pressure controls, then the full gate.
+Subsequent terminal full53f restored/built successfully and passed all25 owned
+relic-decompose,14 request and39 preparation rows,0failed/skipped in those78.
+Root inspected actual TRX rows, including the final-postwriter-witness positive,
+started-write cancel/noncancel and visible authenticated peer controls. The whole
+run failed only the separate Plan import test, so it is not a complete eight-stage
+publication gate. Earlier failed outcomes above remain unchanged. A complete gate
+on the next reviewed source is still required.
 Injected pre-ranking failure is not concurrent rank-owner drift. Trace-specific
 lock review is not universal deadlock proof. SQL/power-loss safety, current7937
 Resolve/bGold semantics, live client and complete parity remain OPEN. Contract:

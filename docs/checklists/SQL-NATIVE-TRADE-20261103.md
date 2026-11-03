@@ -12,7 +12,7 @@ Updated2026-11-03. Separate source checkpoint, UNBUILT/UNRUN; no public push.
 - [x] Added a closed SQL gameplay command,6 authored tool controls and cooperative
   full-run host mutex (FSB323 OPEN). Both scripts syntax-parse; none was executed.
 - [ ] Compile and run focused owned trade/metadata/action/recovery/tool controls
-  after the sole full53f run terminates; retain all actual failures.
+  now that full53f is actually terminal; retain all actual failures.
 - [ ] Run all14 declared Facts on a fresh owned MariaDB instance, including real
   trade outputs, leases/retry, EOF and cold recovery. Require owned cleanup.
   After terminal/managed qualification use
@@ -26,5 +26,7 @@ Updated2026-11-03. Separate source checkpoint, UNBUILT/UNRUN; no public push.
 Contract: [SQL/native trade](../specs/auto-generated/sql-native-trade-roundtrip.md).
 Earlier verified SQL5: [bounded result](OWNED-SQL-AUTH-20261103.md).
 The last completed full local pass was35,124P/0F/152skip on older sourcefe3e;
-the current53f full run has a known Plan test failure and remains nonterminal.
+the newer53f full terminated FAILED with34,814Core passed/1failed/157skipped and
+446 updater passed. Later launcher/script stages were not run. Its sole Plan
+import failure is repaired only in the next source and still needs qualification.
 No live client was launched; hold, original data/routes/sessions and backups stay.

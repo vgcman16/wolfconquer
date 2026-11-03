@@ -27,6 +27,14 @@
   all other bytes/input pins remain intact.37 scoped candidates remain held,
   including game/dealer and uncertain system text. Plain CP terminology follows
   existing reviewed usage; the coin-limit warning retains its sales-only scope.
+- [x] Added the explicit quest/social family; all31 Python controls passed,
+  0failed/skipped in9.240s, including all29 earlier methods and two new CLI cases.
+- [x] Reviewed12 ordinary quest/navigation/timer and41 friend/mentor/trade-partner
+  labels. The actual private53-row addition brings the proposal to281 keys/287
+  rows,3,209,590 bytes. Prior228 and all other bytes/input pins are unchanged.
+  Two scoped strings remain untouched: a format-only timer and an ambiguous
+  one-character abbreviation. Same-type placeholders retain their distinct roles;
+  literal40, timer units and ordered markup remain. No quest/social mechanics follow.
 - [ ] Perform separately permitted English rendering/font/layout review after
   the execution hold clears; no client resource has been applied here.
 - [ ] Complete the many thousands of remaining Chinese named-resource values.

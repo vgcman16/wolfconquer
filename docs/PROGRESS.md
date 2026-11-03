@@ -1,6 +1,19 @@
 # Development checklist
 
-Updated2026-11-02. Full English client/server reconstruction remains active.
+Updated2026-11-03. Full English client/server reconstruction remains active.
+
+## Latest local result and next qualification
+
+Full53f terminated FAILED: Core34,814 passed/1failed/157skipped and Updates446
+passed. Restore/build passed; launcher/later stages were not run. The sole failure
+is the copied-script Plan import; its repair and new trade/SQL tooling sources are
+in the next checkout but still need managed/provider/full qualification.
+[Exact terminal result](checklists/FULL-WINDOWS-20261103-53F.md).
+
+Separate Python text tools passed30 item-column controls and31 named-UI controls.
+Actual retained codec comparisons did not recover a complete item text mapping;
+actual private English proposal now covers281 keys/287 rows, unapplied/unrendered.
+These results do not qualify C#/SQL gameplay or activate a7937 client profile.
 
 ## New local component qualification - 2026-11-03
 

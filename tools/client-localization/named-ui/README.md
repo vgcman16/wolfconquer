@@ -19,6 +19,7 @@ Supply one reviewed JSON plan beside the tool, using a curated filename:
 | `combined-ui-family.json` | `character-equipment-ui` |
 | `mail-trade-ui-family.json` | `mail-trade-ui` |
 | `storage-vendor-ui-family.json` | `storage-vendor-ui` |
+| `quest-social-ui-family.json` | `quest-social-ui` |
 
 The plan has exactly `schemaVersion` (integer 1), `family`, `codec` (`utf-8`),
 `inputSha256` (an object with uppercase SHA256 values for `original`, `english`
