@@ -1,0 +1,43 @@
+# Actual modern SQL authentication and native file transaction
+
+Source `03d5607d3b9904ec4fbba08885790f5851d4ff8d` passed all five opt-in
+ModernSqlAuthFileRoundtripTests with zero failures/skips on a fresh owned
+MariaDB12.2.2 instance, using the real MySqlConnector2.6.1 repository.
+
+The source was rebuilt by the owned sequential command runner. The lifecycle
+validated actual terminal TRX definitions, execution/result identities and every
+required source-discovered Fact; no default skip or synthetic feed counted.
+
+| Actual case | Result |
+| --- | --- |
+| SQL login -> exact account ID -> ordinary/native admission -> NPC sale -> cold reauthentication/reopen -> no replay payout | Passed |
+| Exclusive character-file lease -> no partial item/money change -> release -> one normal retry/reopen | Passed |
+| Wrong/missing SQL account -> no Ready, handoff or saved mutation | Passed |
+| Duplicate username with only one matching password -> no selected principal/handoff | Passed |
+| Genuine repository error1146 -> actual Account Frame contains/logs error -> no Ready/handoff/holder/file mutation | Passed |
+
+Both genuine actors, native/file/holder convergence and the sale's three frames
+were checked. The other actor and unrelated saved bytes stayed unchanged.
+The earlier actual run was4passed/1failed; its success-only observation helper
+incorrectly expected a forward frame on provider failure. That failed receipt
+is retained; the corrected test separately proves provider1146 and contained
+dispatch without changing production error propagation.
+
+The successful private receipt reports Qualified=true, PassedSqlFacts=5,
+ChildTreeSettled=true, CommandsSettled=true, no primary/cleanup exceptions and
+DataRetained=false. The owned datadir and private client options were removed.
+The earlier failed qualification also settled its exact child tree and removed
+its owned data. Original SQL services/configuration/data were not selected.
+
+The launcher compiled and six PowerShell scripts parsed. Eighteen synthetic
+TRX/environment controls passed separately after explicit absent/empty-value
+restoration was corrected; those controls are not included in the five SQL Facts.
+
+Limits: synthetic ASCII accounts/test-only schemas, managed loopback frames and
+the current D13 native admission owners. Legacy identifier forwarding does not
+prove redemption of the separately issued ticket or stronger authentication.
+Characters/items remain INI/BIN; this is no SQL character migration, complete
+SaveClient lifecycle, Unicode qualification, live client,7937 activation,
+production deployment, cross-process or power-loss claim. The complete source
+gate remains required for this enlarged increment. The client execution hold
+remains active.

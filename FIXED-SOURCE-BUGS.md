@@ -22,6 +22,9 @@ unrelated ItemUsage diagnostics and actual exception propagation are unchanged.
 The real registered cancellation control keeps committed files/UID/reopen/no
 reissue checks and additionally rejects private Users/items paths in the new
 diagnostic. Earlier targeted232017275Z-ce187777 remains failed218P/5F/0skip.
+Its corrected cancellation cases passed within234220137Z-3582ad9a's9P/1F;
+the remaining new visible-peer fixture mismatch then passed1/1 in235509359Z-81bae402
+after matching production's closed-after-gate guard. Full enlarged gate pending.
 
 ### FSB-316: Reject an ambiguous username before selecting an account by password
 
@@ -39,7 +42,10 @@ Corrected unit coverage retains valid single-account controls. New owned SQL
 coverage inserts a second real matching username row with a different password,
 checks that the real provider returns both, then requires no Ready/handoff,
 holder/file change or gameplay publication. These controls are source-only and
-unrun. Real SQL execution and the integrated gate remain required. This is a
+initially unrun. Actual03d5607d SQL qualification later passed all5real-provider
+Facts, including duplicate-principal refusal, on owned MariaDB12.2.2 with no skips.
+[Scope and limits](docs/checklists/OWNED-SQL-AUTH-20261103.md). Full enlarged
+integration qualification remains required. This is a
 server admission policy correction, not a new client wire format.
 
 ### FSB-315: Own the complete relic-decomposition batch before rewards or success

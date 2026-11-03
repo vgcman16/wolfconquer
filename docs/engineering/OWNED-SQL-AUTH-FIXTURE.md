@@ -1,9 +1,19 @@
 # Disposable MariaDB fixture for modern SQL authentication
 
 This tool is for one explicitly owned test instance, not an existing installation's
-data or a production schema. The source proposal has not been compiled or run.
-Root must review/intake it, finish the current check, and select one idle execution
-window. It does not establish host cleanliness or permit legacy client execution.
+data or a production schema. Root must use reviewed source, finish any current
+check, and select one idle execution window. It does not establish host cleanliness
+or permit legacy client execution.
+
+Local qualification2026-11-03: the actual03d5607d launcher initialized/authenticated
+MariaDB12.2.2 and passed5real SQL/native/file Facts with0failures/skips. Normal
+shutdown/exact child settlement/private-option+datadir cleanup succeeded. A prior
+4P/1Fcallback failure also settled/cleaned its owned instance. Six scripts parsed,
+three launcher C# files compiled, and18synthetic identity/environment controls
+passed separately. Absent/empty process variables restore explicitly. Other
+failure/OS/runtime/Unicode horizons below remain unqualified; no client/host trust
+or production database claim follows. See the
+[actual SQL qualification](../checklists/OWNED-SQL-AUTH-20261103.md).
 
 ## Prerequisites and invocation
 
@@ -127,7 +137,8 @@ and [process attributes](https://learn.microsoft.com/en-us/windows/win32/api/pro
 support child-tree ownership, kill-on-close and atomic job/handle-list creation;
 unsupported flags or nested-job constraints fail closed at launch.
 
-Required future checks: compile/parse the tools; verify real fresh12.2 initialization,
-authenticated identity, opt-in SQL Facts, ordinary shutdown and exact settlement;
-exercise occupied-port, bad initialization, callback failure, zero/missing/skipped
-TRX and interruption cleanup controls. None has been executed by the helper.
+The baseline parse/compile, fresh12.2 initialization, authenticated identity,
+opt-in SQL Facts, shutdown/settlement and one actual callback-failure cleanup
+are qualified above. Occupied-port, bad initialization and interrupted-lifecycle
+controls remain future runtime checks. Zero/missing/skipped and identity-invalid
+TRX cases have synthetic acceptance coverage, not additional real SQL proof.

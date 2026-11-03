@@ -2,6 +2,20 @@
 
 Updated2026-11-02. Full English client/server reconstruction remains active.
 
+## New local component qualification - 2026-11-03
+
+Clean03d5607d passed5actual modern SQL/native/file Facts,0failed/skipped, on a
+fresh owned MariaDB12.2.2 instance. Actual auth/account-ID/native sale/cold-relog,
+file refusal/retry, ambiguous/wrong/missing account and provider1146 containment
+were exercised. Owned children settled and private options/datadir were removed.
+[Exact scope](checklists/OWNED-SQL-AUTH-20261103.md). This enlarged source batch
+still requires its complete gate; no newer public Windows pass is claimed.
+
+The actual managed7937 column report also reproduced Main12missing/47single/
+5multiple and Sub5missing/6single/53multiple exact candidate counts. No complete
+field semantics/runtime adapter or English text-slot mapping follows. Original
+inputs stayed unchanged. Live7937/English acceptance and the host hold remain open.
+
 ## Local full checkpoint - 2026-11-02
 
 The newer clean sourcefe3e79a29ff6f377981465de0d78785d7105bf92 passed all8
