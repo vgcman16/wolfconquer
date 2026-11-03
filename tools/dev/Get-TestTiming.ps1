@@ -3,13 +3,15 @@
 param(
     [Parameter(Mandatory)][string]$ResultsPath,
     [ValidateRange(1, 100)][int]$Top = 10,
-    [switch]$AsJson
+    [switch]$AsJson,
+    [switch]$StrictReport
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $resolved = Get-Item -LiteralPath $ResultsPath -Force
 if ($resolved.PSProvider.Name -ne 'FileSystem') { throw 'ResultsPath must be a filesystem path.' }
+if ($StrictReport -and $resolved.PSIsContainer) { throw 'StrictReport requires a single explicit TRX file.' }
 $files = @(if ($resolved.PSIsContainer) {
     Get-ChildItem -LiteralPath $resolved.FullName -Filter '*.trx' -File -Recurse
 } elseif ($resolved.Extension -eq '.trx') { $resolved }
@@ -53,15 +55,25 @@ foreach ($file in $files) {
     $summary = $root.Element($ns.GetName('ResultSummary'))
     $fileOutcome = if ($null -ne $summary) { (Read-TrxAttribute $summary 'outcome') } else { 'Unknown' }
     $times = $root.Element($ns.GetName('Times'))
+    if ($StrictReport -and @($root.Elements($ns.GetName('Times'))).Count -ne 1) {
+        throw 'StrictReport requires exactly one report Times element.'
+    }
     $wallSeconds = $null
     if ($null -ne $times) {
         $start = [DateTimeOffset]::MinValue
         $finish = [DateTimeOffset]::MinValue
-        if ([DateTimeOffset]::TryParse((Read-TrxAttribute $times 'start'), [Globalization.CultureInfo]::InvariantCulture,
+        $startText = Read-TrxAttribute $times 'start'
+        $finishText = Read-TrxAttribute $times 'finish'
+        $instantPattern = '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,7})?(?:Z|[+-]\d{2}:\d{2})$'
+        $explicitInstants = $startText -cmatch $instantPattern -and $finishText -cmatch $instantPattern
+        if ((-not $StrictReport -or $explicitInstants) -and
+            [DateTimeOffset]::TryParse($startText, [Globalization.CultureInfo]::InvariantCulture,
                 [Globalization.DateTimeStyles]::None, [ref]$start) -and
-            [DateTimeOffset]::TryParse((Read-TrxAttribute $times 'finish'), [Globalization.CultureInfo]::InvariantCulture,
+            [DateTimeOffset]::TryParse($finishText, [Globalization.CultureInfo]::InvariantCulture,
                 [Globalization.DateTimeStyles]::None, [ref]$finish) -and $finish -ge $start) {
             $wallSeconds = [Math]::Round(($finish - $start).TotalSeconds, 3)
+        } elseif ($StrictReport) {
+            throw 'StrictReport requires valid explicit-offset start/finish instants with finish at or after start.'
         }
     }
     $fileRows = 0
@@ -82,7 +94,12 @@ foreach ($file in $files) {
             $duration = [TimeSpan]::Zero
             $seconds = $null
             if ($rawDuration) {
-                if (-not [TimeSpan]::TryParse($rawDuration, [Globalization.CultureInfo]::InvariantCulture, [ref]$duration) -or
+                $validDuration = if ($StrictReport) {
+                    [TimeSpan]::TryParseExact($rawDuration, 'c', [Globalization.CultureInfo]::InvariantCulture, [ref]$duration)
+                } else {
+                    [TimeSpan]::TryParse($rawDuration, [Globalization.CultureInfo]::InvariantCulture, [ref]$duration)
+                }
+                if (-not $validDuration -or
                     $duration -lt [TimeSpan]::Zero) { throw "Invalid duration for test: $name" }
                 $seconds = $duration.TotalSeconds
                 $durationSum += $seconds
@@ -90,11 +107,12 @@ foreach ($file in $files) {
             if (-not $outcomes.ContainsKey($outcome)) { $outcomes[$outcome] = 0 }
             $outcomes[$outcome]++
             if (-not $classTotals.ContainsKey($className)) {
-                $classTotals[$className] = [pscustomobject]@{ className = $className; rows = 0; durationSeconds = 0.0 }
+                $classTotals[$className] = [pscustomobject]@{ className = $className; rows = 0; knownDurationRows = 0; rowsWithoutDuration = 0; durationSeconds = 0.0 }
             }
             $group = $classTotals[$className]
             $group.rows++
-            if ($null -ne $seconds) { $group.durationSeconds += $seconds }
+            if ($null -ne $seconds) { $group.durationSeconds += $seconds; $group.knownDurationRows++ }
+            else { $group.rowsWithoutDuration++ }
             $rows.Add([pscustomobject]@{ name = $name; outcome = $outcome; durationSeconds = $seconds; file = $file.FullName })
             $fileRows++
         }
@@ -103,19 +121,21 @@ foreach ($file in $files) {
 }
 
 $largestClasses = @($classTotals.Values | Sort-Object durationSeconds -Descending | Select-Object -First $Top |
-    ForEach-Object { [pscustomobject]@{ className = $_.className; rows = $_.rows; durationSeconds = [Math]::Round($_.durationSeconds, 3) } })
+    ForEach-Object { [pscustomobject]@{ className = $_.className; rows = $_.rows; knownDurationRows = $_.knownDurationRows; rowsWithoutDuration = $_.rowsWithoutDuration; durationSeconds = [Math]::Round($_.durationSeconds, 3) } })
 $slowestTests = @($rows | Where-Object { $null -ne $_.durationSeconds } | Sort-Object durationSeconds -Descending |
     Select-Object -First $Top | ForEach-Object {
         [pscustomobject]@{ name = $_.name; outcome = $_.outcome; durationSeconds = [Math]::Round($_.durationSeconds, 3); file = $_.file }
     })
 $report = [pscustomobject]@{
     schemaVersion = 1
+    strictReport = [bool]$StrictReport
     files = $fileReports.ToArray()
     rowCount = $rows.Count
     outcomes = $outcomes
     rowsWithoutDuration = $missingDurations
+    rowsWithDuration = $rows.Count - $missingDurations
     sumTestDurationSeconds = [Math]::Round($durationSum, 3)
-    timingLimit = 'Test durations can overlap. Their sum and class totals are not wall time. This report does not run checks or establish coverage, parity, or readiness.'
+    timingLimit = 'TRX snapshot only. Test durations can overlap; known-duration sums and class totals are not wall time or a speedup. Missing row durations are unknown. This reader does not run checks or prove process completion, full CI, coverage, parity, or readiness.'
     slowestTests = $slowestTests
     largestClasses = $largestClasses
 }

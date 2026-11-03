@@ -7,7 +7,7 @@ namespace WolfConquer.Tests;
 
 // Only PS7 plan/status and pre-launch refusal calls over owned synthetic files. Never invokes a nested
 // restore/build/test, service process, SQL database, game client or deployment.
-public sealed class LocalDevelopmentToolsTests : IDisposable
+public sealed partial class LocalDevelopmentToolsTests : IDisposable
 {
     private const string SolutionMarker = "Synthetic marker; must never be built.";
     private const string LauncherProjectMarker = "<Project><!-- Synthetic plan-only metadata; must never be built or executed. --></Project>";

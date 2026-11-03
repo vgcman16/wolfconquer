@@ -9,6 +9,11 @@ no runtime backend or data migration. Seven new provider Facts make27 required,
 not a27-pass result. [Full remaining horizon](SQL-WORLD-STATE-20261103.md).
 Wait for the sole full33805 on the OTHER frozenb6aa candidate before checks here.
 
+Reviewed timing-reader enhancement reuses Get-TestTiming.ps1, with strict
+explicit-file/time checks and known/missing counts. Read-only old53f report
+analysis reproduced34,814P/1F/157skip; new C# controls are UNBUILT/UNRUN.
+Duration sums overlap and are not elapsed time or a measured speedup.
+
 - [x] Reviewed native trade and booth safety source is checkpointed locally.
   Source90607691 passed534 affected tests,0failed/skipped, including all three
   corrected positive fixtures and native-join/ordinary-login neighbors.

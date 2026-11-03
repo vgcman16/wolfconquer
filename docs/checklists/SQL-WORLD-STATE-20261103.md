@@ -17,7 +17,8 @@ and UNRUN. No backend, native handler, schema or default configuration changed.
 - [x] Replace a confounded malformed-UID test input with an otherwise complete
   image; add actual Create collision for a new account reusing a character UID.
 - [ ] After the separate full33805 is terminal, compile and run model/parser/
-  graph neighbors, inspect real failures and changed-path diagnostics.
+  graph and local-development-tool neighbors (including timing-reader controls),
+  inspect real failures and changed-path diagnostics.
 - [ ] Run `Invoke-SqlGameplayCheck.ps1 -Port 34385` on a fresh owned instance;
   require all27 actual Facts passed/no skips and settled owned cleanup. A stale
   twenty-Fact assembly or the earlier SQL20 result cannot qualify this batch.
