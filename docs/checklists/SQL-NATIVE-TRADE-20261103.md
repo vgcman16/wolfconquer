@@ -9,10 +9,15 @@ Updated2026-11-03. Separate source checkpoint, UNBUILT/UNRUN; no public push.
   running53f checkout. FSB318-322 remain OPEN; source review is not verification.
 - [x] Nine new opt-in trade Facts join the original five. Dynamic source discovery
   and exact TRX acceptance remain; skipped/stale/missing results cannot pass.
+- [x] Added a closed SQL gameplay command,6 authored tool controls and cooperative
+  full-run host mutex (FSB323 OPEN). Both scripts syntax-parse; none was executed.
 - [ ] Compile and run focused owned trade/metadata/action/recovery/tool controls
   after the sole full53f run terminates; retain all actual failures.
 - [ ] Run all14 declared Facts on a fresh owned MariaDB instance, including real
   trade outputs, leases/retry, EOF and cold recovery. Require owned cleanup.
+  After terminal/managed qualification use
+  `pwsh -NoProfile -File tools/dev/Invoke-SqlGameplayCheck.ps1 -Port 34383` from
+  this reviewed checkout. It restores/builds fresh and accepts no partial filter.
 - [ ] Inspect all current full53f outcomes, repair any remaining real defects,
   then run the appropriate full gate before reviewed publication.
 - [ ] Continue the selected next booth milestone; its independent proposal is

@@ -53,6 +53,8 @@ function Save-UpdaterSmoke {
 }
 
 $lease = $null
+$hostLease = $null
+$ownsHostLease = $false
 $status = $null
 $finalExit = 1
 try {
@@ -107,6 +109,11 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $root 'Directory.Build.targets') -PathType Leaf)) {
         throw 'Local checks require the repository Directory.Build.targets results-isolation import.'
     }
+    # Share the focused/owned-SQL exclusion across separate checkouts too.
+    $hostLease = [Threading.Mutex]::new($false, 'Global\WolfConquer.FocusedChecks')
+    try { $ownsHostLease = $hostLease.WaitOne(0) }
+    catch [Threading.AbandonedMutexException] { $ownsHostLease = $true }
+    if (-not $ownsHostLease) { throw 'Another local, focused or SQL check owns the host lease. Leave it running.' }
     Assert-ArtifactPath $artifactRoot
     [IO.Directory]::CreateDirectory($artifactRoot) | Out-Null
     $lockPath = Join-Path $artifactRoot 'check.lock'
@@ -194,5 +201,11 @@ catch {
     }
     $finalExit = 1
 }
-finally { if ($lease) { $lease.Dispose() } }
+finally {
+    try { if ($lease) { $lease.Dispose() } }
+    finally {
+        try { if ($ownsHostLease) { $hostLease.ReleaseMutex() } }
+        finally { if ($hostLease) { $hostLease.Dispose() } }
+    }
+}
 exit $finalExit

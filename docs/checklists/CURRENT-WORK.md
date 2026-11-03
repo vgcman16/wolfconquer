@@ -19,6 +19,11 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
   [trade qualification queue](SQL-NATIVE-TRADE-20261103.md), FSB318-322 OPEN.
 - [ ] Qualify focused managed, actual owned SQL and appropriate full gates before
   reviewed publication of this batch. All source-declared14 SQL Facts must pass.
+- [x] Source-intaken the turnkey SQL gameplay command and6 authored Plan/refusal
+  rows, reusing the real owned lifecycle and fresh full-family build. The2 changed
+  PowerShell scripts syntax-parse; no Plan, C# test or provider execution yet.
+- [ ] Qualify those controls and Root's shared host-mutex correction for the full
+  runner (FSB323 OPEN), then run all14 SQL Facts via the closed command.
 - [ ] Next independent booth proposals add selected suspicious-item validation
   and actual SQL/native start/list/buy/cold-reopen controls; not intaken/qualified.
 - [ ] Complete7937 profile/session wiring, unresolved fields, per-player Echo

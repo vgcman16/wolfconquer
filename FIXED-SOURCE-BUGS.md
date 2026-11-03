@@ -4,6 +4,19 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+### FSB-323: Coordinate full checks with focused and owned-SQL host exclusion
+
+OPEN, source-only/unqualified. The full runner held a per-checkout file lock,
+while focused checks used a global host mutex. A second checkout could start a
+cooperating check during the full run's inter-command gaps. Real full mode now
+holds the same `Global\WolfConquer.FocusedChecks` mutex before artifact writes and
+through all stages, then releases/disposes it in finally. Inert Plan and missing
+pump/targets refusals still precede acquisition. No host-idle scan is added that
+would reject the full CI job's own Runner.Worker. An authored actual copied-script
+busy-mutex refusal control must show no nested command, environment or artifact
+changes. This is cooperative tool exclusion, not authority over arbitrary external
+processes. The older active53f run remains unchanged; no new check has run.
+
 ## SQL-native trade source checkpoint - 2026-11-03 UTC
 
 FSB318-322 below are OPEN, source-reviewed implementations. They have not been
