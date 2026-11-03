@@ -17,6 +17,7 @@ public enum LegacyVendorListingFailure
     LockedItem,
     CapacityReached,
     DuplicateItemUid,
+    ItemGraphInvalid,
 }
 
 public readonly record struct LegacyVendorListing(
@@ -35,20 +36,21 @@ public sealed record LegacyVendorListingRemoveResult(
     LegacyVendorListingBook Book,
     LegacyVendorListing? Listing);
 
-public sealed class LegacyVendorListingBook
+public sealed partial class LegacyVendorListingBook
 {
     public const int MaximumListings = 20;
 
     private readonly LegacyVendorListing[] _listings;
 
     public LegacyVendorListingBook()
-        : this([])
+        : this([], [])
     {
     }
 
-    private LegacyVendorListingBook(LegacyVendorListing[] listings)
+    private LegacyVendorListingBook(LegacyVendorListing[] listings, Dictionary<uint, AdvertisedItem> incarnations)
     {
         _listings = listings;
+        _incarnations = incarnations;
         Listings = Array.AsReadOnly(listings);
     }
 
@@ -83,7 +85,11 @@ public sealed class LegacyVendorListingBook
     public LegacyVendorListingAddResult TryAdd(
         PlayerItemSnapshotItem item,
         LegacyVendorListingCostMode costMode,
-        long amount)
+        long amount) => TryAddCore(item, costMode, amount, null, null, null, dataOnly: true);
+
+    private LegacyVendorListingAddResult TryAddCore(PlayerItemSnapshotItem item,
+        LegacyVendorListingCostMode costMode, long amount, LegacyItemSaveGraph.Closure? captured,
+        WorldSessionStore.VendorItemLineage? lineage, LegacyTradeItemMetadata? metadata, bool dataOnly)
     {
         ArgumentNullException.ThrowIfNull(item);
 
@@ -117,15 +123,21 @@ public sealed class LegacyVendorListingBook
             return Rejected(LegacyVendorListingFailure.DuplicateItemUid);
         }
 
+        if ((captured is null && !TryCaptureDetached(item, out captured)) ||
+            captured is null || !captured.MatchesSource(item))
+            return Rejected(LegacyVendorListingFailure.ItemGraphInvalid);
+
         var listing = new LegacyVendorListing(item.Uid, costMode, amount);
         var updatedListings = new LegacyVendorListing[_listings.Length + 1];
         Array.Copy(_listings, updatedListings, _listings.Length);
         updatedListings[^1] = listing;
+        var captures = new Dictionary<uint, AdvertisedItem>(_incarnations)
+        { [item.Uid] = new(captured, lineage, metadata, dataOnly) };
 
         return new LegacyVendorListingAddResult(
             Added: true,
             Failure: LegacyVendorListingFailure.None,
-            Book: new LegacyVendorListingBook(updatedListings),
+            Book: new LegacyVendorListingBook(updatedListings, captures),
             Listing: listing);
     }
 
@@ -139,6 +151,8 @@ public sealed class LegacyVendorListingBook
             }
 
             var removed = _listings[index];
+            var captures = new Dictionary<uint, AdvertisedItem>(_incarnations);
+            captures.Remove(itemUid);
             var updatedListings = new LegacyVendorListing[_listings.Length - 1];
             if (index > 0)
             {
@@ -157,7 +171,7 @@ public sealed class LegacyVendorListingBook
 
             return new LegacyVendorListingRemoveResult(
                 Removed: true,
-                Book: new LegacyVendorListingBook(updatedListings),
+                Book: new LegacyVendorListingBook(updatedListings, captures),
                 Listing: removed);
         }
 

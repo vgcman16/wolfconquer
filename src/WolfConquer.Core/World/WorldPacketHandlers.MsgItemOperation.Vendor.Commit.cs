@@ -27,7 +27,7 @@ public static partial class WorldPacketHandlers
             reason = "vendorItemGraphInvalid";
             if (!LegacyItemSaveGraph.TryCapture(updatedBuyer.PlayerItems, out var preparedBuyerItems) ||
                 !LegacyItemSaveGraph.TryCapture(updatedSeller.PlayerItems, out var preparedSellerItems)) return false;
-            if (!TryValidateLegacyVendorTransfer(buyer, updatedBuyer, seller, updatedSeller, buyerItems, sellerItems,
+            if (!TryValidateLegacyVendorTransfer(sessions, sellerActive.Connection, context.WorldData, buyer, updatedBuyer, seller, updatedSeller, buyerItems, sellerItems,
                     preparedBuyerItems, preparedSellerItems, out var incoming, out reason)) return false;
 
             var failure = string.Empty;
@@ -77,6 +77,9 @@ public static partial class WorldPacketHandlers
         if (!IsLegacyVendorClosureTradable(incoming) || LegacyVendorClosureNeedsPin(seller.Session, incoming)) return false;
         reason = "vendorCurrentOwnerChanged";
         if (!LegacyVendorAttributesCurrent(buyer) || !LegacyVendorAttributesCurrent(seller)) return false;
+        reason = "vendorItemMetadataInvalid";
+        if (!TryGetLegacyVendorMetadata(context, seller.Connection, seller.Session, incoming, out _) ||
+            !IsLegacyVendorMetadataPairCurrent(context, buyer.Session, seller.Connection, seller.Session)) return false;
         // Permission/attribute queries finish before the full original/prepared item proof.
         reason = "vendorItemGraphChanged";
         if (!buyerItems.IsCurrent(buyer.Session.PlayerItems) || !sellerItems.IsCurrent(seller.Session.PlayerItems) ||
@@ -84,6 +87,9 @@ public static partial class WorldPacketHandlers
             !preparedSellerItems.IsCurrent(updatedSeller.PlayerItems)) return false;
         reason = "vendorCurrentOwnerChanged";
         if (!LegacyVendorParticipantCurrent(context, buyer) || !LegacyVendorParticipantCurrent(context, seller)) return false;
+        reason = "vendorListedItemChanged";
+        if (context.Sessions is not { } sessions || seller.Session.LegacyVendorListings is not { } listings ||
+            !listings.TryGetCurrentListing(incoming.Source.Uid, incoming.Source, sessions, seller.Connection, seller.Session, context.WorldData, out _)) return false;
         reason = string.Empty;
         return true;
     }

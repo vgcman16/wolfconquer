@@ -1,10 +1,13 @@
 using WolfConquer.Core.Data;
+using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
 
 public static partial class WorldPacketHandlers
 {
-    private static bool TryValidateLegacyVendorTransfer(WorldSession buyer, WorldSession updatedBuyer,
+    private static bool TryValidateLegacyVendorTransfer(WorldSessionStore sessions, ConquerTcpConnection sellerConnection,
+        WorldDataCatalog? catalog,
+        WorldSession buyer, WorldSession updatedBuyer,
         WorldSession seller, WorldSession updatedSeller, LegacyItemSaveGraph buyerItems,
         LegacyItemSaveGraph sellerItems, LegacyItemSaveGraph preparedBuyerItems,
         LegacyItemSaveGraph preparedSellerItems, out LegacyItemSaveGraph.Closure incoming, out string reason)
@@ -22,7 +25,7 @@ public static partial class WorldPacketHandlers
         if (!sellerItems.TryGetInventory(appended.Uid, out incoming) ||
             !preparedBuyerItems.TryGetInventory(appended.Uid, out var delivered) ||
             buyerItems.ContainsAny(incoming) || seller.LegacyVendorListings is not { } listings ||
-            !listings.TryGetListing(appended.Uid, out var listing) ||
+            !listings.TryGetCurrentListing(appended.Uid, incoming.Source, sessions, sellerConnection, seller, catalog, out var listing) ||
             !VendorWalletsMatchListing(buyer, updatedBuyer, seller, updatedSeller, listing)) return false;
 
         // The buyer must receive detached physical rows, including every child.
@@ -84,7 +87,7 @@ public static partial class WorldPacketHandlers
     }
 
     private static bool SameLegacyVendorListings(LegacyVendorListingBook expected, LegacyVendorListingBook? actual) =>
-        actual is not null && expected.Listings.SequenceEqual(actual.Listings);
+        actual is not null && expected.HasSameListingsAndIncarnations(actual);
 
     private static bool LegacyVendorUnmovedStoresMatch(PlayerItemSnapshot before, PlayerItemSnapshot after) =>
         ReferenceEquals(before.RelicFuseItems, after.RelicFuseItems) &&

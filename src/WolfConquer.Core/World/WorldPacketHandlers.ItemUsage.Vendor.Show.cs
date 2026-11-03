@@ -1,4 +1,5 @@
 using WolfConquer.Core.Data;
+using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
 
@@ -51,7 +52,15 @@ public static partial class WorldPacketHandlers
             {
                 reason = "seller-listing-book-missing";
             }
+            else if (!IsLegacyVendorMetadataPairCurrent(context, currentSession,
+                sellerResolution.ActiveSession.Connection, sellerResolution.ActiveSession.Session))
+            {
+                reason = "seller-item-metadata-invalid";
+            }
             else if (!TryCreateLegacyVendorShowSnapshot(
+                    sessions,
+                    sellerResolution.ActiveSession.Connection,
+                    context.WorldData,
                     boothUid,
                     sellerResolution.ActiveSession.Session,
                     listings,
@@ -90,6 +99,9 @@ public static partial class WorldPacketHandlers
     }
 
     private static bool TryCreateLegacyVendorShowSnapshot(
+        WorldSessionStore sessions,
+        ConquerTcpConnection sellerConnection,
+        WorldDataCatalog? catalog,
         uint boothUid,
         WorldSession seller,
         LegacyVendorListingBook listings,
@@ -100,6 +112,11 @@ public static partial class WorldPacketHandlers
     {
         snapshot = null;
         reason = string.Empty;
+
+        if (!TryCaptureLegacyVendorIdentity(sessions, sellerConnection, seller, out var identity))
+        { reason = "seller-owner-changed"; return false; }
+        if (!LegacyItemSaveGraph.TryCapture(seller.PlayerItems, out var graph))
+        { reason = "seller-item-graph-invalid"; return false; }
 
         uint sellerUid;
         try
@@ -117,17 +134,13 @@ public static partial class WorldPacketHandlers
         var refineries = new List<LegacyItemExtraRefinery>();
         foreach (var listing in listings.Listings)
         {
-            var matchingItems = seller.PlayerItems.InventoryItems
-                .Where(item => item.Uid == listing.ItemUid)
-                .Take(2)
-                .ToArray();
-            if (matchingItems.Length != 1)
+            if (!graph.TryGetInventory(listing.ItemUid, out var captured))
             {
-                reason = matchingItems.Length == 0
-                    ? "seller-listing-item-missing"
-                    : "seller-listing-item-uid-not-unique";
+                reason = "seller-listing-item-missing";
                 return false;
             }
+            if (!listings.TryGetCurrentListing(listing.ItemUid, captured.Source, sessions, sellerConnection, seller, catalog, out _))
+            { reason = "seller-listed-item-incarnation-changed"; return false; }
 
             var mode = listing.CostMode switch
             {
@@ -141,7 +154,7 @@ public static partial class WorldPacketHandlers
                 return false;
             }
 
-            var item = matchingItems[0];
+            var item = captured.Source;
             try
             {
                 itemViewFrames.Add(
@@ -171,6 +184,10 @@ public static partial class WorldPacketHandlers
         var itemExtraFrame = purifications.Count + refineries.Count == 0
             ? null
             : new LegacyItemExtraPacket(purifications.ToArray(), refineries.ToArray()).ToFrameBytes();
+        if (!graph.IsCurrent(seller.PlayerItems) || !IsLegacyVendorCurrentOwner(sessions, sellerConnection, seller, identity) ||
+            listings.Listings.Any(listing => !graph.TryGetInventory(listing.ItemUid, out var current) ||
+                !listings.TryGetCurrentListing(listing.ItemUid, current.Source, sessions, sellerConnection, seller, catalog, out _)))
+        { reason = "seller-listed-item-incarnation-changed"; return false; }
         snapshot = new LegacyVendorShowSnapshot(
             boothUid,
             sellerUid,

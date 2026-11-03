@@ -3,6 +3,14 @@
 Updated2026-11-03 UTC. Full English source/client goal remains ACTIVE.
 Root alone reviews, integrates, qualifies, stages, commits and pushes.
 
+- [x] Composed28 explicit vendor source/test/spec paths on the separate local
+  vendor-authority branch, preserving the qualified trade source checkpoint.
+  Combined suspicious eligibility, real native lineage/caps, detached/native
+  controls and six new real SQL Facts. FSB327-329 OPEN, UNBUILT/UNRUN.
+- [ ] Qualify the vendor/booth/lineage/recovery neighbors, actual full20-Fact
+  SQL family and appropriate complete gate before publication. Do not reuse the
+  old14-Fact pass for this source. [Vendor queue](SQL-NATIVE-VENDOR-20261103.md).
+
 - [x] Prior qualified public source532e1174 (generated mainbee36f0e) contains
   the fe3e full local pass35,124P/0F/152skip/all8stages. No newer full public
   Windows Actions pass is claimed.
@@ -35,11 +43,8 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
   Only failure was the collision fixture's correctly blocked setup writer.
 - [x] Its reviewed external-collision/noncollision fixture passed1/1, then
   actualSQL14 passed. No production guard was weakened; old failed runs stay failed.
-- [ ] Next independent booth proposals add selected suspicious-item validation
-  and actual SQL/native start/list/buy/cold-reopen controls; not intaken/qualified.
-- [ ] Additional booth listing authority retains real item-node lineage and
-  immutable stack bounds; preserve valid native canonical reprojection. Isolated
-  core/detached/native/SQL scopes are authored outside this checkpoint, unqualified.
+- [x] Earlier suspicious-vendor and new lineage/cap proposals are reviewed/intaken;
+  source-only status is recorded above. No booth qualification is claimed yet.
 - [x] Named UI integrity fixes (FSB324-326) passed23 isolated Python controls,
   0failed/skipped; actual old-source regressions were retained. This does not
   qualify the current C# batch or make the failed full run pass.

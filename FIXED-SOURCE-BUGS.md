@@ -4,6 +4,47 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Vendor listing authority - 2026-11-03
+
+The following three entries are OPEN, reviewed source implementations only.
+No new vendor build, component/provider or complete gate has run. Earlier real
+SQL14 qualifies the preceding trade source, not this expanded20-Fact source.
+
+### FSB-327: Keep a booth listing bound to its advertised item incarnation
+
+OPEN. LegacyVendorListingBook retained only UID/currency/price, and Show/Buy
+resolved whatever current row had that UID. The correction privately retains
+the exact captured closure and actual Store-issued native node lineage. Genuine
+same-node canonical reprojection remains valid; a replaced node, changed body
+or child cannot inherit the old listing. Revalidate before Show, preparation,
+commit and final WAL. Existing public three-field listing and successful wire
+order stay intact. Detached, actual native and real SQL controls are separate;
+all new controls remain unrun. Explicit removal/relisting can create new authority.
+
+### FSB-328: Apply immutable item stack authority to booth transfers
+
+OPEN. Booth listing/purchase omitted the constructor-owned stack bounds now
+enforced by trade. Reuse the existing server66 metadata owner and exact generation
+for selected roots/children; do not infer Chinese67 roles. Missing/malformed or
+over-cap native state refuses before publication, debit or persistence. Empty
+metadata compatibility requires genuine unbound participants; native/mixed pairs
+cannot borrow it. Native zero/one/full-stack and public-cap mutation controls
+are authored, alongside real SQL valid paths; none has run on this new source.
+
+### FSB-329: Distinguish issued no-catalog listings from public DATA projections
+
+OPEN pre-integration correction. Source review caught the first new draft using
+null lineage/metadata to identify public DATA-only entries, although a real
+unbound issuer with no catalog also retained nulls. That allowed it to borrow a
+different empty catalog's generation. A private factory provenance distinction
+now restricts that exception to the public DATA projection; it grants no custody.
+Real issued entries retain exact null/metadata identity plus real owner checks.
+Registered null-to-empty and empty-to-different-empty refusal/positive controls
+are authored and unrun. This defect was caught before the draft was committed.
+
+Contract/queue: [vendor authority](docs/protocol/specs/d13-vendor-listing-incarnation.md),
+[qualification](docs/checklists/SQL-NATIVE-VENDOR-20261103.md).
+
 ## Named UI resource integrity - 2026-11-03
 
 Bounded Python component qualification:17 original controls passed;5 new test

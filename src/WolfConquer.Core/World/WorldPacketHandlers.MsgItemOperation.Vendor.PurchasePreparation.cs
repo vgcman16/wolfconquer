@@ -47,6 +47,12 @@ public static partial class WorldPacketHandlers
         if (!IsLegacyVendorClosureTradable(incoming)) return false;
         reason = "seller-anima-pin-not-activated";
         if (LegacyVendorClosureNeedsPin(seller, incoming)) return false;
+        reason = "seller-item-metadata-invalid";
+        if (!TryGetLegacyVendorMetadata(context, resolution.ActiveSession.Connection, seller, incoming, out _) ||
+            !IsLegacyVendorMetadataPairCurrent(context, buyer, resolution.ActiveSession.Connection, seller)) return false;
+        reason = "seller-listed-item-incarnation-changed";
+        if (!listings.TryGetCurrentListing(request.ItemUid, incoming.Source, sessions,
+                resolution.ActiveSession.Connection, seller, context.WorldData, out listing)) return false;
         reason = "buyer-item-uid-collision";
         if (buyerItems.ContainsAny(incoming)) return false;
         var currency = listing.CostMode switch
