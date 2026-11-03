@@ -23,10 +23,11 @@ public sealed class SqlWorldStateBundleRequestTests
         Assert.Equal(character.Length, BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(50, 4)));
         Assert.Equal(character, bytes.AsSpan(54, character.Length).ToArray());
         var itemLengthOffset = 54 + character.Length;
-        Assert.Equal(4, BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(itemLengthOffset, 4)));
-        Assert.Equal(new byte[4], items); Assert.Equal(items, bytes.AsSpan(itemLengthOffset + 4, 4).ToArray());
-        Assert.Equal(new byte[4], bytes.AsSpan(itemLengthOffset + 8, 4).ToArray()); // zero physical UIDs
-        var suffix = itemLengthOffset + 12;
+        Assert.Equal(8, BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(itemLengthOffset, 4)));
+        // Empty legacy Items contains Int32 top-level count0 and Int32 perfection count0.
+        Assert.Equal(new byte[8], items); Assert.Equal(items, bytes.AsSpan(itemLengthOffset + 4, 8).ToArray());
+        Assert.Equal(new byte[4], bytes.AsSpan(itemLengthOffset + 12, 4).ToArray()); // zero physical UIDs
+        var suffix = itemLengthOffset + 16;
         Assert.Equal(Convert.FromHexString("010000000000020000000000030000000000040000000000"), bytes[suffix..]);
         Assert.Equal(suffix + 24, bytes.Length); Assert.Equal(SHA256.HashData(bytes), complete.CopyDescriptorHash());
 
