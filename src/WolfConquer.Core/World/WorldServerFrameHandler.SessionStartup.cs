@@ -15,6 +15,7 @@ public sealed partial class WorldServerFrameHandler
         LegacyNativeGameClientRuntime? nativeLoadedClient = null,
         CharacterSnapshotLoader.ManagedOriginLoad? managedOrigin = null)
     {
+        if (IsClosedSuccessfulInternalHandoff(connection)) return;
         if (managedOrigin is not null && (connection.NativeGameClient is not null ||
             !ReferenceEquals(managedOrigin.Result.Snapshot, snapshot))) return;
         if (await TryStartMailboxDebtRecoverySessionAsync(connection, accountId, username, snapshot,
@@ -79,7 +80,7 @@ public sealed partial class WorldServerFrameHandler
             NativeGameClient = connection.NativeGameClient,
         };
         session = PrepareLegacySecondaryPasswordSession(connection, session);
-        if (_tradeRecovery.IsBlocked) return;
+        if (_tradeRecovery.IsBlocked || IsClosedSuccessfulInternalHandoff(connection)) return;
         _sessions.Set(connection, session, out session);
         if (managedOrigin is not null && !TryBindUnboundCharacterOrigin(connection, session, managedOrigin))
         {
@@ -99,9 +100,11 @@ public sealed partial class WorldServerFrameHandler
         LegacySpellPublicationOwner? loginSpells = null,
         PendingExperienceStartup? pendingExperience = null)
     {
+        if (IsClosedSuccessfulInternalHandoff(connection)) return false;
         var snapshot = session.Character;
         await LogLegacySessionSidecarStatusAsync(session).ConfigureAwait(false);
-        if (!TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out session)) return false;
+        if (IsClosedSuccessfulInternalHandoff(connection) ||
+            !TryRefreshLegacyPhysicalStatusRuntimeSubject(connection, snapshot.Uid, out session)) return false;
         await SendLegacyWorldEntryStartupAsync(
                 connection,
                 session.Character,
@@ -113,6 +116,7 @@ public sealed partial class WorldServerFrameHandler
                 loginSpells: loginSpells,
                 pendingExperience: pendingExperience)
             .ConfigureAwait(false);
+        if (IsClosedSuccessfulInternalHandoff(connection)) return false;
         if (pendingExperience is not null) loginSpells = pendingExperience.LoginSpells;
         if (loginSpells is not null && !loginSpells.IsCurrent()) return false;
         var ownerUid = snapshot.Uid;
@@ -131,6 +135,7 @@ public sealed partial class WorldServerFrameHandler
             if (resumed is null) return false;
             session = resumed;
         }
+        if (IsClosedSuccessfulInternalHandoff(connection)) return false;
         RegisterLegacyStaminaReadiness(connection, session);
         StartLegacyRuntimeUpdateLoop(
             connection,

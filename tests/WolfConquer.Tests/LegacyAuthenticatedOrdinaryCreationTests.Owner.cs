@@ -121,10 +121,8 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
     public Task ActualEofBeforeAnyRegistrationCannotBecomeALiveCreationConnection() => Run(async f =>
     {
         await f.Connection.CompleteTransportCloseAsync();
-        var ticket = await f.AuthenticateAsync(); await f.EnterAsync(ticket);
-        AssertMissingCreationReply(f);
-        Assert.False(f.Runtime.HasAuthenticatedCreationPermit(f.Handler, f.Connection));
-        f.Sent.Clear(); await AssertNoCreation(f);
+        var ticket = await f.AuthenticateAsync();
+        await AssertEnterRefusedBeforeTicketConsumption(f, ticket);
     }, enter: false);
 
     [Fact]
@@ -162,10 +160,8 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
         var foreign = new WorldServerFrameHandler(snapshotLoader: null,
             protocolProfile: ConquerProtocolProfile.VisibleDx8D13, log: TextWriter.Null);
         await foreign.HandleFrameAsync(f.Connection, CreationFixture.ReadFrame(new InternalWorldSnapshotRequestPacket(CreationFixture.Account).ToFrameBytes()));
-        f.Sent.Clear(); var ticket = await f.AuthenticateAsync(); await f.EnterAsync(ticket);
-        AssertMissingCreationReply(f);
-        Assert.False(f.Runtime.HasAuthenticatedCreationPermit(f.Handler, f.Connection));
-        f.Sent.Clear(); await AssertNoCreation(f);
+        f.Sent.Clear(); var ticket = await f.AuthenticateAsync();
+        await AssertEnterRefusedBeforeTicketConsumption(f, ticket);
     }, enter: false);
 
     [Fact]
@@ -194,9 +190,23 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
         Assert.Equal(0u, native.Player.UID); Assert.False(LegacyTradeJournal.HasPending(f.Data.Users));
     }
 
-    private static void AssertMissingCreationReply(CreationFixture f)
+    private static async Task AssertEnterRefusedBeforeTicketConsumption(CreationFixture f, string ticket)
     {
-        Assert.True(PacketReader.TryRead(Assert.Single(f.Sent), out var response));
-        Assert.Equal(WorldSnapshotWireStatus.MissingSnapshot, WorldSnapshotResponsePacket.ReadStatus(response));
+        Assert.True(f.TicketStore.TryGet(ticket, out var beforeTicket));
+        Assert.False(beforeTicket.IsRedeemed);
+        var files = f.Data.Files(); var ledger = f.Ledger();
+        var native = f.Native; var player = native.Player;
+        Assert.Empty(f.Sent); Assert.False(f.TryCurrent(out _));
+        Assert.False(f.Runtime.HasAuthenticatedCreationPermit(f.Handler, f.Connection));
+
+        await f.EnterAsync(ticket);
+        Assert.Empty(f.Sent); Assert.False(f.TryCurrent(out _));
+        Assert.Same(native, f.Native); Assert.Same(player, native.Player); Assert.Equal(0u, player.UID);
+        Assert.False(f.Runtime.HasAuthenticatedCreationPermit(f.Handler, f.Connection));
+        Assert.True(f.TicketStore.TryGet(ticket, out var afterTicket)); Assert.Equal(beforeTicket, afterTicket);
+        f.Data.AssertFiles(files); Assert.Equal(ledger, f.Ledger());
+        await AssertNoCreation(f);
+        Assert.True(f.TicketStore.TryGet(ticket, out afterTicket)); Assert.Equal(beforeTicket, afterTicket);
+        Assert.Equal(ledger, f.Ledger());
     }
 }

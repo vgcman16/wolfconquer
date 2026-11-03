@@ -3,7 +3,9 @@
 The reviewed complete-data, DH, internal-ticket and timing batch passed its
 combined focused gate and real owned SQL qualification on2026-11-03. This is
 component/provider qualification, not a native SQL backend switch or live7937
-acceptance. The successor full public Windows check remains pending.
+acceptance. The pushed batch subsequently passed all eight public Windows
+stages on c476ca7c:35,723passed/0failed/195skipped. See the
+[actual public result](FULL-WINDOWS-20261103-C476.md).
 
 | Check | Actual result |
 | --- | --- |
@@ -28,5 +30,6 @@ costly paths; it is not a measured speed improvement. Nested phases overlap.
 Complete PreparedData remains immutable-source-backed, independently parsed
 DATA. Native Store/revision/UID/auth custody, complete sidecar publication and
 subsequent SQL gameplay writers remain open. Native gameplay still saves files.
-The earlier clean3bb full passed35,660/0failed/194skipped; that parent full
-does not qualify this later source. Client execution and rendering remain held.
+The earlier clean3bb full passed35,660/0failed/194skipped. Public c476ca7c now
+qualifies this later data/DH/ticket/timing batch; the new custody successor has
+its own pending focused/provider checks. Client execution/rendering remain held.

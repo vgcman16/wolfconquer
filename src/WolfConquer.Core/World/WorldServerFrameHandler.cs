@@ -591,57 +591,6 @@ public sealed partial class WorldServerFrameHandler
             $"uid={session.Character.Uid.ToString(CultureInfo.InvariantCulture)} file={file} reason={reason}");
     }
 
-    private async ValueTask HandleWorldEnterRequestAsync(
-        ConquerTcpConnection connection,
-        PacketFrame frame,
-        CancellationToken cancellationToken)
-    {
-        if (!InternalWorldEnterRequestPacket.TryParse(frame, out var request))
-        {
-            await SendResponseAsync(
-                    connection,
-                    WorldSnapshotWireStatus.InvalidPacket,
-                    accountId: 0,
-                    snapshot: null,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await _log.WriteLineAsync("WorldServer rejected malformed internal world-enter request.").ConfigureAwait(false);
-            return;
-        }
-
-        var redeemed = _handoffService?.Redeem(request.Ticket) ??
-            new AccountHandoffRedeemResult(AccountHandoffRedeemStatus.UnknownTicket);
-        if (!redeemed.IsSuccess)
-        {
-            var accountId = redeemed.Ticket?.AccountId ?? 0;
-            await SendResponseAsync(
-                    connection,
-                    MapHandoffStatus(redeemed.Status),
-                    accountId,
-                    snapshot: null,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            await _log.WriteLineAsync(
-                    $"WorldServer handoff {redeemed.Status} for account {accountId}.")
-                .ConfigureAwait(false);
-            return;
-        }
-
-        var ticket = redeemed.Ticket!;
-        var reply = await SendSnapshotForAccountAsync(connection, ticket.AccountId, cancellationToken, captureManagedOrigin: true)
-            .ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (reply.Snapshot is { } snapshot)
-        {
-            await StartWorldSessionAsync(connection, ticket.AccountId, ticket.Username, snapshot, cancellationToken, managedOrigin: reply.ManagedOrigin)
-                .ConfigureAwait(false);
-        }
-        else if (reply.Status == WorldSnapshotWireStatus.MissingSnapshot && HasOrdinaryUidNamespace() &&
-            !TryRegisterAuthenticatedCreation(connection, ticket, out var creationReason))
-            await _log.WriteLineAsync("WorldServer authenticated creation permit refused: " + creationReason + ".")
-                .ConfigureAwait(false);
-    }
-
     private async ValueTask HandleLegacyWorldLoginAsync(
         ConquerTcpConnection connection,
         PacketFrame frame,
@@ -1424,13 +1373,14 @@ public sealed partial class WorldServerFrameHandler
             LegacyWorldLoginSnapshotLoadStatus.Success);
     }
 
-    private static ValueTask SendResponseAsync(
+    private ValueTask SendResponseAsync(
         ConquerTcpConnection connection,
         WorldSnapshotWireStatus status,
         long accountId,
         CharacterSnapshot? snapshot,
         CancellationToken cancellationToken)
     {
+        if (IsClosedSuccessfulInternalHandoff(connection)) return ValueTask.CompletedTask;
         return connection.SendAsync(WorldSnapshotResponsePacket.Build(status, accountId, snapshot), cancellationToken);
     }
 

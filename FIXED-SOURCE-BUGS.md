@@ -4,12 +4,69 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Owned loopback read cancellation - qualification pending, 2026-11-03
+## Fixed numeric UI percentages - qualified text tooling, 2026-11-03
+
+### FSB-343: Preserve actual fixed percentages without weakening printf parsing
+
+**VERIFIED within the text-tool scope.** The formatter treated the matching
+Chinese7937 medal hint's final literal +10% as malformed printf, blocking the
+complete translation. It now recognizes exact ordered fixed numeric percentage
+tokens at unambiguous boundaries. Signs, number spelling/order and every valid
+existing printf/escaped-percent rule remain. Identifier/numeric fragments,
+Unicode identifier tails, encoded prefixes and malformed syntax stay refused.
+No bounds, aliases, duplicate, raw-byte or input/output ownership guard changed.
+
+The unchanged formatter reproduced failures4/errors1 across five new methods,
+including actual CLI refusal, in1.273s. Final reviewed source passed all45 methods,
+0failed/skipped in26.242s, retaining the previous40 and adding actual two-pass
+byte goldens and no-output mismatch controls. Root read the terminal log and
+counted all45 actual ok rows. This corrects the project's text tool, not a
+demonstrated emulator gameplay defect. No rendering, client activation, C#
+qualification or full parity follows. See the
+[contract](docs/protocol/specs/7937-ui-numeric-percentages.md).
+
+## Internal handoff connection binding - focused qualified, 2026-11-03
+
+### FSB-342: Do not consume another account's ticket on a bound world connection
+
+**FOCUSED QUALIFIED; new public full gate pending:** production built and all13 new lifetime
+rows passed in a384-case affected run (382passed/2failed/0skipped). The two
+older creation controls still expected MissingSnapshot output on closed or
+foreign-Frame connections. Their reviewed replacements now require the actual
+issued ticket to remain unredeemed and preserve output, Store/native, files and
+UID ledger. The repaired19-case check passed0failed/skipped, with all13 new rows.
+All44 actual SQL provider Facts separately passed. The actual
+internal world-enter branch redeemed a supplied ticket before checking whether
+the connection already had a Store session or a successful enter. A second valid
+ticket could therefore be consumed and its account loaded on the same connection.
+Creation-specific redemption ownership did not cover every existing-character
+enter. This is a source finding, not an executed exploit or native7937 claim.
+
+The authored correction checks this Frame's actual installed connection-close
+lifetime, real Store and uninitialized native state before redemption. It installs
+a private deny-only marker only from the actual successful redemption branch.
+That binding survives later snapshot/output failure: committed authentication
+must not become permission to consume a second ticket or switch identities.
+Observed closed and initialized native connections must be refused before
+consumption. Existing fresh-connection invalid/expired/replay wire behavior stays.
+The actual dispatch already holds an asynchronous exclusive world-operation
+lease; no additional thread-affine lock or substitute accepting owner is needed.
+
+Owned real-store/handler and TCP-born controls passed in the first affected run.
+The two old oracle failures are retained, not reclassified as passes. Production
+was not relaxed to consume tickets or emit replies on invalid connections.
+Final repaired-source focused qualification passed19/19. A new public full gate,
+SQL-native custody, gameplay activation and live acceptance remain unproven.
+See [actual results and limits](docs/checklists/HANDOFF-SQL-RECOVERY-20261103.md).
+See the [contract](docs/protocol/specs/internal-handoff-connection-lifetime.md).
+
+## Owned loopback read cancellation - full CI qualified, 2026-11-03
 
 ### FSB-341: Recognize the owned Windows read-cancellation result without accepting EOF
 
-**OPEN: actual trial failed80P/1F; corrected retry passed81/81, full public CI
-pending.** The fixture canceled its
+**VERIFIED within owned fixture scope:** actual trial failed80P/1F; corrected
+retry passed81/81. Final default-network source passed public Windows41655086985
+on c476ca7c,35,723passed/0failed/195skipped across all eight stages. The fixture canceled its
 own read token during teardown, but Windows surfaced IOException with inner
 SocketError.OperationAborted instead of OperationCanceledException. The129-login
 case stopped in cleanup, so that incomplete run establishes no speed improvement.
@@ -27,7 +84,8 @@ The corrected retry completed all129logins and all81 transport controls,
 0failed/skipped (build86.268s/test204.214s). The extra NoDelay experiment did
 not establish a useful speed gain (same129case196.788s versus194.621s), so it
 was removed. Only the narrow cancellation correction remains; the successor
-full CI will qualify that final default-network configuration.
+full CI now qualifies that final default-network configuration. See the
+[actual public result](docs/checklists/FULL-WINDOWS-20261103-C476.md).
 
 ## Literal UI comparison arrows - qualified text tooling, 2026-11-03
 
@@ -50,12 +108,14 @@ No client catalog is copied into public tests. This is text-tool correctness,
 not semantic/gameplay alignment, rendering or client acceptance. See the
 [contract](docs/protocol/specs/7937-ui-literal-arrows.md).
 
-## Internal handoff redemption - qualification pending, 2026-11-03
+## Internal handoff redemption - full CI qualified, 2026-11-03
 
 ### FSB-339: Consume in-memory handoff tickets under the actual shared store owner
 
-**OPEN: five new safety Facts and existing service/file/workflow controls passed
-in the229-case focused gate; successor full public CI pending.** InMemoryAccountHandoffTicketStore
+**VERIFIED within source/component scope:** five new safety Facts and existing
+service/file/workflow controls passed in the229-case focused gate. Public
+Windows41655086985 subsequently passed on c476ca7c across all eight stages.
+The later connection-lifetime gap remains separate FSB-342. InMemoryAccountHandoffTicketStore
 locked Save and TryGet individually but did not implement the existing atomic
 redeemer. AccountHandoffService then used a separate read/check/write fallback,
 allowing two services sharing the store to observe the same pending ticket.
@@ -71,17 +131,19 @@ Five authored Facts use actual Memory/services and settled parallel calls,
 exact identity/time/replay, inclusive-expiry and unknown-input nonconsumption,
 independent tickets and fail-fast unsupported/null construction. Existing real
 File parallel/cold-instance/tamper and world workflow controls remain unchanged.
-All five actually passed; the full successor gate remains pending. Memory
+All five actually passed; the full public gate also passed on c476ca7c. Memory
 remains ephemeral/process-local. This does not establish native
 identifier authentication,7937 login, SQL custody or durable cross-process Memory
 storage. See the [contract](docs/protocol/specs/internal-handoff-redemption.md).
 
-## Managed legacy handshake input - qualification pending, 2026-11-03
+## Managed legacy handshake input - full CI qualified, 2026-11-03
 
 ### FSB-338: Reject trivial peer keys and preserve the prior DH exchange on refusal
 
-**OPEN: all35 new component/wire rows passed in the229-case focused gate;
-successor full public CI pending.** The replacement managed DH
+**VERIFIED within the documented DH component/wire scope:** all35 new rows
+passed in the229-case focused gate; public Windows41655086985 subsequently
+passed on c476ca7c across all eight stages. This is not full cryptographic
+validation or client activation. The replacement managed DH
 component accepted peer1 and computed the predictable shared value1. Malformed
 or degenerate response handling could also replace portions of an earlier valid
 exchange. This is a source finding, not a demonstrated original-client or live
@@ -98,7 +160,7 @@ before game dispatch; unrelated diagnostics and the existing reader remain.
 The original six DH tests remain unchanged. New29 component rows and6 real
 loopback rows cover independent arithmetic/state/bounds, genuine EOF/no dispatch
 and subsequent valid RNG handshake on the same listener. All35 executed and
-passed; the full successor gate remains pending. No duplicate host execution
+passed; the full public gate also passed on c476ca7c. No duplicate host execution
 or live client was used.
 
 This does not certify the custom group, subgroup, TLS, account authentication,

@@ -1,5 +1,79 @@
 # Named UI English proposal checklist
 
+- [x] Added154 reviewed activity-title/unlock/VIP keys/rows through three
+  unchanged-tool passes:2634/2658 ->2681/2705 ->2741/2765 ->2788/2812.
+  Root read all pairs/original contexts and independently counted actual changed
+  keys/rows in the output. Rebirth/Level and shared cooldowns remain distinct;
+  the literal Star Arena/context difference is retained without a guessed fix.
+  Actual3,222,554bytes; SHA256
+  F9BD3F14A28E88C72F1CFC4957BFCAF5329EB6165CE493F94134E28BC736B283.
+  Prior wording, unselected bytes and tokens remain. Private/unapplied/unrendered;
+  no tool change, repeated unchanged suite, C# or gameplay qualification follows.
+
+- [x] Added149 reviewed activity/VIP/weapon-ranking keys covering151rows through
+  three unchanged-tool passes:2485/2507 ->2545/2567 ->2605/2627 ->2634/2658.
+  Root read all pairs/original contexts, refined two Mine Maze and three generic
+  Heroes wordings, and independently counted actual changed keys/rows. Complete
+  colored rules, thresholds and both uniform duplicate pairs remain. Actual
+  3,221,102bytes; SHA256
+  EC0E236AEC1A3605122298909C957737F3F6B945BD2CE3B0185C9ECB646FBD60.
+  Prior wording, unselected bytes and tokens remain. Private/unapplied/unrendered;
+  no tool change, repeated unchanged suite, C# or gameplay qualification follows.
+
+- [x] Added173 reviewed guild/activity/Hundred Weapons keys/rows through three
+  unchanged-tool passes:2,312/2,334 ->2,372/2,394 ->2,426/2,448 ->2,485keys/
+  2,507rows. Root read all174 proposed pairs and all original contexts, held one
+  suspicious reversed activity interval and refined the three Scepter labels.
+  Actual3,219,115bytes; SHA256
+  0DF4D9D0576A1A9684E9C1BC43C08829C078D9F8BDD2B59D4AA569D4BF9F5A83.
+  Root independently counted2,507 actual changed rows/2,485 keys and read the
+  final output/receipt. Prior wording, unselected bytes, exact qualifiers and
+  formatting remain. Private/unapplied/unrendered; no tool change or repeated
+  unchanged formatter suite, C# qualification or implemented gameplay claim.
+
+- [x] Added136 reviewed action/hair/medal keys covering137 physicalrows through
+  four bounded passes:2,176/2,197 ->2,220/2,241 ->2,262/2,283 ->2,311/2,333
+  ->2,312keys/2,334rows. Root reviewed every pair/original context and project
+  terms, refined3 wordings and read actual output/receipt. Actual3,218,545bytes,
+  SHA2560992D76B029995068ACB66AD0AB01362DFBEC525875188B3B679A80F1960C087.
+  Prior wording, unselected bytes, keys, IDs, conditions, dates and tokens remain.
+  Names are project translations/pinyin, not official terminology or behavior.
+- [x] Fixed numeric percentage support reproduced old refusal, then passed all45
+  Python methods0failed/skipped, retaining prior40, exact CLI byte goldens and
+  malformed/mismatch refusals. The complete +10% tooltip composed without
+  dropping or escaping its fixed percentage. FSB-343 is text-tool qualification.
+  Separator/stat/title/internal-note holds remain; all resources unapplied and
+  unrendered. No C#/gameplay/full-client claim.
+
+- [x] A further40 generic mail/trade/team/flower/equipment keys covering41 rows
+  completed three unchanged-tool passes:2,136/2,156 ->2,147/2,167 ->2,153/2,173
+  ->2,176keys/2,197rows. Root read every pair/original context, retained a uniform
+  duplicate, restored Overall qualifiers and refined one specific-bag notice.
+  Actual3,216,840bytes,
+  SHA256E053239002C83A75552C9E7EDBF1EEF54F1EBC3CB5B6A5E764F310289E0DD954.
+  Root read actual output/receipt; previous wording, unselected bytes, tokens
+  and original pins remain. The mounted-resource term remains Chinese pending
+  exact Stamina/Vigor evidence. Text rules are not server behavior proof.
+  Private/unapplied/unrendered; unchanged formatter controls were not repeated.
+
+- [x] A further43 ordinary chat/settings/family/guild keys completed two
+  unchanged-tool passes:2,093/2,113 ->2,105/2,125 ->2,136keys/2,156rows.
+  Root read all pairs and original immediate-neighbor contexts, refined3
+  wordings and separately read actual final output/receipt. Actual3,216,707bytes,
+  SHA25639DDCF819DEBE366785852B8B48EB4EC0657D7358EAC31BBCF8C858E792B8166.
+  Prior translations, unselected bytes, placeholders and input pins remain;
+  encoded link identifiers and uncertain names/mechanics remain held. No tool
+  source change, redundant formatter suite, apply or rendering claim.
+
+- [x] A further65 ordinary settings/chat/help/menu wordings completed one
+  unchanged-tool pass:2,028/2,048 ->2,093keys/2,113physicalrows. Root reviewed
+  every pair/context, refined one settings error and checked selected original
+  neighborhoods plus actual output/receipt. Actual3,216,601bytes, SHA256
+  2DDCB66440D30840E885C6DB9669912FF496A51CE82356F03A83CC82C3EA4438.
+  Prior translations, all other bytes, edge spaces, tokens and input pins remain.
+  A conflicting duplicate remains held. No apply/render or tool source change;
+  existing40 formatter controls were not redundantly repeated for wordings.
+
 - [x] Use the current integrated tool, including mail/trade and comparison tokens;
   the older eight-file helper source package is superseded.
 - [x]17 original Python tests passed;5 new methods reproduced11 failing subcases

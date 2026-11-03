@@ -55,8 +55,11 @@ metadata, so the pins and the selected rows describe the same document.
 The parser retains exact keys, order, BOM, duplicate groups, unselected raw bytes,
 prefixes and line endings. Selected groups need matching counts, uniform values,
 identical original/current wording, ASCII English and the same ordered printf,
-escape, brace, tag, comparison, literal `->` and control tokens. Literal arrows
-must remain in order; lone/extra `>` and malformed markup still refuse. Missing
+escape, brace, tag, comparison, literal `->`, fixed numeric percentage and control
+tokens. Fixed percentages retain the exact sign, number spelling and order at
+unambiguous boundaries; existing valid printf/escaped-percent syntax takes
+priority. Numeric/identifier fragments and unknown percent syntax remain held.
+Literal arrows must remain in order; lone/extra `>` and malformed markup still refuse. Missing
 state, changed wording, machine
 values, unsupported formatting or other mismatches are held unchanged. Review
 every hold; a report is not permission to apply it. Input cap is 16 MiB and plan
