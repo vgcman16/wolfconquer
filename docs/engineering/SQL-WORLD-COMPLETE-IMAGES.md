@@ -84,10 +84,12 @@ descriptor atomically before any real native/gameplay publication.
 
 ## Qualification boundary
 
-C owns isolated source tests using actual parsers and independent literal
-sidecar/descriptor goldens, presence distinctions, duplicate/malformed/bounds
-refusals, buffer ownership, raw padding/order and full request identity rules.
-This batch is source-only, unbuilt/unrun. Root alone composes and qualifies it
-in the next combined focused batch after the old full gate terminated. The
-base SQL provider still requires its own29-Fact actual database gate. Model success alone is
-not SQL commit, crash recovery, native ownership or client rendering proof.
+Root read every source/test path and qualified all15 bundle/request cases on
+e82916b9,0failed/skipped. Actual parsers, independent literal sidecar/descriptor
+goldens, presence, malformed/bounds, captured padding/order and request identity
+rules are covered. The first combined run retained one wrong4-byte empty-item
+golden; it was corrected to the actual two-count/8-byte format without changing
+production serialization or weakening its independent byte/offset checks.
+The separate29-Fact SQL provider gate also passed, but that v1 repository stores
+Character/Items only. Complete-bundle SQL storage, crash recovery, native custody
+and actual client rendering remain required.

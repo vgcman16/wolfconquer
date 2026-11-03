@@ -7,7 +7,7 @@
   does not qualify these native codecs or imply7937/live acceptance.
 - Shared actual packet dependencies: ReadPrepared, PrepareFrame and bounded
   native protobuf/primitive methods in Root's70-path candidate from91040398.
-- No dispatcher, operator-mail tooling, retained nine-mail request, real mailbox
+- No dispatcher, operator-mail tooling, real mailbox
   persistence, authentication, costs or transport changes are included.
 
 ## Packet contract

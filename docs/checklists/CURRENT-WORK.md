@@ -3,23 +3,30 @@
 Updated 2026-11-03 UTC. Full English source/client goal remains ACTIVE.
 Root alone reviews, integrates, qualifies, stages, commits and pushes.
 
-NEXT SQL SOURCE: Root reviewed/composed24 separate model/repository/test/spec
-paths, including real SQL transactions and exact operation replay. UNBUILT/UNRUN;
-no runtime backend or data migration. Nine new provider Facts make29 required,
-not a29-pass result. Reviewed collision-error preservation and partial-schema
-preflight source/controls are integrated but unbuilt/unrun. [Full remaining horizon](SQL-WORLD-STATE-20261103.md).
-Full33805 on the OTHER frozenb6aa candidate is terminalfailed: Core34,945P/1F/
-172skip; Updates446P/0F/0skip. Later stages were unrun. Root read both actualTRXs.
-The protected-trade positive fixture repair retains its catalog and every swap/
-wallet/file/PIN assertion; no production guard changed. Source6b's first focused
-build79077 failedCS8752 in a new test helper; no tests ran. The explicit typed
-constructor repair and distinct complete-image bundle/request models with15
-new authored cases are integrated for the next combined compilation. No new
-C# or provider pass is claimed. [Full result](FULL-WINDOWS-20261103-B6.md).
+BASE SQL COMPONENT QUALIFIED on source e82916b9: all29 actual provider Facts
+passed without failures/skips on fresh owned MariaDB12.2.2. Root read every TRX
+row; children/commands settled and temporary data/private options were removed.
+This covers20 SQL-auth/native/file controls plus9 SQL world-state components.
+The live native path still saves files; no backend or original data migrated.
+
+The combined focused run built and finished284P/1F/0skip, including8 core-model,
+59 PIN and26 local-tool passes. Its sole new golden fixture assumed a4-byte
+empty Items file; the actual format has two counts/8 bytes. The corrected bundle
+family then built and passed15/15 on e82916b9. These are separate bounded runs,
+not a new full-suite pass. Earlier compile failure CS8752 is retained as history.
+Fullb6 remained failed: Core34,945P/1F/172skip, Updates446P, later stages unrun.
+Its PIN-positive repair passed the59-case family without changing production guards.
+[Full result](FULL-WINDOWS-20261103-B6.md). [SQL horizon](SQL-WORLD-STATE-20261103.md).
+
+NEXT: actual atomic six-image SQL persistence in the same UID/ledger domain.
+The distinct complete bundle/request models are qualified; new schema2/read/write
+provider source remains isolated and unbuilt/unrun until Root integrates it.
+The full integration/publication gate and actual native/client join remain open.
 
 Reviewed timing-reader enhancement reuses Get-TestTiming.ps1, with strict
 explicit-file/time checks and known/missing counts. Read-only old53f report
-analysis reproduced34,814P/1F/157skip; new C# controls are UNBUILT/UNRUN.
+analysis reproduced34,814P/1F/157skip; all26 local-tool cases, including the
+new timing-reader controls, passed in the combined focused run.
 Duration sums overlap and are not elapsed time or a measured speedup.
 
 - [x] Reviewed native trade and booth safety source is checkpointed locally.
@@ -70,7 +77,7 @@ Duration sums overlap and are not elapsed time or a measured speedup.
 - [ ] After the execution hold clears, verify staged actual-client login and move
   one routing/web endpoint at a time with an actual login and single-file rollback.
 
-Legacy client/updater/native-inspection HOLD remains ACTIVE: Synaptics recurrence
-origin/host trust unresolved. No AV change, client/native launch or data apply.
-Preserve original saves/routes/sessions, restore ZIP,D:\cqclient,59held Guild/Union
-edits and9mail fixtures. Component/provider checks are not live7937 acceptance.
+Respect operator-provided private execution holds and runbooks. This batch made
+no security-setting change, client/native launch or data apply; original data,
+backups, running sessions and unrelated work remain preserved. Component/provider
+checks do not establish host trust or live7937 acceptance.

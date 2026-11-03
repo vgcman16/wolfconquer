@@ -1,8 +1,8 @@
 # Hit/proficiency offline checkpoint - 2026-11-01
 
 Full clean English server/client and newer-client goal ACTIVE. Root isolated
-check02 is unpublished; legacy client/updater execution hold ACTIVE. Preserve
-originals/routes/restoreZIP,D:\cqclient,59held Guild/Union edits,AV and9mails.
+check02 is unpublished; operator-provided execution holds remain in force.
+Preserve original data, backups, security settings and unrelated work.
 
 - [x] Prior1255822a retains proficiency origins, opaque/comparer fixes,
   failure causes, teleport21, startup12 and focused21(9/9) evidence.

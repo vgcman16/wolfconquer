@@ -1047,7 +1047,7 @@ targeted CA1827/CA1847 records cleared, plus five older records. The15 new
 complexity/arithmetic findings were cleared by1990e8bc through semantic phases and
 explicit grouping; actual remote closure is recorded above. No suppression,
 exclusion or fake saver was introduced. Name controls use only the published
-real Clan owner, not held Guild/Union APIs. Full name policy remains audit debt.
+real Clan owner, not broader Guild/Union APIs. Full name policy remains audit debt.
 
 Eight unchanged native CRT tests initially refused a missing/array-valued probe
 environment. The exact measured PowerShell7 path/hash, already configured by the
@@ -1062,8 +1062,8 @@ now pass within2255/2255 in both trees. Full CI1990e8bc now passes above.
 See FIXED-SOURCE-BUGS.md FSB017..024 for completed scopes and remaining holds.
 Whole economy and
 weapon receivers, raw-writer synchronization, durable crash recovery, native eager
-lifecycle and live-client acceptance are not inferred. Held Guild work, original
-data, assets/configuration and local audit artifacts are not published.
+lifecycle and live-client acceptance are not inferred. Unrelated work, original
+data, assets/configuration and private audit artifacts are not published.
 
 ## Earlier title-file follow-up
 

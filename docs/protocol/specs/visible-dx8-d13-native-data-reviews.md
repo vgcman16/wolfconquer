@@ -66,8 +66,8 @@ quarantine/publisher/updater and standalone distribution tests stay meaningful.
 ## Publication boundary
 Root alone integrates and runs serialized checks in owned snapshots, commits and
 publishes explicit paths. Helpers author only isolated postimages. Actual game
-files, current client/server, original routes/saves/restore and held59 Guild/Union
-paths are preserved. Current public tool preview224 tag is immutable and unchanged.
+files, current client/server, original data, backups and unrelated source paths
+are preserved. Current public tool preview224 tag is immutable and unchanged.
 No curated whole-client plan/stage/signing/feed/download or forum-ready claim follows.
 
 ## Implementation and actual qualification

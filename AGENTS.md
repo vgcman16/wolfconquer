@@ -41,3 +41,12 @@ Read [the protocol workflow](docs/engineering/PROTOCOL-WORKFLOW.md) for feature,
   private/public publication, tooling, budget and user stop/pause boundaries stay
   in force; genuine required decisions are reported instead of guessed.
 - Follow the detailed [director and ingestion workflow](docs/engineering/PROTOCOL-WORKFLOW.md).
+
+## Operator execution boundaries
+
+- Respect operator-provided private execution holds and runbooks before running
+  clients, updaters or native inspection. Source review and green checks do not
+  clear an operator hold; continue permitted offline work while it applies.
+- Preserve security settings, original data, backups and running sessions.
+  Do not disable or change antivirus settings as a workaround. Keep private
+  incident details and machine-specific instructions in the operator's runbook.

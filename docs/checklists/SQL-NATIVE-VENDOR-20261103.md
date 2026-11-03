@@ -66,8 +66,8 @@ client.private.ini absent; the exact command/session terminated0.
 FSB327-329 have bounded component/provider proof; full/live gates remain open.
 No SQL character/item migration,
 universal crash safety, live7937 profile, English rendering or host-trust claim.
-Characters/items remain journaled INI/BIN. Client/updater/native-inspection hold
-and original saves/routes/sessions/restore ZIP,D:\cqclient,59held edits and9mails stay.
+Characters/items remain journaled INI/BIN. Operator-provided execution holds,
+original data, backups, running sessions and unrelated work remain preserved.
 
 [Contract](../protocol/specs/d13-vendor-listing-incarnation.md) ·
 [Earlier actualSQL14](OWNED-SQL-AUTH-20261103.md).

@@ -39,9 +39,8 @@ Read-only sources:
   Intermediate descriptions form an explicit non-linear progression.
 
 The official [2024 Rune Details](https://co.99.com/guide/items/2024/1114/rune_details.shtml)
-gives all27 Warrior/shield triples. Each matches the exact selected7899 client
-at `C:/Users/skull/Downloads/Conquer Online - English Staged 7896`: its current
-version.dat says7899 (SHA256
+gives all27 Warrior/shield triples. Each matches the retained selected7899 staged
+client: its current version.dat says7899 (SHA256
 `65B0260EE626CCA2B478DA875A7AFA3B6869B85EF40986982C6207CEBFB815A6`),
 RuneMagic.lua33..59 has unique exact keys4020201..4020227 (SHA256
 `922263766348A2A8DDA6EF870AC87C169CDA3CCB802599A0BC6E99530CCD3C96`),

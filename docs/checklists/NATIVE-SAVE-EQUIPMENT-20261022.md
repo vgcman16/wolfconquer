@@ -372,9 +372,9 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 - [ ] Whole weapon receivers2353/2354, shop paid refresh/purchase wallet/item
   transactions, native title eager lifecycle, Rune writers and flag transactions
   remain held. Query/component proof is not host adoption or durable recovery.
-- [ ] Current Windows exposes no D: drive. Before any future live work, locate
-  and revalidate the preserved client baseline; no remount/migration is attempted
-  by this offline pass. The restore ZIP metadata is unchanged, not rehashed.
+- [ ] Before future live work, locate and revalidate the operator-preserved
+  client baseline. This offline pass attempts no migration; backup metadata is
+  unchanged, not rehashed.
 
 - [x] Active managed title opcode2313 now validates full ownership/catalog data,
   persists before session publication and checks exact source/peer lifecycle
@@ -534,7 +534,7 @@ and held for safety review. Follow [the source-bug audit](../../FIXED-SOURCE-BUG
 
 ## Preserved boundaries
 
-- [x] Working restore ZIP retained:34082707691 bytes. Metadata is not integrity proof.
+- [x] Operator backups remain preserved. Metadata alone is not integrity proof.
 - [x] This offline pass changed no original saves/SQL, live routing or game/client
   process, and performed no deployment or live-client test.
 - [x] Public export excludes game assets/binaries, captures, credentials, private

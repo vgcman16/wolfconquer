@@ -84,8 +84,8 @@ owned tests; B actual capture/plan/transaction/delivery and exclusive dispatch;
 C actual joined integration/failure controls. Send finite API/file proposals for
 Root alignment before code. Root alone executes/builds/tests/intakes/commits/pushes.
 No helper execution, SQL, service, client/updater, routing or original-data changes.
-Preserve59held Guild/Union entries, original backups/restoreZIP and active host
-execution hold. No new monoliths or duplicate builds/tests/CI. Root's current
+Preserve unrelated work and operator backups; respect private execution holds
+and runbooks. No new monoliths or duplicate builds/tests/CI. Root's current
 full Windows run qualifies the published base only. This finite24-path delta
 stays unqualified until Root reviews, compiles and runs its meaningful repair
 controls and appropriate actual-commit gate after that run is terminal.

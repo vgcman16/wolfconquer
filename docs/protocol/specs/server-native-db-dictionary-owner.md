@@ -4,7 +4,7 @@
 - Revision1, 2026-10-29. Root-authorized collection-owner implementation; FSB-201 qualification remains bounded below.
 - Baseline: public233bd0d0ffcbdf131c638dd03b9f49fff76a83de (sourcea4380ba1), committed source only.
 - Client/profile: not applicable. No packet or data-table layout changes.
-- Correct LegacyNativeDbSafeDictionary's real ownership/cache seam and the two required HeroRewards consumers. Keep derived activity/hero tables and successful ranking, mail, group-server and event uses compatible. Separate ItemBag caches and held Guild/Union edits remain outside this change.
+- Correct LegacyNativeDbSafeDictionary's real ownership/cache seam and the two required HeroRewards consumers. Keep derived activity/hero tables and successful ranking, mail, group-server and event uses compatible. Separate ItemBag caches and unrelated source changes remain outside this change.
 
 ## Packet contract
 Not applicable: collection ownership only. Existing enumeration order and successful callers' serialized values remain unchanged.

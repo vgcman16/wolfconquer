@@ -6,8 +6,11 @@ Earlier passing tests may encode defects; test totals are not a safety certifica
 
 ## SQL world-state draft corrections - 2026-11-03
 
-The new repository is UNBUILT/UNRUN and explicitly unwired. These entries are
-OPEN source corrections, not provider/runtime or full-persistence claims.
+Bounded source/provider qualification is recorded on e82916b9: all29 actual SQL
+Facts passed without failures/skips, with owned cleanup verified. The repository
+remains unwired to native gameplay. Individual limits below stay open; normal
+provider passes do not exercise every double-fault/cleanup path or prove full
+persistence, migration or client acceptance.
 
 ### FSB-330: Preserve SQL primary failures through every owned resource cleanup
 
@@ -16,9 +19,9 @@ which could replace a primary provider or unknown-commit exception if disposal
 also failed. The reviewed successor retains primary and cleanup causes with
 explicit real-resource lifetimes. Successful commit followed by cleanup failure
 and uncertain commit remain distinct; neither permits an invented refund or
-ordinary rejection. Genuine SQL resource ownership is unchanged. Source review
-only; actual provider qualification remains pending, and cleanup-fault branches
-have not been exercised.
+ordinary rejection. Genuine SQL resource ownership is unchanged. Source compiled
+and the29 normal/rollback/schema/provider controls passed; cleanup-double-fault
+branches remain source-reviewed and unexercised. No broader fault proof is claimed.
 
 ### FSB-331: Validate bounded SQL state and actual schema ownership before use
 
@@ -27,10 +30,11 @@ oversized stored blobs before checking their sizes, and accept foreign-key names
 without proving the referenced schema/rules. The correction compares against
 the finite complete parsed UID set, uses bounded server-side blob projections,
 and verifies actual schema/version/columns/indexes/engine/FKs. Invalid state
-does not become a default successful snapshot or automatic repair. New actual
-schema-fault, malformed-state, UID-conflict and rollback controls are authored
-but UNRUN. SQL-domain uniqueness is not proof of joining the live native/file
-UID namespace; that integration remains required.
+does not become a default successful snapshot or automatic repair. Actual
+schema-fault, malformed-state, UID-conflict and rollback controls passed in the
+29-Fact provider run. Worst-size pretransfer guards remain source-reviewed, not
+large-blob runtime evidence. SQL-domain uniqueness is not proof of joining the
+live native/file UID namespace; that integration remains required.
 
 ### FSB-332: Retain provider errors when collision classification also fails
 
@@ -38,8 +42,9 @@ The duplicate-key handlers performed real ledger or owner lookups inside a
 catch. A lookup or its disposal could throw and replace the original provider
 exception before outer rollback/cleanup preservation saw it. The successor
 retains both exceptions; successful lookup, replay and refusal semantics remain.
-OPEN source correction, unbuilt/unrun. No deterministic combined provider-fault
-fixture is claimed; ordinary real duplicate/refusal controls remain required.
+Compiled and ordinary real duplicate/refusal controls passed in the29-Fact gate.
+The combined provider/diagnostic-fault branch remains OPEN and unexercised; no
+fake provider or accepting injection was introduced to claim that evidence.
 
 ### FSB-333: Refuse partial SQL schemas before adding missing tables
 
@@ -50,9 +55,10 @@ four owned names exists; a complete schema is fully verified without DDL or
 marker DML, and a partial schema refuses before mutation. Two actual-provider
 Facts cover valid one/two/three-table prefixes, a malformed subset, exact rows/
 definitions/presence preservation and complete-schema reinitialization with a
-real marker-update refusal trigger. OPEN, unbuilt/unrun. Interrupted initial DDL
-requires explicit operator repair; arbitrary external DDL races remain outside
-this guarantee. No runtime backend or original database changed.
+real marker-update refusal trigger. Those actual controls passed in the29-Fact
+provider gate. Interrupted initial DDL still requires explicit operator repair;
+arbitrary external DDL races remain outside this bounded guarantee. No runtime
+backend or original database changed.
 
 [Source and qualification queue](docs/checklists/SQL-WORLD-STATE-20261103.md).
 
@@ -2891,8 +2897,8 @@ item, Mythsoul, routing and lifecycle checks. The new full Windows gate is pendi
 the earlier source qualification does not qualify these additions.
 Collection locking is not compound inventory/persistence atomicity, live Store,
 SQL/journal/crash recovery, client acceptance or full parity evidence. Existing
-client/session, held Guild/Union, routing/save/restore and retained-mail boundaries
-remain intact. Spec: [server-native-item-bag-owner](docs/protocol/specs/server-native-item-bag-owner.md).
+operator execution and original-data boundaries remain intact; unrelated work
+is unchanged. Spec: [server-native-item-bag-owner](docs/protocol/specs/server-native-item-bag-owner.md).
 
 ## FSB-201: Owned native dictionary mutations and defensive value snapshots
 
@@ -2934,8 +2940,7 @@ including the corrected cache assertion and real Ninja race controls. The origin
 This collection correction does not make compound gameplay operations atomic,
 protect mutable fields inside value objects, repair the separate Top50 cache,
 or establish durable persistence/SQL/journal/crash safety. ItemBag is FSB-202.
-Held Guild/Union sources,
-active checkouts, saves, sessions and the retained mail operation stay untouched.
+Unrelated sources, active checkouts, original data and running sessions stay untouched.
 Spec: [server-native-db-dictionary-owner](docs/protocol/specs/server-native-db-dictionary-owner.md).
 
 ## FSB-200: Account existence lookup failures must not mean absence
@@ -3273,7 +3278,7 @@ multi-action/SQL/power-loss atomicity, in-flight transport ordering and live
 client/English/full parity. Insufficient-target Caprice attempt throttling is
 not newly certified as client truth. Two prepared-output regressions are a
 separate repair, not hidden by this numeric qualification. No live activation,
-original-save/route edit, retained mail resend or held Guild intake occurred.
+original-data or routing change occurred; unrelated work remains unchanged.
 
 ## 2026-10-29 automatic-skill admission - full source qualification
 
@@ -4323,8 +4328,8 @@ World-only, unmodeled and unknown inputs receive no recruitment permission.
 **Verification:** the shared public result includes genuine loaded-guild API
 controls and unchanged owner/Info/funds/collections. Private selection40466 also passed2,006/2,006, zero failures/skips.
 No clean-baseline managed production Profession caller was found; this is a
-permission-query fix, not guild-join or economy qualification. Held Guild/Union
-work is outside the change.
+permission-query fix, not guild-join or economy qualification. Broader Guild/Union
+implementation is outside the change.
 
 ### FSB-144: Select existing boss-package rewards for confirmed target stages
 
@@ -4722,7 +4727,7 @@ envelope cases pass. Public source was normal-fast-forward pushed and exact
 remote verified after this gate passed. This is Windows LOCAL proof, NOT GitHub
 CI, current actual-client acceptance, full Ninja/cast/mailbox transactions,
 complete English, deployment or full parity. Running sessions, original saves,
-protected clients, endpoints and60held Guild/Union paths remain unchanged.
+protected clients, endpoints and unrelated source paths remain unchanged.
 
 ## Previous accepted LOCAL integration gate â€” coherent mailbox parsing GREEN
 
@@ -4737,8 +4742,8 @@ retained account/mailbox cases and wire goldens also pass. Public source was
 normal-fast-forward pushed and exact remote verified after this gate passed.
 This is Windows LOCAL proof, NOT GitHub CI, current actual-client acceptance,
 mailbox business-transaction completion, complete English, deployment or full
-parity. Original saves, running sessions, protected clients, endpoints and the
-60held Guild/Union paths remain unchanged.
+parity. Original saves, running sessions, protected clients, endpoints and
+unrelated source paths remain unchanged.
 
 ## Previous accepted LOCAL integration gate â€” combat owners and empty warehouse GREEN
 
@@ -4755,7 +4760,7 @@ test-only corrections remain documented in FSB089. Source was normal-fast-forwar
 pushed and exact remote verified after acceptance. This is Windows LOCAL proof,
 NOT GitHub CI, current game-client acceptance, complete English, deployment, full
 cast/warehouse transactions or full parity. Running sessions, original saves,
-protected clients, endpoints and the60held Guild/Union paths remain unchanged.
+protected clients, endpoints and unrelated source paths remain unchanged.
 
 ## Previous accepted LOCAL integration gate â€” house saves and account rejection GREEN
 
@@ -5324,8 +5329,8 @@ prove full native Loading, SQL, power-loss durability or live-client acceptance.
   55/55, within330/330 with0fail/skip. Genuine load-only owners and independent
   class-boundary/mask/no-effect controls are used; no fake membership callbacks.
 - Limits: pure recruitment policy only. Managed membership mutations still refuse;
-  broader held Guild/Union, donation economy, persistence/recovery and live client
-  remain unfinished. The original held policy is preserved in an ignored backup.
+  broader Guild/Union, donation economy, persistence/recovery and live client
+  remain unfinished. The earlier policy is outside this change.
 
 ### FSB-113: Commit AccountManager VIP debit and grant before success
 
@@ -7200,7 +7205,7 @@ These new audit regressions are not included in the accepted component counts.
   Normal-FF source push verified; GitHub Windows run40274944480 completed SUCCESS
   on exacte64349a4, all8stages and the same25104/305/57terminal TRX passes read.
   No live/SQL/original-save,
-  protected client, canonical UID/Host, endpoint or held Guild/Union changes.
+  protected client, canonical UID/Host, endpoint or unrelated source changes.
 
 ### FSB-093: Validate complete mailbox images before allocation and cache replacement
 
@@ -7289,7 +7294,7 @@ These new audit regressions are not included in the accepted component counts.
   directly; transport/serializer default6844 is unchanged. Arbitrary throwing
   MemoryManager/concurrent backing mutation, other mailbox parsers, authorization,
   claim transactions/replay and UI lifecycle remain separate. No live process,
-  SQL, original save, protected client, endpoint or held Guild/Union path changed.
+  SQL, original save, protected client, endpoint or unrelated source path changed.
 
 ### FSB-088: Preflight required physical combat owners and monster metadata
 
@@ -7527,7 +7532,7 @@ These new audit regressions are not included in the accepted component counts.
   one-file replacement, not crash-safe furniture/economy coordination, SQL,
   power-loss durability, all raw-alias/ABA writers, hostile namespace/multiprocess
   safety, authenticated house entry or complete housing. Adjacent DBNpc null
-  conversion is corrected separately inFSB085. No live/original-save/D:/routing
+  conversion is corrected separately inFSB085. No live/original-save/routing
   change. Latest full LOCAL gate is exactc1ee382d above.
 
 ### FSB-082: Persist expired warehouse locks before client notification
@@ -8274,7 +8279,7 @@ The entire TitleStorage.cs file report now has zero active findings. Its handler
 and flag-update phases remain behaviorally covered, not suppressed or excluded.
 Private/public Release each passed1119/1119 again, zero failures/skips, after
 the one-file follow-up, now also full-CI verified above. The15 CA1865 fixes
-were already confirmed absent; their group contains only the held Guild record.
+were already confirmed absent; their group contains only the open Guild finding.
 
 The seven-warning successor is now locally verified: private and independent
 public Release each passed **1119/1119** selected core tests and **301/301**
@@ -8312,8 +8317,8 @@ Only the named findings were deeply inspected; this is not a full debt audit.
 Another15 CA1865 character-overload fixes are verified in private/public Release:
 **1112/1112** selected core tests and **301/301** complete updater tests, all green.
 The78 new controls retain path/comment/status/UTC/URL decisions and actual parser
-outputs; no measured speedup is claimed. One held Guild-persistence finding is
-excluded from this batch. The newer remote snapshot confirms these15 absent.
+outputs; no measured speedup is claimed. One Guild-persistence finding remains
+open and outside this batch. The newer remote snapshot confirms these15 absent.
 Report: https://www.codefactor.io/repository/github/vgcman16/wolfconquer/issues
 
 No blanket warning suppression or exclusion is authorized. An A grade is not

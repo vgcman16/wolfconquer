@@ -134,11 +134,14 @@ publication receipt or permission to issue gameplay success.
 
 ## Qualification
 
-All initial code/tests are source-only, unbuilt/unrun. Root alone executes after
-the sole full gate ends. C owns synthetic model and actual guarded opt-in SQL
-controls: immutable inputs, malformed graphs/funds/identity, complete descriptors,
-cold read, create/CAS/pair, exact images/UIDs/revisions, stale/conflicting/replayed
-requests, concurrent ownership and a real SQL failure after participant one
-proving whole-transaction rollback. Existing20SQL Facts stay unchanged. These
-checks do not complete SQL startup/native handler/sidecar migration or client
-acceptance, and no live backend change follows automatically.
+Source e82916b9 passed the closed fresh owned SQL gate: all29 actual Facts,
+0failed/skipped, including the20 existing auth/native/file cases and9 new storage
+component/schema cases. Root read every result and verified owned cleanup.
+Controls cover cold reads, create/CAS/pair, exact images/UIDs/revisions, stale/
+conflicting/historical replay, concurrent ownership, real second-write failure/
+whole rollback and partial/invalid schema refusal. Eight core-model cases passed
+in the combined focused run; the distinct complete-bundle family passed15/15
+after correcting its empty-item golden. Cleanup-double-fault paths remain source
+review only; no forced provider/disposal-fault evidence is claimed. These checks
+do not complete SQL native loading, gameplay writers, sidecar migration or actual
+client acceptance. No live backend changed.

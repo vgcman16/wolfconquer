@@ -85,7 +85,7 @@ container birth/refresh publication; C real Store/admission binding/integration.
 Each sends a finite API/file plan before edits and coordinates dependencies.
 Root reviews interfaces/callers, integrates, runs focused/appropriate wider and
 actual-commit CI, and alone stages/commits/pushes. No helper changes actual
-checkouts or59held Guild/Union paths. All authored code remains unqualified until
+checkouts or unrelated work. All authored code remains unqualified until
 actual tests. Do not fabricate a safe-looking partial implementation to go green.
 
 ## Aligned implementation decisions (2026-10-30)

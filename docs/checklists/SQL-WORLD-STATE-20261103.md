@@ -1,8 +1,10 @@
 # SQL world-state integration queue
 
-Source-only batch based on b6aa0c1f. Root reviewed and composed24 source/test/spec
-paths in a separate candidate. All new SQL models/repository/tests are UNBUILT
-and UNRUN. No backend, native handler, schema or default configuration changed.
+Bounded component qualification on e82916b9: all29 actual provider Facts passed,
+0failed/skipped, on fresh owned MariaDB12.2.2 at explicit port34385. Root read all
+actual TRX rows and verified settled children/commands, absent temporary data and
+private client options. No live backend, native handler or original schema/data
+changed. The existing native gameplay path remains file-backed.
 
 - [x] Immutable complete character/item images, raw physical-UID and save-graph
   validation, bounded revisions and complete operation descriptors are authored.
@@ -21,13 +23,16 @@ and UNRUN. No backend, native handler, schema or default configuration changed.
 - [x] Refuse partial owned schemas before DDL; verify complete schemas without
   marker writes. Two new real-provider Facts cover four partial cases and
   complete-schema reinitialization with a real marker-update refusal trigger.
-- [ ] Full33805 is terminalfailed; the first new focused build failedCS8752 in
-  one test helper before tests ran. Qualify its explicit-constructor repair plus
-  complete-bundle models/15authored cases, parser/graph, PIN/trade and local-tool
-  neighbors; inspect actual failures and changed-path diagnostics.
-- [ ] Run `Invoke-SqlGameplayCheck.ps1 -Port 34385` on a fresh owned instance;
-  require all29 actual Facts passed/no skips and settled owned cleanup. A stale
-  twenty-Fact assembly or the earlier SQL20 result cannot qualify this batch.
+- [x] Compile the source and inspect the combined focused284P/1F/0skip run:
+  all8 core models,59 PIN and26 local-tool cases passed. Retain the earlier
+  CS8752 compile failure and the one wrong empty-item golden as history.
+- [x] Correct the literal8-byte empty item fixture without changing production
+  code or weakening byte/offset goldens; all15 bundle cases then passed/0skip.
+- [x] Run `Invoke-SqlGameplayCheck.ps1 -Port 34385`: all29 actual Facts passed,
+  no failures/skips and owned cleanup verified. The prior SQL20 result was not
+  substituted for these new component tests.
+- [ ] Complete actual six-image SQL read/write/replay in the same ownership
+  domain; current bundle models alone do not persist sidecars.
 - [ ] Complete the appropriate integration/publication gate before publishing.
 
 The full persistence horizon remains open:
@@ -42,10 +47,10 @@ The full persistence horizon remains open:
 - [ ] Prove cold startup, interrupted transactions, disconnect/retry and full
   client acceptance on the selected backend. No live migration or fallback yet.
 
-The running full gate remains on frozen b6aa in the OTHER trade-integration
-candidate. Do not duplicate a host job. Preserve saves, routes, sessions,
-restore ZIP,D:\cqclient,held59Guild/Union edits and9mail fixtures. Legacy client/
-updater/native-inspection hold stays active; source checks do not establish
-host cleanliness or current7937 gameplay support.
+The completed fullb6 gate failed a separate PIN-trade positive fixture; its
+successor passed the focused family but a new full gate remains required.
+Respect operator-provided execution holds and preserve original data, backups,
+routes, sessions and unrelated work. Source/provider checks do not establish
+host trust or actual7937 gameplay support.
 
 [Implementation contract](../engineering/SQL-WORLD-STATE.md).

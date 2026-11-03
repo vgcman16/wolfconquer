@@ -4,8 +4,8 @@
 
 Spec revision: 2026-11-02, Root. Target: existing VisibleDx8D13 server path.
 This closes actual native/session/file lifecycle gaps; it does not switch the
-working client to7937 or establish new client acceptance. The client execution
-hold, preserved saves/routes/ZIP and D:\cqclient baseline remain in force.
+working client to7937 or establish new client acceptance. Operator-provided
+execution holds and preservation of original data/backups remain in force.
 
 Observed current checkpoint: dd448f7f has55/55 timer/spawn and91/91
 native/query/action focused passes. Full Windows gate32 is running. These

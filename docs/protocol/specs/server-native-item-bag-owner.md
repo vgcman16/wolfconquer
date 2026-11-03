@@ -3,7 +3,7 @@
 ## Identity and scope
 - Revision1, 2026-10-29; Root-authorized source-only successor, reserve FSB-202.
 - Clean public233bd0d0ffcbdf131c638dd03b9f49fff76a83de plus exactly62 reviewed paths copied from Root's batch2 candidate pointer. The prerequisite and specialization have since passed the Release build and focused selection described below; successor integration/full-gate qualification remains pending.
-- Specialize the new LegacyNativeDbSafeDictionary<uint, LegacyNativeGameItemRuntime> for RelicFuse and GearMythsoulBag. Remove the duplicated unsafe inheritance/cache code. Do not modify the generic owner, held Guild/Union paths, or Root's candidate.
+- Specialize the new LegacyNativeDbSafeDictionary<uint, LegacyNativeGameItemRuntime> for RelicFuse and GearMythsoulBag. Remove the duplicated unsafe inheritance/cache code. Do not modify the generic owner, unrelated source paths, or Root's candidate.
 - No item issuance, UID normalization, ownership/tradability rules, routing, gameplay handler activation or replacement item owner is introduced.
 
 ## Packet contract
