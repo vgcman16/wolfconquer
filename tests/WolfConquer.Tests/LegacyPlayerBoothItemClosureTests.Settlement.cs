@@ -188,7 +188,7 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
     public Task RegisteredBoothSharedPredecessorQueuesRealSashThenBuyInFifoCommitOrder() =>
         RunBoothSettlementAsync(async fixture =>
         {
-            fixture.Seed(BoothItem(10, 1_100_003), BoothItem(11));
+            fixture.Seed(BoothItem(10), BoothItem(11), BoothItem(12, 1_100_003));
             await fixture.StartAsync();
             await fixture.ListAsync();
             var before = fixture.Capture();
@@ -219,12 +219,13 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
 
                 // Independent finite oracle for the intermediate committed sash;
                 // this is NEVER installed as a live owner or saved by the test.
-                var originalSash = Assert.Single(before.Seller.PlayerItems.InventoryItems, item => item.Uid == 10);
+                var soldItem = Assert.Single(before.Seller.PlayerItems.InventoryItems, item => item.Uid == 10);
+                var originalSash = Assert.Single(before.Seller.PlayerItems.InventoryItems, item => item.Uid == 12);
                 var child = Assert.Single(before.Seller.PlayerItems.InventoryItems, item => item.Uid == 11)
                     .WithWarehouseId(0, position: 0);
                 var depositedSash = originalSash.WithDepositedItems(new[] { child });
                 var sellerAfterDeposit = before.Seller with
-                { PlayerItems = before.Seller.PlayerItems with { InventoryItems = new[] { depositedSash } } };
+                { PlayerItems = before.Seller.PlayerItems with { InventoryItems = new[] { soldItem, depositedSash } } };
                 var afterDepositFiles = new Dictionary<string, byte[]>(before.Files, StringComparer.OrdinalIgnoreCase)
                 {
                     [Path.GetRelativePath(fixture.Root, fixture.ItemPath(before.Seller))] =
@@ -234,7 +235,9 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
                 { Seller = sellerAfterDeposit, SellerValues = JsonSerializer.Serialize(sellerAfterDeposit), Files = afterDepositFiles };
                 AssertSettledBoothValues(fixture, afterDeposit); // Exact economics, all stores, full file set and bytes.
                 var received = Assert.Single(fixture.Buyer.PlayerItems.InventoryItems, item => item.Uid == 10);
-                Assert.Equal(11U, Assert.Single(received.DepositedItems).Uid); // Buy observed Sash's earlier commit.
+                Assert.Empty(received.DepositedItems);
+                var retainedSash = Assert.Single(fixture.Seller.PlayerItems.InventoryItems, item => item.Uid == 12);
+                Assert.Equal(11U, Assert.Single(retainedSash.DepositedItems).Uid); // Earlier sash commit remains with seller.
 
                 var attempted = observed.ToArray();
                 static bool IsSashFrame(D13VendorSentFrame frame) => frame.Recipient == "seller" &&
@@ -247,7 +250,7 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
                 var sashExpected = new[]
                 {
                     new MsgItemUsagePacket(11, 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0).ToFrameBytes(),
-                    new LegacyWarehousePacket(10, LegacyWarehouseAction.ShashDepositItem, 0, 0, new[] { child }).ToFrameBytes(),
+                    new LegacyWarehousePacket(12, LegacyWarehouseAction.ShashDepositItem, 0, 0, new[] { child }).ToFrameBytes(),
                 };
                 for (var index = 0; index < sashFrames.Length; index++) Assert.Equal(sashExpected[index], sashFrames[index].Bytes);
                 // FIFO proves commit order, not global send serialization. A
@@ -256,7 +259,7 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
                 Assert.Equal(6, frames.Length);
                 var request = BoothFixture.BuyRequest();
                 Assert.Equal(new[] { "buyer", "buyer", "seller", "seller", "buyer", "seller" }, frames.Select(frame => frame.Recipient));
-                Assert.Equal(LegacyGameItemPacket.FromSnapshotItem(depositedSash).ToFrameBytes(), frames[0].Bytes);
+                Assert.Equal(LegacyGameItemPacket.FromSnapshotItem(soldItem).ToFrameBytes(), frames[0].Bytes);
                 Assert.Equal(request.ToFrameBytes(), frames[1].Bytes);
                 Assert.Equal((request with { Action = MsgItemUsageAction.RemoveVendingItem }).ToFrameBytes(), frames[2].Bytes);
                 Assert.Equal(new MsgItemUsagePacket(10, 0, MsgItemUsageAction.RemoveInventory, 0, 0, 0, 0).ToFrameBytes(), frames[3].Bytes);
@@ -272,9 +275,10 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
     public Task RegisteredBoothBuyCommitsWhileSashFirstSendWaitsThenSuppressesItsRemainingWarehouseFrame() =>
         RunBoothSettlementAsync(async fixture =>
         {
-            fixture.Seed(BoothItem(10, 1_100_003), BoothItem(11));
+            fixture.Seed(BoothItem(10), BoothItem(11), BoothItem(12, 1_100_003));
             await fixture.StartAsync();
             await fixture.ListAsync();
+            var listed = Assert.Single(fixture.Seller.PlayerItems.InventoryItems, item => item.Uid == 10);
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             fixture.SettlementReleases.Add(release);
@@ -285,7 +289,8 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
                 {
                     fixture.AssertSettlementSaved(); // Sash's actual file commit precedes its FIRST send.
                     Assert.DoesNotContain(fixture.Seller.PlayerItems.InventoryItems, item => item.Uid == 11);
-                    Assert.Equal(11U, Assert.Single(Assert.Single(fixture.Seller.PlayerItems.InventoryItems).DepositedItems).Uid);
+                    Assert.Same(listed, Assert.Single(fixture.Seller.PlayerItems.InventoryItems, item => item.Uid == 10));
+                    Assert.Equal(11U, Assert.Single(Assert.Single(fixture.Seller.PlayerItems.InventoryItems, item => item.Uid == 12).DepositedItems).Uid);
                     entered.TrySetResult();
                     await release.Task;
                 }
@@ -301,7 +306,8 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
                 Assert.False(deposit.IsCompleted);
                 AssertOneSettledBoothPurchase(fixture, beforeBuy); // Exact six buy frames, economics and complete files.
                 var received = Assert.Single(fixture.Buyer.PlayerItems.InventoryItems, item => item.Uid == 10);
-                Assert.Equal(11U, Assert.Single(received.DepositedItems).Uid);
+                Assert.Empty(received.DepositedItems);
+                Assert.Equal(11U, Assert.Single(Assert.Single(fixture.Seller.PlayerItems.InventoryItems, item => item.Uid == 12).DepositedItems).Uid);
                 var committed = fixture.Capture();
                 release.TrySetResult();
                 await fixture.ObserveSettlementAsync(deposit);
@@ -316,7 +322,7 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
         // The sequential DepositAsync helper keeps its own-item postconditions;
         // this overlapping test tracks the real Registry task directly instead.
         var registry = PacketHandlerRegistry<WorldPacketHandlerContext>.FromTypes([typeof(WorldPacketHandlers)]);
-        var request = new LegacyWarehousePacket(10, LegacyWarehouseAction.ShashDepositItem, 11, 0, []);
+        var request = new LegacyWarehousePacket(12, LegacyWarehouseAction.ShashDepositItem, 11, 0, []);
         var actual = registry.HandleAsync(fixture.Context(fixture.SellerConnection),
             D13VendorTestHarness.ReadFrame(request.ToFrameBytes())).AsTask();
         fixture.Calls.Add(actual);
@@ -368,11 +374,12 @@ public sealed partial class LegacyPlayerBoothItemClosureTests
         Assert.Equal(50, fixture.Seller.Character.ConquerPoints);
         Assert.Empty(fixture.Seller.LegacyVendorListings!.Listings);
         Assert.Single(before.Seller.LegacyVendorListings!.Listings);
-        Assert.Empty(fixture.Seller.PlayerItems.InventoryItems);
+        Assert.DoesNotContain(fixture.Seller.PlayerItems.InventoryItems, item => item.Uid == 10);
         var original = Assert.Single(before.Seller.PlayerItems.InventoryItems, item => item.Uid == 10);
         var buyerItems = before.Buyer.PlayerItems with
         { InventoryItems = before.Buyer.PlayerItems.InventoryItems.Append(original).ToArray() };
-        var sellerItems = before.Seller.PlayerItems with { InventoryItems = Array.Empty<PlayerItemSnapshotItem>() };
+        var sellerItems = before.Seller.PlayerItems with
+        { InventoryItems = before.Seller.PlayerItems.InventoryItems.Where(item => item.Uid != 10).ToArray() };
         Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(buyerItems), PlayerItemSnapshotLoader.ToLegacyBytes(fixture.Buyer.PlayerItems));
         Assert.Equal(PlayerItemSnapshotLoader.ToLegacyBytes(sellerItems), PlayerItemSnapshotLoader.ToLegacyBytes(fixture.Seller.PlayerItems));
         AssertBoothOtherStores(before.Buyer.PlayerItems, fixture.Buyer.PlayerItems);

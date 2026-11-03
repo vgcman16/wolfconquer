@@ -177,9 +177,10 @@ public sealed partial class WorldServerFrameHandlerTests
         {
             var items = new[] { 132009, 420301, 150003 }.Select(id =>
             {
-                var fields = Enumerable.Repeat("0", 60).ToArray();
+                var fields = Enumerable.Repeat("0", 66).ToArray();
                 fields[0] = id.ToString(CultureInfo.InvariantCulture); fields[1] = "OwnedStarter" + id;
                 fields[ItemType.DurabilityFieldIndex] = "1"; // Explicit valid metadata, no runtime fallback.
+                fields[ItemType.StackSizeFieldIndex] = "1"; // Complete constructor-owned single-equipment bounds.
                 return new ItemType(id, fields[1], fields);
             }).ToArray();
             var stats = new List<ClassLevelStat>

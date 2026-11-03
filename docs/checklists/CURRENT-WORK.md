@@ -3,6 +3,12 @@
 Updated2026-11-03 UTC. Full English source/client goal remains ACTIVE.
 Root alone reviews, integrates, qualifies, stages, commits and pushes.
 
+Latest booth gate e42e06b1 built, then failed436P/3F/0skip. Root reviewed/intaken
+two test-fixture repairs without changing production lineage/cap authority.
+The next affected run adds ordinary-login/native-join neighbors; SQL20/full
+qualification and reviewed publication remain pending.
+[Current7937 status and exact limits](7937-STATUS-20261103.md).
+
 - [x] Composed28 explicit vendor source/test/spec paths on the separate local
   vendor-authority branch, preserving the qualified trade source checkpoint.
   Combined suspicious eligibility, real native lineage/caps, detached/native
