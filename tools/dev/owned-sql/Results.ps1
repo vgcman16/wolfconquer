@@ -16,6 +16,21 @@ function Get-OwnedSqlRequiredFacts([string] $Repository) {
     return ,@($names | Sort-Object)
 }
 
+function Select-OwnedSqlRequiredFacts([string[]] $Inventory, [string] $OnlyFact, [bool] $Selected) {
+    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($name in $Inventory) {
+        if ($name -cnotmatch '^[A-Za-z_][A-Za-z0-9_]*$' -or -not $names.Add($name)) {
+            throw 'The discovered SQL Fact inventory is invalid.'
+        }
+    }
+    if ($names.Count -eq 0) { throw 'The discovered SQL Fact inventory is empty.' }
+    if (-not $Selected) { return ,@($Inventory) }
+    if ([string]::IsNullOrEmpty($OnlyFact) -or $OnlyFact -cnotmatch '^[A-Za-z_][A-Za-z0-9_]*$' -or -not $names.Contains($OnlyFact)) {
+        throw 'OnlyFact must match one exact discovered SQL Fact.'
+    }
+    return ,@($OnlyFact)
+}
+
 function Read-OwnedSqlTrxIdentity([string] $Text) {
     $identity = [Guid]::Empty
     if (-not [Guid]::TryParse($Text, [ref]$identity) -or $identity -eq [Guid]::Empty) {
@@ -24,7 +39,7 @@ function Read-OwnedSqlTrxIdentity([string] $Text) {
     return $identity.ToString('D')
 }
 
-function Assert-OwnedSqlTrx([string] $TrxPath, [string[]] $RequiredFacts) {
+function Assert-OwnedSqlTrx([string] $TrxPath, [string[]] $RequiredFacts, [bool] $Selected = $false) {
     $required = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($name in $RequiredFacts) {
         if ($name -notmatch '^[A-Za-z_][A-Za-z0-9_]*$' -or -not $required.Add($name)) { throw 'The required SQL Fact inventory is invalid.' }
@@ -34,6 +49,9 @@ function Assert-OwnedSqlTrx([string] $TrxPath, [string[]] $RequiredFacts) {
     if ((Get-Item -LiteralPath $TrxPath).Length -gt 33554432) { throw 'SQL TRX exceeded its inspection bound.' }
     $counts = Read-FocusedTrx -Path $TrxPath
     if ($counts.Failed -ne 0 -or $counts.Other -ne 0) { throw 'The requested terminal run contains failures or unknown outcomes.' }
+    if ($Selected -and ($required.Count -ne 1 -or $counts.Passed -ne 1 -or $counts.NotExecuted -ne 0)) {
+        throw 'Selected SQL qualification requires exactly one passing result and no skipped results.'
+    }
     $settings = [Xml.XmlReaderSettings]::new(); $settings.DtdProcessing = [Xml.DtdProcessing]::Prohibit; $settings.XmlResolver = $null
     $reader = [Xml.XmlReader]::Create($TrxPath, $settings)
     $document = [Xml.XmlDocument]::new(); $document.XmlResolver = $null

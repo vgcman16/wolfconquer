@@ -2,8 +2,9 @@
 
 ## Identity and scope
 
-Source-only proposal against Root's frozen `9060769192709e16ce4fcc9da31764f5b41b63ae`
-candidate. Target explicitly declared 7937 opcode 2132. Same-engine retained
+Originally authored against Root's frozen `9060769192709e16ce4fcc9da31764f5b41b63ae`
+candidate; the consumer is now integrated and qualified offline as recorded below.
+Target explicitly declared 7937 opcode 2132. Same-engine retained
 parser/dispatch text is derived support, not a matching 7937 capture. The
 retained engine identity is SHA256
 `a7e1aac88a999b1f4723e6a1f197b96924e24022fd681fb2c9cf79c1bb413422`.
@@ -57,7 +58,13 @@ nonminimal valid varints, known child order, absent versus present zero and
 exact replay. Tests must preserve strict refusals, wrong declared build,
 unsupported operation, complete malformed tails, caller-built frame mismatch,
 null envelope, defensive bytes/arguments and prior-object preservation.
-No real/private rows or game assets enter source. Tests remain authored/unrun.
+No real/private rows or game assets enter source. On 2026-11-03, source
+`99c70d2f` passed 836 focused tests, 0 failed and 0 skipped, including all 19
+new consumer controls and 664 Chinese7937-named rows. The later public full
+Windows run on `c476ca7c` also passed all 664 Chinese7937-named rows.
+See the [current qualification checklist](../../../checklists/7937-STATUS-20261103.md)
+for the actual runs and their limits. These checks establish bounded data and
+wire behavior; they do not establish matching-client gameplay or acceptance.
 
 ## Remaining gameplay evidence gap
 

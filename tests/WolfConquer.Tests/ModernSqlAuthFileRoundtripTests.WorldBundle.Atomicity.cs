@@ -31,18 +31,26 @@ public sealed partial class ModernSqlAuthFileRoundtripTests
         var initial = await SeedBundlePairAsync(database, repository);
         var left = CompleteWorldImage(SqlWorldStateTestData.Image(501, 9001, SqlWorldStateTestData.FirstItems(), 1011), 1);
         var right = CompleteWorldImage(SqlWorldStateTestData.Image(501, 9001, SqlWorldStateTestData.FirstItems(), 1022), 2);
-        var operations = new[] { database.CreateWorldStateRepository().SaveBundleAsync(BundleRequest(SqlWorldStateOperationKind.Save, left, 1)).AsTask(),
-            database.CreateWorldStateRepository().SaveBundleAsync(BundleRequest(SqlWorldStateOperationKind.Save, right, 1)).AsTask() };
+        var leftRequest = BundleRequest(SqlWorldStateOperationKind.Save, left, 1);
+        var rightRequest = BundleRequest(SqlWorldStateOperationKind.Save, right, 1);
+        var operations = new[] { database.CreateWorldStateRepository().SaveBundleAsync(leftRequest).AsTask(),
+            database.CreateWorldStateRepository().SaveBundleAsync(rightRequest).AsTask() };
         var results = await Task.WhenAll(operations);
         var committed = Assert.Single(results, row => row.Status == SqlWorldStateCommitStatus.Committed);
         var refused = Assert.Single(results, row => row.Status == SqlWorldStateCommitStatus.Refused);
-        Assert.Equal(SqlWorldStateFailure.RevisionConflict, refused.Failure); Assert.Empty(refused.Records.ToArray());
+        Assert.Contains(refused.Failure, new[] { SqlWorldStateFailure.RevisionConflict, SqlWorldStateFailure.SessionCustodyConflict }); Assert.Empty(refused.Records.ToArray());
         var winner = ReferenceEquals(committed, results[0]) ? left : right;
+        var winnerRequest = ReferenceEquals(committed, results[0]) ? leftRequest : rightRequest;
+        var loserRequest = ReferenceEquals(committed, results[0]) ? rightRequest : leftRequest;
         AssertBundleCommit(committed, SqlWorldStateCommitStatus.Committed, 2, winner);
         await AssertBundleReadAsync(database, winner, 2); await AssertBundleReadAsync(database, initial.Second, 1);
         var rows = await database.SnapshotWorldBundleRowsAsync();
         Assert.Equal(3, rows.Count(row => row.StartsWith("operation|", StringComparison.Ordinal)));
         Assert.Equal(5, rows.Count(row => row.StartsWith("uid|", StringComparison.Ordinal)));
+        Assert.DoesNotContain(rows, row => row.StartsWith("operation|" + Convert.ToHexString(loserRequest.OperationId.ToByteArray()) + "|", StringComparison.Ordinal));
+        await AssertBundleRefusedAsync(database, rows, database.CreateWorldStateRepository().SaveBundleAsync(loserRequest), SqlWorldStateFailure.RevisionConflict);
+        AssertBundleCommit(await database.CreateWorldStateRepository().SaveBundleAsync(winnerRequest), SqlWorldStateCommitStatus.Replayed, 2, winner);
+        Assert.Equal(rows, await database.SnapshotWorldBundleRowsAsync());
         await AssertBundleReadAsync(database, winner, 2); Assert.Equal(rows, await database.SnapshotWorldBundleRowsAsync());
     });
 }

@@ -19,5 +19,11 @@ public sealed partial class SqlWorldStateRepository
         this.connectionString = connectionString;
     }
 
-    private MySqlConnection CreateConnection() => new(connectionString);
+    private MySqlConnection CreateConnection()
+    {
+        var settings = new MySqlConnectionStringBuilder(connectionString) { Pooling = false };
+        if (settings.Server.Contains(','))
+            throw new InvalidOperationException("sqlWorldMultipleServerDomainsUnsupported");
+        return new(settings.ConnectionString);
+    }
 }

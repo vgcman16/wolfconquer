@@ -5,6 +5,7 @@ param(
     [Parameter(Mandatory)][ValidateRange(1024, 65535)][int] $Port,
     [string] $MariaDbHome = 'C:\Program Files\MariaDB 12.2',
     [ValidateSet('Debug', 'Release')][string] $Configuration = 'Release',
+    [AllowEmptyString()][string] $OnlyFact,
     [switch] $Plan
 )
 
@@ -30,13 +31,39 @@ $project = Assert-SqlGameplayOrdinaryPath (Join-Path $root 'tests/WolfConquer.Te
 $support = Assert-SqlGameplayOrdinaryPath (Join-Path $root 'tools/dev/FocusedCheckSupport.psm1')
 $lifecycle = Assert-SqlGameplayOrdinaryPath (Join-Path $root 'tools/dev/Invoke-OwnedSqlAuthFixture.ps1')
 $filter = 'FullyQualifiedName~WolfConquer.Tests.ModernSqlAuthFileRoundtripTests'
+$selectedFactNames = @()
+$fullProviderFamily = -not $PSBoundParameters.ContainsKey('OnlyFact')
+if (-not $fullProviderFamily) {
+    if ([string]::IsNullOrEmpty($OnlyFact) -or $OnlyFact -cnotmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
+        throw 'OnlyFact must be one exact SQL Fact method name.'
+    }
+    # Plan remains read-only: inspect source text, never import or run lifecycle
+    # support. This mirrors the lifecycle's complete bounded discovery rule.
+    $directory = Assert-SqlGameplayOrdinaryPath (Join-Path $root 'tests/WolfConquer.Tests') $true
+    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $attributeCount = 0
+    $pattern = '\[ModernSqlAuthFixtureFact(?:Attribute)?\]\s*public\s+(?:async\s+)?Task\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\('
+    foreach ($file in Get-ChildItem -LiteralPath $directory -Filter 'ModernSqlAuthFileRoundtripTests*.cs' -File) {
+        $path = Assert-SqlGameplayOrdinaryPath $file.FullName
+        $source = [IO.File]::ReadAllText($path)
+        $attributeCount += [regex]::Matches($source, '\[ModernSqlAuthFixtureFact(?:Attribute)?\]').Count
+        foreach ($match in [regex]::Matches($source, $pattern)) {
+            if (-not $names.Add($match.Groups['name'].Value)) { throw 'Duplicate SQL fixture Fact method name.' }
+        }
+    }
+    if ($names.Count -eq 0 -or $attributeCount -ne $names.Count) { throw 'Cannot discover every required SQL fixture Fact.' }
+    if (-not $names.Contains($OnlyFact)) { throw 'OnlyFact does not match a discovered SQL Fact.' }
+    $selectedFactNames = @($OnlyFact)
+    $filter = 'FullyQualifiedName=WolfConquer.Tests.ModernSqlAuthFileRoundtripTests.' + $OnlyFact
+}
 $testArguments = @('test', $project, '-c', $Configuration, '--nologo', '-m:1', '-nodeReuse:false', '/p:UseSharedCompilation=false',
     '--filter', $filter, '--results-directory', '<owned-sql-root>', '--logger', 'trx;LogFileName=qualification.trx',
     '--blame-hang-timeout', '180s', '--blame-hang-dump-type', 'none')
 if ($Plan) {
     [ordered]@{ schemaVersion = 1; suite = 'owned-sql-gameplay'; outcome = 'not-run'; fullGate = $false; mode = 'plan'
         repositoryRoot = $root; project = $project; configuration = $Configuration; port = $Port; mariaDbHome = $MariaDbHome
-        filter = $filter; ownedLifecycle = $lifecycle; command = [ordered]@{ executable = 'dotnet'; arguments = $testArguments }
+        filter = $filter; fullProviderFamily = $fullProviderFamily; selectedFactNames = @($selectedFactNames)
+        ownedLifecycle = $lifecycle; command = [ordered]@{ executable = 'dotnet'; arguments = $testArguments }
     } | ConvertTo-Json -Depth 5
     return
 }
@@ -73,7 +100,9 @@ try {
         $result = & $commandOwner $dotnet $arguments $root (Join-Path $fixture.ArtifactRoot 'sql-gameplay') $environment
         if ($result.exitCode -ne 0) { throw 'The owned SQL gameplay test command failed; inspect its private logs.' }
     }.GetNewClosure()
-    & $lifecycle -RepositoryRoot $root -Port $Port -MariaDbHome $MariaDbHome -Run $run
+    $lifecycleArguments = @{ RepositoryRoot = $root; Port = $Port; MariaDbHome = $MariaDbHome; Run = $run }
+    if (-not $fullProviderFamily) { $lifecycleArguments.OnlyFact = $OnlyFact }
+    & $lifecycle @lifecycleArguments
 }
 catch { $primaryFailure = $_.Exception; throw }
 finally {

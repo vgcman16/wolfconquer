@@ -25,6 +25,7 @@ public sealed partial class SqlWorldStateRepository
         ArgumentNullException.ThrowIfNull(request);
         if (request.Kind != kind) return Refuse(SqlWorldStateFailure.InvalidOperationKind);
         var changes = request.Changes.ToArray();
+        long[] accountIds = changes.Select(change => change.Image.AccountId).ToArray();
         byte[] descriptor = request.CopyDescriptorBytes(), digest = request.CopyDescriptorHash();
         byte[] operation = request.OperationId.ToByteArray();
         var connection = CreateConnection();
@@ -36,8 +37,13 @@ public sealed partial class SqlWorldStateRepository
         {
             await connection.OpenAsync(token).ConfigureAwait(false);
             await VerifySchemaAsync(connection, token).ConfigureAwait(false);
-            transaction = await connection.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, token).ConfigureAwait(false);
-            result = await CommitHeldAsync(connection, transaction, kind, changes, operation, digest, descriptor, disposition, token).ConfigureAwait(false);
+            if (!await TryAcquireAccountLocksAsync(connection, accountIds, token).ConfigureAwait(false))
+                result = Refuse(SqlWorldStateFailure.SessionCustodyConflict);
+            else
+            {
+                transaction = await connection.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, token).ConfigureAwait(false);
+                result = await CommitHeldAsync(connection, transaction, kind, changes, operation, digest, descriptor, disposition, token).ConfigureAwait(false);
+            }
         }
         catch (Exception error) { primary = error; }
         var cleanup = new List<Exception>();
@@ -67,8 +73,10 @@ public sealed partial class SqlWorldStateRepository
     private static async ValueTask<SqlWorldStateCommitResult> CommitHeldAsync(MySqlConnection connection, MySqlTransaction transaction, SqlWorldStateOperationKind kind, SqlWorldStateChange[] changes, byte[] operation, byte[] digest, byte[] descriptor, CommitDisposition disposition, CancellationToken token)
     {
         bool commitAttempted = false;
+        long[] accountIds = changes.Select(change => change.Image.AccountId).ToArray();
         try
         {
+            await RequireAccountLocksAsync(connection, transaction, accountIds, token).ConfigureAwait(false);
             bool inserted = await TryInsertOperationAsync(connection, transaction, operation, digest, descriptor, token).ConfigureAwait(false);
             if (!inserted)
             {
@@ -88,6 +96,7 @@ public sealed partial class SqlWorldStateRepository
                     return Refuse(failure);
                 }
             }
+            await RequireAccountLocksAsync(connection, transaction, accountIds, token).ConfigureAwait(false);
             await DeleteOwnershipAsync(connection, transaction, changes, token).ConfigureAwait(false);
             foreach (var change in changes)
             {
@@ -113,6 +122,7 @@ public sealed partial class SqlWorldStateRepository
                 return Refuse(SqlWorldStateFailure.ItemUidConflict);
             }
             var result = MakeResult(SqlWorldStateCommitStatus.Committed, changes);
+            await RequireAccountLocksAsync(connection, transaction, accountIds, token).ConfigureAwait(false);
             commitAttempted = true;
             await transaction.CommitAsync(token).ConfigureAwait(false);
             disposition.Committed = true;

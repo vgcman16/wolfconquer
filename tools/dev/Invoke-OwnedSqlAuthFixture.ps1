@@ -6,11 +6,14 @@ param(
     [Parameter(Mandatory)][scriptblock] $Run,
     [string] $MariaDbHome = 'C:\Program Files\MariaDB 12.2',
     [ValidateRange(10, 180)][int] $StartupTimeoutSeconds = 90,
+    [AllowEmptyString()][string] $OnlyFact,
     [switch] $KeepData
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$fullProviderFamily = -not $PSBoundParameters.ContainsKey('OnlyFact')
+$selectedFactNames = @()
 if (-not $IsWindows -or -not [Environment]::Is64BitProcess) { throw 'The owned MariaDB fixture requires 64-bit PowerShell on Windows.' }
 if ($Port -eq 3306) { throw 'Port 3306 is forbidden for this disposable fixture.' }
 $private = Join-Path $PSScriptRoot 'owned-sql'
@@ -48,7 +51,9 @@ try {
         [void](Assert-OwnedSqlPlainPath $file)
         if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw 'The selected MariaDB 12.2 installation is incomplete.' }
     }
-    $required = Get-OwnedSqlRequiredFacts ([IO.Path]::GetFullPath($RepositoryRoot))
+    $inventory = Get-OwnedSqlRequiredFacts ([IO.Path]::GetFullPath($RepositoryRoot))
+    $required = Select-OwnedSqlRequiredFacts $inventory $OnlyFact (-not $fullProviderFamily)
+    if (-not $fullProviderFamily) { $selectedFactNames = @($required) }
     # One explicit requested bind, never a port scan or connection to an existing listener.
     $portLease = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, $Port)
     $portLease.Server.ExclusiveAddressUse = $true; $portLease.Start()
@@ -88,7 +93,7 @@ try {
     Write-Host ('Owned SQL fixture ready on explicit loopback port {0}; private results: {1}' -f $Port, $owner.Root)
     Invoke-OwnedSqlQualificationCallback $Run $context `
         "Server=127.0.0.1;Port=$Port;User ID=root;Password=$secret;Pooling=False;SslMode=None;Connection Timeout=10;Default Command Timeout=10" $cleanupTypes
-    $passed = Assert-OwnedSqlTrx $trx $required
+    $passed = Assert-OwnedSqlTrx $trx $required (-not $fullProviderFamily)
     [void](Assert-OwnedSqlServer $owner $server $client $options $Port 'identity-after')
     $qualified = $true
 }
@@ -120,6 +125,7 @@ finally {
             if (Test-Path -LiteralPath $options -PathType Leaf) { Remove-Item -LiteralPath $options -Force -ErrorAction Stop }
             if ($settled -and $owner.CommandsSettled -and -not $KeepData) { Remove-OwnedSqlData $owner }
             $report = [ordered]@{ Scope = 'Owned modern SQL auth to native admission and file transaction'; Qualified = ($qualified -and $cleanupTypes.Count -eq 0);
+                FullProviderFamily = $fullProviderFamily; SelectedFactNames = @($selectedFactNames);
                 Stage = $stage; PassedSqlFacts = $passed; Version = $version; Port = $Port; ChildTreeSettled = $settled;
                 CommandsSettled = $owner.CommandsSettled; DataRetained = (Test-Path -LiteralPath $owner.Data);
                 PrimaryExceptionTypes = @($primaryTypes | ForEach-Object { $_.GetType().FullName }); CleanupExceptionTypes = @($cleanupTypes | ForEach-Object { $_.GetType().FullName }) }
@@ -133,4 +139,9 @@ if ($primaryTypes.Count -gt 0 -or $cleanupTypes.Count -gt 0 -or -not $qualified)
     $location = if ($owner) { $owner.Root } else { 'no owned directory was created' }
     throw "Owned SQL qualification failed at $stage; $location. No secret or native error text is emitted. Review private logs and exact child settlement before retry."
 }
-Write-Host ('Owned SQL qualification passed {0} actual SQL Facts; its child tree was retired. Results: {1}' -f $passed, $owner.Root)
+if ($fullProviderFamily) {
+    Write-Host ('Owned SQL full provider family passed {0} actual SQL Facts; its child tree was retired. Results: {1}' -f $passed, $owner.Root)
+}
+else {
+    Write-Host ('Owned SQL selected Fact {0} passed; full provider family was not run. Its child tree was retired. Results: {1}' -f $OnlyFact, $owner.Root)
+}

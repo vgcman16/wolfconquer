@@ -15,11 +15,16 @@ pwsh -NoProfile -File .\tools\dev\Invoke-SqlGameplayCheck.ps1 -Port 34381
 RepositoryRoot defaults relative to the script. Optional parameters are
 `-RepositoryRoot <checkout>`, `-MariaDbHome <installation>` (default
 `C:\Program Files\MariaDB 12.2`) and `-Configuration Debug|Release` (defaultRelease).
-There is no filter, callback, credential, skip or no-build parameter.
+`-OnlyFact <exact-method-name>` optionally selects one discovered provider Fact
+for debugging. There is no arbitrary filter, callback, credential, skip or
+no-build parameter.
 
 Plan checks ordinary project/support entry paths and returns not-run JSON command
 metadata. It imports no module, parses no helper, queries no host process, creates
 no artifacts and starts nothing. It is not SQL or gameplay qualification.
+Selected Plan additionally reads the complete current SQL Fact source inventory;
+the supplied name must match one method ordinally. Malformed, unknown, wrong-case,
+duplicate or incompletely discovered inventories refuse before SQL starts.
 
 Real mode reuses [the owned SQL lifecycle](OWNED-SQL-AUTH-FIXTURE.md). That owner
 creates a fresh private MariaDB datadir, authenticates its exact identity and
@@ -28,6 +33,22 @@ uses the existing owned command launcher to run the **whole**
 `ModernSqlAuthFileRoundtripTests` family, with ordinary restore/build enabled,
 one MSBuild node, no node/shared-compiler reuse and180s hang diagnostics. The
 lifecycle compiles the shared process owner first; no preliminary build is run.
+
+For a single failing control, use an exact method name, for example:
+
+```powershell
+pwsh -NoProfile -File .\tools\dev\Invoke-SqlGameplayCheck.ps1 -Port 34395 -OnlyFact ActualNewCustodyWaitsForOlderPairRowBeforeReceivingCommittedAfterimage -Plan
+pwsh -NoProfile -File .\tools\dev\Invoke-SqlGameplayCheck.ps1 -Port 34395 -OnlyFact ActualNewCustodyWaitsForOlderPairRowBeforeReceivingCommittedAfterimage
+```
+
+Selected mode uses an exact fully qualified equality filter and independently
+revalidates the source inventory in the lifecycle. Its actual TRX must have one
+unique matching passed definition/entry/result and no skips or extra results.
+Plan and result explicitly mark `fullProviderFamily=false`/`FullProviderFamily=false`
+and list the selected name. A selected pass is only that control's qualification;
+it never substitutes for the complete provider family or full Windows gate.
+Omit `-OnlyFact` for the required full-family integration check. Consumers making
+a whole-family claim must require `FullProviderFamily=true` as well as success.
 
 Stdout/stderr and the fresh qualification.trx stay under the actual private
 `.artifacts/owned-sql-auth-<GUID>` root. Do not publish private logs or credentials.

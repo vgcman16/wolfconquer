@@ -18,7 +18,7 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
   0 failed/skipped, including 664 Chinese7937 rows. Main 57,093 and sub-item 1,693
   rows parse and round-trip all 67 fields. Complete semantic/runtime mapping
   remains open. [7937 status](7937-STATUS-20261103.md).
-- [x] Private English proposal: **2,788 keys / 2,812 physical rows**, with prior
+- [x] Private English proposal: **3,251 keys / 3,276 physical rows**, with prior
   translations, all unselected bytes and formatting preserved. Separate UStrRes
   proposal: 1,191 keys. Unapplied and unrendered; no whole-client percentage.
   [English results and limits](NAMED-UI-ENGLISH-20261103.md).
@@ -43,9 +43,27 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
   Owned MariaDB12.2.2, commands, data/private options and listener cleanup were
   independently checked. [Actual results](HANDOFF-SQL-RECOVERY-20261103.md).
   [Control and limits](../engineering/SQL-COMMIT-ACK-LOSS.md).
-- [ ] Verify this reviewed batch's new public Windows gate after publication.
-  Focused/provider qualification is complete; the earlier public c476 run does
-  not contain this batch's connection-lifetime and ACK-loss changes.
+- [ ] Repair/qualify the successor public Windows gate. Run41683147081 on exact
+  `df6f42dc` finished35,678 passed /1 failed /196 skipped across Core/Updates;
+  all664 Chinese7937 rows passed. Launcher/updater stages did not run. The reviewed
+  WarFighters fixture collection repair retains all assertions and still requires
+  a full CI run. The217-case affected check passed0failed/skipped, including the
+  exact earlier victory test, reward neighbors and all19 scalar controls.
+  [Actual failure and limits](FULL-WINDOWS-20261103-DF6.md).
+
+## Retained SQL ownership qualification
+
+- [x] Review/integrate real retained single/pair SQL custody and all six raw write
+  gates, with exclusion/lifetime/ACK, actual row-wait, pair cancellation and dual
+  disposal controls. The final actual provider family passed **59/59**,0failed/
+  skipped, on owned MariaDB12.2.2. Root checked every source-discovered name and
+  actual TRX row, complete cleanup and closed listeners. Earlier21P/38F and58P/1F
+  attempts remain recorded. [Results and limits](SQL-BUNDLE-CUSTODY-20261103.md).
+- [x] Affected SQL data/event controls:217/217 passed; exact selected-SQL tooling:
+  9/9 passed. A real selected row-wait control also passed and its receipt correctly
+  marked the full provider family as not run. These are separate selections.
+- [ ] Verify the required new public Windows integration gate on this reviewed
+  source. Local component/provider passes do not replace that gate or native join.
 
 ## Remaining end-to-end work
 

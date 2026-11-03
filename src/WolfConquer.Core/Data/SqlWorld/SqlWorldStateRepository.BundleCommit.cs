@@ -13,6 +13,7 @@ public sealed partial class SqlWorldStateRepository
         ArgumentNullException.ThrowIfNull(request);
         if (request.Kind != kind) return RefuseBundle(SqlWorldStateFailure.InvalidOperationKind);
         var changes = request.Changes.ToArray();
+        long[] accountIds = changes.Select(change => change.Image.AccountId).ToArray();
         byte[] descriptor = request.CopyDescriptorBytes(), digest = request.CopyDescriptorHash();
         byte[] operation = request.OperationId.ToByteArray();
         var connection = CreateConnection();
@@ -24,8 +25,13 @@ public sealed partial class SqlWorldStateRepository
         {
             await connection.OpenAsync(token).ConfigureAwait(false);
             await VerifySchemaAsync(connection, token).ConfigureAwait(false);
-            transaction = await connection.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, token).ConfigureAwait(false);
-            result = await CommitBundleHeldAsync(connection, transaction, kind, changes, operation, digest, descriptor, disposition, token).ConfigureAwait(false);
+            if (!await TryAcquireAccountLocksAsync(connection, accountIds, token).ConfigureAwait(false))
+                result = RefuseBundle(SqlWorldStateFailure.SessionCustodyConflict);
+            else
+            {
+                transaction = await connection.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, token).ConfigureAwait(false);
+                result = await CommitBundleHeldAsync(connection, transaction, kind, changes, operation, digest, descriptor, disposition, token).ConfigureAwait(false);
+            }
         }
         catch (Exception error) { primary = error; }
         var cleanup = new List<Exception>();
@@ -52,11 +58,14 @@ public sealed partial class SqlWorldStateRepository
 
     private static async ValueTask<SqlWorldStateBundleCommitResult> CommitBundleHeldAsync(MySqlConnection connection, MySqlTransaction transaction,
         SqlWorldStateOperationKind kind, SqlWorldStateBundleChange[] changes, byte[] operation, byte[] digest,
-        byte[] descriptor, CommitDisposition disposition, CancellationToken token)
+        byte[] descriptor, CommitDisposition disposition, CancellationToken token, bool forbidNewItemUids = false,
+        SqlWorldCustodyIdentity? custodyFirst = null, SqlWorldCustodyIdentity? custodySecond = null)
     {
         bool commitAttempted = false;
+        long[] accountIds = changes.Select(change => change.Image.AccountId).ToArray();
         try
         {
+            await RequireBundleCommitCustodyAsync(connection, transaction, accountIds, custodyFirst, custodySecond, token).ConfigureAwait(false);
             bool inserted = await TryInsertOperationAsync(connection, transaction, operation, digest, descriptor, token).ConfigureAwait(false);
             if (!inserted)
             {
@@ -66,6 +75,7 @@ public sealed partial class SqlWorldStateRepository
                     return RefuseBundle(SqlWorldStateFailure.OperationConflict);
                 return MakeBundleResult(SqlWorldStateCommitStatus.Replayed, changes);
             }
+            var currentItemUids = forbidNewItemUids ? new HashSet<uint>() : null;
             foreach (var change in changes)
             {
                 var current = await ReadBundleHeldAsync(connection, transaction, change.Image.AccountId, true, token).ConfigureAwait(false);
@@ -75,9 +85,17 @@ public sealed partial class SqlWorldStateRepository
                     await transaction.RollbackAsync(token).ConfigureAwait(false);
                     return RefuseBundle(failure);
                 }
+                if (currentItemUids is not null && current.Record is { } record)
+                    currentItemUids.UnionWith(record.Image.ItemUids.ToArray());
+            }
+            if (currentItemUids is not null && AddsItemUids(changes, currentItemUids))
+            {
+                await transaction.RollbackAsync(token).ConfigureAwait(false);
+                return RefuseBundle(SqlWorldStateFailure.ItemUidIssuanceRequired);
             }
             // All old ownership rows are removed before either participant's new set is inserted.
             var coreChanges = changes.Select(change => new SqlWorldStateChange(change.Image.Core, change.ExpectedRevision)).ToArray();
+            await RequireBundleCommitCustodyAsync(connection, transaction, accountIds, custodyFirst, custodySecond, token).ConfigureAwait(false);
             await DeleteOwnershipAsync(connection, transaction, coreChanges, token).ConfigureAwait(false);
             foreach (var change in changes)
             {
@@ -100,6 +118,7 @@ public sealed partial class SqlWorldStateRepository
                 }
             }
             var result = MakeBundleResult(SqlWorldStateCommitStatus.Committed, changes);
+            await RequireBundleCommitCustodyAsync(connection, transaction, accountIds, custodyFirst, custodySecond, token).ConfigureAwait(false);
             commitAttempted = true;
             await transaction.CommitAsync(token).ConfigureAwait(false);
             disposition.Committed = true;
@@ -112,6 +131,14 @@ public sealed partial class SqlWorldStateRepository
             catch (Exception cleanup) { throw new AggregateException(error, cleanup); }
             throw;
         }
+    }
+
+    private static bool AddsItemUids(SqlWorldStateBundleChange[] changes, HashSet<uint> currentItemUids)
+    {
+        foreach (var change in changes)
+            foreach (uint uid in change.Image.ItemUids)
+                if (!currentItemUids.Contains(uid)) return true;
+        return false;
     }
 
     private static SqlWorldStateFailure ValidateBundleCurrent(SqlWorldStateOperationKind kind, SqlWorldStateBundleChange change, SqlWorldStateBundleReadResult current)

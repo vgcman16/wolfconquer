@@ -8,6 +8,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Tests;
 
+[Collection("LegacySobNpcEventRuntime")]
 public sealed class LegacyMissedWarEventNpcTests
 {
     private const uint WarFightersNpcId = 22_213;

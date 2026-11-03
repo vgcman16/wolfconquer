@@ -39,22 +39,30 @@ public sealed partial class ModernSqlAuthFileRoundtripTests
         var initial = SqlWorldStateTestData.Initial();
         var left = SqlWorldStateTestData.Image(initial.First.AccountId, initial.First.CharacterUid, SqlWorldStateTestData.FirstItems(), 1011, 100);
         var right = SqlWorldStateTestData.Image(initial.First.AccountId, initial.First.CharacterUid, SqlWorldStateTestData.FirstItems(), 1022, 100);
+        var leftRequest = WorldRequest(SqlWorldStateOperationKind.Save, left, 1);
+        var rightRequest = WorldRequest(SqlWorldStateOperationKind.Save, right, 1);
         var operations = new[]
         {
-            database.CreateWorldStateRepository().SaveAsync(WorldRequest(SqlWorldStateOperationKind.Save, left, 1)).AsTask(),
-            database.CreateWorldStateRepository().SaveAsync(WorldRequest(SqlWorldStateOperationKind.Save, right, 1)).AsTask()
+            database.CreateWorldStateRepository().SaveAsync(leftRequest).AsTask(),
+            database.CreateWorldStateRepository().SaveAsync(rightRequest).AsTask()
         };
         var results = await Task.WhenAll(operations); // Two actual provider connections; no local substitute lock.
         var committed = Assert.Single(results, row => row.Status == SqlWorldStateCommitStatus.Committed);
         var refused = Assert.Single(results, row => row.Status == SqlWorldStateCommitStatus.Refused);
-        Assert.Equal(SqlWorldStateFailure.RevisionConflict, refused.Failure); Assert.Empty(refused.Records.ToArray());
+        Assert.Contains(refused.Failure, new[] { SqlWorldStateFailure.RevisionConflict, SqlWorldStateFailure.SessionCustodyConflict }); Assert.Empty(refused.Records.ToArray());
         var winner = ReferenceEquals(committed, results[0]) ? left : right;
+        var winnerRequest = ReferenceEquals(committed, results[0]) ? leftRequest : rightRequest;
+        var loserRequest = ReferenceEquals(committed, results[0]) ? rightRequest : leftRequest;
         AssertWorldCommit(committed, SqlWorldStateCommitStatus.Committed, 2, winner);
         await AssertWorldReadAsync(database, winner, 2); await AssertWorldReadAsync(database, initial.Second, 1);
         var rows = await database.SnapshotWorldStateRowsAsync();
         Assert.Equal(3, rows.Count(row => row.StartsWith("operation|", StringComparison.Ordinal)));
         Assert.Equal(5, rows.Count(row => row.StartsWith("uid|", StringComparison.Ordinal)));
         var untouched = rows.ToArray();
+        Assert.DoesNotContain(rows, row => row.StartsWith("operation|" + Convert.ToHexString(loserRequest.OperationId.ToByteArray()) + "|", StringComparison.Ordinal));
+        await AssertWorldRefusedAsync(database, untouched, database.CreateWorldStateRepository().SaveAsync(loserRequest), SqlWorldStateFailure.RevisionConflict);
+        AssertWorldCommit(await database.CreateWorldStateRepository().SaveAsync(winnerRequest), SqlWorldStateCommitStatus.Replayed, 2, winner);
+        Assert.Equal(untouched, await database.SnapshotWorldStateRowsAsync());
         await AssertWorldReadAsync(database, winner, 2); await AssertWorldReadAsync(database, initial.Second, 1);
         Assert.Equal(untouched, await database.SnapshotWorldStateRowsAsync());
     });

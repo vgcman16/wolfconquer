@@ -1,5 +1,47 @@
 # Named UI English proposal checklist
 
+- [x] Added63 reviewed options/help/social keys/rows through two unchanged-tool
+  passes:3188/3213 ->3211/3236 ->3251keys/3276rows. Root read every wording and
+  original context, refined one spouse/Family relationship notice and independently
+  checked actual output/receipt. Actual3,225,239bytes; SHA256
+  E9436BEE31E9F21EF19347AA083DFF9F7E9B8712E862F7891A1EEED5E0DB454E.
+  Family/Guild, Level50inclusive, online/spouse qualifiers, ordered arguments and
+  exact color tags remain. All prior translations/unselected bytes remain.
+  Private/unapplied/unrendered; no changed tool, redundant suite or gameplay claim.
+
+- [x] Added135 reviewed activity/Guild-war/Dragon City keys covering136rows:
+  3053/3077 ->3070/3095 ->3129/3154 ->3188keys/3213rows. Root read all pairs/
+  original contexts and independently counted actual output changes. Actual
+  3,224,900bytes; SHA256
+  362E295CCF4448B293CB1A75AEA551EA70C1A55D996A7370A9EF543B45859346.
+  Uniform Guild Finals duplicates, historical dates, tags/timers, Guild/Faction,
+  Governor/Prestige/Morale/Dragon Scales and spectator bounds remain. Nonuniform
+  colon duplicates, contacts/URLs, unclear permissions and prior holds stay held.
+  All earlier wordings/unselected bytes remain. Private/unapplied/unrendered;
+  no changed tool, redundant formatter suite or C#/SQL/gameplay claim.
+
+- [x] Added103 reviewed feature-preview/Guild/task keys/rows through three
+  unchanged-tool passes:2950/2974 ->2992/3016 ->3008/3032 ->3053keys/3077rows.
+  Root read all pairs/original contexts, shortened42 preview labels to existing
+  Level/Rebirth style and independently counted actual output changes.
+  Actual3,224,454bytes; SHA256
+  559CFF83AAAB34F4DD3C32533BCF934544AAE3EDDEE76A9786FCD005D7B0D5CF.
+  Level50/45 and day30/day60 conflicts, unknown slots/units and named quest rules
+  remain held. Task difficulty is not a player-level requirement. All prior
+  wordings, unselected bytes, formatting and eleven-space suffixes remain.
+  Private/unapplied/unrendered; no changed tool, redundant suite or C#/SQL claim.
+
+- [x] Added162 reviewed VIP/status/storage keys/rows through three unchanged-tool
+  passes:2788/2812 ->2848/2872 ->2900/2924 ->2950keys/2974rows. Root read all
+  pairs/original contexts and independently counted actual output changes.
+  Actual3,223,946bytes; SHA256
+  B3F778E0E180D0C9478B25414A549FBFECEA6027145051B5B3FC16B5A0082055.
+  Prior wording, all unselected bytes, tokens, years, rank ranges, cosmetic and
+  resource qualifiers remain. VIP service labels are display translations, not
+  supplied-service claims. Named skill/stat/refining/player-handle holds remain.
+  Private/unapplied/unrendered; no tool source change or redundant suite rerun.
+  No C#/SQL/gameplay qualification follows from these text results.
+
 - [x] Added154 reviewed activity-title/unlock/VIP keys/rows through three
   unchanged-tool passes:2634/2658 ->2681/2705 ->2741/2765 ->2788/2812.
   Root read all pairs/original contexts and independently counted actual changed

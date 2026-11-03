@@ -4,6 +4,50 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## SQL lock scalar portability - qualification pending, 2026-11-03
+
+### FSB-344: Read exact binary lock results across actual provider integer widths
+
+**QUALIFIED within the component/provider scope; new full CI pending.** The new retained SQL custody
+code required every CAST GET_LOCK/holder-verification scalar to be boxed Int64.
+The first actual provider run built, then finished21passed/38failed/0skipped;
+all38 failures were sqlWorldAccountLockAcquisitionInvalid before transaction work.
+A bounded observation on the next separately owned MariaDB12.2.2 server directly
+returned System.Int32/exact1 for acquisition, verification and release queries.
+
+All three affected sites now share one strict classifier for the eight primitive
+integer widths, accepting only exact0/1. NULL/DBNull, bool/string/char, decimal/
+floating values, enums and other integers remain invalid with the existing reason.
+Nineteen component rows cover valid widths and invalid coercions; all passed
+within the217-case affected check,0failed/skipped. Intermediate actual provider
+runs passed58/59 with only the metadata observer failing; the final actual full
+provider family passed59/59,0failed/skipped, after its separate correction. This corrects
+self-authored repository code, not a demonstrated decompiled gameplay defect.
+No native authentication, runtime grant, backend migration or7937 acceptance follows.
+
+## SQL row-wait metadata polling - provider qualified, 2026-11-03
+
+### FSB-345: Allow the real MariaDB lock-metadata cache to refresh
+
+**VERIFIED within the owned provider scope.** The row-wait witness
+polled INNODB metadata every25ms. Matching MariaDB12.2.2 source requires more
+than100ms idle since the last cache read before refreshing; each read updates
+that last-read time. Fast polling can therefore indefinitely retain the earlier
+snapshot even while the actual new connection is blocked. Failed owned runs
+preserved the real primary errors, live owned waiter/process states and absent
+cached InnoDB rows; all58 other provider controls passed. Those failures remain.
+
+The correction uses200ms between observations. It preserves the20s
+deadline, exact waiter/blocker connection ownership, owned schema, PRIMARY row,
+original COMMIT request, cold after-images and replay assertions. No timer or
+pending task is treated as evidence of a row wait. See the matching
+[MariaDB cache implementation](https://github.com/MariaDB/server/blob/mariadb-12.2.2/storage/innobase/trx/trx0i_s.cc#L901-L916)
+and its last-read update at lines1094-1099. The actual selected control passed,
+then the final full provider family passed59/59,0failed/skipped; the exact row-wait
+case passed in0.9798987s. Root inspected actual rows and complete owned cleanup.
+No cache setting, timeout, assertion or production SQL query was relaxed. This fixes a test observer, not a
+demonstrated production server resource-accounting defect or live-client issue.
+
 ## Fixed numeric UI percentages - qualified text tooling, 2026-11-03
 
 ### FSB-343: Preserve actual fixed percentages without weakening printf parsing

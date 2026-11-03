@@ -31,10 +31,28 @@ internal sealed partial class OwnedSqlCommitAckDropProxy
         }
     }
 
-    private static async ValueTask<Packet> ReadPacketAsync(NetworkStream source, PacketBudget budget, CancellationToken token)
+    private static async ValueTask<Packet> ReadPacketAsync(NetworkStream source, PacketBudget budget, CancellationToken token, CommitAckGate? gate = null, bool serverDirection = false)
     {
         var header = new byte[4];
-        await ReadPacketBytesAsync(source, header, token);
+        if (gate is null) await ReadPacketBytesAsync(source, header, token);
+        else
+        {
+            int first;
+            try { first = await source.ReadAsync(header.AsMemory(0, 1), token); }
+            catch (Exception error) when (token.IsCancellationRequested && IsOwnedReadCancellation(error))
+            { throw new OperationCanceledException("Owned SQL proxy packet read was canceled.", error, token); }
+            token.ThrowIfCancellationRequested();
+            if (first == 0)
+            {
+                if (Volatile.Read(ref gate.Forwarding) != 0 && (!serverDirection || Volatile.Read(ref gate.QuitForwarded) != 0))
+                {
+                    await gate.Forwarded.Task.WaitAsync(token); // Only a successfully forwarded actual OK permits clean boundary EOF.
+                    throw new GatedClientEofException();
+                }
+                throw new EndOfStreamException("Owned SQL proxy peer ended inside the expected packet.");
+            }
+            await ReadPacketBytesAsync(source, header.AsMemory(1), token);
+        }
         int length = header[0] | (header[1] << 8) | (header[2] << 16);
         budget.Admit(length); // Before payload allocation; 0xffffff continuation chunks exceed this fixture's cap.
         var bytes = new byte[checked(length + 4)]; header.CopyTo(bytes, 0);
