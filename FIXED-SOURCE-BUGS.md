@@ -60,28 +60,34 @@ complete gate still has not run on the new source. Older53f remains failed.
 
 ## SQL-native trade source checkpoint - 2026-11-03 UTC
 
-FSB318-321 integration remains OPEN. The bd49 managed build passed and its
+FSB318-321 have bounded managed/native/provider verification; the complete
+publication gate and stated live/SQL-backend limits remain OPEN. The bd49 build passed and its
 affected run returned521passed/1failed/0skipped. Metadata24, eligibility22,
 trade-runtime100 and tool22 rows passed. One recovery collision fixture failed
 before its intended assertion because the ordinary writer correctly refused its
-pending journal. Its narrow fixture correction remains unrun; actualSQL14 and
-the complete gate remain required. The failed full53f evidence is unchanged.
+pending journal. Its narrow fixture correction then passed1/1 on cleanfb0c5009
+in032100937Z-e248970c, including the same-path noncollision recovery control.
+ActualSQL14 subsequently passed14/14,0failed/skipped, against fresh owned MariaDB12.2.2
+port34383; all14 exact TRX rows and successful owned cleanup were inspected.
+Characters/items remain INI/BIN. The complete gate remains required and the
+failed full53f and affected521P/1F evidence is unchanged.
 [Qualification checklist](docs/checklists/SQL-NATIVE-TRADE-20261103.md).
 
 ### FSB-318: Refuse suspicious roots and descendants before a trade offer
 
-OPEN, unqualified. The trade closure predicate omitted Suspicious while checking
+Corrected within the bounded verification above. The trade closure predicate omitted Suspicious while checking
 Bound, Inscribed, locked-partner permission and unable-trade IDs. The selected
 root and every deposited child now require Suspicious==0 at the existing offer
 and settlement checks. Genuine directed type3 locked-partner permission remains;
 it cannot authorize a suspicious row. Unselected rows and refunds retain their
 existing policy. Authored actual owned Runtime/Frame and opt-in SQL controls cover
 root/child refusal, the valid partner exception and unchanged saved/native/output
-state. Managed eligibility controls passed; SQL/full integration remain open.
+state. Managed eligibility and the real SQL/native suspicious-root refusal passed;
+complete publication and wider/live acceptance remain open.
 
 ### FSB-319: Retain immutable stack-cap authority for an owned trade offer
 
-OPEN, unqualified. Owned trades could accept an offered stack without valid
+Corrected within the bounded verification above. Owned trades could accept an offered stack without valid
 required item metadata or beyond its cap. The actual WorldDataCatalog constructor
 now captures immutable caps from coherent server66 raw/index rows, including the
 genuine fixed-one accessory override. Missing/malformed/conflicting selected rows
@@ -91,22 +97,23 @@ Empty/no-catalog compatibility requires both real current holders to prove they
 are genuinely unbound; native/mixed pairs cannot borrow it. No Chinese67 column
 meaning is inferred. Authored controls cover aliases, malformed/colliding metadata,
 caps, real owned transfers and stale generation. Metadata24, eligibility22 and
-trade-runtime100 rows passed in the affected run; actualSQL/full remain open.
+trade-runtime100 rows passed in the affected run; actualSQL14 normal native paths
+also passed. This is not full/current7937 metadata or universal mutation proof.
 
 ### FSB-320: Refuse high-width trade actions before lower-width dispatch
 
-OPEN, unqualified. Opcode2119 retains UInt64 Action but dispatch narrowed it to
+Corrected within the bounded verification above. Opcode2119 retains UInt64 Action but dispatch narrowed it to
 UInt32 Type. Values above UInt32 could alias request, cancel, offer, confirmation
 or currency actions. The handler now refuses that width before acquiring its
 operation/state path. The complete strict codec, captured type-only form and all
 successful six-field bytes remain unchanged. Authored real owned and SQL controls
 require no wallet/item/confirmation/pair/output change on aliases and preserve
-valid subsequent requests. The managed eligibility rows passed; actual SQL
-qualification and the complete integration gate remain open.
+valid subsequent requests. Managed eligibility and the actual SQL/native high
+action-alias refusal passed. The complete integration gate remains open.
 
 ### FSB-321: Recover the actual absent-empty Items beforeimage of a trade
 
-OPEN, unqualified. Ordinary admission permits a genuinely absent empty Items file,
+Corrected within the bounded verification above. Ordinary admission permits a genuinely absent empty Items file,
 and the real four-target trade writer records its BEFORE as null. Owned startup
 previously rejected that valid v1 producer. Only that recorded Items absence is
 now interpreted as an empty graph. Character images, exact UID conservation,
@@ -117,8 +124,10 @@ file/owner is fabricated; vendor null-beforeimages and other versions stay under
 their existing rules. Authored actual producer controls cover replacement0..4 for
 settlement/refund, cold native admission and an unrelated physical UID collision.
 Historical v1 intents retain their original permission contract. The ten genuine
-absent-Items prefix rows passed; the new external-collision test failed during
-its correctly blocked setup and requires the narrow fixture repair/counterfactual.
+absent-Items prefix rows passed. The new external-collision test initially failed
+during correctly blocked setup; its narrow fixture repair passed1/1, including
+the same-path noncolliding UID recovery, fresh native Frame and cold reopening.
+The actual SQL/native interrupted four-file trade recovery also passed.
 
 ### FSB-322: Keep local-check Plan independent of execution-only log pumping
 

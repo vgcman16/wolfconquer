@@ -9,6 +9,10 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
 - [x] Actual SQL5 passed on03d5607d against fresh owned MariaDB12.2.2, with real
   SQL auth/native sale/cold reauth/file reopening and owned cleanup. Characters
   and items remain INI/BIN; this is not7937 live proof.
+- [x] New actualSQL14 passed on cleanfb0c5009,0failed/skipped, using the closed
+  gameplay command/fresh owned MariaDB12.2.2. Child/commands settled, no cleanup
+  errors; owned data and private options absent. Native trade/refusal/retry/EOF/
+  cold reauth/recovery are bounded proof; full Windows and live acceptance remain.
 - [x] Earlier full53f82817 run003401400Z-06a79af7/session30882 terminated FAILED
   at02:47:02UTC: Core34,814P/1F/157skip, Updates446P. Restore/build passed;
   launcher/later gates unrun. Only failure is the copied-script Plan import issue,
@@ -17,22 +21,25 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
 - [x] Root separately composed29 A14+B6+C7+Plan2 code/test paths: suspicious
   closure refusal, immutable cap ownership, high-width action guard, absent-Items
   v1 recovery,9 new SQL/native trade Facts and the Plan repair. Build now passed;
-  [trade qualification queue](SQL-NATIVE-TRADE-20261103.md), FSB318-321 integration OPEN.
-- [ ] Qualify focused managed, actual owned SQL and appropriate full gates before
-  reviewed publication of this batch. All source-declared14 SQL Facts must pass.
+  [trade qualification queue](SQL-NATIVE-TRADE-20261103.md), bounded FSB318-321 proof.
+- [ ] Complete the appropriate full gate before reviewed publication of this
+  batch. All source-declared14 SQL Facts have now actually passed.
 - [x] Source-intaken the turnkey SQL gameplay command and6 authored Plan/refusal
   rows, reusing the real owned lifecycle and fresh full-family build. The2 changed
   PowerShell scripts syntax-parse;16 Plan/status and6 SQL-tool controls now passed.
-  The actual14-Fact provider callback is still unrun.
+  The actual14-Fact provider callback also passed and retired its owned child tree.
 - [x] Actual Plan/missing-pump and shared host-mutex refusal controls passed;
   FSB322-323 are component-verified. Full-run integration remains required.
-- [ ] Run all14 SQL Facts via the closed command after the fixture correction.
+- [x] Ran all14 SQL Facts via the closed command after the fixture correction.
 - [x] First affected managed gate finished521P/1F/0skip after a successful build.
   Only failure was the collision fixture's correctly blocked setup writer.
-- [ ] Run its reviewed external-collision/noncollision fixture correction, then
-  actualSQL14. No production guard was weakened; keep the failed run failed.
+- [x] Its reviewed external-collision/noncollision fixture passed1/1, then
+  actualSQL14 passed. No production guard was weakened; old failed runs stay failed.
 - [ ] Next independent booth proposals add selected suspicious-item validation
   and actual SQL/native start/list/buy/cold-reopen controls; not intaken/qualified.
+- [ ] Additional booth listing authority retains real item-node lineage and
+  immutable stack bounds; preserve valid native canonical reprojection. Isolated
+  core/detached/native/SQL scopes are authored outside this checkpoint, unqualified.
 - [x] Named UI integrity fixes (FSB324-326) passed23 isolated Python controls,
   0failed/skipped; actual old-source regressions were retained. This does not
   qualify the current C# batch or make the failed full run pass.

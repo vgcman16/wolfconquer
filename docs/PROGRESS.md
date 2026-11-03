@@ -7,7 +7,9 @@ Updated2026-11-03. Full English client/server reconstruction remains active.
 Full53f terminated FAILED: Core34,814 passed/1failed/157skipped and Updates446
 passed. Restore/build passed; launcher/later stages were not run. The sole failure
 is the copied-script Plan import; its repair and new trade/SQL tooling sources are
-in the next checkout but still need managed/provider/full qualification.
+now component-qualified in the next checkout. Affected521/1 retained its fixture
+setup failure, the sole corrected case passed1/1 separately, and actualSQL14 then
+passed without skips on fresh owned MariaDB12.2.2. Complete gate still pending.
 [Exact terminal result](checklists/FULL-WINDOWS-20261103-53F.md).
 
 Separate Python text tools passed30 item-column controls and31 named-UI controls.

@@ -1,5 +1,36 @@
 # Actual modern SQL authentication and native file transaction
 
+## New actual14-Fact qualification - 2026-11-03
+
+Clean sourcefb0c50094dfb090c315fe54b486db2fa97faf65d passed all14 source-declared
+ModernSqlAuthFileRoundtripTests,0failed/skipped, using the closed command:
+
+```text
+pwsh -NoProfile -File tools/dev/Invoke-SqlGameplayCheck.ps1 -Port 34383
+```
+
+This started fresh owned MariaDB12.2.2 and restored/built through the real private
+callback after lifecycle readiness. Root inspected all14 actual Passed TRX rows.
+The original five cases below still pass. Nine additional Facts cover real SQL
+two-actor native trade: existing item UID/Money/CP transfer before every output,
+second-character/item lease refusal and same-pair retry, bound/locked/suspicious
+refusals, high-width action aliases, negative/unavailable funds, transport EOF
+escrow refund, and interrupted four-file recovery before both cold SQL admissions.
+Actual frame counts/order, holder/native/file convergence and no-reissue assertions
+are part of those tests, not invented backend owners.
+
+Private receipt owned-sql-auth-7bad096cfa4d4f488ef729c782c48015 reports Qualified,
+14passed, ChildTreeSettled/CommandsSettled true, no primary/cleanup exceptions,
+DataRetained false. Root separately confirmed data/ and client.private.ini absent.
+The command/session terminated0. Original services/saves were not selected.
+
+This is a component/provider qualification, not the complete Windows gate, live
+client, current7937 profile or SQL character/item migration. Characters/items
+remain journaled INI/BIN. The separately recorded affected521/1 failure stays
+failed; its sole fixture-only repair subsequently passed1/1 on this same source.
+
+## Earlier actual5-Fact qualification
+
 Source `03d5607d3b9904ec4fbba08885790f5851d4ff8d` passed all five opt-in
 ModernSqlAuthFileRoundtripTests with zero failures/skips on a fresh owned
 MariaDB12.2.2 instance, using the real MySqlConnector2.6.1 repository.
