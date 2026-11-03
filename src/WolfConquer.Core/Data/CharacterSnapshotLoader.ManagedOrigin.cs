@@ -1,5 +1,4 @@
 using System.Globalization;
-using WolfConquer.Core.World;
 
 namespace WolfConquer.Core.Data;
 
@@ -31,17 +30,7 @@ public sealed partial class CharacterSnapshotLoader
             var updated = PrepareExpiredPaidNobility(snapshot);
             if (ReferenceEquals(updated, snapshot)) return new ManagedOriginLoad(loaded, path, before);
 
-            var text = CharacterSnapshotFileEncoding.Decode(before, out var encoding);
-            if (!encoding.GetPreamble().Concat(encoding.GetBytes(text)).SequenceEqual(before))
-                throw new InvalidDataException("managedOriginEncodingInvalid");
-            var character = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string key in new[] { "DonationNobility", "LastNobilityDonation", "NobilityRank", "NobilityPosition" })
-                character.Add(key, updated.Attributes[key]);
-            var paid = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string key in new[] { "Identifier", "LastNobilityDonation", "PaidRank", "PeriodTime", "IsActive", "Rank", "Position" })
-                paid.Add(key, updated.PaidNobility[key]);
-            string projected = LegacyOrdinaryAdmissionCharacterText.Project(text, character, paid);
-            var after = encoding.GetPreamble().Concat(encoding.GetBytes(projected)).ToArray();
+            var after = ProjectPaidExpiryImage(before, updated);
             if (!CharacterSnapshotFileCoordinator.TryReplaceCapturedImage(path, before, after, out var uncertain, out var reason))
                 throw new InvalidDataException(uncertain ? "managedOriginExpiryOutcomeUnproven:" + reason : "managedOriginExpiryRefused:" + reason);
             // The receipt is the exact before/after writer result, never an

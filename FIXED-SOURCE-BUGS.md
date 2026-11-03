@@ -4,6 +4,77 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## Native prefix correction — qualification pending, 2026-11-03
+
+Bounded qualification now passed221 repair/component tests and all42 actual
+SQL provider Facts, zero failed/skipped, with actual owned cleanup checked.
+The original700P/10F run is retained; corrupt-input expectations were repaired
+without weakening guards. See [results](docs/checklists/SQL-NATIVE-PREPARATION-RESULTS-20261103.md).
+The coherent successor full gate and each explicit remaining limit stay open.
+
+### FSB-335: Refuse malformed present native-prefix fields before admission
+
+**OPEN: source built; complete affected qualification pending.** The file
+prefix used optional INI typed readers that swallowed malformed/overflowing
+values into defaults and consulted mutable global conversion delegates. The
+two RelicSpirit tests explicitly accepted `bad` and numeric `1` as false and
+continued login. That could publish a different native state and Online marker
+instead of rejecting invalid saved input.
+
+The proposed correction uses `LegacyNativeFilePrefixValues` under the existing
+real file lease/baseline, fixed invariant parsing and bounded full-string probes.
+Missing optional fields retain defaults; valid Win32 quotes remain supported.
+Malformed/overflowing, truncated and hidden-control present values refuse before
+file/native/session effects. The prefix no longer invokes mutable conversion
+delegates. The two bad-default tests now require actual registered refusal;
+converter controls require non-invocation and retain genuine prefix commits.
+Independent physical class/level/transformation checks remain intact. The first
+affected run finished700passed/10failed/0skipped; the ten failures identify
+further older login assertions that accepted corrupt numeric/boolean suffixes,
+overflow or truncation. Their original bad values are retained as rejection
+controls, with genuine valid and missing-value positives kept separately.
+
+Authored captured-data/native/file controls and the appropriate integration gate
+must run before this entry becomes a verified fix. The separate captured SQL
+preparation has no commit/publication API and is not authentication, native SQL
+admission, full persistence or actual-client acceptance.
+
+### FSB-336: Validate paid expiry data instead of inventing a zero restoration
+
+**OPEN: focused controls passed; full-batch qualification pending.** Active paid
+nobility previously used missing/malformed period and donation fallbacks of zero,
+or DateTime.MinValue after a failed binary-date decode. That could trigger expiry
+and replace donation/rank using invalid storage. A present invalid active flag
+could also be treated as inactive instead of refusing it.
+
+The proposed shared correction requires a valid active flag and, for active
+state, a present valid binary deadline and UInt64 restoration donation before
+evaluating expiry. Missing/valid inactive optional state and established valid
+bool/numeric forms remain. The public/staged loader returns a null failed
+snapshot for the dedicated malformed-paid error; complete SQL image preparation
+also refuses without replacing any input image. Real file/data controls cover
+malformed, future-active and valid inclusive-deadline cases. The combined
+PaidNobilityInputSafety family passed33/33 in run20261103T102915484Z-a3f84ef7;
+SQL image-plan controls passed47/47. The affected batch still failed ten older
+native-prefix assertions; real-provider and successor full checks remain open.
+
+### FSB-337: Require a verified paid-expiry save before returning normalized state
+
+**OPEN: focused controls passed; full-batch qualification pending.** The older
+public loader ignored its best-effort paid section writer's false result and
+returned updated donation/rank even when saving failed. The proposed successor
+re-captures current bounded data under the actual path gate, checks UID and
+structure, recomputes expiry and uses the existing exact-image coordinator.
+It shares the established paid-only byte projection with ManagedOrigin.
+
+Only a verified after-image returns normalized success. Known refusal and an
+unproven outcome have distinct appended failure statuses and no loaded snapshot;
+both Frame error callers handle them. Original enum values are retained. The
+real held-file refusal/release/retry and malformed-paid controls executed in
+the33/33 paid family noted above. Uncertain-outcome propagation remains source-reviewed and
+unexercised. This is one Character-file operation; loaded quest data is retained
+and is not part of a multi-file transaction, native SQL authority or power-loss proof.
+
 ## SQL world-state draft corrections - 2026-11-03
 
 Bounded source/provider qualification is recorded on e82916b9: all29 actual SQL

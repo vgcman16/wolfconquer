@@ -4,7 +4,7 @@ namespace WolfConquer.Core.Data;
 
 // Ordinary local snapshot evidence, not a multi-file transaction or symlink-race proof.
 // Cooperating readers/writers must use the same SnapshotFileLockCoordinator gate.
-internal static class CharacterSnapshotFileBaseline
+internal static partial class CharacterSnapshotFileBaseline
 {
     internal const int MaximumBytes = 16 * 1024 * 1024;
 

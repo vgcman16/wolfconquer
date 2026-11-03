@@ -6,7 +6,7 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeHairfaceStorageLoginTests
 {
     [Theory]
-    [InlineData("True ignored", "False", "True", true, false, true)]
+    [InlineData("True", "False", "True", true, false, true)]
     [InlineData("False", "True", "False", false, true, false)]
     public async Task PostHairfaceFlagsReadIntoRetainedPlayerAndConstructorOwnedBeast(
         string activated, string effect, string skills,
@@ -16,13 +16,24 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             expectedActivated, expectedEffect, expectedSkills);
     }
 
-    [Theory]
-    [InlineData(null, null, null)]
-    [InlineData("1", "bad", "TrueX")]
-    public async Task MissingOrMalformedPostHairfaceFlagsResetControlledTrueStateToFalse(
-        string? activated, string? effect, string? skills)
+    [Fact]
+    public async Task MissingPostHairfaceFlagsResetControlledTrueStateToFalse()
     {
-        await AssertPostHairfaceFlagsAsync(activated, effect, skills, false, false, false);
+        await AssertPostHairfaceFlagsAsync(null, null, null, false, false, false);
+    }
+
+    [Theory]
+    [InlineData("True ignored", "False", "True")]
+    [InlineData("1", "bad", "TrueX")]
+    [InlineData("1", "False", "True")]
+    [InlineData("True", "bad", "True")]
+    [InlineData("True", "False", "TrueX")]
+    public async Task MalformedPresentPostHairfaceFlagsRefuseBeforeAnyPrefixEffects(
+        string activated, string effect, string skills)
+    {
+        using var input = new LoginInput();
+        var before = WritePostHairfaceFlagValues(input, activated, effect, skills);
+        await AssertStrictSavedLoginRefusalAsync(input, before);
     }
 
     private static async Task AssertPostHairfaceFlagsAsync(
@@ -89,15 +100,6 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             AssertSavedFlagText(accepted, "SpawinEffectSkills", skills);
             Assert.Equal(expectedMarker, File.ReadAllBytes(input.FilePath));
             Assert.Contains("legacy MsgLoginGame Success", log.Text);
-
-            if (activated == "True ignored")
-            {
-                // Native ReadBool uses its real six-WCHAR buffer: "True " is parsed,
-                // while the untouched full snapshot value is not a bool at all.
-                Assert.False(bool.TryParse(activated, out _));
-                Assert.True(beasts.Activated);
-            }
-
         });
     }
 

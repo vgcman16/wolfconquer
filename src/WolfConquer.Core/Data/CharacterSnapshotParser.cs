@@ -511,28 +511,17 @@ public sealed partial class CharacterSnapshotLoader
             """);
     }
 
-    private static CharacterSnapshot RestoreExpiredPaidNobility(string path, CharacterSnapshot snapshot)
-    {
-        var updated = PrepareExpiredPaidNobility(snapshot);
-        if (ReferenceEquals(updated, snapshot)) return snapshot;
-        var restoredDonation = ReadUInt64(snapshot.PaidNobility, "LastNobilityDonation");
-        TryPersistExpiredPaidNobility(path, snapshot.Uid, restoredDonation, ComputeLegacyRegularNobilityRank(restoredDonation));
-        return updated;
-    }
-
     internal static CharacterSnapshot PrepareExpiredPaidNobility(CharacterSnapshot snapshot)
         => PrepareExpiredPaidNobility(snapshot, DateTime.Now);
 
     internal static CharacterSnapshot PrepareExpiredPaidNobility(CharacterSnapshot snapshot, DateTime localNow)
     {
-        if (!TryReadActivePaidNobility(snapshot.PaidNobility, out var active) ||
-            !active ||
-            !IsPaidNobilityExpired(snapshot.PaidNobility, localNow))
+        if (!TryReadPaidNobilityExpiry(snapshot.PaidNobility, out var periodTime, out var restoredDonation) ||
+            localNow < periodTime)
         {
             return snapshot;
         }
 
-        var restoredDonation = ReadUInt64(snapshot.PaidNobility, "LastNobilityDonation");
         var restoredRank = ComputeLegacyRegularNobilityRank(restoredDonation);
         var attributes = new Dictionary<string, string>(
             snapshot.Attributes,
@@ -565,89 +554,6 @@ public sealed partial class CharacterSnapshotLoader
         return updated;
     }
 
-    private static bool TryReadActivePaidNobility(
-        IReadOnlyDictionary<string, string> paidNobility,
-        out bool active)
-    {
-        active = false;
-        if (!paidNobility.TryGetValue("IsActive", out var raw))
-        {
-            return false;
-        }
-
-        if (bool.TryParse(raw, out active))
-        {
-            return true;
-        }
-
-        if (byte.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var numeric))
-        {
-            active = numeric != 0;
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool IsPaidNobilityExpired(IReadOnlyDictionary<string, string> paidNobility, DateTime localNow)
-    {
-        var periodTimeBinary = ReadInt64(paidNobility, "PeriodTime");
-        DateTime periodTime;
-        try
-        {
-            periodTime = DateTime.FromBinary(periodTimeBinary);
-        }
-        catch (ArgumentException)
-        {
-            periodTime = DateTime.MinValue;
-        }
-
-        return localNow >= periodTime;
-    }
-
-    private static bool TryPersistExpiredPaidNobility(
-        string path,
-        long expectedCharacterUid,
-        ulong restoredDonation,
-        byte restoredRank)
-    {
-        var characterValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["DonationNobility"] = restoredDonation.ToString(CultureInfo.InvariantCulture),
-            ["LastNobilityDonation"] = restoredDonation.ToString(CultureInfo.InvariantCulture),
-            ["NobilityRank"] = restoredRank.ToString(CultureInfo.InvariantCulture),
-            ["NobilityPosition"] = LegacyNobilityDefaultPosition.ToString(CultureInfo.InvariantCulture),
-        };
-        var paidNobilityValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Identifier"] = "0",
-            ["LastNobilityDonation"] = "0",
-            ["PaidRank"] = "0",
-            ["PeriodTime"] = "0",
-            ["IsActive"] = bool.FalseString,
-            ["Rank"] = "Serf",
-            ["Position"] = LegacyNobilityDefaultPosition.ToString(CultureInfo.InvariantCulture),
-        };
-
-        return CharacterSnapshotFileCoordinator.TryUpdateSections(
-            path,
-            expectedCharacterUid,
-            [
-                new CharacterSnapshotSectionUpdate(
-                    "Character",
-                    characterValues,
-                    CreateIfMissing: false,
-                    MissingReason: "characterSectionMissing"),
-                new CharacterSnapshotSectionUpdate(
-                    "PaidNobility",
-                    paidNobilityValues,
-                    CreateIfMissing: true,
-                    MissingReason: "paidNobilitySectionMissing"),
-            ],
-            detailedIoFailures: false,
-            out _);
-    }
-
     private static byte ComputeLegacyRegularNobilityRank(ulong donation)
     {
         if (donation >= LegacyNobilityEarlDonation)
@@ -668,19 +574,4 @@ public sealed partial class CharacterSnapshotLoader
         return LegacyNobilityRankSerf;
     }
 
-    private static long ReadInt64(IReadOnlyDictionary<string, string> values, string key)
-    {
-        return values.TryGetValue(key, out var value) &&
-            long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
-            ? parsed
-            : 0;
-    }
-
-    private static ulong ReadUInt64(IReadOnlyDictionary<string, string> values, string key)
-    {
-        return values.TryGetValue(key, out var value) &&
-            ulong.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
-            ? parsed
-            : 0;
-    }
 }

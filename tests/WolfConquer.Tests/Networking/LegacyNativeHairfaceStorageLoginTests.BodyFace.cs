@@ -9,8 +9,8 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
 {
     [Theory]
     [InlineData("65535", "65535", 65535, 65535)]
-    [InlineData("000010080000", "000001540000", 1008, 154)]
-    public async Task EncryptedLoginLoadsBodyAndFaceFromTheBoundedNativeReader(
+    [InlineData("00001008", "00000154", 1008, 154)]
+    public async Task EncryptedLoginLoadsCompleteValidBodyAndFaceValues(
         string rawBody, string rawFace, ushort expectedBody, ushort expectedFace)
     {
         using var input = new LoginInput();
@@ -62,6 +62,17 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.Equal(expectedBytes, File.ReadAllBytes(input.FilePath));
             Assert.True(log.Text.Contains("legacy MsgLoginGame Success", StringComparison.Ordinal), log.Text);
         });
+    }
+
+    [Fact]
+    public async Task OutOfRangeBodyAndFaceCannotBeAcceptedByTruncatingTheirSavedDigits()
+    {
+        using var input = new LoginInput();
+        var text = Encoding.UTF8.GetString(input.InitialBytes)
+            .Replace("Body=1008\r\n", "Body=000010080000\r\n", StringComparison.Ordinal)
+            .Replace("Face=154\r\n", "Face=000001540000\r\n", StringComparison.Ordinal);
+        var bytes = Encoding.UTF8.GetBytes(text); File.WriteAllBytes(input.FilePath, bytes);
+        await AssertStrictSavedLoginRefusalAsync(input, bytes);
     }
 
     [Theory]

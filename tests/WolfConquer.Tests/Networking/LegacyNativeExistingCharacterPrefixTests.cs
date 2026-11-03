@@ -9,7 +9,7 @@ using WolfConquer.Core.World;
 namespace WolfConquer.Tests;
 
 [Collection("NativeItemCounterSourcePrerequisite")]
-public sealed class LegacyNativeExistingCharacterPrefixTests
+public sealed partial class LegacyNativeExistingCharacterPrefixTests
 {
     private const uint Uid = 1_293_600;
 
@@ -32,15 +32,15 @@ public sealed class LegacyNativeExistingCharacterPrefixTests
     }
 
     [Fact]
-    public async Task AcceptedLoginMalformedRelicSpiritDefaultsFalseAndContinues()
+    public async Task MalformedPresentRelicSpiritRefusesBeforeAnyPrefixPublication()
     {
-        await AssertAcceptedAsync("bad", initialOnline: 0, expectedOnline: 1, expectedRelic: false);
+        await AssertInvalidPresentPrefixAsync("RelicSpirit", "bad");
     }
 
     [Fact]
-    public async Task AcceptedLoginNumericRelicSpiritIsNotTrueAndContinues()
+    public async Task NumericPresentRelicSpiritRefusesBeforeAnyPrefixPublication()
     {
-        await AssertAcceptedAsync("1", initialOnline: 0, expectedOnline: 1, expectedRelic: false);
+        await AssertInvalidPresentPrefixAsync("RelicSpirit", "1");
     }
 
     [Fact]

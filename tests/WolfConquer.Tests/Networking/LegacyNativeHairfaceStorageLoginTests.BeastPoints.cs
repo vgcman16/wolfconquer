@@ -7,7 +7,7 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyNativeHairfaceStorageLoginTests
 {
     [Theory]
-    [InlineData(true, "00000000000035ignored", (byte)3)]
+    [InlineData(true, "00000000000035", (byte)3)]
     [InlineData(false, "35", (byte)2)]
     public async Task BeastPointsAndHighBitFlagLoadIntoTheRetainedConstructorOwnedBeast(
         bool activated, string savedPoints, byte expectedLevel)
@@ -18,12 +18,22 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
 
     [Theory]
     [InlineData(null, null)]
-    [InlineData("not-uint", "4294967296")]
-    public async Task MissingOrMalformedBeastUInt32ValuesApplyZeroDefaultsNotPriorFlag(
+    public async Task MissingBeastUInt32ValuesApplyZeroDefaultsNotPriorFlag(
         string? savedPoints, string? savedFlag)
     {
         await AssertBeastPointsLoginAsync(true, savedPoints, savedFlag,
             expectedPoints: 0, expectedLevel: 1, expectedFlag: 0);
+    }
+
+    [Theory]
+    [InlineData("00000000000035ignored", "2147483665")]
+    [InlineData("not-uint", "4294967296")]
+    [InlineData("0", "4294967296")]
+    public async Task MalformedPresentBeastPointsOrFlagRefusesBeforeAnySavedOrNativeEffect(string points, string flag)
+    {
+        using var input = new LoginInput();
+        var bytes = WriteBeastPointsValues(input, true, points, flag);
+        await AssertStrictSavedLoginRefusalAsync(input, bytes);
     }
 
     private static async Task AssertBeastPointsLoginAsync(
@@ -91,11 +101,11 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             AssertSavedFlagText(accepted, "TailedBeastFlag", savedFlag);
             Assert.Equal(expectedMarker, File.ReadAllBytes(input.FilePath));
             Assert.Contains("legacy MsgLoginGame Success", log.Text);
-            if (savedPoints == "00000000000035ignored")
+            if (savedPoints == "00000000000035")
             {
                 Assert.Equal(14, "00000000000035".Length);
-                Assert.False(uint.TryParse(savedPoints, out _));
-                // Native ReadUInt32's fifteen-WCHAR buffer reads fourteen digits => 35.
+                Assert.True(uint.TryParse(savedPoints, out var parsed));
+                Assert.Equal(35U, parsed); // Complete valid leading-zero input, with no ignored suffix.
                 Assert.Equal(5U, beasts.Points);
             }
 

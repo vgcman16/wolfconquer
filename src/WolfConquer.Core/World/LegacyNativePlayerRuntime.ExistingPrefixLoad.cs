@@ -27,7 +27,7 @@ internal sealed record LegacyNativePrefixValues(
 
 public sealed partial class LegacyNativePlayerRuntime
 {
-    internal sealed class ExistingPrefixLoad
+    internal sealed partial class ExistingPrefixLoad
     {
         private readonly LegacyNativePlayerRuntime player;
         private readonly LegacyNativeGameClientRuntime client;
@@ -44,29 +44,7 @@ public sealed partial class LegacyNativePlayerRuntime
         }
 
         internal static ExistingPrefixLoad? TryPrepare(LegacyNativeGameClientRuntime client, CharacterSnapshot snapshot,
-            LegacyNativeItemCounterShellIni ini)
-        {
-            if (client?.Player is not { } player || !ReferenceEquals(player.Owner, client) || client.FullLoading || client.Fake ||
-                player.Name is null || player.Spouse is null ||
-                snapshot.Uid is <= 0 or > uint.MaxValue || snapshot.Class is < 0 or > uint.MaxValue ||
-                snapshot.Level is < 0 or > ushort.MaxValue ||
-                player.UID != 0 && player.UID != snapshot.Uid || player._class != 0 && player._class != snapshot.Class) return null;
-            var before = Read(player);
-            var job = player._class; var transformation = player._transformationid;
-            var relic = ini.ReadBool("Character", "RelicSpirit", false);
-            var after = new LegacyNativePrefixValues(checked((uint)snapshot.Uid), checked((uint)snapshot.Class),
-                checked((ushort)snapshot.Level), relic, checked(before.Online + 1),
-                ini.ReadBool("Character", "SpawinEffect", false), ini.ReadBool("Character", "SpawinEffectSkills", false),
-                ini.ReadUInt32("Character", "DeityLandLuckyPoints"), ini.ReadUInt32("Character", "HeroPoints"),
-                ini.ReadUInt32("Character", "ClassExperience"), ini.ReadUInt32("Character", "SavePromote"),
-                ini.ReadByte("Character", "SkinUnlock", 0), ini.ReadByte("Character", "DoomosaurSkin", 0),
-                ini.ReadByte("Character", "PrayingElfSkin", 0), ini.ReadByte("Character", "PolarDragonSkin", 0),
-                ini.ReadByte("Character", "ChargeChi", 0), ini.ReadByte("Character", "ChargeGuildSkill", 0),
-                ini.ReadUInt16("Character", "Body", 1002), ini.ReadUInt16("Character", "Face", 0),
-                ini.ReadString("Character", "Name", "None"), ini.ReadString("Character", "Spouse", "None"));
-            var candidate = new ExistingPrefixLoad(player, client, before, after, job, transformation);
-            return candidate.IsCurrent() ? candidate : null;
-        }
+            LegacyNativeFilePrefixValues saved) => TryPrepareValues(client, snapshot, saved.SavedPlayerValues);
 
         internal static LegacyNativePrefixValues Read(LegacyNativePlayerRuntime value) => new(
             value.UID,

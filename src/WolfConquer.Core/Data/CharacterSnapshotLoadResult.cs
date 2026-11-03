@@ -8,6 +8,8 @@ public enum CharacterSnapshotLoadStatus
     SnapshotReadDenied,
     SnapshotParseFailed,
     UidMismatch,
+    SnapshotWriteFailed,
+    SnapshotWriteOutcomeUncertain,
 }
 
 public sealed record CharacterSnapshotLoadResult(

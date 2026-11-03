@@ -32,7 +32,31 @@ public sealed partial class CharacterSnapshotLoader
         // No expiry persistence occurs until the required quest image is known
         // to load. UID mismatch has already been rejected by the caller.
         var complete = snapshot with { PlayerQuests = quests };
-        if (persistExpiry) complete = RestoreExpiredPaidNobility(characterPath, complete);
+        try
+        {
+            if (persistExpiry) complete = RestoreExpiredPaidNobility(characterPath, complete);
+            else _ = PrepareExpiredPaidNobility(complete);
+        }
+        catch (PaidNobilityStorageException error)
+        {
+            return QuestLoadFailure(accountId, characterPath,
+                CharacterSnapshotLoadStatus.SnapshotParseFailed,
+                "paidNobilityStorageInvalid", error);
+        }
+        catch (PaidNobilityPersistenceException error)
+        {
+            return QuestLoadFailure(accountId, characterPath,
+                error.Uncertain ? CharacterSnapshotLoadStatus.SnapshotWriteOutcomeUncertain : CharacterSnapshotLoadStatus.SnapshotWriteFailed,
+                error.Uncertain ? "paidNobilityPersistenceOutcomeUnproven" : "paidNobilityPersistenceRefused", error);
+        }
+        catch (UnauthorizedAccessException error)
+        {
+            return QuestLoadFailure(accountId, characterPath, CharacterSnapshotLoadStatus.SnapshotReadDenied, "snapshotReadDenied", error);
+        }
+        catch (IOException error)
+        {
+            return QuestLoadFailure(accountId, characterPath, CharacterSnapshotLoadStatus.SnapshotReadFailed, "snapshotReadFailed", error);
+        }
         return new CharacterSnapshotLoadResult(
             complete, CharacterSnapshotLoadStatus.Success, accountId,
             characterPath, "success", string.Empty);

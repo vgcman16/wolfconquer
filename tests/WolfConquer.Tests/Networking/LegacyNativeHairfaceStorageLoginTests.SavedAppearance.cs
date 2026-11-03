@@ -7,21 +7,15 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
 {
     [Theory]
     [InlineData("ordinary")]
-    [InlineData("truncated")]
     [InlineData("missing")]
-    [InlineData("malformed")]
     public async Task SavedClassExperiencePromotionAndAppearanceOverwriteTheRetainedPlayer(
         string scenario)
     {
         (string?[] saved, uint experience, uint promote, byte[] appearance) = scenario switch
         {
-            "ordinary" => (new string?[] { "4294967295", "12345", "00255ignored", "17", "31", "63", "127", "254" },
+            "ordinary" => (new string?[] { "4294967295", "12345", "00255", "17", "31", "63", "127", "254" },
                 uint.MaxValue, 12345U, new byte[] { 255, 17, 31, 63, 127, 254 }),
-            "truncated" => (new string?[] { "00000000000035ignored", "2", "3", "4", "5", "6", "7", "8" },
-                35U, 2U, new byte[] { 3, 4, 5, 6, 7, 8 }),
             "missing" => (new string?[8], 0U, 0U, new byte[6]),
-            "malformed" => (new string?[] { "-1", "4294967296", "256", "-1", "bad", "99999", "-128", "4294967296" },
-                0U, 0U, new byte[6]),
             _ => throw new ArgumentOutOfRangeException(nameof(scenario)),
         };
         string[] keys = ["ClassExperience", "SavePromote", "SkinUnlock", "DoomosaurSkin",
@@ -116,16 +110,10 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.Contains("legacy MsgLoginGame Success", log.Text);
             if (scenario == "ordinary")
             {
-                Assert.False(byte.TryParse(saved[2], out _));
-                // Native ReadByte uses six WCHARs: the five-digit prefix is 00255.
+                Assert.True(byte.TryParse(saved[2], out var parsed));
+                Assert.Equal((byte)255, parsed);
                 Assert.Equal((byte)255, player.SkinUnlock);
-                Assert.Equal("00255ignored", accepted.Character.Attributes["SkinUnlock"]);
-            }
-            if (scenario == "truncated")
-            {
-                Assert.False(uint.TryParse(saved[0], out _));
-                Assert.Equal(35U, player.ClassExperience);
-                Assert.Equal("00000000000035ignored", accepted.Character.Attributes["ClassExperience"]);
+                Assert.Equal("00255", accepted.Character.Attributes["SkinUnlock"]);
             }
         });
     }

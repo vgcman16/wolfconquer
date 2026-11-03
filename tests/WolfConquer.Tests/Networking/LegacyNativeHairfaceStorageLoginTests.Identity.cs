@@ -8,13 +8,13 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task EncryptedLoginLoadsNativeNameAndSpouseWithoutNormalizingTheRawSnapshot(bool longValues)
+    public async Task EncryptedLoginLoadsCompleteNameAndSpouseWithoutNormalizingTheRawSnapshot(bool maximumLength)
     {
         using var input = new LoginInput();
-        var rawName = longValues ? new string('N', 300) : "Native Name";
-        var rawSpouse = longValues ? new string('S', 300) : null;
-        var expectedName = longValues ? new string('N', 254) : rawName;
-        var expectedSpouse = longValues ? new string('S', 254) : "None";
+        var rawName = maximumLength ? new string('N', 254) : "Native Name";
+        var rawSpouse = maximumLength ? new string('S', 254) : null;
+        var expectedName = rawName;
+        var expectedSpouse = rawSpouse ?? "None";
         var text = Encoding.UTF8.GetString(input.InitialBytes)
             .Replace("Name=HairfaceOwner\r\n", "Name=" + rawName + "\r\n" +
                 (rawSpouse is null ? "" : "Spouse=" + rawSpouse + "\r\n"), StringComparison.Ordinal);
@@ -60,5 +60,27 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.Equal(expectedBytes, File.ReadAllBytes(input.FilePath));
             Assert.Contains("legacy MsgLoginGame Success", log.Text);
         });
+    }
+
+    [Theory]
+    [InlineData(255, 12)]
+    [InlineData(300, 12)]
+    [InlineData(11, 255)]
+    [InlineData(11, 300)]
+    [InlineData(300, 300)]
+    public async Task EncryptedLoginRefusesTruncatedNameOrSpouseWithoutNormalizingOrPublishing(
+        int nameLength, int spouseLength)
+    {
+        using var input = new LoginInput();
+        var rawName = new string('N', nameLength);
+        var rawSpouse = new string('S', spouseLength);
+        var text = Encoding.UTF8.GetString(input.InitialBytes)
+            .Replace("Name=HairfaceOwner\r\n", "Name=" + rawName + "\r\nSpouse=" + rawSpouse + "\r\n", StringComparison.Ordinal);
+        var before = Encoding.UTF8.GetBytes(text);
+        File.WriteAllBytes(input.FilePath, before); // Owned GUID fixture only.
+
+        // The genuine Win32 read accepts at most 254 characters with its 255-character buffer.
+        // Check Name and Spouse separately, retaining the original refusal for both 300-character values.
+        await AssertStrictSavedLoginRefusalAsync(input, before, "normalPrefixFieldTruncated");
     }
 }

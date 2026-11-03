@@ -8,8 +8,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     [Theory]
     [InlineData("12345", "4294967295", 12345U, uint.MaxValue)]
     [InlineData(null, null, 0U, 0U)]
-    [InlineData("-1", "4294967296", 0U, 0U)]
-    public async Task SavedDeityAndHeroCountersOverwriteTheSamePhysicalPlayerWithNativeUInt32Reads(
+    public async Task ValidOrMissingSavedDeityAndHeroCountersLoadIntoTheSamePhysicalPlayer(
         string? deity, string? hero, uint expectedDeity, uint expectedHero)
     {
         using var input = new LoginInput();
@@ -86,5 +85,16 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             Assert.Equal(expectedMarker, File.ReadAllBytes(input.FilePath));
             Assert.Contains("legacy MsgLoginGame Success", log.Text);
         });
+    }
+
+    [Theory]
+    [InlineData("-1", "4294967296")]
+    [InlineData("-1", "0")]
+    [InlineData("0", "4294967296")]
+    public async Task InvalidPresentDeityOrHeroCountersRefuseWithoutReplacingRetainedValues(string deity, string hero)
+    {
+        using var input = new LoginInput();
+        var bytes = WritePrefixFields(input, "DeityLandLuckyPoints=" + deity + "\r\nHeroPoints=" + hero + "\r\n");
+        await AssertStrictSavedLoginRefusalAsync(input, bytes);
     }
 }

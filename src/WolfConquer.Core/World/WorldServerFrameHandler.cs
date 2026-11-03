@@ -1391,6 +1391,8 @@ public sealed partial class WorldServerFrameHandler
         if (loadResult.Status is CharacterSnapshotLoadStatus.SnapshotReadFailed or
             CharacterSnapshotLoadStatus.SnapshotReadDenied or
             CharacterSnapshotLoadStatus.SnapshotParseFailed or
+            CharacterSnapshotLoadStatus.SnapshotWriteFailed or
+            CharacterSnapshotLoadStatus.SnapshotWriteOutcomeUncertain or
             CharacterSnapshotLoadStatus.UidMismatch)
         {
             await _log.WriteLineAsync(

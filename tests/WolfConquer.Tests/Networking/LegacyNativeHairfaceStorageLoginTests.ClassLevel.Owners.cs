@@ -36,7 +36,7 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     }
 
     [Fact]
-    public async Task GenuineIniConversionCannotBlessAnInterveningPhysicalLevelChange()
+    public async Task HostileGlobalIniConverterCannotChangePhysicalLevelOrInfluenceGenuinePrefixCommit()
     {
         using var input = new LoginInput();
         var bytes = WritePrefixFields(input, "DeityLandLuckyPoints=1234567\r\n");
@@ -45,6 +45,9 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             var (_, birth) = await ConnectBornAsync(fixture);
             var client = birth.Connection.NativeGameClient!;
             var player = client.Player;
+            player.TransformationID = 17;
+            var before = LegacyNativePlayerRuntime.ExistingPrefixLoad.Read(player);
+            var flags = player.BitVector; var random = player.MyRandom;
             var snapshot = ReadPrefixSnapshot(input);
             var original = LegacyNativeItemCounterShellIni.ToUInt32;
             var fired = false;
@@ -52,28 +55,46 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             {
                 LegacyNativeItemCounterShellIni.ToUInt32 = text =>
                 {
-                    var result = original(text);
-                    if (text == "1234567" && !fired)
-                    {
-                        fired = true;
-                        SetClassLevelField(player, "_level", (ushort)9);
-                    }
-                    return result;
+                    fired = true;
+                    SetClassLevelField(player, "_level", (ushort)9); // Hostile deny-only seam, never a success owner.
+                    return original(text);
                 };
-                Assert.False(LegacyNativeExistingCharacterPrefix.TryPrepare(birth.Connection, snapshot, input.Users,
-                    out var prepared, out _));
-                Assert.Null(prepared);
+                Assert.True(LegacyNativeExistingCharacterPrefix.TryPrepare(birth.Connection, snapshot, input.Users,
+                    out var prepared, out var reason), reason);
+                Assert.NotNull(prepared); Assert.False(fired);
+                Assert.True(prepared!.IsCurrentForAdmission());
+                Assert.Equal(before, LegacyNativePlayerRuntime.ExistingPrefixLoad.Read(player));
+                Assert.Equal((ushort)0, player.Level); Assert.Equal(0U, player.Class);
+                Assert.Equal(0U, player.UID); Assert.Equal(0U, player.Online);
+                Assert.Equal((ushort)17, player.TransformationID);
+                Assert.Null(client.Beasts); Assert.Null(client.HairfaceStorage);
+                Assert.Equal(bytes, File.ReadAllBytes(input.FilePath));
+                Assert.Null(handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
+
+                Assert.True(prepared!.TryCommit(out var updated, out reason), reason);
+                Assert.False(fired);
+                Assert.Equal((ushort)140, player.Level); Assert.Equal(7051U, player.Class);
+                Assert.Equal(Uid, player.UID); Assert.Equal(1U, player.Online);
+                Assert.Equal((ushort)17, player.TransformationID);
+                Assert.Equal(1234567U, player.DeityLandLuckyPoints);
+                Assert.Equal(140L, updated.Level); Assert.Equal(7051L, updated.Class);
+                Assert.Equal(1L, updated.Online);
+                Assert.Same(flags, player.BitVector); Assert.Same(random, player.MyRandom);
+                Assert.Same(client, player.Owner); Assert.Same(player, client.Player);
+                Assert.IsType<LegacyNativeBeastsRuntime>(client.Beasts);
+                Assert.IsType<LegacyNativeHairfaceStorageRuntime>(client.HairfaceStorage);
+                Assert.Equal(PresenceImage(bytes), File.ReadAllBytes(input.FilePath));
+                Assert.True(prepared.IsPublishedAdmissionOwnerCurrent());
+                Assert.False(prepared.IsCurrentForAdmission());
+                Assert.False(prepared.TryCommit(out _, out _));
+                Assert.True(prepared.IsPublishedAdmissionOwnerCurrent());
+                Assert.Equal((ushort)140, player.Level); Assert.False(fired);
+                Assert.Equal(PresenceImage(bytes), File.ReadAllBytes(input.FilePath));
+                Assert.Null(client.OrdinarySpellBinding); Assert.False(client.FullLoading);
+                Assert.Null(handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
+                Assert.DoesNotContain("legacy MsgLoginGame Success", log.Text);
             }
             finally { LegacyNativeItemCounterShellIni.ToUInt32 = original; }
-            Assert.True(fired);
-            Assert.Equal((ushort)9, player.Level);
-            Assert.Equal(0U, player.Class);
-            Assert.Equal(0U, player.UID);
-            Assert.Equal(0U, player.Online);
-            Assert.Null(client.Beasts);
-            Assert.Null(client.HairfaceStorage);
-            Assert.Equal(bytes, File.ReadAllBytes(input.FilePath));
-            Assert.Null(handler.ReadCurrentSessionForNativeOwnerObservation(birth.Connection));
         });
     }
 }

@@ -20,8 +20,8 @@ internal sealed partial class LegacyNativeExistingCharacterPrefix
                 connection.NativeGameClient is not { } client || client.Player is not { } player ||
                 !ReferenceEquals(player.Owner, client) || client.FullLoading || client.Fake ||
                 snapshot.Uid is <= 0 or > uint.MaxValue || accountId is <= 0 or > uint.MaxValue || string.IsNullOrWhiteSpace(usersRoot)) return false;
-            // Capture every native participant before ANY caller dictionary or
-            // genuine INI converter delegate can execute same-value callbacks.
+            // Capture every native participant before caller dictionary access
+            // or native catalog preparation can invalidate the original state.
             var playerBefore = new LegacyNativeExistingPrefixBefore(client);
             var beastsBefore = new LegacyNativeBeastsRuntime.PrefixBefore(client);
             var hairfaceBefore = new LegacyNativeHairfaceStorageRuntime.PrefixBefore(client);
@@ -43,18 +43,13 @@ internal sealed partial class LegacyNativeExistingCharacterPrefix
                 if (!CharacterSnapshotFileBaseline.TryRead(path, "normalPrefix", out var saved, out failure) || saved is null ||
                     !SnapshotMatches(input, saved.Bytes, path)) return false;
                 var ini = new LegacyNativeItemCounterShellIni(path, overridePath: true);
-                var playerLoad = LegacyNativePlayerRuntime.ExistingPrefixLoad.TryPrepare(client, input, ini);
+                if (!LegacyNativeFilePrefixValues.TryRead(ini, input, saved, out var values, out failure)) return false;
+                var playerLoad = LegacyNativePlayerRuntime.ExistingPrefixLoad.TryPrepare(client, input, values!);
                 if (playerLoad is null) { failure = "normalPrefixNativePlayerUnavailable"; return false; }
-                if (!LegacyNativeBeastsRuntime.PrefixLoad.TryPrepare(client, ini.ReadBool("Character", "TailedBeastActivated", false),
-                        ini.ReadUInt32("Character", "TailedBeastTotalPoints"), ini.ReadUInt32("Character", "TailedBeastFlag"), out var beasts))
+                if (!LegacyNativeBeastsRuntime.PrefixLoad.TryPrepare(client, values!.BeastActivated,
+                        values.BeastTotalPoints, values.BeastFlag, out var beasts))
                 { failure = "normalPrefixBeastStateUnavailable"; return false; }
-                var hairfaceLine = ini.ReadString("Character", "HairfaceStorage", "0/");
-                // The source buffer holds254 characters. A complete valid
-                // prefix at that boundary must not hide an unvalidated tail.
-                // Use the genuine reader's quote/whitespace semantics rather
-                // than invent a second INI value parser.
-                if (hairfaceLine != ini.ReadString("Character", "HairfaceStorage", "0/", 256) ||
-                    !LegacyNativeHairfaceStorageRuntime.PrefixLoad.TryPrepare(client, hairfaceLine, out var hairface))
+                if (!LegacyNativeHairfaceStorageRuntime.PrefixLoad.TryPrepare(client, values.HairfaceLine, out var hairface))
                 { failure = "normalPrefixHairfaceStateUnavailable"; return false; }
                 var fields = new Dictionary<string, string>(input.Attributes, StringComparer.OrdinalIgnoreCase) { ["Online"] = "1" };
                 var updated = input with { Online = 1, Attributes = fields };

@@ -31,6 +31,10 @@ public sealed class ConquerTcpConnection
     internal bool HasSendRoute => _sendAsync is not null;
     internal bool HasDisconnectRoute => _disconnectAsync is not null;
 
+    // Closed-only evidence from the real transport producer. False establishes
+    // no live/authenticated connection, Store lifetime or gameplay authority.
+    internal bool HasObservedTransportClose => Volatile.Read(ref _transportClosed) != 0;
+
     // Only the actual native-game birth producer supplies this. No lazy transport/session inference.
     public WolfConquer.Core.World.LegacyNativeGameClientRuntime? NativeGameClient { get; }
 

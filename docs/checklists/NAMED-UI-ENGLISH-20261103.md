@@ -64,6 +64,24 @@
   36-test tool suite was not redundantly repeated for data-only wordings.
   A59keys/65rows and C30keys remain explicit scoped holds, not a complete backlog.
   No resource was applied or rendered.
+- [x] Expanded generic Echo, quest/navigation and progression/community wording
+  adds317keys/321rows through four bounded passes of the unchanged tool:
+  811/823 ->869/884 ->931/946 ->1028/1044 ->1,128keys/1,144rows.
+  Actual3,212,784bytes, SHA256
+  17966ECFF8A1C35EF091F5DB6D26B7B6215E6FD70743A8472BA788316EF1B321.
+  Root read every wording and separately checked the final output/receipt.
+  Prior wordings, all unselected bytes, tokens and original pins remain intact.
+  Three mixed-case keys are held by the current family; no guard was weakened.
+  Initial approval-metadata/key-shape refusals occurred before output, then
+  corrected Root approvals passed. Author maps remain frozen. No apply/render.
+- [x] Further general equipment/inventory and chat prompts add153keys/155rows:
+  1,128/1,144 ->1,242/1,260 ->1,281keys/1,299rows. Root read all114+39 meanings
+  and independently checked the actual final output/receipt after exit0.
+  Actual3,213,517bytes, SHA256
+  F86B70B67533DFB4459A5439BFBCA595DDC6A967651536AF54EBFE636F4A9912.
+  All earlier wordings, unselected bytes, tokens and original input pins remain.
+  Existing tool, guards and bounds stayed unchanged; no redundant tool tests.
+  Uncertain mechanics/terms/aliases remain held; no resource applied/rendered.
 - [ ] Perform separately permitted English rendering/font/layout review after
   the execution hold clears; no client resource has been applied here.
 - [ ] Complete the many thousands of remaining Chinese named-resource values.
