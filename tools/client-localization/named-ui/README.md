@@ -21,6 +21,7 @@ Supply one reviewed JSON plan beside the tool, using a curated filename:
 | `storage-vendor-ui-family.json` | `storage-vendor-ui` |
 | `quest-social-ui-family.json` | `quest-social-ui` |
 | `guild-team-ui-family.json` | `guild-team-ui` |
+| `core-ui-family.json` | `core-ui` |
 
 The plan has exactly `schemaVersion` (integer 1), `family`, `codec` (`utf-8`),
 `inputSha256` (an object with uppercase SHA256 values for `original`, `english`
@@ -41,6 +42,11 @@ cannot be supplied outside the curated filenames. Preserve the three-file hashes
 and record wording evidence separately from this generic tool's report. Each
 curated filename must declare exactly the family in the table; a mismatch refuses
 before any proposal directory is created.
+
+Sequential proposals can use an earlier proposal as the next current input.
+Pin that exact current file again and select only the newly reviewed rows; each
+pass keeps its own 1-200 key limit. Earlier English and all unselected bytes stay
+unchanged. This produces another private proposal and does not apply it.
 
 The parser owns immutable input bytes and copied read-only group indexes. Proposal
 generation reparses those captured bytes rather than trusting supplied parsed
