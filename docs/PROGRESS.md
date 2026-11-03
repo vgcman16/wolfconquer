@@ -10,11 +10,15 @@ then passed534/534 affected and all20 actual SQL/native/file Facts without skips
 on source90607691. Full gate/public CI remain pending.
 [7937 status](checklists/7937-STATUS-20261103.md).
 
-Next reviewed source batch joins the existing Echo envelope to operation8/10 raw
+The next reviewed source batch joins the existing Echo envelope to operation8/10 raw
 response projection with exact original-frame replay; strict readers remain
 unchanged. It also adds explicit guild/team proposal routing and synthetic CLI
-controls. These additions are unbuilt/unrun until their actual qualification;
-they infer no action meanings or current7937 gameplay activation.
+controls. On99c70d2f all836Chinese7935/7937 focused cases passed,0failed/skipped,
+including19new consumer cases and664total7937 rows. Build159.049s/test15.094s.
+The named-UI suite passed33controls; actual private109-key addition brings the
+proposal to390keys/396rows with prior281/all other bytes preserved. One format-only
+candidate correctly refused and remains held. No resources applied/rendered or
+new action meanings/current7937 gameplay activation inferred. Full gate remains.
 
 ## Latest local result and next qualification
 

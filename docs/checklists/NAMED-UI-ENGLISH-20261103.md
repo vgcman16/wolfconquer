@@ -35,6 +35,16 @@
   Two scoped strings remain untouched: a format-only timer and an ambiguous
   one-character abbreviation. Same-type placeholders retain their distinct roles;
   literal40, timer units and ordered markup remain. No quest/social mechanics follow.
+- [x] Explicit guild/team family and its narrow private-plan ignore entry passed
+  all33 Python controls,0failed/skipped in11.805s, retaining all31 earlier methods.
+  The two new methods cover actual CLI output and all6old pairs/mismatch refusals.
+- [x] Root reviewed110candidate wordings and refined7. First private preparation
+  correctly refused a format-only bracket row before creating output; that row
+  is now held. The unchanged display/token guard was not weakened.
+- [x] A separate109-row preparation passed:390keys/396physical rows,3,209,894bytes,
+  SHA256 A256846DD27BC95654BEFE05FB526728113B3645009D14D70A7182E69070EBB2.
+  All prior281wordings, unselected bytes and original input pins remain intact.
+  Forty-six scoped candidates remain held; all proposals remain private/unapplied.
 - [ ] Perform separately permitted English rendering/font/layout review after
   the execution hold clears; no client resource has been applied here.
 - [ ] Complete the many thousands of remaining Chinese named-resource values.

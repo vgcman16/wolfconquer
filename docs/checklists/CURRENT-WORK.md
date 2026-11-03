@@ -15,8 +15,9 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
   [Historical result](FULL-WINDOWS-20261103-53F.md).
 - [x] Integrate the reviewed extension-preserving Echo response consumer source.
   Strict APIs and unknown field meanings must remain unchanged.
-- [ ] Qualify its operation8/10 exact-frame, extension and refusal controls plus
-  existing Echo/scanner/item-envelope neighbors. Source-only until actual result.
+- [x] Qualify its operation8/10 exact-frame, extension and refusal controls plus
+  existing Chinese7935/7937 neighbors:836passed/0failed/0skipped on99c70d2f.
+  Actual7937 subset664passed, including19new consumer controls. Full gate remains.
 - [ ] Qualify the complete Windows integration/publication gate and verify exact
   public-source CI. Last qualified full local was35,124P/0F/152skip onfe3e79a2;
   public mainbee36f0e has no newer full Windows Actions pass claimed here.
@@ -30,13 +31,14 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
 - [x] Complete byte/text column tooling passed30 synthetic controls. Actual pinned
   codec comparisons did not recover a complete item text-field mapping.
   [Evidence](7937-TEXT-COLUMNS-20261103.md).
-- [x] Named-UI tools passed31 Python controls. Private English proposal covers
-  281keys/287rows; prior keys, all other bytes and original inputs are preserved.
+- [x] Named-UI tools passed33 Python controls. Private English proposal covers
+  390keys/396rows; prior keys, all other bytes and original inputs are preserved.
   Separate UStrRes1,191-key proposal is not a whole-client percentage.
 - [x] Integrate explicit guild/team UI proposal support, its narrow private-plan
   ignore entry and independent CLI controls; no existing guard was weakened.
-- [ ] Qualify the Python suite and compose the Root-reviewed110-key private
-  addition. Apply/render no resources while execution is held.
+- [x] Compose the Root-reviewed109-key private addition after holding one
+  format-only row. Prior281 and every other byte remain;46scoped candidates held.
+  No resources applied/rendered; the many remaining Chinese rows stay open.
   [English work](NAMED-UI-ENGLISH-20261103.md).
 
 - [ ] Finish remaining gameplay/social/events, durable persistence ownership,

@@ -61,7 +61,7 @@ public sealed partial class Chinese7937EchoResponseTests
         // base128 form. Six overhead bytes make the full65531-byte payload.
         var payload = new byte[65_531];
         Convert.FromHexString("080842F5FF03").CopyTo(payload, 0);
-        Assert.Equal(payload.Length, Chinese7937EchoResponse.MaximumPayloadBytes);
+        Assert.Equal(Chinese7937EchoResponse.MaximumPayloadBytes, payload.Length);
         var response = Parse(payload);
         Assert.Equal(65_525, response.KnownPayload.CopyData8()!.Length);
         Assert.Equal(payload, response.CopyPayloadBytes());
