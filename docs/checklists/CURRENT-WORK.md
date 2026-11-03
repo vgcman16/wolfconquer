@@ -12,24 +12,30 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
 - [x] Earlier full53f82817 run003401400Z-06a79af7/session30882 terminated FAILED
   at02:47:02UTC: Core34,814P/1F/157skip, Updates446P. Restore/build passed;
   launcher/later gates unrun. Only failure is the copied-script Plan import issue,
-  already repaired in this next source but not yet execution-qualified.
+  repaired in this next source and now passed in the affected tool controls.
   [Actual result](FULL-WINDOWS-20261103-53F.md); preserve the old failed run.
 - [x] Root separately composed29 A14+B6+C7+Plan2 code/test paths: suspicious
   closure refusal, immutable cap ownership, high-width action guard, absent-Items
-  v1 recovery,9 new SQL/native trade Facts and the Plan repair. UNBUILT/UNRUN;
-  [trade qualification queue](SQL-NATIVE-TRADE-20261103.md), FSB318-322 OPEN.
+  v1 recovery,9 new SQL/native trade Facts and the Plan repair. Build now passed;
+  [trade qualification queue](SQL-NATIVE-TRADE-20261103.md), FSB318-321 integration OPEN.
 - [ ] Qualify focused managed, actual owned SQL and appropriate full gates before
   reviewed publication of this batch. All source-declared14 SQL Facts must pass.
 - [x] Source-intaken the turnkey SQL gameplay command and6 authored Plan/refusal
   rows, reusing the real owned lifecycle and fresh full-family build. The2 changed
-  PowerShell scripts syntax-parse; no Plan, C# test or provider execution yet.
-- [ ] Qualify those controls and Root's shared host-mutex correction for the full
-  runner (FSB323 OPEN), then run all14 SQL Facts via the closed command.
+  PowerShell scripts syntax-parse;16 Plan/status and6 SQL-tool controls now passed.
+  The actual14-Fact provider callback is still unrun.
+- [x] Actual Plan/missing-pump and shared host-mutex refusal controls passed;
+  FSB322-323 are component-verified. Full-run integration remains required.
+- [ ] Run all14 SQL Facts via the closed command after the fixture correction.
+- [x] First affected managed gate finished521P/1F/0skip after a successful build.
+  Only failure was the collision fixture's correctly blocked setup writer.
+- [ ] Run its reviewed external-collision/noncollision fixture correction, then
+  actualSQL14. No production guard was weakened; keep the failed run failed.
 - [ ] Next independent booth proposals add selected suspicious-item validation
   and actual SQL/native start/list/buy/cold-reopen controls; not intaken/qualified.
 - [x] Named UI integrity fixes (FSB324-326) passed23 isolated Python controls,
   0failed/skipped; actual old-source regressions were retained. This does not
-  qualify the current C# batch or make its active full run pass.
+  qualify the current C# batch or make the failed full run pass.
 - [x] Fresh private stat/gear/mail composition completed206 keys/211 rows with
   all unselected bytes and original pins intact. Both per-pass200-key bounds stay.
 - [x] Reviewed all206 wordings and regenerated11 corrected rows only. Explicit

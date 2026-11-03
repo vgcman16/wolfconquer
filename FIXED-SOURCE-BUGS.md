@@ -44,7 +44,8 @@ This is not proof that the client's renderer is case-insensitive or case-sensiti
 
 ### FSB-323: Coordinate full checks with focused and owned-SQL host exclusion
 
-OPEN, source-only/unqualified. The full runner held a per-checkout file lock,
+Corrected within the bounded actual tool component; complete full-run integration
+remains pending. The full runner held a per-checkout file lock,
 while focused checks used a global host mutex. A second checkout could start a
 cooperating check during the full run's inter-command gaps. Real full mode now
 holds the same `Global\WolfConquer.FocusedChecks` mutex before artifact writes and
@@ -53,13 +54,18 @@ pump/targets refusals still precede acquisition. No host-idle scan is added that
 would reject the full CI job's own Runner.Worker. An authored actual copied-script
 busy-mutex refusal control must show no nested command, environment or artifact
 changes. This is cooperative tool exclusion, not authority over arbitrary external
-processes. The older53f run terminated failed and remains unchanged; this new
-mutex control has not run.
+processes. The actual busy-mutex test passed within all6 SQL-tool controls in
+bd49's affected run. That run failed a separate recovery fixture setup; the
+complete gate still has not run on the new source. Older53f remains failed.
 
 ## SQL-native trade source checkpoint - 2026-11-03 UTC
 
-FSB318-322 below are OPEN, source-reviewed implementations. They have not been
-built or run. They are in a separate candidate; the failed full53f evidence is unchanged.
+FSB318-321 integration remains OPEN. The bd49 managed build passed and its
+affected run returned521passed/1failed/0skipped. Metadata24, eligibility22,
+trade-runtime100 and tool22 rows passed. One recovery collision fixture failed
+before its intended assertion because the ordinary writer correctly refused its
+pending journal. Its narrow fixture correction remains unrun; actualSQL14 and
+the complete gate remain required. The failed full53f evidence is unchanged.
 [Qualification checklist](docs/checklists/SQL-NATIVE-TRADE-20261103.md).
 
 ### FSB-318: Refuse suspicious roots and descendants before a trade offer
@@ -71,7 +77,7 @@ and settlement checks. Genuine directed type3 locked-partner permission remains;
 it cannot authorize a suspicious row. Unselected rows and refunds retain their
 existing policy. Authored actual owned Runtime/Frame and opt-in SQL controls cover
 root/child refusal, the valid partner exception and unchanged saved/native/output
-state. No claim follows until those controls run.
+state. Managed eligibility controls passed; SQL/full integration remain open.
 
 ### FSB-319: Retain immutable stack-cap authority for an owned trade offer
 
@@ -84,7 +90,8 @@ and settlement rechecks that generation with real item lineage before the WAL.
 Empty/no-catalog compatibility requires both real current holders to prove they
 are genuinely unbound; native/mixed pairs cannot borrow it. No Chinese67 column
 meaning is inferred. Authored controls cover aliases, malformed/colliding metadata,
-caps, real owned transfers and stale generation; none has run in this batch.
+caps, real owned transfers and stale generation. Metadata24, eligibility22 and
+trade-runtime100 rows passed in the affected run; actualSQL/full remain open.
 
 ### FSB-320: Refuse high-width trade actions before lower-width dispatch
 
@@ -94,7 +101,8 @@ or currency actions. The handler now refuses that width before acquiring its
 operation/state path. The complete strict codec, captured type-only form and all
 successful six-field bytes remain unchanged. Authored real owned and SQL controls
 require no wallet/item/confirmation/pair/output change on aliases and preserve
-valid subsequent requests. They remain unrun.
+valid subsequent requests. The managed eligibility rows passed; actual SQL
+qualification and the complete integration gate remain open.
 
 ### FSB-321: Recover the actual absent-empty Items beforeimage of a trade
 
@@ -108,17 +116,21 @@ owned scan, including UIDs transferred into a still-missing target. No physical
 file/owner is fabricated; vendor null-beforeimages and other versions stay under
 their existing rules. Authored actual producer controls cover replacement0..4 for
 settlement/refund, cold native admission and an unrelated physical UID collision.
-Historical v1 intents retain their original permission contract. All are unrun.
+Historical v1 intents retain their original permission contract. The ten genuine
+absent-Items prefix rows passed; the new external-collision test failed during
+its correctly blocked setup and requires the narrow fixture repair/counterfactual.
 
 ### FSB-322: Keep local-check Plan independent of execution-only log pumping
 
-OPEN, unqualified. The actual full53f suite exposed a default-root Plan
+Corrected within bounded actual tool verification. The actual full53f suite exposed a default-root Plan
 failure: its genuine copied-script fixture has no CheckLogPump module, which was
 imported before the inert Plan return. The import now follows that return and
 still precedes real artifacts, leases and child launch. The existing default-root
 assertion is unchanged; a new real-script missing-module control requires refusal
 without artifacts. The historical run remains failed for that test; this source
-correction has not run and cannot make that run green.
+correction passed with all16 LocalDevelopmentToolsTests rows in the bd49 affected
+run,0failed/skipped in that class. The separate historical53f failure stays failed;
+no complete eight-stage pass is claimed for the new source.
 
 ## Integration repairs - 2026-11-02 UTC
 
