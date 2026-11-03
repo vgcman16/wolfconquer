@@ -1,8 +1,72 @@
-# Source bug fixes and audit
+# Corrected source bugs
 
-Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
-Started 2026-10-23. **Open items below are not fixed or verified claims.**
-Earlier passing tests may encode defects; test totals are not a safety certificate.
+This tracker separates verified corrections from open qualification. Component
+and provider results do not establish complete gameplay or live deployment.
+
+## SQL handoff validation and commitment - component/provider qualified, 2026-11-03
+
+### FSB-348: Establish real handoff transaction and lifetime prerequisites
+
+**QUALIFIED within the component/provider scope; successor full CI pending.**
+Review of the new self-authored handoff draft found assumptions about transaction-
+capable account storage, a Read Committed nonunique username predicate, incomplete
+settled row/lifetime checks and post-COMMIT result construction. These were
+corrected before execution; no decompiled-server defect or deployed fix is claimed.
+
+Both transactions request Repeatable Read and check the actual accounts InnoDB
+base table around its locking read. Server UTC bounds redemption UPDATE. Stored
+pairs/lifetimes and retained expiry are checked; domain bridges bind both IDs and
+actual transaction affinity. Results are prepared before commitment, unpublished
+offers are joined/disposed, and primary/cleanup and known/unknown outcomes remain
+distinct. Production changes no account schema or global SQL setting.
+
+All28 actual handoff Facts passed within the complete119-Fact owned provider
+family (0 failed/skipped), including real held installer-lock, rejecting-marker-
+update and MyISAM refusal controls. All124 ordinary neighbors also passed. Exact
+source methods/results and owned cleanup were checked. Gap-lock/clock/DDL and
+new handoff COMMIT-outcome fault witnesses remain unproved; native activation
+and the new full Windows integration gate remain open. See the
+[qualification and limits](docs/checklists/SQL-AUTHENTICATED-HANDOFF-20261103.md).
+
+## Target transaction affinity - component/provider qualified, 2026-11-03
+
+### FSB-347: Enforce the target connection independently of provider options
+
+**QUALIFIED within the component/provider scope; successor full CI pending.**
+The new authentication domain verifier assigned a supplied transaction to the
+target command and relied on the provider to reject a different connection.
+MySqlConnector2.6.1 makes that check conditional on IgnoreCommandTransaction=false.
+The application now checks actual Connection identity before SQL under its owner
+gate. A mismatch raises sqlAuthenticationTargetTransactionMismatch while retaining
+a healthy local owner. The actual provider regression passed for both option
+values, preserving valid transaction positives, holder, exclusion and account rows.
+
+The exact installed [provider condition](https://github.com/mysql-net/MySqlConnector/blob/5802bd06d4e0787215b9f7acc4c8f8cf4ee8de8a/src/MySqlConnector/MySqlCommand.cs#L403)
+explains the source-discovered gap. The result is part of119 actual provider
+passes, not a native authority grant or an old unsafe-baseline reproduction.
+
+## Required SQL authentication state - component/provider qualified, 2026-11-03
+
+### FSB-346: Reject missing permissions instead of defaulting to eligibility
+
+**QUALIFIED within the component/provider scope; successor full CI pending.**
+MySqlAccountRepository.FindByUsernameAsync defaulted NULL BannedID to allowed2
+and NULL Online to offline. It now completes the actual candidate scan and
+rejects malformed required state without returning a valid prefix. IDs and
+permissions require real integer values; EntityID alone may be NULL for an
+uncreated character. Password comparison stays strict/ordinal. Username-read and
+retained-owner connections preserve numeric TINYINT values instead of bools;
+ordinary read pooling remains configured.
+
+The concrete owner retains its real nonpooled connection/private claims,
+revalidates current identity, permissions and credentials, and retires on loss
+or change. It is not a ticket, native owner or publication grant. All32 new
+authentication provider Facts passed in the complete119 family, including actual
+login positives and NULL-permission refusals across all comparison modes. The
+ordinary auth/Frame/handoff selection passed124/124. Email/password diagnostic
+bodies remain unchanged. Second physical-server, teardown-failure retry and
+native startup activation remain unproved. See
+[contract and limits](docs/checklists/SQL-AUTHENTICATION-CUSTODY-20261103.md).
 
 ## SQL lock scalar portability - qualification pending, 2026-11-03
 

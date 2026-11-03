@@ -3,7 +3,7 @@ using MySqlConnector;
 
 namespace WolfConquer.Core.Accounts;
 
-public sealed class MySqlAccountRepository :
+public sealed partial class MySqlAccountRepository :
     IAccountRepository,
     IAccountEmailVerifier,
     IAccountPasswordDiagnosticRepository
@@ -50,31 +50,7 @@ public sealed class MySqlAccountRepository :
     {
         ArgumentNullException.ThrowIfNull(username);
 
-        var accounts = new List<AccountRecord>();
-        await using var connection = new MySqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT ID, Username, Password, EntityID, BannedID, Online
-            FROM accounts
-            WHERE Username = @username
-            ORDER BY ID
-            """;
-        command.Parameters.AddWithValue("@username", username);
-
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-        {
-            accounts.Add(new AccountRecord(
-                reader.GetInt64(0),
-                reader.GetString(1),
-                reader.GetString(2),
-                reader.IsDBNull(3) ? 0 : reader.GetInt64(3),
-                reader.IsDBNull(4) ? AccountLoginService.AllowedBannedId : reader.GetInt64(4),
-                !reader.IsDBNull(5) && reader.GetInt32(5) != 0));
-        }
-
-        return accounts;
+        return await FindAuthenticationRowsAsync(username, cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<IReadOnlyList<AccountPasswordOwnerDiagnostic>> FindByPasswordAsync(

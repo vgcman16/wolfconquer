@@ -3,83 +3,75 @@
 Updated 2026-11-03 UTC. The full English client/server objective remains active.
 Root alone reviews, integrates, qualifies, stages, commits and pushes.
 
-## Verified
+## Published and verified
 
-- [x] Public Windows CI on `c476ca7c`: all eight stages passed; **35,723 passed,
-  0 failed, 195 skipped** across Core, Updates and Launcher. All 664 Chinese7937
-  rows passed. Skips are 43 opt-in SQL and 152 external-fixture cases.
-  [Actual result and limits](FULL-WINDOWS-20261103-C476.md).
-- [x] Complete six-image SQL admission data, native preparation, DH safety and
-  atomic internal ticket redemption: 229 focused tests and 43 actual MariaDB
-  provider Facts passed, with owned cleanup checked. The public run above also
-  qualifies the pushed source. Native gameplay still saves files.
-  [Provider results and limits](SQL-COMPLETE-ADMISSION-RESULTS-20261103.md).
-- [x] New-client catalogs/codecs/Echo response consumer: 836 focused tests passed,
-  0 failed/skipped, including 664 Chinese7937 rows. Main 57,093 and sub-item 1,693
-  rows parse and round-trip all 67 fields. Complete semantic/runtime mapping
-  remains open. [7937 status](7937-STATUS-20261103.md).
-- [x] Private English proposal: **3,251 keys / 3,276 physical rows**, with prior
-  translations, all unselected bytes and formatting preserved. Separate UStrRes
-  proposal: 1,191 keys. Unapplied and unrendered; no whole-client percentage.
+- [x] Public Windows CI on exact e6f1361c completed all eight stages:
+  **35,758 passed, 0 failed, 211 skipped** across Core, Updates and Launcher.
+  All664 Chinese7937 rows and the formerly failing WarFighters victory test passed.
+  Skips are59 opt-in SQL and152 external-fixture cases, not executed passes.
+  [Actual result and limits](FULL-WINDOWS-20261103-E6F.md).
+- [x] Retained single/pair SQL custody, complete six-image raw write gates and
+  pair saves: all59 provider Facts passed on owned MariaDB12.2.2, with real
+  row-wait, ACK-loss, cancellation, disposal and retry controls. Affected data/
+  event tests passed217/217; selected-SQL tooling passed9/9. The public gate
+  above qualifies this published source and the fixture isolation repair.
+  [Results and retained failures](SQL-BUNDLE-CUSTODY-20261103.md).
+- [x] New-client catalogs/codecs/Echo consumer:836 focused tests passed, no failed/
+  skipped cases, including664 Chinese7937 rows. Main57,093 and sub-item1,693 rows
+  parse/roundtrip all67 fields; complete semantic/runtime mapping remains open.
+  [7937 status](7937-STATUS-20261103.md).
+- [x] Private English proposal:3,598 keys/3,636 physical rows, preserving earlier
+  translations, all unselected bytes and formatting. Separate UStrRes proposal:
+  1,191 keys. Unapplied/unrendered; no whole-client percentage.
   [English results and limits](NAMED-UI-ENGLISH-20261103.md).
-- [x] Exact arrow and fixed-percentage text-tool corrections: all 45 Python
-  controls passed, 0 failed/skipped, including actual CLI byte goldens and
-  malformed/mismatch refusals. FSB-340/343 are text-tool qualifications.
-- [x] Default-network owned read-cancellation correction: 81/81 focused controls
-  and public full CI passed. NoDelay was removed; no useful speedup was proven.
-  The [earlier full failure](FULL-WINDOWS-20261103-B6.md) remains in history.
+- [x] Exact-arrow and fixed-percentage text-tool corrections:45 Python controls
+  passed, no failed/skipped cases, including CLI byte goldens and malformed-input
+  refusals. FSB-340/343 qualify text tools, not client rendering.
 
-## Current qualification
+## Authentication and handoff successor
 
-- [x] Focused connection-lifetime correction (FSB-342): reviewed production and 13 new
-  regression rows built and all 13 passed in the first affected run: 382 passed,
-  2 failed, 0 skipped. Two older reply expectations were repaired with stronger
-  ticket/state-preservation checks; run `20261103T170628834Z-d3c61f93` passed
-  all 19 cases, 0 failed/skipped. A new public full gate remains required.
-  It prevents a second ticket from replacing a bound
-  connection's identity. [Contract](../protocol/specs/internal-handoff-connection-lifetime.md).
-- [x] Genuine SQL lost-COMMIT-ACK control: all 44 actual provider Facts passed,
-  0 failed/skipped, including real ACK loss, complete cold reads and exact replay.
-  Owned MariaDB12.2.2, commands, data/private options and listener cleanup were
-  independently checked. [Actual results](HANDOFF-SQL-RECOVERY-20261103.md).
-  [Control and limits](../engineering/SQL-COMMIT-ACK-LOSS.md).
-- [ ] Repair/qualify the successor public Windows gate. Run41683147081 on exact
-  `df6f42dc` finished35,678 passed /1 failed /196 skipped across Core/Updates;
-  all664 Chinese7937 rows passed. Launcher/updater stages did not run. The reviewed
-  WarFighters fixture collection repair retains all assertions and still requires
-  a full CI run. The217-case affected check passed0failed/skipped, including the
-  exact earlier victory test, reward neighbors and all19 scalar controls.
-  [Actual failure and limits](FULL-WINDOWS-20261103-DF6.md).
+- [x] Root reviewed and integrated56 C# paths: concrete retained authentication,
+  strict permission decoding, actual target-transaction affinity, genuine SQL
+  issuer/world identity proof, explicit two-table schema, expiring retained offer
+  and row-locked one-use redemption. True account ID stays separate from character
+  UID. No caller record, accepting callback or SQL ticket alone grants ownership.
+- [x] Focused ordinary account/Frame/handoff build and tests:124 passed,0 failed,
+  0 skipped; run20261103T223900640Z-b7f98028.
+- [x] Full actual provider family:119 unique source methods matched119 passing
+  actual TRX results,0 failed/skipped (59 predecessor+32 authentication+28 handoff).
+  Fresh owned MariaDB12.2.2/port34397, full-family qualified receipt, actual
+  commands/children settled, data/private options removed, listener closed and
+  no primary/cleanup errors. FSB-346/347/348 qualified within this boundary.
+  [Authentication results](SQL-AUTHENTICATION-CUSTODY-20261103.md),
+  [handoff results and limits](SQL-AUTHENTICATED-HANDOFF-20261103.md).
+- [ ] Root publishes this reviewed coherent batch and runs one appropriate full
+  Windows integration gate on the exact new source. The predecessor's green
+  gate does not qualify this successor.
 
-## Retained SQL ownership qualification
+## Next coherent milestone and remaining work
 
-- [x] Review/integrate real retained single/pair SQL custody and all six raw write
-  gates, with exclusion/lifetime/ACK, actual row-wait, pair cancellation and dual
-  disposal controls. The final actual provider family passed **59/59**,0failed/
-  skipped, on owned MariaDB12.2.2. Root checked every source-discovered name and
-  actual TRX row, complete cleanup and closed listeners. Earlier21P/38F and58P/1F
-  attempts remain recorded. [Results and limits](SQL-BUNDLE-CUSTODY-20261103.md).
-- [x] Affected SQL data/event controls:217/217 passed; exact selected-SQL tooling:
-  9/9 passed. A real selected row-wait control also passed and its receipt correctly
-  marked the full provider family as not run. These are separate selections.
-- [ ] Verify the required new public Windows integration gate on this reviewed
-  source. Local component/provider passes do not replace that gate or native join.
-
-## Remaining end-to-end work
-
-- [ ] Genuine target authentication and complete SQL/native account, revision,
-  Store and UID custody; complete native/sidecar/startup publication and every
-  later gameplay writer, without shadow files or silent file fallback.
+- [ ] Connect genuine retained SQL authentication/world custody to the real
+  connection/admission lifetime. Close account/character/revision, Online,
+  normalization/CAS/recovery, Store, sidecar, UID and later gameplay-writer
+  boundaries before publishing a SQL-backed native session. The current native
+  gameplay backend still saves files. Do not add a shadow file fallback.
   [SQL scope](SQL-WORLD-STATE-20261103.md).
-- [ ] Full 7937 profile/session activation, item-field meanings, Echo actions,
-  costs and saving, and packet2350 gameplay integration.
+- [ ] Qualify separate-process/server isolation and new handoff COMMIT/ACK-loss,
+  cancellation, DDL/gap-lock/clock and active-watcher fault boundaries as needed;
+  current component/provider passes do not establish those properties.
+- [ ] Full7937 session/profile activation, catalog meanings/runtime adapters,
+  Echo actions/costs/saving and packet2350 gameplay integration.
 - [ ] Remaining gameplay/social/events, actionable static defects, complete
   English resources, rendering checks and client distribution.
 - [ ] After the operator's execution hold clears: actual target login, gear/mail
-  actions and stability, then migrate one local endpoint at a time with a login
+  actions and stability; then migrate one local endpoint at a time with a login
   check and single-file rollback after each change.
 
-Preserve original sessions, saves, routes, backups, restore ZIP, `D:\cqclient`
+Earlier failures remain in their linked result documents, including the
+[old df6f42dc Windows failure](FULL-WINDOWS-20261103-DF6.md). Observed full-run
+length is not a controlled speedup measurement.
+
+Preserve original sessions, saves, routes, backups, restore ZIP, D:\cqclient
 and unrelated held edits. No AV changes or legacy executable launches while the
 hold remains. Green source/provider checks do not establish host trust, live
 acceptance, deployment, complete gameplay parity or that every bug is fixed.

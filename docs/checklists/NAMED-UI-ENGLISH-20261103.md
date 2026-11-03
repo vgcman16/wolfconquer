@@ -1,5 +1,27 @@
 # Named UI English proposal checklist
 
+- [x] Added147 reviewed Guild/arena/instance keys/rows through two unchanged-tool
+  passes:3451/3489 ->3519/3557 ->3598keys/3636rows. Root read149 proposed pairs
+  and every occurrence context, held two unclear meanings, refined four ordinary
+  wordings and independently compared actual output/receipt with original and
+  prior3451 proposal. Actual3,227,117bytes; SHA256
+  5847744E23EC2F92B1B67A349F2299055BB27163117E004933FF15D420B6C140.
+  The appointment-date and actor-direction rows remain Chinese. Tier/ranking,
+  Gift CPs/Battle Power, original Daily wording, numeric brackets, quantities,
+  leading space and tokens remain. All previous/unselected bytes are preserved.
+  Private/unapplied/unrendered; no changed tool, redundant suite or gameplay claim.
+
+- [x] Added200 reviewed Family/Guild/market/instance keys covering213rows:
+  3251/3276 ->3312/3350 ->3372/3410 ->3451keys/3489rows. Root read all pairs and
+  all213 occurrence contexts, refined one CP spending label and independently
+  checked actual output/receipt against original and previous3251 proposal.
+  Actual3,226,271bytes; SHA256
+  5EFFA77F0EC9241C86BD4E153967C049A20EA80E5F9A6EFB32258499593A5F6F.
+  Prior translations, all unselected bytes, uniform duplicates, numeric bounds,
+  periods, markup and arguments remain. Uncertain terms and the earlier held
+  mounted-energy row remain Chinese. Private/unapplied/unrendered; unchanged
+  formatter, no redundant suite and no gameplay/C#/SQL qualification follows.
+
 - [x] Added63 reviewed options/help/social keys/rows through two unchanged-tool
   passes:3188/3213 ->3211/3236 ->3251keys/3276rows. Root read every wording and
   original context, refined one spouse/Family relationship notice and independently
