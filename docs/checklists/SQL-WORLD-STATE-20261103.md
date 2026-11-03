@@ -21,9 +21,10 @@ and UNRUN. No backend, native handler, schema or default configuration changed.
 - [x] Refuse partial owned schemas before DDL; verify complete schemas without
   marker writes. Two new real-provider Facts cover four partial cases and
   complete-schema reinitialization with a real marker-update refusal trigger.
-- [ ] After the separate full33805 is terminal, compile and run model/parser/
-  graph and local-development-tool neighbors (including timing-reader controls),
-  inspect real failures and changed-path diagnostics.
+- [ ] Full33805 is terminalfailed; the first new focused build failedCS8752 in
+  one test helper before tests ran. Qualify its explicit-constructor repair plus
+  complete-bundle models/15authored cases, parser/graph, PIN/trade and local-tool
+  neighbors; inspect actual failures and changed-path diagnostics.
 - [ ] Run `Invoke-SqlGameplayCheck.ps1 -Port 34385` on a fresh owned instance;
   require all29 actual Facts passed/no skips and settled owned cleanup. A stale
   twenty-Fact assembly or the earlier SQL20 result cannot qualify this batch.

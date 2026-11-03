@@ -28,7 +28,7 @@ public sealed partial class ModernSqlAuthFileRoundtripTests
     }
 
     private static SqlWorldStateRequest WorldRequest(SqlWorldStateOperationKind kind, SqlWorldStateImage image, long revision, Guid? id = null) =>
-        SqlWorldStateTestData.Request(kind, id ?? Guid.NewGuid(), new(image, revision));
+        SqlWorldStateTestData.Request(kind, id ?? Guid.NewGuid(), new SqlWorldStateChange(image, revision));
 
     private static SqlWorldStateRequest WorldPair(SqlWorldStateImage first, SqlWorldStateImage second, long firstRevision = 1,
         long secondRevision = 1, Guid? id = null) => SqlWorldStateTestData.Request(SqlWorldStateOperationKind.SavePair,

@@ -8,12 +8,14 @@ paths, including real SQL transactions and exact operation replay. UNBUILT/UNRUN
 no runtime backend or data migration. Nine new provider Facts make29 required,
 not a29-pass result. Reviewed collision-error preservation and partial-schema
 preflight source/controls are integrated but unbuilt/unrun. [Full remaining horizon](SQL-WORLD-STATE-20261103.md).
-Wait for the sole full33805 on the OTHER frozenb6aa candidate before checks here.
-That live run has reported a protected-trade positive failure (expected received
-item UID20, actual original10); terminal totals are not available yet. The isolated
-fixture repair supplies the existing coherent catalog at actual construction,
-retaining every intended swap/wallet/file/PIN assertion and production guard.
-This repair is integrated here but unbuilt/unrun.
+Full33805 on the OTHER frozenb6aa candidate is terminalfailed: Core34,945P/1F/
+172skip; Updates446P/0F/0skip. Later stages were unrun. Root read both actualTRXs.
+The protected-trade positive fixture repair retains its catalog and every swap/
+wallet/file/PIN assertion; no production guard changed. Source6b's first focused
+build79077 failedCS8752 in a new test helper; no tests ran. The explicit typed
+constructor repair and distinct complete-image bundle/request models with15
+new authored cases are integrated for the next combined compilation. No new
+C# or provider pass is claimed. [Full result](FULL-WINDOWS-20261103-B6.md).
 
 Reviewed timing-reader enhancement reuses Get-TestTiming.ps1, with strict
 explicit-file/time checks and known/missing counts. Read-only old53f report
