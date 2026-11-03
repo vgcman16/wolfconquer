@@ -19,6 +19,8 @@ public sealed partial class GameAcceptanceRunnerTests
         internal JsonObject Intent { get; }
         internal TradeComparisonFixture()
         {
+            using var timing = FixturePhaseTiming.Create("game-acceptance.trade-comparison.input");
+            using var setup = timing?.Measure("synthetic-report-input-setup");
             BeforeA = Report(First, 1000, 250, [Item(11, 410003, 0), Item(12, 118003, 1, "equipment", 1),
                 Item(13, 1000000, 2, "warehouse", warehouse: 8), Item(14, 2000000, 1, "wardrobe"),
                 Item(15, 2000001, 1, "warehouse.deposited")]);

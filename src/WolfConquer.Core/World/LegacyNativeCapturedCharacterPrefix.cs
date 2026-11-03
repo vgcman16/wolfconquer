@@ -13,6 +13,7 @@ internal sealed partial class LegacyNativeCapturedCharacterPrefix
     private readonly LegacyNativePlayerRuntime player;
     private readonly LegacyCapturedCharacterPrefix captured;
     private readonly CharacterSnapshot preparedSnapshot;
+    private readonly SqlOrdinaryAdmissionImagePlan? sqlPlan;
     private readonly LegacyNativePlayerRuntime.ExistingPrefixLoad playerLoad;
     private readonly LegacyNativeBeastsRuntime.PrefixLoad beasts;
     private readonly LegacyNativeHairfaceStorageRuntime.PrefixLoad hairface;
@@ -24,11 +25,12 @@ internal sealed partial class LegacyNativeCapturedCharacterPrefix
         LegacyNativePlayerRuntime player, LegacyCapturedCharacterPrefix captured, CharacterSnapshot preparedSnapshot,
         LegacyNativePlayerRuntime.ExistingPrefixLoad playerLoad, LegacyNativeBeastsRuntime.PrefixLoad beasts,
         LegacyNativeHairfaceStorageRuntime.PrefixLoad hairface, LegacyNativeExistingPrefixBefore playerBefore,
-        LegacyNativeBeastsRuntime.PrefixBefore beastsBefore, LegacyNativeHairfaceStorageRuntime.PrefixBefore hairfaceBefore)
+        LegacyNativeBeastsRuntime.PrefixBefore beastsBefore, LegacyNativeHairfaceStorageRuntime.PrefixBefore hairfaceBefore,
+        SqlOrdinaryAdmissionImagePlan? sqlPlan)
     {
         this.connection = connection; this.client = client; this.player = player; this.captured = captured;
         this.preparedSnapshot = preparedSnapshot; this.playerLoad = playerLoad; this.beasts = beasts; this.hairface = hairface;
-        this.playerBefore = playerBefore; this.beastsBefore = beastsBefore; this.hairfaceBefore = hairfaceBefore;
+        this.playerBefore = playerBefore; this.beastsBefore = beastsBefore; this.hairfaceBefore = hairfaceBefore; this.sqlPlan = sqlPlan;
     }
 
     internal SqlWorldStateImage Image => captured.Image;
@@ -36,6 +38,8 @@ internal sealed partial class LegacyNativeCapturedCharacterPrefix
     {
         Attributes = new Dictionary<string, string>(preparedSnapshot.Attributes, StringComparer.OrdinalIgnoreCase),
         PaidNobility = new Dictionary<string, string>(preparedSnapshot.PaidNobility, StringComparer.OrdinalIgnoreCase),
+        PlayerQuests = new PlayerQuestSnapshot(preparedSnapshot.PlayerQuests.Quests.Select(quest =>
+            new PlayerQuestSnapshotEntry(quest.Uid, quest.Status, quest.Time, quest.Intentions.ToArray())).ToArray()),
     };
     internal LegacyNativePrefixValues PreparedPlayerValues => playerLoad.PreparedPlayerValues;
     internal byte[] CopyOnlineCharacterBytes() => captured.CopyOnlineCharacterBytes();

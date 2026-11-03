@@ -22,15 +22,23 @@ public sealed partial class GameAcceptanceRunnerTests
         internal bool Complete;
         internal WalkFixture()
         {
+            using var timing = FixturePhaseTiming.Create("game-acceptance.walk.input");
+            using var setup = timing?.Measure("input-setup-total");
             Directory.CreateDirectory(Parent);
             Root = Path.Combine(Parent, "wolf-owned-admission-" + Guid.NewGuid().ToString("N"));
             Evidence = Path.Combine(Parent, "wolf-game-acceptance-" + Guid.NewGuid().ToString("N"));
-            Assert.True(LegacyOwnedAdmissionFixture.TryCreate(Root, Account, Account, 8013201,
-                ConquerProtocolProfile.VisibleDx8D13, out var owned, out var reason), reason);
-            Owned = Assert.IsType<LegacyOwnedAdmissionFixtureResult>(owned);
-            Assert.True(LegacyOwnedAdmissionOptions.TryReadFile(Owned.ConfigurationPath, out var routes, out reason), reason);
-            Routes = Assert.IsType<LegacyOwnedAdmissionOptions>(routes);
-            tool = TestProjectProcess.Create(RepositoryRoot(), "WolfConquer.DataTool");
+            using (timing?.Measure("owned-fixture-create"))
+            {
+                Assert.True(LegacyOwnedAdmissionFixture.TryCreate(Root, Account, Account, 8013201,
+                    ConquerProtocolProfile.VisibleDx8D13, out var owned, out var reason), reason);
+                Owned = Assert.IsType<LegacyOwnedAdmissionFixtureResult>(owned);
+            }
+            using (timing?.Measure("owned-routes-read"))
+            {
+                Assert.True(LegacyOwnedAdmissionOptions.TryReadFile(Owned.ConfigurationPath, out var routes, out var reason), reason);
+                Routes = Assert.IsType<LegacyOwnedAdmissionOptions>(routes);
+            }
+            using (timing?.Measure("data-tool-process-metadata")) tool = TestProjectProcess.Create(RepositoryRoot(), "WolfConquer.DataTool");
         }
         internal string[] Arguments => ["-Scenario", "login-walk-save", "-DataToolDll", tool.StartInfo.ArgumentList[0],
             "-OwnedAdmissionConfig", Owned.ConfigurationPath, "-AccountId", Account.ToString(), "-EvidenceRoot", Evidence,
@@ -38,9 +46,17 @@ public sealed partial class GameAcceptanceRunnerTests
             "-ExpectedMap", "1002", "-ExpectedX", "411", "-ExpectedY", "355"];
         internal async Task<JsonNode> Invoke(bool resume = false, params string[] extra)
         {
-            var files = Files(Root);
-            var args = Arguments.Concat(resume ? new[] { "-Resume" } : []).Concat(extra).ToArray();
-            var result = await RunAsync(args);
+            using var timing = FixturePhaseTiming.Create("game-acceptance.walk.invoke");
+            using var total = timing?.Measure("invocation-total");
+            Dictionary<string, byte[]> files; string[] args;
+            using (timing?.Measure("capture-input-images-and-arguments"))
+            {
+                files = Files(Root);
+                args = Arguments.Concat(resume ? new[] { "-Resume" } : []).Concat(extra).ToArray();
+            }
+            (int ExitCode, string Output, string Error) result;
+            using (timing?.Measure("real-script-invocation")) result = await RunAsync(args);
+            using var verification = timing?.Measure("report-and-file-verification");
             Assert.True(string.IsNullOrWhiteSpace(result.Error), result.Error);
             AssertFiles(Root, files); // Actual inspector/runner never writes the saved test data.
             var json = JsonNode.Parse(result.Output)!;
@@ -108,6 +124,8 @@ public sealed partial class GameAcceptanceRunnerTests
         }
         public void Dispose()
         {
+            using var timing = FixturePhaseTiming.Create("game-acceptance.walk.cleanup");
+            using var cleanup = timing?.Measure("process-metadata-and-owned-root-cleanup");
             tool.Dispose();
             if (Complete) DeleteOwned(Parent, "wolf-walk-tests-");
         }

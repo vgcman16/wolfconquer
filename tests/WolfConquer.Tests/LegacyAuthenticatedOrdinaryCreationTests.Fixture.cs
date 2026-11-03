@@ -42,6 +42,7 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
     {
         private readonly FixturePhaseTiming? timing;
         internal CreationFixture(FixturePhaseTiming? timing) => this.timing = timing;
+        internal FixturePhaseTiming.Scope? MeasurePhase(string phase) => timing?.Measure(phase);
         internal const uint Account = LegacyOwnedAdmissionRuntimeFixture.Uid + 1, RuneActor = LegacyOwnedAdmissionRuntimeFixture.Uid;
         internal const uint RuneUid = 1_035_001, RuneType = 4_020_517;
         internal readonly LegacyOwnedAdmissionRuntimeFixture Data = new(bootstrap: false);
@@ -86,24 +87,36 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
         {
             using (timing?.Measure("initialize-setup"))
             {
-                Selection = selection; Catalog = BuildCatalog();
+                Selection = selection;
+                using (timing?.Measure("initialize-catalog")) Catalog = BuildCatalog();
                 // A separate, preexisting actor owns the Rune before the real scan.
                 // Newborn remains level1/reborn0; no post-birth Rune or stat injection.
-                var text = File.ReadAllText(Data.UserPath).Replace("Class=7051", "Class=6000", StringComparison.Ordinal);
-                File.WriteAllText(Data.UserPath, text, new System.Text.UTF8Encoding(true));
-                new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(RuneActor, new([], [], [], [],
-                    [new PlayerItemSnapshotItem { Uid = RuneUid, ItemId = RuneType, Position = 212, StackSize = 1, Durability = 100, MaximumDurability = 100, RuneExperience = 7500 }]));
-                new PlayerSpellSnapshotLoader(Data.Spells).SaveByCharacterUid(RuneActor,
-                    new([new PlayerSpellSnapshotEntry(6001, 2, 1234, 1, 0, 0)]));
-                var old = File.ReadAllBytes(Path.Combine(Data.Spells, RuneActor + ".bin")); old[15] = 0xA5;
-                File.WriteAllBytes(Path.Combine(Data.Spells, RuneActor + ".bin"), old);
-                beforeBootstrap?.Invoke(this); Data.Bootstrap();
+                using (timing?.Measure("initialize-seed-files"))
+                {
+                    var text = File.ReadAllText(Data.UserPath).Replace("Class=7051", "Class=6000", StringComparison.Ordinal);
+                    File.WriteAllText(Data.UserPath, text, new System.Text.UTF8Encoding(true));
+                    new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(RuneActor, new([], [], [], [],
+                        [new PlayerItemSnapshotItem { Uid = RuneUid, ItemId = RuneType, Position = 212, StackSize = 1, Durability = 100, MaximumDurability = 100, RuneExperience = 7500 }]));
+                    new PlayerSpellSnapshotLoader(Data.Spells).SaveByCharacterUid(RuneActor,
+                        new([new PlayerSpellSnapshotEntry(6001, 2, 1234, 1, 0, 0)]));
+                    var old = File.ReadAllBytes(Path.Combine(Data.Spells, RuneActor + ".bin")); old[15] = 0xA5;
+                    File.WriteAllBytes(Path.Combine(Data.Spells, RuneActor + ".bin"), old);
+                }
+                using (timing?.Measure("initialize-before-bootstrap")) beforeBootstrap?.Invoke(this);
+                using (timing?.Measure("initialize-bootstrap")) Data.Bootstrap();
             }
             using (timing?.Measure("initialize-open"))
             {
-                TicketStore = new(Path.Combine(Data.Root, "OwnedAccountHandoff"), "owned-fixture-key-" + Guid.NewGuid().ToString("N"));
-                Handoff = new(TicketStore);
-                Runtime = Open(); Handler = NewHandler(); Connection = NewConnection(Account);
+                using (timing?.Measure("initialize-handoff"))
+                {
+                    TicketStore = new(Path.Combine(Data.Root, "OwnedAccountHandoff"), "owned-fixture-key-" + Guid.NewGuid().ToString("N"));
+                    Handoff = new(TicketStore);
+                }
+                using (timing?.Measure("initialize-runtime-open")) Runtime = Open();
+                using (timing?.Measure("initialize-handler-connection"))
+                {
+                    Handler = NewHandler(); Connection = NewConnection(Account);
+                }
             }
             if (enter)
             {

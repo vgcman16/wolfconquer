@@ -1,5 +1,25 @@
 # Publication validation
 
+## Current local integration check - 2026-11-03
+
+Clean local `3bb7346514bfda8f218293c14c15fd57dd3842fc` passed all eight Windows
+stages: Core35,157P/0F/194skipped, Updates446P/0F, Launcher57P/0F;
+combined **35,660 passed /0failed /194skipped**. Finished12:58:24.4719874UTC,
+run20261103T105311245Z-25621ff1, elapsed2:05:13.112. All664 Chinese7937 rows
+passed. Actual skip reasons are42 opt-in SQL cases and152 omitted external game
+fixture cases. Separate updater shell checks also passed. See
+[the actual result and limits](docs/checklists/FULL-WINDOWS-20261103-3BB.md).
+
+The same source separately passed221 repair/component cases and all42 real
+SQL provider Facts with owned cleanup. Later complete admission-data, DH/ticket
+and timing source passed229 focused C# tests and all43 actual SQL Facts,
+0failed/skipped; its new full public CI remains pending. [Successor results](docs/checklists/SQL-COMPLETE-ADMISSION-RESULTS-20261103.md).
+The new text-arrow tooling
+separately passed40 Python controls after reproducing the old refusal; it is not
+qualified by the parent full run. No new public Windows CI or live client proof
+is implied. Earlier failures below remain historical failures, superseded only
+for their exact corrected source by completed later qualification.
+
 ## Current local integration check - 2026-11-02
 
 The complete local Windows check on `dd448f7f` failed: Core33,811 passed,

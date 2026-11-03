@@ -7,6 +7,7 @@ public sealed class AccountHandoffService
     public static readonly TimeSpan DefaultLifetime = TimeSpan.FromMinutes(2);
 
     private readonly IAccountHandoffTicketStore _tickets;
+    private readonly IAccountHandoffTicketRedeemer _redeemer;
     private readonly Func<DateTimeOffset> _utcNow;
     private readonly TimeSpan _lifetime;
 
@@ -16,6 +17,8 @@ public sealed class AccountHandoffService
         TimeSpan? lifetime = null)
     {
         _tickets = tickets ?? throw new ArgumentNullException(nameof(tickets));
+        _redeemer = tickets as IAccountHandoffTicketRedeemer ??
+            throw new ArgumentException("Ticket store must support atomic redemption.", nameof(tickets));
         _utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
         _lifetime = lifetime ?? DefaultLifetime;
         if (_lifetime <= TimeSpan.Zero)
@@ -49,30 +52,6 @@ public sealed class AccountHandoffService
 
     public AccountHandoffRedeemResult Redeem(string token)
     {
-        var now = _utcNow();
-        if (_tickets is IAccountHandoffTicketRedeemer redeemer)
-        {
-            return redeemer.Redeem(token, now);
-        }
-
-        if (string.IsNullOrWhiteSpace(token) ||
-            !_tickets.TryGet(token, out var ticket))
-        {
-            return new AccountHandoffRedeemResult(AccountHandoffRedeemStatus.UnknownTicket);
-        }
-
-        if (ticket.IsRedeemed)
-        {
-            return new AccountHandoffRedeemResult(AccountHandoffRedeemStatus.AlreadyRedeemed, ticket);
-        }
-
-        if (ticket.ExpiresAtUtc <= now)
-        {
-            return new AccountHandoffRedeemResult(AccountHandoffRedeemStatus.ExpiredTicket, ticket);
-        }
-
-        var redeemed = ticket with { RedeemedAtUtc = now };
-        _tickets.Save(redeemed);
-        return new AccountHandoffRedeemResult(AccountHandoffRedeemStatus.Success, redeemed);
+        return _redeemer.Redeem(token, _utcNow());
     }
 }

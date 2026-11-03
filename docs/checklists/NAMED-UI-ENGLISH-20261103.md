@@ -82,6 +82,43 @@
   All earlier wordings, unselected bytes, tokens and original input pins remain.
   Existing tool, guards and bounds stayed unchanged; no redundant tool tests.
   Uncertain mechanics/terms/aliases remain held; no resource applied/rendered.
+- [x] Reviewed quest/social/system prompts add125keys/126rows through three
+  bounded passes:1,281/1,299 ->1,325/1,343 ->1,343/1,361 ->1,406keys/1,425rows.
+  Root read all44+18+63 wordings and independently read actual output/receipt.
+  Actual3,214,283bytes, SHA256
+  12C25D3917F8CF2CB40B49484AAAC06067C0265136C19BE4C6857A4462983AF7.
+  Earlier translations, unselected bytes, structure and tokens remain intact;
+  original input pins and tools are unchanged. No resource applied/rendered.
+- [x] Further gear/auction/combat wordings add229keys/229rows through three
+  unchanged-tool passes:1,406/1,425 ->1,482/1,501 ->1,542/1,561 ->1,635/1,654.
+  Root read all230candidate pairs, held an ambiguous PK counter and clarified
+  guild-target wording. Actual3,214,886bytes, SHA256
+  D4635CE05AD95BB21093D99693E37AF66D5719941F88D115BF2BE86211C81F0A.
+  Root separately checked actual output/receipt after exit0. Prior translations,
+  unselected bytes, tokens and input pins remain; no resource applied/rendered.
+- [x] Further character/task/social wordings add280keys/281rows through three
+  unchanged-tool passes:1,635/1,654 ->1,730/1,750 ->1,798/1,818 ->1,915/1,935.
+  Root read all pairs and refined6 English values for allocation possibilities,
+  offline-message conversion and appointment phrasing. Uniform duplicates stay
+  aligned; conflicting HeavyHit keys remain held. Actual3,216,441bytes, SHA256
+  B6EB0EAC7BAC8612FBA8A82479987A5813AFBEE866DBE467B116E37E0241ACCB.
+  Root separately read actual output/receipt after exit0. Prior translations,
+  unselected bytes, tokens and input pins remain. No apply/render or tool change.
+- [x] Exact literal-arrow grammar reproduced the old refusal (four new controls,
+  failures3/errors1), then all40 Python methods passed0failed/skipped in18.458s.
+  Fourteen reviewed ordinary attribute labels composed with the qualified tool:
+  1,915/1,935 ->1,929keys/1,949rows. Actual3,216,437bytes, SHA256
+  71AAFA4F6E155BD87E75629DFADC494347B1D971D2F7779FC1CC07F4550531A2.
+  Root separately read actual output/receipt. Prior translations, unselected
+  bytes, ordered arrows/printf/markup and input pins remain. CRASH special-stat
+  labels stay held. No resource applied/rendered; no C# qualification follows.
+- [x] Reviewed99 ordinary button/field keys (16distinct source wording variants)
+  composed in three passes:1,929/1,949 ->1,995/2,015 ->1,997/2,017 ->2,028/2,048.
+  Actual3,216,409bytes, SHA256
+  E56A5B8F1D0DE18309F874AF45053E873A8D8BB98DFB0D0F98560D3DF4A8110C.
+  Root read every pair/context and actual output/receipt. Ambiguous toggles,
+  returns and internally spaced labels remain held; original inputs, prior
+  translations and unselected bytes remain. No new tool change or apply/render.
 - [ ] Perform separately permitted English rendering/font/layout review after
   the execution hold clears; no client resource has been applied here.
 - [ ] Complete the many thousands of remaining Chinese named-resource values.

@@ -21,6 +21,8 @@ public sealed partial class GameAcceptanceRunnerTests
         internal bool Complete;
         internal TradeFixture()
         {
+            using var timing = FixturePhaseTiming.Create("game-acceptance.trade.input");
+            using var setup = timing?.Measure("trade-input-mutations");
             data.Character(("MaxMana", "100"));
             var character = File.ReadAllText(Path.Combine(data.Routes.UsersRoot, A + ".ini"));
             Assert.Contains("UID=" + A, character, StringComparison.Ordinal);
@@ -61,8 +63,17 @@ public sealed partial class GameAcceptanceRunnerTests
             .Concat(["-CounterpartyAccountId", B.ToString(CultureInfo.InvariantCulture), "-TradePlan", PlanPath]).ToArray();
         internal async Task<JsonNode> Invoke(bool resume = false, string[]? arguments = null)
         {
-            var before = Files(Root);
-            var result = await RunAsync((arguments ?? Arguments).Concat(resume ? ["-Resume"] : []).ToArray());
+            using var timing = FixturePhaseTiming.Create("game-acceptance.trade.invoke");
+            using var total = timing?.Measure("invocation-total");
+            Dictionary<string, byte[]> before; string[] invocationArguments;
+            using (timing?.Measure("capture-input-images-and-arguments"))
+            {
+                before = Files(Root);
+                invocationArguments = (arguments ?? Arguments).Concat(resume ? ["-Resume"] : []).ToArray();
+            }
+            (int ExitCode, string Output, string Error) result;
+            using (timing?.Measure("real-script-invocation")) result = await RunAsync(invocationArguments);
+            using var verification = timing?.Measure("report-and-file-verification");
             Assert.Empty(result.Error); AssertFiles(Root, before);
             var output = JsonNode.Parse(result.Output)!; output["actualExitCode"] = result.ExitCode;
             if (result.ExitCode == 2)
@@ -98,9 +109,14 @@ public sealed partial class GameAcceptanceRunnerTests
         internal string Hash(string leaf) => data.Hash(leaf);
         internal async Task<JsonNode> Status(uint account = 0)
         {
-            var before = Files(Parent);
-            var result = await RunScriptAsync("Get-GameAcceptanceStatus.ps1", "-EvidenceParent", Parent,
-                "-AccountId", account.ToString(CultureInfo.InvariantCulture));
+            using var timing = FixturePhaseTiming.Create("game-acceptance.trade.status");
+            Dictionary<string, byte[]> before;
+            using (timing?.Measure("capture-input-images")) before = Files(Parent);
+            (int ExitCode, string Output, string Error) result;
+            using (timing?.Measure("real-script-invocation"))
+                result = await RunScriptAsync("Get-GameAcceptanceStatus.ps1", "-EvidenceParent", Parent,
+                    "-AccountId", account.ToString(CultureInfo.InvariantCulture));
+            using var verification = timing?.Measure("report-and-file-verification");
             Assert.Empty(result.Error); AssertFiles(Parent, before);
             var output = JsonNode.Parse(result.Output)!; output["actualExitCode"] = result.ExitCode;
             return output;

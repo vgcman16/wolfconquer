@@ -4,17 +4,95 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
-## Native prefix correction — qualification pending, 2026-11-03
+## Literal UI comparison arrows - qualified text tooling, 2026-11-03
+
+### FSB-340: Preserve exact literal arrows instead of rejecting valid UI comparisons
+
+**VERIFIED within the text-tool scope.** The named-UI formatter treated
+the `>` in literal `->` as unsupported markup, blocking ordinary attribute
+comparison translations present in the matching7937 resource. The proposed
+four-line correction emits an exact ordered arrow token. Missing/replaced arrows
+remain held, malformed greater-than/markup still refuses, and no input/output
+ownership rule or bound changes.
+
+The old formatter reproduced failures3/errors1 in the four new synthetic
+controls. The correction then passed all40 methods,0failed/skipped in18.458s,
+including all36 previous controls. They cover token order, malformed syntax,
+actual sequential CLI byte preservation and mismatch holds. Fourteen reviewed
+ordinary labels composed privately to1929keys/1949rows with prior/unselected
+bytes and token order retained; actual output/receipt were separately checked.
+No client catalog is copied into public tests. This is text-tool correctness,
+not semantic/gameplay alignment, rendering or client acceptance. See the
+[contract](docs/protocol/specs/7937-ui-literal-arrows.md).
+
+## Internal handoff redemption - qualification pending, 2026-11-03
+
+### FSB-339: Consume in-memory handoff tickets under the actual shared store owner
+
+**OPEN: five new safety Facts and existing service/file/workflow controls passed
+in the229-case focused gate; successor full public CI pending.** InMemoryAccountHandoffTicketStore
+locked Save and TryGet individually but did not implement the existing atomic
+redeemer. AccountHandoffService then used a separate read/check/write fallback,
+allowing two services sharing the store to observe the same pending ticket.
+This is a source-level race, not an executed exploit demonstration.
+
+Memory now performs lookup, expiry/replay validation and replacement under its
+actual shared gate. The service requires the existing redemption capability
+at construction and delegates directly; it no longer invents a non-atomic
+fallback. Actual File redemption is retained. All implementation/caller uses
+were inspected; Memory and File are the only actual stores in this source.
+
+Five authored Facts use actual Memory/services and settled parallel calls,
+exact identity/time/replay, inclusive-expiry and unknown-input nonconsumption,
+independent tickets and fail-fast unsupported/null construction. Existing real
+File parallel/cold-instance/tamper and world workflow controls remain unchanged.
+All five actually passed; the full successor gate remains pending. Memory
+remains ephemeral/process-local. This does not establish native
+identifier authentication,7937 login, SQL custody or durable cross-process Memory
+storage. See the [contract](docs/protocol/specs/internal-handoff-redemption.md).
+
+## Managed legacy handshake input - qualification pending, 2026-11-03
+
+### FSB-338: Reject trivial peer keys and preserve the prior DH exchange on refusal
+
+**OPEN: all35 new component/wire rows passed in the229-case focused gate;
+successor full public CI pending.** The replacement managed DH
+component accepted peer1 and computed the predictable shared value1. Malformed
+or degenerate response handling could also replace portions of an earlier valid
+exchange. This is a source finding, not a demonstrated original-client or live
+deployment exploit.
+
+The proposed correction bounds ASCII-hex parsing before BigInteger allocation,
+checks elementary public/shared ranges, validates constructor parameters and
+prepares an immutable exchange before publication. Refusal preserves the prior
+private/public/shared values. Fresh CSPRNG retry/clearing retains existing wire
+spelling and key derivation; no cached keys or new protocol fields are introduced.
+The TCP caller treats only the dedicated peer-key rejection as expected closure
+before game dispatch; unrelated diagnostics and the existing reader remain.
+
+The original six DH tests remain unchanged. New29 component rows and6 real
+loopback rows cover independent arithmetic/state/bounds, genuine EOF/no dispatch
+and subsequent valid RNG handshake on the same listener. All35 executed and
+passed; the full successor gate remains pending. No duplicate host execution
+or live client was used.
+
+This does not certify the custom group, subgroup, TLS, account authentication,
+7937 integration, host trust or live acceptance. See the
+[protocol specification](docs/protocol/specs/legacy-dh-peer-validation.md).
+
+## Native prefix correction — bounded qualification completed, 2026-11-03
 
 Bounded qualification now passed221 repair/component tests and all42 actual
 SQL provider Facts, zero failed/skipped, with actual owned cleanup checked.
 The original700P/10F run is retained; corrupt-input expectations were repaired
 without weakening guards. See [results](docs/checklists/SQL-NATIVE-PREPARATION-RESULTS-20261103.md).
-The coherent successor full gate and each explicit remaining limit stay open.
+The coherent full gate on3bb73465 passed35,660P/0F/194skipped across Core,
+Updates and Launcher. [Actual full result](docs/checklists/FULL-WINDOWS-20261103-3BB.md).
+Each explicit remaining limit below still applies.
 
 ### FSB-335: Refuse malformed present native-prefix fields before admission
 
-**OPEN: source built; complete affected qualification pending.** The file
+**VERIFIED within the bounded captured/native/file scope on3bb73465.** The file
 prefix used optional INI typed readers that swallowed malformed/overflowing
 values into defaults and consulted mutable global conversion delegates. The
 two RelicSpirit tests explicitly accepted `bad` and numeric `1` as false and
@@ -34,14 +112,14 @@ further older login assertions that accepted corrupt numeric/boolean suffixes,
 overflow or truncation. Their original bad values are retained as rejection
 controls, with genuine valid and missing-value positives kept separately.
 
-Authored captured-data/native/file controls and the appropriate integration gate
-must run before this entry becomes a verified fix. The separate captured SQL
+Captured-data/native/file controls passed in the221-case repair/component check,
+all42 actual provider Facts passed and the full3bb gate is now complete. The separate captured SQL
 preparation has no commit/publication API and is not authentication, native SQL
 admission, full persistence or actual-client acceptance.
 
 ### FSB-336: Validate paid expiry data instead of inventing a zero restoration
 
-**OPEN: focused controls passed; full-batch qualification pending.** Active paid
+**VERIFIED within the bounded saved-expiry scope on3bb73465.** Active paid
 nobility previously used missing/malformed period and donation fallbacks of zero,
 or DateTime.MinValue after a failed binary-date decode. That could trigger expiry
 and replace donation/rank using invalid storage. A present invalid active flag
@@ -55,12 +133,15 @@ snapshot for the dedicated malformed-paid error; complete SQL image preparation
 also refuses without replacing any input image. Real file/data controls cover
 malformed, future-active and valid inclusive-deadline cases. The combined
 PaidNobilityInputSafety family passed33/33 in run20261103T102915484Z-a3f84ef7;
-SQL image-plan controls passed47/47. The affected batch still failed ten older
-native-prefix assertions; real-provider and successor full checks remain open.
+SQL image-plan controls passed47/47. The earlier affected batch failed ten older
+native-prefix assertions; their correction passed221repair/component cases,
+followed by all42 provider Facts and the complete full3bb gate. Earlier failures
+are retained; this does not establish a whole-action or native SQL transaction.
 
 ### FSB-337: Require a verified paid-expiry save before returning normalized state
 
-**OPEN: focused controls passed; full-batch qualification pending.** The older
+**OPEN: refusal/retry and full regression passed; uncertain-outcome propagation
+remains unexercised.** The older
 public loader ignored its best-effort paid section writer's false result and
 returned updated donation/rank even when saving failed. The proposed successor
 re-captures current bounded data under the actual path gate, checks UID and

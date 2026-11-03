@@ -7,42 +7,75 @@ namespace WolfConquer.Tests;
 public sealed partial class LegacyInventorySashUpgradeTests
 {
     [Fact]
-    public Task RegisteredPackageCompletedHistoryExceeds256WithoutAllocatingDummyUidsAndRetainsOldReplayAcrossRestart() =>
-        RunStackPackageAsync(fixture => SeedHistoryMails(fixture, 300), async (fixture, join) =>
+    public async Task RegisteredPackageCompletedHistoryExceeds256WithoutAllocatingDummyUidsAndRetainsOldReplayAcrossRestart()
+    {
+        using var timing = FixturePhaseTiming.Create(nameof(RegisteredPackageCompletedHistoryExceeds256WithoutAllocatingDummyUidsAndRetainsOldReplayAcrossRestart));
+        WorldDataCatalog catalog;
+        using (timing?.Measure("catalog-create")) catalog = HistoryLargeStackCatalog();
+        await RunStackPackageAsync(fixture => SeedHistoryMails(fixture, 300), async (fixture, join) =>
         {
-            var before = CapturePackageJoin(fixture, join);
-            var mails = new LegacyMailboxStore(fixture.Root).Load(Fixture.Uid)
-                .Where(mail => mail.Flag == 1).OrderBy(mail => mail.Id).ToArray();
-            Assert.Equal(300, mails.Length);
-            var uidBytes = File.ReadAllBytes(fixture.PackageUidState);
+            PackageJoinBefore before;
+            LegacyMailboxEntry[] mails;
+            byte[] uidBytes;
+            using (timing?.Measure("initial-snapshot-and-mail-read"))
+            {
+                before = CapturePackageJoin(fixture, join);
+                mails = new LegacyMailboxStore(fixture.Root).Load(Fixture.Uid)
+                    .Where(mail => mail.Flag == 1).OrderBy(mail => mail.Id).ToArray();
+                Assert.Equal(300, mails.Length);
+                uidBytes = File.ReadAllBytes(fixture.PackageUidState);
+            }
             foreach (var mail in mails)
             {
-                await join.FrameAsync(new LegacyMailboxModePacket(LegacyMailboxModeType.ClaimRecordType, mail.Id, []).ToFrameBytes());
-                Assert.True(join.ReadDebtProducer().TryRequireAccountWritable(fixture.Account, out var reason), reason);
+                using (timing?.Measure("claim-frame"))
+                    await join.FrameAsync(new LegacyMailboxModePacket(LegacyMailboxModeType.ClaimRecordType, mail.Id, []).ToFrameBytes());
+                using (timing?.Measure("claim-debt-readiness"))
+                    Assert.True(join.ReadDebtProducer().TryRequireAccountWritable(fixture.Account, out var reason), reason);
             }
-            var expectedItems = StackExpectedItems(before, StackCreditAll(before.Owner.PlayerItems.InventoryItems, claims: 300));
-            var expected = ExpectedStackBusinessFiles(fixture, before, expectedItems, mails, false, 300_031);
-            AssertHistoryBusinessFiles(fixture, expected);
-            Assert.Equal(JsonSerializer.Serialize(expectedItems), JsonSerializer.Serialize(join.Current.PlayerItems));
-            Assert.Equal("300031", join.Current.Character.Attributes["ClassExperience"]);
-            Assert.Equal(uidBytes, File.ReadAllBytes(fixture.PackageUidState));
-            AssertNoPackageJoinIntents(join);
-            IncludeValidatedHistoryMetadata(fixture, join, expected, 300, 0);
-            AssertPackageJoinFiles(fixture, expected);
-            AssertHistoryChain(fixture, join, 300, 0);
-            var files = fixture.PackageFiles();
-            await join.FrameAsync(PackageJoinRequest(false));
-            AssertPackageJoinFiles(fixture, files);
-            await join.RestartAsync();
-            AssertPackageJoinFiles(fixture, files);
-            Assert.Equal(uidBytes, File.ReadAllBytes(fixture.PackageUidState));
-            AssertHistoryChain(fixture, join, 300, 0);
+            Dictionary<string, byte[]> expected;
+            using (timing?.Measure("verify-business-items-and-uid"))
+            {
+                var expectedItems = StackExpectedItems(before, StackCreditAll(before.Owner.PlayerItems.InventoryItems, claims: 300));
+                expected = ExpectedStackBusinessFiles(fixture, before, expectedItems, mails, false, 300_031);
+                AssertHistoryBusinessFiles(fixture, expected);
+                Assert.Equal(JsonSerializer.Serialize(expectedItems), JsonSerializer.Serialize(join.Current.PlayerItems));
+                Assert.Equal("300031", join.Current.Character.Attributes["ClassExperience"]);
+                Assert.Equal(uidBytes, File.ReadAllBytes(fixture.PackageUidState));
+                AssertNoPackageJoinIntents(join);
+            }
+            using (timing?.Measure("verify-history-metadata"))
+                IncludeValidatedHistoryMetadata(fixture, join, expected, 300, 0);
+            Dictionary<string, byte[]> files;
+            using (timing?.Measure("verify-files-chain-and-snapshot"))
+            {
+                AssertPackageJoinFiles(fixture, expected);
+                AssertHistoryChain(fixture, join, 300, 0);
+                files = fixture.PackageFiles();
+            }
+            using (timing?.Measure("first-replay-frame"))
+                await join.FrameAsync(PackageJoinRequest(false));
+            using (timing?.Measure("first-replay-file-check"))
+                AssertPackageJoinFiles(fixture, files);
+            using (timing?.Measure("restart-owner-close-open"))
+                await join.RestartAsync();
+            using (timing?.Measure("post-restart-files-uid-and-chain"))
+            {
+                AssertPackageJoinFiles(fixture, files);
+                Assert.Equal(uidBytes, File.ReadAllBytes(fixture.PackageUidState));
+                AssertHistoryChain(fixture, join, 300, 0);
+            }
             var replayStart = fixture.Sent.Count;
-            await join.FrameAsync(PackageJoinRequest(false));
-            AssertPackageJoinFiles(fixture, files);
-            AssertPackageJoinReplay(fixture, false, replayStart);
-            Assert.True(join.ReadDebtProducer().TryRequireAccountWritable(fixture.Account, out var ready), ready);
-        }, HistoryLargeStackCatalog());
+            using (timing?.Measure("post-restart-replay-frame"))
+                await join.FrameAsync(PackageJoinRequest(false));
+            using (timing?.Measure("post-restart-replay-verification"))
+            {
+                AssertPackageJoinFiles(fixture, files);
+                AssertPackageJoinReplay(fixture, false, replayStart);
+            }
+            using (timing?.Measure("final-debt-readiness"))
+                Assert.True(join.ReadDebtProducer().TryRequireAccountWritable(fixture.Account, out var ready), ready);
+        }, catalog, timing);
+    }
 
     [Fact]
     public Task RegisteredAllocatingPackageReclaimsOnlyGenuinelyCompletedUidPairsUnderActivePressure() =>

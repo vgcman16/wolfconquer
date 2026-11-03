@@ -533,12 +533,22 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         // This is intentionally only the legacy game path, not account/generic transport creation.
         // Allocate Player after DH object construction but BEFORE GenerateRequest/server-key send.
         LegacyNativeGameClientRuntime? nativeGameClient = null;
-        var (inboundCipher, outboundCipher) = await CompleteLegacyGameServerHandshakeAsync(
-            reader,
-            WriteRawAsync,
-            cancellationToken,
-            traceLegacyGameWire ? LogLegacyGameWireTrace : null,
-            () => nativeGameClient = new LegacyNativeGameClientRuntime()).ConfigureAwait(false);
+        LegacyGameServerCipher inboundCipher;
+        LegacyGameServerCipher outboundCipher;
+        try
+        {
+            (inboundCipher, outboundCipher) = await CompleteLegacyGameServerHandshakeAsync(
+                reader,
+                WriteRawAsync,
+                cancellationToken,
+                traceLegacyGameWire ? LogLegacyGameWireTrace : null,
+                () => nativeGameClient = new LegacyNativeGameClientRuntime()).ConfigureAwait(false);
+        }
+        catch (LegacyGameServerPeerKeyRejectedException)
+        {
+            _log.WriteLine($"{_options.Endpoint.Role} rejected legacy DH peer key.");
+            return; // Original connection-finally path closes this peer; no game-frame dispatch.
+        }
 
         async ValueTask WriteEncryptedAsync(ReadOnlyMemory<byte> bytes, CancellationToken token)
         {
@@ -670,7 +680,7 @@ public sealed class ConquerTcpServer : IAsyncDisposable
                     var handshakePayload = decryptedHandshake.Take(handshakeLength).ToArray();
                     if (!LegacyGameServerHandshakeReply.TryReadPublicKey(handshakePayload, out var clientPublicKey))
                     {
-                        throw new InvalidDataException("Legacy GameServer DH reply did not contain a public key.");
+                        throw new LegacyGameServerPeerKeyRejectedException();
                     }
 
                     trace?.Invoke(

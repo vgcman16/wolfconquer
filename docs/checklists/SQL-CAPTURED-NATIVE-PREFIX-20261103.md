@@ -21,16 +21,22 @@ temporary Character INI files. It does not enable a new login or switch backends
 - [x] Corrected repair/component suite passed221/221; all42 actual provider
   Facts passed without failures/skips, with owned cleanup independently checked.
 - [x] Record [actual results and limits](SQL-NATIVE-PREPARATION-RESULTS-20261103.md).
-- [ ] Complete the coherent successor full Windows gate and public checks.
+- [x] Complete the captured-prefix full Windows gate on3bb:35,660passed/0failed/
+  194skipped, all8stages. Exact-public successor checks remain separate/pending.
 
-The full gate passed on the unchanged `f483f983` checkout. These new
-files are in a separate integration checkout and now have the221/42 bounded
-qualification above. The prior285/40 results qualify earlier storage source;
-neither they nor the new focused checks replace the successor's full gate.
+The captured-prefix full gate passed on clean `3bb73465`, following its221/42
+bounded qualification. Later complete-data source passed229combined focused
+cases and all43 actual provider Facts. Its successor full public CI remains
+pending; earlier storage or parent results do not replace that new-source gate.
 See the [engineering contract](../engineering/SQL-CAPTURED-NATIVE-PREFIX.md).
 
 ## Still required for actual SQL-native admission
 
+- [x] Qualify the separately integrated complete six-image typed reader and
+  explicit native-prefix consumer, including quest hydration and defensive
+  nested data exposure. All23 new component cases and all43 actual provider
+  Facts passed,0failed/skipped. Native publication/custody remains open.
+  [Data contract](../engineering/SQL-COMPLETE-ADMISSION-DATA.md).
 - Genuine client-compatible authentication, actual Store/connection lifetime,
   SQL revision and shared item-UID custody.
 - Complete sidecar, startup, gameplay writer, durable commit and recovery joins.

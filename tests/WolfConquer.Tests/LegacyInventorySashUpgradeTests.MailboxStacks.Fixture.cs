@@ -11,25 +11,32 @@ public sealed partial class LegacyInventorySashUpgradeTests
     private const uint StackSecondMailId = 24;
 
     private static async Task RunStackPackageAsync(Action<Fixture> configure,
-        Func<Fixture, PackageJoin, Task> body, WorldDataCatalog? catalog = null)
+        Func<Fixture, PackageJoin, Task> body, WorldDataCatalog? catalog = null,
+        FixturePhaseTiming? timing = null)
     {
-        var fixture = new Fixture();
+        Fixture fixture;
+        using (timing?.Measure("fixture-create")) fixture = new Fixture();
         PackageJoin? join = null;
         var errors = new List<Exception>();
         try
         {
-            fixture.SeedMailboxPackageJoin(inventoryCount: 0);
-            configure(fixture); // Complete owned setup before registry birth or real Frame admission.
-            join = new PackageJoin(fixture, catalog ?? StackPackageCatalog(), bindProducer: true);
-            await join.StartAsync(bootstrap: true);
+            using (timing?.Measure("fixture-base-mailbox-seed"))
+                fixture.SeedMailboxPackageJoin(inventoryCount: 0);
+            // Complete owned setup before registry birth or real Frame admission.
+            using (timing?.Measure("fixture-configure")) configure(fixture);
+            using (timing?.Measure("registry-and-admission-start"))
+            {
+                join = new PackageJoin(fixture, catalog ?? StackPackageCatalog(), bindProducer: true);
+                await join.StartAsync(bootstrap: true);
+            }
             await body(fixture, join);
         }
         catch (Exception error) { errors.Add(error); }
         if (join is not null)
-            try { await join.DisposeAsync(); } catch (Exception error) { errors.Add(error); }
+            try { using (timing?.Measure("join-final-close")) await join.DisposeAsync(); } catch (Exception error) { errors.Add(error); }
         if (join is null || join.IsClosed)
         {
-            try { await fixture.CleanupAsync(errors); }
+            try { using (timing?.Measure("fixture-cleanup")) await fixture.CleanupAsync(errors); }
             catch (Exception error) { errors.Add(error); Unfinished.Add(fixture); }
         }
         else

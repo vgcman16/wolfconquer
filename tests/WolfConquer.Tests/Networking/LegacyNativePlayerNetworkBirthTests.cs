@@ -74,7 +74,7 @@ public sealed class LegacyNativePlayerNetworkBirthTests
 
 // Shared loopback machinery has NO dependency on the optional session-observation API.
 // The network-only owner above can be staged independently of the adoption fixture/observer.
-internal sealed class NativePlayerLoopback : IAsyncDisposable
+internal sealed partial class NativePlayerLoopback : IAsyncDisposable
 {
     internal const ushort ProbeOpcode = 65000;
     private readonly CancellationTokenSource _stop = new(TimeSpan.FromSeconds(15));

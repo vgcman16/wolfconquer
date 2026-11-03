@@ -19,6 +19,8 @@ public sealed partial class GameAcceptanceRunnerTests
         internal bool Complete;
         internal HealthFixture(ushort stack = 3, bool includeMaximumMana = true)
         {
+            using var timing = FixturePhaseTiming.Create("game-acceptance.health.input");
+            using var setup = timing?.Measure("health-input-mutations");
             var loader = new PlayerItemSnapshotLoader(Routes.ItemsRoot); var rows = loader.LoadByCharacterUid(WalkFixture.Account);
             Assert.Equal(Uid, Assert.Single(rows.InventoryItems).Uid);
             loader.SaveByCharacterUid(WalkFixture.Account, rows with { InventoryItems = [new()
@@ -37,8 +39,17 @@ public sealed partial class GameAcceptanceRunnerTests
         }
         internal async Task<JsonNode> Invoke(bool resume = false, params string[] extra)
         {
-            var before = Files(Root);
-            var result = await RunAsync(Arguments.Concat(resume ? new[] { "-Resume" } : []).Concat(extra).ToArray());
+            using var timing = FixturePhaseTiming.Create("game-acceptance.health.invoke");
+            using var total = timing?.Measure("invocation-total");
+            Dictionary<string, byte[]> before; string[] arguments;
+            using (timing?.Measure("capture-input-images-and-arguments"))
+            {
+                before = Files(Root);
+                arguments = Arguments.Concat(resume ? new[] { "-Resume" } : []).Concat(extra).ToArray();
+            }
+            (int ExitCode, string Output, string Error) result;
+            using (timing?.Measure("real-script-invocation")) result = await RunAsync(arguments);
+            using var verification = timing?.Measure("report-and-file-verification");
             Assert.Empty(result.Error); AssertFiles(Root, before);
             var json = JsonNode.Parse(result.Output)!; json.AsObject()["actualExitCode"] = result.ExitCode;
             if (result.ExitCode == 2)

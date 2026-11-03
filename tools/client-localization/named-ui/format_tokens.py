@@ -15,6 +15,10 @@ def signature(value):
             tokens.append(("comparison", value[cursor:cursor + 2]))
             cursor += 2
             continue
+        if value.startswith("->", cursor):
+            tokens.append(("arrow", "->"))
+            cursor += 2
+            continue
         char = value[cursor]
         grammar = {"%": PRINTF, "\\": ESCAPE, "{": BRACE, "}": BRACE, "<": TAG, ">": TAG}.get(char)
         if grammar is not None:

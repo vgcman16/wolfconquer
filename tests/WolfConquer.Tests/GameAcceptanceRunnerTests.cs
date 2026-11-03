@@ -115,22 +115,33 @@ public sealed partial class GameAcceptanceRunnerTests
 
     private static async Task<(int ExitCode, string Output, string Error)> RunScriptAsync(string script, params string[] args)
     {
-        var start = new ProcessStartInfo(FindApplication("pwsh", "WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH"))
-        { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-        foreach (var arg in new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-File", Path.Combine(RepositoryRoot(), "tools", "testing", script) }.Concat(args))
-            start.ArgumentList.Add(arg);
-        using var process = Process.Start(start)!;
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-        try { await process.WaitForExitAsync(timeout.Token); }
-        catch (OperationCanceledException primary)
+        using var timing = FixturePhaseTiming.Create("game-acceptance.script." + script);
+        using var total = timing?.Measure("invocation-total");
+        ProcessStartInfo start;
+        using (timing?.Measure("command-inputs"))
         {
-            try { process.Kill(entireProcessTree: true); await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10)); }
-            catch (Exception cleanup) { throw new AggregateException("Acceptance child timeout and cleanup both failed.", primary, cleanup); }
-            throw;
+            start = new ProcessStartInfo(FindApplication("pwsh", "WOLFCONQUER_NATIVE_CONSOLE_PROBE_PWSH"))
+            { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+            foreach (var arg in new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-File", Path.Combine(RepositoryRoot(), "tools", "testing", script) }.Concat(args))
+                start.ArgumentList.Add(arg);
         }
-        return (process.ExitCode, await output, await error);
+        Process process;
+        using (timing?.Measure("powershell-process-start")) process = Process.Start(start)!;
+        using (process)
+        {
+            var output = process.StandardOutput.ReadToEndAsync();
+            var error = process.StandardError.ReadToEndAsync();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            try { using (timing?.Measure("child-exit-wait")) await process.WaitForExitAsync(timeout.Token); }
+            catch (OperationCanceledException primary)
+            {
+                using var settlement = timing?.Measure("timed-out-child-settlement");
+                try { process.Kill(entireProcessTree: true); await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10)); }
+                catch (Exception cleanup) { throw new AggregateException("Acceptance child timeout and cleanup both failed.", primary, cleanup); }
+                throw;
+            }
+            using (timing?.Measure("output-drain-join")) return (process.ExitCode, await output, await error);
+        }
     }
 
     private static string FindApplication(string command, string variable)
@@ -153,16 +164,25 @@ public sealed partial class GameAcceptanceRunnerTests
             if (File.Exists(Path.Combine(path.FullName, "WolfConquer.sln"))) return path.FullName;
         throw new DirectoryNotFoundException("Repository root unavailable.");
     }
-    private static Dictionary<string, byte[]> Files(string root) => Directory.GetFiles(root, "*", SearchOption.AllDirectories)
-        .ToDictionary(path => Path.GetRelativePath(root, path), File.ReadAllBytes, StringComparer.OrdinalIgnoreCase);
+    private static Dictionary<string, byte[]> Files(string root)
+    {
+        using var timing = FixturePhaseTiming.Create("game-acceptance.files");
+        using var capture = timing?.Measure("capture-complete-file-images");
+        return Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+            .ToDictionary(path => Path.GetRelativePath(root, path), File.ReadAllBytes, StringComparer.OrdinalIgnoreCase);
+    }
     private static void AssertFiles(string root, Dictionary<string, byte[]> before)
     {
+        using var timing = FixturePhaseTiming.Create("game-acceptance.files");
+        using var verification = timing?.Measure("verify-complete-file-images");
         var after = Files(root);
         Assert.Equal(before.Keys.Order(StringComparer.OrdinalIgnoreCase), after.Keys.Order(StringComparer.OrdinalIgnoreCase));
         foreach (var pair in before) Assert.Equal(pair.Value, after[pair.Key]);
     }
     private static void DeleteOwned(string root, string prefix)
     {
+        using var timing = FixturePhaseTiming.Create("game-acceptance.files");
+        using var cleanup = timing?.Measure("verify-and-delete-owned-root");
         var full = Path.GetFullPath(root);
         var leaf = Path.GetFileName(full);
         Assert.Equal(Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.GetTempPath())), Path.GetDirectoryName(full), ignoreCase: true);

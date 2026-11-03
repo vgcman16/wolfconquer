@@ -29,6 +29,8 @@ public sealed partial class GameAcceptanceRunnerTests
         internal ResourceFixture(bool full, ushort stack = 3, long expectedHp = 80, long expectedMana = 30,
             bool includeMaximumMana = true, uint? type = null)
         {
+            using var timing = FixturePhaseTiming.Create("game-acceptance.resource.input");
+            using var setup = timing?.Measure("resource-input-mutations");
             Scenario = full ? "consume-full-restore" : "consume-mana"; Type = type ?? (full ? 723726U : 1001000U);
             ExpectedHp = expectedHp; ExpectedMana = expectedMana;
             var loader = new PlayerItemSnapshotLoader(Routes.ItemsRoot); var rows = loader.LoadByCharacterUid(WalkFixture.Account);
@@ -52,8 +54,17 @@ public sealed partial class GameAcceptanceRunnerTests
         }
         internal async Task<JsonNode> Invoke(bool resume = false, params string[] extra)
         {
-            var before = Files(Root);
-            var result = await RunAsync(Arguments.Concat(resume ? new[] { "-Resume" } : []).Concat(extra).ToArray());
+            using var timing = FixturePhaseTiming.Create("game-acceptance.resource.invoke");
+            using var total = timing?.Measure("invocation-total");
+            Dictionary<string, byte[]> before; string[] arguments;
+            using (timing?.Measure("capture-input-images-and-arguments"))
+            {
+                before = Files(Root);
+                arguments = Arguments.Concat(resume ? new[] { "-Resume" } : []).Concat(extra).ToArray();
+            }
+            (int ExitCode, string Output, string Error) result;
+            using (timing?.Measure("real-script-invocation")) result = await RunAsync(arguments);
+            using var verification = timing?.Measure("report-and-file-verification");
             Assert.Empty(result.Error); AssertFiles(Root, before);
             var json = JsonNode.Parse(result.Output)!; json["actualExitCode"] = result.ExitCode;
             if (result.ExitCode == 2)

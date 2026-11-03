@@ -10,11 +10,14 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
     public Task RealAccountAuthenticationCreatesAndArchivesOnceBeforeNativeOutputAndRelogDoesNotGrantAgain() => Run(async f =>
     {
         await CreateAndAssert(f); var committed = f.Data.Files(); var holder = f.Current; int first = f.Sent.Count;
-        await f.CreateAsync(); Assert.Equal(first, f.Sent.Count); Assert.Same(holder, f.Current); f.Data.AssertFiles(committed);
-        await f.CloseAsync(); using (f.Open()) f.Data.AssertFiles(committed);
-        await f.ReopenFrameAsync(() => f.Data.AssertFiles(committed));
-        AssertCurrentCreated(f, committed[Path.GetRelativePath(f.Data.Root, f.ItemsPath)]);
-        f.Data.AssertFiles(committed); _ = CompletedIntent(f);
+        using (f.MeasurePhase("creation-replay-and-verification"))
+        { await f.CreateAsync(); Assert.Equal(first, f.Sent.Count); Assert.Same(holder, f.Current); f.Data.AssertFiles(committed); }
+        using (f.MeasurePhase("creation-close-and-recovery-check"))
+        { await f.CloseAsync(); using (f.Open()) f.Data.AssertFiles(committed); }
+        using (f.MeasurePhase("creation-reopen-frame"))
+            await f.ReopenFrameAsync(() => f.Data.AssertFiles(committed));
+        using (f.MeasurePhase("creation-reopen-verification"))
+        { AssertCurrentCreated(f, committed[Path.GetRelativePath(f.Data.Root, f.ItemsPath)]); f.Data.AssertFiles(committed); _ = CompletedIntent(f); }
     });
 
     [Fact]

@@ -1,3 +1,4 @@
+using WolfConquer.Core.Data;
 using WolfConquer.Core.Networking;
 
 namespace WolfConquer.Core.World;
@@ -5,6 +6,11 @@ namespace WolfConquer.Core.World;
 internal sealed partial class LegacyNativeCapturedCharacterPrefix
 {
     internal static bool TryPrepare(ConquerTcpConnection connection, LegacyCapturedCharacterPrefix? captured,
+        out LegacyNativeCapturedCharacterPrefix? prepared, out string reason) =>
+        TryPrepareCore(connection, captured, null, null, out prepared, out reason);
+
+    private static bool TryPrepareCore(ConquerTcpConnection connection, LegacyCapturedCharacterPrefix? captured,
+        CharacterSnapshot? completeSnapshot, SqlOrdinaryAdmissionImagePlan? sqlPlan,
         out LegacyNativeCapturedCharacterPrefix? prepared, out string reason)
     {
         prepared = null; reason = "capturedNativePrefixImageMissing";
@@ -25,10 +31,10 @@ internal sealed partial class LegacyNativeCapturedCharacterPrefix
             { reason = "capturedNativePrefixBeastsUnavailable"; return false; }
             if (!LegacyNativeHairfaceStorageRuntime.PrefixLoad.TryPrepare(client, captured.HairfaceLine, out var hairface))
             { reason = "capturedNativePrefixHairfaceUnavailable"; return false; }
-            var snapshot = captured.Snapshot;
+            var snapshot = completeSnapshot ?? captured.Snapshot;
             var fields = new Dictionary<string, string>(snapshot.Attributes, StringComparer.OrdinalIgnoreCase) { ["Online"] = "1" };
             var candidate = new LegacyNativeCapturedCharacterPrefix(connection, client, player, captured,
-                snapshot with { Online = 1, Attributes = fields }, playerLoad, beasts!, hairface!, playerBefore, beastsBefore, hairfaceBefore);
+                snapshot with { Online = 1, Attributes = fields }, playerLoad, beasts!, hairface!, playerBefore, beastsBefore, hairfaceBefore, sqlPlan);
             if (!candidate.IsCurrent()) { reason = "capturedNativePrefixPreparationChanged"; return false; }
             prepared = candidate; reason = string.Empty; return true;
         }

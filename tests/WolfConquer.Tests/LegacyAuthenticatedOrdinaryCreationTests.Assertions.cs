@@ -102,10 +102,16 @@ public sealed partial class LegacyAuthenticatedOrdinaryCreationTests
 
     private static async Task<CreationBefore> CreateAndAssert(CreationFixture f)
     {
-        var before = BeforeCreation(f); int observed = 0;
-        f.BeforeSend = (uid, _) => { Assert.Equal(CreationFixture.Account, uid); AssertCreated(f, before); observed++; };
-        try { await f.CreateAsync(); } finally { f.BeforeSend = null; }
-        Assert.True(observed > 0); AssertCreated(f, before);
+        CreationBefore before;
+        using (f.MeasurePhase("creation-before-verification")) before = BeforeCreation(f);
+        int observed = 0;
+        f.BeforeSend = (uid, _) =>
+        {
+            using (f.MeasurePhase("creation-pre-output-verification"))
+            { Assert.Equal(CreationFixture.Account, uid); AssertCreated(f, before); observed++; }
+        };
+        try { using (f.MeasurePhase("creation-request")) await f.CreateAsync(); } finally { f.BeforeSend = null; }
+        using (f.MeasurePhase("creation-after-verification")) { Assert.True(observed > 0); AssertCreated(f, before); }
         Assert.Equal(LegacyMsgMessagePacket.AnswerOk().ToFrameBytes(), f.Sent[0]); return before;
     }
 
