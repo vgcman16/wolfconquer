@@ -315,6 +315,7 @@ public sealed partial class WorldDataCatalog
         XuanbaoRandomAttributeByItemTypeIdAndAttributeType = BuildUniqueIndex(xuanbaoRandomAttributes, entry => (entry.ItemTypeId, entry.AttributeType));
         InitializeLegacyRelicFuseRules();
         InitializeRelicDecomposeMetadata();
+        InitializeLegacyTradeItemMetadata();
         ChristmasNpcsById = BuildGroupedIndex(christmasNpcs, entry => entry.Id);
         ChristmasNpcsByMapId = BuildGroupedIndex(christmasNpcs, entry => entry.MapId);
         ChristmasNpcsByMapPosition = BuildGroupedIndex(christmasNpcs, entry => (entry.MapId, entry.X, entry.Y));

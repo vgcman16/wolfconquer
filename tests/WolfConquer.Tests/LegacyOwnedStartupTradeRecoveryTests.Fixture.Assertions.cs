@@ -30,12 +30,13 @@ internal sealed partial class LegacyOwnedStartupTradeRecoveryFixture
         var left = new PlayerItemSnapshotLoader(Data.Items).LoadByCharacterUid(LeftUid);
         var right = new PlayerItemSnapshotLoader(Data.Items).LoadByCharacterUid(RightUid);
         uint[] expectedLeft = !complete ? [LeftItemUid] : reciprocalItems ? [RightItemUid] : [];
-        uint[] expectedRight = !complete ? [RightItemUid] : reciprocalItems ? [LeftItemUid] : [LeftItemUid, RightItemUid];
+        uint[] expectedRight = absentRightItems ? (complete ? [LeftItemUid] : []) :
+            !complete ? [RightItemUid] : reciprocalItems ? [LeftItemUid] : [LeftItemUid, RightItemUid];
         Assert.Equal(expectedLeft, left.InventoryItems.Select(item => item.Uid).Order().ToArray());
         Assert.Equal(expectedRight, right.InventoryItems.Select(item => item.Uid).Order().ToArray());
         foreach (var row in left.WarehouseItems.Concat(right.WarehouseItems))
         { Assert.Equal((byte)1, row.Bound); Assert.Equal((byte)1, row.Locked); }
-        uint[] expectedUids = lockedMode is "deposit" or "root-and-deposit"
+        uint[] expectedUids = absentRightItems ? [LeftItemUid, LeftItemUid + 100] : lockedMode is "deposit" or "root-and-deposit"
             ? [LeftItemUid, RightItemUid, LeftItemUid + 100, RightItemUid + 100, LeftItemUid + 200]
             : [LeftItemUid, RightItemUid, LeftItemUid + 100, RightItemUid + 100];
         Assert.Equal(expectedUids, new[] { ItemsPath(LeftUid), ItemsPath(RightUid) }.SelectMany(path =>
@@ -61,7 +62,7 @@ internal sealed partial class LegacyOwnedStartupTradeRecoveryFixture
 
     private Dictionary<string, byte[]> TargetFiles() => new[] { LeftUid, RightUid }
         .SelectMany(uid => new[] { CharacterPath(uid), ItemsPath(uid) })
-        .ToDictionary(path => path, File.ReadAllBytes, StringComparer.OrdinalIgnoreCase);
+        .Where(File.Exists).ToDictionary(path => path, File.ReadAllBytes, StringComparer.OrdinalIgnoreCase);
     private (long LeftMoney, long LeftCp, long RightMoney, long RightCp) ExpectedWallets() =>
         !complete || currency == "none" ? (777, 222, 2_000, 60) :
         currency == "left-only" ? (477, 217, 2_300, 65) : (1_177, 227, 1_600, 55);

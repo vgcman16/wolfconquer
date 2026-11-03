@@ -11,6 +11,7 @@ public static partial class WorldPacketHandlers
         {
             if (!graph.TryGetInventory(pair.Key, out var current) ||
                 !IsLegacyTradeClosureTradable(context, party, current) ||
+                !LegacyTradeMetadataOwnerCurrent(context, party, pair.Value, current) ||
                 !LegacyTradeOfferMatchesCurrent(context, party, expected, pair.Value, current.Source))
                 return false;
         }
@@ -21,8 +22,10 @@ public static partial class WorldPacketHandlers
         WorldSession expected, LegacyItemSaveGraph graph)
     {
         foreach (var pair in party.Items)
-            if (pair.Value.Lineage is { } lineage &&
-                (!graph.TryGetInventory(pair.Key, out var current) || context.Sessions is not { } sessions ||
+            if (!graph.TryGetInventory(pair.Key, out var current) ||
+                !LegacyTradeMetadataOwnerCurrent(context, party, pair.Value, current) ||
+                pair.Value.Lineage is { } lineage &&
+                (context.Sessions is not { } sessions ||
                  !lineage.MatchesCurrent(sessions, party.Connection, expected, current.Source))) return false;
         return true;
     }
@@ -34,11 +37,12 @@ public static partial class WorldPacketHandlers
           offer.Closure.MatchesSource(current);
 
     private static bool IsLegacyTradeClosureTradable(WorldPacketHandlerContext context, LegacyTradeParty party,
-        LegacyItemSaveGraph.Closure closure) => LegacyTradeClosureAllows(closure, lockedPartner: false) ||
-        LegacyTradeClosureAllows(closure, lockedPartner: true) && HasLegacyTradeRelation(context, party.Uid, party.Other.Uid, 3);
+        LegacyItemSaveGraph.Closure closure) => LegacyTradeMetadataAllows(context, party, closure) &&
+        (LegacyTradeClosureAllows(closure, lockedPartner: false) ||
+         LegacyTradeClosureAllows(closure, lockedPartner: true) && HasLegacyTradeRelation(context, party.Uid, party.Other.Uid, 3));
 
     private static bool LegacyTradeClosureAllows(LegacyItemSaveGraph.Closure closure, bool lockedPartner) =>
-        closure.AllSourceRows(row => row.Bound == 0 && row.Inscribed != 1 &&
+        closure.AllSourceRows(row => row.Bound == 0 && row.Suspicious == 0 && row.Inscribed != 1 &&
             !LegacyNativeItemRestrictions.IsUnableTradeItem(row.ItemId) && (row.Locked == 0 || lockedPartner));
 
     private static bool LegacyTradeHasUidCollision(LegacyItemSaveGraph recipient, LegacyTradeParty sender) =>

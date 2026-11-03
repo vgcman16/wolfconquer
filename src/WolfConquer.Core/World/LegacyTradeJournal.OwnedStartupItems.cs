@@ -36,6 +36,8 @@ internal static partial class LegacyTradeJournal
         private readonly JournalTarget[] items;
         private readonly HashSet<uint>? protectedPhysicalUids;
         private readonly string? protectedItemPath;
+        private readonly HashSet<uint>? protectedPairUids;
+        private readonly string[]? protectedPairPaths;
         private readonly LegacyCharacterCreationRecoveryEvidence? creationNames;
 
         private OwnedStartupItemRecovery(LegacyItemUidRegistry.OwnedStartupCustody custody, RecoveryCapture capture)
@@ -44,6 +46,15 @@ internal static partial class LegacyTradeJournal
             this.capture = capture;
             characters = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Character).ToArray();
             items = capture.Targets.Where(target => target.Change.Kind == LegacyTradeJournalFileKind.Items).ToArray();
+            if (capture.Record.Version == 1 && items.Any(target => target.Change.Before is null))
+            {
+                // ValidateImages has already established exact v1 pair conservation.
+                // A physically missing target cannot participate in the scan, so
+                // retain the complete genuine before-set against unrelated owners.
+                protectedPairUids = ReadOwnedPairUidSet(items.Where(target => target.Change.Before is not null)
+                    .Select(target => target.Change.Before!), custody.HighWater);
+                protectedPairPaths = items.Select(target => target.Path).ToArray();
+            }
             if (capture.Record.Version == 19)
             {
                 var recipe = ValidateAuthenticatedCreationImages(capture.Record, custody.HighWater);
@@ -304,6 +315,10 @@ internal static partial class LegacyTradeJournal
         // owner elsewhere. References retain their ordinary highwater rules.
         internal void RequirePhysicalUidInput(string path, LegacyItemUidRawCatalog.Kind kind, uint uid)
         {
+            if (protectedPairUids?.Contains(uid) == true &&
+                (kind != LegacyItemUidRawCatalog.Kind.PlayerItems ||
+                 protectedPairPaths is null || !protectedPairPaths.Any(target => JournalDomainComparer.Equals(path, target))))
+                throw new InvalidDataException("Captured pair UID is owned by an unrelated physical input.");
             if (protectedPhysicalUids?.Contains(uid) == true &&
                 (kind != LegacyItemUidRawCatalog.Kind.PlayerItems || !JournalDomainComparer.Equals(path, protectedItemPath)))
                 throw new InvalidDataException("Captured physical UID is owned by an unrelated physical input.");

@@ -38,9 +38,9 @@ internal static partial class LegacyTradeJournal
         var result = new Dictionary<uint, OwnedTradeItemClosure>();
         foreach (var change in changes)
         {
-            var bytes = after ? change.After : change.Before!;
-            var items = PlayerItemSnapshotLoader.Parse(bytes);
-            if (!LegacyItemSaveGraph.TryCapture(items, out var graph) || !graph.HasBytes(bytes))
+            var bytes = after ? change.After : change.Before;
+            var items = bytes is null ? PlayerItemSnapshot.Empty : PlayerItemSnapshotLoader.Parse(bytes);
+            if (!LegacyItemSaveGraph.TryCapture(items, out var graph) || bytes is not null && !graph.HasBytes(bytes))
                 throw new InvalidDataException("Owned trade Items image is not lossless through the actual trade save graph.");
             var other = items.RelicFuseItems.Concat(items.MythsoulBagItems).Concat(items.EquipmentItems)
                 .Concat(items.RuneItems).Concat(items.WardrobeItems).Concat(items.WarehouseItems);

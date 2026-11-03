@@ -15,9 +15,10 @@ internal static partial class LegacyTradeJournal
             capture.Targets[1].Change.Kind != LegacyTradeJournalFileKind.Character ||
             capture.Targets[2].Change.Kind != LegacyTradeJournalFileKind.Items ||
             capture.Targets[3].Change.Kind != LegacyTradeJournalFileKind.Items ||
-            capture.Targets.Any(target => target.Change.FileId <= 0 || target.Change.Before is null ||
+            capture.Targets.Any(target => target.Change.FileId <= 0 ||
+                target.Change.Kind == LegacyTradeJournalFileKind.Character && target.Change.Before is null ||
                 target.Change.Kind == LegacyTradeJournalFileKind.Items && target.Change.FileId > uint.MaxValue))
-            throw new InvalidDataException("Owned pair startup requires two complete existing Character/Items pairs.");
+            throw new InvalidDataException("Owned pair startup requires two Character and Items participants.");
 
         var uids = new HashSet<long>();
         var beforeWallets = new LegacyTradeEscrowClaims.JournalWallet[2];
@@ -40,7 +41,7 @@ internal static partial class LegacyTradeJournal
             afterWallets[index] = LegacyTradeEscrowClaims.ReadJournalWallet(character.After);
         }
 
-        var beforeUids = ReadOwnedPairUidSet(items.Select(item => item.Before!), highWater);
+        var beforeUids = ReadOwnedPairUidSet(items.Where(item => item.Before is not null).Select(item => item.Before!), highWater);
         var afterUids = ReadOwnedPairUidSet(items.Select(item => item.After), highWater);
         if (!beforeUids.SetEquals(afterUids))
             throw new InvalidDataException("Owned pair startup must conserve the complete physical UID set.");
@@ -60,6 +61,8 @@ internal static partial class LegacyTradeJournal
             ValidateOwnedTradeItemClosures(items, exchange);
             return;
         }
+        if (items.Any(item => item.Before is null))
+            throw new InvalidDataException("Owned vendor recovery requires its existing Items participants.");
         ValidateOwnedStartupVendorImages(characters, items, beforeWallets, afterWallets);
     }
 

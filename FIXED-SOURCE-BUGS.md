@@ -4,6 +4,70 @@ Engineering policy: [Sanitized Parity](docs/engineering/SANITIZED-PARITY.md).
 Started 2026-10-23. **Open items below are not fixed or verified claims.**
 Earlier passing tests may encode defects; test totals are not a safety certificate.
 
+## SQL-native trade source checkpoint - 2026-11-03 UTC
+
+FSB318-322 below are OPEN, source-reviewed implementations. They have not been
+built or run. They are in a separate candidate; the live full53f check is unchanged.
+[Qualification checklist](docs/checklists/SQL-NATIVE-TRADE-20261103.md).
+
+### FSB-318: Refuse suspicious roots and descendants before a trade offer
+
+OPEN, unqualified. The trade closure predicate omitted Suspicious while checking
+Bound, Inscribed, locked-partner permission and unable-trade IDs. The selected
+root and every deposited child now require Suspicious==0 at the existing offer
+and settlement checks. Genuine directed type3 locked-partner permission remains;
+it cannot authorize a suspicious row. Unselected rows and refunds retain their
+existing policy. Authored actual owned Runtime/Frame and opt-in SQL controls cover
+root/child refusal, the valid partner exception and unchanged saved/native/output
+state. No claim follows until those controls run.
+
+### FSB-319: Retain immutable stack-cap authority for an owned trade offer
+
+OPEN, unqualified. Owned trades could accept an offered stack without valid
+required item metadata or beyond its cap. The actual WorldDataCatalog constructor
+now captures immutable caps from coherent server66 raw/index rows, including the
+genuine fixed-one accessory override. Missing/malformed/conflicting selected rows
+refuse; native stack0/1 remains one unit. Offers retain the exact metadata owner
+and settlement rechecks that generation with real item lineage before the WAL.
+Empty/no-catalog compatibility requires both real current holders to prove they
+are genuinely unbound; native/mixed pairs cannot borrow it. No Chinese67 column
+meaning is inferred. Authored controls cover aliases, malformed/colliding metadata,
+caps, real owned transfers and stale generation; none has run in this batch.
+
+### FSB-320: Refuse high-width trade actions before lower-width dispatch
+
+OPEN, unqualified. Opcode2119 retains UInt64 Action but dispatch narrowed it to
+UInt32 Type. Values above UInt32 could alias request, cancel, offer, confirmation
+or currency actions. The handler now refuses that width before acquiring its
+operation/state path. The complete strict codec, captured type-only form and all
+successful six-field bytes remain unchanged. Authored real owned and SQL controls
+require no wallet/item/confirmation/pair/output change on aliases and preserve
+valid subsequent requests. They remain unrun.
+
+### FSB-321: Recover the actual absent-empty Items beforeimage of a trade
+
+OPEN, unqualified. Ordinary admission permits a genuinely absent empty Items file,
+and the real four-target trade writer records its BEFORE as null. Owned startup
+previously rejected that valid v1 producer. Only that recorded Items absence is
+now interpreted as an empty graph. Character images, exact UID conservation,
+high-water, graph, capacity and escrow rules remain. The captured complete pair
+BEFORE UID set is retained against unrelated physical paths during the existing
+owned scan, including UIDs transferred into a still-missing target. No physical
+file/owner is fabricated; vendor null-beforeimages and other versions stay under
+their existing rules. Authored actual producer controls cover replacement0..4 for
+settlement/refund, cold native admission and an unrelated physical UID collision.
+Historical v1 intents retain their original permission contract. All are unrun.
+
+### FSB-322: Keep local-check Plan independent of execution-only log pumping
+
+OPEN, unqualified. The actual running full53f suite exposed a default-root Plan
+failure: its genuine copied-script fixture has no CheckLogPump module, which was
+imported before the inert Plan return. The import now follows that return and
+still precedes real artifacts, leases and child launch. The existing default-root
+assertion is unchanged; a new real-script missing-module control requires refusal
+without artifacts. The historical run remains failed for that test; this source
+correction has not run and cannot make that run green.
+
 ## Integration repairs - 2026-11-02 UTC
 
 Bounded source corrections FSB309-314 below are included in cleanfe3e's full

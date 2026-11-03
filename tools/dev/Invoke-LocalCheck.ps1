@@ -9,7 +9,6 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot 'CheckLogPump.psm1') -Force
 
 function Resolve-Application([string]$ExplicitPath, [string[]]$Names) {
     if ($ExplicitPath) { $path = [IO.Path]::GetFullPath($ExplicitPath) }
@@ -98,6 +97,10 @@ try {
             ConvertTo-Json -Depth 8
         exit 0
     }
+
+    # Plan is read-only and never starts a process; only a real run needs the
+    # output pump. Refuse a missing module before creating any owned artifacts.
+    Import-Module (Join-Path $PSScriptRoot 'CheckLogPump.psm1') -Force
 
     # Without this opt-in import, omitting --results-directory would fall back to
     # project-local TestResults outside the owned run's artifact directory.

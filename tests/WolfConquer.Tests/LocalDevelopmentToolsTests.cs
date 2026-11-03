@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace WolfConquer.Tests;
 
-// Only PS7 plan/status calls over owned synthetic files. Never invokes a nested
+// Only PS7 plan/status and pre-launch refusal calls over owned synthetic files. Never invokes a nested
 // restore/build/test, service process, SQL database, game client or deployment.
 public sealed class LocalDevelopmentToolsTests : IDisposable
 {
@@ -125,6 +125,25 @@ public sealed class LocalDevelopmentToolsTests : IDisposable
         var scriptHash = SHA256.HashData(File.ReadAllBytes(copied));
         using var json = ParseSuccess(await RunPathAsync(copied, "-Plan", "-PowerShellPath", PowerShellPath()));
         Assert.Equal(_root, json.RootElement.GetProperty("repositoryRoot").GetString()!.TrimEnd(Path.DirectorySeparatorChar));
+        Assert.False(Directory.Exists(Path.Combine(_root, ".artifacts")));
+        Assert.Equal(entries, EntryPaths());
+        Assert.Equal(scriptHash, SHA256.HashData(File.ReadAllBytes(copied)));
+        Assert.Equal(LauncherProjectMarker, File.ReadAllText(LauncherProject));
+    }
+
+    [Fact]
+    public async Task RealRunWithoutOutputPumpRefusesBeforeCreatingArtifactsOrLaunchingCommands()
+    {
+        var scripts = Path.Combine(_root, "tools", "dev");
+        Directory.CreateDirectory(scripts);
+        var copied = Path.Combine(scripts, "Invoke-LocalCheck.ps1");
+        File.Copy(ScriptPath("Invoke-LocalCheck.ps1"), copied);
+        var entries = EntryPaths(); var scriptHash = SHA256.HashData(File.ReadAllBytes(copied));
+        // No targets import exists either: even an unintended fallthrough cannot
+        // run dotnet against this synthetic solution.
+        var result = await RunPathAsync(copied, "-PowerShellPath", PowerShellPath());
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("CheckLogPump.psm1", result.Error, StringComparison.OrdinalIgnoreCase);
         Assert.False(Directory.Exists(Path.Combine(_root, ".artifacts")));
         Assert.Equal(entries, EntryPaths());
         Assert.Equal(scriptHash, SHA256.HashData(File.ReadAllBytes(copied)));

@@ -14,14 +14,14 @@ public sealed partial class LegacyOwnedStartupTradeRecoveryTests
 {
     private static async Task WithFixture(Func<LegacyOwnedStartupTradeRecoveryFixture, Task> test, bool complete = true,
         string currency = "both", bool reciprocalItems = true, string warehouse = "canonical",
-        string locked = "none", bool tradePartner = false)
+        string locked = "none", bool tradePartner = false, bool absentRightItems = false)
     {
         LegacyOwnedStartupTradeRecoveryFixture? fixture = null;
         Exception? primary = null, cleanup = null;
         try
         {
             fixture = new();
-            await fixture.InitializeAsync(complete, currency, reciprocalItems, warehouse, locked, tradePartner);
+            await fixture.InitializeAsync(complete, currency, reciprocalItems, warehouse, locked, tradePartner, absentRightItems);
             await test(fixture);
         }
         catch (Exception error) { primary = error; }
@@ -54,6 +54,7 @@ internal sealed partial class LegacyOwnedStartupTradeRecoveryFixture
     private bool complete;
     private string currency = "both";
     private bool reciprocalItems = true;
+    private bool absentRightItems;
     private string lockedMode = "none";
     internal StringWriter Log { get; } = new();
     internal LegacyOwnedAdmissionRuntime Runtime { get; private set; } = null!;
@@ -72,7 +73,7 @@ internal sealed partial class LegacyOwnedStartupTradeRecoveryFixture
     internal IReadOnlyList<string> OrderedTargets { get; private set; } = [];
 
     internal async Task InitializeAsync(bool complete = true, string currency = "both", bool reciprocalItems = true,
-        string warehouse = "canonical", string locked = "none", bool tradePartner = false)
+        string warehouse = "canonical", string locked = "none", bool tradePartner = false, bool absentRightItems = false)
     {
         if (currency is not ("both" or "none" or "left-only")) throw new ArgumentOutOfRangeException(nameof(currency));
         if (warehouse is not ("canonical" or "missing" or "equal-aliases" or "alias-only"))
@@ -82,6 +83,8 @@ internal sealed partial class LegacyOwnedStartupTradeRecoveryFixture
         this.complete = complete;
         this.currency = currency;
         this.reciprocalItems = reciprocalItems;
+        this.absentRightItems = absentRightItems;
+        if (absentRightItems && reciprocalItems) throw new ArgumentException("An absent inventory cannot make a reciprocal item offer.");
         lockedMode = locked;
         resources.Add(Log);
         resources.Add(new NativeLoginBeastMetadataScope(1000));
@@ -107,7 +110,8 @@ internal sealed partial class LegacyOwnedStartupTradeRecoveryFixture
         }));
         foreach (var uid in new[] { LeftUid, RightUid })
         {
-            new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(uid, Items(uid));
+            if (!absentRightItems || uid != RightUid)
+                new PlayerItemSnapshotLoader(Data.Items).SaveByCharacterUid(uid, Items(uid));
             new PlayerSpellSnapshotLoader(Data.Spells).SaveByCharacterUid(uid, PlayerSpellSnapshot.Empty);
             new PlayerProficiencySnapshotLoader(Data.Proficiencies).SaveByCharacterUid(uid, PlayerProficiencySnapshot.Empty);
             new PlayerQuestSnapshotLoader(Data.Quests).SaveByCharacterUid(uid, PlayerQuestSnapshot.Empty);
@@ -177,7 +181,9 @@ internal sealed partial class LegacyOwnedStartupTradeRecoveryFixture
             var kind = (LegacyTradeJournalFileKind)change!["Kind"]!.GetValue<int>();
             var id = checked((uint)change["FileId"]!.GetValue<long>());
             var path = kind == LegacyTradeJournalFileKind.Character ? CharacterPath(id) : ItemsPath(id);
-            Assert.Equal(Before[path], Convert.FromBase64String(change["Before"]!.GetValue<string>()));
+            if (Before.TryGetValue(path, out var before))
+                Assert.Equal(before, Convert.FromBase64String(change["Before"]!.GetValue<string>()));
+            else Assert.Null(change["Before"]);
             Assert.True(After.TryAdd(path, Convert.FromBase64String(change["After"]!.GetValue<string>())));
             ordered.Add(path);
         }
@@ -189,7 +195,12 @@ internal sealed partial class LegacyOwnedStartupTradeRecoveryFixture
         AssertWalletImage(RightUid, After[CharacterPath(RightUid)], expected.RightMoney, expected.RightCp);
         if (boundary is { } count)
             for (var index = 0; index < ordered.Count; index++)
-                Assert.Equal(index < count ? After[ordered[index]] : Before[ordered[index]], File.ReadAllBytes(ordered[index]));
+            {
+                var path = ordered[index];
+                if (index < count) Assert.Equal(After[path], File.ReadAllBytes(path));
+                else if (Before.TryGetValue(path, out var before)) Assert.Equal(before, File.ReadAllBytes(path));
+                else Assert.False(File.Exists(path));
+            }
     }
 
     private PlayerItemSnapshot Items(uint uid)

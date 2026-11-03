@@ -15,6 +15,11 @@ public static partial class WorldPacketHandlers
             await context.Log.WriteLineAsync($"WorldServer rejected malformed LegacyTrade {FormatSession(context)}.");
             return;
         }
+        if (packet.Action > uint.MaxValue)
+        {
+            await context.Log.WriteLineAsync("WorldServer rejected LegacyTrade action outside supported width.");
+            return;
+        }
         if (context.Trades is not { } trades || context.Sessions is not { } sessions)
         {
             await context.Log.WriteLineAsync("WorldServer skipped LegacyTrade: managed trade/session owner unavailable.");

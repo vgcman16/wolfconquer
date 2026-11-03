@@ -52,7 +52,7 @@ public static partial class WorldPacketHandlers
                           IsLegacyTradeClosureTradable(context, party, closure) &&
                           context.Sessions.TryCaptureTradeItemLineage(party.Connection, own, closure, out lineage)))
                 return "staleItemOffer";
-            party.Items.Add(item.Uid, new(item, closure, lineage));
+            party.Items.Add(item.Uid, new(item, closure, lineage, context.WorldData?.TradeItemMetadata));
             party.ResetConfirmations(); // Harden changes after confirmation instead of exchanging unseen edits.
             sends.Add(new(party.Other.Connection, party.Other.Uid, preview));
             return "itemOffered";

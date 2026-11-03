@@ -14,14 +14,14 @@ namespace WolfConquer.Tests;
 [Trait("Category", "OwnedSqlIntegration")]
 public sealed partial class ModernSqlAuthFileRoundtripTests
 {
-    private static async Task Run(Func<SqlWorldFixture, Task> body)
+    private static async Task Run(Func<SqlWorldFixture, Task> body, string? tradeItemState = null)
     {
         OwnedModernSqlAuthDatabase? database = null; SqlWorldFixture? world = null;
         var errors = new List<Exception>();
         try
         {
             database = await OwnedModernSqlAuthDatabase.CreateAsync(SqlWorldFixture.FirstUid, SqlWorldFixture.SecondUid);
-            world = new(database); await world.InitializeAsync(); await body(world);
+            world = new(database, tradeItemState); await world.InitializeAsync(); await body(world);
         }
         catch (Exception error) { errors.Add(error); }
         if (world is not null)
@@ -67,8 +67,8 @@ public sealed partial class ModernSqlAuthFileRoundtripTests
         internal LegacyNativeGameClientRuntime Native => Current.NativeGameClient!;
         internal string Diagnostics => buffer.ToString();
 
-        internal SqlWorldFixture(OwnedModernSqlAuthDatabase database)
-        { Database = database; log = TextWriter.Synchronized(buffer); }
+        internal SqlWorldFixture(OwnedModernSqlAuthDatabase database, string? tradeItemState = null)
+        { Database = database; this.tradeItemState = tradeItemState; log = TextWriter.Synchronized(buffer); }
 
         internal async Task InitializeAsync()
         {
@@ -87,6 +87,7 @@ public sealed partial class ModernSqlAuthFileRoundtripTests
                 npcs: [new Npc((int)NpcUid, 0, 0, 1002, 430, 378, null)]);
             handoff = new(tickets);
             account = new(new AccountLoginService(Database.CreateRepository()), handoff, log);
+            ConfigureTradeInputs();
             beasts = new(1000); Data.Bootstrap(); await OpenWorldAsync();
         }
 

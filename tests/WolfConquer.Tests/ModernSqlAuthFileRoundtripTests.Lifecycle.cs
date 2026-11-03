@@ -42,6 +42,7 @@ public sealed partial class ModernSqlAuthFileRoundtripTests
                 else OtherSent.Add(bytes);
                 return ValueTask.CompletedTask;
             }, native);
+            InstallTradeWireObserver(peer, expectedUid);
             if (first) Peer = peer; else OtherPeer = peer;
             await Handler.HandleFrameAsync(peer.Connection, ReadFrame(new LegacyMsgLoginGamePacket(forward.Identifier).ToFrameBytes()));
             await peer.DrainObservations();
@@ -55,7 +56,7 @@ public sealed partial class ModernSqlAuthFileRoundtripTests
 
         internal async Task CloseWorldAsync()
         {
-            BeforeSend = null; var errors = new List<Exception>();
+            BeforeSend = null; BeforeTradeWire = null; var errors = new List<Exception>();
             foreach (var peer in new[] { Peer, OtherPeer }) if (peer is not null)
             {
                 try { await peer.Connection.DisconnectAsync(); } catch (Exception error) { errors.Add(error); }
