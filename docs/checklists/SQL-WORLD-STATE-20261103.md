@@ -10,17 +10,22 @@ and UNRUN. No backend, native handler, schema or default configuration changed.
   authored, including global SQL UID constraints and durable exact replay.
 - [x] Include explicit schema/version/engine/FK validation, bounded SQL blob/UID
   reads, commit-ambiguity outcomes and primary/cleanup preservation.
-- [x] Include seven opt-in SQL Facts plus isolated model controls. The existing
-  twenty SQL Facts remain unchanged; the required dynamic provider family is27.
+- [x] Include nine opt-in SQL Facts plus isolated model controls. The existing
+  twenty SQL Facts remain unchanged; the required dynamic provider family is29.
   Controls cover real second-write rollback/retry, concurrent CAS, cold reads,
   historical replay, state/UID/identity refusals and four actual schema faults.
 - [x] Replace a confounded malformed-UID test input with an otherwise complete
   image; add actual Create collision for a new account reusing a character UID.
+- [x] Preserve original collision errors if diagnostic lookups also fail; no
+  deterministic combined-provider-fault control is claimed.
+- [x] Refuse partial owned schemas before DDL; verify complete schemas without
+  marker writes. Two new real-provider Facts cover four partial cases and
+  complete-schema reinitialization with a real marker-update refusal trigger.
 - [ ] After the separate full33805 is terminal, compile and run model/parser/
   graph and local-development-tool neighbors (including timing-reader controls),
   inspect real failures and changed-path diagnostics.
 - [ ] Run `Invoke-SqlGameplayCheck.ps1 -Port 34385` on a fresh owned instance;
-  require all27 actual Facts passed/no skips and settled owned cleanup. A stale
+  require all29 actual Facts passed/no skips and settled owned cleanup. A stale
   twenty-Fact assembly or the earlier SQL20 result cannot qualify this batch.
 - [ ] Complete the appropriate integration/publication gate before publishing.
 

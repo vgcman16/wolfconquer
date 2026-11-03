@@ -5,9 +5,15 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
 
 NEXT SQL SOURCE: Root reviewed/composed24 separate model/repository/test/spec
 paths, including real SQL transactions and exact operation replay. UNBUILT/UNRUN;
-no runtime backend or data migration. Seven new provider Facts make27 required,
-not a27-pass result. [Full remaining horizon](SQL-WORLD-STATE-20261103.md).
+no runtime backend or data migration. Nine new provider Facts make29 required,
+not a29-pass result. Reviewed collision-error preservation and partial-schema
+preflight source/controls are integrated but unbuilt/unrun. [Full remaining horizon](SQL-WORLD-STATE-20261103.md).
 Wait for the sole full33805 on the OTHER frozenb6aa candidate before checks here.
+That live run has reported a protected-trade positive failure (expected received
+item UID20, actual original10); terminal totals are not available yet. The isolated
+fixture repair supplies the existing coherent catalog at actual construction,
+retaining every intended swap/wallet/file/PIN assertion and production guard.
+This repair is integrated here but unbuilt/unrun.
 
 Reviewed timing-reader enhancement reuses Get-TestTiming.ps1, with strict
 explicit-file/time checks and known/missing counts. Read-only old53f report

@@ -94,7 +94,9 @@ public sealed partial class SqlWorldStateRepository
                 try { await WriteStateAsync(connection, transaction, kind, change, token).ConfigureAwait(false); }
                 catch (MySqlException error) when (kind == SqlWorldStateOperationKind.Create && error.Number == 1062)
                 {
-                    var reason = await DiagnoseStateCollisionAsync(connection, transaction, change, token).ConfigureAwait(false);
+                    SqlWorldStateFailure reason;
+                    try { reason = await DiagnoseStateCollisionAsync(connection, transaction, change, token).ConfigureAwait(false); }
+                    catch (Exception lookupFailure) { throw new AggregateException(error, lookupFailure); }
                     await transaction.RollbackAsync(token).ConfigureAwait(false);
                     return Refuse(reason);
                 }

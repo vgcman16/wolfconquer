@@ -32,6 +32,28 @@ schema-fault, malformed-state, UID-conflict and rollback controls are authored
 but UNRUN. SQL-domain uniqueness is not proof of joining the live native/file
 UID namespace; that integration remains required.
 
+### FSB-332: Retain provider errors when collision classification also fails
+
+The duplicate-key handlers performed real ledger or owner lookups inside a
+catch. A lookup or its disposal could throw and replace the original provider
+exception before outer rollback/cleanup preservation saw it. The successor
+retains both exceptions; successful lookup, replay and refusal semantics remain.
+OPEN source correction, unbuilt/unrun. No deterministic combined provider-fault
+fixture is claimed; ordinary real duplicate/refusal controls remain required.
+
+### FSB-333: Refuse partial SQL schemas before adding missing tables
+
+Initialization previously created every missing owned table before validating
+the existing layout. A malformed partial schema could therefore gain tables
+before refusal. Presence preflight now permits creation only when none of the
+four owned names exists; a complete schema is fully verified without DDL or
+marker DML, and a partial schema refuses before mutation. Two actual-provider
+Facts cover valid one/two/three-table prefixes, a malformed subset, exact rows/
+definitions/presence preservation and complete-schema reinitialization with a
+real marker-update refusal trigger. OPEN, unbuilt/unrun. Interrupted initial DDL
+requires explicit operator repair; arbitrary external DDL races remain outside
+this guarantee. No runtime backend or original database changed.
+
 [Source and qualification queue](docs/checklists/SQL-WORLD-STATE-20261103.md).
 
 ## Vendor listing authority - 2026-11-03

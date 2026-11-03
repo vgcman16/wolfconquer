@@ -15,7 +15,10 @@ public sealed partial class SqlWorldStateRepository
             try { await command.ExecuteNonQueryAsync(token).ConfigureAwait(false); return true; }
             catch (MySqlException error) when (error.Number == 1062)
             {
-                if (await ReadOperationAsync(connection, transaction, operation, token).ConfigureAwait(false) is null) throw;
+                bool present;
+                try { present = await ReadOperationAsync(connection, transaction, operation, token).ConfigureAwait(false) is not null; }
+                catch (Exception lookupFailure) { throw new AggregateException(error, lookupFailure); }
+                if (!present) throw;
                 return false;
             }
         });
@@ -97,13 +100,18 @@ public sealed partial class SqlWorldStateRepository
                 try { await command.ExecuteNonQueryAsync(token).ConfigureAwait(false); }
                 catch (MySqlException error) when (error.Number == 1062)
                 {
-                    object? owner = await UseResourceAsync(connection.CreateCommand(), async lookup =>
+                    object? owner;
+                    try
                     {
-                        lookup.Transaction = transaction;
-                        lookup.CommandText = "SELECT account_id FROM wolf_sql_world_item_uid WHERE item_uid=@uid FOR UPDATE";
-                        lookup.Parameters.AddWithValue("@uid", uid);
-                        return await lookup.ExecuteScalarAsync(token).ConfigureAwait(false);
-                    }).ConfigureAwait(false);
+                        owner = await UseResourceAsync(connection.CreateCommand(), async lookup =>
+                        {
+                            lookup.Transaction = transaction;
+                            lookup.CommandText = "SELECT account_id FROM wolf_sql_world_item_uid WHERE item_uid=@uid FOR UPDATE";
+                            lookup.Parameters.AddWithValue("@uid", uid);
+                            return await lookup.ExecuteScalarAsync(token).ConfigureAwait(false);
+                        }).ConfigureAwait(false);
+                    }
+                    catch (Exception lookupFailure) { throw new AggregateException(error, lookupFailure); }
                     if (owner is null) throw;
                     throw new ItemUidCollisionException(error);
                 }

@@ -92,6 +92,11 @@ separate accepting result payload defines a replay. Schema initialization is
 explicit; constructors and reads do no DDL. The initializer verifies existing columns, types, indexes,
 InnoDB engines and schema revision. IF NOT EXISTS alone is insufficient proof.
 DDL is not claimed transactional; partial initialization failure remains explicit.
+Before any DDL, the initializer counts existing owned table/view names. Zero
+permits explicit creation; all four require full shape/version verification and
+return without DDL or marker writes. One to three refuse before mutation with
+sqlWorldSchemaPartial. Interrupted initial DDL requires explicit operator repair;
+this does not claim protection against arbitrary concurrent external DDL.
 
 `SqlWorldStateRepository.InitializeSchemaAsync`, `ReadAsync`, `CreateAsync`,
 `SaveAsync` and `SavePairAsync` use installed MySqlConnector with a scoped supplied
@@ -121,7 +126,10 @@ Provider and cancellation exceptions remain exceptions. A failure after commit
 may have an ambiguous transport outcome; it must not be labeled a proved refusal
 or invite a refund. Retrying the same operation ID/complete descriptor resolves
 through the durable ledger. Cleanup must preserve the primary failure if rollback
-or disposal also fails. Repository success is storage proof only, not a native
+or disposal also fails. If collision classification itself fails after a real
+duplicate-key exception, both the original provider exception and subsequent
+lookup/cleanup failure are retained. That combined-fault branch remains untested.
+Repository success is storage proof only, not a native
 publication receipt or permission to issue gameplay success.
 
 ## Qualification

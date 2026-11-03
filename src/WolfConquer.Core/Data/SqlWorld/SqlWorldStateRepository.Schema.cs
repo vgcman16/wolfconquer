@@ -10,6 +10,13 @@ public sealed partial class SqlWorldStateRepository
         await UseResourceAsync(CreateConnection(), async connection =>
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            int present = await CountOwnedSchemaTablesAsync(connection, cancellationToken).ConfigureAwait(false);
+            if (present == 4)
+            {
+                await VerifySchemaAsync(connection, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            if (present != 0) throw new InvalidOperationException("sqlWorldSchemaPartial");
             foreach (string ddl in SchemaStatements)
                 await UseResourceAsync(connection.CreateCommand(), async command =>
                 {

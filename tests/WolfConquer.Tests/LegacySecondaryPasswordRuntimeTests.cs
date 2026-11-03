@@ -39,9 +39,16 @@ public sealed partial class LegacySecondaryPasswordRuntimeTests
         const uint rightUid = 1_297_012;
         Seed(leftUid, "111,0,0", 10);
         Seed(rightUid, "222,0,0", 20, 2_000, 60);
-        var owner = NewOwner();
+        // Genuine native-bound trade also requires constructor-owned selected
+        // item metadata; successful PIN verification cannot replace that owner.
+        var worldData = PinMailboxCatalog();
+        var owner = NewOwner(worldData: worldData);
         var left = await Login(owner, leftUid);
         var right = await Login(owner, rightUid);
+        var metadata = Assert.IsType<LegacyTradeItemMetadata>(worldData.TradeItemMetadata);
+        Assert.True(metadata.IsCurrent(worldData));
+        Assert.True(metadata.Allows(Assert.Single(Current(owner, left).PlayerItems.InventoryItems)));
+        Assert.True(metadata.Allows(Assert.Single(Current(owner, right).PlayerItems.InventoryItems)));
         AssertReply(await Password(owner, left, 1, newPin: 111), 5, 257);
         AssertReply(await Password(owner, right, 1, newPin: 222), 5, 257);
         var previous = Current(owner, left);
