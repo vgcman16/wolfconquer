@@ -15,6 +15,18 @@
   globally sorted historical plan keys. Root's separate v2 preserves exact old
   plan order, complete key sets and every existing pin/byte check; the source
   proposal tool itself was unchanged between attempts.
+- [x] Reviewed all206 existing wordings; approved11 meaning corrections. A fresh
+  private206-key/211-row result is3,209,380 bytes and differs only at those11 rows.
+  Resistance/final-damage qualifiers, Heavy Hit Rate and a bag action are clearer;
+  mail24 and every original input remain unchanged. Rendering is still unverified.
+- [x] Added the explicit storage/vendor family. The missing-family CLI positive
+  failed before implementation; all29 Python tests then passed,0failed/skipped,
+  7.113s, with existing bounds/holds and original four families preserved.
+- [x] Created/checked the private22-key/23-row storage/vendor addition. The new
+  combined proposal covers228 keys/234 rows,3,209,357 bytes; prior206 wordings and
+  all other bytes/input pins remain intact.37 scoped candidates remain held,
+  including game/dealer and uncertain system text. Plain CP terminology follows
+  existing reviewed usage; the coin-limit warning retains its sales-only scope.
 - [ ] Perform separately permitted English rendering/font/layout review after
   the execution hold clears; no client resource has been applied here.
 - [ ] Complete the many thousands of remaining Chinese named-resource values.

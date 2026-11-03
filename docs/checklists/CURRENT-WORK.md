@@ -31,6 +31,11 @@ Root alone reviews, integrates, qualifies, stages, commits and pushes.
   qualify the current C# batch or make its active full run pass.
 - [x] Fresh private stat/gear/mail composition completed206 keys/211 rows with
   all unselected bytes and original pins intact. Both per-pass200-key bounds stay.
+- [x] Reviewed all206 wordings and regenerated11 corrected rows only. Explicit
+  storage/vendor family support passed29 isolated Python tests; no C# result follows.
+- [x] Generated/checked the approved22-key storage/vendor addition: cumulative
+  228 keys/234 rows, with prior206 and all other bytes/input pins preserved.
+  37 scoped uncertain candidates remain held; no client application/rendering.
 - [ ] English rendering and the many remaining rows;
   [resource checklist](NAMED-UI-ENGLISH-20261103.md). No client resource was applied.
 - [ ] Complete7937 profile/session wiring, unresolved fields, per-player Echo

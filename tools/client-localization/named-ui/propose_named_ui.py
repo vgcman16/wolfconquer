@@ -18,6 +18,7 @@ PLAN_FAMILIES = MappingProxyType({
     "gear-ui-family.json": "equipment-ui",
     "combined-ui-family.json": "character-equipment-ui",
     "mail-trade-ui-family.json": "mail-trade-ui",
+    "storage-vendor-ui-family.json": "storage-vendor-ui",
 })
 FAMILIES = frozenset(PLAN_FAMILIES.values())
 DONOR_BOUNDARY = "Caller-supplied English; independent wording and rendering review required."
