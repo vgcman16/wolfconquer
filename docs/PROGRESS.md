@@ -6,7 +6,9 @@ The completed solution-test TRX includes645passed/0failed/0skipped rows named
 Chinese7937 across20classes. These qualify catalog/codec/component behavior,
 not a whole-client completion percentage or current-profile gameplay. The latest
 booth run separately finished436passed/3failed/0skipped; reviewed fixture repairs
-are undergoing qualification. [7937 status](checklists/7937-STATUS-20261103.md).
+then passed534/534 affected and all20 actual SQL/native/file Facts without skips
+on source90607691. Full gate/public CI remain pending.
+[7937 status](checklists/7937-STATUS-20261103.md).
 
 ## Latest local result and next qualification
 

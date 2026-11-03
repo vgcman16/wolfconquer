@@ -1,5 +1,21 @@
 # Actual modern SQL authentication and native file transaction
 
+## New actual20-Fact qualification - 2026-11-03
+
+Source9060769192709e16ce4fcc9da31764f5b41b63ae passed all20 actual SQL Facts,
+0failed/skipped, using `Invoke-SqlGameplayCheck.ps1 -Port 34384` on fresh owned
+MariaDB12.2.2. Root read every actual TRX row. All14 prior auth/trade cases
+remain; six new Facts cover native Gold/CP booths, file-lease refusal/retry,
+unchanged native node authority across unrelated warehouse publication,
+replacement refusal followed by registered removal/relisting and cold SQL relog.
+
+Receipt owned-sql-auth-48b331ab7f7e4abe977577358bb34191 reports Qualified,
+20Facts, settled child tree/commands, no primary/cleanup exceptions and no
+retained data. Root confirmed actual owned data/ and client.private.ini absent.
+The command terminated0. [Exact scope](SQL-NATIVE-VENDOR-20261103.md).
+This is SQL authentication joined to native gameplay and journaled INI/BIN;
+characters/items have not migrated to SQL. Complete Windows/live7937 remain open.
+
 ## New actual14-Fact qualification - 2026-11-03
 
 Clean sourcefb0c50094dfb090c315fe54b486db2fa97faf65d passed all14 source-declared
