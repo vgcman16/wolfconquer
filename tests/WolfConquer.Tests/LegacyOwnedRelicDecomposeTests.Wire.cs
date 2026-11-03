@@ -98,6 +98,14 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
         Assert.Equal(high + 18U, f.HighWater); f.AssertConverged();
         var saved = File.ReadAllBytes(f.ItemsPath);
         var observed = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var queuedSpawn = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var skippedBefore = recipient.OrdinaryClosedAfterGate;
+        recipient.OrdinaryWriteRequested = bytes =>
+        {
+            if (PacketFrameDecoder.TryRead(new ReadOnlySequence<byte>(bytes.ToArray()), out var outgoing, out _, out _) &&
+                outgoing.Header.Opcode == LegacyPlayerSpawnPacket.Opcode)
+                queuedSpawn.TrySetResult();
+        };
         f.BeforePeerSend = bytes =>
         {
             if (PacketFrameDecoder.TryRead(new ReadOnlySequence<byte>(bytes), out var responseFrame, out _, out _) &&
@@ -111,13 +119,15 @@ public sealed partial class LegacyOwnedRelicDecomposeTests
             Assert.True(PacketFrameDecoder.TryRead(new ReadOnlySequence<byte>(actualResponse), out var responseFrame, out _, out _));
             Assert.True(LegacyRuneStoragePacket.TryParse(responseFrame, out var response));
             Assert.Equal(LegacyRuneStoragePacket.StartupType, response.Type);
+            await queuedSpawn.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.True(recipient.RealFrameWriteInProgress); Assert.False(producing.IsCompleted);
             operationLifetime.Cancel();
             await producing.WaitAsync(TimeSpan.FromSeconds(15));
             await peerRequest.WaitAsync(TimeSpan.FromSeconds(5));
         }
-        finally { f.BeforePeerSend = null; }
+        finally { f.BeforePeerSend = null; recipient.OrdinaryWriteRequested = null; }
         Assert.False(f.ActualConnection.HasRegisteredRelicWire);
+        Assert.Equal(skippedBefore + 1, recipient.OrdinaryClosedAfterGate);
         Assert.Equal(starts + 1, recipient.WireStarts);
         Assert.Equal(high + 18U, f.HighWater); Assert.Equal(saved, File.ReadAllBytes(f.ItemsPath));
         await f.CloseAsync(); await f.ReopenFrameAsync(); f.Sent.Clear();

@@ -96,13 +96,21 @@ public sealed partial class ModernSqlAuthFileRoundtripTests
 
         internal async Task<LegacyAccountForwardPacket> AuthenticateAsync(string username, string password)
         {
+            var frames = await ObserveAuthenticationAsync(username, password);
+            Assert.True(LegacyAccountForwardPacket.TryParse(ReadFrame(Assert.Single(frames)), out var forward));
+            return forward;
+        }
+
+        // The real Account entry catches/logs provider faults without a forward.
+        // Observation must not assume successful (or ordinary denied) authentication.
+        internal async Task<byte[][]> ObserveAuthenticationAsync(string username, string password)
+        {
             var frames = new List<byte[]>();
             await using var peer = new RootLoopbackFramePeer(bytes => { frames.Add(bytes); return ValueTask.CompletedTask; });
             await account.HandleFrameAsync(peer.Connection,
                 ReadFrame(new LegacyAccountAuthenticationPacket(username, password, "SqlOwned").ToFrameBytes()));
             await peer.DrainObservations();
-            Assert.True(LegacyAccountForwardPacket.TryParse(ReadFrame(Assert.Single(frames)), out var forward));
-            return forward;
+            return frames.ToArray();
         }
 
         private WorldSession CurrentFor(RootLoopbackFramePeer peer)

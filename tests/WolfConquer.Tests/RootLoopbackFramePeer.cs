@@ -34,6 +34,7 @@ internal sealed class RootLoopbackFramePeer : IAsyncDisposable
     private long written, received;
     private int fillerWriting;
     private int realFrameWriting;
+    private int ordinaryClosedAfterGate;
     private int pauseAfterFrame;
     private readonly TaskCompletionSource readerPaused = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource resumeReader = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -47,6 +48,7 @@ internal sealed class RootLoopbackFramePeer : IAsyncDisposable
     internal RootExpiryWireWriter ExpiryWriter { get; }
     internal Action<ReadOnlyMemory<byte>>? OrdinaryWriteRequested;
     internal long WireStarts => Volatile.Read(ref written);
+    internal int OrdinaryClosedAfterGate => Volatile.Read(ref ordinaryClosedAfterGate);
     internal bool ReaderAborted => Volatile.Read(ref readerAborted) != 0;
     internal bool ActualBackpressure => Volatile.Read(ref fillerWriting) != 0 && gate.CurrentCount == 0;
     internal bool RealFrameWriteInProgress => Volatile.Read(ref realFrameWriting) != 0 && gate.CurrentCount == 0;
@@ -104,9 +106,22 @@ internal sealed class RootLoopbackFramePeer : IAsyncDisposable
     private async ValueTask GatedWire(ReadOnlyMemory<byte> frame, CancellationToken token)
     {
         long number;
+        if (Volatile.Read(ref closed) != 0) return;
         if (frame.Length != FillerLength) OrdinaryWriteRequested?.Invoke(frame);
         await gate.WaitAsync(token).ConfigureAwait(false);
-        try { await ActualWire(frame, token).ConfigureAwait(false); number = Volatile.Read(ref written); }
+        try
+        {
+            // Match the production gate's second closed check: an earlier
+            // partial/canceled encrypted write poisons the connection before
+            // releasing this gate, so an already queued ordinary frame never
+            // reaches the real write or advances its cipher/sequence.
+            if (Volatile.Read(ref closed) != 0)
+            {
+                if (frame.Length != FillerLength) Interlocked.Increment(ref ordinaryClosedAfterGate);
+                return;
+            }
+            await ActualWire(frame, token).ConfigureAwait(false); number = Volatile.Read(ref written);
+        }
         finally { gate.Release(); }
         // Only explicit callback-interleaving controls pause here. The actual
         // socket gate is already released; recursive observers still wait for
