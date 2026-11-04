@@ -83,6 +83,9 @@ public sealed partial class ModernSqlAuthFileRoundtripTests
         if (observed is not null) Assert.IsType<MySqlException>(observed);
         await f.Database.AssertAuthenticationClaimsReleasedAsync(offer.AccountId);
         await f.Database.AssertSqlHandoffOriginalIssuerSessionGoneAsync(issuerId!.Value);
+        // The first joined monitor fault above remains observed; a repeated
+        // disposal must finish real cleanup rather than rethrow it forever.
+        await offer.DisposeAsync();
         var fresh = await f.RequireFreshAuthenticationOwnerAsync();
         Assert.Equal(SqlAccountAuthenticationFailure.None, await fresh.VerifyAsync());
         Assert.Equal(offer.AccountId, fresh.AccountId); Assert.Equal(offer.CharacterUid, fresh.CharacterUid);

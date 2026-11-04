@@ -74,9 +74,11 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
             await WithHandlerAsync(input, async (fixture, handler, log) =>
             {
                 using var admission = timing?.Measure("login-handshake-and-admission");
-                var (wire, _) = await ConnectBornAsync(fixture);
-                await wire.SendAsync(new LegacyMsgLoginGamePacket(account).ToFrameBytes(), fixture.Token);
-                var dispatched = await fixture.NextAsync();
+                var (wire, _) = await ConnectBornAsync(fixture, timing);
+                using (timing?.Measure("login-frame-send"))
+                    await wire.SendAsync(new LegacyMsgLoginGamePacket(account).ToFrameBytes(), fixture.Token);
+                NativePlayerDispatch dispatched;
+                using (timing?.Measure("login-admission-dispatch-observation")) dispatched = await fixture.NextAsync();
                 Assert.Equal(LegacyMsgLoginGamePacket.Opcode, dispatched.Opcode);
                 var admitted = Assert.IsType<WorldSession>(dispatched.After);
                 Assert.Equal((long)account, admitted.AccountId);

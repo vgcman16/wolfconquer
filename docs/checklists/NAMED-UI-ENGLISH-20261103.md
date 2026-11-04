@@ -1,4 +1,106 @@
+# Latest private English proposal - 2026-11-04 UTC
+
+Current actual proposal: **4,748 keys /4,814 physical rows**. Root reviewed and
+composed160 additional keys across176rows after the4584/4629 checkpoint:60
+auction/shop/inventory keys(66rows), then100 social/gift/emote/navigation keys
+(110rows). All source occurrence contexts were read; month/day order, inclusive
+three-day wording, account gift-request scope and shop-level unlock meaning were
+refined. Every prior/unselected byte, exact key/occurrence/ending and ordered
+format token remains. Ambiguous, encoded and format-conflicting entries stay held.
+This is PRIVATE,UNAPPLIED,UNRENDERED. SeparateUStrRes1191 is not combined.
+
+The explicit physical-variant proposal route now supports independently pinned
+format-distinct duplicates without flattening colors/placeholders. Its isolated
+full84 Python controls passed; Root rechecked18 new final-source API/actual-CLI
+controls,0failed/skipped,3.768s. The old uniform route and66 controls remain
+unchanged. Root then reviewed eight distinct source variants under four previously held
+keys and composed nine physical rows through the actual variant CLI. Each source
+color/tag/printf/punctuation distinction remains. Actual CLI counts were4keys,
+8variants,9rows,0holds; independent comparison preserved every prior/unselected
+byte and original prefix/ending/occurrence. The proposal remains unapplied and
+unrendered; no native duplicate-key lookup or runtime rule is inferred.
+
+Earlier checkpoint details below are historical.
+
 # Named UI English proposal checklist
+
+- [x] Added300 reviewed quest/activity/shop/Arena/Family/Guild/navigation keys
+  covering300 rows:4284/4329 ->4314/4359 ->4344/4389 ->4404/4449
+  ->4464/4509 ->4524/4569 ->4584keys/4629rows. Root read every wording and
+  occurrence context; clarified label spacing, purchase-owner direction and
+  Grand Final versus Finals. Hiding labels retain literal source categories,
+  without claiming their membership or UI bindings are resolved.
+  Actual3,230,944bytes; SHA256
+  F1FE9716BB0ADF230D8BAB9CDDF56BFCB513309A0D53A7AB9DBAEC710EFD7470.
+  FSB-352's exact source-display-mark correction passed all66 Python controls,
+  0failed/skipped,in33.023s after2 actual old-tool positives failed. Source09's
+  label/time colons were refined to preserve every original mark. The updated
+  private verifier passed13 bounded controls; historical helpers remain preserved.
+  Root independently compared actual/original/prior bytes for both compositions:
+  all prior wording, unselected bytes, exact keys, endings, ordered tokens, source
+  marks, tabs, nine-space gap and fragments remain. Eight schedule snippets keep
+  their exact digits; other time ranges retain the source hours/order. Displayed
+  schedules, no-fee/deposit/automatic-trade notices and costs are translated text,
+  not proof of corresponding server behavior. Reversed/default schedules, named
+  resources, malformed clauses and recognition markers remain held.
+  Private/unapplied/unrendered; no C#/SQL/live-client qualification follows.
+
+
+- [x] Added80 reviewed settings/password/weekday/quest/menu/navigation keys
+  covering81rows in two unchanged-tool passes:4204/4248 ->4244/4289
+  ->4284keys/4329rows. Root read every wording and original occurrence context,
+  retained the uniform Go To duplicate and all five mixed-case literal names,
+  and independently compared original/prior/actual bytes. Actual3,229,724bytes;
+  SHA256 ACB889752A542A78E079E4BED594C6676989238BAB85214A3B6732A258817DBD.
+  Same-Guild targeting, weekday names, distinct Skip Animation/Skip Pop-ups
+  wording, all prior translations, unselected bytes, key spelling, duplicate
+  occurrences, endings and tokens remain. Ambiguous name-color/relationship
+  categories, hidden effects, hotkey action and encoded identifiers stay Chinese.
+  No tool source changed or redundant suite ran. Private/unapplied/unrendered;
+  no new C#/SQL/gameplay or live-client qualification follows.
+
+
+- [x] Added209 reviewed Family/Guild/cross-server/mail/auction/password/equipment/
+  appearance/social keys covering210rows through four unchanged-tool passes:
+  3995/4038 ->4045/4088 ->4095/4138 ->4155/4199 ->4204keys/4248rows.
+  Root read every candidate and all occurrence contexts; refined Ctrl spelling,
+  two explicit VIP Level4 labels and a notice about displaying cross-server
+  friends. The Arena chat prefix remains Chinese pending role evidence, alongside
+  encoded item links, ambiguous resource terms and placeholder help.
+  Actual3,229,617bytes; SHA256
+  86FF3BE51B42ED0C28AD8FC1CBFF8757A84DC3CA89F2E629C80F6A17F48A608B.
+  Root independently compared original/prior/actual output: all earlier wording,
+  unselected bytes, exact names, duplicate color-confirmation rows, endings,
+  ordered printf/markup and the literal double-backslash marker remain. Gift
+  Points fragments keep their final spaces; no threshold/cost/action is inferred.
+  Qualified53-control tool source was unchanged; no redundant suite was run.
+  Still private/unapplied/unrendered; no new C#/SQL/gameplay or live acceptance.
+
+
+- [x] Added243 reviewed team/friend/gift/chat/rank/guide/settings/tooltip keys
+  covering245 rows through four private CLI passes:3752/3793 ->3832/3874
+  ->3912/3954 ->3919/3961 ->3995keys/4038rows. Root read all wording/context,
+  refined the gift-list error and Top Up label, and independently compared
+  original/prior/actual bytes. Actual3,228,530bytes; SHA256
+  E7A398DDBE6CAFC35083788AF9573262223F2E012D66A21F19DB5192C13B2602.
+  Literal mixed-case and numeric-tooltip keys passed all53 text-tool controls
+  (0 failed/skipped,28.053s). The private helper first refused its older key
+  grammar before output; a preserved-copy update passed8 bounded checks.
+  All prior/unselected bytes, exact key spellings, duplicates, endings and
+  formatting remain. Ambiguous Ninja and other held meanings remain Chinese.
+  Private/unapplied/unrendered; no C#/SQL/gameplay or client acceptance follows.
+
+- [x] Added154 reviewed refinement/ownership/material/shop/character keys covering
+  157rows through two unchanged-tool passes:3598/3636 ->3678/3718 ->3752keys/
+  3793rows. Root read every wording and all157 occurrence contexts, refined five
+  phrases and independently compared the actual output to original and previous
+  proposal. Actual3,227,660bytes; SHA256
+  F097FE6880F1E7AAE048087378398969F8877C8802D82561E922BD3FB5E8803D.
+  Signature limits remain Chinese characters; owner/gift/locked/same-slot rules,
+  currency distinctions, duplicate occurrences, fragments, quantities and tokens
+  remain. Ambiguous names, subclass resource and separator rows stay held. Prior
+  translations and all unselected bytes are preserved. Private/unapplied/
+  unrendered; unchanged formatter, no redundant suite or gameplay claim.
 
 - [x] Added147 reviewed Guild/arena/instance keys/rows through two unchanged-tool
   passes:3451/3489 ->3519/3557 ->3598keys/3636rows. Root read149 proposed pairs

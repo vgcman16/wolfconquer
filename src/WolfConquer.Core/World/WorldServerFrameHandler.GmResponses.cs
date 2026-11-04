@@ -8,6 +8,10 @@ public sealed partial class WorldServerFrameHandler
 
     private async ValueTask SendGmRefusalAsync(ConquerTcpConnection connection, CancellationToken cancellationToken)
     {
+        // Every caller is outside its world lease. Keep even the refusal send
+        // from crossing a newly reserved SQL connection's exclusive operation.
+        using var operation = await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
+        if (HasSqlConnectionHandoffFence(connection)) return;
         // Fixed, non-sensitive refusal goes only to the requesting transport.
         // It contains no command text, account identity, policy or paths.
         lock (_tradeStates.SyncRoot)

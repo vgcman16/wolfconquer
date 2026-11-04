@@ -40,6 +40,7 @@ public sealed partial class SqlAccountAuthenticationCustody
 
             MySqlTransaction? transaction = null;
             Exception? failure = null;
+            List<IAsyncDisposable>? pendingCleanup = null;
             bool commitAttempted = false, committed = false;
             string? bearer = null;
             DateTime issued = default, expires = default;
@@ -136,6 +137,7 @@ public sealed partial class SqlAccountAuthenticationCustody
                 try { await transaction.DisposeAsync().ConfigureAwait(false); }
                 catch (Exception cleanup)
                 {
+                    (pendingCleanup ??= []).Add(transaction);
                     if (committed) cleanup = new SqlAccountWorldHandoffCommittedCleanupException(cleanup);
                     failure = failure is null ? cleanup : new AggregateException(failure, cleanup);
                 }
@@ -143,6 +145,9 @@ public sealed partial class SqlAccountAuthenticationCustody
             if (failure is not null)
             {
                 failure = await RetireHeldAsync(failure).ConfigureAwait(false);
+                if (pendingCleanup is not null)
+                    failure = SqlAccountWorldHandoffException.WithPendingCleanup(failure!,
+                        pendingCleanup.ToArray(), commitAttempted, committed);
                 ExceptionDispatchInfo.Capture(failure!).Throw();
             }
             return new(refusal, bearer, issued, expires);

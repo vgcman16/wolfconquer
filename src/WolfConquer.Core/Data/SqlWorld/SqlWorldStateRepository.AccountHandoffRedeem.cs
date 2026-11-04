@@ -23,6 +23,7 @@ public sealed partial class SqlWorldStateRepository
         SqlAccountWorldHandoffRedeemResult? prepared = null;
         SqlAccountWorldHandoffFailure refusal = SqlAccountWorldHandoffFailure.None;
         Exception? failure = null;
+        List<IAsyncDisposable>? pendingCleanup = null;
         bool commitAttempted = false, committed = false;
         try
         {
@@ -115,12 +116,20 @@ public sealed partial class SqlWorldStateRepository
         if (transaction is not null)
         {
             try { await transaction.DisposeAsync().ConfigureAwait(false); }
-            catch (Exception cleanup) { failure = CombineHandoffCleanup(failure, cleanup, committed); }
+            catch (Exception cleanup)
+            {
+                (pendingCleanup ??= []).Add(transaction);
+                failure = CombineHandoffCleanup(failure, cleanup, committed);
+            }
         }
         if (connection is not null)
         {
             try { await connection.DisposeAsync().ConfigureAwait(false); }
-            catch (Exception cleanup) { failure = CombineHandoffCleanup(failure, cleanup, committed); }
+            catch (Exception cleanup)
+            {
+                (pendingCleanup ??= []).Add(connection);
+                failure = CombineHandoffCleanup(failure, cleanup, committed);
+            }
         }
         CryptographicOperations.ZeroMemory(hash);
         if (failure is not null || !committed)
@@ -128,9 +137,20 @@ public sealed partial class SqlWorldStateRepository
             if (owner is not null)
             {
                 try { await owner.DisposeAsync().ConfigureAwait(false); }
-                catch (Exception cleanup) { failure = CombineHandoffCleanup(failure, cleanup, committed); }
+                catch (Exception cleanup)
+                {
+                    (pendingCleanup ??= []).Add(owner);
+                    failure = CombineHandoffCleanup(failure, cleanup, committed);
+                }
             }
-            if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();
+            if (failure is not null)
+            {
+                // A raw acquisition can be the only pending resource even
+                // when every resource local to redemption closed successfully.
+                failure = SqlAccountWorldHandoffCleanupTransfer.RetainCleanup(failure,
+                    pendingCleanup, commitAttempted, committed);
+                ExceptionDispatchInfo.Capture(failure).Throw();
+            }
             return RefusedHandoff(refusal);
         }
         return prepared!;

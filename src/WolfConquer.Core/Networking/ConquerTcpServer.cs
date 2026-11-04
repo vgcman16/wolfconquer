@@ -12,7 +12,7 @@ using WolfConquer.Core.World;
 
 namespace WolfConquer.Core.Networking;
 
-public sealed class ConquerTcpServer : IAsyncDisposable
+public sealed partial class ConquerTcpServer : IAsyncDisposable
 {
     private static readonly byte[] LegacyClientSeal = Encoding.ASCII.GetBytes(LegacyGameServerHandshakeReply.Seal);
 
@@ -82,7 +82,12 @@ public sealed class ConquerTcpServer : IAsyncDisposable
                 throw new InvalidOperationException("TCP server is already started.");
             }
 
+            if (_publicStopping || _publicStopped)
+                throw new ObjectDisposedException(nameof(ConquerTcpServer));
+
             _stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _shutdownProducersSettled = false;
+            _stopDisposed = false;
             if (_options.WireMode == ConquerTcpWireMode.LegacyGameServer)
                 LegacyNativePoolRandom.InitializeAtServerStartup();
             try { _listener.Start(); }
@@ -94,39 +99,6 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        Task? acceptTask;
-        CancellationTokenSource? stop;
-
-        lock (_gate)
-        {
-            acceptTask = _acceptTask;
-            stop = _stop;
-            _publicStopping = true;
-        }
-
-        if (stop is null)
-        {
-            lock (_gate) { _publicStopped = true; _publicStoppedTimestamp = Stopwatch.GetTimestamp(); }
-            return;
-        }
-
-        await stop.CancelAsync().ConfigureAwait(false);
-        _listener.Stop();
-        await IgnoreShutdownExceptionAsync(acceptTask).ConfigureAwait(false);
-        // An accept already in progress may register its client while shutdown
-        // is starting. Only snapshot after that producer has fully stopped.
-        Task[] clientTasks;
-        lock (_gate)
-        {
-            clientTasks = _clientTasks.ToArray();
-        }
-        await IgnoreShutdownExceptionAsync(Task.WhenAll(clientTasks)).ConfigureAwait(false);
-        lock (_gate) { _publicStopped = true; _publicStoppedTimestamp = Stopwatch.GetTimestamp(); }
-        stop.Dispose();
-    }
-
     private async Task AcceptLoopAsync(CancellationToken cancellationToken)
     {
         try
@@ -136,24 +108,7 @@ public sealed class ConquerTcpServer : IAsyncDisposable
                 var client = await _listener.AcceptTcpClientAsync(cancellationToken).ConfigureAwait(false);
                 _log.WriteLine(
                     $"{_options.Endpoint.Role} accepted client {client.Client.RemoteEndPoint} on {client.Client.LocalEndPoint}");
-                var task = HandleClientAsync(client, cancellationToken);
-
-                lock (_gate)
-                {
-                    _clientTasks.Add(task);
-                }
-
-                _ = task.ContinueWith(
-                    completed =>
-                    {
-                        lock (_gate)
-                        {
-                            _clientTasks.Remove(completed);
-                        }
-                    },
-                    CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default);
+                TrackClientTask(client, cancellationToken);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -169,7 +124,7 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         }
     }
 
-    private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
+    private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken, TrackedClientTask tracked)
     {
         var remoteEndPoint = client.Client.RemoteEndPoint;
         var localEndPoint = client.Client.LocalEndPoint;
@@ -179,6 +134,7 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         var clientCancellationToken = clientStop.Token;
         var stream = client.GetStream();
         var pipelineStage = "modern-packet-pipeline";
+        Exception? pipelineFailure = null;
         var connectionClosed = 0;
 
         bool IsConnectionClosed()
@@ -299,16 +255,13 @@ public sealed class ConquerTcpServer : IAsyncDisposable
         }
         catch (Exception ex)
         {
+            pipelineFailure = ex;
             LogClientException(remoteEndPoint, localEndPoint, pipelineStage, ex);
         }
         finally
         {
-            MarkConnectionClosed();
-            await clientStop.CancelAsync().ConfigureAwait(false);
-            // Finish world retirement before normal stream disposal publishes EOF.
-            // This runs after dispatch unwinds, never inside a send/connection gate.
-            await connection.CompleteTransportCloseAsync().ConfigureAwait(false);
-            await reader.CompleteAsync().ConfigureAwait(false);
+            // The concrete producer keeps failed retirement alive after this task.
+            await RetireClientAsync(connection, reader, clientStop, MarkConnectionClosed, tracked, pipelineFailure).ConfigureAwait(false);
             _log.WriteLine($"{_options.Endpoint.Role} closed client {remoteEndPoint} on {localEndPoint}");
         }
     }

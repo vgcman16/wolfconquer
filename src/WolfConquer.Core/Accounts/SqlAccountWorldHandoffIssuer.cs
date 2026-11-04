@@ -27,13 +27,28 @@ public sealed class SqlAccountWorldHandoffIssuer
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var authResult = await accounts.TryAcquireAuthenticationAsync(request, cancellationToken).ConfigureAwait(false);
+        SqlAccountAuthenticationAcquireResult authResult;
+        try
+        {
+            authResult = await accounts.TryAcquireAuthenticationAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            // Acquisition may fail before an auth owner exists. Retain only
+            // the actual raw cleanup handle; no ticket COMMIT was attempted.
+            var acquisitionFailure = SqlAccountWorldHandoffCleanupTransfer.RetainCleanup(error, null,
+                commitAttempted: false, committed: false);
+            ExceptionDispatchInfo.Capture(acquisitionFailure).Throw();
+            throw;
+        }
         if (!authResult.IsAcquired) return new(null, Map(authResult.Failure));
         var auth = authResult.Custody!;
         SqlWorldBundleCustody? worldOwner = null;
         SqlAccountWorldHandoffIssueResult? result = null;
         SqlAccountWorldHandoffOffer? pendingOffer = null;
         Exception? failure = null;
+        List<IAsyncDisposable>? pendingCleanup = null;
+        bool pendingOfferCleanupFailed = false;
         bool committed = false, transferred = false;
         try
         {
@@ -93,19 +108,38 @@ public sealed class SqlAccountWorldHandoffIssuer
         if (worldOwner is not null)
         {
             try { await worldOwner.DisposeAsync().ConfigureAwait(false); }
-            catch (Exception cleanup) { failure = failure is null ? cleanup : new AggregateException(failure, cleanup); }
+            catch (Exception cleanup)
+            {
+                (pendingCleanup ??= []).Add(worldOwner);
+                failure = failure is null ? cleanup : new AggregateException(failure, cleanup);
+            }
         }
         if (!transferred && pendingOffer is not null)
         {
             try { await pendingOffer.DisposeAsync().ConfigureAwait(false); }
-            catch (Exception cleanup) { failure = failure is null ? cleanup : new AggregateException(failure, cleanup); }
+            catch (Exception cleanup)
+            {
+                pendingOfferCleanupFailed = true;
+                (pendingCleanup ??= []).Add(pendingOffer);
+                failure = failure is null ? cleanup : new AggregateException(failure, cleanup);
+            }
         }
         if (!transferred)
         {
             try { await auth.DisposeAsync().ConfigureAwait(false); }
-            catch (Exception cleanup) { failure = failure is null ? cleanup : new AggregateException(failure, cleanup); }
+            catch (Exception cleanup)
+            {
+                // An unpublished offer owns this same auth object and must also
+                // join its monitor. Retain that owner once, not a parallel grant.
+                if (!pendingOfferCleanupFailed) (pendingCleanup ??= []).Add(auth);
+                failure = failure is null ? cleanup : new AggregateException(failure, cleanup);
+            }
         }
-        if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();
+        if (failure is not null)
+        {
+            failure = SqlAccountWorldHandoffCleanupTransfer.RetainIssueCleanup(failure, pendingCleanup, committed);
+            ExceptionDispatchInfo.Capture(failure).Throw();
+        }
         return result!;
     }
 

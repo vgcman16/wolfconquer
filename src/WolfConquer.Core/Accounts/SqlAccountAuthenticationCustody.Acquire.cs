@@ -2,6 +2,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using MySqlConnector;
+using WolfConquer.Core.Data.SqlWorld;
 
 namespace WolfConquer.Core.Accounts;
 
@@ -28,9 +29,8 @@ public sealed partial class SqlAccountAuthenticationCustody
             try { await connection.DisposeAsync().ConfigureAwait(false); }
             catch (Exception error) { cleanup = error; }
         }
-        if (primary is not null && cleanup is not null) throw new AggregateException(primary, cleanup);
+        if (cleanup is not null) throw new SqlResourceCleanupException(primary, cleanup, connection);
         if (primary is not null) ExceptionDispatchInfo.Capture(primary).Throw();
-        if (cleanup is not null) ExceptionDispatchInfo.Capture(cleanup).Throw();
         return result!;
     }
 

@@ -46,8 +46,8 @@ def validate_plan(plan, inputs):
             or type(plan["family"]) is not str or plan["family"] not in FAMILIES or plan["codec"] != "utf-8"
             or type(plan["keys"]) is not list or not plan["keys"] or len(plan["keys"]) > 200):
         raise ValueError("namedResourcePlanShape")
-    if (any(type(key) is not str or not re.fullmatch(r"STR_[A-Z0-9_]+", key) for key in plan["keys"])
-            or len(set(plan["keys"])) != len(plan["keys"])
+    if (any(type(key) is not str or not re.fullmatch(r"STR_(?:[A-Za-z0-9_]+|BTN_TIP_[0-9]+-[0-9]+)", key) for key in plan["keys"])
+            or len({key.casefold() for key in plan["keys"]}) != len(plan["keys"])
             or type(plan["inputSha256"]) is not dict
             or set(plan["inputSha256"]) != {"original", "english", "current"}):
         raise ValueError("namedResourcePlanKeys")
@@ -65,6 +65,16 @@ def selected_case_aliases(documents, keys):
             if key is not None and name != key:
                 ambiguous.add(key)
     return frozenset(ambiguous)
+
+
+def english_donor(before, donor):
+    marks = "★【】："
+    if (not re.search(r"[A-Za-z]", donor)
+            or any(not (32 <= ord(char) <= 126 or char == "\t" or char in marks) for char in donor)):
+        return False
+    # ASCII-only donors retain their existing policy.
+    return (not any(char in marks for char in donor)
+            or tuple(char for char in donor if char in marks) == tuple(char for char in before if char in marks))
 
 
 def propose(original, english, current, plan):
@@ -92,7 +102,7 @@ def propose(original, english, current, plan):
                 reason = "translationUnchanged"
             elif MACHINE.search(before) or MACHINE.search(donor) or not CJK.search(before):
                 reason = "machineOrNonDisplayValue"
-            elif not re.search(r"[A-Za-z]", donor) or any(not (32 <= ord(c) <= 126 or c == "\t") for c in donor):
+            elif not english_donor(before, donor):
                 reason = "englishDonorRequired"
             else:
                 try:

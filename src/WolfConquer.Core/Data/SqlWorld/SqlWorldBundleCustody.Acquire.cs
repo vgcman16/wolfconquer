@@ -27,12 +27,8 @@ public sealed partial class SqlWorldBundleCustody
             try { await owned.DisposeAsync().ConfigureAwait(false); }
             catch (Exception error) { cleanup = error; }
         }
-        if (primary is not null)
-        {
-            if (cleanup is not null) throw new AggregateException(primary, cleanup);
-            ExceptionDispatchInfo.Capture(primary).Throw();
-        }
-        if (cleanup is not null) ExceptionDispatchInfo.Capture(cleanup).Throw();
+        if (cleanup is not null) throw new SqlResourceCleanupException(primary, cleanup, owned);
+        if (primary is not null) ExceptionDispatchInfo.Capture(primary).Throw();
         return result!;
     }
 

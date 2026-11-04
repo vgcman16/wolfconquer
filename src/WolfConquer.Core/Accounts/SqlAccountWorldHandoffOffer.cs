@@ -12,6 +12,7 @@ public sealed class SqlAccountWorldHandoffOffer : IAsyncDisposable
     private readonly SemaphoreSlim disposeGate = new(1, 1);
     private readonly Task monitor;
     private readonly TimeSpan pollInterval;
+    private bool monitorFailureReported;
 
     internal SqlAccountWorldHandoffOffer(SqlAccountAuthenticationCustody owner, string token,
         ConquerEndpoint endpoint, DateTime issuedUtc, DateTime expiresUtc)
@@ -63,10 +64,21 @@ public sealed class SqlAccountWorldHandoffOffer : IAsyncDisposable
         await disposeGate.WaitAsync().ConfigureAwait(false);
         try
         {
-            stop.Cancel();
             Exception? failure = null;
-            try { await monitor.ConfigureAwait(false); }
+            try { stop.Cancel(); }
             catch (Exception error) { failure = error; }
+            try { await monitor.ConfigureAwait(false); }
+            catch (Exception error)
+            {
+                // The first caller receives this exact historical monitor fault.
+                // A later disposal retries cleanup, rather than re-reporting it
+                // forever after the physical owner has closed successfully.
+                if (!monitorFailureReported)
+                {
+                    monitorFailureReported = true;
+                    failure = failure is null ? error : new AggregateException(failure, error);
+                }
+            }
             // Also retries a failed physical close; the monitor is never awaiting itself.
             try { await owner.DisposeAsync().ConfigureAwait(false); }
             catch (Exception cleanup) { failure = failure is null ? cleanup : new AggregateException(failure, cleanup); }

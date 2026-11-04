@@ -90,6 +90,8 @@ public sealed partial class WorldServerFrameHandler
     {
         if (connection.HasObservedTransportClose)
             reason = "observedTransportClosed";
+        else if (HasSqlConnectionHandoffFence(connection))
+            reason = "sqlConnectionHandoffFenced";
         else if (!_creationLifetimes.TryGetValue(connection, out var lifetime) || !lifetime.IsCurrent(connection))
             reason = "connectionLifetimeUnavailable";
         else if (_sessions.TryGet(connection, out _))

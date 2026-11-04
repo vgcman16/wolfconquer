@@ -15,6 +15,9 @@ public sealed partial class WorldServerFrameHandler
 
         try
         {
+            // A retained or indeterminate SQL attempt cannot fall back into
+            // file admission, GM commands or ordinary gameplay handlers.
+            if (HasSqlConnectionHandoffFence(connection)) return;
             if (!_tradeRecovery.TryEnsureInitialized(out var recoveryReason))
             {
                 await _log.WriteLineAsync($"WorldServer trade recovery blocked world admission/actions: {recoveryReason}.")
@@ -36,6 +39,9 @@ public sealed partial class WorldServerFrameHandler
                     WorldPacketOpcodes.InternalWorldEnterRequest or WorldPacketOpcodes.LegacyNewRole
                     ? await _worldOperations.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false)
                     : await _worldOperations.EnterSharedAsync(cancellationToken).ConfigureAwait(false);
+            // Recheck after acquiring the real operation: SQL retention may
+            // have won while this ordinary frame was queued.
+            if (HasSqlConnectionHandoffFence(connection)) return;
             // A preceding exclusive trade may have fenced recovery while this
             // operation was queued; do not proceed on the earlier readiness read.
             if (_tradeRecovery.IsBlocked || operation is not null &&

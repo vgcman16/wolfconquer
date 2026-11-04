@@ -21,8 +21,7 @@ public sealed partial class WorldServerFrameHandler
             CloseCleanup = () =>
             {
                 End();
-                owner.RetireEndedAuthenticatedCreation(connection);
-                return owner.CancelTradeAfterDisconnectAsync(owner.CreateTradeDisconnectContext(connection), transportClosed: true);
+                return owner.CompleteSqlAndLegacyTransportCloseAsync(connection);
             };
         }
         internal bool IsCurrent(ConquerTcpConnection connection) => Volatile.Read(ref ended) == 0 &&

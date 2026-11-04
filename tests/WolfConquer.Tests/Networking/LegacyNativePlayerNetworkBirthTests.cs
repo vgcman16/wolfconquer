@@ -166,43 +166,55 @@ internal sealed partial class NativePlayerLoopback : IAsyncDisposable
         return client;
     }
 
-    internal async Task<NativePlayerWireClient> ConnectGameAsync(bool coalesced, bool captureOutput = false)
+    internal async Task<NativePlayerWireClient> ConnectGameAsync(bool coalesced, bool captureOutput = false,
+        FixturePhaseTiming? timing = null)
     {
         if (_mode != ConquerTcpWireMode.LegacyGameServer)
             throw new InvalidOperationException("Game handshake requested on nongame fixture.");
-        var socket = await ConnectAsync();
+        TcpClient socket;
+        using (timing?.Measure("wire-socket-connect")) socket = await ConnectAsync();
         var stream = socket.GetStream();
-        var plain = await ReadServerHandshakeAsync(stream, Token);
-        var offset = 53;
-        var prime = ReadBlob(plain, ref offset);
-        var generator = ReadBlob(plain, ref offset);
-        var serverPublic = ReadBlob(plain, ref offset);
-        var dh = new LegacyGameServerDiffieHellman(prime, generator);
-        // Real client-side CSPRNG, not a forced exponent or a gameplay Pool seed/result.
-        var clientPublic = dh.GenerateRequest();
-        dh.HandleResponse(serverPublic);
-        var material = new byte[LegacyGameServerCipher.KeyMaterialSize];
-        dh.DeriveKeyMaterial(material);
-        var outbound = new LegacyGameServerCipher(material);
+        byte[] plain;
+        using (timing?.Measure("wire-server-handshake-read"))
+            plain = await ReadServerHandshakeAsync(stream, Token);
+        string clientPublic;
+        LegacyGameServerCipher outbound;
+        using (timing?.Measure("wire-client-dh-and-cipher"))
+        {
+            var offset = 53;
+            var prime = ReadBlob(plain, ref offset);
+            var generator = ReadBlob(plain, ref offset);
+            var serverPublic = ReadBlob(plain, ref offset);
+            var dh = new LegacyGameServerDiffieHellman(prime, generator);
+            // Real client-side CSPRNG, not a forced exponent or a gameplay Pool seed/result.
+            clientPublic = dh.GenerateRequest();
+            dh.HandleResponse(serverPublic);
+            var material = new byte[LegacyGameServerCipher.KeyMaterialSize];
+            dh.DeriveKeyMaterial(material);
+            outbound = new LegacyGameServerCipher(material);
+        }
         var capture = captureOutput ? new NativePlayerLoopbackOutputCapture() : null;
         if (capture is not null) _outputCaptures.Add(capture);
         var client = new NativePlayerWireClient(stream, outbound, null, capture);
         var reply = ClientHandshakeReply(clientPublic);
         new LegacyGameServerCipher(Encoding.ASCII.GetBytes(LegacyGameServerCipher.LoginKey))
             .EncryptInPlace(reply);
-        if (coalesced)
+        using (timing?.Measure("wire-handshake-and-probe-write"))
         {
-            var first = LegacyGameServerFrameCodec.EncodeEncrypted(
-                ProbeFrame(), outbound, LegacyGameServerFrameSeal.Client);
-            var combined = new byte[reply.Length + first.Length];
-            reply.CopyTo(combined, 0);
-            first.CopyTo(combined, reply.Length);
-            await stream.WriteAsync(combined, Token);
-        }
-        else
-        {
-            await stream.WriteAsync(reply, Token);
-            await client.SendAsync(ProbeFrame(), Token);
+            if (coalesced)
+            {
+                var first = LegacyGameServerFrameCodec.EncodeEncrypted(
+                    ProbeFrame(), outbound, LegacyGameServerFrameSeal.Client);
+                var combined = new byte[reply.Length + first.Length];
+                reply.CopyTo(combined, 0);
+                first.CopyTo(combined, reply.Length);
+                await stream.WriteAsync(combined, Token);
+            }
+            else
+            {
+                await stream.WriteAsync(reply, Token);
+                await client.SendAsync(ProbeFrame(), Token);
+            }
         }
         _drains.Add(DrainOutputAsync(stream, Token, capture));
         return client;

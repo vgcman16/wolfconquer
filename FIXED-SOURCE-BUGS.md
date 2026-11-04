@@ -3,11 +3,118 @@
 This tracker separates verified corrections from open qualification. Component
 and provider results do not establish complete gameplay or live deployment.
 
+## EOF denial ordering - component/provider qualified, 2026-11-04
+
+### FSB-353: Publish closed-connection denial before waiting for SQL cleanup
+
+**QUALIFIED within managed/provider scope; new full Windows gate pending.** The unpublished combined EOF
+cleanup awaited the SQL world-exclusive lease before legacy trade cancellation
+published its ended marker. The existing deterministic queued-GM test caught
+that delayed denial while a real shared world lease was held. The correction
+marks the existing trade/GM lifetime ended synchronously under its actual gate,
+then still joins authentication retirement, real SQL disposal and legacy cleanup
+with ordered failures. It grants no owner, removes no session early and changes
+no successful wire layout. The first actual affected run retained 407 passes and
+6 failures: this one regression plus five half-close stream-fixture failures.
+The independent fixture repair retains each exact real peer stream before the
+first frame and reads actual EOF through it after shutdown; no fake EOF or
+cleanup success is supplied. All 102 completed corrected managed cases passed, including 58 GM and all 9
+TCP retirement rows; the separate full 129-login history case also passed. All
+134 provider Facts passed on owned MariaDB with exact inventory and complete
+cleanup. The new full publication gate remains pending.
+
+## Original display marks - text-tool qualified, 2026-11-04
+
+### FSB-352: Permit exact source display symbols in English proposals
+
+**QUALIFIED within Python text-tool scope; included in the reviewed publication batch.** The
+ASCII-only donor guard rejected English that retained original stars, brackets
+and full-width time colons. One small predicate now additionally admits exactly
+U+2605, U+3010, U+3011 and U+FF1A. A donor using them must preserve the complete
+original ordered projection. All-ASCII donor behavior remains unchanged.
+
+The two new actual API/CLI positives failed against the unchanged old tool
+(2 failures,0 errors;0.261s). Root reviewed/intook three paths and the complete
+expanded suite passed66 tests,0failed/skipped,in33.023s. Thirteen new methods
+cover real CLI byte goldens, original label/time colons, duplicates/BOM/endings,
+prior/unselected bytes, exact finite symbols, rejection of missing/reordered/
+added marks and illegal Unicode/controls, retained guards and create-only output.
+No private client payloads are in public fixtures. All existing pins, size/path/
+family/key/alias/duplicate/machine/signature rules remain.
+
+This does not grant arbitrary Unicode, normalize source punctuation, qualify a
+schedule, apply/render resources, establish font/layout fit, or qualify C#/SQL,
+client lookup or live7937 behavior. [Contract](docs/protocol/specs/7937-ui-literal-display-marks.md).
+
+## Literal resource keys - text-tool qualified, 2026-11-03
+
+### FSB-351: Accept observed literal UI keys without case-alias ambiguity
+
+**QUALIFIED within Python text-tool scope; included in the reviewed publication batch.** The parser
+retained exact mixed-case and numeric-tooltip resource keys, but the plan
+validator rejected them. Its two validation lines now accept uppercase STR_
+plus ASCII letters/digits/underscores, or exact STR_BTN_TIP_[0-9]+-[0-9]+.
+Spelling and leading zeros remain literal. Casefold-colliding plan names are
+refused before selection/output; existing selected-alias holds remain.
+
+Two new actual API/CLI positives failed against the unchanged old tool (one
+error,one failure). The integrated expanded suite then passed53 tests,0failed/
+skipped,in28.053s, including8 new controls for exact bytes, aliases, malformed
+keys, existing token/value guards and no-output failures. All bounds, pins,
+family/output rules and create-only behavior remain. No private client strings
+are in public fixtures. This does not prove resource application, native lookup,
+rendering, C#/SQL qualification or live7937 gameplay.
+
+## Handoff cleanup ownership - component/provider qualified, 2026-11-03
+
+### FSB-349: Retain failed cleanup resources and permit a real disposal retry
+
+**QUALIFIED within managed/provider scope; new full Windows gate pending.** The self-authored handoff
+redeemer/issuer and auth-issuance transaction could throw disposal failures while
+losing the exact failed transaction, connection, auth, offer or world-owner refs.
+Offer disposal also rethrew its joined monitor's historical fault on every retry,
+even after the physical owner had closed. These are repository source findings;
+no physical provider Dispose-fault reproduction is claimed.
+
+The successor retains failed resources privately in disposal-only exception
+ownership, preserving direct known/unknown COMMIT kinds, original errors and
+ordered cleanup failures. Retries attempt every pending resource, serialize and
+remove only successful disposals. Nested pending handles are retained once; an
+unpublished offer remains responsible for its auth/monitor. The first real joined
+monitor fault stays observable; later disposal retries actual cleanup instead of
+re-reporting that same historical error. Eleven ordinary failure-only cases and
+one actual killed-issuer monitor Fact passed within the complete 134-provider
+family and the 102 completed corrected managed cases. Existing killed-issuer
+coverage retained first-error checks and passed its second disposal.
+
+No new authentication, SQL read/write, native/Store or publication grant follows.
+[Current results and limits](docs/checklists/SQL-CONNECTION-CUSTODY-20261103.md).
+
+## Lower cleanup ownership - component/provider qualified, 2026-11-03
+
+### FSB-350: Preserve pre-owner and failed transport-retirement ownership
+
+**QUALIFIED within managed/provider scope; new full Windows gate pending.** Raw connection close-
+failure refs could be lost before auth/world acquisition returned an owner;
+EOF cleanup failure could skip reader completion, and a weak-key Frame binding
+alone did not retain retry ownership after the producer task was removed.
+
+Pre-owner errors now retain failed raw connection disposal in private cleanup
+handles and transfer nested pending cleanup through issuer/redemption failure.
+Concrete TCP retirement attempts EOF and reader completion, strongly retains
+failed resources after task removal, observes actual task errors and serializes
+same-resource retry/shutdown. Primary/cleanup ordering and bounded retirement
+diagnostics remain. Seven additional ordinary SQL cases and 9 TCP cases
+passed within the corrected managed rows, with all 134 provider Facts also
+passing. No physical provider Dispose-fault, failed real network
+reader completion or arbitrary process/OS teardown proof is claimed. This source
+repair is not a verified production fault-safety or backend-activation claim.
+
 ## SQL handoff validation and commitment - component/provider qualified, 2026-11-03
 
 ### FSB-348: Establish real handoff transaction and lifetime prerequisites
 
-**QUALIFIED within the component/provider scope; successor full CI pending.**
+**QUALIFIED within the component/provider scope; full Windows f88da998 passed.**
 Review of the new self-authored handoff draft found assumptions about transaction-
 capable account storage, a Read Committed nonunique username predicate, incomplete
 settled row/lifetime checks and post-COMMIT result construction. These were
@@ -32,7 +139,7 @@ and the new full Windows integration gate remain open. See the
 
 ### FSB-347: Enforce the target connection independently of provider options
 
-**QUALIFIED within the component/provider scope; successor full CI pending.**
+**QUALIFIED within the component/provider scope; full Windows f88da998 passed.**
 The new authentication domain verifier assigned a supplied transaction to the
 target command and relied on the provider to reject a different connection.
 MySqlConnector2.6.1 makes that check conditional on IgnoreCommandTransaction=false.
@@ -49,7 +156,7 @@ passes, not a native authority grant or an old unsafe-baseline reproduction.
 
 ### FSB-346: Reject missing permissions instead of defaulting to eligibility
 
-**QUALIFIED within the component/provider scope; successor full CI pending.**
+**QUALIFIED within the component/provider scope; full Windows f88da998 passed.**
 MySqlAccountRepository.FindByUsernameAsync defaulted NULL BannedID to allowed2
 and NULL Online to offline. It now completes the actual candidate scan and
 rejects malformed required state without returning a valid prefix. IDs and

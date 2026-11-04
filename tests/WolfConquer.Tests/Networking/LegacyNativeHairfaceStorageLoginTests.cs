@@ -355,10 +355,11 @@ public sealed partial class LegacyNativeHairfaceStorageLoginTests
     }
 
     private static async Task<(NativePlayerWireClient Wire, NativePlayerDispatch Birth)> ConnectBornAsync(
-        NativePlayerLoopback fixture)
+        NativePlayerLoopback fixture, FixturePhaseTiming? timing = null)
     {
-        var wire = await fixture.ConnectGameAsync(false);
-        var birth = await fixture.NextAsync();
+        var wire = await fixture.ConnectGameAsync(false, timing: timing);
+        NativePlayerDispatch birth;
+        using (timing?.Measure("wire-birth-dispatch-observation")) birth = await fixture.NextAsync();
         Assert.Equal(NativePlayerLoopback.ProbeOpcode, birth.Opcode);
         Assert.Null(birth.Before);
         Assert.Null(birth.After);
